@@ -1,0 +1,264 @@
+package com.shiftfocus.krispii.common.repositories
+
+import com.github.mauricio.async.db.{RowData, Connection}
+import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
+import com.shiftfocus.krispii.lib.{UUID, ExceptionWriter}
+import com.shiftfocus.krispii.common.models._
+import play.api.Play.current
+import play.api.cache.Cache
+import play.api.Logger
+import scala.concurrent.Future
+import org.joda.time.DateTime
+import org.joda.time.LocalTime
+import org.joda.time.LocalDate
+import com.shiftfocus.krispii.common.services.datasource.PostgresDB
+
+trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionScheduleExceptionRepositoryComponent {
+  self: PostgresDB =>
+
+  override val sectionScheduleExceptionRepository: SectionScheduleExceptionRepository = new SectionScheduleExceptionRepositoryPSQL
+
+  private class SectionScheduleExceptionRepositoryPSQL extends SectionScheduleExceptionRepository {
+    def fields = Seq("section_id", "day", "start_time", "end_time")
+    def table = "section_schedule_exceptions"
+    def orderBy = "created_at ASC"
+    val fieldsText = fields.mkString(", ")
+    val questions = fields.map(_ => "?").mkString(", ")
+
+    // User CRUD operations
+    val SelectAll = s"""
+      SELECT id, version, created_at, updated_at, $fieldsText
+      FROM $table
+      WHERE status = 1
+      ORDER BY $orderBy
+    """
+
+    val SelectOne = s"""
+      SELECT id, version, created_at, updated_at, $fieldsText
+      FROM $table
+      WHERE id = ?
+        AND status = 1
+    """
+
+    val Insert = {
+      val extraFields = fields.mkString(",")
+      val questions = fields.map(_ => "?").mkString(",")
+      s"""
+        INSERT INTO $table (id, version, status, created_at, updated_at, $extraFields)
+        VALUES (?, 1, 1, ?, ?, $questions)
+        RETURNING id, version, created_at, updated_at, $fieldsText
+      """
+    }
+
+    val Update = {
+      val extraFields = fields.map(" " + _ + " = ? ").mkString(",")
+      s"""
+        UPDATE $table
+        SET $extraFields , version = ?, updated_at = ?
+        WHERE id = ?
+          AND version = ?
+          AND status = 1
+        RETURNING id, version, created_at, updated_at, $fieldsText
+      """
+    }
+
+    val Delete = s"""
+      DELETE FROM $table WHERE id = ? AND version = ?
+    """
+
+    val SelectBySectionId = s"""
+      SELECT id, version, created_at, updated_at, $fieldsText
+      FROM $table
+      WHERE section_id = ?
+        AND status = 1
+      ORDER BY day asc, start_time asc, end_time asc
+    """
+
+    val SelectForUserAndSection =
+      s"""SELECT id, version, created_at, updated_at, $fieldsText
+         |FROM $table
+         |WHERE user_id = ?
+         |  AND section_id = ?
+         |ORDER BY id ASC
+       """.stripMargin
+
+    /**
+     * Cache a sectionScheduleException into the in-memory cache.
+     *
+     * @param sectionScheduleException the [[SectionScheduleException]] to be cached
+     * @return the [[SectionScheduleException]] that was cached
+     */
+    private def cache(sectionScheduleException: SectionScheduleException): SectionScheduleException = {
+      Cache.set(s"schedule_exceptions[${sectionScheduleException.id.string}]", sectionScheduleException, db.cacheExpiry)
+      sectionScheduleException
+    }
+
+    /**
+     * Remove a sectionScheduleException from the in-memory cache.
+     *
+     * @param sectionScheduleException the [[SectionScheduleException]] to be uncached
+     * @return the [[SectionScheduleException]] that was uncached
+     */
+    private def uncache(sectionScheduleException: SectionScheduleException): SectionScheduleException = {
+      Cache.remove(s"schedule_exceptions[${sectionScheduleException.id.string}]")
+      sectionScheduleException
+    }
+
+    /**
+     * Find all scheduling exceptions for one student in one section.
+     *
+     * @param conn An implicit connection object. Can be used in a transactional chain.
+     * @return a vector of the returned courses
+     */
+    override def list(user: User, section: Section): Future[IndexedSeq[SectionScheduleException]] = {
+      val cacheString = "schedule_exceptions.id_list.both[${user.id.string},${section.id.string}]"
+      Cache.getAs[IndexedSeq[UUID]](cacheString) match {
+        case Some(sectionScheduleExceptionIdList) => {
+          Future.sequence(sectionScheduleExceptionIdList.map { sectionScheduleExceptionId =>
+            find(sectionScheduleExceptionId).map(_.get)
+          })
+        }
+        case None => {
+          db.pool.sendQuery(SelectForUserAndSection).map { queryResult =>
+            val scheduleList = queryResult.rows.get.map {
+              item: RowData => cache(SectionScheduleException(item))
+            }
+            Cache.set(cacheString, scheduleList.map(_.id), db.cacheExpiry)
+            scheduleList
+          }.recover {
+            case exception => {
+              throw exception
+            }
+          }
+        }
+      }
+    }
+
+    /**
+     * Find all schedule exceptions for a given section.
+     */
+    override def list(section: Section): Future[IndexedSeq[SectionScheduleException]] = {
+      val cacheString = s"schedule.id_list.section[${section.id.string}]"
+      Cache.getAs[IndexedSeq[UUID]](cacheString) match {
+        case Some(sectionScheduleExceptionIdList) => {
+          Future.sequence(sectionScheduleExceptionIdList.map { sectionScheduleExceptionId =>
+            find(sectionScheduleExceptionId).map(_.get)
+          })
+        }
+        case None => {
+          db.pool.sendPreparedStatement(SelectBySectionId, Array[Any](section.id.bytes)).map { queryResult =>
+            val scheduleList = queryResult.rows.get.map {
+              item: RowData => cache(SectionScheduleException(item))
+            }
+            Cache.set(cacheString, scheduleList.map(_.id), db.cacheExpiry)
+            scheduleList
+          }.recover {
+            case exception => {
+              throw exception
+            }
+          }
+        }
+      }
+    }
+
+    /**
+     * Find a single entry by ID.
+     *
+     * @param id the UUID to search for
+     * @param conn An implicit connection object. Can be used in a transactional chain.
+     * @return an optional task if one was found
+     */
+    override def find(id: UUID): Future[Option[SectionScheduleException]] = {
+      Cache.getAs[SectionScheduleException](s"schedule_exceptions[${id.string}]") match {
+        case Some(sectionScheduleException) => Future.successful(Option(sectionScheduleException))
+        case None => {
+          db.pool.sendPreparedStatement(SelectOne, Array[Any](id)).map { result =>
+            result.rows.get.headOption match {
+              case Some(rowData) => Option(cache(SectionScheduleException(rowData)))
+              case None => None
+            }
+          }.recover {
+            case exception => {
+              throw exception
+            }
+          }
+        }
+      }
+    }
+
+    /**
+     * Create a new section schedule exception.
+     *
+     * @param course The course to be inserted
+     * @return the new course
+     */
+    override def insert(sectionScheduleException: SectionScheduleException)(implicit conn: Connection): Future[SectionScheduleException] = {
+      val dayDT = sectionScheduleException.day.toDateTimeAtStartOfDay()
+      val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), sectionScheduleException.startTime.getHourOfDay(), sectionScheduleException.startTime.getMinuteOfHour, sectionScheduleException.startTime.getSecondOfMinute())
+      val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), sectionScheduleException.endTime.getHourOfDay(), sectionScheduleException.endTime.getMinuteOfHour, sectionScheduleException.endTime.getSecondOfMinute())
+
+      conn.sendPreparedStatement(Insert, Array(
+        sectionScheduleException.id.bytes,
+        new DateTime,
+        new DateTime,
+        sectionScheduleException.sectionId.bytes,
+        dayDT,
+        startTimeDT,
+        endTimeDT
+      )).map {
+        result => cache(SectionScheduleException(result.rows.get.head))
+      }.recover {
+        case exception => {
+          throw exception
+        }
+      }
+    }
+
+    /**
+     * Update a course.
+     *
+     * @param course The course to be updated.
+     * @return the updated course
+     */
+    override def update(sectionScheduleException: SectionScheduleException)(implicit conn: Connection): Future[SectionScheduleException] = {
+      val dayDT = sectionScheduleException.day.toDateTimeAtStartOfDay()
+      val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), sectionScheduleException.startTime.getHourOfDay(), sectionScheduleException.startTime.getMinuteOfHour, sectionScheduleException.startTime.getSecondOfMinute())
+      val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), sectionScheduleException.endTime.getHourOfDay(), sectionScheduleException.endTime.getMinuteOfHour, sectionScheduleException.endTime.getSecondOfMinute())
+
+      conn.sendPreparedStatement(Update, Array(
+        sectionScheduleException.sectionId.bytes,
+        dayDT,
+        startTimeDT,
+        endTimeDT,
+        new DateTime,
+        sectionScheduleException.id.bytes,
+        sectionScheduleException.version
+      )).map {
+        result => cache(SectionScheduleException(result.rows.get.head))
+      }.recover {
+        case exception => {
+          throw exception
+        }
+      }
+    }
+
+    /**
+     * Delete a course.
+     *
+     * @param course The course to delete.
+     * @return A boolean indicating whether the operation was successful.
+     */
+    override def delete(sectionScheduleException: SectionScheduleException)(implicit conn: Connection): Future[Boolean] = {
+      conn.sendPreparedStatement(Delete, Array(sectionScheduleException.id.bytes, sectionScheduleException.version)).map {
+        result => {
+          uncache(sectionScheduleException)
+          (result.rowsAffected > 0)
+        }
+      }.recover {
+        case exception => {
+          throw exception
+        }
+      }
+    }
+  }
+}

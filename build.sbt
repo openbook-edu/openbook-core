@@ -24,7 +24,6 @@ scalacOptions in ThisBuild ++= Seq(
 
 libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play" % "2.3.5",
-  "com.typesafe.play" %% "play-cache" % "2.3.5",
   "com.github.mauricio" %% "postgresql-async" % "0.2.12",
   "joda-time" % "joda-time" % "2.1",
   "io.webcrank" %% "webcrank-password" % "0.3",

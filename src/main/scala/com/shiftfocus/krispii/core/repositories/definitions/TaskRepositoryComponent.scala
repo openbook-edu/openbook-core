@@ -29,6 +29,6 @@ trait TaskRepositoryComponent {
     def update(task: Task)(implicit conn: Connection): Future[Task]
     def delete(task: Task)(implicit conn: Connection): Future[Boolean]
     def delete(part: Part)(implicit conn: Connection): Future[Boolean]
-    def clearPartCache(part: Part)
+    //def clearPartCache(part: Part)
   }
 }

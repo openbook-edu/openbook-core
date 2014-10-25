@@ -5,7 +5,7 @@ import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionCon
 import com.shiftfocus.krispii.core.lib.{UUID, ExceptionWriter}
 import com.shiftfocus.krispii.core.models._
 import play.api.Play.current
-import play.api.cache.Cache
+
 import play.api.Logger
 import scala.concurrent.Future
 import org.joda.time.DateTime
@@ -83,53 +83,20 @@ trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionSchedul
        """.stripMargin
 
     /**
-     * Cache a sectionScheduleException into the in-memory cache.
-     *
-     * @param sectionScheduleException the [[SectionScheduleException]] to be cached
-     * @return the [[SectionScheduleException]] that was cached
-     */
-    private def cache(sectionScheduleException: SectionScheduleException): SectionScheduleException = {
-      Cache.set(s"schedule_exceptions[${sectionScheduleException.id.string}]", sectionScheduleException, db.cacheExpiry)
-      sectionScheduleException
-    }
-
-    /**
-     * Remove a sectionScheduleException from the in-memory cache.
-     *
-     * @param sectionScheduleException the [[SectionScheduleException]] to be uncached
-     * @return the [[SectionScheduleException]] that was uncached
-     */
-    private def uncache(sectionScheduleException: SectionScheduleException): SectionScheduleException = {
-      Cache.remove(s"schedule_exceptions[${sectionScheduleException.id.string}]")
-      sectionScheduleException
-    }
-
-    /**
      * Find all scheduling exceptions for one student in one section.
      *
      * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return a vector of the returned courses
      */
     override def list(user: User, section: Section): Future[IndexedSeq[SectionScheduleException]] = {
-      val cacheString = "schedule_exceptions.id_list.both[${user.id.string},${section.id.string}]"
-      Cache.getAs[IndexedSeq[UUID]](cacheString) match {
-        case Some(sectionScheduleExceptionIdList) => {
-          Future.sequence(sectionScheduleExceptionIdList.map { sectionScheduleExceptionId =>
-            find(sectionScheduleExceptionId).map(_.get)
-          })
+      db.pool.sendQuery(SelectForUserAndSection).map { queryResult =>
+        val scheduleList = queryResult.rows.get.map {
+          item: RowData => SectionScheduleException(item)
         }
-        case None => {
-          db.pool.sendQuery(SelectForUserAndSection).map { queryResult =>
-            val scheduleList = queryResult.rows.get.map {
-              item: RowData => cache(SectionScheduleException(item))
-            }
-            Cache.set(cacheString, scheduleList.map(_.id), db.cacheExpiry)
-            scheduleList
-          }.recover {
-            case exception => {
-              throw exception
-            }
-          }
+        scheduleList
+      }.recover {
+        case exception => {
+          throw exception
         }
       }
     }
@@ -139,24 +106,14 @@ trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionSchedul
      */
     override def list(section: Section): Future[IndexedSeq[SectionScheduleException]] = {
       val cacheString = s"schedule.id_list.section[${section.id.string}]"
-      Cache.getAs[IndexedSeq[UUID]](cacheString) match {
-        case Some(sectionScheduleExceptionIdList) => {
-          Future.sequence(sectionScheduleExceptionIdList.map { sectionScheduleExceptionId =>
-            find(sectionScheduleExceptionId).map(_.get)
-          })
+      db.pool.sendPreparedStatement(SelectBySectionId, Array[Any](section.id.bytes)).map { queryResult =>
+        val scheduleList = queryResult.rows.get.map {
+          item: RowData => SectionScheduleException(item)
         }
-        case None => {
-          db.pool.sendPreparedStatement(SelectBySectionId, Array[Any](section.id.bytes)).map { queryResult =>
-            val scheduleList = queryResult.rows.get.map {
-              item: RowData => cache(SectionScheduleException(item))
-            }
-            Cache.set(cacheString, scheduleList.map(_.id), db.cacheExpiry)
-            scheduleList
-          }.recover {
-            case exception => {
-              throw exception
-            }
-          }
+        scheduleList
+      }.recover {
+        case exception => {
+          throw exception
         }
       }
     }
@@ -169,19 +126,14 @@ trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionSchedul
      * @return an optional task if one was found
      */
     override def find(id: UUID): Future[Option[SectionScheduleException]] = {
-      Cache.getAs[SectionScheduleException](s"schedule_exceptions[${id.string}]") match {
-        case Some(sectionScheduleException) => Future.successful(Option(sectionScheduleException))
-        case None => {
-          db.pool.sendPreparedStatement(SelectOne, Array[Any](id)).map { result =>
-            result.rows.get.headOption match {
-              case Some(rowData) => Option(cache(SectionScheduleException(rowData)))
-              case None => None
-            }
-          }.recover {
-            case exception => {
-              throw exception
-            }
-          }
+      db.pool.sendPreparedStatement(SelectOne, Array[Any](id)).map { result =>
+        result.rows.get.headOption match {
+          case Some(rowData) => Option(SectionScheduleException(rowData))
+          case None => None
+        }
+      }.recover {
+        case exception => {
+          throw exception
         }
       }
     }
@@ -206,7 +158,7 @@ trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionSchedul
         startTimeDT,
         endTimeDT
       )).map {
-        result => cache(SectionScheduleException(result.rows.get.head))
+        result => SectionScheduleException(result.rows.get.head)
       }.recover {
         case exception => {
           throw exception
@@ -234,7 +186,7 @@ trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionSchedul
         sectionScheduleException.id.bytes,
         sectionScheduleException.version
       )).map {
-        result => cache(SectionScheduleException(result.rows.get.head))
+        result => SectionScheduleException(result.rows.get.head)
       }.recover {
         case exception => {
           throw exception
@@ -251,7 +203,6 @@ trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionSchedul
     override def delete(sectionScheduleException: SectionScheduleException)(implicit conn: Connection): Future[Boolean] = {
       conn.sendPreparedStatement(Delete, Array(sectionScheduleException.id.bytes, sectionScheduleException.version)).map {
         result => {
-          uncache(sectionScheduleException)
           (result.rowsAffected > 0)
         }
       }.recover {

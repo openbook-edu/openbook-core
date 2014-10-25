@@ -5,7 +5,6 @@ import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionCon
 import com.shiftfocus.krispii.core.lib.{UUID, ExceptionWriter}
 import com.shiftfocus.krispii.core.models._
 import play.api.Play.current
-import play.api.cache.Cache
 import play.api.Logger
 import scala.concurrent.Future
 import org.joda.time.DateTime

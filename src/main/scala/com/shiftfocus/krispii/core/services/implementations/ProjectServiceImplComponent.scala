@@ -577,7 +577,6 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
             case None => partRepository.find(existingTask.partId).map(_.get)
           }}
           taskList <- {
-            taskRepository.clearPartCache(part)
             taskRepository.list(part)
           }
           oldPosition <- Future.successful { partId match {
@@ -688,7 +687,6 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
           for {
             oldPart <- partRepository.find(task.partId).map(_.get)
             oldTaskList <- {
-              taskRepository.clearPartCache(oldPart)
               taskRepository.list(oldPart)
             }
             // Insert the task into the new part's task list. This will
@@ -697,7 +695,6 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
             movedTask <- this.updateTask(task.id, task.version, task.name, task.description, newPosition, task.notesAllowed, task.dependencyId, Some(partId))
             // Now update the old part's task list to correct the order.
             oldTaskListUpdated <- {
-              taskRepository.clearPartCache(oldPart)
               val filteredTaskList = oldTaskList.filter(_.id != taskId)
               var temp = IndexedSeq[Task]()
               for (i <- filteredTaskList.indices) {

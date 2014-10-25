@@ -135,41 +135,75 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
       }
     }
 
-    override def listSessions(userId: UUID): IndexedSeq[Session] = {
+    /**
+     * List the active sessions for one user.
+     *
+     * @param userId
+     * @return
+     */
+    override def listSessions(userId: UUID): Future[IndexedSeq[Session]] = {
       sessionRepository.list(userId)
     }
 
-    override def findSession(sessionId: UUID): Option[Session] = {
+    /**
+     * Find one session by its ID.
+     *
+     * @param sessionId
+     * @return
+     */
+    override def findSession(sessionId: UUID): Future[Option[Session]] = {
       sessionRepository.find(sessionId)
     }
 
-    override def createSession(userId: UUID, ipAddress: String, userAgent: String): Session = {
+    /**
+     * Create a new session.
+     *
+     * @param userId
+     * @param ipAddress
+     * @param userAgent
+     * @return
+     */
+    override def createSession(userId: UUID, ipAddress: String, userAgent: String): Future[Session] = {
       sessionRepository.create(Session(
         userId = userId,
         ipAddress = ipAddress,
         userAgent = userAgent
-      ))
+      )).recover { case exception => throw exception }
     }
 
-    override def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Session = {
-      val currentSession = sessionRepository.find(sessionId).get
-      sessionRepository.update(currentSession.copy(
-        ipAddress = ipAddress,
-        userAgent = userAgent
-      ))
+    /**
+     * Update an existing session.
+     *
+     * @param sessionId
+     * @param ipAddress
+     * @param userAgent
+     * @return
+     */
+    override def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Future[Session] = {
+      val fUpdated = for {
+        session <- sessionRepository.find(sessionId).map(_.get)
+        updated <- sessionRepository.update(session.copy(
+          ipAddress = ipAddress,
+          userAgent = userAgent
+        ))
+      } yield updated
+
+      fUpdated.recover { case exception => throw exception }
     }
 
     /**
      * Delete a session.
+     *
+     * @param sessionId
+     * @return
      */
-    override def deleteSession(sessionId: UUID): Boolean = {
-      sessionRepository.find(sessionId) match {
-        case Some(session) => {
-          sessionRepository.delete(session)
-          true
-        }
-        case None => false
-      }
+    override def deleteSession(sessionId: UUID): Future[Session] = {
+      val fDeleted = for {
+        session <- sessionRepository.find(sessionId).map(_.get)
+        deleted <- sessionRepository.delete(session)
+      } yield deleted
+
+      fDeleted.recover { case exception => throw exception }
     }
 
     /**

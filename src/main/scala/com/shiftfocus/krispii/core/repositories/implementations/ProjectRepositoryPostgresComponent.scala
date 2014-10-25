@@ -5,7 +5,7 @@ import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionCon
 import com.shiftfocus.krispii.core.lib.{UUID, ExceptionWriter}
 import com.shiftfocus.krispii.core.models._
 import play.api.Play.current
-import play.api.cache.Cache
+
 import play.api.Logger
 import scala.concurrent.Future
 import org.joda.time.DateTime
@@ -127,7 +127,6 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
         val projectList = queryResult.rows.get.map {
           item: RowData => Project(item)
         }
-        Cache.set(s"projects.list", projectList.map(_.id), db.cacheExpiry)
         projectList
       }.recover {
         case exception => {
@@ -185,7 +184,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
     def find(slug: String): Future[Option[Project]] = {
       db.pool.sendPreparedStatement(SelectOneBySlug, Array[Any](slug)).map { result =>
         result.rows.get.headOption match {
-          case Some(rowData) => Some(cache(Project(rowData)))
+          case Some(rowData) => Some(Project(rowData))
           case None => None
         }
       }.recover {

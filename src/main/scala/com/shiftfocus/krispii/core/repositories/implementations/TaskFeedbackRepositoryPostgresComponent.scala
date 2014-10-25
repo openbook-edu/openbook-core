@@ -5,7 +5,7 @@ import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionCon
 import com.shiftfocus.krispii.core.lib.{UUID, ExceptionWriter}
 import com.shiftfocus.krispii.core.models._
 import play.api.Play.current
-import play.api.cache.Cache
+
 import play.api.Logger
 import scala.concurrent.Future
 import org.joda.time.DateTime
@@ -21,7 +21,7 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
     val pkeyFields = List("teacher_id", "student_id", "task_id", "revision")
     val pkeyText = pkeyFields.mkString(", ")
     val pkeyQs = pkeyFields.map(_ => "?").mkString(", ")
-    
+
     val dataFields = List("content")
     val fieldsText = dataFields.mkString(", ")
     val dataQs = dataFields.map(_ => "?").mkString(", ")
@@ -36,7 +36,7 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
          |VALUES ($pkeyQs, 1, 1, ?, ?, $dataQs)
          |RETURNING $pkeyText, version, created_at, updated_at, $fieldsText
       """.stripMargin
-    
+
 
     val Update =
       s"""
@@ -50,7 +50,7 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
          |  AND status = 1
          |RETURNING $pkeyText, version, created_at, updated_at, $fieldsText
       """.stripMargin
-    
+
 
     val ListRevisionsById = s"""
       SELECT teacher_id, student_id, task_id, revision, version, created_at, updated_at, content

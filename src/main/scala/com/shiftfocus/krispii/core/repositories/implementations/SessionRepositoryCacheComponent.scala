@@ -2,16 +2,25 @@ package com.shiftfocus.krispii.core.repositories
 
 import com.shiftfocus.krispii.core.lib.{UUID, ExceptionWriter}
 import com.shiftfocus.krispii.core.models._
-import play.api.cache.Cache
+import com.shiftfocus.krispii.core.services.datasource.RedisCache
+import scala.concurrent.ExecutionContext.Implicits.global
+import scalacache._
+import redis._
 import play.api.Play.current
 import org.joda.time.DateTime
+import scala.concurrent.Future
+import collection.concurrent.TrieMap
+import concurrent.duration._
 
 trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
-  self: SessionRepositoryComponent  =>
+  self: SessionRepositoryComponent =>
 
   override val sessionRepository: SessionRepository = new SessionRepositoryCache
 
   private class SessionRepositoryCache extends SessionRepository {
+
+    implicit val scalaCache = ScalaCache(RedisCache("host1", 6379))
+    val ttl = Some(2.days)
 
     /**
      * List all sessions for a given user ID.
@@ -19,10 +28,10 @@ trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
      * @param userId the [[UUID]] of the user to load sessions for.
      * @return a list of sessions for this user
      */
-    override def list(userId: UUID): IndexedSeq[Session] = {
-      Cache.getAs[IndexedSeq[Session]](s"session.forUser[${userId.string}]") match {
-        case Some(userSessions: IndexedSeq[Session]) => userSessions
-        case _ => IndexedSeq[Session]()
+    override def list(userId: UUID): Future[IndexedSeq[Session]] = {
+      get[IndexedSeq[Session]](userId.string).map {
+        case Some(sessions: IndexedSeq[Session]) => sessions
+        case _ => IndexedSeq()
       }
     }
 
@@ -32,8 +41,8 @@ trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
      * @param sessionId the [[UUID]] of the session to lookup.
      * @return an [[Option[Session]]] if one was found
      */
-    override def find(sessionId: UUID): Option[Session] = {
-      Cache.getAs[Session](s"session[${sessionId.string}]")
+    override def find(sessionId: UUID): Future[Option[Session]] = {
+      get[Session](sessionId.string)
     }
 
     /**
@@ -42,20 +51,15 @@ trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
      * @param session the new [[Session]] to create
      * @return the newly created [[Session]]
      */
-    override def create(session: Session): Session = {
+    override def create(session: Session): Future[Session] = {
       val sessionWithDates = session.copy(
         createdAt = Some(new DateTime),
         updatedAt = Some(new DateTime)
       )
 
-      // First cache the individual session by ID
-      Cache.set(s"session[${session.sessionId.string}]", sessionWithDates)
-
-      // Then add the session to the user's session list
-      Cache.set(s"session.forUser[${session.userId.string}]", list(session.userId) :+ sessionWithDates)
-
-      // Return the new session
-      session
+      put[Session](session.sessionId.string)(session, ttl).map { result =>
+        session
+      }
     }
 
     /**
@@ -64,20 +68,19 @@ trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
      * @param session the [[Session]] to update
      * @return the updated [[Session]]
      */
-    override def update(session: Session): Session = {
+    override def update(session: Session): Future[Session] = {
       val sessionWithDates = session.copy(
         updatedAt = Some(new DateTime)
       )
+      val fUpdate = for {
+        _ <- list(session.userId).map { sessions =>
+          val newSessions = sessions.filter(_.sessionId != session.sessionId)
+          put(session.userId.string)(newSessions :+ sessionWithDates)
+        }
+        _ <- put(session.sessionId.string)(sessionWithDates)
+      } yield session
 
-      // First cache the individual session by ID
-      Cache.set(s"session[${session.sessionId.string}]", sessionWithDates)
-
-      // Then replace this session in the user's session list
-      val userSessions = list(session.userId).filter(_.sessionId != session.sessionId)
-      Cache.set(s"session.forUser[${session.userId.string}]", userSessions :+ sessionWithDates)
-
-      // Return the updated session
-      session
+      fUpdate.recover { case exception => throw exception }
     }
 
     /**
@@ -86,16 +89,16 @@ trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
      * @param session the [[Session]] to be deleted
      * @return the deleted [[Session]]
      */
-    override def delete(session: Session): Session = {
-      // Remove the session from the individual storage
-      Cache.remove(s"session[${session.sessionId.string}]")
+    override def delete(session: Session): Future[Session] = {
+      val fRemove = for {
+        _ <- list(session.userId).map { sessions =>
+            val newSessions = sessions.filter(_.sessionId != session.sessionId)
+            put(session.userId.string)(newSessions)
+          }
+        _ <- remove(session.sessionId.string)
+      } yield session
 
-      // Fetch the user's list of sessions and remove this one from the list
-      val userSessions = list(session.userId).filter(_.sessionId != session.sessionId)
-      Cache.set(s"session.forUser[${session.userId.string}]", userSessions)
-
-      // Return the now deleted session
-      session
+      fRemove.recover { case exception => throw exception }
     }
 
   }

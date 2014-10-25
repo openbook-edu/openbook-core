@@ -5,7 +5,7 @@ import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionCon
 import com.shiftfocus.krispii.core.lib.{UUID, ExceptionWriter}
 import com.shiftfocus.krispii.core.models._
 import play.api.Play.current
-import play.api.cache.Cache
+
 import play.api.Logger
 import scala.concurrent.Future
 import org.joda.time.DateTime
@@ -62,28 +62,6 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
     val Delete = s"""
       DELETE FROM $table WHERE id = ? AND version = ?
     """
-
-    /**
-     * Cache a course into the in-memory cache.
-     *
-     * @param course the [[Course]] to be cached
-     * @return the [[Course]] that was cached
-     */
-    private def cache(course: Course): Course = {
-      Cache.set(s"courses[${course.id}]", course, db.cacheExpiry)
-      course
-    }
-
-    /**
-     * Remove a course from the in-memory cache.
-     *
-     * @param course the [[Course]] to be uncached
-     * @return the [[Course]] that was uncached
-     */
-    private def uncache(course: Course): Course = {
-      Cache.remove(s"courses[${course.id}]")
-      course
-    }
 
     /**
      * Find all courses.

@@ -39,15 +39,15 @@ trait AuthServiceComponent {
      */
     def authenticate(identifier: String, password: String): Future[Option[User]]
 
-    def listSessions(userId: UUID): IndexedSeq[Session]
+    def listSessions(userId: UUID): Future[IndexedSeq[Session]]
 
-    def findSession(sessionId: UUID): Option[Session]
+    def findSession(sessionId: UUID): Future[Option[Session]]
 
-    def createSession(userId: UUID, ipAddress: String, userAgent: String): Session
+    def createSession(userId: UUID, ipAddress: String, userAgent: String): Future[Session]
 
-    def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Session
+    def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Future[Session]
 
-    def deleteSession(sessionId: UUID): Boolean
+    def deleteSession(sessionId: UUID): Future[Session]
 
     /**
      * List all users.

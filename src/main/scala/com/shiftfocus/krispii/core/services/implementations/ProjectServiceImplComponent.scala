@@ -2,6 +2,7 @@ package com.shiftfocus.krispii.core.services
 
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import com.shiftfocus.krispii.core.models._
+import com.shiftfocus.krispii.core.models.tasks.Task
 import com.shiftfocus.krispii.core.repositories._
 import com.shiftfocus.krispii.core.services.datasource._
 import com.shiftfocus.krispii.core.lib.UUID

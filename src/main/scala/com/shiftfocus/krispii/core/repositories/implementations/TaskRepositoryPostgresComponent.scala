@@ -4,6 +4,7 @@ import com.github.mauricio.async.db.{RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import com.shiftfocus.krispii.core.lib.{UUID, ExceptionWriter}
 import com.shiftfocus.krispii.core.models._
+import com.shiftfocus.krispii.core.models.tasks.Task
 import play.api.Play.current
 import play.api.Logger
 import scala.concurrent.Future

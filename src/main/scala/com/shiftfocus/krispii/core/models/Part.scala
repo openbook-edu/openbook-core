@@ -2,6 +2,7 @@ package com.shiftfocus.krispii.core.models
 
 import com.github.mauricio.async.db.RowData
 import com.shiftfocus.krispii.core.lib.UUID
+import com.shiftfocus.krispii.core.models.tasks.Task
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.json.Writes._

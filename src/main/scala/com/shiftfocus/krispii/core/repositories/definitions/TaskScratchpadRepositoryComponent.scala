@@ -4,6 +4,7 @@ import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import com.shiftfocus.krispii.core.lib._
 import com.shiftfocus.krispii.core.models._
+import com.shiftfocus.krispii.core.models.tasks.Task
 import scala.concurrent.Future
 
 trait TaskScratchpadRepositoryComponent {

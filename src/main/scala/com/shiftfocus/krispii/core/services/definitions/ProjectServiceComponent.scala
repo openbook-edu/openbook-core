@@ -2,6 +2,7 @@ package com.shiftfocus.krispii.core.services
 
 import com.shiftfocus.krispii.core.lib.UUID
 import com.shiftfocus.krispii.core.models._
+import com.shiftfocus.krispii.core.models.tasks.Task
 import scala.concurrent.Future
 
 trait ProjectServiceComponent {

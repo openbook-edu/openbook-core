@@ -29,7 +29,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play" % "2.3.5",
   "com.github.mauricio" %% "postgresql-async" % "0.2.15",
   "joda-time" % "joda-time" % "2.1",
-  "ws.kahn" %% "webcrank-password" % "0.4",
+  "ca.shiftfocus" %% "webcrank-password" % "0.4",
   "net.sf.uadetector" % "uadetector-resources" % "2014.04",
   "net.debasishg" %% "redisclient" % "2.13",
   "org.scala-lang" %% "scala-pickling" % "0.9.0",

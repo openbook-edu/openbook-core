@@ -14,7 +14,7 @@ trait Task {
   val partId: UUID
   val position: Int
   val version: Long
-  val settings: TaskSettings
+  val settings: CommonTaskSettings
   val createdAt: Option[DateTime]
   val updatedAt: Option[DateTime]
 }

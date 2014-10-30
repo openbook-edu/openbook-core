@@ -6,24 +6,24 @@ import play.api.libs.json._
 import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
-case class TaskSettings(
+case class CommonTaskSettings(
   dependencyId: Option[UUID] = None,
   title: String = "",
   description: String = "",
   notesAllowed: Boolean = true
 )
 
-object TaskSettings {
+object CommonTaskSettings {
 
   /**
    * Overloaded constructor to create a TaskSettings object from
    * a database result row.
    *
    * @param row a [[RowData]] object returned from the db.
-   * @return a [[TaskSettings]] object
+   * @return a [[CommonTaskSettings]] object
    */
-  def apply(row: RowData): TaskSettings = {
-    TaskSettings(
+  def apply(row: RowData): CommonTaskSettings = {
+    CommonTaskSettings(
       dependencyId = Option(row("dependency_id").asInstanceOf[Array[Byte]]) match {
         case Some(bytes) => Some(UUID(bytes))
         case _ => None
@@ -34,18 +34,18 @@ object TaskSettings {
     )
   }
 
-  implicit val tsReads: Reads[TaskSettings] = (
+  implicit val tsReads: Reads[CommonTaskSettings] = (
     (__ \ "dependencyId").readNullable[UUID] and
       (__ \ "title").read[String] and
       (__ \ "description").read[String] and
       (__ \ "notesAllowed").read[Boolean]
-  )(TaskSettings.apply(_: Option[UUID], _: String, _: String, _: Boolean))
+  )(CommonTaskSettings.apply(_: Option[UUID], _: String, _: String, _: Boolean))
 
-  implicit val tsWrites: Writes[TaskSettings] = (
+  implicit val tsWrites: Writes[CommonTaskSettings] = (
     (__ \ "dependencyId").writeNullable[UUID] and
       (__ \ "name").write[String] and
       (__ \ "description").write[String] and
       (__ \ "notesAllowed").write[Boolean]
-    )(unlift(TaskSettings.unapply))
+    )(unlift(CommonTaskSettings.unapply))
 
 }

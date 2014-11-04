@@ -32,7 +32,14 @@ case class LongAnswerTask(
   settings: CommonTaskSettings = CommonTaskSettings(),
   createdAt: Option[DateTime] = None,
   updatedAt: Option[DateTime] = None
-) extends Task
+) extends Task {
+
+  /**
+   * Which type of task this is. Hard-coded value per class!
+   */
+  override val taskType: String = "longAnswer"
+
+}
 
 object LongAnswerTask {
 
@@ -60,15 +67,26 @@ object LongAnswerTask {
   /**
    * Unserialize a [[LongAnswerTask]] from JSON.
    */
-  implicit val taskReads: Reads[LongAnswerTask] = (
-    (__ \ "id").read[UUID] and
-      (__ \ "partId").read[UUID] and
-      (__ \ "position").read[Int] and
-      (__ \ "version").read[Long] and
-      (__ \ "settings").read[CommonTaskSettings] and
-      (__ \ "createdAt").readNullable[DateTime] and
-      (__ \ "updatedAt").readNullable[DateTime]
-  )(LongAnswerTask.apply(_: UUID, _: UUID, _: Int, _: Long, _: CommonTaskSettings, _: Option[DateTime], _: Option[DateTime]))
+  implicit val jsonReads = new Reads[LongAnswerTask] {
+    def reads(js: JsValue) = {
+      JsSuccess(LongAnswerTask(
+        id = (js \ "id").as[UUID],
+        partId = (js \ "partId").as[UUID],
+        position = (js \ "position").as[Int],
+        version = (js \ "version").as[Long]
+      ))
+    }
+  }
+
+//  implicit val taskReads: Reads[LongAnswerTask] = (
+//    (__ \ "id").read[UUID] and
+//      (__ \ "partId").read[UUID] and
+//      (__ \ "position").read[Int] and
+//      (__ \ "version").read[Long] and
+//      (__ \ "settings").read[CommonTaskSettings] and
+//      (__ \ "createdAt").readNullable[DateTime] and
+//      (__ \ "updatedAt").readNullable[DateTime]
+//  )(LongAnswerTask.apply(_: UUID, _: UUID, _: Int, _: Long, _: CommonTaskSettings, _: Option[DateTime], _: Option[DateTime]))
 
   /**
    * Serialize a [[LongAnswerTask]] to JSON.

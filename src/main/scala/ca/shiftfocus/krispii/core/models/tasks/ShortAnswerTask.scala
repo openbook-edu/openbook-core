@@ -33,7 +33,14 @@ case class ShortAnswerTask(
   maxLength: Int = 50,
   createdAt: Option[DateTime] = None,
   updatedAt: Option[DateTime] = None
-) extends Task
+) extends Task {
+
+  /**
+   * Which type of task this is. Hard-coded value per class!
+   */
+  override val taskType: String = "shortAnswer"
+
+}
 
 object ShortAnswerTask {
   /**

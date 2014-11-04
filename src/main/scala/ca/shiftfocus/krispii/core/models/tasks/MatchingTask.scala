@@ -1,10 +1,121 @@
 package ca.shiftfocus.krispii.core.models.tasks
 
+import ca.shiftfocus.krispii.core.lib.UUID
+import ca.shiftfocus.krispii.core.models.Part
+import ca.shiftfocus.krispii.core.models.tasks.CommonTaskSettings
+import com.github.mauricio.async.db.RowData
+import org.joda.time.DateTime
+import play.api.libs.functional.syntax._
+import play.api.libs.json._
+
+/**
+ * A matching task is one in which the student is presented with two
+ * lists of elements and is asked to match elements from one list with
+ * their corresponding element in the other.
+ *
+ * @param id The task's [[UUID]].
+ * @param partId The [[Part]] to which this task belongs.
+ * @param position The order in the part in which this task falls.
+ * @param version The version of the task entity, for offline locking. Default = 0.
+ * @param settings An object containing common settings for tasks.
+ * @param elementsLeft The left list of elements.
+ * @param elementsRight The right list of elements.
+ * @param answer The answers as a vector of Int -> Int tuples. Note that not every element
+ *                needs to be accounted for in the answers.
+ * @param randomizeChoices Whether the choices should be presented randomly, or in the
+ *                            order in which they are defined.
+ * @param createdAt When the entity was created. Default = None.
+ * @param updatedAt When the entity was last updated. Default = None.
+ */
 case class MatchingTask(
-  title: String,
-  description: String,
-  optionsLeft: IndexedSeq[String],
-  optionsRight: IndexedSeq[String],
+  // Primary Key
+  id: UUID,
+  // Combination must be unique
+  partId: UUID,
+  position: Int,
+  // Additional data
+  version: Long = 0,
+  settings: CommonTaskSettings = CommonTaskSettings(),
+  elementsLeft: IndexedSeq[String],
+  elementsRight: IndexedSeq[String],
   answer: IndexedSeq[(Int, Int)],
-  randomizeOptions: Boolean = true
-) extends Task
+  randomizeChoices: Boolean = true,
+  createdAt: Option[DateTime] = None,
+  updatedAt: Option[DateTime] = None
+) extends Task {
+
+  /**
+   * Which type of task this is. Hard-coded value per class!
+   */
+  override val taskType: String = "matching"
+
+}
+
+object MatchingTask {
+
+  /**
+   * Create a MatchingTask from a row returned by the database.
+   *
+   * @param row a [[RowData]] object returned from the db.
+   * @return a [[MatchingTask]] object
+   */
+  def apply(row: RowData): MatchingTask = {
+    MatchingTask(
+      // Primary Key
+      id = UUID(row("id").asInstanceOf[Array[Byte]]),
+
+      // Unique combination
+      partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
+      position = row("position").asInstanceOf[Int],
+
+      // Additional data
+      version = row("version").asInstanceOf[Long],
+      settings = CommonTaskSettings(row),
+
+      // Specific to this type
+      elementsLeft = row("elements_left").asInstanceOf[IndexedSeq[String]],
+      elementsRight = row("elements_right").asInstanceOf[IndexedSeq[String]],
+      answer = row("answer").asInstanceOf[IndexedSeq[(Int, Int)]],
+      randomizeChoices = row("randomize_choices").asInstanceOf[Boolean],
+
+      // All entities have these
+      createdAt = Some(row("created_at").asInstanceOf[DateTime]),
+      updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
+    )
+  }
+
+  /**
+   * Unserialize a [[MatchingTask]] from JSON.
+   */
+  implicit val taskReads: Reads[MatchingTask] = (
+    (__ \ "id").read[UUID] and
+      (__ \ "partId").read[UUID] and
+      (__ \ "position").read[Int] and
+      (__ \ "version").read[Long] and
+      (__ \ "settings").read[CommonTaskSettings] and
+      (__ \ "elements_left").read[IndexedSeq[String]] and
+      (__ \ "elements_right").read[IndexedSeq[String]] and
+      (__ \ "answer").read[IndexedSeq[(Int, Int)]] and
+      (__ \ "randomizeChoices").read[Boolean] and
+      (__ \ "createdAt").readNullable[DateTime] and
+      (__ \ "updatedAt").readNullable[DateTime]
+    )(MatchingTask.apply(_: UUID, _: UUID, _: Int, _: Long, _: CommonTaskSettings, _: IndexedSeq[String], _: IndexedSeq[String], _: IndexedSeq[(Int, Int)], _: Boolean, _: Option[DateTime], _: Option[DateTime]))
+
+  /**
+   * Serialize a [[MatchingTask]] to JSON.
+   */
+  implicit val taskWrites: Writes[MatchingTask] = (
+    (__ \ "id").write[UUID] and
+      (__ \ "partId").write[UUID] and
+      (__ \ "position").write[Int] and
+      (__ \ "version").write[Long] and
+      (__ \ "settings").write[CommonTaskSettings] and
+      (__ \ "elements_left").write[IndexedSeq[String]] and
+      (__ \ "elements_right").write[IndexedSeq[String]] and
+      (__ \ "answer").write[IndexedSeq[(Int, Int)]] and
+      (__ \ "randomizeChoices").write[Boolean] and
+      (__ \ "createdAt").writeNullable[DateTime] and
+      (__ \ "updatedAt").writeNullable[DateTime]
+    )(unlift(MatchingTask.unapply))
+  
+}

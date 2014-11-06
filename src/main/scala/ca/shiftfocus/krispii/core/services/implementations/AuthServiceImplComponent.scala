@@ -45,7 +45,6 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      */
     override def list: Future[IndexedSeq[UserInfo]] = {
       userRepository.list.flatMap { users =>
-        Logger.debug("[authService.list] - got users, now fetching roles and sections")
         Future.sequence(users.map { user =>
           val fRoles = roleRepository.list(user)
           val fSections = sectionRepository.list(user)
@@ -79,7 +78,6 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
           users
         }
         case (None, None) => {
-          Logger.debug("[authService.list] - Using basic list")
           userRepository.list
         }
       }
@@ -99,7 +97,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
             UserInfo(
               user,
               roles.getOrElse(user.id, IndexedSeq()),
-              sections.getOrElse(user.id, IndexedSeq()),
+              sections.getOrElse(user.id, IndexedSeq())
             )
           }
           userInfoList

@@ -2,12 +2,13 @@ name := "krispii-core"
 
 organization := "com.shiftfocus"
 
-version := "1.0.x"
+version := "1.0-SNAPSHOT"
 
 scalaVersion := "2.11.2"
 
 resolvers ++= Seq(
-  "Typesafe" at "http://repo.typesafe.com/typesafe/releases"
+  "Typesafe" at "http://repo.typesafe.com/typesafe/releases",
+  "ShiftFocus" at "https://maven.shiftfocus.ca/repositories/releases"
 )
 
 // Scala compiler options
@@ -29,8 +30,22 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play" % "2.3.5",
   "com.github.mauricio" %% "postgresql-async" % "0.2.15",
   "joda-time" % "joda-time" % "2.1",
-  "ca.shiftfocus" %% "webcrank-password" % "0.4",
   "net.sf.uadetector" % "uadetector-resources" % "2014.04",
   "net.debasishg" %% "redisclient" % "2.13",
-  "com.github.cb372" %% "scalacache-redis" % "0.4.1"
+  "com.github.cb372" %% "scalacache-redis" % "0.4.1",
+  "ca.shiftfocus" %% "webcrank-password" % "0.4.1"
 )
+
+publishMavenStyle := true
+
+publishTo := {
+  val privateKeyFile = new java.io.File(sys.env("HOME") + "/.ssh/id_rsa")
+  Some(Resolver.sftp(
+    "ShiftFocus Maven Repository",
+    "maven.shiftfocus.ca",
+    50022,
+    "/var/www/maven.shiftfocus.ca/repositories/" + {
+      if (isSnapshot.value) "snapshots" else "releases"
+    }
+  ) as ("maven", privateKeyFile))
+}

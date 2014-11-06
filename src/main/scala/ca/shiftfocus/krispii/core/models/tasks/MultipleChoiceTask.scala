@@ -34,8 +34,8 @@ case class MultipleChoiceTask(
   // Additional data
   version: Long = 0,
   settings: CommonTaskSettings = CommonTaskSettings(),
-  choices: IndexedSeq[String],
-  answer: IndexedSeq[Int],
+  choices: IndexedSeq[String] = IndexedSeq(),
+  answer: IndexedSeq[Int] = IndexedSeq(),
   allowMultiple: Boolean = false,
   randomizeChoices: Boolean = true,
   createdAt: Option[DateTime] = None,

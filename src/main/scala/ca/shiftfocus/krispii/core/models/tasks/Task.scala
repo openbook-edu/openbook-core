@@ -34,6 +34,85 @@ object Task {
   val Ordering = 3
   val Matching = 4
 
+  val NotStarted = 0
+  val Incomplete = 1
+  val Complete = 2
+
+  /**
+   * An apply method that allows instantiation of empty tasks.
+   *
+   * Supply the correct task type and it will return an instance of that type. Useful
+   * for creating a task when you're not sure what type will be created.
+   *
+   * @param id
+   * @param partId
+   * @param position
+   * @param version
+   * @param settings
+   * @param taskType
+   * @param createdAt
+   * @param updatedAt
+   * @return
+   */
+  def apply(id: UUID = UUID.random,
+             partId: UUID,
+             position: Int,
+             version: Long = 0,
+             settings: CommonTaskSettings = CommonTaskSettings(),
+             taskType: Int,
+             createdAt: Option[DateTime] = None,
+             updatedAt: Option[DateTime] = None): Task =
+  {
+    val newTask = taskType match {
+      case Task.LongAnswer => LongAnswerTask(
+        id = id,
+        partId = partId,
+        position = position,
+        version = version,
+        settings = settings,
+        createdAt = createdAt,
+        updatedAt = updatedAt
+      )
+      case Task.ShortAnswer => ShortAnswerTask(
+        id = id,
+        partId = partId,
+        position = position,
+        version = version,
+        settings = settings,
+        createdAt = createdAt,
+        updatedAt = updatedAt
+      )
+      case Task.MultipleChoice => MultipleChoiceTask(
+        id = id,
+        partId = partId,
+        position = position,
+        version = version,
+        settings = settings,
+        createdAt = createdAt,
+        updatedAt = updatedAt
+      )
+      case Task.Ordering => OrderingTask(
+        id = id,
+        partId = partId,
+        position = position,
+        version = version,
+        settings = settings,
+        createdAt = createdAt,
+        updatedAt = updatedAt
+      )
+      case Task.Matching => MatchingTask(
+        id = id,
+        partId = partId,
+        position = position,
+        version = version,
+        settings = settings,
+        createdAt = createdAt,
+        updatedAt = updatedAt
+      )
+    }
+    newTask
+  }
+
   /**
    * Build a [[Task]] object from a database row by reading which type
    * of task this is and calling the appropriate apply method.

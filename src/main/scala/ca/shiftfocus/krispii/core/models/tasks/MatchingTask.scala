@@ -36,9 +36,9 @@ case class MatchingTask(
   // Additional data
   version: Long = 0,
   settings: CommonTaskSettings = CommonTaskSettings(),
-  elementsLeft: IndexedSeq[String],
-  elementsRight: IndexedSeq[String],
-  answer: IndexedSeq[(Int, Int)],
+  elementsLeft: IndexedSeq[String] = IndexedSeq(),
+  elementsRight: IndexedSeq[String] = IndexedSeq(),
+  answer: IndexedSeq[MatchingTask.Match] = IndexedSeq(),
   randomizeChoices: Boolean = true,
   createdAt: Option[DateTime] = None,
   updatedAt: Option[DateTime] = None
@@ -52,6 +52,19 @@ case class MatchingTask(
 }
 
 object MatchingTask {
+
+  case class Match(left: Int, right: Int)
+  object Match {
+    implicit val jsonReads: Reads[Match] = (
+      (__ \ "left").read[Int] and
+        (__ \ "right").read[Int]
+    )(Match.apply _)
+
+    implicit val jsonWrites: Writes[Match] = (
+      (__ \ "left").write[Int] and
+        (__ \ "right").write[Int]
+      )(unlift(Match.unapply))
+  }
 
   /**
    * Create a MatchingTask from a row returned by the database.
@@ -75,7 +88,10 @@ object MatchingTask {
       // Specific to this type
       elementsLeft = row("elements_left").asInstanceOf[IndexedSeq[String]],
       elementsRight = row("elements_right").asInstanceOf[IndexedSeq[String]],
-      answer = row("answer").asInstanceOf[IndexedSeq[(Int, Int)]],
+      answer = row("answer").asInstanceOf[IndexedSeq[String]].map { element =>
+        val split = element.split(":")
+        Match(split(0).toInt, split(1).toInt)
+      },
       randomizeChoices = row("randomize_choices").asInstanceOf[Boolean],
 
       // All entities have these
@@ -97,7 +113,7 @@ object MatchingTask {
         settings = (js \ "settings").as[CommonTaskSettings],
         elementsLeft = (js \ "elementsLeft").as[IndexedSeq[String]],
         elementsRight = (js \ "elementsRight").as[IndexedSeq[String]],
-        answer   = (js \ "answer").as[IndexedSeq[(Int, Int)]],
+        answer   = (js \ "answer").as[IndexedSeq[Match]],
         randomizeChoices = (js \ "randomizeChoices").as[Boolean],
         createdAt = (js \ "createdAt").as[Option[DateTime]],
         updatedAt = (js \ "updatedAt").as[Option[DateTime]]
@@ -116,7 +132,7 @@ object MatchingTask {
       (__ \ "settings").write[CommonTaskSettings] and
       (__ \ "elements_left").write[IndexedSeq[String]] and
       (__ \ "elements_right").write[IndexedSeq[String]] and
-      (__ \ "answer").write[IndexedSeq[(Int, Int)]] and
+      (__ \ "answer").write[IndexedSeq[Match]] and
       (__ \ "randomizeChoices").write[Boolean] and
       (__ \ "createdAt").writeNullable[DateTime] and
       (__ \ "updatedAt").writeNullable[DateTime]

@@ -1,7 +1,6 @@
 package ca.shiftfocus.krispii.core.models.tasks
 
 import ca.shiftfocus.krispii.core.lib.UUID
-import ca.shiftfocus.krispii.core.models.tasks.CommonTaskSettings
 import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
@@ -32,8 +31,8 @@ case class OrderingTask(
   // Additional data
   version: Long = 0,
   settings: CommonTaskSettings = CommonTaskSettings(),
-  elements: IndexedSeq[String],
-  answer: IndexedSeq[Int],
+  elements: IndexedSeq[String] = IndexedSeq(),
+  answer: IndexedSeq[Int] = IndexedSeq(),
   randomizeChoices: Boolean = true,
   createdAt: Option[DateTime] = None,
   updatedAt: Option[DateTime] = None

@@ -43,6 +43,7 @@ case class ShortAnswerTask(
 }
 
 object ShortAnswerTask {
+
   /**
    * Create a ShortAnswerTask from a row returned by the database.
    *
@@ -95,4 +96,5 @@ object ShortAnswerTask {
       (__ \ "createdAt").writeNullable[DateTime] and
       (__ \ "updatedAt").writeNullable[DateTime]
     )(unlift(ShortAnswerTask.unapply))
+
 }

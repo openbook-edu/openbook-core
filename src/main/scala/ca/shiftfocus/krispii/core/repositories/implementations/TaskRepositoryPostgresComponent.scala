@@ -452,7 +452,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
         case matching: MatchingTask => commonData ++ Array[Any](
           matching.elementsLeft,
           matching.elementsRight,
-          matching.answer,
+          matching.answer.map { element => s"${element.left}:${element.right}" },
           matching.randomizeChoices
         )
         case _ => throw new Exception("I don't know how you did this, but you sent me a task type that doesn't exist.")
@@ -512,7 +512,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
         case matching: MatchingTask => commonData ++ Array[Any](
           matching.elementsLeft,
           matching.elementsRight,
-          matching.answer,
+          matching.answer.map { element => s"${element.left}:${element.right}" },
           matching.randomizeChoices
         )
         case _ => throw new Exception("I don't know how you did this, but you sent me a task type that doesn't exist.")

@@ -23,7 +23,7 @@ import play.api.libs.functional.syntax._
  */
 case class LongAnswerTask(
   // Primary Key
-  id: UUID,
+  id: UUID = UUID.random,
   // Combination must be unique
   partId: UUID,
   position: Int,

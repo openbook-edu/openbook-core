@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.services
 
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.tasks.Task
+import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.krispii.core.lib.UUID
@@ -100,9 +100,9 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
         projectId = newProject.id,
         name = ""
       )
-      val newTask = Task(
+      val newTask = LongAnswerTask(
         partId = newPart.id,
-        name = ""
+        position = 1
       )
 
       // Then insert the new project, part and task into the database, wrapped
@@ -492,7 +492,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @param dependencyId optionally make this task dependent on another
      * @return the newly created task
      */
-    override def createTask(partId: UUID, name: String, description: String, position: Int, dependencyId: Option[UUID]): Future[Task] = {
+    override def createTask(partId: UUID, taskType: Int, name: String, description: String, position: Int, dependencyId: Option[UUID]): Future[Task] = {
       transactional { implicit connection =>
         for {
           part <- partRepository.find(partId).map(_.get)
@@ -502,7 +502,13 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
             // back by one to make room for the new one.
             val positionExists = taskList.filter(_.position == position).nonEmpty
             if (positionExists) {
-              val filteredTaskList = taskList.filter(_.position >= position).map(task => task.copy(position = task.position + 1))
+              val filteredTaskList = taskList.filter(_.position >= position).map {
+                case task: LongAnswerTask     => task.copy(position = task.position + 1)
+                case task: ShortAnswerTask    => task.copy(position = task.position + 1)
+                case task: MultipleChoiceTask => task.copy(position = task.position + 1)
+                case task: OrderingTask       => task.copy(position = task.position + 1)
+                case task: MatchingTask       => task.copy(position = task.position + 1)
+              }
               serialized(filteredTaskList)(taskRepository.update)
             }
             else {
@@ -512,10 +518,13 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
           }
           newTask <- taskRepository.insert(Task(
             partId = partId,
-            name = name,
-            description = description,
+            taskType = taskType,
             position = position,
-            dependencyId = dependencyId
+            settings = CommonTaskSettings(
+              title = name,
+              description = description,
+              dependencyId = dependencyId
+            )
           ))
         }
         yield newTask

@@ -32,6 +32,5 @@ libraryDependencies ++= Seq(
   "ca.shiftfocus" %% "webcrank-password" % "0.4",
   "net.sf.uadetector" % "uadetector-resources" % "2014.04",
   "net.debasishg" %% "redisclient" % "2.13",
-  "org.scala-lang" %% "scala-pickling" % "0.9.0",
   "com.github.cb372" %% "scalacache-redis" % "0.4.1"
 )

@@ -1,11 +1,11 @@
 package ca.shiftfocus.krispii.core.repositories
 
+import ca.shiftfocus.krispii.core.models.tasks.Task
 import com.github.mauricio.async.db.{RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.lib.{UUID, ExceptionWriter}
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.tasks.Task
-import play.api.Play.current
+import ca.shiftfocus.krispii.core.models.tasks._
 import play.api.Logger
 import scala.concurrent.Future
 import org.joda.time.DateTime
@@ -24,90 +24,85 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
    * A concrete implementation of the ProjectRepository class.
    */
   private class TaskRepositoryPSQL extends TaskRepository {
-    def fields = Seq("part_id", "dependency_id", "name", "description", "position", "notes_allowed")
+    def fields = Seq("part_id", "dependency_id", "name", "description", "position",
+                     "notes_allowed", "max_length", "choices", "answers", "allow_multiple",
+                     "choices_left", "choices_right", "randomize")
+
     def table = "tasks"
     def orderBy = "position ASC"
     val fieldsText = fields.mkString(", ")
     val questions = fields.map(_ => "?").mkString(", ")
 
-    // User CRUD operations
-    val SelectAll = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE status = 1
-      ORDER BY position ASC
-    """
+    // -- Common query components --------------------------------------------------------------------------------------
 
-    val SelectOne = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE id = ?
-        AND status = 1
-    """
-
-    val Insert = {
-      val extraFields = fields.mkString(",")
-      val questions = fields.map(_ => "?").mkString(",")
+    val Select =
       s"""
-        INSERT INTO $table (id, version, status, created_at, updated_at, $extraFields)
-        VALUES (?, 1, 1, ?, ?, $questions)
-        RETURNING id, version, created_at, updated_at, $fieldsText
-      """
-    }
+         |SELECT tasks.id, tasks.version, tasks.created_at, tasks.updated_at, tasks.part_id, tasks.dependency_id, tasks.name,
+         |  tasks.description, tasks.position, tasks.notes_allowed, tasks.task_type,
+         |  short_answer_tasks.max_length,
+         |  multiple_choice_tasks.choices,
+         |  multiple_choice_tasks.answers,
+         |  ordering_tasks.choices,
+         |  ordering_tasks.answers,
+         |  matching_tasks.choices_left,
+         |  matching_tasks.choices_right,
+         |  matching_Tasks.answers
+       """.stripMargin
 
-    val Update = {
-      val extraFields = fields.map(" " + _ + " = ? ").mkString(",")
+    val From = "FROM tasks"
+
+    val Join =
       s"""
-        UPDATE $table
-        SET $extraFields , version = ?, updated_at = ?
-        WHERE id = ?
-          AND version = ?
-          AND status = 1
-        RETURNING id, version, created_at, updated_at, $fieldsText
-      """
-    }
+         |LEFT JOIN long_answer_tasks ON tasks.id = long_answer_tasks.task_id
+         |LEFT JOIN short_answer_tasks ON tasks.id = short_answer_tasks.task_id
+         |LEFT JOIN multiple_choice_tasks ON tasks.id = multiple_choice_tasks.task_id
+         |LEFT JOIN ordering_tasks ON tasks.id = ordering_tasks.task_id
+         |LEFT JOIN matching_tasks ON tasks.id = matching_tasks.task_id
+       """.stripMargin
 
-    val Delete = s"""
-      UPDATE $table SET status = 0 WHERE id = ? AND version = ?
-    """
+    // -- Select queries -----------------------------------------------------------------------------------------------
 
-    val Restore = s"""
-      UPDATE $table SET status = 1 WHERE id = ? AND version = ? AND status = 0
-    """
+    val SelectAll =
+      s"""
+         |$Select
+         |$From
+         |$Join
+         |ORDER BY position ASC
+       """.stripMargin
 
-    val DeleteByPart = s"""
-      DELETE FROM $table WHERE part_id = ?
-    """
+    val SelectOne =
+      s"""
+         |$Select
+         |$From
+         |$Join
+         |WHERE tasks.id = ?
+         |  AND status = 1
+       """.stripMargin
 
-    val Purge = s"""
-      DELETE FROM $table WHERE id = ? AND version = ?
-    """
+    val SelectByPartId =
+      s"""
+         |$Select
+         |$From
+         |$Join
+         |WHERE part_id = ?
+         |  AND status = 1
+       """.stripMargin
 
-    val SelectByPartId = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE part_id = ?
-        AND status = 1
-    """
-
-    val SelectByProjectIdPartNum = s"""
-      SELECT tasks.id as id, tasks.version as version, tasks.created_at as created_at,
-             tasks.updated_at as updated_at, tasks.part_id, tasks.dependency_id, tasks.name, tasks.description, tasks.position,
-             tasks.notes_allowed
-      FROM tasks, parts, projects
-      WHERE projects.id = ?
-        AND projects.id = parts.project_id
-        AND parts.position = ?
-        AND parts.id = tasks.part_id
-        AND projects.status = 1 AND parts.status = 1 AND tasks.status = 1
-      ORDER BY parts.position ASC, tasks.position ASC
-    """
+    val SelectByProjectIdPartNum =
+      s"""
+         |$Select
+         |$From, parts, projects
+         |WHERE projects.id = ?
+         |  AND projects.id = parts.project_id
+         |  AND parts.position = ?
+         |  AND parts.id = tasks.part_id
+         |  AND projects.status = 1 AND parts.status = 1 AND tasks.status = 1
+         |ORDER BY parts.position ASC, tasks.position ASC
+       """.stripMargin
 
     val SelectByProjectId = s"""
-      SELECT tasks.id as id, tasks.version as version, tasks.created_at as created_at,
-             tasks.updated_at as updated_at, tasks.part_id, tasks.dependency_id, tasks.name, tasks.description, tasks.position,
-             tasks.notes_allowed
-      FROM tasks, parts, projects
+      $Select
+      $From, parts, projects
       WHERE projects.id = ?
         AND projects.id = parts.project_id
         AND parts.id = tasks.part_id
@@ -116,10 +111,8 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
     """
 
     val SelectActiveByProjectId = s"""
-      SELECT tasks.id as id, tasks.version as version, tasks.created_at as created_at,
-             tasks.updated_at as updated_at, tasks.part_id, tasks.dependency_id, tasks.name, tasks.description, tasks.position,
-             tasks.notes_allowed
-      FROM tasks, parts, projects, sections, sections_projects, users_sections
+      $Select
+      $From, parts, projects, sections, sections_projects, users_sections
       WHERE projects.id = ?
         AND projects.id = parts.project_id
         AND parts.id = tasks.part_id
@@ -131,9 +124,8 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
     """
 
     val SelectByPosition = s"""
-      SELECT tasks.id as id, tasks.version as version, tasks.created_at as created_at, tasks.updated_at as updated_at, tasks.part_id as part_id, tasks.dependency_id as dependency_id, tasks.name as name, tasks.description as description, tasks.position as position,
-             tasks.notes_allowed
-      FROM tasks, parts, projects
+      $Select
+      $From, parts, projects
       WHERE projects.id = ?
         AND parts.position = ?
         AND tasks.position = ?
@@ -143,12 +135,10 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
     """
 
     val SelectNowByUserId = s"""
-      SELECT tasks.id as id, tasks.version as version, tasks.created_at as created_at,
-             tasks.updated_at as updated_at, tasks.part_id as part_id,
-             tasks.dependency_id as dependency_id, tasks.name as name, tasks.description as description,
-             COALESCE(sr.is_complete, FALSE) AS is_complete,
-             tasks.position as position, tasks.notes_allowed
-      FROM tasks
+      $Select
+        COALESCE(sr.is_complete, FALSE) AS is_complete
+      $From
+      $Join
       INNER JOIN parts ON parts.id = tasks.part_id
       INNER JOIN projects ON parts.project_id = projects.id
       INNER JOIN users ON users.id = ?
@@ -161,6 +151,147 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
       ORDER BY parts.position ASC, tasks.position ASC
       LIMIT 1
     """
+
+    // -- Insert queries -----------------------------------------------------------------------------------------------
+
+    val Insert = {
+      val extraFields = fields.mkString(",")
+      val questions = fields.map(_ => "?").mkString(",")
+      s"""
+         |INSERT INTO tasks (id, version, created_at, updated_at, part_id, dependency_id,
+         |                   name, description, position, notes_allowed, task_type)
+         |VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+         |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
+         |          name, description, position, notes_allowed, task_type
+      """.stripMargin
+    }
+
+    val InsertLongAnswer =
+      s"""
+         |WITH task AS (
+         |  ${Insert}
+         |)
+         |INSERT INTO long_answer_tasks (task_id)
+         |  SELECT id as task_id
+       """.stripMargin
+
+    val InsertShortAnswer =
+      s"""
+         |WITH task AS (
+         |  ${Insert}
+         |)
+         |INSERT INTO short_answer_tasks (task_id, max_length)
+         |  SELECT id as task_id, ? as max_length
+       """.stripMargin
+
+    val InsertMultipleChoice =
+      s"""
+         |WITH task AS (
+         |  ${Insert}
+         |)
+         |INSERT INTO multiple_choice_tasks (task_id, choices, answers, allow_multiple, randomize)
+         |  SELECT id as task_id, ? as choices, ? as answers, ? as allow_multiple, ? as randomize
+       """.stripMargin
+
+    val InsertOrdering =
+      s"""
+         |WITH task AS (
+         |  ${Insert}
+         |)
+         |INSERT INTO ordering_tasks (task_id, choices, answers, randomize)
+         |  SELECT id as task_id, ? as choices, ? as answers, ? as randomize
+       """.stripMargin
+
+    val InsertMatching =
+      s"""
+         |WITH task AS (
+         |  ${Insert}
+         |)
+         |INSERT INTO matching_tasks (task_id, choices_left, choices_right, answers, randomize)
+         |  SELECT id as task_id, ? as choices_left, ? as choices_right, ? as answers, ? as randomize
+       """.stripMargin
+
+    // -- Update queries -----------------------------------------------------------------------------------------------
+
+    val Update =
+      s"""
+         |UPDATE tasks
+         |SET part_id = ?, dependency_id = ?,
+         |    name = ?, description = ?,
+         |    position = ?, notes_allowed = ?,
+         |    version = ?
+         |WHERE id = ?
+         |  AND version = ?
+         |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
+         |          name, description, position, notes_allowed, task_type
+       """.stripMargin
+
+    val UpdateLongAnswer =
+      s"""
+         |WITH task AS (
+         |  ${Update}
+         |)
+         |UPDATE tasks
+         |SET task_id = task.id
+         |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
+         |          name, description, position, notes_allowed, task_type
+       """.stripMargin
+
+    val UpdateShortAnswer =
+      s"""
+         |WITH task AS (
+         |  ${Update}
+         |)
+         |UPDATE tasks
+         |SET task_id = task.id, max_length = ?
+         |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
+         |          name, description, position, notes_allowed, task_type
+       """.stripMargin
+
+    val UpdateMultipleChoice =
+      s"""
+         |WITH task AS (
+         |  ${Update}
+         |)
+         |UPDATE tasks
+         |SET task_id = task.id, choices = ?, answers = ?, allow_multiple = ?, randomize = ?
+         |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
+         |          name, description, position, notes_allowed, task_type
+       """.stripMargin
+
+    val UpdateOrdering =
+      s"""
+         |WITH task AS (
+         |  ${Update}
+         |)
+         |UPDATE tasks
+         |SET task_id = task.id, choices = ?, answers = ?, randomize = ?
+         |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
+         |          name, description, position, notes_allowed, task_type
+       """.stripMargin
+
+    val UpdateMatching =
+      s"""
+         |WITH task AS (
+         |  ${Update}
+         |)
+         |UPDATE tasks
+         |SET task_id = task.id, choices_left = ?, choices_right = ?, answers = ?, randomize = ?
+         |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
+         |          name, description, position, notes_allowed, task_type
+       """.stripMargin
+
+    // -- Delete queries -----------------------------------------------------------------------------------------------
+
+    val DeleteByPart = s"""
+      DELETE FROM $table WHERE part_id = ?
+    """
+
+    val Delete = s"""
+      DELETE FROM $table WHERE id = ? AND version = ?
+    """
+
+    // -- Methods ------------------------------------------------------------------------------------------------------
 
     /**
      * Find all tasks.
@@ -190,11 +321,9 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      */
     override def list(part: Part): Future[IndexedSeq[Task]] = {
       db.pool.sendPreparedStatement(SelectByPartId, Array[Any](part.id.bytes)).map { queryResult =>
-        Logger.trace("taskRepository.list - task ID list found in database")
         val taskList = queryResult.rows.get.map {
           item: RowData => Task(item)
         }.sortBy(_.position)
-        Logger.debug("Tasks: \n" + taskList.map("\t" + _.toString()).mkString("\n"))
         taskList
       }.recover {
         case exception => {
@@ -212,7 +341,6 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      */
     override def list(project: Project): Future[IndexedSeq[Task]] = {
       db.pool.sendPreparedStatement(SelectByProjectId, Array[Any](project.id.bytes)).map { queryResult =>
-        Logger.trace("taskRepository.list(project) - part id list not cached, found tasks from database")
         val taskList = queryResult.rows.get.map {
           item: RowData => Task(item)
         }
@@ -231,7 +359,6 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * @param partNum the position of the part to list tasks from.
      */
     override def list(project: Project, partNum: Int): Future[IndexedSeq[Task]] = {
-      Logger.trace("taskRepository.list(project, partNum) - entry")
       partRepository.find(project, partNum).flatMap { partOption =>
         list(partOption.get)
       }.recover {
@@ -250,7 +377,6 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
       db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map { result =>
         result.rows.get.headOption match {
           case Some(rowData) => {
-            Logger.debug(s"Loaded from database: ${Task(rowData)}")
             Some(Task(rowData))
           }
           case None => None
@@ -287,26 +413,53 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
     }
 
     /**
-     * Create a new task.
+     * Insert a new task into the database.
+     *
+     * This method handles all task types in one place.
      *
      * @param task The task to be inserted
      * @return the new task
      */
     override def insert(task: Task)(implicit conn: Connection): Future[Task] = {
-      conn.sendPreparedStatement(Insert, Array(
-        task.id.bytes,
-        new DateTime,
-        new DateTime,
-        task.partId.bytes,
-        task.dependencyId match {
+      // All tasks have these properties.
+      val commonData =  Array[Any](
+        task.id.bytes, new DateTime, new DateTime, task.partId.bytes,
+        task.settings.dependencyId match {
           case Some(id) => Some(id.bytes)
           case None => None
         },
-        task.name,
-        task.description,
-        task.position,
-        task.notesAllowed
-      )).map {
+        task.settings.title, task.settings.description, task.position,
+        task.settings.notesAllowed, Task.LongAnswer
+      )
+
+      // Prepare the additional data to be sent depending on the type of task
+      val dataArray = task match {
+        case longAnswer: LongAnswerTask => commonData
+        case shortAnswer: ShortAnswerTask => commonData ++ Array[Any](
+          shortAnswer.maxLength
+        )
+        case multipleChoice: MultipleChoiceTask => commonData ++ Array[Any](
+          multipleChoice.choices,
+          multipleChoice.answer,
+          multipleChoice.allowMultiple,
+          multipleChoice.randomizeChoices
+        )
+        case ordering: OrderingTask => commonData ++ Array[Any](
+          ordering.elements,
+          ordering.answer,
+          ordering.randomizeChoices
+        )
+        case matching: MatchingTask => commonData ++ Array[Any](
+          matching.elementsLeft,
+          matching.elementsRight,
+          matching.answer,
+          matching.randomizeChoices
+        )
+        case _ => throw new Exception("I don't know how you did this, but you sent me a task type that doesn't exist.")
+      }
+
+      // Send the query
+      conn.sendPreparedStatement(Insert, dataArray).map {
         result => {
           Task(result.rows.get.head)
         }
@@ -324,25 +477,50 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * @return the updated task
      */
     override def update(task: Task)(implicit conn: Connection): Future[Task] = {
-      Logger.debug(task.toString())
-      conn.sendPreparedStatement(Update, Array(
+      // Start with the data common to all task types.
+      val commonData = Array[Any](
         task.partId.bytes,
-        task.dependencyId match {
+        task.settings.dependencyId match {
           case Some(id) => Some(id.bytes)
           case None => None
         },
-        task.name,
-        task.description,
+        task.settings.title,
+        task.settings.description,
         task.position,
-        task.notesAllowed,
-        (task.version + 1),
-        new DateTime,
-        task.id.bytes,
-        task.version
-      )).map {
-        result => {
-          Task(result.rows.get.head)
-        }
+        task.settings.notesAllowed,
+        (task.version +1),
+        task.id.bytes, task.version
+      )
+
+      // Throw in the task type-specific data.
+      val dataArray = task match {
+        case longAnswer: LongAnswerTask => commonData
+        case shortAnswer: ShortAnswerTask => commonData ++ Array[Any](
+          shortAnswer.maxLength
+        )
+        case multipleChoice: MultipleChoiceTask => commonData ++ Array[Any](
+          multipleChoice.choices,
+          multipleChoice.answer,
+          multipleChoice.allowMultiple,
+          multipleChoice.randomizeChoices
+        )
+        case ordering: OrderingTask => commonData ++ Array[Any](
+          ordering.elements,
+          ordering.answer,
+          ordering.randomizeChoices
+        )
+        case matching: MatchingTask => commonData ++ Array[Any](
+          matching.elementsLeft,
+          matching.elementsRight,
+          matching.answer,
+          matching.randomizeChoices
+        )
+        case _ => throw new Exception("I don't know how you did this, but you sent me a task type that doesn't exist.")
+      }
+
+      // Execute the query
+      conn.sendPreparedStatement(Update, dataArray).map {
+        result => Task(result.rows.get.head)
       }.recover {
         case exception => {
           throw exception
@@ -357,7 +535,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * @return A boolean indicating whether the operation was successful.
      */
     override def delete(task: Task)(implicit conn: Connection): Future[Boolean] = {
-      conn.sendPreparedStatement(Purge, Array(task.id.bytes, task.version)).map {
+      conn.sendPreparedStatement(Delete, Array(task.id.bytes, task.version)).map {
         result => {
           (result.rowsAffected > 0)
         }
@@ -375,7 +553,6 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * @return A boolean indicating whether the operation was successful.
      */
     override def delete(part: Part)(implicit conn: Connection): Future[Boolean] = {
-      Logger.debug("Deleting tasks in part: " + part.id.string)
       list(part).flatMap { taskList =>
         conn.sendPreparedStatement(DeleteByPart, Array[Any](part.id.bytes)).map {
           result => {

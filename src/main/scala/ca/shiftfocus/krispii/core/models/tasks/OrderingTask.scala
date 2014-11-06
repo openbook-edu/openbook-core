@@ -42,7 +42,7 @@ case class OrderingTask(
   /**
    * Which type of task this is. Hard-coded value per class!
    */
-  override val taskType: String = "ordering"
+  override val taskType: Int = Task.Ordering
 
 }
 
@@ -59,7 +59,7 @@ object OrderingTask {
       // Primary Key
       id = UUID(row("id").asInstanceOf[Array[Byte]]),
 
-      // Unique combination
+      // Unique combination RowData
       partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
       position = row("position").asInstanceOf[Int],
 
@@ -79,20 +79,24 @@ object OrderingTask {
   }
 
   /**
-   * Unserialize a [[OrderingTask]] from JSON.
+   * Unserialize a [[LongAnswerTask]] from JSON.
    */
-  implicit val taskReads: Reads[OrderingTask] = (
-    (__ \ "id").read[UUID] and
-      (__ \ "partId").read[UUID] and
-      (__ \ "position").read[Int] and
-      (__ \ "version").read[Long] and
-      (__ \ "settings").read[CommonTaskSettings] and
-      (__ \ "elements").read[IndexedSeq[String]] and
-      (__ \ "answer").read[IndexedSeq[Int]] and
-      (__ \ "randomizeChoices").read[Boolean] and
-      (__ \ "createdAt").readNullable[DateTime] and
-      (__ \ "updatedAt").readNullable[DateTime]
-    )(OrderingTask.apply(_: UUID, _: UUID, _: Int, _: Long, _: CommonTaskSettings, _: IndexedSeq[String], _: IndexedSeq[Int], _: Boolean, _: Option[DateTime], _: Option[DateTime]))
+  implicit val jsonReads = new Reads[OrderingTask] {
+    def reads(js: JsValue) = {
+      JsSuccess(OrderingTask(
+        id       = (js \ "id").as[UUID],
+        partId   = (js \ "partId").as[UUID],
+        position = (js \ "position").as[Int],
+        version  = (js \ "version").as[Long], // CommonTaskSettings
+        settings = (js \ "settings").as[CommonTaskSettings],
+        elements = (js \ "elements").as[IndexedSeq[String]],
+        answer   = (js \ "answer").as[IndexedSeq[Int]],
+        randomizeChoices = (js \ "randomizeChoices").as[Boolean],
+        createdAt = (js \ "createdAt").as[Option[DateTime]],
+        updatedAt = (js \ "updatedAt").as[Option[DateTime]]
+      ))
+    }
+  }
 
   /**
    * Serialize a [[OrderingTask]] to JSON.

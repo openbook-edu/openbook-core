@@ -37,7 +37,7 @@ case class LongAnswerTask(
   /**
    * Which type of task this is. Hard-coded value per class!
    */
-  override val taskType: String = "longAnswer"
+  override val taskType: Int = Task.LongAnswer
 
 }
 
@@ -73,20 +73,13 @@ object LongAnswerTask {
         id = (js \ "id").as[UUID],
         partId = (js \ "partId").as[UUID],
         position = (js \ "position").as[Int],
-        version = (js \ "version").as[Long]
+        version = (js \ "version").as[Long],
+        settings = (js \ "settings").as[CommonTaskSettings],
+        createdAt = (js \ "createdAt").as[Option[DateTime]],
+        updatedAt = (js \ "updatedAt").as[Option[DateTime]]
       ))
     }
   }
-
-//  implicit val taskReads: Reads[LongAnswerTask] = (
-//    (__ \ "id").read[UUID] and
-//      (__ \ "partId").read[UUID] and
-//      (__ \ "position").read[Int] and
-//      (__ \ "version").read[Long] and
-//      (__ \ "settings").read[CommonTaskSettings] and
-//      (__ \ "createdAt").readNullable[DateTime] and
-//      (__ \ "updatedAt").readNullable[DateTime]
-//  )(LongAnswerTask.apply(_: UUID, _: UUID, _: Int, _: Long, _: CommonTaskSettings, _: Option[DateTime], _: Option[DateTime]))
 
   /**
    * Serialize a [[LongAnswerTask]] to JSON.

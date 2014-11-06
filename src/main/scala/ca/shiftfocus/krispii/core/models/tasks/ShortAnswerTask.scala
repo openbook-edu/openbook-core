@@ -38,7 +38,7 @@ case class ShortAnswerTask(
   /**
    * Which type of task this is. Hard-coded value per class!
    */
-  override val taskType: String = "shortAnswer"
+  override val taskType: Int = Task.ShortAnswer
 
 }
 
@@ -66,18 +66,21 @@ object ShortAnswerTask {
   }
 
   /**
-   * Unserialize a [[ShortAnswerTask]] from JSON.
+   * Unserialize a [[LongAnswerTask]] from JSON.
    */
-  implicit val taskReads: Reads[ShortAnswerTask] = (
-    (__ \ "id").read[UUID] and
-      (__ \ "partId").read[UUID] and
-      (__ \ "position").read[Int] and
-      (__ \ "version").read[Long] and
-      (__ \ "settings").read[CommonTaskSettings] and
-      (__ \ "maxLength").read[Int] and
-      (__ \ "createdAt").readNullable[DateTime] and
-      (__ \ "updatedAt").readNullable[DateTime]
-    )(ShortAnswerTask.apply(_: UUID, _: UUID, _: Int, _: Long, _: CommonTaskSettings, _: Int, _: Option[DateTime], _: Option[DateTime]))
+  implicit val jsonReads = new Reads[ShortAnswerTask] {
+    def reads(js: JsValue) = {
+      JsSuccess(ShortAnswerTask(
+        id = (js \ "id").as[UUID],
+        partId = (js \ "partId").as[UUID],
+        position = (js \ "position").as[Int],
+        version = (js \ "version").as[Long],
+        settings = (js \ "settings").as[CommonTaskSettings],
+        createdAt = (js \ "createdAt").as[Option[DateTime]],
+        updatedAt = (js \ "updatedAt").as[Option[DateTime]]
+      ))
+    }
+  }
 
   /**
    * Serialize a [[ShortAnswerTask]] to JSON.

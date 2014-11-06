@@ -47,7 +47,7 @@ case class MatchingTask(
   /**
    * Which type of task this is. Hard-coded value per class!
    */
-  override val taskType: String = "matching"
+  override val taskType: Int = Task.Matching
 
 }
 
@@ -85,26 +85,30 @@ object MatchingTask {
   }
 
   /**
-   * Unserialize a [[MatchingTask]] from JSON.
+   * Unserialize a [[LongAnswerTask]] from JSON.
    */
-  implicit val taskReads: Reads[MatchingTask] = (
-    (__ \ "id").read[UUID] and
-      (__ \ "partId").read[UUID] and
-      (__ \ "position").read[Int] and
-      (__ \ "version").read[Long] and
-      (__ \ "settings").read[CommonTaskSettings] and
-      (__ \ "elements_left").read[IndexedSeq[String]] and
-      (__ \ "elements_right").read[IndexedSeq[String]] and
-      (__ \ "answer").read[IndexedSeq[(Int, Int)]] and
-      (__ \ "randomizeChoices").read[Boolean] and
-      (__ \ "createdAt").readNullable[DateTime] and
-      (__ \ "updatedAt").readNullable[DateTime]
-    )(MatchingTask.apply(_: UUID, _: UUID, _: Int, _: Long, _: CommonTaskSettings, _: IndexedSeq[String], _: IndexedSeq[String], _: IndexedSeq[(Int, Int)], _: Boolean, _: Option[DateTime], _: Option[DateTime]))
+  implicit val jsonReads = new Reads[MatchingTask] {
+    def reads(js: JsValue) = {
+      JsSuccess(MatchingTask(
+        id       = (js \ "id").as[UUID],
+        partId   = (js \ "partId").as[UUID],
+        position = (js \ "position").as[Int],
+        version  = (js \ "version").as[Long],
+        settings = (js \ "settings").as[CommonTaskSettings],
+        elementsLeft = (js \ "elementsLeft").as[IndexedSeq[String]],
+        elementsRight = (js \ "elementsRight").as[IndexedSeq[String]],
+        answer   = (js \ "answer").as[IndexedSeq[(Int, Int)]],
+        randomizeChoices = (js \ "randomizeChoices").as[Boolean],
+        createdAt = (js \ "createdAt").as[Option[DateTime]],
+        updatedAt = (js \ "updatedAt").as[Option[DateTime]]
+      ))
+    }
+  }
 
   /**
    * Serialize a [[MatchingTask]] to JSON.
    */
-  implicit val taskWrites: Writes[MatchingTask] = (
+  implicit val jsonWrites: Writes[MatchingTask] = (
     (__ \ "id").write[UUID] and
       (__ \ "partId").write[UUID] and
       (__ \ "position").write[Int] and

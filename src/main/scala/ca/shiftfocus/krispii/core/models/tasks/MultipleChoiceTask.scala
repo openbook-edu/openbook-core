@@ -45,7 +45,7 @@ case class MultipleChoiceTask(
   /**
    * Which type of task this is. Hard-coded value per class!
    */
-  override val taskType: String = "multipleChoice"
+  override val taskType: Int = Task.MultipleChoice
 
 }
 
@@ -80,6 +80,27 @@ object MultipleChoiceTask {
       createdAt = Some(row("created_at").asInstanceOf[DateTime]),
       updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
     )
+  }
+
+  /**
+   * Unserialize a [[LongAnswerTask]] from JSON.
+   */
+  implicit val jsonReads = new Reads[MultipleChoiceTask] {
+    def reads(js: JsValue) = {
+      JsSuccess(MultipleChoiceTask(
+        id       = (js \ "id").as[UUID],
+        partId   = (js \ "partId").as[UUID],
+        position = (js \ "position").as[Int],
+        version  = (js \ "version").as[Long],
+        settings = (js \ "settings").as[CommonTaskSettings],
+        choices = (js \ "elements").as[IndexedSeq[String]],
+        answer   = (js \ "answer").as[IndexedSeq[Int]],
+        allowMultiple = (js \ "allowMultiple").as[Boolean],
+        randomizeChoices = (js \ "randomizeChoices").as[Boolean],
+        createdAt = (js \ "createdAt").as[Option[DateTime]],
+        updatedAt = (js \ "updatedAt").as[Option[DateTime]]
+      ))
+    }
   }
 
   /**

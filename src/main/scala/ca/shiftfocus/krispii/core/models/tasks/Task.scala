@@ -18,7 +18,7 @@ trait Task {
   val position: Int
   val version: Long
   val settings: CommonTaskSettings
-  val taskType: String
+  val taskType: Int
   val createdAt: Option[DateTime]
   val updatedAt: Option[DateTime]
 }

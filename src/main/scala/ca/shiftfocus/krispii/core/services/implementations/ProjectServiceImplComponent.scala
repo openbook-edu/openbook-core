@@ -577,68 +577,143 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      *                need to be careful with the re-ordering.
      * @return the newly created task
      */
-    override def updateTask(taskId: UUID, version: Long, name: String, description: String, newPosition: Int, notesAllowed: Boolean, dependencyId: Option[UUID], partId: Option[UUID] = None): Future[Task] = {
+    private def updateTask(existingTask: Task, updatedTask: Task): Future[Task] = {
       transactional { implicit connection =>
-        Logger.debug("updating task")
         for {
-          existingTask <- taskRepository.find(taskId).map(_.get)
-          part <- {partId match {
-            case Some(id) => partRepository.find(id).map(_.get)
-            case None => partRepository.find(existingTask.partId).map(_.get)
-          }}
-          taskList <- {
-            taskRepository.list(part)
-          }
-          oldPosition <- Future.successful { partId match {
-            case Some(id) => {
-              if (id != existingTask.partId) taskList.length
-              else existingTask.position
+          maybeOldPart <-
+            if (existingTask != updatedTask) {
+              partRepository.find(existingTask.partId)
+            } else {
+              Future.successful(None)
             }
-            case None => existingTask.position
-          }}
-          taskListUpdated <- if (newPosition != oldPosition) {
-            val filteredTaskList = taskList.filter(_.id != taskId)
-            var temp = IndexedSeq[Task]()
-            for (i <- filteredTaskList.indices) {
-              if (i >= newPosition) {
-                temp = temp :+ filteredTaskList(i).copy(position = i+1)
-              }
-              else {
-                temp = temp :+ filteredTaskList(i).copy(position = i)
-              }
-            }
-            val filteredOrderedTaskList = temp
 
-            if (filteredOrderedTaskList.nonEmpty) {
-              // Since we're inside a transaction, we need to fold over the list,
-              // rather than map, to ensure the database queries are executed
-              // sequentially. We cannot send parallel queries inside of a
-              // transaction!
+          oldTaskList <- { maybeOldPart match {
+            case Some(oldPart) => taskRepository.list(oldPart).map { oldList =>
+              oldList.filter(_.id != updatedTask.id)
+            }
+            case None => Future successful IndexedSeq.empty[Task]
+          }}
+
+          newPart <- partRepository.find(updatedTask.partId).map(_.get)
+          taskList <- taskRepository.list(newPart)
+
+          oldPosition <- Future successful existingTask.position
+          newPosition <- Future successful updatedTask.position
+
+          oldListUpdated <- {
+            // If the task has changed parts, then the old task list must be updated
+            // in addition to the new one.
+            if (existingTask.partId == updatedTask.partId) { IndexedSeq.empty[Task] }
+            else if (oldTaskList.nonEmpty) {
+              // Update old task list to remove this task from the ordering.
+              var filteredOrderedTaskList = IndexedSeq.empty[Task]
+              for (i <- oldTaskList.indices) {
+                filteredOrderedTaskList = filteredOrderedTaskList :+ {oldTaskList(i) match {
+                  case task: LongAnswerTask => task.copy(position = i)
+                  case task: ShortAnswerTask => task.copy(position = i)
+                  case task: MultipleChoiceTask => task.copy(position = i)
+                  case task: OrderingTask => task.copy(position = i)
+                  case task: MatchingTask => task.copy(position = i)
+                  case _ => throw new Exception("Gold star for epic coding failure.")
+                }}
+              }
+              // Cannot send parallel queries from within a transaction. Ensures they
+              // are executed sequentially!
               serialized(filteredOrderedTaskList)(taskRepository.update)
             }
-            else Future.successful(IndexedSeq())
-          } else Future.successful(taskList)
+          }
+
+          newListUpdated <- {
+            // The "new" list is the list that the task ends up in, whether it has
+            // moved or not. If the task has changed parts, or if it hasn't changed
+            // parts but its position number has changed, then the "new" list's ordering
+            // must be updated.
+            if (existingTask.partId   != updatedTask.partId ||
+                existingTask.position != updatedTask.position) {
+              val filteredTaskList = taskList.filter(_.id != updatedTask.id)
+              var filteredOrderedTaskList = IndexedSeq.empty[Task]
+              for (i <- filteredTaskList.indices) {
+                if (i >= newPosition) {
+                  filteredOrderedTaskList = filteredOrderedTaskList :+ {filteredTaskList(i) match {
+                    case task: LongAnswerTask => task.copy(position = i+1)
+                    case task: ShortAnswerTask => task.copy(position = i+1)
+                    case task: MultipleChoiceTask => task.copy(position = i+1)
+                    case task: OrderingTask => task.copy(position = i+1)
+                    case task: MatchingTask => task.copy(position = i+1)
+                    case _ => throw new Exception("Gold star for epic coding failure.")
+                  }}
+                }
+                else {
+                  filteredOrderedTaskList = filteredOrderedTaskList :+ {filteredTaskList(i) match {
+                    case task: LongAnswerTask => task.copy(position = i)
+                    case task: ShortAnswerTask => task.copy(position = i)
+                    case task: MultipleChoiceTask => task.copy(position = i)
+                    case task: OrderingTask => task.copy(position = i)
+                    case task: MatchingTask => task.copy(position = i)
+                    case _ => throw new Exception("Gold star for epic coding failure.")
+                  }}
+                }
+              }
+
+              if (filteredOrderedTaskList.nonEmpty) {
+                // Cannot send parallel queries from within a transaction. Ensures they
+                // are executed sequentially!
+                serialized(filteredOrderedTaskList)(taskRepository.update)
+              }
+              else { Future.successful(IndexedSeq()) }
+            }
+            else { Future successful taskList }
+          }
 
           // Now we insert the new part
-          updatedTask <- {
-            Logger.debug("updating task itself")
-            taskRepository.update(existingTask.copy(
-              version = version,
-              name = name,
-              description = description,
-              position = newPosition,
-              notesAllowed = notesAllowed,
-              partId = { partId match {
-                case Some(partId) => partId
-                case None => existingTask.partId
-              }}
-            ))
-          }
+          updatedTask <- taskRepository.update(updatedTask)
         } yield updatedTask
       }.recover {
         case exception => throw exception
       }
     }
+
+    /**
+     * Update a long-answer task.
+     *
+     * @param taskId
+     * @param version
+     * @param name
+     * @param description
+     * @param position
+     * @param notesAllowed
+     * @param dependencyId
+     * @param partId
+     * @return
+     */
+    override def updateLongAnswerTask(taskId: UUID,
+                                      version: Long,
+                                      name: String,
+                                      description: String,
+                                      position: Int,
+                                      notesAllowed: Boolean,
+                                      dependencyId: Option[UUID] = None,
+                                      partId: Option[UUID] = None): Future[Task] = {
+      for {
+        existingTask: LongAnswerTask <- taskRepository.find(taskId).map(_.get)
+        updatedTask <- {
+          updateTask(existingTask, existingTask.copy(
+            partId = { partId match {
+              case Some(partId) => partId
+              case None => existingTask.partId
+            }},
+            version = version,
+            position = position,
+            settings = existingTask.settings.copy(
+              title = name,
+              description = description,
+              notesAllowed = notesAllowed
+            )
+          ))
+        }
+      } yield updatedTask
+    }
+
 
     /**
      * Delete a task.

@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.lib.UUID
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.tasks.Task
+import ca.shiftfocus.krispii.core.models.tasks.{MatchingTask, Task}
 import scala.concurrent.Future
 
 trait ProjectServiceComponent {
@@ -36,7 +36,64 @@ trait ProjectServiceComponent {
     def findTask(taskId: UUID): Future[Option[Task]]
     def findTask(projectSlug: String, partNum: Int, taskNum: Int): Future[Option[Task]]
     def createTask(partId: UUID, taskType: Int, name: String, description: String, position: Int, dependencyId: Option[UUID] = None): Future[Task]
-    def updateTask(taskId: UUID, version: Long, name: String, description: String, position: Int, notesAllowed: Boolean, dependencyId: Option[UUID] = None, partId: Option[UUID] = None): Future[Task]
+
+    def updateLongAnswerTask(taskId: UUID,
+                             version: Long,
+                             name: String,
+                             description: String,
+                             position: Int,
+                             notesAllowed: Boolean,
+                             dependencyId: Option[UUID] = None,
+                             partId: Option[UUID] = None): Future[Task]
+
+    def updateShortAnswerTask(taskId: UUID,
+                              version: Long,
+                              name: String,
+                              description: String,
+                              position: Int,
+                              notesAllowed: Boolean,
+                              maxLength: Int,
+                              dependencyId: Option[UUID] = None,
+                              partId: Option[UUID] = None): Future[Task]
+
+    def updateMultipleChoiceTask(taskId: UUID,
+                                 version: Long,
+                                 name: String,
+                                 description: String,
+                                 position: Int,
+                                 notesAllowed: Boolean,
+                                 choices: IndexedSeq[String] = IndexedSeq(),
+                                 answer: IndexedSeq[Int] = IndexedSeq(),
+                                 allowMultiple: Boolean = false,
+                                 randomizeChoices: Boolean = true,
+                                 dependencyId: Option[UUID] = None,
+                                 partId: Option[UUID] = None): Future[Task]
+
+    def updateOrderingTask(taskId: UUID,
+                           version: Long,
+                           name: String,
+                           description: String,
+                           position: Int,
+                           notesAllowed: Boolean,
+                           elements: IndexedSeq[String] = IndexedSeq(),
+                           answer: IndexedSeq[Int] = IndexedSeq(),
+                           randomizeChoices: Boolean = true,
+                           dependencyId: Option[UUID] = None,
+                           partId: Option[UUID] = None): Future[Task]
+
+    def updateMatchingTask(taskId: UUID,
+                           version: Long,
+                           name: String,
+                           description: String,
+                           position: Int,
+                           notesAllowed: Boolean,
+                           elementsLeft: IndexedSeq[String] = IndexedSeq(),
+                           elementsRight: IndexedSeq[String] = IndexedSeq(),
+                           answer: IndexedSeq[MatchingTask.Match] = IndexedSeq(),
+                           randomizeChoices: Boolean = true,
+                           dependencyId: Option[UUID] = None,
+                           partId: Option[UUID] = None): Future[Task]
+
     def deleteTask(taskId: UUID, version: Long): Future[Boolean]
 
     def moveTask(partId: UUID, taskId: UUID, newPosition: Int): Future[Task]

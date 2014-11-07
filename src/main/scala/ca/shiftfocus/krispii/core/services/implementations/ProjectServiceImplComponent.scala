@@ -603,7 +603,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
           oldListUpdated <- {
             // If the task has changed parts, then the old task list must be updated
             // in addition to the new one.
-            if (existingTask.partId == updatedTask.partId) { IndexedSeq.empty[Task] }
+            if (existingTask.partId == updatedTask.partId) { Future successful IndexedSeq.empty[Task] }
             else if (oldTaskList.nonEmpty) {
               // Update old task list to remove this task from the ordering.
               var filteredOrderedTaskList = IndexedSeq.empty[Task]
@@ -621,6 +621,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
               // are executed sequentially!
               serialized(filteredOrderedTaskList)(taskRepository.update)
             }
+            else { Future successful IndexedSeq.empty[Task] }
           }
 
           newListUpdated <- {
@@ -695,8 +696,12 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
                                       dependencyId: Option[UUID] = None,
                                       partId: Option[UUID] = None): Future[Task] = {
       for {
-        existingTask: LongAnswerTask <- taskRepository.find(taskId).map(_.get)
+        task <- taskRepository.find(taskId).map(_.get)
         updatedTask <- {
+          if (!task.isInstanceOf[LongAnswerTask]) {
+            throw new Exception(s"You told me you were updating a LongAnswerTask, but task ${taskId.string} is actually something else.")
+          }
+          val existingTask: LongAnswerTask = task.asInstanceOf[LongAnswerTask]
           updateTask(existingTask, existingTask.copy(
             partId = { partId match {
               case Some(partId) => partId
@@ -709,6 +714,158 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
               description = description,
               notesAllowed = notesAllowed
             )
+          ))
+        }
+      } yield updatedTask
+    }
+
+    def updateShortAnswerTask(taskId: UUID,
+                              version: Long,
+                              name: String,
+                              description: String,
+                              position: Int,
+                              notesAllowed: Boolean,
+                              maxLength: Int,
+                              dependencyId: Option[UUID] = None,
+                              partId: Option[UUID] = None): Future[Task] = {
+      for {
+        task <- taskRepository.find(taskId).map(_.get)
+        updatedTask <- {
+          if (!task.isInstanceOf[ShortAnswerTask]) {
+            throw new Exception(s"You told me you were updating a LongAnswerTask, but task ${taskId.string} is actually something else.")
+          }
+          val existingTask: ShortAnswerTask = task.asInstanceOf[ShortAnswerTask]
+          updateTask(existingTask, existingTask.copy(
+            partId = { partId match {
+              case Some(partId) => partId
+              case None => existingTask.partId
+            }},
+            version = version,
+            position = position,
+            settings = existingTask.settings.copy(
+              title = name,
+              description = description,
+              notesAllowed = notesAllowed
+            ),
+            maxLength = maxLength
+          ))
+        }
+      } yield updatedTask
+    }
+
+    def updateMultipleChoiceTask(taskId: UUID,
+                                 version: Long,
+                                 name: String,
+                                 description: String,
+                                 position: Int,
+                                 notesAllowed: Boolean,
+                                 choices: IndexedSeq[String] = IndexedSeq(),
+                                 answer: IndexedSeq[Int] = IndexedSeq(),
+                                 allowMultiple: Boolean = false,
+                                 randomizeChoices: Boolean = true,
+                                 dependencyId: Option[UUID] = None,
+                                 partId: Option[UUID] = None): Future[Task] = {
+      for {
+        task <- taskRepository.find(taskId).map(_.get)
+        updatedTask <- {
+          if (!task.isInstanceOf[MultipleChoiceTask]) {
+            throw new Exception(s"You told me you were updating a LongAnswerTask, but task ${taskId.string} is actually something else.")
+          }
+          val existingTask: MultipleChoiceTask = task.asInstanceOf[MultipleChoiceTask]
+          updateTask(existingTask, existingTask.copy(
+            partId = { partId match {
+              case Some(newPartId) => newPartId
+              case None => existingTask.partId
+            }},
+            version = version,
+            position = position,
+            settings = existingTask.settings.copy(
+              title = name,
+              description = description,
+              notesAllowed = notesAllowed
+            ),
+            choices = choices,
+            answer = answer,
+            allowMultiple = allowMultiple,
+            randomizeChoices = randomizeChoices
+          ))
+        }
+      } yield updatedTask
+    }
+
+    def updateOrderingTask(taskId: UUID,
+                           version: Long,
+                           name: String,
+                           description: String,
+                           position: Int,
+                           notesAllowed: Boolean,
+                           elements: IndexedSeq[String] = IndexedSeq(),
+                           answer: IndexedSeq[Int] = IndexedSeq(),
+                           randomizeChoices: Boolean = true,
+                           dependencyId: Option[UUID] = None,
+                           partId: Option[UUID] = None): Future[Task] = {
+      for {
+        task <- taskRepository.find(taskId).map(_.get)
+        updatedTask <- {
+          if (!task.isInstanceOf[OrderingTask]) {
+            throw new Exception(s"You told me you were updating a LongAnswerTask, but task ${taskId.string} is actually something else.")
+          }
+          val existingTask: OrderingTask = task.asInstanceOf[OrderingTask]
+          updateTask(existingTask, existingTask.copy(
+            partId = { partId match {
+              case Some(newPartId) => newPartId
+              case None => existingTask.partId
+            }},
+            version = version,
+            position = position,
+            settings = existingTask.settings.copy(
+              title = name,
+              description = description,
+              notesAllowed = notesAllowed
+            ),
+            elements = elements,
+            answer = answer,
+            randomizeChoices = randomizeChoices
+          ))
+        }
+      } yield updatedTask
+    }
+
+    def updateMatchingTask(taskId: UUID,
+                           version: Long,
+                           name: String,
+                           description: String,
+                           position: Int,
+                           notesAllowed: Boolean,
+                           elementsLeft: IndexedSeq[String] = IndexedSeq(),
+                           elementsRight: IndexedSeq[String] = IndexedSeq(),
+                           answer: IndexedSeq[MatchingTask.Match] = IndexedSeq(),
+                           randomizeChoices: Boolean = true,
+                           dependencyId: Option[UUID] = None,
+                           partId: Option[UUID] = None): Future[Task] = {
+      for {
+        task <- taskRepository.find(taskId).map(_.get)
+        updatedTask <- {
+          if (!task.isInstanceOf[MatchingTask]) {
+            throw new Exception(s"You told me you were updating a LongAnswerTask, but task ${taskId.string} is actually something else.")
+          }
+          val existingTask: MatchingTask = task.asInstanceOf[MatchingTask]
+          updateTask(existingTask, existingTask.copy(
+            partId = { partId match {
+              case Some(newPartId) => newPartId
+              case None => existingTask.partId
+            }},
+            version = version,
+            position = position,
+            settings = existingTask.settings.copy(
+              title = name,
+              description = description,
+              notesAllowed = notesAllowed
+            ),
+            elementsLeft = elementsLeft,
+            elementsRight = elementsRight,
+            answer = answer,
+            randomizeChoices = randomizeChoices
           ))
         }
       } yield updatedTask
@@ -729,13 +886,27 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
     override def deleteTask(taskId: UUID, version: Long): Future[Boolean] = {
       transactional { implicit connection =>
         val fDeleted = for {
-          task <- taskRepository.find(taskId).map(_.get.copy(version = version))
+          task <- taskRepository.find(taskId).map(_.get match {
+            case task: LongAnswerTask => task.copy(version = version)
+            case task: ShortAnswerTask => task.copy(version = version)
+            case task: MultipleChoiceTask => task.copy(version = version)
+            case task: OrderingTask => task.copy(version = version)
+            case task: MatchingTask => task.copy(version = version)
+            case _ => throw new Exception("Gold star for epic coding failure.")
+          })
           part <- partRepository.find(task.partId).map(_.get)
           taskList <- taskRepository.list(part)
           taskListUpdated <- {
             // If there is already a part with this position, shift it (and all following parts)
             // back by one to make room for the new one.
-            val filteredTaskList = taskList.filter(_.position > task.position).map(task => task.copy(position = task.position - 1))
+            val filteredTaskList = taskList.filter(_.position > task.position).map {
+              case task: LongAnswerTask => task.copy(position = task.position - 1)
+              case task: ShortAnswerTask => task.copy(position = task.position - 1)
+              case task: MultipleChoiceTask => task.copy(position = task.position - 1)
+              case task: OrderingTask => task.copy(position = task.position - 1)
+              case task: MatchingTask => task.copy(position = task.position - 1)
+              case _ => throw new Exception("Gold star for epic coding failure.")
+            }
             serialized(filteredTaskList)(taskRepository.update)
           }
           scratchpadsDeleted <- taskScratchpadRepository.delete(task)
@@ -758,47 +929,18 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      */
     override def moveTask(partId: UUID, taskId: UUID, newPosition: Int): Future[Task] = {
       taskRepository.find(taskId).flatMap { taskOption =>
-        val task = taskOption.get
-
-        if (task.partId == partId) {
-          // Repositioning the task within the same part, let's refer this to
-          // the updateTask method.
-          Logger.debug("Moving task within part")
-          this.updateTask(task.id, task.version, task.name, task.description, newPosition, task.notesAllowed, task.dependencyId)
+        val existingTask = taskOption.get
+        val updatedTask = existingTask match {
+          case task: LongAnswerTask =>     task.copy(position = newPosition, partId = partId)
+          case task: ShortAnswerTask =>    task.copy(position = newPosition, partId = partId)
+          case task: MultipleChoiceTask => task.copy(position = newPosition, partId = partId)
+          case task: OrderingTask =>       task.copy(position = newPosition, partId = partId)
+          case task: MatchingTask =>       task.copy(position = newPosition, partId = partId)
+          case _ => throw new Exception("Gold star for epic coding failure.")
         }
-        else transactional { implicit connection =>
-          // Moving the task to a different part
-          Logger.debug("Moving task to new part")
-          for {
-            oldPart <- partRepository.find(task.partId).map(_.get)
-            oldTaskList <- {
-              taskRepository.list(oldPart)
-            }
-            // Insert the task into the new part's task list. This will
-            // automatically shift the other tasks in the list to make room in
-            // the ordering.
-            movedTask <- this.updateTask(task.id, task.version, task.name, task.description, newPosition, task.notesAllowed, task.dependencyId, Some(partId))
-            // Now update the old part's task list to correct the order.
-            oldTaskListUpdated <- {
-              val filteredTaskList = oldTaskList.filter(_.id != taskId)
-              var temp = IndexedSeq[Task]()
-              for (i <- filteredTaskList.indices) {
-                temp = temp :+ filteredTaskList(i).copy(position = i)
-              }
-              val filteredOrderedTaskList = temp
-
-              if (filteredOrderedTaskList.nonEmpty) {
-                // Since we're inside a transaction, we need to fold over the list,
-                // rather than map, to ensure the database queries are executed
-                // sequentially. We cannot send parallel queries inside of a
-                // transaction!
-                serialized(filteredOrderedTaskList)(taskRepository.update)
-              }
-              else Future.successful(IndexedSeq())
-            }
-          }
-          yield movedTask
-        }
+        this.updateTask(existingTask, updatedTask)
+      }.recover {
+        case exception => throw exception
       }
     }
   }

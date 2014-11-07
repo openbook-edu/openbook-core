@@ -556,7 +556,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
             if (revisions.nonEmpty) throw TaskScratchpadAlreadyExistsException("This task already has a response. Call update instead.")
           }
           newTaskScratchpad <- {
-            if (!task.notesAllowed) throw new TaskScratchpadDisabledException("This task does not allow notes!")
+            if (!task.settings.notesAllowed) throw new TaskScratchpadDisabledException("This task does not allow notes!")
             taskScratchpadRepository.insert(newTaskScratchpad)
           }
         }
@@ -606,7 +606,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
             }
 
             if (revisionToUse > latestRevision.revision) {
-              if (!task.notesAllowed) throw new TaskScratchpadDisabledException("This task does not allow notes!")
+              if (!task.settings.notesAllowed) throw new TaskScratchpadDisabledException("This task does not allow notes!")
               // timeout exceeded, insert new revision
               taskScratchpadRepository.insert(latestRevision.copy(
                 revision = revisionToUse,
@@ -615,7 +615,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
               ))
             }
             else {
-              if (!task.notesAllowed) throw new TaskScratchpadDisabledException("This task does not allow notes!")
+              if (!task.settings.notesAllowed) throw new TaskScratchpadDisabledException("This task does not allow notes!")
               // timeout not reached, update current revision
               taskScratchpadRepository.update(latestRevision.copy(
                 version = version,

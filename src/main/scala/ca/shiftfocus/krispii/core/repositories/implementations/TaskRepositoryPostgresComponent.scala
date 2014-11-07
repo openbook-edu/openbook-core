@@ -231,7 +231,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |WITH task AS (
          |  ${Update}
          |)
-         |UPDATE tasks
+         |UPDATE long_answer_tasks
          |SET task_id = task.id
          |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
          |          name, description, position, notes_allowed, task_type
@@ -242,7 +242,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |WITH task AS (
          |  ${Update}
          |)
-         |UPDATE tasks
+         |UPDATE short_answer_tasks
          |SET task_id = task.id, max_length = ?
          |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
          |          name, description, position, notes_allowed, task_type
@@ -253,7 +253,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |WITH task AS (
          |  ${Update}
          |)
-         |UPDATE tasks
+         |UPDATE multiple_choice_tasks
          |SET task_id = task.id, choices = ?, answers = ?, allow_multiple = ?, randomize = ?
          |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
          |          name, description, position, notes_allowed, task_type
@@ -264,7 +264,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |WITH task AS (
          |  ${Update}
          |)
-         |UPDATE tasks
+         |UPDATE ordering_tasks
          |SET task_id = task.id, choices = ?, answers = ?, randomize = ?
          |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
          |          name, description, position, notes_allowed, task_type
@@ -275,7 +275,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |WITH task AS (
          |  ${Update}
          |)
-         |UPDATE tasks
+         |UPDATE matching_tasks
          |SET task_id = task.id, choices_left = ?, choices_right = ?, answers = ?, randomize = ?
          |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
          |          name, description, position, notes_allowed, task_type

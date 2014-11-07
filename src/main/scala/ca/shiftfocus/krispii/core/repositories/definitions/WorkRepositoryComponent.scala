@@ -16,9 +16,9 @@ trait WorkRepositoryComponent {
     def find(user: User, task: Task, section: Section): Future[Option[Work]]
     def find(user: User, task: Task, section: Section, revision: Long): Future[Option[Work]]
     def insert(work: Work)(implicit conn: Connection): Future[Work]
-    def update(work: Work)(implicit conn: Connection): Future[Work]
-    def delete(work: Work)(implicit conn: Connection): Future[Boolean]
+    def update(work: Work, newRevision: Boolean = true)(implicit conn: Connection): Future[Work]
+    def delete(work: Work, thisRevisionOnly: Boolean = false)(implicit conn: Connection): Future[Boolean]
     def delete(task: Task)(implicit conn: Connection): Future[Boolean]
-    def forceComplete(task: Task, section: Section)(implicit conn: Connection): Future[Boolean]
+    //def forceComplete(task: Task, section: Section)(implicit conn: Connection): Future[Boolean]
   }
 }

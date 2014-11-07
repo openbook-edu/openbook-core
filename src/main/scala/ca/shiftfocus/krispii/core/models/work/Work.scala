@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.models.work
 import ca.shiftfocus.krispii.core.lib.UUID
 import ca.shiftfocus.krispii.core.models.tasks.Task._
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
+import com.github.mauricio.async.db.RowData
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import org.joda.time.DateTime
@@ -17,21 +18,34 @@ trait Work {
   val revision: Long
   val version: Long = 0
   val answer: AnyRef
+  val isComplete: Boolean
   val createdAt: Option[DateTime]
   val updatedAt: Option[DateTime]
 }
 
 object Work {
 
+  def apply(row: RowData): Work = {
+    row("work_type").asInstanceOf[Int] match {
+      case LongAnswer => LongAnswerWork(row)
+      case ShortAnswer => ShortAnswerWork(row)
+      case MultipleChoice => MultipleChoiceWork(row)
+      case Ordering => OrderingWork(row)
+      case Matching => MatchingWork(row)
+      case _ => throw new Exception("Retrieved an unknown task type from the database. You dun messed up now!")
+    }
+  }
+
   implicit val jsonReads = new Reads[Work] {
     def reads(js: JsValue) = JsSuccess({
-      val studentId = (js \ "studentId").as[UUID]
-      val taskId    = (js \ "taskId"   ).as[UUID]
-      val sectionId = (js \ "sectionId").as[UUID]
-      val revision  = (js \ "revision" ).as[Long]
-      val answer    = (js \ "answer")
-      val createdAt = (js \ "createdAt").as[Option[DateTime]]
-      val updatedAt = (js \ "updatedAt").as[Option[DateTime]]
+      val studentId  = (js \ "studentId").as[UUID]
+      val taskId     = (js \ "taskId"   ).as[UUID]
+      val sectionId  = (js \ "sectionId").as[UUID]
+      val revision   = (js \ "revision" ).as[Long]
+      val answer     = (js \ "answer")
+      val isComplete = (js \ "isComplete").as[Boolean]
+      val createdAt  = (js \ "createdAt").as[Option[DateTime]]
+      val updatedAt  = (js \ "updatedAt").as[Option[DateTime]]
 
       (js \ "workType").as[Int] match {
         case LongAnswer => LongAnswerWork(studentId = studentId,
@@ -39,6 +53,7 @@ object Work {
                                           sectionId = sectionId,
                                           revision = revision,
                                           answer = answer.as[String],
+                                          isComplete = isComplete,
                                           createdAt = createdAt,
                                           updatedAt = updatedAt)
 
@@ -47,6 +62,7 @@ object Work {
                                             sectionId = sectionId,
                                             revision = revision,
                                             answer = answer.as[String],
+                                            isComplete = isComplete,
                                             createdAt = createdAt,
                                             updatedAt = updatedAt)
 
@@ -55,6 +71,7 @@ object Work {
                                                   sectionId = sectionId,
                                                   revision = revision,
                                                   answer = answer.as[IndexedSeq[Int]],
+                                                  isComplete = isComplete,
                                                   createdAt = createdAt,
                                                   updatedAt = updatedAt)
 
@@ -63,6 +80,7 @@ object Work {
                                       sectionId = sectionId,
                                       revision = revision,
                                       answer = answer.as[IndexedSeq[Int]],
+                                      isComplete = isComplete,
                                       createdAt = createdAt,
                                       updatedAt = updatedAt)
 
@@ -71,6 +89,7 @@ object Work {
                                       sectionId = sectionId,
                                       revision = revision,
                                       answer = answer.as[IndexedSeq[Match]],
+                                      isComplete = isComplete,
                                       createdAt = createdAt,
                                       updatedAt = updatedAt)
 
@@ -94,6 +113,7 @@ object Work {
           case specific: MatchingWork => specific.answer
           case _ => throw new Exception("Tried to serialize a work type that, somehow, doesn't exist.")
         }},
+        "isComplete" -> work.isComplete,
         "createdAt" -> work.createdAt,
         "updatedAt" -> work.updatedAt
       )

@@ -10,6 +10,7 @@ case class ShortAnswerWork(
   sectionId: UUID,
   revision: Long,
   answer: String,
+  isComplete: Boolean = false,
   createdAt: Option[DateTime],
   updatedAt: Option[DateTime]
 ) extends Work
@@ -28,6 +29,7 @@ object ShortAnswerWork {
       sectionId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
       revision  = row("revision").asInstanceOf[Long],
       answer    = row("answer").asInstanceOf[String],
+      isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt = Some(row("created_at").asInstanceOf[DateTime]),
       updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
     )

@@ -1,7 +1,7 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import com.github.mauricio.async.db.Connection
+import com.github.mauricio.async.db.{RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.Task
@@ -46,8 +46,9 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |$Select
          |$From, projects, parts, tasks
          |$Join
-         |WHERE user_id = ?
-         |  AND projects.id = ?
+         |WHERE projects.id = ?
+         |  AND user_id = ?
+         |  AND section_id = ?
          |  AND parts.id = tasks.part_id
          |  AND projects.id = parts.project_id
          |  AND student_responses.task_id = tasks.id
@@ -88,5 +89,98 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |  AND revision = ?
          |LIMIT 1
        """.stripMargin
+
+    // -- Insert and Update  -------------------------------------------------------------------------------------------
+
+    // -- Delete -------------------------------------------------------------------------------------------------------
+    // NB: the delete queries should never be used unless you know what you're doing. Due to work revisioning, the
+    //     proper way to "clear" a work is to create an empty revision.
+
+    val Delete =
+      s"""
+         |DELETE work
+         |$From
+         |$Join
+         |WHERE work.id = ?
+       """.stripMargin
+
+    /**
+     * List the latest revision of work for each task in a project.
+     *
+     * @param project
+     * @param user
+     * @param section
+     * @return
+     */
+    override def list(user: User, section: Section, project: Project): Future[IndexedSeq[Work]] = {
+      db.pool.sendPreparedStatement(ListLatestByProjectForUser, Array[Any](
+        project.id.bytes,
+        user.id.bytes,
+        section.id.bytes
+      )).map { result =>
+        result.rows.get.map { item: RowData => Work(item) }
+      }
+    }
+
+    /**
+     * List all reivisons of a specific work.
+     *
+     * @param task
+     * @param user
+     * @param section
+     * @return
+     */
+    override def list(user: User, task: Task, section: Section): Future[IndexedSeq[Work]] = {
+      db.pool.sendPreparedStatement(ListRevisionsById, Array[Any](
+        task.id.bytes,
+        user.id.bytes,
+        section.id.bytes
+      )).map { result =>
+        result.rows.get.map { item: RowData => Work(item) }
+      }
+    }
+
+    /**
+     * Find the latest revision of a single work.
+     *
+     * @param task
+     * @param user
+     * @param section
+     * @return
+     */
+    override def find(user: User, task: Task, section: Section): Future[Option[Work]] = {
+      db.pool.sendPreparedStatement(SelectLatestById, Array[Any](
+        user.id.bytes,
+        task.id.bytes,
+        section.id.bytes
+      )).map { result =>
+        result.rows.get.headOption match {
+          case Some(rowData) => Some(Work(rowData))
+          case None => None
+        }
+      }
+    }
+
+    /**
+     * Find a specific revision for a single work.
+     *
+     * @param task
+     * @param user
+     * @param section
+     * @return
+     */
+    override def find(user: User, task: Task, section: Section, revision: Long): Future[Option[Work]] = {
+      db.pool.sendPreparedStatement(SelectLatestById, Array[Any](
+        user.id.bytes,
+        task.id.bytes,
+        section.id.bytes,
+        revision
+      )).map { result =>
+        result.rows.get.headOption match {
+          case Some(rowData) => Some(Work(rowData))
+          case None => None
+        }
+      }
+    }
   }
 }

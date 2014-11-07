@@ -11,12 +11,10 @@ trait WorkRepositoryComponent {
   val workRepository: WorkRepository
   
   trait WorkRepository {
-    def list(task: Task)(implicit conn: Connection): Future[IndexedSeq[Work]]
-    def list(user: User)(implicit conn: Connection): Future[IndexedSeq[Work]]
-    def list(user: User, project: Project)(implicit conn: Connection): Future[IndexedSeq[Work]]
-    def list(user: User, task: Task)(implicit conn: Connection): Future[IndexedSeq[Work]]
-    def find(user: User, task: Task)(implicit conn: Connection): Future[Option[Work]]
-    def find(user: User, task: Task, revision: Long)(implicit conn: Connection): Future[Option[Work]]
+    def list(user: User, section: Section, project: Project): Future[IndexedSeq[Work]]
+    def list(user: User, task: Task, section: Section): Future[IndexedSeq[Work]]
+    def find(user: User, task: Task, section: Section): Future[Option[Work]]
+    def find(user: User, task: Task, section: Section, revision: Long): Future[Option[Work]]
     def insert(work: Work)(implicit conn: Connection): Future[Work]
     def update(work: Work)(implicit conn: Connection): Future[Work]
     def delete(work: Work)(implicit conn: Connection): Future[Boolean]

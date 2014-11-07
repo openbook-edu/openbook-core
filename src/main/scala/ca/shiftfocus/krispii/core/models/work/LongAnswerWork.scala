@@ -11,6 +11,7 @@ case class LongAnswerWork(
   revision: Long,
   override val version: Long = 0,
   answer: String,
+  isComplete: Boolean = false,
   createdAt: Option[DateTime] = None,
   updatedAt: Option[DateTime] = None
 ) extends Work
@@ -30,6 +31,7 @@ object LongAnswerWork {
       revision  = row("revision").asInstanceOf[Long],
       version   = row("version").asInstanceOf[Long],
       answer    = row("answer").asInstanceOf[String],
+      isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt = Some(row("created_at").asInstanceOf[DateTime]),
       updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
     )

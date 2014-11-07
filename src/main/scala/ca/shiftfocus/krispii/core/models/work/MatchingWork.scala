@@ -11,6 +11,7 @@ case class MatchingWork(
   sectionId: UUID,
   revision: Long,
   answer: IndexedSeq[Match],
+  isComplete: Boolean = false,
   createdAt: Option[DateTime],
   updatedAt: Option[DateTime]
 ) extends Work
@@ -31,6 +32,7 @@ object MatchingWork {
       answer    = row("answer").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element =>
         Match(element(0), element(1))
       },
+      isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt = Some(row("created_at").asInstanceOf[DateTime]),
       updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
     )

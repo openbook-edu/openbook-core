@@ -304,7 +304,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
         work.revision,
         work.answer match {
           case matchList: IndexedSeq[MatchingTask.Match] => matchList.map { item => s"${item.left}:${item.right}"}
-          case _ => _
+          case anything => anything
         }
       )).map { result =>
         Work(result.rows.get.head)
@@ -343,12 +343,12 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
           work.taskId.bytes,
           work.sectionId.bytes,
           work.version,
-          work.revision,
+          work.revision + 1,
           work.answer
         ))
       }
       else {
-        conn.sendPreparedStatement(UpdateWithNewRevision(tableName), Array[Any](
+        conn.sendPreparedStatement(UpdateKeepLatestRevision(tableName), Array[Any](
           work.version +1,
           work.isComplete,
           new DateTime,
@@ -408,7 +408,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @return
      */
     override def delete(task: Task)(implicit conn: Connection): Future[Boolean] = {
-      conn.sendPreparedStatement(DeleteRevision, Array[Any](work.taskId.bytes)).map {
+      conn.sendPreparedStatement(DeleteRevision, Array[Any](task.id.bytes)).map {
         result => result.rowsAffected > 0
       }.recover {
         case exception => throw exception

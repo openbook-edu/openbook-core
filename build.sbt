@@ -1,10 +1,12 @@
 name := "krispii-core"
 
-organization := "com.shiftfocus"
+organization := "ca.shiftfocus"
 
 version := "1.0-SNAPSHOT"
 
 scalaVersion := "2.11.2"
+
+crossScalaVersions := Seq("2.10.4", "2.11.2")
 
 resolvers ++= Seq(
   "Typesafe" at "http://repo.typesafe.com/typesafe/releases",
@@ -35,6 +37,10 @@ libraryDependencies ++= Seq(
   "com.github.cb372" %% "scalacache-redis" % "0.4.1",
   "ca.shiftfocus" %% "webcrank-password" % "0.4.1"
 )
+
+// -- SBT Publish settings --------
+// Please ensure that your public key is appended to /home/maven/.ssh/authorized_keys for the
+// maven user at maven.shiftfocus.ca. See the readme for more information.
 
 publishMavenStyle := true
 

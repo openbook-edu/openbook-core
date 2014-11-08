@@ -1,5 +1,8 @@
 package ca.shiftfocus.krispii.core.services
 
+import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
+import ca.shiftfocus.krispii.core.models.work._
+import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
@@ -14,7 +17,8 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
         ProjectRepositoryComponent with
         TaskRepositoryComponent with
         ComponentRepositoryComponent with
-
+        SectionRepositoryComponent with
+        WorkRepositoryComponent with
         TaskResponseRepositoryComponent with
         TaskFeedbackRepositoryComponent with
         TaskScratchpadRepositoryComponent with
@@ -26,27 +30,24 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
 
   private class WorkServiceImpl extends WorkService {
 
-    /*
-     * -----------------------------------------------------------
-     * TaskResponses methods
-     * -----------------------------------------------------------
-     */
-
     /**
-     * List all of a user's responses in a project.
+     * List the latest revision of all of a user's work in a project for a specific
+     * section.
      *
-     * @param userId the unique ID of the user to list for
-     * @param projectId the project within which to search for responses
-     * @return a vector of responses
+     * @param userId the user to list work for
+     * @param sectionId a section that the user belongs to to list work in
+     * @param projectId a project that belongs to the section to list work for
+     * @return an array of work
      */
-    override def listResponses(userId: UUID, projectId: UUID): Future[IndexedSeq[TaskResponse]] = {
-      Logger.debug(s"workService.listResponses(${userId.string}, ${projectId.string})")
+    override def listWork(userId: UUID, sectionId: UUID, projectId: UUID): Future[IndexedSeq[Work]] = {
       val fUser = userRepository.find(userId).map(_.get)
+      val fSection = sectionRepository.find(sectionId).map(_.get)
       val fProject = projectRepository.find(projectId).map(_.get)
       val fResponses = for {
         user <- fUser
+        section <- fSection
         project <- fProject
-        responses <- taskResponseRepository.list(user, project)(db.pool)
+        responses <- workRepository.list(user, section, project)
       }
       yield responses
 
@@ -56,19 +57,22 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     }
 
     /**
-     * List all of a user's response revisions for a task.
+     * List all of a user's work revisions for a specific task in a specific section.
      *
-     * @param userId the unique ID of the user to list for
-     * @param taskId the task within which to search for responses
-     * @return a vector of responses
+     * @param userId
+     * @param sectionId
+     * @param taskId
+     * @return
      */
-    override def listResponseRevisions(userId: UUID, taskId: UUID): Future[IndexedSeq[TaskResponse]] = {
+    override def listWorkRevisions(userId: UUID, sectionId: UUID, taskId: UUID): Future[IndexedSeq[Work]] = {
       val fUser = userRepository.find(userId).map(_.get)
       val fTask = taskRepository.find(taskId).map(_.get)
+      val fSection = sectionRepository.find(sectionId).map(_.get)
       val fResponses = for {
         user <- fUser
         task <- fTask
-        responses <- taskResponseRepository.list(user, task)(db.pool)
+        section <- fSection
+        responses <- workRepository.list(user, task, section)
       }
       yield responses
 
@@ -78,152 +82,362 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     }
 
     /**
-     * Find the latest revision of a user's response to a task.
+     * Find the latest revision of a user's work, for a task, in a section.
      *
-     * @param userId the unique ID of the user to list for
-     * @param taskId the task within which to search for responses
-     * @return an optional response
+     * @param userId
+     * @param taskId
+     * @param sectionId
+     * @return
      */
-    override def findResponse(userId: UUID, taskId: UUID): Future[Option[TaskResponse]] = {
+    override def findWork(userId: UUID, taskId: UUID, sectionId: UUID): Future[Option[Work]] = {
       val fUser = userRepository.find(userId).map(_.get)
       val fTask = taskRepository.find(taskId).map(_.get)
-      val fResponse = for {
+      val fSection = sectionRepository.find(sectionId).map(_.get)
+      val fResponses = for {
         user <- fUser
         task <- fTask
-        response <- taskResponseRepository.find(user, task)(db.pool)
+        section <- fSection
+        responses <- workRepository.find(user, task, section)
       }
-      yield response
+      yield responses
 
-      fResponse.recover {
+      fResponses.recover {
         case exception => throw exception
       }
     }
 
     /**
-     * Find a specific revision of a user's response to a task.
+     * Find a specific revision of a user's work, for a task, in a section.
      *
-     * @param userId the unique ID of the user to list for
-     * @param taskId the task within which to search for responses
-     * @param revision the specific revision of this task to find
-     * @return an optional response
+     * @param userId
+     * @param taskId
+     * @param sectionId
+     * @param revision
+     * @return
      */
-    override def findResponse(userId: UUID, taskId: UUID, revision: Long): Future[Option[TaskResponse]] = {
+    override def findWork(userId: UUID, taskId: UUID, sectionId: UUID, revision: Long): Future[Option[Work]] = {
       val fUser = userRepository.find(userId).map(_.get)
       val fTask = taskRepository.find(taskId).map(_.get)
-      val fResponse = for {
+      val fSection = sectionRepository.find(sectionId).map(_.get)
+      val fResponses = for {
         user <- fUser
         task <- fTask
-        response <- taskResponseRepository.find(user, task, revision)(db.pool)
+        section <- fSection
+        responses <- workRepository.find(user, task, section, revision)
       }
-      yield response
+      yield responses
 
-      fResponse.recover {
+      fResponses.recover {
         case exception => throw exception
       }
     }
 
     /**
-     * Create a new task response.
+     * Generic internal work-creating method. This should only be used privately... expose the type-specific
+     * methods to the outside world so that we'll have control over exactly how certain types of work
+     * are creted.
      *
-     * @param userId the unique ID of the user whose task response it is
-     * @param taskId the unique ID of the task this task response is for
-     * @param revision the current revision of the task to be updated
-     * @param version the current version of this revision to be updated
-     * @param content the text content of this component response
-     * @return the updated task response
+     * @param newWork
+     * @return
      */
-    override def createResponse(userId: UUID, taskId: UUID, content: String, isComplete: Boolean): Future[TaskResponse] = {
+    private def createWork(newWork: Work)(implicit conn: Connection): Future[Work] = {
+      val fUser = userRepository.find(newWork.studentId).map(_.get)
+      val fTask = taskRepository.find(newWork.taskId).map(_.get)
+      val fSection = sectionRepository.find(newWork.sectionId).map(_.get)
+      for {
+        user <- fUser
+        task <- fTask
+        section <- fSection
+        createdWork <- workRepository.insert(newWork)
+      } yield createdWork
+    }
+
+    // Create methods for each work type
+
+    /**
+     * Create a long-answer work item.
+     *
+     * Use this method when entering student work on a task for the first time (in a given section).
+     *
+     * @param userId the id of the student whose work is being entered
+     * @param taskId the task for which the work was done
+     * @param sectionId the section to which the task's project belongs
+     * @param answer the student's answer to the task (this is the actual "work")
+     * @param isComplete whether the student is finished with the task
+     * @return the newly created work
+     */
+    override def createLongAnswerWork(userId: UUID, taskId: UUID, sectionId: UUID, answer: String, isComplete: Boolean): Future[LongAnswerWork] = {
       transactional { implicit connection =>
-        val newResponse = TaskResponse(
-          userId = userId,
+        val newWork = LongAnswerWork(
+          studentId = userId,
           taskId = taskId,
-          content = content,
+          sectionId = sectionId,
+          revision = 1,
+          answer = answer,
           isComplete = isComplete
         )
-        val fUser = userRepository.find(userId).map(_.get)
-        val fTask = taskRepository.find(taskId).map(_.get)
-
-        for {
-          user <- fUser
-          task <- fTask
-          existingRevisions <- taskResponseRepository.list(user, task).map { revisions =>
-            if (revisions.nonEmpty) throw TaskResponseAlreadyExistsException("This task already has a response. Call update instead.")
-          }
-          newResponse <- taskResponseRepository.insert(newResponse)
-        }
-        yield newResponse
-      }.recover {
-        case exception => throw exception
+        createWork(newWork).map(_.asInstanceOf[LongAnswerWork])
       }
     }
 
     /**
-     * Update a task response.
+     * Create a short-answer work item.
      *
-     * @param userId the unique ID of the user whose response it is
-     * @param taskId the unique ID of the task this response is for
-     * @param revision the current revision of the task to be updated
-     * @param version the current version of this revision to be updated
-     * @param content the text content of this task response
-     * @param isComplete whether the task is marked complete by the user
-     * @param newRevision whether a new revision should be forced
-     * @return the updated task response
+     * Use this method when entering student work on a task for the first time (in a given section).
+     *
+     * @param userId the id of the student whose work is being entered
+     * @param taskId the task for which the work was done
+     * @param sectionId the section to which the task's project belongs
+     * @param answer the student's answer to the task (this is the actual "work")
+     * @param isComplete whether the student is finished with the task
+     * @return the newly created work
      */
-    override def updateResponse(userId: UUID, taskId: UUID, revision: Long, version: Long, content: String, isComplete: Boolean, newRevision: Boolean): Future[TaskResponse] = {
+    override def createShortAnswerWork(userId: UUID, taskId: UUID, sectionId: UUID, answer: String, isComplete: Boolean): Future[ShortAnswerWork] = {
+      transactional { implicit connection =>
+        val newWork = ShortAnswerWork(
+          studentId = userId,
+          taskId = taskId,
+          sectionId = sectionId,
+          revision = 1,
+          answer = answer,
+          isComplete = isComplete
+        )
+        createWork(newWork).map(_.asInstanceOf[ShortAnswerWork])
+      }
+    }
+
+    /**
+     * Create a multiple-choice work item.
+     *
+     * Use this method when entering student work on a task for the first time (in a given section).
+     *
+     * @param userId the id of the student whose work is being entered
+     * @param taskId the task for which the work was done
+     * @param sectionId the section to which the task's project belongs
+     * @param answer the student's answer to the task (this is the actual "work")
+     * @param isComplete whether the student is finished with the task
+     * @return the newly created work
+     */
+    override def createMultipleChoiceWork(userId: UUID, taskId: UUID, sectionId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[MultipleChoiceWork] = {
+      transactional { implicit connection =>
+        val newWork = MultipleChoiceWork(
+          studentId = userId,
+          taskId = taskId,
+          sectionId = sectionId,
+          revision = 1,
+          answer = answer,
+          isComplete = isComplete
+        )
+        createWork(newWork).map(_.asInstanceOf[MultipleChoiceWork])
+      }
+    }
+
+    /**
+     * Create an ordering work item.
+     *
+     * Use this method when entering student work on a task for the first time (in a given section).
+     *
+     * @param userId the id of the student whose work is being entered
+     * @param taskId the task for which the work was done
+     * @param sectionId the section to which the task's project belongs
+     * @param answer the student's answer to the task (this is the actual "work")
+     * @param isComplete whether the student is finished with the task
+     * @return the newly created work
+     */
+    override def createOrderingWork(userId: UUID, taskId: UUID, sectionId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[OrderingWork] = {
+      transactional { implicit connection =>
+        val newWork = OrderingWork(
+          studentId = userId,
+          taskId = taskId,
+          sectionId = sectionId,
+          revision = 1,
+          answer = answer,
+          isComplete = isComplete
+        )
+        createWork(newWork).map(_.asInstanceOf[OrderingWork])
+      }
+    }
+
+    /**
+     * Create a matching work item.
+     *
+     * Use this method when entering student work on a task for the first time (in a given section).
+     *
+     * @param userId the id of the student whose work is being entered
+     * @param taskId the task for which the work was done
+     * @param sectionId the section to which the task's project belongs
+     * @param answer the student's answer to the task (this is the actual "work")
+     * @param isComplete whether the student is finished with the task
+     * @return the newly created work
+     */
+    override def createMatchingWork(userId: UUID, taskId: UUID, sectionId: UUID, answer: IndexedSeq[Match], isComplete: Boolean): Future[MatchingWork] = {
+      transactional { implicit connection =>
+        val newWork = MatchingWork(
+          studentId = userId,
+          taskId = taskId,
+          sectionId = sectionId,
+          revision = 1,
+          answer = answer,
+          isComplete = isComplete
+        )
+        createWork(newWork).map(_.asInstanceOf[MatchingWork])
+      }
+    }
+
+    /**
+     * Internal method for updating work.
+     *
+     * External classes should call the type-specific update methods which can perform any logic that need to
+     * for specific work types. For example, the long-answer tasks only require new revisions on timed intervals,
+     * whereas most other forms of work will store a new revision each time a change is made.
+     *
+     * Please wrap this method in a transaction and provide it with a connection.
+     *
+     * @param newerWork
+     * @param newRevision
+     * @param conn
+     * @return
+     */
+    private def updateWork(newerWork: Work, newRevision: Boolean = true)(implicit conn: Connection): Future[Work] = {
+      val fUser = userRepository.find(newerWork.studentId).map(_.get)
+      val fTask = taskRepository.find(newerWork.taskId).map(_.get)
+      val fSection = sectionRepository.find(newerWork.sectionId).map(_.get)
+      for {
+        user <- fUser
+        task <- fTask
+        section <- fSection
+        latestRevision <- workRepository.find(user, task, section).map(_.get)
+        updatedWork <- {
+          if (newerWork.version != latestRevision.version) {
+            throw TaskResponseOutOfDateException("The task response has changed since you last saw it!")
+          }
+          if (!newRevision && newerWork.revision != latestRevision.revision) {
+            throw TaskResponseOutOfDateException("You can only modify the latest revision or insert a new one!")
+          }
+          workRepository.update(newerWork, newRevision)
+        }
+      } yield updatedWork
+    }
+
+    def updateLongAnswerWork(userId: UUID, taskId: UUID, sectionId: UUID, revision: Long, version: Long, answer: String, isComplete: Boolean): Future[LongAnswerWork] = {
       transactional { implicit connection =>
         val fUser = userRepository.find(userId).map(_.get)
         val fTask = taskRepository.find(taskId).map(_.get)
-
+        val fSection = sectionRepository.find(sectionId).map(_.get)
         for {
           user <- fUser
           task <- fTask
-          latestRevision <- taskResponseRepository.find(user, task, revision).map(_.get)
-          revisionToUse <- Future.successful {
-            val timeout = play.Configuration.root().getString("response.newRevision.timeout").toInt
-            if (newRevision ||
-                (latestRevision.createdAt.isDefined &&
-                 latestRevision.createdAt.get.plusSeconds(timeout).isBefore(new DateTime))
-            ) {
-              revision + 1
-            }
-            else revision
-          }
-          updatedResponse <- {
-            // If an out of date response is given, throw an exception. Updates must be made
-            // off of the latest copy.
-            if (revision != latestRevision.revision ||
-                version != latestRevision.version
-            ) {
-              throw TaskResponseOutOfDateException("The task response has changed since you last saw it!")
-            }
-
-            if (revisionToUse > latestRevision.revision) {
-              // timeout exceeded, insert new revision
-              taskResponseRepository.insert(latestRevision.copy(
-                revision = revisionToUse,
-                version = version,
-                content = content,
-                isComplete = isComplete
-              ))
-            }
-            else {
-              // timeout not reached, update current revision
-              taskResponseRepository.update(latestRevision.copy(
-                version = version,
-                content = content,
-                isComplete = isComplete
-              ))
-            }
-          }
+          section <- fSection
+          existingWork <- workRepository.find(user, task, section, revision).map(_.get.asInstanceOf[LongAnswerWork])
+          newerWork <- Future successful existingWork.copy(
+            answer = answer,
+            isComplete = isComplete
+          )
+          updatedWork <- workRepository.update(existingWork, false)
         }
-        yield updatedResponse
-      }.recover {
-        case exception => throw exception
+        yield updatedWork.asInstanceOf[LongAnswerWork]
       }
     }
-    override def updateResponse(userId: UUID, taskId: UUID, revision: Long, version: Long, content: String, isComplete: Boolean): Future[TaskResponse] =
-      updateResponse(userId, taskId, revision, version, content, isComplete, false)
 
+    def updateLongAnswerWork(userId: UUID, taskId: UUID, sectionId: UUID, revision: Long, version: Long, answer: String, isComplete: Boolean, newRevision: Boolean): Future[LongAnswerWork] = {
+      transactional { implicit connection =>
+        val fUser = userRepository.find(userId).map(_.get)
+        val fTask = taskRepository.find(taskId).map(_.get)
+        val fSection = sectionRepository.find(sectionId).map(_.get)
+        for {
+          user <- fUser
+          task <- fTask
+          section <- fSection
+          existingWork <- workRepository.find(user, task, section, revision).map(_.get.asInstanceOf[LongAnswerWork])
+          newerWork <- Future successful existingWork.copy(
+            answer = answer,
+            isComplete = isComplete
+          )
+          updatedWork <- workRepository.update(existingWork, newRevision)
+        }
+        yield updatedWork.asInstanceOf[LongAnswerWork]
+      }
+    }
+
+    def updateShortAnswerWork(userId: UUID, taskId: UUID, sectionId: UUID, revision: Long, version: Long, answer: String, isComplete: Boolean): Future[ShortAnswerWork] = {
+      transactional { implicit connection =>
+        val fUser = userRepository.find(userId).map(_.get)
+        val fTask = taskRepository.find(taskId).map(_.get)
+        val fSection = sectionRepository.find(sectionId).map(_.get)
+        for {
+          user <- fUser
+          task <- fTask
+          section <- fSection
+          existingWork <- workRepository.find(user, task, section, revision).map(_.get.asInstanceOf[ShortAnswerWork])
+          newerWork <- Future successful existingWork.copy(
+            answer = answer,
+            isComplete = isComplete
+          )
+          updatedWork <- workRepository.update(existingWork, true)
+        }
+        yield updatedWork.asInstanceOf[ShortAnswerWork]
+      }
+    }
+
+    def updateMultipleChoiceWork(userId: UUID, taskId: UUID, sectionId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[MultipleChoiceWork] = {
+      transactional { implicit connection =>
+        val fUser = userRepository.find(userId).map(_.get)
+        val fTask = taskRepository.find(taskId).map(_.get)
+        val fSection = sectionRepository.find(sectionId).map(_.get)
+        for {
+          user <- fUser
+          task <- fTask
+          section <- fSection
+          existingWork <- workRepository.find(user, task, section, revision).map(_.get.asInstanceOf[MultipleChoiceWork])
+          newerWork <- Future successful existingWork.copy(
+            answer = answer,
+            isComplete = isComplete
+          )
+          updatedWork <- workRepository.update(existingWork, true)
+        }
+        yield updatedWork.asInstanceOf[MultipleChoiceWork]
+      }
+    }
+
+    def updateOrderingWork(userId: UUID, taskId: UUID, sectionId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[OrderingWork] = {
+      transactional { implicit connection =>
+        val fUser = userRepository.find(userId).map(_.get)
+        val fTask = taskRepository.find(taskId).map(_.get)
+        val fSection = sectionRepository.find(sectionId).map(_.get)
+        for {
+          user <- fUser
+          task <- fTask
+          section <- fSection
+          existingWork <- workRepository.find(user, task, section, revision).map(_.get.asInstanceOf[OrderingWork])
+          newerWork <- Future successful existingWork.copy(
+            answer = answer,
+            isComplete = isComplete
+          )
+          updatedWork <- workRepository.update(existingWork, false)
+        }
+        yield updatedWork.asInstanceOf[OrderingWork]
+      }
+    }
+
+    def updateMatchingWork(userId: UUID, taskId: UUID, sectionId: UUID, revision: Long, version: Long, answer: IndexedSeq[Match], isComplete: Boolean): Future[MatchingWork] = {
+      transactional { implicit connection =>
+        val fUser = userRepository.find(userId).map(_.get)
+        val fTask = taskRepository.find(taskId).map(_.get)
+        val fSection = sectionRepository.find(sectionId).map(_.get)
+        for {
+          user <- fUser
+          task <- fTask
+          section <- fSection
+          existingWork <- workRepository.find(user, task, section, revision).map(_.get.asInstanceOf[MatchingWork])
+          newerWork <- Future successful existingWork.copy(
+            answer = answer,
+            isComplete = isComplete
+          )
+          updatedWork <- workRepository.update(existingWork, false)
+        }
+        yield updatedWork.asInstanceOf[MatchingWork]
+      }
+    }
 
     /*
      * -----------------------------------------------------------

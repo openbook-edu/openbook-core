@@ -17,10 +17,10 @@ trait WorkServiceComponent {
   trait WorkService {
 
     // Finder methods for work
-    def listWork(userId: UUID, sectionId: UUID, projectId: UUID): Future[IndexedSeq[TaskResponse]]
-    def listWorkRevisions(userId: UUID, sectionId: UUID, taskId: UUID): Future[IndexedSeq[TaskResponse]]
-    def findWork(userId: UUID, taskId: UUID, sectionId: UUID): Future[Option[TaskResponse]]
-    def findWork(userId: UUID, taskId: UUID, sectionId: UUID, revision: Long): Future[Option[TaskResponse]]
+    def listWork(userId: UUID, sectionId: UUID, projectId: UUID): Future[IndexedSeq[Work]]
+    def listWorkRevisions(userId: UUID, sectionId: UUID, taskId: UUID): Future[IndexedSeq[Work]]
+    def findWork(userId: UUID, taskId: UUID, sectionId: UUID): Future[Option[Work]]
+    def findWork(userId: UUID, taskId: UUID, sectionId: UUID, revision: Long): Future[Option[Work]]
 
     // Create methods for each work type
     def createLongAnswerWork(userId: UUID, taskId: UUID, sectionId: UUID, answer: String, isComplete: Boolean): Future[LongAnswerWork]
@@ -30,14 +30,14 @@ trait WorkServiceComponent {
     def createMatchingWork(userId: UUID, taskId: UUID, sectionId: UUID, answer: IndexedSeq[Match], isComplete: Boolean): Future[MatchingWork]
 
     // Update methods for each work type
-    def updateLongAnswerWork(userId: UUID, taskId: UUID, revision: Long, version: Long, answer: String, isComplete: Boolean): Future[LongAnswerWork]
-    def updateLongAnswerWork(userId: UUID, taskId: UUID, revision: Long, version: Long, answer: String, isComplete: Boolean, newRevision: Boolean): Future[LongAnswerWork]
-    def updateShortAnswerWork(userId: UUID, taskId: UUID, revision: Long, version: Long, answer: String, isComplete: Boolean): Future[ShortAnswerWork]
-    def updateMultipleChoiceWork(userId: UUID, taskId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[ShortAnswerWork]
-    def updateOrderingWork(userId: UUID, taskId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[ShortAnswerWork]
-    def updateMatchingWork(userId: UUID, taskId: UUID, revision: Long, version: Long, answer: IndexedSeq[Match], isComplete: Boolean): Future[ShortAnswerWork]
+    def updateLongAnswerWork(userId: UUID, taskId: UUID, sectionId: UUID, revision: Long, version: Long, answer: String, isComplete: Boolean): Future[LongAnswerWork]
+    def updateLongAnswerWork(userId: UUID, taskId: UUID, sectionId: UUID, revision: Long, version: Long, answer: String, isComplete: Boolean, newRevision: Boolean): Future[LongAnswerWork]
+    def updateShortAnswerWork(userId: UUID, taskId: UUID, sectionId: UUID, revision: Long, version: Long, answer: String, isComplete: Boolean): Future[ShortAnswerWork]
+    def updateMultipleChoiceWork(userId: UUID, taskId: UUID, sectionId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[MultipleChoiceWork]
+    def updateOrderingWork(userId: UUID, taskId: UUID, sectionId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[OrderingWork]
+    def updateMatchingWork(userId: UUID, taskId: UUID, sectionId: UUID, revision: Long, version: Long, answer: IndexedSeq[Match], isComplete: Boolean): Future[MatchingWork]
 
-    
+
     // Task feedbacks
     def listFeedbacks(studentId: UUID, projectId: UUID): Future[IndexedSeq[TaskFeedback]]
     def listFeedbacks(teacherId: UUID, studentId: UUID, projectId: UUID): Future[IndexedSeq[TaskFeedback]]

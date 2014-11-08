@@ -11,8 +11,8 @@ case class MultipleChoiceWork(
   revision: Long,
   answer: IndexedSeq[Int],
   isComplete: Boolean = false,
-  createdAt: Option[DateTime],
-  updatedAt: Option[DateTime]
+  createdAt: Option[DateTime] = None,
+  updatedAt: Option[DateTime] = None
 ) extends Work
 
 object MultipleChoiceWork {

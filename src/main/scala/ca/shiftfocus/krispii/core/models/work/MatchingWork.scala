@@ -12,8 +12,8 @@ case class MatchingWork(
   revision: Long,
   answer: IndexedSeq[Match],
   isComplete: Boolean = false,
-  createdAt: Option[DateTime],
-  updatedAt: Option[DateTime]
+  createdAt: Option[DateTime] = None,
+  updatedAt: Option[DateTime] = None
 ) extends Work
 
 object MatchingWork {

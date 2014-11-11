@@ -12,7 +12,9 @@ crossScalaVersions := Seq("2.10.4", "2.11.2")
 
 resolvers ++= Seq(
   "Typesafe" at "http://repo.typesafe.com/typesafe/releases",
-  "ShiftFocus" at "https://maven.shiftfocus.ca/repositories/releases"
+  "ShiftFocus" at "https://maven.shiftfocus.ca/repositories/releases",
+  "Sonatype" at "https://oss.sonatype.org/content/repositories/releases",
+  "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
 )
 
 // Scala compiler options
@@ -37,6 +39,8 @@ libraryDependencies ++= Seq(
   "net.sf.uadetector" % "uadetector-resources" % "2014.04",
   "net.debasishg" %% "redisclient" % "2.13",
   "com.github.cb372" %% "scalacache-redis" % "0.4.1",
+  "org.mockito" % "mockito-all" % "1.9.5" % "test",
+  "org.specs2" %% "specs2" % "2.4.11" % "test",
   "ca.shiftfocus" %% "webcrank-password" % "0.4.1"
 )
 

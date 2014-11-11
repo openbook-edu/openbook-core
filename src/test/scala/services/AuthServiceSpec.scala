@@ -59,8 +59,7 @@ class AuthSpecComponent
       userRepository.find(username).returns(Future.successful(Some(mockUser)))
 
       val fSomeUser = authService.authenticate(username, password)
-      //fSomeUser must beSome(mockUser).await
-      fSomeUser must beNone.await
+      fSomeUser must beSome(mockUser).await
     }
     "return none if the password was wrong" in {
       userRepository.find(username).returns(Future.successful(Some(mockUser)))

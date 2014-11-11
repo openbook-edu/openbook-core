@@ -68,10 +68,10 @@ class AuthSpecComponent
       fSomeUser must beNone.await
     }
     "return none if the user doesn't exist" in {
-      userRepository.find(username).returns(Future.successful(None))
-
-      val fSomeUser = authService.authenticate(username, password)
-      fSomeUser must beNone.await
+      userRepository.find("idonotexist").returns(Future.successful(None))
+      val fSomeUser = authService.authenticate("idonotexist", password)
+      val userOption = Await.result(fSomeUser, Duration.Inf)
+      userOption must beNone
     }
   }
 

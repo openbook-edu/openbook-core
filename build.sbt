@@ -39,7 +39,8 @@ libraryDependencies ++= Seq(
   "net.sf.uadetector" % "uadetector-resources" % "2014.04",
   "net.debasishg" %% "redisclient" % "2.13",
   "com.github.cb372" %% "scalacache-redis" % "0.4.1",
-  "org.mockito" % "mockito-all" % "1.9.5" % "test",
+  //"org.mockito" % "mockito-all" % "1.9.5" % "test",
+  "org.scalamock" %% "scalamock-specs2-support" % "3.2" % "test",
   "org.specs2" %% "specs2" % "2.4.11" % "test",
   "ca.shiftfocus" %% "webcrank-password" % "0.4.1"
 )

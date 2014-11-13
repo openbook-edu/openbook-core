@@ -268,7 +268,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
         for {
           existingEmailOption <- fExistingEmail
           existingUsernameOption <- fExistingUsername
-          newUser <- { (existingEmailOption, existingUsernameOption) match {
+          createdUser <- { (existingEmailOption, existingUsernameOption) match {
             case (Some(email), None) => {
               throw new EmailAlreadyExistsException(s"The e-mail $email has already been registered.")
             }
@@ -288,11 +288,21 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
                 givenname = givenname,
                 surname = surname
               )
-              userRepository.insert(newUser)
+              val fCreatedUser = userRepository.insert(newUser).recover {
+                case exception => {
+                  println("What went wrong? No exception???")
+                  throw exception
+                }
+              }
+              println(conn.toString())
+              fCreatedUser.map { user =>
+                println(s"created user ${user.username}")
+              }
+              fCreatedUser
             }
           }
         }}
-        yield newUser
+        yield createdUser
       }
     }
 

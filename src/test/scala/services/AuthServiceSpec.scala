@@ -86,5 +86,5 @@ class AuthSpecComponent
 //        await(fNewUser) must be(mockUser)
 //      }
 //    }
-//  }
+//  } f
 }

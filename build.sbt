@@ -41,7 +41,10 @@ libraryDependencies ++= Seq(
   "com.github.cb372" %% "scalacache-redis" % "0.4.1",
   "org.mockito" % "mockito-all" % "1.9.5" % "test",
   "org.specs2" %% "specs2" % "2.4.11" % "test",
-  "ca.shiftfocus" %% "webcrank-password" % "0.4.1"
+  "ca.shiftfocus" %% "webcrank-password" % "0.4.1",
+  "org.slf4j" % "slf4j-api" % "1.7.5",
+  "org.slf4j" % "slf4j-simple" % "1.7.5",
+  "org.clapper" %% "grizzled-slf4j" % "1.0.2"
 )
 
 // -- SBT Publish settings --------

@@ -265,10 +265,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      * @param part the part to add this component to
      * @return a boolean indicating whether the operation was successful
      */
-    override def addToPart(component: Component, part: Part)(implicit conn: Connection): Future[Boolean] = {
-      Logger.debug("[ComponentTDG.addToPart] - Adding a component to a part")
-
-      conn.sendPreparedStatement(AddToPart, Array[Any](component.id.bytes, part.id.bytes, new DateTime)).map {
+    override def addToPart(component: Component, part: Part)(implicit conn: Connection): Future[Boolean] = {conn.sendPreparedStatement(AddToPart, Array[Any](component.id.bytes, part.id.bytes, new DateTime)).map {
         result => (result.rowsAffected > 0)
       }.recover {
         case exception => {
@@ -284,10 +281,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      * @param part the part to remove this component from
      * @return a boolean indicating whether the operation was successful
      */
-    override def removeFromPart(component: Component, part: Part)(implicit conn: Connection): Future[Boolean] = {
-      Logger.debug("[ComponentTDG.addToPart] - Adding a component to a part")
-
-      conn.sendPreparedStatement(RemoveFromPart, Array[Any](component.id.bytes, part.id.bytes, new DateTime)).map {
+    override def removeFromPart(component: Component, part: Part)(implicit conn: Connection): Future[Boolean] = {conn.sendPreparedStatement(RemoveFromPart, Array[Any](component.id.bytes, part.id.bytes, new DateTime)).map {
         result => (result.rowsAffected > 0)
       }.recover {
         case exception => {
@@ -296,10 +290,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       }
     }
 
-    override def removeFromPart(part: Part)(implicit conn: Connection): Future[Boolean] = {
-      Logger.debug("[ComponentTDG.addToPart] - Adding a component to a part")
-
-      conn.sendPreparedStatement(RemoveAllFromParts, Array[Any](part.id.bytes)).map {
+    override def removeFromPart(part: Part)(implicit conn: Connection): Future[Boolean] = {conn.sendPreparedStatement(RemoveAllFromParts, Array[Any](part.id.bytes)).map {
         result => (result.rowsAffected > 0)
       }.recover {
         case exception => {

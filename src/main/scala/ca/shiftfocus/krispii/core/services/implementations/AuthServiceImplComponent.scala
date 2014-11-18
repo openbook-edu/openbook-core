@@ -269,14 +269,14 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
           existingEmailOption <- fExistingEmail
           existingUsernameOption <- fExistingUsername
           newUser <- { (existingEmailOption, existingUsernameOption) match {
-            case (Some(email), None) => {
-              throw new EmailAlreadyExistsException(s"The e-mail $email has already been registered.")
+            case (Some(user), None) => {
+              throw new EmailAlreadyExistsException(s"The e-mail ${user.email} has already been registered.")
             }
-            case (None, Some(username)) => {
-              throw new UsernameAlreadyExistsException(s"The username $username has already been registered.")
+            case (None, Some(user)) => {
+              throw new UsernameAlreadyExistsException(s"The username ${user.username} has already been registered.")
             }
-            case (Some(email), Some(username)) => {
-              throw new EmailAndUsernameAlreadyExistException("Both the username $username and e-mail $email have already been registered.")
+            case (Some(userEmail), Some(userUsername)) => {
+              throw new EmailAndUsernameAlreadyExistException(s"Both the username ${userEmail.username} and e-mail ${userUsername.email} have already been registered.")
             }
             case (None, None) => {
               val webcrank = Passwords.scrypt()
@@ -288,7 +288,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
                 givenname = givenname,
                 surname = surname
               )
-              userRepository.insert(newUser)
+              userRepository.insert(newUser)(conn)
             }
           }
         }}

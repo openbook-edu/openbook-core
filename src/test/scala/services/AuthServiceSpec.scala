@@ -1,18 +1,19 @@
 package services
 
+import ca.shiftfocus.krispii.core.models.User
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.{Future,ExecutionContext,Await}
 import ExecutionContext.Implicits.global
 import scala.concurrent.duration._
 import scala.concurrent.duration.Duration._
-import org.specs2.mutable._
-import org.specs2.matcher._
-import org.specs2.mock._
 import ca.shiftfocus.krispii.core.services._
 import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.krispii.core.repositories._
 import grizzled.slf4j.Logger
 import webcrank.password._
+
+import org.scalatest.WordSpec
+import org.scalamock.scalatest.MockFactory
 
 trait AuthTestEnvironmentComponent extends
 AuthServiceImplComponent with
@@ -21,61 +22,57 @@ RoleRepositoryComponent with
 SectionRepositoryComponent with
 SessionRepositoryComponent with
 DB with
-Mockito {
+MockFactory {
   val logger = Logger[this.type]
-  val mockConnection = mock[Connection]
+  val mockConnection = stub[Connection]
   override def transactional[A](f : Connection => Future[A]): Future[A] = {
     f(mockConnection)
   }
-  override val userRepository = mock[UserRepository]
-  override val roleRepository = mock[RoleRepository]
-  override val sectionRepository = mock[SectionRepository]
-  override val sessionRepository = mock[SessionRepository]
-  override val db = mock[DBSettings]
-  db.pool.returns(mockConnection)
+  override val userRepository = stub[UserRepository]
+  override val roleRepository = stub[RoleRepository]
+  override val sectionRepository = stub[SectionRepository]
+  override val sessionRepository = stub[SessionRepository]
+  override val db = stub[DBSettings]
+  (db.pool _) when() returns(mockConnection)
 
   val webcrank = Passwords.scrypt()
-  val username = "sample_user1"
-  val email = "sampleuser1@example.org"
   val password = "userpass"
   val passwordHash = webcrank.crypt("userpass")
-  val givenname = "Frank"
-  val surname = "Studently"
 
-  val mockUser = mock[ca.shiftfocus.krispii.core.models.User]
-  mockUser.username.returns(username)
-  mockUser.email.returns(email)
-  mockUser.passwordHash.returns(Some(passwordHash))
-  mockUser.givenname.returns(givenname)
-  mockUser.surname.returns(surname)
+  val testUserA = User(
+    email = "testUserA@example.org",
+    username = "testUserA",
+    passwordHash = Some(passwordHash),
+    givenname = "Test",
+    surname = "UserA"
+  )
 }
 
 class AuthSpecComponent
-  extends Specification
-  with org.specs2.specification.Snippets
-  with AuthTestEnvironmentComponent
-  with Mockito {
+  extends WordSpec
+  with AuthTestEnvironmentComponent {
 
   "AuthService.authenticate" should {
     "return some user if it the identifier and password combination are valid" in {
-      userRepository.find(username).returns(Future.successful(Some(mockUser)))
+      (userRepository.find(_: String)) when("testUserA") returns(Future.successful(Some(testUserA)))
 
-      val fSomeUser = authService.authenticate(username, password)
-      fSomeUser must beSome(mockUser).await
-    }
-    "return none if the password was wrong" in {
-      userRepository.find(username).returns(Future.successful(Some(mockUser)))
-
-      val fSomeUser = authService.authenticate(username, "bad password!")
-      fSomeUser must beNone.await
-    }
-    "return none if the user doesn't exist" in {
-      userRepository.find("idonotexist").returns(Future.successful(None))
-      val fSomeUser = authService.authenticate("idonotexist", password)
-      val userOption = Await.result(fSomeUser, Duration.Inf)
-      userOption must beNone
+      val fSomeUser = authService.authenticate(testUserA.username, password)
+      val Some(user) = Await.result(fSomeUser, Duration.Inf)
+      assert(user == testUserA)
     }
   }
+//    "return none if the password was wrong" in {
+//      userRepository.find(username).returns(Future.successful(Some(mockUser)))
+//
+//      val fSomeUser = authService.authenticate(username, "bad password!")
+//      fSomeUser must beNone.await
+//    }
+//    "return none if the user doesn't exist" in {
+//      userRepository.find("idonotexist").returns(Future.successful(None))
+//      val fSomeUser = authService.authenticate("idonotexist", password)
+//      val userOption = Await.result(fSomeUser, Duration.Inf)
+//      userOption must beNone
+//    }
 
 //  "AuthService.create" should {
 //    "return a new user if the email and password are unique and the user was created" in {

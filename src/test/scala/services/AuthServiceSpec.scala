@@ -1,17 +1,17 @@
 package services
 
+import ca.shiftfocus.krispii.core.models.{EmailAndUsernameAlreadyExistException, UsernameAlreadyExistsException, EmailAlreadyExistsException}
 import com.github.mauricio.async.db.Connection
+import org.scalacheck.Prop.False
 import scala.concurrent.{Future,ExecutionContext,Await}
-import ExecutionContext.Implicits.global
 import scala.concurrent.duration._
-import scala.concurrent.duration.Duration._
 import org.specs2.mutable._
-import org.specs2.matcher._
 import org.specs2.mock._
 import ca.shiftfocus.krispii.core.services._
 import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.krispii.core.repositories._
 import webcrank.password._
+
 
 trait AuthTestEnvironmentComponent extends
 AuthServiceImplComponent with
@@ -54,37 +54,71 @@ class AuthSpecComponent
   with AuthTestEnvironmentComponent
   with Mockito {
 
-  "AuthService.authenticate" should {
-    "return some user if it the identifier and password combination are valid" in {
-      userRepository.find(username).returns(Future.successful(Some(mockUser)))
-
-      val fSomeUser = authService.authenticate(username, password)
-      fSomeUser must beSome(mockUser).await
-    }
-    "return none if the password was wrong" in {
-      userRepository.find(username).returns(Future.successful(Some(mockUser)))
-
-      val fSomeUser = authService.authenticate(username, "bad password!")
-      fSomeUser must beNone.await
-    }
-    "return none if the user doesn't exist" in {
-      userRepository.find("idonotexist").returns(Future.successful(None))
-      val fSomeUser = authService.authenticate("idonotexist", password)
-      val userOption = Await.result(fSomeUser, Duration.Inf)
-      userOption must beNone
-    }
-  }
-
-//  "AuthService.create" should {
-//    "return a new user if the email and password are unique and the user was created" in {
-//      running(FakeApplication()) {
-//        userRepository.find(username).returns(Future.successful(None))
-//        userRepository.find(email).returns(Future.successful(None))
-//        userRepository.insert(mockUser)(mockConnection).returns(Future.successful(mockUser))
+//  "AuthService.authenticate" should {
+//    "return some user if it the identifier and password combination are valid" in {
+//      userRepository.find(username).returns(Future.successful(Some(mockUser)))
 //
-//        val fNewUser = authService.create(username, email, password, givenname, surname)
-//        await(fNewUser) must be(mockUser)
-//      }
+//      val fSomeUser = authService.authenticate(username, password)
+//      fSomeUser must beSome(mockUser).await
+//    }
+//    "return none if the password was wrong" in {
+//      userRepository.find(username).returns(Future.successful(Some(mockUser)))
+//
+//      val fSomeUser = authService.authenticate(username, "bad password!")
+//      fSomeUser must beNone.await
+//    }
+//    "return none if the user doesn't exist" in {
+//      userRepository.find("idonotexist").returns(Future.successful(None))
+//      val fSomeUser = authService.authenticate("idonotexist", password)
+//      val userOption = Await.result(fSomeUser, Duration.Inf)
+//      userOption must beNone
 //    }
 //  }
+
+  "AuthService.create" should {
+//    "return a new user if the email and password are unique and the user was created" in {
+//      userRepository.find(username).returns(Future.successful(None))
+//      userRepository.find(email).returns(Future.successful(None))
+//      userRepository.insert(mockUser)(mockConnection).returns(Future.successful(mockUser))
+//
+//      val fNewUser = authService.create(username, email, password, givenname, surname)
+//      val newUser = Await.result(fNewUser, Duration.Inf)
+//      newUser must be(mockUser)
+//    }
+    "throw an exception if email is not unique" in {
+      userRepository.find(username).returns(Future.successful(None))
+      userRepository.find(email).returns(Future.successful(Some(mockUser)))
+
+
+      var exception = new Exception()
+
+      try {
+        val fNewUser = authService.create(username, email, password, givenname, surname)
+        val newUser = Await.result(fNewUser, Duration.Inf)
+      } catch {
+        case e: EmailAlreadyExistsException => {
+          println("exception caught: " + e)
+          exception = e
+        }
+      }
+
+      exception should(EmailAlreadyExistsException)
+    }
+//    "throw an exception if username is not unique" in {
+//      userRepository.find(username).returns(Future.successful(Some(mockUser)))
+//      userRepository.find(email).returns(Future.successful(None))
+//
+//      val fNewUser = authService.create(username, email, password, givenname, surname)
+//      val newUser = Await.result(fNewUser, Duration.Inf)
+//      newUser must throwA[UsernameAlreadyExistsException]
+//    }
+//    "throw an exception if both username and email are not unique" in {
+//      userRepository.find(username).returns(Future.successful(Some(mockUser)))
+//      userRepository.find(email).returns(Future.successful(Some(mockUser)))
+//
+//      val fNewUser = authService.create(username, email, password, givenname, surname)
+//      val newUser = Await.result(fNewUser, Duration.Inf)
+//      newUser must throwA[EmailAndUsernameAlreadyExistException]
+//    }
+  }
 }

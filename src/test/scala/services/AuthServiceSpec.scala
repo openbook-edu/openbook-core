@@ -11,6 +11,7 @@ import org.specs2.mock._
 import ca.shiftfocus.krispii.core.services._
 import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.krispii.core.repositories._
+import grizzled.slf4j.Logger
 import webcrank.password._
 
 trait AuthTestEnvironmentComponent extends
@@ -21,6 +22,7 @@ SectionRepositoryComponent with
 SessionRepositoryComponent with
 DB with
 Mockito {
+  val logger = Logger[this.type]
   val mockConnection = mock[Connection]
   override def transactional[A](f : Connection => Future[A]): Future[A] = {
     f(mockConnection)

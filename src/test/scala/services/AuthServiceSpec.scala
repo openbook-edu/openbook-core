@@ -21,8 +21,13 @@ UserRepositoryComponent with
 RoleRepositoryComponent with
 SectionRepositoryComponent with
 SessionRepositoryComponent with
-DB with
-MockFactory {
+DB
+
+class AuthSpecComponent
+  extends WordSpec
+  with MockFactory
+  with AuthTestEnvironmentComponent {
+
   val logger = Logger[this.type]
   val mockConnection = stub[Connection]
   override def transactional[A](f : Connection => Future[A]): Future[A] = {
@@ -33,6 +38,7 @@ MockFactory {
   override val sectionRepository = stub[SectionRepository]
   override val sessionRepository = stub[SessionRepository]
   override val db = stub[DBSettings]
+
   (db.pool _) when() returns(mockConnection)
 
   val webcrank = Passwords.scrypt()
@@ -46,11 +52,6 @@ MockFactory {
     givenname = "Test",
     surname = "UserA"
   )
-}
-
-class AuthSpecComponent
-  extends WordSpec
-  with AuthTestEnvironmentComponent {
 
   "AuthService.authenticate" should {
     "return some user if it the identifier and password combination are valid" in {

@@ -78,8 +78,8 @@ trait DB {
    */
   trait DBSettings {
     val databaseConfiguration: Configuration
-    val pool: Connection
     val cacheExpiry: Int
+    def pool: Connection
   }
 }
 
@@ -108,7 +108,9 @@ trait PostgresDB extends DB {
     }
 
     lazy val factory = new PostgreSQLConnectionFactory(databaseConfiguration)
-    override val pool = new ConnectionPool(factory, new PoolConfiguration(
+    override def pool = connectionPool
+
+    private val connectionPool = new ConnectionPool(factory, new PoolConfiguration(
       maxObjects = 60,
       maxIdle = 50,
       maxQueueSize = 1000,

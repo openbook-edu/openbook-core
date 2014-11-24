@@ -4,9 +4,6 @@ import com.github.mauricio.async.db.{RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.lib.{UUID, ExceptionWriter}
 import ca.shiftfocus.krispii.core.models._
-import play.api.Play.current
-
-import play.api.Logger
 import scala.concurrent.Future
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
@@ -188,21 +185,16 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * @return an [[IndexedSeq]] of [[User]]
      */
     override def list: Future[IndexedSeq[User]] = {
-      Logger.debug("[userRepository.list] - Get all users")
       db.pool.sendQuery(SelectAll).map { queryResult =>
-        Logger.debug("[userRepository.list] - Got query result")
         val startTimeUs = System.nanoTime() / 1000
         val userList = queryResult.rows.get.map {
           item: RowData => User(item)
         }
         val endTimeUs = System.nanoTime() / 1000
-        Logger.debug(s"It took ${endTimeUs - startTimeUs} microseconds to instantiate your users.")
-        Logger.debug("[userRepository.list] - done caching")
         //Cache.set(s"users.list", userList.map(_.id), db.cacheExpiry)
         userList
       }.recover {
         case exception => {
-          Logger.error("Exception caught from userRepository.list")
           throw exception
         }
       }
@@ -305,22 +297,18 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * @return an [[Option[User]]]
      */
     override def find(id: UUID): Future[Option[User]] = {
-      Logger.debug(s"userRepository.find(${id.string}) - start")
       db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map { result =>
         result.rows.get.headOption match {
           case Some(rowData) => {
-            Logger.debug(s"userRepository.find(${id.string}) - loaded from database")
             Some(User(rowData))
           }
           case None => {
-            Logger.debug(s"userRepository.find(${id.string}) - user not found")
             None
           }
         }
       }
     }.recover {
       case exception => {
-        Logger.debug(s"userRepository.find(${id.string}) - caught exception in db thread")
         throw exception
       }
     }
@@ -335,7 +323,6 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       db.pool.sendPreparedStatement(SelectOneByIdentifier, Array[Any](identifier, identifier)).map { result =>
         result.rows.get.headOption match {
           case Some(rowData) => {
-            Logger.debug(s"userRepository.find(${identifier}) - loaded from database")
             Some(User(rowData))
           }
           case None => None

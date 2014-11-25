@@ -205,4 +205,15 @@ class AuthServiceSpec
       }
     }
   }
+
+  "AuthService.deleteRole" should {
+    inSequence {
+      "throw an exception if role versions don't match" in {
+        (roleRepository.find(_: UUID)) when(testRoleA.id) returns(Future.successful(Option(testRoleA)))
+
+        val fNewUser = authService.deleteRole(testRoleA.id, 123456789L)
+        an [OutOfDateException] should be thrownBy Await.result(fNewUser, Duration.Inf)
+      }
+    }
+  }
 }

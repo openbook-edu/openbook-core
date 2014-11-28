@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
-import ca.shiftfocus.krispii.core.lib.UUID
+import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models._
 import scala.concurrent.Future
 

@@ -1,8 +1,9 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.lib.{UUID, ExceptionWriter}
+import ca.shiftfocus.krispii.core.lib.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.services.datasource.RedisCache
+import ca.shiftfocus.uuid.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scalacache._
 import redis._

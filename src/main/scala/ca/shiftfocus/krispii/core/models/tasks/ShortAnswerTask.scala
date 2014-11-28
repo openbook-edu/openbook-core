@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models.tasks
 
-import ca.shiftfocus.krispii.core.lib.UUID
+import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models.Part
 import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime

@@ -44,7 +44,8 @@ libraryDependencies ++= Seq(
   "ca.shiftfocus" %% "webcrank-password" % "0.4.1",
   "org.slf4j" % "slf4j-api" % "1.7.5",
   "org.slf4j" % "slf4j-simple" % "1.7.5",
-  "org.clapper" %% "grizzled-slf4j" % "1.0.2"
+  "org.clapper" %% "grizzled-slf4j" % "1.0.2",
+  "ca.shiftfocus" %% "uuid" % "1.0.0"
 )
 
 // -- SBT Publish settings --------

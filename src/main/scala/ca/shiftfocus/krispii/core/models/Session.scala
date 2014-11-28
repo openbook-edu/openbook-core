@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models
 
-import ca.shiftfocus.krispii.core.lib.UUID
+import ca.shiftfocus.uuid.UUID
 import org.joda.time.DateTime
 
 case class Session(

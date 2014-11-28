@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
-import ca.shiftfocus.krispii.core.lib.UUID
+import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models._
 import org.joda.time.LocalTime
 import org.joda.time.LocalDate

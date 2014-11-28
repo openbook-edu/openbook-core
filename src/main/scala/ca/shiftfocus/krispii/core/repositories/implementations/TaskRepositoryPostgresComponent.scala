@@ -3,9 +3,10 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import com.github.mauricio.async.db.{RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
-import ca.shiftfocus.krispii.core.lib.{UUID, ExceptionWriter}
+import ca.shiftfocus.krispii.core.lib.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks._
+import ca.shiftfocus.uuid.UUID
 import play.api.Logger
 import scala.concurrent.Future
 import org.joda.time.DateTime

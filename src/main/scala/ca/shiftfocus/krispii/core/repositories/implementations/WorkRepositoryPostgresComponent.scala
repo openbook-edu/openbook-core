@@ -6,6 +6,7 @@ import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionCon
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.{MatchingTask, Task}
 import ca.shiftfocus.krispii.core.models.work._
+import ca.shiftfocus.uuid.UUID
 import org.joda.time.DateTime
 import scala.concurrent.Future
 

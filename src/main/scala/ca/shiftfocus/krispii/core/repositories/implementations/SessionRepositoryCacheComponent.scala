@@ -20,7 +20,7 @@ trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
 
   private class SessionRepositoryCache extends SessionRepository {
 
-    implicit val scalaCache = ScalaCache(RedisCache("host1", 6379))
+    implicit val scalaCache = ScalaCache(RedisCache("127.0.0.1", 6379))
     val ttl = Some(2.days)
 
     /**

@@ -116,7 +116,6 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      */
     override def authenticate(identifier: String, password: String): Future[Option[User]] = {
       transactional { implicit conn =>
-        println("I'm a printed line!!!")
         userRepository.find(identifier.trim()).map {
           case Some(user) => {
             user.passwordHash match {

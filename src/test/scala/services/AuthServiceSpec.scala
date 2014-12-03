@@ -47,7 +47,7 @@ class AuthServiceSpec
 
   val webcrank = Passwords.scrypt()
   val password = "userpass"
-  val passwordHash = webcrank.crypt("userpass")
+  val passwordHash = webcrank.crypt(password)
 
   val testUserA = User(
     email = "testUserA@example.org",

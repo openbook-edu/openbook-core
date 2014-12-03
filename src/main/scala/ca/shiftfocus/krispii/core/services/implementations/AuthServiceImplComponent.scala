@@ -4,7 +4,7 @@ import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionCon
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
-import ca.shiftfocus.krispii.core.lib.UUID
+import ca.shiftfocus.uuid.UUID
 import play.api.Logger
 import scala.concurrent.Future
 import webcrank.password._
@@ -116,7 +116,6 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      */
     override def authenticate(identifier: String, password: String): Future[Option[User]] = {
       transactional { implicit conn =>
-        println("I'm a printed line!!!")
         userRepository.find(identifier.trim()).map {
           case Some(user) => {
             user.passwordHash match {

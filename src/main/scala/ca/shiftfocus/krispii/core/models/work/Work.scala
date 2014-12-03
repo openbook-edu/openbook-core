@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models.work
 
-import ca.shiftfocus.krispii.core.lib.UUID
+import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models.tasks.Task._
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import com.github.mauricio.async.db.RowData

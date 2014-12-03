@@ -4,6 +4,7 @@ import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.lib._
 import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.uuid.UUID
 import org.joda.time.DateTime
 import scala.concurrent.Future
 

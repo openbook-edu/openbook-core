@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models.tasks
 
-import ca.shiftfocus.krispii.core.lib.UUID
+import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.RowData
 import play.api.libs.json._
 import play.api.libs.json.Writes._

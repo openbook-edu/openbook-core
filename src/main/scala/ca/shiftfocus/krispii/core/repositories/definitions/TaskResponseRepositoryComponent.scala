@@ -5,6 +5,7 @@ import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionCon
 import ca.shiftfocus.krispii.core.lib._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.Task
+import ca.shiftfocus.uuid.UUID
 import scala.concurrent.Future
 
 trait TaskResponseRepositoryComponent {

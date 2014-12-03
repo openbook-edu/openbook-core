@@ -1,7 +1,8 @@
 package ca.shiftfocus.krispii.core.models
 
 import com.github.mauricio.async.db.RowData
-import ca.shiftfocus.krispii.core.lib.{LocalDateTimeJson, UUID}
+import ca.shiftfocus.krispii.core.lib.{LocalDateTimeJson}
+import ca.shiftfocus.uuid.UUID
 import org.joda.time.DateTime
 import org.joda.time.LocalTime
 import org.joda.time.LocalDate

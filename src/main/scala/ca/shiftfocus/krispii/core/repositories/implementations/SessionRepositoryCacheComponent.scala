@@ -1,8 +1,9 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.lib.{UUID, ExceptionWriter}
+import ca.shiftfocus.krispii.core.lib.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.services.datasource.RedisCache
+import ca.shiftfocus.uuid.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import scalacache._
 import redis._
@@ -19,7 +20,7 @@ trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
 
   private class SessionRepositoryCache extends SessionRepository {
 
-    implicit val scalaCache = ScalaCache(RedisCache("host1", 6379))
+    implicit val scalaCache = ScalaCache(RedisCache("127.0.0.1", 6379))
     val ttl = Some(2.days)
 
     /**

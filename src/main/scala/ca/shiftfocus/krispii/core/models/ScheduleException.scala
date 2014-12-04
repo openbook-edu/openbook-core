@@ -14,7 +14,7 @@ import play.api.libs.functional.syntax._
 case class SectionScheduleException(
   id: UUID = UUID.random,
   userId: UUID,
-  sectionId: UUID,
+  classId: UUID,
   version: Long = 0,
   day: LocalDate,
   startTime: LocalTime,
@@ -33,7 +33,7 @@ object SectionScheduleException extends LocalDateTimeJson {
     SectionScheduleException(
       UUID(row("id").asInstanceOf[Array[Byte]]),
       UUID(row("user_id").asInstanceOf[Array[Byte]]),
-      UUID(row("section_id").asInstanceOf[Array[Byte]]),
+      UUID(row("class_id").asInstanceOf[Array[Byte]]),
       row("version").asInstanceOf[Long],
       day.toLocalDate(),
       new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), startTime.getHourOfDay(), startTime.getMinuteOfHour, startTime.getSecondOfMinute()).toLocalTime(),
@@ -46,7 +46,7 @@ object SectionScheduleException extends LocalDateTimeJson {
   implicit val sectionScheduleReads: Reads[SectionScheduleException] = (
     (__ \ "id").read[UUID] and
       (__ \ "userId").read[UUID] and
-      (__ \ "sectionId").read[UUID] and
+      (__ \ "classId").read[UUID] and
       (__ \ "version").read[Long] and
       (__ \ "day").read[LocalDate] and
       (__ \ "startTime").read[LocalTime] and
@@ -58,7 +58,7 @@ object SectionScheduleException extends LocalDateTimeJson {
   implicit val sectionScheduleWrites: Writes[SectionScheduleException] = (
     (__ \ "id").write[UUID] and
       (__ \ "userId").write[UUID] and
-      (__ \ "sectionId").write[UUID] and
+      (__ \ "classId").write[UUID] and
       (__ \ "version").write[Long] and
       (__ \ "day").write[LocalDate] and
       (__ \ "startTime").write[LocalTime] and

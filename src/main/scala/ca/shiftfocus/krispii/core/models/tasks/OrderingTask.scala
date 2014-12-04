@@ -24,7 +24,7 @@ import play.api.libs.json._
  */
 case class OrderingTask(
   // Primary Key
-  id: UUID,
+  id: UUID = UUID.random,
   // Combination must be unique
   partId: UUID,
   position: Int,

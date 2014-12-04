@@ -91,9 +91,7 @@ trait AuthServiceComponent {
      * @param surname  The user's family name.
      * @return the created user
      */
-    def create(username: String, email: String, password: String, givenname: String, surname: String): Future[User]
-
-    def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID): Future[User]
+    def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.random): Future[User]
 
     /**
      * Update an existing user. Throws exceptions if the e-mail and username aren't unique.
@@ -147,7 +145,7 @@ trait AuthServiceComponent {
      * @param name  the name of the Role to create
      * @return the newly created Role
      */
-    def createRole(name: String): Future[Role]
+    def createRole(name: String, id: UUID = UUID.random): Future[Role]
 
     /**
      * Update a Role

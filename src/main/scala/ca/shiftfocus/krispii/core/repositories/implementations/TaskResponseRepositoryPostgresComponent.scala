@@ -153,7 +153,7 @@ trait TaskResponseRepositoryPostgresComponent extends TaskResponseRepositoryComp
       INSERT INTO $table (user_id, task_id, revision, version, status, created_at, updated_at, response, is_complete)
       SELECT users_sections.user_id, ? as task_id, 1, 1, 1, ? as created_at, ? as updated_at, '[no response, forced complete]' as response, 't' as is_complete
       FROM users_sections
-      WHERE users_sections.section_id = ?
+      WHERE users_sections.class_id = ?
         AND NOT EXISTS (
           SELECT user_id, task_id
           FROM $table
@@ -167,7 +167,7 @@ trait TaskResponseRepositoryPostgresComponent extends TaskResponseRepositoryComp
       SET is_complete = 't'
       FROM student_responses sr2
       INNER JOIN users_sections ON users_sections.user_id = sr2.user_id
-      WHERE users_sections.section_id = ?
+      WHERE users_sections.class_id = ?
         AND sr2.task_id = ?
         AND sr1.user_id = sr2.user_id
         AND sr1.task_id = sr2.task_id
@@ -183,7 +183,7 @@ trait TaskResponseRepositoryPostgresComponent extends TaskResponseRepositoryComp
      * @param task the task to force to complete
      * @param section the section of students to force completion for
      */
-    override def forceComplete(task: Task, section: Section)(implicit conn: Connection): Future[Boolean] = {
+    override def forceComplete(task: Task, section: Class)(implicit conn: Connection): Future[Boolean] = {
       for {
         result1 <- conn.sendPreparedStatement(ForceCompleteStepOne, Array[Any](task.id.bytes, new DateTime, new DateTime, section.id.bytes, task.id.bytes))
         result2 <- conn.sendPreparedStatement(ForceCompleteStepTwo, Array[Any](section.id.bytes, task.id.bytes))

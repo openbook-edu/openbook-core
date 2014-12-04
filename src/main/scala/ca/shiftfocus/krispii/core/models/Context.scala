@@ -11,5 +11,5 @@ case class Context(
   user: User,
   session: Session,
   roles: IndexedSeq[String],
-  sections: IndexedSeq[Section]
+  sections: IndexedSeq[Class]
 )

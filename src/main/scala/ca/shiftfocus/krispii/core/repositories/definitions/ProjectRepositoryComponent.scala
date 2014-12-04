@@ -19,21 +19,11 @@ trait ProjectRepositoryComponent {
      * The usual CRUD functions for the projects table.
      */
     def list: Future[IndexedSeq[Project]]
-    def list(section: Section): Future[IndexedSeq[Project]]
+    def list(section: Class): Future[IndexedSeq[Project]]
     def find(id: UUID): Future[Option[Project]]
     def find(slug: String): Future[Option[Project]]
     def insert(project: Project)(implicit conn: Connection): Future[Project]
     def update(project: Project)(implicit conn: Connection): Future[Project]
     def delete(project: Project)(implicit conn: Connection): Future[Boolean]
-
-    /**
-     * Project *--* Section relationship methods.
-     *
-     * These methods manipulate the table associating projects to sections.
-     */
-    def addToSection(section: Section, project: Project)(implicit conn: Connection): Future[Boolean]
-    def removeFromSection(section: Section, project: Project)(implicit conn: Connection): Future[Boolean]
-    def removeFromAllSections(project: Project)(implicit conn: Connection): Future[Boolean]
-
   }
 }

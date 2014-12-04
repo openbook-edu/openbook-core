@@ -10,7 +10,7 @@ import scala.concurrent.Future
 
 trait SchoolServiceImplComponent extends SchoolServiceComponent {
   self: CourseRepositoryComponent with
-        SectionRepositoryComponent with
+        ClassRepositoryComponent with
         UserRepositoryComponent with
         ProjectRepositoryComponent with
         PartRepositoryComponent with
@@ -96,10 +96,10 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     /**
      * List all sections.
      *
-     * @return an [[IndexedSeq]] of [[Section]]
+     * @return an [[IndexedSeq]] of [[Class]]
      */
-    override def listSections: Future[IndexedSeq[Section]] = {
-      sectionRepository.list
+    override def listSections: Future[IndexedSeq[Class]] = {
+      classRepository.list
     }
 
     /**
@@ -109,12 +109,12 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * student of the section via an association table.
      *
      * @param userId the [[UUID]] of the [[User]] to search for.
-     * @param an [[IndexedSeq]] of [[Section]]
+     * @param an [[IndexedSeq]] of [[Class]]
      */
-    override def listSectionsByUser(userId: UUID): Future[IndexedSeq[Section]] = {
+    override def listSectionsByUser(userId: UUID): Future[IndexedSeq[Class]] = {
       for {
         user <- userRepository.find(userId).map(_.get)
-        sections <- sectionRepository.list(user, false)
+        sections <- classRepository.list(user, false)
       }
       yield sections
     }.recover {
@@ -128,12 +128,12 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * parameter.
      *
      * @param userId the [[UUID]] of the [[User]] to search for.
-     * @param an [[IndexedSeq]] of [[Section]]
+     * @param an [[IndexedSeq]] of [[Class]]
      */
-    override def listSectionsByTeacher(userId: UUID): Future[IndexedSeq[Section]] = {
+    override def listSectionsByTeacher(userId: UUID): Future[IndexedSeq[Class]] = {
       for {
         user <- userRepository.find(userId).map(_.get)
-        sections <- sectionRepository.list(user, true)
+        sections <- classRepository.list(user, true)
       }
       yield sections
     }.recover {
@@ -144,12 +144,12 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * List all sections that have a specific project.
      *
      * @param projectId the [[UUID]] of the [[Project]] to filter by
-     * @return an [[IndexedSeq]] of [[Section]]
+     * @return an [[IndexedSeq]] of [[Class]]
      */
-    override def listSectionsByProject(projectId: UUID): Future[IndexedSeq[Section]] = {
+    override def listSectionsByProject(projectId: UUID): Future[IndexedSeq[Class]] = {
       for {
         project <- projectRepository.find(projectId).map(_.get)
-        sections <- sectionRepository.list(project)
+        sections <- classRepository.list(project)
       }
       yield sections
     }.recover {
@@ -159,11 +159,11 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     /**
      * Find a specific section by id.
      *
-     * @param id the [[UUID]] of the [[Section]] to find.
-     * @return an optional [[Section]]
+     * @param id the [[UUID]] of the [[Class]] to find.
+     * @return an optional [[Class]]
      */
-    override def findSection(id: UUID): Future[Option[Section]] = {
-      sectionRepository.find(id)
+    override def findSection(id: UUID): Future[Option[Class]] = {
+      classRepository.find(id)
     }
 
     /**
@@ -172,9 +172,9 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @param courseId the [[UUID]] of the [[Course]] this section belongs to
      * @param teacherId the optional [[UUID]] of the [[User]] teaching this section
      * @param name the name of this section
-     * @return the newly created [[Section]]
+     * @return the newly created [[Class]]
      */
-    override def createSection(courseId: UUID, teacherId: Option[UUID], name: String): Future[Section] = {
+    override def createSection(courseId: UUID, teacherId: Option[UUID], name: String): Future[Class] = {
       transactional { implicit connection =>
         val fCourse = courseRepository.find(courseId).map(_.get)
         val foTeacher = teacherId match {
@@ -185,7 +185,7 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
         for {
           course <- fCourse
           oTeacher <- foTeacher
-          newSection <- sectionRepository.insert(Section(
+          newSection <- classRepository.insert(Class(
             courseId = course.id,
             teacherId = oTeacher match {
               case Some(teacher) => Some(teacher.id)
@@ -206,11 +206,11 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @param courseId the [[UUID]] of the [[Course]] this section belongs to
      * @param teacherId the optional [[UUID]] of the [[User]] teaching this section
      * @param name the name of this section
-     * @return the newly created [[Section]]
+     * @return the newly created [[Class]]
      */
-    override def updateSection(id: UUID, version: Long, courseId: UUID, teacherId: Option[UUID], name: String): Future[Section] = {
+    override def updateSection(id: UUID, version: Long, courseId: UUID, teacherId: Option[UUID], name: String): Future[Class] = {
       transactional { implicit connection =>
-        val fExistingSection = sectionRepository.find(id).map(_.get.copy(version = version))
+        val fExistingSection = classRepository.find(id).map(_.get.copy(version = version))
         val fCourse = courseRepository.find(courseId).map(_.get)
         val foTeacher = teacherId match {
           case Some(id) => userRepository.find(id)
@@ -221,7 +221,7 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
           existingSection <- fExistingSection
           course <- fCourse
           oTeacher <- foTeacher
-          updatedSection <- sectionRepository.update(existingSection.copy(
+          updatedSection <- classRepository.update(existingSection.copy(
             courseId = course.id,
             teacherId = oTeacher match {
               case Some(teacher) => Some(teacher.id)
@@ -237,17 +237,17 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     }
 
     /**
-     * Delete a [[Section]] from the system.
+     * Delete a [[Class]] from the system.
      *
-     * @param id the unique ID of the [[Section]] to update
-     * @param version the latest version of the [[Section]] for O.O.L.
+     * @param id the unique ID of the [[Class]] to update
+     * @param version the latest version of the [[Class]] for O.O.L.
      * @return a boolean indicating success or failure
      */
     override def deleteSection(id: UUID, version: Long): Future[Boolean] = {
       transactional { implicit connection =>
         for {
-          existingSection <- sectionRepository.find(id).map(_.get)
-          wasDeleted <- sectionRepository.delete(existingSection)
+          existingSection <- classRepository.find(id).map(_.get)
+          wasDeleted <- classRepository.delete(existingSection)
         } yield wasDeleted
       }
     }
@@ -257,16 +257,16 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     /**
      * Enable a part for a section.
      *
-     * @param sectionId the [[UUID]] of the [[Section]] to enable a [[Part]] for
+     * @param classId the [[UUID]] of the [[Class]] to enable a [[Part]] for
      * @param partId the [[UUID]] of the [[Part]] to enable
      * @return a [[Boolean]] indicating success or failure
      */
-    override def enablePart(sectionId: UUID, partId: UUID): Future[Boolean] = {
+    override def enablePart(classId: UUID, partId: UUID): Future[Boolean] = {
       transactional { implicit connection =>
         for {
-          section <- sectionRepository.find(sectionId).map(_.get)
+          section <- classRepository.find(classId).map(_.get)
           part <- partRepository.find(partId).map(_.get)
-          wasEnabled <- sectionRepository.enablePart(section, part)
+          wasEnabled <- classRepository.enablePart(section, part)
         }
         yield wasEnabled
       }
@@ -275,16 +275,16 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     /**
      * Disable a part for a section.
      *
-     * @param sectionId the [[UUID]] of the [[Section]] to disable a [[Part]] for
+     * @param classId the [[UUID]] of the [[Class]] to disable a [[Part]] for
      * @param partId the [[UUID]] of the [[Part]] to disable
      * @return a [[Boolean]] indicating success or failure
      */
-    override def disablePart(sectionId: UUID, partId: UUID): Future[Boolean] = {
+    override def disablePart(classId: UUID, partId: UUID): Future[Boolean] = {
       transactional { implicit connection =>
         for {
-          section <- sectionRepository.find(sectionId).map(_.get)
+          section <- classRepository.find(classId).map(_.get)
           part <- partRepository.find(partId).map(_.get)
-          wasEnabled <- sectionRepository.disablePart(section, part)
+          wasEnabled <- classRepository.disablePart(section, part)
         }
         yield wasEnabled
       }
@@ -293,14 +293,14 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     /**
      * List all students registered to a section.
      */
-    override def listStudents(section: Section): Future[IndexedSeq[User]] = {
+    override def listStudents(section: Class): Future[IndexedSeq[User]] = {
       userRepository.list(section)
     }
 
     /**
      * List all projects belonging to a section.
      */
-    override def listProjects(section: Section): Future[IndexedSeq[Project]] = {
+    override def listProjects(section: Class): Future[IndexedSeq[Project]] = {
       projectRepository.list(section)
     }
 
@@ -308,12 +308,12 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * List all project parts that have been enabled for a section.
      *
      * @param projectId the [[UUID]] of the [[Project]] to list parts from
-     * @param sectionId the [[UUID]] of the [[Section]] to list parts for
+     * @param classId the [[UUID]] of the [[Class]] to list parts for
      * @return an [[IndexedSeq]] of [[Part]].
      */
-    override def listEnabledParts(projectId: UUID, sectionId: UUID): Future[IndexedSeq[Part]] = {
+    override def listEnabledParts(projectId: UUID, classId: UUID): Future[IndexedSeq[Part]] = {
       val fProject = projectRepository.find(projectId).map(_.get)
-      val fSection = sectionRepository.find(sectionId).map(_.get)
+      val fSection = classRepository.find(classId).map(_.get)
       for {
         project <- fProject
         section <- fSection
@@ -327,9 +327,9 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     /**
      * List all students registered to a section.
      */
-    override def listStudents(sectionId: UUID): Future[IndexedSeq[User]] = {
+    override def listStudents(classId: UUID): Future[IndexedSeq[User]] = {
       val studentList = for {
-        section <- sectionRepository.find(sectionId).map(_.get)
+        section <- classRepository.find(classId).map(_.get)
         students <- userRepository.listForSections(IndexedSeq(section))
       }
       yield students
@@ -342,9 +342,9 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     /**
      * List all projects belonging to a section.
      */
-    override def listProjects(sectionId: UUID): Future[IndexedSeq[Project]] = {
+    override def listProjects(classId: UUID): Future[IndexedSeq[Project]] = {
       for {
-        section <- sectionRepository.find(sectionId).map(_.get)
+        section <- classRepository.find(classId).map(_.get)
         projects <- projectRepository.list(section)
       }
       yield projects
@@ -353,62 +353,17 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     }
 
     /**
-     * Add projects to a section.
-     */
-    override def addProjects(section: Section, projectIds: IndexedSeq[UUID]): Future[Boolean] = {
-      transactional { implicit connection =>
-        for {
-          projects <- Future.sequence(projectIds.map(projectRepository.find)).map(_.map(_.get))
-          wereAdded <- sectionRepository.addProjects(section, projects)
-        }
-        yield wereAdded
-      }
-    }
-
-    /**
-     * Remove specified projects from the section.
-     *
-     * @param section the [[Section]] to remove projects from
-     * @param projectIds an [[IndexedSeq]] of [[UUID]] representing the [[Project]]s to remove
-     * @param a [[Boolean]] indicating success or failure.
-     */
-    override def removeProjects(section: Section, projectIds: IndexedSeq[UUID]): Future[Boolean] = {
-      transactional { implicit connection =>
-        for {
-          projects <- Future.sequence(projectIds.map(projectRepository.find)).map(_.map(_.get))
-          wereAdded <- sectionRepository.removeProjects(section, projects)
-        }
-        yield wereAdded
-      }
-    }
-
-    /**
-     * Remove all projects from the section.
-     *
-     * @param section the [[Section]] to remove projects from
-     * @param a [[Boolean]] indicating success or failure.
-     */
-    override def removeAllProjects(section: Section): Future[Boolean] = {
-      transactional { implicit connection =>
-        for {
-          wereRemoved <- sectionRepository.removeAllProjects(section)
-        }
-        yield wereRemoved
-      }
-    }
-
-    /**
      * Add students to a section.
      *
-     * @param section the [[Section]] to add users to
+     * @param section the [[Class]] to add users to
      * @param userIds an [[IndexedSeq]] of [[UUID]] representing the [[User]]s to be added.
      * @param a [[Boolean]] indicating success or failure.
      */
-    override def addUsers(section: Section, userIds: IndexedSeq[UUID]): Future[Boolean] = {
+    override def addUsers(section: Class, userIds: IndexedSeq[UUID]): Future[Boolean] = {
       transactional { implicit connection =>
         for {
           users <- Future.sequence(userIds.map(userRepository.find)).map(_.map(_.get))
-          wereAdded <- sectionRepository.addUsers(section, users)
+          wereAdded <- classRepository.addUsers(section, users)
         }
         yield wereAdded
       }
@@ -417,15 +372,15 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     /**
      * Remove students from a section.
      *
-     * @param section the [[Section]] to remove users from
+     * @param section the [[Class]] to remove users from
      * @param userIds an [[IndexedSeq]] of [[UUID]] representing the [[User]]s to be removed.
      * @param a [[Boolean]] indicating success or failure.
      */
-    override def removeUsers(section: Section, userIds: IndexedSeq[UUID]): Future[Boolean] = {
+    override def removeUsers(section: Class, userIds: IndexedSeq[UUID]): Future[Boolean] = {
       transactional { implicit connection =>
         for {
           users <- Future.sequence(userIds.map(userRepository.find)).map(_.map(_.get))
-          wereRemoved <- sectionRepository.removeUsers(section, users)
+          wereRemoved <- classRepository.removeUsers(section, users)
         }
         yield wereRemoved
       }
@@ -435,15 +390,15 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * Force complete all responses for a given task in a given section.
      *
      * @param taskId the [[UUID]] of the task to be force-completed
-     * @param sectionId the [[UUID]] of the section whose users will
+     * @param classId the [[UUID]] of the section whose users will
      *                  have their responses force-completed
      * @return a boolean indicating success or failure
      */
-    override def forceComplete(taskId: UUID, sectionId: UUID): Future[Boolean] = {
+    override def forceComplete(taskId: UUID, classId: UUID): Future[Boolean] = {
       transactional { implicit connection =>
         for {
           task <- taskRepository.find(taskId).map(_.get)
-          section <- sectionRepository.find(sectionId).map(_.get)
+          section <- classRepository.find(classId).map(_.get)
           forcedComplete <- taskResponseRepository.forceComplete(task, section)
         }
         yield forcedComplete
@@ -461,7 +416,7 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
       for {
         user <- userRepository.find(userId).map(_.get)
         project <- projectRepository.find(projectSlug).map(_.get)
-        hasProject <- sectionRepository.hasProject(user, project)(db.pool)
+        hasProject <- classRepository.hasProject(user, project)(db.pool)
       }
       yield hasProject
     }.recover {
@@ -497,10 +452,10 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
       yield isEnabled
     }
 
-    override def isPartEnabledForSection(partId: UUID, sectionId: UUID): Future[Boolean] = {
+    override def isPartEnabledForSection(partId: UUID, classId: UUID): Future[Boolean] = {
       for {
         part <- partRepository.find(partId).map(_.get)
-        section <- sectionRepository.find(sectionId).map(_.get)
+        section <- classRepository.find(classId).map(_.get)
         isEnabled <- partRepository.isEnabled(part, section)
       }
       yield isEnabled

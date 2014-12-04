@@ -12,12 +12,12 @@ import scala.concurrent.Future
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
-trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
+trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
   self: UserRepositoryComponent with PostgresDB =>
 
-  override val sectionRepository: SectionRepository = new SectionRepositoryPSQL
+  override val classRepository: ClassRepository = new ClassRepositoryPSQL
 
-  private class SectionRepositoryPSQL extends SectionRepository {
+  private class ClassRepositoryPSQL extends ClassRepository {
     def fields = Seq("course_id", "teacher_id", "name")
     def table = "sections"
     def orderBy = "name ASC"
@@ -92,7 +92,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
     val ListSections = s"""
       SELECT id, version, teacher_id, course_id, sections.name as name, sections.created_at as created_at, sections.updated_at as updated_at
       FROM sections, users_sections
-      WHERE sections.id = users_sections.section_id
+      WHERE sections.id = users_sections.class_id
         AND users_sections.user_id = ?
         AND sections.status = 1
       ORDER BY name ASC
@@ -109,20 +109,20 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
     val ListSectionsForProject = s"""
       SELECT id, version, teacher_id, course_id, sections.name as name, sections.created_at as created_at, sections.updated_at as updated_at
       FROM sections, sections_projects
-      WHERE sections.id = sections_projects.section_id
+      WHERE sections.id = sections_projects.class_id
         AND sections_projects.project_id = ?
         AND sections.status = 1
       ORDER BY name ASC
     """
 
     val EnablePart = s"""
-      INSERT INTO scheduled_sections_parts (section_id, part_id, active, created_at)
+      INSERT INTO scheduled_sections_parts (class_id, part_id, active, created_at)
       VALUES (?, ?, TRUE, ?)
     """
 
     val DisablePart = s"""
       DELETE FROM scheduled_sections_parts
-      WHERE section_id = ?
+      WHERE class_id = ?
         AND part_id = ?
     """
 
@@ -133,31 +133,31 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
        """.stripMargin
 
     val AddProjects = s"""
-      INSERT INTO sections_projects (section_id, project_id, created_at)
+      INSERT INTO sections_projects (class_id, project_id, created_at)
       VALUES
     """
 
     val AddUsers = s"""
-      INSERT INTO users_sections (section_id, user_id, created_at)
+      INSERT INTO users_sections (class_id, user_id, created_at)
       VALUES
     """
 
     val AddUser = """
-      INSERT INTO users_sections (user_id, section_id, created_at)
+      INSERT INTO users_sections (user_id, class_id, created_at)
       VALUES (?, ?, ?)
     """
 
     val RemoveUser = """
       DELETE FROM users_sections
       WHERE user_id = ?
-        AND section_id = ?
+        AND class_id = ?
     """
 
     val ListUsers = s"""
       SELECT id, version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
       FROM users, users_sections
       WHERE users.id = users_sections.user_id
-        AND users_sections.section_id = ?
+        AND users_sections.class_id = ?
         AND users.status = 1
       ORDER BY $orderBy
     """
@@ -165,34 +165,34 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
     val ListSectionsForUserList = """
       SELECT id, version, teacher_id, course_id, sections.name as name, sections.created_at as created_at, sections.updated_at as updated_at
       FROM sections, users_sections
-      WHERE sections.id = users_sections.section_id
+      WHERE sections.id = users_sections.class_id
         AND sections.status = 1
     """
 
     val RemoveUsers = s"""
       DELETE FROM users_sections
-      WHERE section_id =
+      WHERE class_id =
     """
 
     val RemoveProjects = s"""
       DELETE FROM sections_projects
-      WHERE section_id =
+      WHERE class_id =
     """
 
     val RemoveAllUsers = s"""
       DELETE FROM users_sections
-      WHERE section_id = ?
+      WHERE class_id = ?
     """
 
     val RemoveAllProjects = s"""
       DELETE FROM sections_projects
-      WHERE section_id = ?
+      WHERE class_id = ?
     """
 
     val HasProject = s"""
       SELECT projects.id
       FROM users_sections
-      INNER JOIN sections_projects ON users_sections.section_id = sections_projects.section_id
+      INNER JOIN sections_projects ON users_sections.class_id = sections_projects.class_id
       INNER JOIN projects ON sections_projects.project_id = projects.id
       WHERE sections_projects.project_id = ?
         AND users_sections.user_id = ?
@@ -206,10 +206,10 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
      *             method to be called inside a transaction block.
      * @return an  array of Sections
      */
-    def list: Future[IndexedSeq[Section]] = {
+    def list: Future[IndexedSeq[Class]] = {
       db.pool.sendQuery(SelectAll).map { queryResult =>
         val sectionList = queryResult.rows.get.map {
-          item: RowData => Section(item)
+          item: RowData => Class(item)
         }
         sectionList
       }
@@ -227,10 +227,10 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
      *              method to be called inside a transaction block.
      * @return an array of Sections
      */
-    def list(course: Course): Future[IndexedSeq[Section]] = {
+    def list(course: Course): Future[IndexedSeq[Class]] = {
       db.pool.sendPreparedStatement(SelectOneByCourseId, Seq[Any](course.id.bytes)).map { queryResult =>
         queryResult.rows.get.map {
-          item: RowData => Section(item)
+          item: RowData => Class(item)
         }
       }.recover {
         case exception => {
@@ -247,10 +247,10 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
      *              method to be called inside a transaction block.
      * @return a result set
      */
-    def list(project: Project): Future[IndexedSeq[Section]] = {
+    def list(project: Project): Future[IndexedSeq[Class]] = {
       db.pool.sendPreparedStatement(ListSectionsForProject, Seq[Any](project.id.bytes)).map { queryResult =>
         queryResult.rows.get.map {
-          item: RowData => Section(item)
+          item: RowData => Class(item)
         }
       }.recover {
         case exception => {
@@ -269,10 +269,10 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
      *              method to be called inside a transaction block.
      * @return the found sections
      */
-    def list(user: User, asTeacher: Boolean = false): Future[IndexedSeq[Section]] = {
+    def list(user: User, asTeacher: Boolean = false): Future[IndexedSeq[Class]] = {
       db.pool.sendPreparedStatement((if (asTeacher) SelectByTeacherId else ListSections), Seq[Any](user.id.bytes)).map { queryResult =>
         val sectionList = queryResult.rows.get.map {
-          item: RowData => Section(item)
+          item: RowData => Class(item)
         }
         sectionList
       }.recover {
@@ -285,7 +285,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
     /**
      * List the roles associated with a user.
      */
-    override def list(users: IndexedSeq[User]): Future[Map[UUID, IndexedSeq[Section]]] = {
+    override def list(users: IndexedSeq[User]): Future[Map[UUID, IndexedSeq[Class]]] = {
       val arrayString = users.map { user =>
         val userId = user.id.string
         val cleanUserId =
@@ -301,7 +301,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
       db.pool.sendQuery(query).map { queryResult =>
         val startTimeUsC = System.nanoTime() / 1000
         val tuples = queryResult.rows.get.map { item: RowData =>
-          (UUID(item("id").asInstanceOf[Array[Byte]]), Section(item))
+          (UUID(item("id").asInstanceOf[Array[Byte]]), Class(item))
         }
         val tupledWithUsers = users.map { user =>
           (user.id, tuples.filter(_._1 == user.id).map(_._2))
@@ -323,7 +323,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
     override def find(id: UUID) = {
       db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map { result =>
         result.rows.get.headOption match {
-          case Some(rowData) => Some(Section(rowData))
+          case Some(rowData) => Some(Class(rowData))
           case None => None
         }
       }.recover {
@@ -336,7 +336,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
     /**
      * Add a user to a section
      */
-    override def addUser(user: User, section: Section)(implicit conn: Connection): Future[Boolean] = {
+    override def addUser(user: User, section: Class)(implicit conn: Connection): Future[Boolean] = {
       val future = for {
         result <- conn.sendPreparedStatement(AddUser, Array(user.id.bytes, section.id.bytes, new DateTime))
       }
@@ -354,7 +354,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
     /**
      * Remove a role from a user.
      */
-    override def removeUser(user: User, section: Section)(implicit conn: Connection) = {
+    override def removeUser(user: User, section: Class)(implicit conn: Connection) = {
       val future = for {
         result <- conn.sendPreparedStatement(RemoveUser, Array(user.id.bytes, section.id.bytes))
       }
@@ -392,7 +392,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
      * @param conn  an implicit database Connection.
      * @return a boolean indicating if the action was successful.
      */
-    def addUsers(section: Section, users: IndexedSeq[User])(implicit conn: Connection) = {
+    def addUsers(section: Class, users: IndexedSeq[User])(implicit conn: Connection) = {
       val cleanSectionId = section.id.string filterNot ("-" contains _)
       val query = AddUsers + users.map { user =>
         val cleanUserId = user.id.string filterNot ("-" contains _)
@@ -413,7 +413,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
      * @param conn  an implicit database Connection.
      * @return a boolean indicating if the action was successful.
      */
-    def addProjects(section: Section, projects: IndexedSeq[Project])(implicit conn: Connection) = {
+    def addProjects(section: Class, projects: IndexedSeq[Project])(implicit conn: Connection) = {
       val cleanSectionId = section.id.string filterNot ("-" contains _)
       val query = AddProjects + projects.map { project =>
         val cleanProjectId = project.id.string filterNot ("-" contains _)
@@ -434,7 +434,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
      * @param conn  an implicit database Connection.
      * @return a boolean indicating if the action was successful.
      */
-    def removeUsers(section: Section, users: IndexedSeq[User])(implicit conn: Connection) = {
+    def removeUsers(section: Class, users: IndexedSeq[User])(implicit conn: Connection) = {
       val cleanSectionId = section.id.string filterNot ("-" contains _)
       val arrayString = users.map { user =>
         val cleanUserId = user.id.string filterNot ("-" contains _)
@@ -456,7 +456,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
      * @param conn  an implicit database Connection.
      * @return a boolean indicating if the action was successful.
      */
-    def removeProjects(section: Section, projects: IndexedSeq[Project])(implicit conn: Connection) = {
+    def removeProjects(section: Class, projects: IndexedSeq[Project])(implicit conn: Connection) = {
       val cleanSectionId = section.id.string filterNot ("-" contains _)
       val arrayString = projects.map { project =>
         val cleanProjectId = project.id.string filterNot ("-" contains _)
@@ -477,7 +477,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
      * @param conn  an implicit database Connection.
      * @return a boolean indicating if the action was successful.
      */
-    def removeAllUsers(section: Section)(implicit conn: Connection) = {
+    def removeAllUsers(section: Class)(implicit conn: Connection) = {
       for {
         result <- conn.sendPreparedStatement(RemoveAllUsers, Array[Any](section.id.bytes))
       }
@@ -491,7 +491,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
      * @param conn  an implicit database Connection.
      * @return a boolean indicating if the action was successful.
      */
-    def removeAllProjects(section: Section)(implicit conn: Connection) = {
+    def removeAllProjects(section: Class)(implicit conn: Connection) = {
       for {
         result <- conn.sendPreparedStatement(RemoveAllProjects, Array[Any](section.id.bytes))
       }
@@ -507,7 +507,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
      * @param name the name of this section
      * @return id of the saved/new role. Failure to insert should throw an exception.
      */
-    def insert(section: Section)(implicit conn: Connection): Future[Section] = {
+    def insert(section: Class)(implicit conn: Connection): Future[Class] = {
       conn.sendPreparedStatement(Insert, Array(
         section.id.bytes,
         new DateTime,
@@ -516,7 +516,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
         section.teacherId,
         section.name
       )).map {
-        result => Section(result.rows.get.head)
+        result => Class(result.rows.get.head)
       }.recover {
         case exception => {
           throw exception
@@ -534,7 +534,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
      * @param name the name of this section
      * @return optional version of the updated Section, if a section was found to update.
      */
-    def update(section: Section)(implicit conn: Connection): Future[Section] = {
+    def update(section: Class)(implicit conn: Connection): Future[Class] = {
       conn.sendPreparedStatement(Update, Array(
         section.courseId,
         section.teacherId,
@@ -544,7 +544,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
         section.id,
         section.version
       )).map {
-        result => Section(result.rows.get.head)
+        result => Class(result.rows.get.head)
       }.recover {
         case exception => {
           throw exception
@@ -557,7 +557,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
      * @param id
      * @return
      */
-    def delete(section: Section)(implicit conn: Connection): Future[Boolean] = {
+    def delete(section: Class)(implicit conn: Connection): Future[Boolean] = {
       val future = for {
         queryResult <- conn.sendPreparedStatement(Purge, Array(section.id.bytes, section.version))
       }
@@ -577,7 +577,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
      * @param part  the part to enable.
      * @return a boolean indicating whether the operation was successful.
      */
-    def enablePart(section: Section, part: Part)(implicit conn: Connection): Future[Boolean] = {
+    def enablePart(section: Class, part: Part)(implicit conn: Connection): Future[Boolean] = {
       val newStatus = for {
         result <- conn.sendPreparedStatement(EnablePart, Array(section.id.bytes, part.id.bytes, new DateTime))
         // We only fetch the user list so we can update the cache... the user list may be read in parallel
@@ -602,7 +602,7 @@ trait SectionRepositoryPostgresComponent extends SectionRepositoryComponent {
      * @param part  the part to disable.
      * @return a boolean indicating whether the operation was successful.
      */
-    def disablePart(section: Section, part: Part)(implicit conn: Connection): Future[Boolean] = {
+    def disablePart(section: Class, part: Part)(implicit conn: Connection): Future[Boolean] = {
       val newStatus = for {
         result <- conn.sendPreparedStatement(DisablePart, Array(section.id.bytes, part.id.bytes))
         // We only fetch the user list so we can update the cache... the user list may be read in parallel

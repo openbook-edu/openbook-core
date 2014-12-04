@@ -17,7 +17,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
         TaskScratchpadRepositoryComponent with
         TaskFeedbackRepositoryComponent with
         ComponentRepositoryComponent with
-        SectionRepositoryComponent with
+        ClassRepositoryComponent with
         DB =>
 
   override val projectService: ProjectService = new ProjectServiceImpl
@@ -88,12 +88,14 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @param description The new description for the project.
      * @return the updated project.
      */
-    override def create(name: String, slug: String, description: String): Future[Project] = {
+    override def create(classId: UUID, name: String, slug: String, description: String, availability: String): Future[Project] = {
       // First instantiate a new Project, Part and Task.
       val newProject = Project(
+        classId = classId,
         name = name,
         slug = slug,
         description = description,
+        availability = availability,
         parts = IndexedSeq[Part]()
       )
       val newPart = Part(
@@ -132,15 +134,17 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @param description The new description for the project.
      * @return the updated project.
      */
-    override def update(id: UUID, version: Long, name: String, slug: String, description: String): Future[Project] = {
+    override def update(id: UUID, version: Long, classId: UUID, name: String, slug: String, description: String, availability: String): Future[Project] = {
       transactional { implicit connection =>
         for {
           existingProjectOption <- projectRepository.find(id)
           updatedProject <- projectRepository.update(existingProjectOption.get.copy(
             version = version,
+            classId = classId,
             name = name,
             slug = slug,
-            description = description
+            description = description,
+            availability = availability
           ))
         }
         yield updatedProject
@@ -169,7 +173,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
           responsesDeleted <- serialized(tasks)(taskResponseRepository.delete)
           feedbacksDeleted <- serialized(tasks)(taskFeedbackRepository.delete)
           tasksDeleted <- serialized(tasks)(taskRepository.delete)
-          sectionsDisabled <- serialized(parts)(sectionRepository.disablePart)
+          sectionsDisabled <- serialized(parts)(classRepository.disablePart)
           componentsRemoved <- serialized(parts)(componentRepository.removeFromPart)
           partsDeleted <- partRepository.delete(project)
           projectDeleted <- projectRepository.delete(project)
@@ -404,7 +408,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
           responsesDeleted <- serialized(tasks)(taskResponseRepository.delete)
           feedbacksDeleted <- serialized(tasks)(taskFeedbackRepository.delete)
           tasksDeleted <- taskRepository.delete(part)
-          sectionsDisabled <- sectionRepository.disablePart(part)
+          sectionsDisabled <- classRepository.disablePart(part)
           componentsRemoved <- componentRepository.removeFromPart(part)
           deletedPart <- partRepository.delete(part)
         } yield deletedPart

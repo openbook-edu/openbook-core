@@ -7,7 +7,7 @@ import org.joda.time.DateTime
 case class LongAnswerWork(
   studentId: UUID,
   taskId: UUID,
-  sectionId: UUID,
+  classId: UUID,
   revision: Long,
   override val version: Long = 0,
   answer: String,
@@ -27,7 +27,7 @@ object LongAnswerWork {
     LongAnswerWork(
       studentId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
       taskId    = UUID(row("student_id").asInstanceOf[Array[Byte]]),
-      sectionId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
+      classId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
       revision  = row("revision").asInstanceOf[Long],
       version   = row("version").asInstanceOf[Long],
       answer    = row("answer").asInstanceOf[String],

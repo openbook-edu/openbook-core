@@ -43,7 +43,7 @@ case class User(
 case class UserInfo(
   user: User,
   roles: IndexedSeq[Role],
-  sections: IndexedSeq[Section]
+  sections: IndexedSeq[Class]
 )
 object UserInfo {
   implicit val userInfoWrites = new Writes[UserInfo] {

@@ -79,11 +79,11 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       FROM components
       INNER JOIN users ON users.id = ?
       INNER JOIN users_sections ON users.id = users_sections.user_id
-      INNER JOIN sections_projects ON users_sections.section_id = sections_projects.section_id
+      INNER JOIN sections_projects ON users_sections.class_id = sections_projects.class_id
       INNER JOIN projects ON projects.id = sections_projects.project_id
       INNER JOIN components_parts ON components.id = components_parts.component_id
       INNER JOIN parts ON projects.id = parts.project_id AND parts.id = components_parts.part_id
-      INNER JOIN scheduled_sections_parts ON components_parts.part_id = scheduled_sections_parts.part_id  AND scheduled_sections_parts.part_id = parts.id AND scheduled_sections_parts.section_id = users_sections.section_id
+      INNER JOIN scheduled_sections_parts ON components_parts.part_id = scheduled_sections_parts.part_id  AND scheduled_sections_parts.part_id = parts.id AND scheduled_sections_parts.class_id = users_sections.class_id
       LEFT JOIN audio_components ON components.id = audio_components.component_id
       LEFT JOIN text_components ON components.id = text_components.component_id
       LEFT JOIN video_components ON components.id = video_components.component_id

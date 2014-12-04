@@ -119,7 +119,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
         AND parts.id = tasks.part_id
         AND projects.status = 1 AND parts.status = 1 AND tasks.status = 1
         AND users_sections.user_id = ?
-        AND users_sections.section_id = sections_projects.section_id
+        AND users_sections.class_id = sections_projects.class_id
         AND sections_projects.project_id = projects.id
       ORDER BY parts.position ASC, tasks.position ASC
     """
@@ -144,7 +144,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
       INNER JOIN projects ON parts.project_id = projects.id
       INNER JOIN users ON users.id = ?
       INNER JOIN users_sections ON users.id = users_sections.user_id
-      INNER JOIN scheduled_sections_parts ON users_sections.section_id = scheduled_sections_parts.section_id AND scheduled_sections_parts.part_id = parts.id
+      INNER JOIN scheduled_sections_parts ON users_sections.class_id = scheduled_sections_parts.class_id AND scheduled_sections_parts.part_id = parts.id
       LEFT JOIN (SELECT user_id, task_id, revision, is_complete FROM student_responses ORDER BY revision DESC) as sr ON users.id = sr.user_id AND tasks.id = sr.task_id
       WHERE projects.slug = ?
         AND scheduled_sections_parts.active = TRUE

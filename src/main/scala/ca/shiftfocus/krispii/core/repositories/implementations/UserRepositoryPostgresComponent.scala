@@ -114,21 +114,21 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     """
 
     val AddUser = """
-      INSERT INTO users_sections (user_id, section_id, created_at)
+      INSERT INTO users_sections (user_id, class_id, created_at)
       VALUES (?, ?, ?)
     """
 
     val RemoveUser = """
       DELETE FROM users_sections
       WHERE user_id = ?
-        AND section_id = ?
+        AND class_id = ?
     """
 
     val ListUsers = s"""
       SELECT id, version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
       FROM users, users_sections
       WHERE users.id = users_sections.user_id
-        AND users_sections.section_id = ?
+        AND users_sections.class_id = ?
         AND users.status = 1
       ORDER BY $orderBy
     """
@@ -149,7 +149,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
       FROM users, sections, users_sections
       WHERE users.id = users_sections.user_id
-        AND sections.id = users_sections.section_id
+        AND sections.id = users_sections.class_id
         AND users.status = 1
         AND sections.status = 1
     """
@@ -161,7 +161,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
         AND roles.id = users_roles.role_id
         AND roles.name = ANY (?::text[])
         AND users.id = users_sections.user_id
-        AND sections.id = users_sections.section_id
+        AND sections.id = users_sections.class_id
         AND sections.name = ANY (?::text[])
         AND users.status = 1
         AND roles.status = 1
@@ -173,7 +173,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     val HasProject = s"""
       SELECT projects.id
       FROM users_sections
-      INNER JOIN sections_projects ON users_sections.section_id = sections_projects.section_id
+      INNER JOIN sections_projects ON users_sections.class_id = sections_projects.class_id
       INNER JOIN projects ON sections_projects.project_id = projects.id
       WHERE sections_projects.project_id = ?
         AND users_sections.user_id = ?
@@ -224,7 +224,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      *
      *
      */
-    override def list(section: Section): Future[IndexedSeq[User]] = {
+    override def list(section: Class): Future[IndexedSeq[User]] = {
       db.pool.sendPreparedStatement(ListUsers, Array(section.id.bytes)).map { queryResult =>
         val userList = queryResult.rows.get.map {
           item: RowData => {
@@ -243,10 +243,10 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     /**
      * List the users belonging to a set of sections.
      *
-     * @param sections an [[IndexedSeq]] of [[Section]] to filter by.
+     * @param sections an [[IndexedSeq]] of [[Class]] to filter by.
      * @return an [[IndexedSeq]] of [[User]]
      */
-    override def listForSections(sections: IndexedSeq[Section]) = {
+    override def listForSections(sections: IndexedSeq[Class]) = {
       Future.sequence(sections.map(list)).map(_.flatten).recover {
         case exception => {
           throw exception
@@ -276,7 +276,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * List users filtering by both roles and sections.
      *
      * @param roles an [[IndexedSeq]] of [[String]] naming the roles to filter by.
-     * @param sections an [[IndexedSeq]] of [[Section]] to filter by.
+     * @param sections an [[IndexedSeq]] of [[Class]] to filter by.
      * @return an [[IndexedSeq]] of [[User]]
      */
     override def listForRolesAndSections(roles: IndexedSeq[String], sections: IndexedSeq[String]) = {

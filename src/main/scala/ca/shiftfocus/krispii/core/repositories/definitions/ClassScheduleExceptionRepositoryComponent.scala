@@ -7,12 +7,12 @@ import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.uuid.UUID
 import scala.concurrent.Future
 
-trait SectionScheduleExceptionRepositoryComponent {
-  val sectionScheduleExceptionRepository: SectionScheduleExceptionRepository
+trait ClassScheduleExceptionRepositoryComponent {
+  val sectionScheduleExceptionRepository: ClassScheduleExceptionRepository
 
-  trait SectionScheduleExceptionRepository {
-    def list(section: Section): Future[IndexedSeq[SectionScheduleException]]
-    def list(user: User, section: Section): Future[IndexedSeq[SectionScheduleException]]
+  trait ClassScheduleExceptionRepository {
+    def list(section: Class): Future[IndexedSeq[SectionScheduleException]]
+    def list(user: User, section: Class): Future[IndexedSeq[SectionScheduleException]]
     def find(id: UUID): Future[Option[SectionScheduleException]]
     def insert(sectionSchedule: SectionScheduleException)(implicit conn: Connection): Future[SectionScheduleException]
     def update(sectionSchedule: SectionScheduleException)(implicit conn: Connection): Future[SectionScheduleException]

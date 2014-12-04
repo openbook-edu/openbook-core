@@ -7,7 +7,7 @@ import org.joda.time.DateTime
 case class ShortAnswerWork(
   studentId: UUID,
   taskId: UUID,
-  sectionId: UUID,
+  classId: UUID,
   revision: Long,
   answer: String,
   isComplete: Boolean = false,
@@ -26,7 +26,7 @@ object ShortAnswerWork {
     ShortAnswerWork(
       studentId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
       taskId    = UUID(row("student_id").asInstanceOf[Array[Byte]]),
-      sectionId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
+      classId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
       revision  = row("revision").asInstanceOf[Long],
       answer    = row("answer").asInstanceOf[String],
       isComplete = row("is_complete").asInstanceOf[Boolean],

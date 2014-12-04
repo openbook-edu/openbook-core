@@ -14,7 +14,7 @@ import org.joda.time.DateTime
 trait Work {
   val studentId: UUID
   val taskId: UUID
-  val sectionId: UUID
+  val classId: UUID
   val revision: Long
   val version: Long = 0
   val answer: AnyRef
@@ -40,7 +40,7 @@ object Work {
     def reads(js: JsValue) = JsSuccess({
       val studentId  = (js \ "studentId").as[UUID]
       val taskId     = (js \ "taskId"   ).as[UUID]
-      val sectionId  = (js \ "sectionId").as[UUID]
+      val classId  = (js \ "classId").as[UUID]
       val revision   = (js \ "revision" ).as[Long]
       val answer     = (js \ "answer")
       val isComplete = (js \ "isComplete").as[Boolean]
@@ -50,7 +50,7 @@ object Work {
       (js \ "workType").as[Int] match {
         case LongAnswer => LongAnswerWork(studentId = studentId,
                                           taskId = taskId,
-                                          sectionId = sectionId,
+                                          classId = classId,
                                           revision = revision,
                                           answer = answer.as[String],
                                           isComplete = isComplete,
@@ -59,7 +59,7 @@ object Work {
 
         case ShortAnswer => ShortAnswerWork(studentId = studentId,
                                             taskId = taskId,
-                                            sectionId = sectionId,
+                                            classId = classId,
                                             revision = revision,
                                             answer = answer.as[String],
                                             isComplete = isComplete,
@@ -68,7 +68,7 @@ object Work {
 
         case MultipleChoice => MultipleChoiceWork(studentId = studentId,
                                                   taskId = taskId,
-                                                  sectionId = sectionId,
+                                                  classId = classId,
                                                   revision = revision,
                                                   answer = answer.as[IndexedSeq[Int]],
                                                   isComplete = isComplete,
@@ -77,7 +77,7 @@ object Work {
 
         case Ordering => OrderingWork(studentId = studentId,
                                       taskId = taskId,
-                                      sectionId = sectionId,
+                                      classId = classId,
                                       revision = revision,
                                       answer = answer.as[IndexedSeq[Int]],
                                       isComplete = isComplete,
@@ -86,7 +86,7 @@ object Work {
 
         case Matching => MatchingWork(studentId = studentId,
                                       taskId = taskId,
-                                      sectionId = sectionId,
+                                      classId = classId,
                                       revision = revision,
                                       answer = answer.as[IndexedSeq[Match]],
                                       isComplete = isComplete,
@@ -103,7 +103,7 @@ object Work {
       Json.obj(
         "studentId" -> work.studentId,
         "taskId" -> work.taskId,
-        "sectionId" -> work.sectionId,
+        "classId" -> work.classId,
         "revision" -> work.revision,
         "answer" -> {work match {
           case specific: LongAnswerWork => specific.answer

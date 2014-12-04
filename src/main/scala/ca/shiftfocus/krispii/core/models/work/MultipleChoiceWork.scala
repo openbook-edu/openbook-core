@@ -7,7 +7,7 @@ import org.joda.time.DateTime
 case class MultipleChoiceWork(
   studentId: UUID,
   taskId: UUID,
-  sectionId: UUID,
+  classId: UUID,
   revision: Long,
   answer: IndexedSeq[Int],
   isComplete: Boolean = false,
@@ -26,7 +26,7 @@ object MultipleChoiceWork {
     MultipleChoiceWork(
       studentId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
       taskId    = UUID(row("student_id").asInstanceOf[Array[Byte]]),
-      sectionId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
+      classId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
       revision  = row("revision").asInstanceOf[Long],
       answer    = row("answer").asInstanceOf[IndexedSeq[Int]],
       isComplete = row("is_complete").asInstanceOf[Boolean],

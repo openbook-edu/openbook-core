@@ -23,7 +23,7 @@ trait PartRepositoryComponent {
     //def list(section: Section): Future[IndexedSeq[Part]]
     def list(component: Component): Future[IndexedSeq[Part]]
     def listEnabled(project: Project, user: User): Future[IndexedSeq[Part]]
-    def listEnabled(project: Project, section: Section): Future[IndexedSeq[Part]]
+    def listEnabled(project: Project, section: Class): Future[IndexedSeq[Part]]
     def find(id: UUID): Future[Option[Part]]
     def find(project: Project, position: Int): Future[Option[Part]]
     def insert(part: Part)(implicit conn: Connection): Future[Part]
@@ -34,6 +34,6 @@ trait PartRepositoryComponent {
     def reorder(project: Project, parts: IndexedSeq[Part])(implicit conn: Connection): Future[IndexedSeq[Part]]
 
     def isEnabled(part: Part, user: User): Future[Boolean]
-    def isEnabled(part: Part, section: Section): Future[Boolean]
+    def isEnabled(part: Part, section: Class): Future[Boolean]
   }
 }

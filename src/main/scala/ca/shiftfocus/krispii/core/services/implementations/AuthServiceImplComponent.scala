@@ -20,7 +20,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
   // requires, such as a repository and a database.
   self: UserRepositoryComponent with
         RoleRepositoryComponent with
-        SectionRepositoryComponent with
+        ClassRepositoryComponent with
         SessionRepositoryComponent with
         DB =>
 
@@ -47,7 +47,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
       userRepository.list.flatMap { users =>
         Future.sequence(users.map { user =>
           val fRoles = roleRepository.list(user)
-          val fSections = sectionRepository.list(user)
+          val fSections = classRepository.list(user)
 
           for {
             roles <- fRoles
@@ -71,8 +71,8 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
       val fUsers = (rolesFilter, sectionsFilter) match {
         case (Some(roles), Some(sections)) => userRepository.listForRolesAndSections(roles, sections.map(_.string))
         case (Some(roles), None) => userRepository.listForRoles(roles)
-        case (None, Some(sectionIds)) => {
-          val users = Future.sequence(sectionIds.map { sectionId => sectionRepository.find(sectionId).map(_.get) }).flatMap {
+        case (None, Some(classIds)) => {
+          val users = Future.sequence(classIds.map { classId => classRepository.find(classId).map(_.get) }).flatMap {
             sections => userRepository.listForSections(sections)
           }
           users
@@ -85,7 +85,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
       // Next find the roles and sections for those users.
       fUsers.flatMap { users =>
         val fRoles = roleRepository.list(users)
-        val fSections = sectionRepository.list(users)
+        val fSections = classRepository.list(users)
 
         for {
           roles <- fRoles
@@ -216,7 +216,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
         case Some(user) => {
           Logger.debug(s"authService.find(${id.string}) - found user")
           val fRoles = roleRepository.list(user)
-          val fSections = sectionRepository.list(user)
+          val fSections = classRepository.list(user)
           for {
             roles <- fRoles
             sections <- fSections
@@ -239,7 +239,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
       userRepository.find(identifier).flatMap {
         case Some(user) => {
           val fRoles = roleRepository.list(user)
-          val fSections = sectionRepository.list(user)
+          val fSections = classRepository.list(user)
           for {
             roles <- fRoles
             sections <- fSections
@@ -248,19 +248,6 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
         case None => Future.successful(None)
       }
     }
-
-    /**
-     * Create a new user. Throws exceptions if the e-mail and username aren't unique.
-     *
-     * @param username  A unique identifier for this user.
-     * @param email  The user's unique e-mail address.
-     * @param password  The user's password.
-     * @param givenname  The user's first name.
-     * @param surname  The user's family name.
-     * @return the created user
-     */
-    override def create(username: String, email: String, password: String, givenname: String, surname: String): Future[User] =
-      create(username, email, password, givenname, surname, UUID.random)
 
     /**
      * Create a new user. Throws exceptions if the e-mail and username aren't unique.
@@ -454,8 +441,8 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param name  the name of the Role to create
      * @return the newly created Role
      */
-    override def createRole(name: String): Future[Role] = {
-      val newRole = Role(name = name)
+    override def createRole(name: String, id: UUID = UUID.random): Future[Role] = {
+      val newRole = Role(name = name, id = id)
       roleRepository.insert(newRole)(db.pool)
     }
 

@@ -29,7 +29,7 @@ import play.api.libs.json._
  */
 case class MatchingTask(
   // Primary Key
-  id: UUID,
+  id: UUID = UUID.random,
   // Combination must be unique
   partId: UUID,
   position: Int,

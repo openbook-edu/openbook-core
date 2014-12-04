@@ -127,10 +127,10 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
         AND users.id = ?
         AND parts.project_id = projects.id
         AND sections_projects.project_id = projects.id
-        AND sections_projects.section_id = sections.id
-        AND users_sections.section_id = sections_projects.section_id
+        AND sections_projects.class_id = sections.id
+        AND users_sections.class_id = sections_projects.class_id
         AND users_sections.user_id = users.id
-        AND scheduled_sections_parts.section_id = sections.id
+        AND scheduled_sections_parts.class_id = sections.id
         AND scheduled_sections_parts.part_id = parts.id
         AND scheduled_sections_parts.active = TRUE
         AND parts.status = 1
@@ -145,8 +145,8 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
         AND sections.id = ?
         AND parts.project_id = projects.id
         AND sections_projects.project_id = projects.id
-        AND sections_projects.section_id = sections.id
-        AND scheduled_sections_parts.section_id = sections.id
+        AND sections_projects.class_id = sections.id
+        AND scheduled_sections_parts.class_id = sections.id
         AND scheduled_sections_parts.part_id = parts.id
         AND scheduled_sections_parts.active = TRUE
         AND parts.status = 1
@@ -157,7 +157,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       FROM parts, users_sections, scheduled_sections_parts
       WHERE parts.id = ?
         AND users_sections.user_id = ?
-        AND users_sections.section_id = scheduled_sections_parts.section_id
+        AND users_sections.class_id = scheduled_sections_parts.class_id
         AND scheduled_sections_parts.part_id = parts.id
     """
 
@@ -165,7 +165,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       SELECT scheduled_sections_parts.active
       FROM scheduled_sections_parts
       WHERE scheduled_sections_parts.part_id = ?
-        AND scheduled_sections_parts.section_id = ?
+        AND scheduled_sections_parts.class_id = ?
     """
 
     val ReorderParts1 = s"""
@@ -281,10 +281,10 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
      * List enabled parts of a project for a specific section.
      *
      * @param project the [[Project]] to list parts from
-     * @param section the [[Section]] to select enabled parts for
+     * @param section the [[Class]] to select enabled parts for
      * @return an vector of the enabled parts
      */
-    def listEnabled(project: Project, section: Section): Future[IndexedSeq[Part]] = {
+    def listEnabled(project: Project, section: Class): Future[IndexedSeq[Part]] = {
       db.pool.sendPreparedStatement(SelectEnabledForSectionAndProjectId, Seq[Any](project.id.bytes, section.id.bytes)).map { queryResult =>
         val partList = queryResult.rows.get.map {
           item: RowData => Part(item)
@@ -347,7 +347,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     /**
      * Returns a boolean indicating whether a part is active for a given section.
      */
-    def isEnabled(part: Part, section: Section): Future[Boolean] = {
+    def isEnabled(part: Part, section: Class): Future[Boolean] = {
       val isEnabled = for {
         result <- db.pool.sendPreparedStatement(IsPartEnabledForSection, Array(part.id.bytes, section.id.bytes))
       }

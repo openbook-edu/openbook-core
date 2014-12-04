@@ -27,7 +27,7 @@ import play.api.libs.functional.syntax._
  */
 case class MultipleChoiceTask(
   // Primary Key
-  id: UUID,
+  id: UUID = UUID.random,
   // Combination must be unique
   partId: UUID,
   position: Int,

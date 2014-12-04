@@ -1,20 +1,21 @@
-import ca.shiftfocus.krispii.core.lib.UUID
+import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models.tasks.{Task, LongAnswerTask}
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
+import com.redis.E
 import grizzled.slf4j.Logger
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.WordSpec
 import webcrank.password.Passwords
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.duration.DurationConversions.spanConvert.R
+import scala.concurrent.{Future, Await}
 import org.scalatest.Matchers._
 import ca.shiftfocus.krispii.core.services.datasource._
 import scala.concurrent.ExecutionContext.Implicits.global
-
 
 trait ProjectTestEnvironmentComponent
   extends ProjectServiceImplComponent
@@ -49,6 +50,7 @@ class ProjectServiceSpec
   override val sectionRepository = stub[SectionRepository]
   override val db = stub[DBSettings]
 
+  val DB = stub[DB]
   val webcrank = Passwords.scrypt()
   val password = "userpass"
   val passwordHash = webcrank.crypt(password)
@@ -61,7 +63,7 @@ class ProjectServiceSpec
     surname = "UserA"
   )
 
-  val testProject = Project(
+  val testProjectB = Project(
     name = "Project name",
     slug = "Project slug",
     description = "Project description",
@@ -69,8 +71,15 @@ class ProjectServiceSpec
   )
 
   val testPart = Part(
-    projectId = testProject.id,
+    projectId = testProjectB.id,
     name = "Part name"
+  )
+
+  val testProject = Project(
+    name = "Project name",
+    slug = "Project slug",
+    description = "Project description",
+    parts = IndexedSeq[Part](testPart)
   )
 
   val testTask = LongAnswerTask(
@@ -78,19 +87,16 @@ class ProjectServiceSpec
     position = 1
   )
 
-  val testTaskGroup = TaskGroup(
-    part = testPart,
-    status = 1
-  )
 
 //  "ProjectService.create" should {
 //    inSequence {
 //      "return new project" in {
-//        (projectRepository.insert(_:Project)(_: Connection)) when(testProject, mockConnection) returns Future.successful(testProject)
-//        (partRepository.insert(_:Part)(_: Connection)) when(testPart, mockConnection) returns Future.successful(testPart)
-//        (taskRepository.insert(_:Task)(_: Connection)) when(testTask, mockConnection) returns Future.successful(testTask)
+//        (projectRepository.insert(_:Project)(_: Connection)) when(*, mockConnection) returns Future.successful(testProject)
+//        (partRepository.insert(_:Part)(_: Connection)) when(*, mockConnection) returns Future.successful(testPart)
+//        (taskRepository.insert(_:Task)(_: Connection)) when(*, mockConnection) returns Future.successful(testTask)
 //
 //        val fNewProject = projectService.create(testProject.name, testProject.slug, testProject.description)
+//println("[HEI HEI HEI THEY ARE EQUAL] Should be equal: " + (Await.result(fNewProject, Duration.Inf).toString() === testProject.toString()))
 //        Await.result(fNewProject, Duration.Inf) should be (testProject)
 //      }
 //    }
@@ -132,11 +138,9 @@ class ProjectServiceSpec
 //    }
 //  }
 
-  //  java.lang.NullPointerException
 //  "ProjectService.taskGroups" should {
 //    val indexedPart = Vector(testPart)
 //    val indexedTask = Vector(testTask)
-//    val indexedTaskGroup = Vector(testTaskGroup)
 //
 //    inSequence {
 //      "have Task.NotStarted if TaskResponse has another taskId" in {
@@ -147,15 +151,27 @@ class ProjectServiceSpec
 //          isComplete = true
 //        )
 //
+//        val testTaskGroupItem = TaskGroupItem(
+//          status = 0,
+//          task = testTask
+//        )
+//
+//        val testTaskGroup = TaskGroup(
+//          part = testPart,
+//          status = 1,
+//          tasks = IndexedSeq[TaskGroupItem](testTaskGroupItem)
+//        )
+//
+//        val indexedTaskGroup = Vector(testTaskGroup)
 //        val indexedTaskResponse = Vector(testTaskResponse)
 //
 //        (partRepository.list(_:Project)) when(testProject) returns Future.successful(indexedPart)
 //        (partRepository.listEnabled(_:Project, _:User)) when(testProject, testUserA) returns Future.successful(indexedPart)
-//        (taskRepository.list(_:Project)) when(testProject) returns Future.successful(indexedTask)
-//        (taskResponseRepository.list(_:User, _:Project)(_:Connection)) when(testUserA, testProject, mockConnection) returns Future.successful(indexedTaskResponse)
+//        (taskRepository.list(_:Project)) when(*) returns Future.successful(indexedTask)
+//        (taskResponseRepository.list(_:User, _:Project)(_:Connection)) when(*, *, *) returns Future.successful(indexedTaskResponse)
 //
 //        val fTaskGroups = projectService.taskGroups(testProject, testUserA)
-//        Await.result(fTaskGroups, Duration.Inf) should be (Future(indexedTaskGroup))
+//        Await.result(fTaskGroups, Duration.Inf) should be (indexedTaskGroup)
 //      }
 //      "have Task.Complete with TRUE TaskResponse" in {
 //        val testTaskResponse = TaskResponse(
@@ -165,15 +181,27 @@ class ProjectServiceSpec
 //          isComplete = true
 //        )
 //
+//        val testTaskGroupItem = TaskGroupItem(
+//          status = 2,
+//          task = testTask
+//        )
+//
+//        val testTaskGroup = TaskGroup(
+//          part = testPart,
+//          status = 1,
+//          tasks = IndexedSeq[TaskGroupItem](testTaskGroupItem)
+//        )
+//
+//        val indexedTaskGroup = Vector(testTaskGroup)
 //        val indexedTaskResponse = Vector(testTaskResponse)
 //
 //        (partRepository.list(_:Project)) when(testProject) returns Future.successful(indexedPart)
 //        (partRepository.listEnabled(_:Project, _:User)) when(testProject, testUserA) returns Future.successful(indexedPart)
-//        (taskRepository.list(_:Project)) when(testProject) returns Future.successful(indexedTask)
-//        (taskResponseRepository.list(_:User, _:Project)(_:Connection)) when(testUserA, testProject, mockConnection) returns Future.successful(indexedTaskResponse)
+//        (taskRepository.list(_:Project)) when(*) returns Future.successful(indexedTask)
+//        (taskResponseRepository.list(_:User, _:Project)(_:Connection)) when(*, *, *) returns Future.successful(indexedTaskResponse)
 //
 //        val fTaskGroups = projectService.taskGroups(testProject, testUserA)
-//        Await.result(fTaskGroups, Duration.Inf) should be (Future(indexedTaskGroup))
+//        Await.result(fTaskGroups, Duration.Inf) should be (indexedTaskGroup)
 //      }
 //      "have Task.Incomplete with FALSE TaskResponse" in {
 //        val testTaskResponse = TaskResponse(
@@ -183,20 +211,32 @@ class ProjectServiceSpec
 //          isComplete = false
 //        )
 //
+//        val testTaskGroupItem = TaskGroupItem(
+//          status = 1,
+//          task = testTask
+//        )
+//
+//        val testTaskGroup = TaskGroup(
+//          part = testPart,
+//          status = 1,
+//          tasks = IndexedSeq[TaskGroupItem](testTaskGroupItem)
+//        )
+//
+//        val indexedTaskGroup = Vector(testTaskGroup)
 //        val indexedTaskResponse = Vector(testTaskResponse)
 //
 //        (partRepository.list(_:Project)) when(testProject) returns Future.successful(indexedPart)
 //        (partRepository.listEnabled(_:Project, _:User)) when(testProject, testUserA) returns Future.successful(indexedPart)
-//        (taskRepository.list(_:Project)) when(testProject) returns Future.successful(indexedTask)
-//        (taskResponseRepository.list(_:User, _:Project)(_:Connection)) when(testUserA, testProject, mockConnection) returns Future.successful(indexedTaskResponse)
+//        (taskRepository.list(_:Project)) when(*) returns Future.successful(indexedTask)
+//        (taskResponseRepository.list(_:User, _:Project)(_:Connection)) when(*, *, *) returns Future.successful(indexedTaskResponse)
 //
 //        val fTaskGroups = projectService.taskGroups(testProject, testUserA)
-//        Await.result(fTaskGroups, Duration.Inf) should be (Future(indexedTaskGroup))
+//        Await.result(fTaskGroups, Duration.Inf) should be (indexedTaskGroup)
 //      }
 //    }
 //  }
 
-  //  java.lang.NullPointerException
+
   "ProjectService.createPart" should {
     val indexedPart = Vector(testPart)
 
@@ -205,7 +245,8 @@ class ProjectServiceSpec
         (projectRepository.find(_:UUID)) when(testProject.id) returns Future(Option(testProject))
         (partRepository.list(_:Project)) when(testProject) returns Future.successful(indexedPart)
         (partRepository.update(_:Part)(_: Connection)) when(testPart, mockConnection) returns Future.successful(testPart)
-        (partRepository.insert(_:Part)(_: Connection)) when(testPart, mockConnection) returns Future.successful(testPart)
+        (partRepository.insert(_:Part)(_: Connection)) when(*, mockConnection) returns Future.successful(testPart)
+        (DB.serialized(_:*)(_:E => Future[R])) when(*, partRepository.update) returns Future.successful(indexedPart)
 
         val fNewPart = projectService.createPart(testProject.id, testPart.name, testPart.description, testPart.position)
         Await.result(fNewPart, Duration.Inf).position should be (testPart.position)
@@ -214,7 +255,7 @@ class ProjectServiceSpec
         (projectRepository.find(_:UUID)) when(testProject.id) returns Future(Option(testProject))
         (partRepository.list(_:Project)) when(testProject) returns Future.successful(indexedPart)
         (partRepository.update(_:Part)(_: Connection)) when(testPart, mockConnection) returns Future.successful(testPart)
-        (partRepository.insert(_:Part)(_: Connection)) when(testPart, mockConnection) returns Future.successful(testPart)
+        (partRepository.insert(_:Part)(_: Connection)) when(*, mockConnection) returns Future.successful(testPart)
 
         val fNewPart = projectService.createPart(testProject.id, testPart.name, testPart.description, testPart.position + 1)
         Await.result(fNewPart, Duration.Inf).position should be (testPart.position + 2)

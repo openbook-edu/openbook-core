@@ -30,7 +30,6 @@ trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExc
     val SelectAll = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
       ORDER BY $orderBy
     """
 
@@ -38,15 +37,14 @@ trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExc
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
       WHERE id = ?
-        AND status = 1
     """
 
     val Insert = {
       val extraFields = fields.mkString(",")
       val questions = fields.map(_ => "?").mkString(",")
       s"""
-        INSERT INTO $table (id, version, status, created_at, updated_at, $extraFields)
-        VALUES (?, 1, 1, ?, ?, $questions)
+        INSERT INTO $table (id, version, created_at, updated_at, $extraFields)
+        VALUES (?, 1, ?, ?, $questions)
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
@@ -58,7 +56,6 @@ trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExc
         SET $extraFields , version = ?, updated_at = ?
         WHERE id = ?
           AND version = ?
-          AND status = 1
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
@@ -71,7 +68,6 @@ trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExc
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
       WHERE class_id = ?
-        AND status = 1
       ORDER BY day asc, start_time asc, end_time asc
     """
 

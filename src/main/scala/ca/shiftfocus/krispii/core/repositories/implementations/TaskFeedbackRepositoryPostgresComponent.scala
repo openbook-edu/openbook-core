@@ -34,8 +34,8 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
 
     val Insert =
       s"""
-         |INSERT INTO $table ($pkeyText, version, status, created_at, updated_at, $fieldsText)
-         |VALUES ($pkeyQs, 1, 1, ?, ?, $dataQs)
+         |INSERT INTO $table ($pkeyText, version, created_at, updated_at, $fieldsText)
+         |VALUES ($pkeyQs, 1, ?, ?, $dataQs)
          |RETURNING $pkeyText, version, created_at, updated_at, $fieldsText
       """.stripMargin
 
@@ -49,7 +49,6 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
          |  AND task_id = ?
          |  AND revision = ?
          |  AND version = ?
-         |  AND status = 1
          |RETURNING $pkeyText, version, created_at, updated_at, $fieldsText
       """.stripMargin
 
@@ -60,7 +59,6 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
       WHERE teacher_id = ?
         AND student_id = ?
         AND task_id = ?
-        AND status = 1
       ORDER BY revision DESC
     """
 
@@ -74,7 +72,6 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
          |  AND projects.id = parts.project_id
          |  AND parts.id = tasks.part_id
          |  AND tasks.id = $table.task_id
-         |  AND status = 1
          |  AND revision = (SELECT MAX(revision) FROM $table as tf2 WHERE tf2.student_id = ? AND tf2.teacher_id = tf.teacher_id AND task_id = tasks.id)
        """.stripMargin
 
@@ -89,7 +86,6 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
          |  AND projects.id = parts.project_id
          |  AND parts.id = tasks.part_id
          |  AND tasks.id = $table.task_id
-         |  AND status = 1
          |  AND revision = (SELECT MAX(revision) FROM $table as tf2 WHERE tf2.student_id = ? AND tf2.teacher_id = ? AND task_id = tasks.id)
        """.stripMargin
 
@@ -100,7 +96,6 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
         |WHERE teacher_id = ?
         |  AND student_id = ?
         |  AND task_id = ?
-        |  AND status = 1
         |ORDER BY revision DESC
         |LIMIT 1
       """.stripMargin
@@ -113,7 +108,6 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
          |  AND student_id = ?
          |  AND task_id = ?
          |  AND revision = ?
-         |  AND status = 1
        """.stripMargin
 
     val Delete = s"""

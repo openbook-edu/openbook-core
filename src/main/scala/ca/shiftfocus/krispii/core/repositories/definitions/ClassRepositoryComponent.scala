@@ -29,6 +29,7 @@ trait ClassRepositoryComponent {
     def addUsers(section: Class, users: IndexedSeq[User])(implicit conn: Connection): Future[Boolean]
     def removeUsers(section: Class, users: IndexedSeq[User])(implicit conn: Connection): Future[Boolean]
     def removeAllUsers(section: Class)(implicit conn: Connection): Future[Boolean]
+    def findUserForTeacher(student: User, teacher: User): Future[Option[User]]
 
     def addProjects(section: Class, projects: IndexedSeq[Project])(implicit conn: Connection): Future[Boolean]
     def removeProjects(section: Class, projects: IndexedSeq[Project])(implicit conn: Connection): Future[Boolean]

@@ -33,7 +33,6 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
     val SelectAll = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
       ORDER BY $orderBy
     """
 
@@ -41,15 +40,14 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
       WHERE id = ?
-        AND status = 1
     """
 
     val Insert = {
       val extraFields = fields.mkString(",")
       val questions = fields.map(_ => "?").mkString(",")
       s"""
-        INSERT INTO $table (id, version, status, created_at, updated_at, $extraFields)
-        VALUES (?, 1, 1, ?, ?, $questions)
+        INSERT INTO $table (id, version, created_at, updated_at, $extraFields)
+        VALUES (?, 1, ?, ?, $questions)
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
@@ -61,7 +59,6 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
         SET $extraFields , version = ?, updated_at = ?
         WHERE id = ?
           AND version = ?
-          AND status = 1
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
@@ -74,7 +71,6 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
       WHERE class_id = ?
-        AND status = 1
       ORDER BY day asc, start_time asc, end_time asc
     """
 
@@ -85,7 +81,6 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
       WHERE section_schedules.day = ?
         AND section_schedules.start_time <= ?
         AND section_schedules.end_time >= ?
-        AND section_schedules.status = 1
       ORDER BY day asc, start_time asc, end_time asc
     """
 
@@ -98,7 +93,6 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
         AND section_schedules.day = ?
         AND section_schedules.start_time <= ?
         AND section_schedules.end_time >= ?
-        AND section_schedules.status = 1
     """
 
     /**

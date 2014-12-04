@@ -117,7 +117,6 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
          |$From, classes_projects
          |WHERE classes.id = classes_projects.class_id
          |  AND classes_projects.project_id = ?
-         |  AND classes.status = 1
          |$OrderBy
        """.stripMargin
 
@@ -173,7 +172,6 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
          |FROM users, users_classes
          |WHERE users.id = users_classes.user_id
          |  AND users_classes.class_id = ?
-         |  AND users.status = 1
          |$OrderBy
        """.stripMargin
 
@@ -182,7 +180,6 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
          |SELECT id, version, teacher_id, course_id, classes.name as name, classes.created_at as created_at, classes.updated_at as updated_at
          |FROM classes, users_classes
          |WHERE classes.id = users_classes.class_id
-         |  AND classes.status = 1
        """.stripMargin
 
     val RemoveUsers =
@@ -217,7 +214,6 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
          |INNER JOIN projects ON classes_projects.project_id = projects.id
          |WHERE classes_projects.project_id = ?
          |  AND users_classes.user_id = ?
-         |  AND projects.status = 1
        """.stripMargin
     
     val FindUserForTeacher =
@@ -357,6 +353,19 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
       db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map { result =>
         result.rows.get.headOption match {
           case Some(rowData) => Some(Class(rowData))
+          case None => None
+        }
+      }.recover {
+        case exception => {
+          throw exception
+        }
+      }
+    }
+
+    override def findUserForTeacher(student: User, teacher: User): Future[Option[User]] = {
+      db.pool.sendPreparedStatement(FindUserForTeacher, Array[Any](teacher.id.bytes, student.id.bytes)).map { result =>
+        result.rows.get.headOption match {
+          case Some(rowData) => Some(User(rowData))
           case None => None
         }
       }.recover {
@@ -592,7 +601,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
      */
     def delete(`class`: Class)(implicit conn: Connection): Future[Boolean] = {
       val future = for {
-        queryResult <- conn.sendPreparedStatement(Purge, Array(`class`.id.bytes, `class`.version))
+        queryResult <- conn.sendPreparedStatement(Delete, Array(`class`.id.bytes, `class`.version))
       }
       yield { queryResult.rowsAffected > 0 }
 

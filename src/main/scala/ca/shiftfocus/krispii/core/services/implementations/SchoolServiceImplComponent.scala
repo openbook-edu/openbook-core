@@ -12,6 +12,7 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
   self: CourseRepositoryComponent with
         ClassRepositoryComponent with
         UserRepositoryComponent with
+        RoleRepositoryComponent with
         ProjectRepositoryComponent with
         PartRepositoryComponent with
         TaskRepositoryComponent with
@@ -384,6 +385,31 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
         }
         yield wereRemoved
       }
+    }
+
+    /**
+     * Given a user and teacher, finds whether this user belongs to any of that teacher's classes.
+     *
+     * @param userId
+     * @param teacherId
+     * @return
+     */
+    override def findUserForTeacher(userId: UUID, teacherId: UUID): Future[Option[UserInfo]] = {
+      for {
+        user <- userRepository.find(userId).map(_.get)
+        teacher <- userRepository.find(teacherId).map(_.get)
+        maybeStudent <- classRepository.findUserForTeacher(user, teacher).flatMap {
+          case Some(student) => {
+            for {
+              roles <- roleRepository.list(student)
+              classes <- classRepository.list(student)
+            } yield Some(UserInfo(student, roles, classes))
+          }
+          case _ => Future successful None
+        }
+      } yield maybeStudent
+    }.recover {
+      case exception => throw exception
     }
 
     /**

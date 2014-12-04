@@ -77,7 +77,6 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |$From
          |$Join
          |WHERE tasks.id = ?
-         |  AND status = 1
        """.stripMargin
 
     val SelectByPartId =
@@ -86,7 +85,6 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |$From
          |$Join
          |WHERE part_id = ?
-         |  AND status = 1
        """.stripMargin
 
     val SelectByProjectIdPartNum =
@@ -97,7 +95,6 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |  AND projects.id = parts.project_id
          |  AND parts.position = ?
          |  AND parts.id = tasks.part_id
-         |  AND projects.status = 1 AND parts.status = 1 AND tasks.status = 1
          |ORDER BY parts.position ASC, tasks.position ASC
        """.stripMargin
 
@@ -107,7 +104,6 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
       WHERE projects.id = ?
         AND projects.id = parts.project_id
         AND parts.id = tasks.part_id
-        AND projects.status = 1 AND parts.status = 1 AND tasks.status = 1
       ORDER BY parts.position ASC, tasks.position ASC
     """
 
@@ -117,7 +113,6 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
       WHERE projects.id = ?
         AND projects.id = parts.project_id
         AND parts.id = tasks.part_id
-        AND projects.status = 1 AND parts.status = 1 AND tasks.status = 1
         AND users_sections.user_id = ?
         AND users_sections.class_id = sections_projects.class_id
         AND sections_projects.project_id = projects.id
@@ -132,7 +127,6 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
         AND tasks.position = ?
         AND projects.id = parts.project_id
         AND parts.id = tasks.part_id
-        AND tasks.status = 1 AND parts.status = 1 AND projects.status = 1
     """
 
     val SelectNowByUserId = s"""

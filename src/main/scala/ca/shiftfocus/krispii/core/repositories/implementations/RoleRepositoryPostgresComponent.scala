@@ -34,7 +34,6 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
     val SelectAll = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
       ORDER BY $orderBy
     """
 
@@ -42,14 +41,12 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
       WHERE id = ?
-        AND status = 1
     """
 
     val SelectOneByName = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
       WHERE name = ?
-        AND status = 1
       ORDER BY created_at ASC
       LIMIT 1
     """
@@ -58,8 +55,8 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       val extraFields = fields.mkString(",")
       val questions = fields.map(_ => "?").mkString(",")
       s"""
-        INSERT INTO $table (id, version, status, created_at, updated_at, $extraFields)
-        VALUES (?, 1, 1, ?, ?, $questions)
+        INSERT INTO $table (id, version, created_at, updated_at, $extraFields)
+        VALUES (?, 1, ?, ?, $questions)
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
@@ -71,13 +68,12 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
         SET $extraFields , version = ?, updated_at = ?
         WHERE id = ?
           AND version = ?
-          AND status = 1
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
 
     val Delete = s"""
-      UPDATE $table SET status = 0 WHERE id = ? AND version = ?
+      DELETE FROM $table WHERE id = ? AND version = ?
     """
 
     val Restore = s"""
@@ -128,14 +124,12 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       FROM roles, users_roles
       WHERE roles.id = users_roles.role_id
         AND users_roles.user_id = ?
-        AND roles.status = 1
     """
 
     val ListRolesForUserList = """
       SELECT id, version, users_roles.user_id, roles.name as name, roles.created_at as created_at, updated_at
       FROM roles, users_roles
       WHERE roles.id = users_roles.role_id
-        AND roles.status = 1
     """
 
     val AddUsers = s"""

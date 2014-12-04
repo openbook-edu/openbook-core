@@ -54,7 +54,6 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |  AND parts.id = tasks.part_id
          |  AND projects.id = parts.project_id
          |  AND student_responses.task_id = tasks.id
-         |  AND student_responses.status = 1
          |  AND revision = (SELECT MAX(revision) FROM student_responses WHERE user_id= ? AND task_id=tasks.id)
        """.stripMargin
 

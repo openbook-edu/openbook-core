@@ -27,8 +27,8 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
       val extraFields = fields.mkString(",")
       val questions = fields.map(_ => "?").mkString(",")
       s"""
-        INSERT INTO $table (user_id, component_id, version, status, created_at, updated_at, $extraFields)
-        VALUES (?, ?, 1, 1, ?, ?, $questions)
+        INSERT INTO $table (user_id, component_id, version, created_at, updated_at, $extraFields)
+        VALUES (?, ?, 1, ?, ?, $questions)
         RETURNING version
       """
     }
@@ -41,7 +41,6 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
         WHERE user_id = ?
           AND component_id = ?
           AND version = ?
-          AND status = 1
         RETURNING version
       """
     }
@@ -49,7 +48,6 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
     val SelectAll = s"""
       SELECT user_id, component_id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
       ORDER BY id asc
     """
 
@@ -58,7 +56,6 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
       FROM $table
       WHERE user_id = ?
         AND component_id = ?
-        AND status = 1
       LIMIT 1
     """
 
@@ -67,7 +64,6 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
       FROM $table
       WHERE user_id = ?
         AND component_id = ?
-        AND status = 1
       ORDER BY revision DESC
     """
 
@@ -76,7 +72,6 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
       FROM $table
       WHERE user_id = ?
         AND component_id = ?
-        AND status = 1
       ORDER BY revision DESC
       LIMIT 1
     """
@@ -89,7 +84,6 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
         AND parts.id = tasks.part_id
         AND projects.id = parts.project_id
         AND task_notes.component_id = tasks.id
-        AND task_notes.status = 1
         AND revision = (SELECT MAX(revision) FROM task_notes WHERE user_id= ? AND component_id=tasks.id)
     """
 
@@ -99,7 +93,6 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
         ON (sr1.user_id = sr2.user_id AND sr1.component_id < sr2.component_id)
       WHERE user_id = ?
         AND sr1.component_id IS NULL
-        AND status = 1
       ORDER BY revision DESC
     """
 
@@ -109,13 +102,11 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
         ON (sr1.component_id = sr2.component_id AND sr1.user_id < sr2.user_id)
       WHERE component_id = ?
         AND sr1.user_id IS NULL
-        AND status = 1
       ORDER BY revision DESC
     """
 
     val Delete = s"""
-      UPDATE $table
-      SET status = 0
+      DELETE FROM $table
       WHERE user_id = ?
         AND component_id = ?
         AND version = ?

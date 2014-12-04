@@ -34,7 +34,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     val SelectAll = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
       ORDER BY $orderBy
     """
 
@@ -42,15 +41,14 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
       WHERE id = ?
-        AND status = 1
     """
 
     val Insert = {
       val extraFields = fields.mkString(",")
       val questions = fields.map(_ => "?").mkString(",")
       s"""
-        INSERT INTO $table (id, version, status, created_at, updated_at, $extraFields)
-        VALUES (?, 1, 1, ?, ?, $questions)
+        INSERT INTO $table (id, version, created_at, updated_at, $extraFields)
+        VALUES (?, 1, ?, ?, $questions)
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
@@ -62,13 +60,12 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
         SET $extraFields , version = ?, updated_at = ?
         WHERE id = ?
           AND version = ?
-          AND status = 1
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
 
     val Delete = s"""
-      UPDATE $table SET status = 0 WHERE id = ? AND version = ?
+      DELETE FROM $table WHERE id = ? AND version = ?
     """
 
     val DeleteByProject = s"""
@@ -87,7 +84,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
       WHERE project_id = ?
-        AND status = 1
       ORDER BY position ASC
     """
 
@@ -96,7 +92,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       FROM $table
       WHERE project_id = ?
         AND position = ?
-        AND status = 1
       LIMIT 1
     """
 
@@ -106,7 +101,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       FROM $table, projects
       WHERE parts.project_id = projects.id
         AND projects.slug = ?
-        AND status = 1
     """
 
     val SelectByComponentId = s"""
@@ -115,7 +109,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       FROM $table
       INNER JOIN components_parts ON parts.id = components_parts.part_id
       WHERE components_parts.component_id = ?
-        AND status = 1
     """
 
     val SelectEnabledForUserAndProjectId = s"""
@@ -133,7 +126,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
         AND scheduled_sections_parts.class_id = sections.id
         AND scheduled_sections_parts.part_id = parts.id
         AND scheduled_sections_parts.active = TRUE
-        AND parts.status = 1
     """
 
     val SelectEnabledForSectionAndProjectId = s"""
@@ -149,7 +141,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
         AND scheduled_sections_parts.class_id = sections.id
         AND scheduled_sections_parts.part_id = parts.id
         AND scheduled_sections_parts.active = TRUE
-        AND parts.status = 1
     """
 
     val IsPartEnabledForUser = s"""

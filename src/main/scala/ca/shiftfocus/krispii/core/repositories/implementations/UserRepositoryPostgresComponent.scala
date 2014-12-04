@@ -35,29 +35,26 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     val SelectAll = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
       ORDER BY $orderBy
     """
 
     val SelectWithIds = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
     """
 
     val SelectOne = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
       WHERE id = ?
-        AND status = 1
     """
 
     val Insert = {
       val extraFields = fields.mkString(",")
       val questions = fields.map(_ => "?").mkString(",")
       s"""
-        INSERT INTO $table (id, version, status, created_at, updated_at, $extraFields)
-        VALUES (?, 1, 1, ?, ?, $questions)
+        INSERT INTO $table (id, version, created_at, updated_at, $extraFields)
+        VALUES (?, 1, ?, ?, $questions)
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
@@ -69,13 +66,12 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
         SET $extraFields , version = ?, updated_at = ?
         WHERE id = ?
           AND version = ?
-          AND status = 1
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
 
     val Delete = s"""
-      UPDATE $table SET status = 0 WHERE id = ? AND version = ?
+      DELETE FROM $table WHERE id = ? AND version = ?
     """
 
     val Restore = s"""
@@ -93,7 +89,6 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
         SET $extraFields , version = ?, updated_at = ?
         WHERE id = ?
           AND version = ?
-          AND status = 1
         RETURNING version
       """
     }
@@ -102,14 +97,12 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM users
       WHERE email = ?
-        AND status = 1
     """
 
     val SelectOneByIdentifier = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM users
       WHERE (email = ? OR username = ?)
-        AND status = 1
       LIMIT 1
     """
 
@@ -129,7 +122,6 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       FROM users, users_sections
       WHERE users.id = users_sections.user_id
         AND users_sections.class_id = ?
-        AND users.status = 1
       ORDER BY $orderBy
     """
 
@@ -139,8 +131,6 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       WHERE users.id = users_roles.user_id
         AND roles.id = users_roles.role_id
         AND roles.name = ANY (?::text[])
-        AND users.status = 1
-        AND roles.status = 1
       GROUP BY users.id
       ORDER BY $orderBy
     """
@@ -150,8 +140,6 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       FROM users, sections, users_sections
       WHERE users.id = users_sections.user_id
         AND sections.id = users_sections.class_id
-        AND users.status = 1
-        AND sections.status = 1
     """
 
     val ListUsersFilterByRolesAndSections = s"""
@@ -163,9 +151,6 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
         AND users.id = users_sections.user_id
         AND sections.id = users_sections.class_id
         AND sections.name = ANY (?::text[])
-        AND users.status = 1
-        AND roles.status = 1
-        AND sections.status = 1
       GROUP BY users.id
       ORDER BY $orderBy
     """
@@ -177,7 +162,6 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       INNER JOIN projects ON sections_projects.project_id = projects.id
       WHERE sections_projects.project_id = ?
         AND users_sections.user_id = ?
-        AND projects.status = 1
     """
 
     /**

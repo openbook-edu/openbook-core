@@ -18,189 +18,222 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
   override val classRepository: ClassRepository = new ClassRepositoryPSQL
 
   private class ClassRepositoryPSQL extends ClassRepository {
-    def fields = Seq("course_id", "teacher_id", "name")
-    def table = "sections"
-    def orderBy = "name ASC"
-    val fieldsText = fields.mkString(", ")
-    val questions = fields.map(_ => "?").mkString(", ")
+
+    val Select =
+      s"""
+         |SELECT classes.id as id, classes.version as version, classes.course_id as course_id, classes.teacher_id as teacher_id,
+         |       classes.name as name, classes.created_at as created_at, classes.updated_at as updated_at
+       """.stripMargin
+
+    val From =
+      s"""
+         |FROM classes
+       """.stripMargin
+
+    val OrderBy =
+      s"""
+         |ORDER BY name ASC
+       """.stripMargin
+
+    val Returning =
+      s"""
+         |RETURNING id, version, course_id, teacher_id, name, created_at, updated_at
+       """.stripMargin
 
     // User CRUD operations
-    val SelectAll = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE status = 1
-      ORDER BY $orderBy
-    """
-
-    val SelectOne = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE id = ?
-        AND status = 1
-    """
-
-    val Insert = {
-      val extraFields = fields.mkString(",")
-      val questions = fields.map(_ => "?").mkString(",")
+    val SelectAll =
       s"""
-        INSERT INTO $table (id, version, status, created_at, updated_at, $extraFields)
-        VALUES (?, 1, 1, ?, ?, $questions)
-        RETURNING id, version, created_at, updated_at, $fieldsText
-      """
-    }
+         |$Select
+         |$From
+         |$OrderBy
+       """.stripMargin
 
-    val Update = {
-      val extraFields = fields.map(" " + _ + " = ? ").mkString(",")
+    val SelectOne =
       s"""
-        UPDATE $table
-        SET $extraFields , version = ?, updated_at = ?
-        WHERE id = ?
-          AND version = ?
-          AND status = 1
-        RETURNING id, version, created_at, updated_at, $fieldsText
-      """
-    }
+         |$Select
+         |$From
+         |WHERE id = ?
+         |$OrderBy
+       """
 
-    val Delete = s"""
-      UPDATE $table SET status = 0 WHERE id = ? AND version = ?
-    """
+    val Insert =
+      s"""
+         |INSERT INTO sections (id, version, course_id, teacher_id, name, created_at, updated_at)
+         |VALUES (?, 1, ?, ?, ?, ?, ?)
+         |$Returning
+      """.stripMargin
 
-    val Restore = s"""
-      UPDATE $table SET status = 1 WHERE id = ? AND version = ? AND status = 0
-    """
+    val Update =
+      s"""
+         |UPDATE classes
+         |SET version = ?, course_id = ?, teacher_id = ?, name = ?, updated_at = ?
+         |WHERE id = ?
+         |  AND version = ?
+         |$Returning
+       """.stripMargin
 
-    val Purge = s"""
-      DELETE FROM $table WHERE id = ? AND version = ?
-    """
+    val Delete =
+      s"""
+         |DELETE FROM classes
+         |WHERE id = ? AND version = ?
+       """.stripMargin
 
-    val SelectOneByCourseId = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE course_id = ?
-        AND status = 1
-      ORDER BY name ASC
-    """
+    val ListByCourseId =
+      s"""
+         |$Select
+         |$From
+         |WHERE course_id = ?
+         |$OrderBy
+       """.stripMargin
 
-    val SelectByTeacherId = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE teacher_id = ?
-        AND status = 1
-      ORDER BY name ASC
-    """
+    val ListByTeacherId =
+      s"""
+         |$Select
+         |$From
+         |WHERE teacher_id = ?
+         |$OrderBy
+       """.stripMargin
 
-    val ListSections = s"""
-      SELECT id, version, teacher_id, course_id, sections.name as name, sections.created_at as created_at, sections.updated_at as updated_at
-      FROM sections, users_sections
-      WHERE sections.id = users_sections.class_id
-        AND users_sections.user_id = ?
-        AND sections.status = 1
-      ORDER BY name ASC
-    """
+    val ListSections =
+      s"""
+         |$Select
+         |$From, users_classes
+         |WHERE classes.id = users_classes.class_id
+         |  AND users_classes.user_id = ?
+         |$OrderBy
+       """.stripMargin
 
-    val ListSectionsByTeacherId = s"""
-      SELECT id, version, teacher_id, course_id, sections.name as name, sections.created_at as created_at, sections.updated_at as updated_at
-      FROM sections
-      WHERE teacher_id = ?
-        AND sections.status = 1
-      ORDER BY name ASC
-    """
+    val ListSectionsByTeacherId =
+      s"""
+         |$Select
+         |$From
+         |WHERE teacher_id = ?
+         |$OrderBy
+      """.stripMargin
 
-    val ListSectionsForProject = s"""
-      SELECT id, version, teacher_id, course_id, sections.name as name, sections.created_at as created_at, sections.updated_at as updated_at
-      FROM sections, sections_projects
-      WHERE sections.id = sections_projects.class_id
-        AND sections_projects.project_id = ?
-        AND sections.status = 1
-      ORDER BY name ASC
-    """
+    val ListSectionsForProject =
+      s"""
+         |$Select
+         |$From, classes_projects
+         |WHERE classes.id = classes_projects.class_id
+         |  AND classes_projects.project_id = ?
+         |  AND classes.status = 1
+         |$OrderBy
+       """.stripMargin
 
-    val EnablePart = s"""
-      INSERT INTO scheduled_sections_parts (class_id, part_id, active, created_at)
-      VALUES (?, ?, TRUE, ?)
-    """
 
-    val DisablePart = s"""
-      DELETE FROM scheduled_sections_parts
-      WHERE class_id = ?
-        AND part_id = ?
-    """
+    val EnablePart =
+      s"""
+         |INSERT INTO scheduled_classes_parts (class_id, part_id, active, created_at)
+         |VALUES (?, ?, TRUE, ?)
+       """.stripMargin
+
+    val DisablePart =
+      s"""
+         |DELETE FROM scheduled_classes_parts
+         |WHERE class_id = ?
+         |  AND part_id = ?
+       """.stripMargin
 
     val DisableForAllParts =
       s"""
-         |DELETE FROM scheduled_sections_parts
+         |DELETE FROM scheduled_classes_parts
          |WHERE part_id = ?
        """.stripMargin
 
-    val AddProjects = s"""
-      INSERT INTO sections_projects (class_id, project_id, created_at)
-      VALUES
-    """
 
-    val AddUsers = s"""
-      INSERT INTO users_sections (class_id, user_id, created_at)
-      VALUES
-    """
+    val AddProjects =
+      s"""
+         |INSERT INTO classes_projects (class_id, project_id, created_at)
+         |VALUES
+       """.stripMargin
 
-    val AddUser = """
-      INSERT INTO users_sections (user_id, class_id, created_at)
-      VALUES (?, ?, ?)
-    """
+    val AddUsers =
+      s"""
+         |INSERT INTO users_classes (class_id, user_id, created_at)
+         |VALUES
+       """.stripMargin
 
-    val RemoveUser = """
-      DELETE FROM users_sections
-      WHERE user_id = ?
-        AND class_id = ?
-    """
+    val AddUser =
+      s"""
+         |INSERT INTO users_classes (user_id, class_id, created_at)
+         |VALUES (?, ?, ?)
+       """.stripMargin
 
-    val ListUsers = s"""
-      SELECT id, version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
-      FROM users, users_sections
-      WHERE users.id = users_sections.user_id
-        AND users_sections.class_id = ?
-        AND users.status = 1
-      ORDER BY $orderBy
-    """
+    val RemoveUser =
+      s"""
+         |DELETE FROM users_classes
+         |WHERE user_id = ?
+         |  AND class_id = ?
+       """.stripMargin
 
-    val ListSectionsForUserList = """
-      SELECT id, version, teacher_id, course_id, sections.name as name, sections.created_at as created_at, sections.updated_at as updated_at
-      FROM sections, users_sections
-      WHERE sections.id = users_sections.class_id
-        AND sections.status = 1
-    """
+    val ListUsers =
+      s"""
+         |SELECT id, version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
+         |FROM users, users_classes
+         |WHERE users.id = users_classes.user_id
+         |  AND users_classes.class_id = ?
+         |  AND users.status = 1
+         |$OrderBy
+       """.stripMargin
 
-    val RemoveUsers = s"""
-      DELETE FROM users_sections
-      WHERE class_id =
-    """
+    val ListSectionsForUserList =
+      s"""
+         |SELECT id, version, teacher_id, course_id, classes.name as name, classes.created_at as created_at, classes.updated_at as updated_at
+         |FROM classes, users_classes
+         |WHERE classes.id = users_classes.class_id
+         |  AND classes.status = 1
+       """.stripMargin
 
-    val RemoveProjects = s"""
-      DELETE FROM sections_projects
-      WHERE class_id =
-    """
+    val RemoveUsers =
+      s"""
+         |DELETE FROM users_classes
+         |WHERE class_id =
+       """.stripMargin
 
-    val RemoveAllUsers = s"""
-      DELETE FROM users_sections
-      WHERE class_id = ?
-    """
+    val RemoveProjects =
+      s"""
+         |DELETE FROM classes_projects
+         |WHERE class_id =
+       """.stripMargin
 
-    val RemoveAllProjects = s"""
-      DELETE FROM sections_projects
-      WHERE class_id = ?
-    """
+    val RemoveAllUsers =
+      s"""
+         |DELETE FROM users_classes
+         |WHERE class_id = ?
+       """.stripMargin
 
-    val HasProject = s"""
-      SELECT projects.id
-      FROM users_sections
-      INNER JOIN sections_projects ON users_sections.class_id = sections_projects.class_id
-      INNER JOIN projects ON sections_projects.project_id = projects.id
-      WHERE sections_projects.project_id = ?
-        AND users_sections.user_id = ?
-        AND projects.status = 1
-    """
+    val RemoveAllProjects =
+      s"""
+         |DELETE FROM classes_projects
+         |WHERE class_id = ?
+       """.stripMargin
+
+    val HasProject =
+      s"""
+         |SELECT projects.id
+         |FROM users_classes
+         |INNER JOIN classes_projects ON users_classes.class_id = classes_projects.class_id
+         |INNER JOIN projects ON classes_projects.project_id = projects.id
+         |WHERE classes_projects.project_id = ?
+         |  AND users_classes.user_id = ?
+         |  AND projects.status = 1
+       """.stripMargin
+    
+    val FindUserForTeacher =
+      s"""
+         |SELECT users.id as id, users.version as version, users.username as username, users.email as email, 
+         |       users.password_hash as password_hash, users.givenname as givenname, users.surname as surname, 
+         |       users.created_at as created_at, users.updated_at as updated_at
+         |FROM users, classes, users_classes
+         |WHERE classes.teacher_id = ?
+         |  AND users.id = ?
+         |  AND users.id = users_classes.user_id
+         |  AND classes.id = users_classes.class_id
+       """.stripMargin
 
     /**
-     * List all sections.
+     * List all classes.
      *
      * @param conn  an implicit Connection must be in scope. This allows this
      *             method to be called inside a transaction block.
@@ -208,10 +241,10 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
      */
     def list: Future[IndexedSeq[Class]] = {
       db.pool.sendQuery(SelectAll).map { queryResult =>
-        val sectionList = queryResult.rows.get.map {
+        val classList = queryResult.rows.get.map {
           item: RowData => Class(item)
         }
-        sectionList
+        classList
       }
     }.recover {
       case exception => {
@@ -228,7 +261,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
      * @return an array of Sections
      */
     def list(course: Course): Future[IndexedSeq[Class]] = {
-      db.pool.sendPreparedStatement(SelectOneByCourseId, Seq[Any](course.id.bytes)).map { queryResult =>
+      db.pool.sendPreparedStatement(ListByCourseId, Seq[Any](course.id.bytes)).map { queryResult =>
         queryResult.rows.get.map {
           item: RowData => Class(item)
         }
@@ -260,21 +293,21 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     }
 
     /**
-     * Select sections based on the given user.
+     * Select classes based on the given user.
      *
      * @param user the user to search by
-     * @param asTeacher  whether we are searching for sections this user teachers,
-     *                   or sections this user is a student of.
+     * @param asTeacher  whether we are searching for classes this user teachers,
+     *                   or classes this user is a student of.
      * @param conn  an implicit Connection must be in scope. This allows this
      *              method to be called inside a transaction block.
-     * @return the found sections
+     * @return the found classes
      */
     def list(user: User, asTeacher: Boolean = false): Future[IndexedSeq[Class]] = {
-      db.pool.sendPreparedStatement((if (asTeacher) SelectByTeacherId else ListSections), Seq[Any](user.id.bytes)).map { queryResult =>
-        val sectionList = queryResult.rows.get.map {
+      db.pool.sendPreparedStatement((if (asTeacher) ListByTeacherId else ListSections), Seq[Any](user.id.bytes)).map { queryResult =>
+        val classList = queryResult.rows.get.map {
           item: RowData => Class(item)
         }
-        sectionList
+        classList
       }.recover {
         case exception => {
           throw exception
@@ -296,7 +329,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
           userId.slice(24, 36)
         s"decode('$cleanUserId', 'hex')"
       }.mkString("ARRAY[", ",", "]")
-      val query = s"""${ListSectionsForUserList} AND ARRAY[users_sections.user_id] <@ $arrayString"""
+      val query = s"""${ListSectionsForUserList} AND ARRAY[users_classes.user_id] <@ $arrayString"""
 
       db.pool.sendQuery(query).map { queryResult =>
         val startTimeUsC = System.nanoTime() / 1000
@@ -334,11 +367,11 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     }
 
     /**
-     * Add a user to a section
+     * Add a user to a `class`
      */
-    override def addUser(user: User, section: Class)(implicit conn: Connection): Future[Boolean] = {
+    override def addUser(user: User, `class`: Class)(implicit conn: Connection): Future[Boolean] = {
       val future = for {
-        result <- conn.sendPreparedStatement(AddUser, Array(user.id.bytes, section.id.bytes, new DateTime))
+        result <- conn.sendPreparedStatement(AddUser, Array(user.id.bytes, `class`.id.bytes, new DateTime))
       }
       yield {
         result.rowsAffected > 0
@@ -354,9 +387,9 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     /**
      * Remove a role from a user.
      */
-    override def removeUser(user: User, section: Class)(implicit conn: Connection) = {
+    override def removeUser(user: User, `class`: Class)(implicit conn: Connection) = {
       val future = for {
-        result <- conn.sendPreparedStatement(RemoveUser, Array(user.id.bytes, section.id.bytes))
+        result <- conn.sendPreparedStatement(RemoveUser, Array(user.id.bytes, `class`.id.bytes))
       }
       yield (result.rowsAffected > 0)
 
@@ -368,7 +401,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     }
 
     /**
-     * Verify if this user has access to this project through any of his sections.
+     * Verify if this user has access to this project through any of his classes.
      * @type {[type]}
      */
     override def hasProject(user: User, project: Project)(implicit conn: Connection): Future[Boolean] = {
@@ -385,15 +418,15 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     }
 
     /**
-     * Add users to a section.
+     * Add users to a `class`.
      *
-     * @param section  the section to add users to.
+     * @param `class`  the `class` to add users to.
      * @param users  an array of users to be added.
      * @param conn  an implicit database Connection.
      * @return a boolean indicating if the action was successful.
      */
-    def addUsers(section: Class, users: IndexedSeq[User])(implicit conn: Connection) = {
-      val cleanSectionId = section.id.string filterNot ("-" contains _)
+    def addUsers(`class`: Class, users: IndexedSeq[User])(implicit conn: Connection) = {
+      val cleanSectionId = `class`.id.string filterNot ("-" contains _)
       val query = AddUsers + users.map { user =>
         val cleanUserId = user.id.string filterNot ("-" contains _)
         s"('\\x$cleanSectionId', '\\x$cleanUserId', '${new DateTime}')"
@@ -406,15 +439,15 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     }
 
     /**
-     * Add projects to a section.
+     * Add projects to a `class`.
      *
-     * @param section  the section to add users to.
+     * @param `class`  the `class` to add users to.
      * @param projects  an array of projects to be added.
      * @param conn  an implicit database Connection.
      * @return a boolean indicating if the action was successful.
      */
-    def addProjects(section: Class, projects: IndexedSeq[Project])(implicit conn: Connection) = {
-      val cleanSectionId = section.id.string filterNot ("-" contains _)
+    def addProjects(`class`: Class, projects: IndexedSeq[Project])(implicit conn: Connection) = {
+      val cleanSectionId = `class`.id.string filterNot ("-" contains _)
       val query = AddProjects + projects.map { project =>
         val cleanProjectId = project.id.string filterNot ("-" contains _)
         s"('\\x$cleanSectionId', '\\x$cleanProjectId', '${new DateTime}')"
@@ -427,15 +460,15 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     }
 
     /**
-     * Remove users from a section.
+     * Remove users from a `class`.
      *
-     * @param section  the section to remove users from.
+     * @param `class`  the `class` to remove users from.
      * @param users  an array of the users to be removed.
      * @param conn  an implicit database Connection.
      * @return a boolean indicating if the action was successful.
      */
-    def removeUsers(section: Class, users: IndexedSeq[User])(implicit conn: Connection) = {
-      val cleanSectionId = section.id.string filterNot ("-" contains _)
+    def removeUsers(`class`: Class, users: IndexedSeq[User])(implicit conn: Connection) = {
+      val cleanSectionId = `class`.id.string filterNot ("-" contains _)
       val arrayString = users.map { user =>
         val cleanUserId = user.id.string filterNot ("-" contains _)
         s"decode('$cleanUserId', 'hex')"
@@ -449,15 +482,15 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     }
 
     /**
-     * Remove projects from a section.
+     * Remove projects from a `class`.
      *
-     * @param section  the section to remove projects from.
+     * @param `class`  the `class` to remove projects from.
      * @param projects  an array of the projectsto be removed.
      * @param conn  an implicit database Connection.
      * @return a boolean indicating if the action was successful.
      */
-    def removeProjects(section: Class, projects: IndexedSeq[Project])(implicit conn: Connection) = {
-      val cleanSectionId = section.id.string filterNot ("-" contains _)
+    def removeProjects(`class`: Class, projects: IndexedSeq[Project])(implicit conn: Connection) = {
+      val cleanSectionId = `class`.id.string filterNot ("-" contains _)
       val arrayString = projects.map { project =>
         val cleanProjectId = project.id.string filterNot ("-" contains _)
         s"decode('$cleanProjectId', 'hex')"
@@ -471,29 +504,29 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     }
 
     /**
-     * Remove all users from a section.
+     * Remove all users from a `class`.
      *
-     * @param section  the section to remove users from.
+     * @param `class`  the `class` to remove users from.
      * @param conn  an implicit database Connection.
      * @return a boolean indicating if the action was successful.
      */
-    def removeAllUsers(section: Class)(implicit conn: Connection) = {
+    def removeAllUsers(`class`: Class)(implicit conn: Connection) = {
       for {
-        result <- conn.sendPreparedStatement(RemoveAllUsers, Array[Any](section.id.bytes))
+        result <- conn.sendPreparedStatement(RemoveAllUsers, Array[Any](`class`.id.bytes))
       }
       yield (result.rowsAffected > 0)
     }
 
     /**
-     * Remove all projects from a section.
+     * Remove all projects from a `class`.
      *
-     * @param section  the section to remove projects from.
+     * @param `class`  the `class` to remove projects from.
      * @param conn  an implicit database Connection.
      * @return a boolean indicating if the action was successful.
      */
-    def removeAllProjects(section: Class)(implicit conn: Connection) = {
+    def removeAllProjects(`class`: Class)(implicit conn: Connection) = {
       for {
-        result <- conn.sendPreparedStatement(RemoveAllProjects, Array[Any](section.id.bytes))
+        result <- conn.sendPreparedStatement(RemoveAllProjects, Array[Any](`class`.id.bytes))
       }
       yield (result.rowsAffected > 0)
     }
@@ -501,20 +534,20 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     /**
      * Insert a Section row.
      *
-     * @param id the UUID of the new section, as a byte array
-     * @param courseId the UUID of the course this section is attached with
-     * @param maybeTeacherId the (optional) UUID of a teacher to associate this section with
-     * @param name the name of this section
+     * @param id the UUID of the new `class`, as a byte array
+     * @param courseId the UUID of the course this `class` is attached with
+     * @param maybeTeacherId the (optional) UUID of a teacher to associate this `class` with
+     * @param name the name of this `class`
      * @return id of the saved/new role. Failure to insert should throw an exception.
      */
-    def insert(section: Class)(implicit conn: Connection): Future[Class] = {
+    def insert(`class`: Class)(implicit conn: Connection): Future[Class] = {
       conn.sendPreparedStatement(Insert, Array(
-        section.id.bytes,
+        `class`.id.bytes,
+        `class`.courseId,
+        `class`.teacherId,
+        `class`.name,
         new DateTime,
-        new DateTime,
-        section.courseId,
-        section.teacherId,
-        section.name
+        new DateTime
       )).map {
         result => Class(result.rows.get.head)
       }.recover {
@@ -527,22 +560,22 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     /**
      * Update a Section row.
      *
-     * @param id the UUID of the new section, as a byte array
-     * @param version the current version of the section (for optimistic offline locking)
-     * @param courseId the UUID of the course this section is attached with
-     * @param maybeTeacherId the (optional) UUID of a teacher to associate this section with
-     * @param name the name of this section
-     * @return optional version of the updated Section, if a section was found to update.
+     * @param id the UUID of the new `class`, as a byte array
+     * @param version the current version of the `class` (for optimistic offline locking)
+     * @param courseId the UUID of the course this `class` is attached with
+     * @param maybeTeacherId the (optional) UUID of a teacher to associate this `class` with
+     * @param name the name of this `class`
+     * @return optional version of the updated Section, if a `class` was found to update.
      */
-    def update(section: Class)(implicit conn: Connection): Future[Class] = {
+    def update(`class`: Class)(implicit conn: Connection): Future[Class] = {
       conn.sendPreparedStatement(Update, Array(
-        section.courseId,
-        section.teacherId,
-        section.name,
-        (section.version + 1),
+        (`class`.version + 1),
+        `class`.courseId,
+        `class`.teacherId,
+        `class`.name,
         new DateTime,
-        section.id,
-        section.version
+        `class`.id,
+        `class`.version
       )).map {
         result => Class(result.rows.get.head)
       }.recover {
@@ -557,9 +590,9 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
      * @param id
      * @return
      */
-    def delete(section: Class)(implicit conn: Connection): Future[Boolean] = {
+    def delete(`class`: Class)(implicit conn: Connection): Future[Boolean] = {
       val future = for {
-        queryResult <- conn.sendPreparedStatement(Purge, Array(section.id.bytes, section.version))
+        queryResult <- conn.sendPreparedStatement(Purge, Array(`class`.id.bytes, `class`.version))
       }
       yield { queryResult.rowsAffected > 0 }
 
@@ -573,16 +606,16 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     /**
      * Enable a particular project part for this Section's users.
      *
-     * @param section  the section to enable the part for.
+     * @param `class`  the `class` to enable the part for.
      * @param part  the part to enable.
      * @return a boolean indicating whether the operation was successful.
      */
-    def enablePart(section: Class, part: Part)(implicit conn: Connection): Future[Boolean] = {
+    def enablePart(`class`: Class, part: Part)(implicit conn: Connection): Future[Boolean] = {
       val newStatus = for {
-        result <- conn.sendPreparedStatement(EnablePart, Array(section.id.bytes, part.id.bytes, new DateTime))
+        result <- conn.sendPreparedStatement(EnablePart, Array(`class`.id.bytes, part.id.bytes, new DateTime))
         // We only fetch the user list so we can update the cache... the user list may be read in parallel
         // so it cannot happen in a transaction. Ensure it runs in its own connection.
-        users <- userRepository.list(section)
+        users <- userRepository.list(`class`)
       }
       yield {
         val wasEnabled = (result.rowsAffected > 0)
@@ -598,16 +631,16 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     /**
      * Disable a particular project part for this Section's users.
      *
-     * @param section  the section to disable the part for.
+     * @param `class`  the `class` to disable the part for.
      * @param part  the part to disable.
      * @return a boolean indicating whether the operation was successful.
      */
-    def disablePart(section: Class, part: Part)(implicit conn: Connection): Future[Boolean] = {
+    def disablePart(`class`: Class, part: Part)(implicit conn: Connection): Future[Boolean] = {
       val newStatus = for {
-        result <- conn.sendPreparedStatement(DisablePart, Array(section.id.bytes, part.id.bytes))
+        result <- conn.sendPreparedStatement(DisablePart, Array(`class`.id.bytes, part.id.bytes))
         // We only fetch the user list so we can update the cache... the user list may be read in parallel
         // so it cannot happen in a transaction. Ensure it runs in its own connection.
-        users <- userRepository.list(section)
+        users <- userRepository.list(`class`)
       }
       yield {
         val wasDisabled = (result.rowsAffected > 0)
@@ -623,7 +656,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     /**
      * Disable a particular project part for this Section's users.
      *
-     * @param section  the section to disable the part for.
+     * @param `class`  the `class` to disable the part for.
      * @param part  the part to disable.
      * @return a boolean indicating whether the operation was successful.
      */

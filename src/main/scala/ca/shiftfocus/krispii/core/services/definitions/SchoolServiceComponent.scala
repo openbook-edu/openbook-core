@@ -42,6 +42,8 @@ trait SchoolServiceComponent {
     def listProjects(classId: UUID): Future[IndexedSeq[Project]]
     def listProjects(section: Class): Future[IndexedSeq[Project]]
 
+    def findUserForTeacher(userId: UUID, teacherId: UUID): Future[Option[UserInfo]]
+
     def addUsers(section: Class, userIds: IndexedSeq[UUID]): Future[Boolean]
     def removeUsers(section: Class, userIds: IndexedSeq[UUID]): Future[Boolean]
 

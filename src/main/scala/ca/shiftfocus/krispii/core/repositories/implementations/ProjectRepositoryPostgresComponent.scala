@@ -181,11 +181,13 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
     override def insert(project: Project)(implicit conn: Connection): Future[Project] = {
       conn.sendPreparedStatement(Insert, Array(
         project.id.bytes,
-        new DateTime,
-        new DateTime,
+        project.classId.bytes,
         project.name,
         project.slug,
-        project.description
+        project.description,
+        project.availability,
+        new DateTime,
+        new DateTime
       )).map {
         result => {
           Project(result.rows.get.head)
@@ -206,9 +208,11 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      */
     override def update(project: Project)(implicit conn: Connection): Future[Project] = {
       conn.sendPreparedStatement(Update, Array(
+        project.classId.bytes,
         project.name,
         project.slug,
         project.description,
+        project.availability,
         (project.version + 1),
         new DateTime,
         project.id.bytes,

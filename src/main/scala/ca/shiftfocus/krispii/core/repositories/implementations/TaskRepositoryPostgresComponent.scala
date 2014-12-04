@@ -109,13 +109,13 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
 
     val SelectActiveByProjectId = s"""
       $Select
-      $From, parts, projects, sections, sections_projects, users_sections
+      $From, parts, projects, classes, classes_projects, users_classes
       WHERE projects.id = ?
         AND projects.id = parts.project_id
         AND parts.id = tasks.part_id
-        AND users_sections.user_id = ?
-        AND users_sections.class_id = sections_projects.class_id
-        AND sections_projects.project_id = projects.id
+        AND users_classes.user_id = ?
+        AND users_classes.class_id = classes_projects.class_id
+        AND classes_projects.project_id = projects.id
       ORDER BY parts.position ASC, tasks.position ASC
     """
 
@@ -137,11 +137,11 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
       INNER JOIN parts ON parts.id = tasks.part_id
       INNER JOIN projects ON parts.project_id = projects.id
       INNER JOIN users ON users.id = ?
-      INNER JOIN users_sections ON users.id = users_sections.user_id
-      INNER JOIN scheduled_sections_parts ON users_sections.class_id = scheduled_sections_parts.class_id AND scheduled_sections_parts.part_id = parts.id
+      INNER JOIN users_classes ON users.id = users_classes.user_id
+      INNER JOIN scheduled_classes_parts ON users_classes.class_id = scheduled_classes_parts.class_id AND scheduled_classes_parts.part_id = parts.id
       LEFT JOIN (SELECT user_id, task_id, revision, is_complete FROM student_responses ORDER BY revision DESC) as sr ON users.id = sr.user_id AND tasks.id = sr.task_id
       WHERE projects.slug = ?
-        AND scheduled_sections_parts.active = TRUE
+        AND scheduled_classes_parts.active = TRUE
         AND COALESCE(sr.is_complete, FALSE) = FALSE
       ORDER BY parts.position ASC, tasks.position ASC
       LIMIT 1
@@ -167,7 +167,8 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |  ${Insert}
          |)
          |INSERT INTO long_answer_tasks (task_id)
-         |  SELECT id as task_id
+         |  SELECT task.id as task_id
+         |  FROM task
        """.stripMargin
 
     val InsertShortAnswer =
@@ -176,7 +177,8 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |  ${Insert}
          |)
          |INSERT INTO short_answer_tasks (task_id, max_length)
-         |  SELECT id as task_id, ? as max_length
+         |  SELECT task.id as task_id, ? as max_length
+         |  FROM task
        """.stripMargin
 
     val InsertMultipleChoice =
@@ -185,7 +187,8 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |  ${Insert}
          |)
          |INSERT INTO multiple_choice_tasks (task_id, choices, answers, allow_multiple, randomize)
-         |  SELECT id as task_id, ? as choices, ? as answers, ? as allow_multiple, ? as randomize
+         |  SELECT task.id as task_id, ? as choices, ? as answers, ? as allow_multiple, ? as randomize
+         |  FROM task
        """.stripMargin
 
     val InsertOrdering =
@@ -194,7 +197,8 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |  ${Insert}
          |)
          |INSERT INTO ordering_tasks (task_id, choices, answers, randomize)
-         |  SELECT id as task_id, ? as choices, ? as answers, ? as randomize
+         |  SELECT task.id as task_id, ? as choices, ? as answers, ? as randomize
+         |  FROM task
        """.stripMargin
 
     val InsertMatching =
@@ -203,7 +207,8 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |  ${Insert}
          |)
          |INSERT INTO matching_tasks (task_id, choices_left, choices_right, answers, randomize)
-         |  SELECT id as task_id, ? as choices_left, ? as choices_right, ? as answers, ? as randomize
+         |  SELECT task.id as task_id, ? as choices_left, ? as choices_right, ? as answers, ? as randomize
+         |  FROM task
        """.stripMargin
 
     // -- Update queries -----------------------------------------------------------------------------------------------
@@ -418,33 +423,42 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
     override def insert(task: Task)(implicit conn: Connection): Future[Task] = {
       // All tasks have these properties.
       val commonData =  Array[Any](
-        task.id.bytes, new DateTime, new DateTime, task.partId.bytes,
+        task.id.bytes,
+        new DateTime,
+        new DateTime,
+        task.partId.bytes,
         task.settings.dependencyId match {
           case Some(id) => Some(id.bytes)
           case None => None
         },
-        task.settings.title, task.settings.description, task.position,
-        task.settings.notesAllowed, Task.LongAnswer
+        task.settings.title,
+        task.settings.description,
+        task.position,
+        task.settings.notesAllowed
       )
 
       // Prepare the additional data to be sent depending on the type of task
       val dataArray = task match {
-        case longAnswer: LongAnswerTask => commonData
+        case longAnswer: LongAnswerTask => commonData ++ Array[Any](Task.LongAnswer)
         case shortAnswer: ShortAnswerTask => commonData ++ Array[Any](
+          Task.ShortAnswer,
           shortAnswer.maxLength
         )
         case multipleChoice: MultipleChoiceTask => commonData ++ Array[Any](
+          Task.MultipleChoice,
           multipleChoice.choices,
           multipleChoice.answer,
           multipleChoice.allowMultiple,
           multipleChoice.randomizeChoices
         )
         case ordering: OrderingTask => commonData ++ Array[Any](
+          Task.Ordering,
           ordering.elements,
           ordering.answer,
           ordering.randomizeChoices
         )
         case matching: MatchingTask => commonData ++ Array[Any](
+          Task.Matching,
           matching.elementsLeft,
           matching.elementsRight,
           matching.answer.map { element => s"${element.left}:${element.right}" },
@@ -453,10 +467,18 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
         case _ => throw new Exception("I don't know how you did this, but you sent me a task type that doesn't exist.")
       }
 
+      val query = task match {
+        case longAnswer: LongAnswerTask => InsertLongAnswer
+        case shortAnswer: ShortAnswerTask => InsertShortAnswer
+        case multipleChoice: MultipleChoiceTask => InsertMultipleChoice
+        case ordering: OrderingTask => InsertOrdering
+        case matching: MatchingTask => InsertMatching
+      }
+
       // Send the query
-      conn.sendPreparedStatement(Insert, dataArray).map {
+      conn.sendPreparedStatement(query, dataArray).map {
         result => {
-          Task(result.rows.get.head)
+          task
         }
       }.recover {
         case exception => {

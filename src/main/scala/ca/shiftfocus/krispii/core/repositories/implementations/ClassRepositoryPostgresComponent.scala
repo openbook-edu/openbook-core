@@ -58,7 +58,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
 
     val Insert =
       s"""
-         |INSERT INTO sections (id, version, course_id, teacher_id, name, created_at, updated_at)
+         |INSERT INTO classes (id, version, course_id, teacher_id, name, created_at, updated_at)
          |VALUES (?, 1, ?, ?, ?, ?, ?)
          |$Returning
       """.stripMargin
@@ -552,8 +552,11 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     def insert(`class`: Class)(implicit conn: Connection): Future[Class] = {
       conn.sendPreparedStatement(Insert, Array(
         `class`.id.bytes,
-        `class`.courseId,
-        `class`.teacherId,
+        `class`.courseId.bytes,
+        `class`.teacherId match {
+          case Some(id) => Some(id.bytes)
+          case _ => None
+        },
         `class`.name,
         new DateTime,
         new DateTime
@@ -579,8 +582,11 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     def update(`class`: Class)(implicit conn: Connection): Future[Class] = {
       conn.sendPreparedStatement(Update, Array(
         (`class`.version + 1),
-        `class`.courseId,
-        `class`.teacherId,
+        `class`.courseId.bytes,
+        `class`.teacherId match {
+          case Some(id) => Some(id.bytes)
+          case _ => None
+        },
         `class`.name,
         new DateTime,
         `class`.id,

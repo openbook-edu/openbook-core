@@ -374,7 +374,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
      * Associate a role to a user.
      */
     override def addToUser(user: User, name: String)(implicit conn: Connection): Future[Boolean] = {
-      conn.sendPreparedStatement(AddRoleByName, Array[Any](user.id.bytes, name, new DateTime)).map { result =>
+      conn.sendPreparedStatement(AddRoleByName, Array[Any](user.id.bytes, new DateTime, name)).map { result =>
         //Cache.remove(s"role_ids:user:${user.id.string}")
         (result.rowsAffected > 0)
       }.recover {

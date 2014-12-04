@@ -114,49 +114,49 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     val SelectEnabledForUserAndProjectId = s"""
       SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
              parts.project_id, parts.name as name, parts.description as description, parts.position as position,
-             sections.name as section_name, users.username as username
-      FROM parts, projects, sections, sections_projects, users_sections, users, scheduled_sections_parts
+             classes.name as section_name, users.username as username
+      FROM parts, projects, classes, classes_projects, users_classes, users, scheduled_classes_parts
       WHERE projects.id = ?
         AND users.id = ?
         AND parts.project_id = projects.id
-        AND sections_projects.project_id = projects.id
-        AND sections_projects.class_id = sections.id
-        AND users_sections.class_id = sections_projects.class_id
-        AND users_sections.user_id = users.id
-        AND scheduled_sections_parts.class_id = sections.id
-        AND scheduled_sections_parts.part_id = parts.id
-        AND scheduled_sections_parts.active = TRUE
+        AND classes_projects.project_id = projects.id
+        AND classes_projects.class_id = classes.id
+        AND users_classes.class_id = classes_projects.class_id
+        AND users_classes.user_id = users.id
+        AND scheduled_classes_parts.class_id = classes.id
+        AND scheduled_classes_parts.part_id = parts.id
+        AND scheduled_classes_parts.active = TRUE
     """
 
     val SelectEnabledForSectionAndProjectId = s"""
       SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
              parts.project_id, parts.name as name, parts.description as description, parts.position as position,
-             sections.name as section_name
-      FROM parts, projects, sections, sections_projects, scheduled_sections_parts
+             classes.name as section_name
+      FROM parts, projects, classes, classes_projects, scheduled_classes_parts
       WHERE projects.id = ?
-        AND sections.id = ?
+        AND classes.id = ?
         AND parts.project_id = projects.id
-        AND sections_projects.project_id = projects.id
-        AND sections_projects.class_id = sections.id
-        AND scheduled_sections_parts.class_id = sections.id
-        AND scheduled_sections_parts.part_id = parts.id
-        AND scheduled_sections_parts.active = TRUE
+        AND classes_projects.project_id = projects.id
+        AND classes_projects.class_id = classes.id
+        AND scheduled_classes_parts.class_id = classes.id
+        AND scheduled_classes_parts.part_id = parts.id
+        AND scheduled_classes_parts.active = TRUE
     """
 
     val IsPartEnabledForUser = s"""
-      SELECT scheduled_sections_parts.active
-      FROM parts, users_sections, scheduled_sections_parts
+      SELECT scheduled_classes_parts.active
+      FROM parts, users_classes, scheduled_classes_parts
       WHERE parts.id = ?
-        AND users_sections.user_id = ?
-        AND users_sections.class_id = scheduled_sections_parts.class_id
-        AND scheduled_sections_parts.part_id = parts.id
+        AND users_classes.user_id = ?
+        AND users_classes.class_id = scheduled_classes_parts.class_id
+        AND scheduled_classes_parts.part_id = parts.id
     """
 
     val IsPartEnabledForSection = s"""
-      SELECT scheduled_sections_parts.active
-      FROM scheduled_sections_parts
-      WHERE scheduled_sections_parts.part_id = ?
-        AND scheduled_sections_parts.class_id = ?
+      SELECT scheduled_classes_parts.active
+      FROM scheduled_classes_parts
+      WHERE scheduled_classes_parts.part_id = ?
+        AND scheduled_classes_parts.class_id = ?
     """
 
     val ReorderParts1 = s"""
@@ -290,7 +290,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
 
     /**
      * List enabled parts of a project for a user. Will check for parts
-     * enabled in *any* of that user's sections.
+     * enabled in *any* of that user's classes.
      *
      * @param project the [[Project]] to list parts from
      * @param user the [[User]] to select enabled parts for

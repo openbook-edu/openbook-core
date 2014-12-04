@@ -77,7 +77,7 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
     val IsAnythingScheduledForUser = s"""
       SELECT section_schedules.id
       FROM section_schedules
-      INNER JOIN users_sections ON users_sections.class_id = section_schedules.class_id AND users_sections.user_id = ?
+      INNER JOIN users_classes ON users_classes.class_id = section_schedules.class_id AND users_classes.user_id = ?
       WHERE section_schedules.day = ?
         AND section_schedules.start_time <= ?
         AND section_schedules.end_time >= ?
@@ -87,9 +87,9 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
     val IsProjectScheduledForUser = s"""
       SELECT section_schedules.id
       FROM section_schedules
-      INNER JOIN users_sections ON users_sections.class_id = section_schedules.class_id AND users_sections.user_id = ?
-      INNER JOIN sections_projects ON sections_projects.class_id = section_schedules.class_id
-      WHERE sections_projects.project_id = ?
+      INNER JOIN users_classes ON users_classes.class_id = section_schedules.class_id AND users_classes.user_id = ?
+      INNER JOIN classes_projects ON classes_projects.class_id = section_schedules.class_id
+      WHERE classes_projects.project_id = ?
         AND section_schedules.day = ?
         AND section_schedules.start_time <= ?
         AND section_schedules.end_time >= ?

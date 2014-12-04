@@ -55,6 +55,17 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
          |WHERE id = ?
       """
 
+    val SelectOneForUser =
+      s"""
+         |$Select
+         |$From, classes, users_classes
+         |WHERE project.id = ?
+         |  AND project.class_id = classes.id
+         |  AND (classes.teacher_id = ? OR (
+         |    classes.id = users_classes.class_id AND users_classes.user_id = ?
+         |  ))
+       """.stripMargin
+
     val SelectOneBySlug =
       s"""
          |$Select
@@ -141,6 +152,25 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      */
     override def find(id: UUID): Future[Option[Project]] = {
       db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map { result =>
+        result.rows.get.headOption match {
+          case Some(rowData) => Some(Project(rowData))
+          case None => None
+        }
+      }.recover {
+        case exception => {
+          throw exception
+        }
+      }
+    }
+
+    /**
+     * Find a single entry by ID.
+     *
+     * @param id the 128-bit UUID, as a byte array, to search for.
+     * @return an optional Project if one was found
+     */
+    override def find(projectId: UUID, user: User): Future[Option[Project]] = {
+      db.pool.sendPreparedStatement(SelectOneForUser, Array[Any](projectId.bytes, user.id.bytes, user.id.bytes)).map { result =>
         result.rows.get.headOption match {
           case Some(rowData) => Some(Project(rowData))
           case None => None

@@ -21,6 +21,7 @@ trait ProjectRepositoryComponent {
     def list: Future[IndexedSeq[Project]]
     def list(section: Class): Future[IndexedSeq[Project]]
     def find(id: UUID): Future[Option[Project]]
+    def find(projectId: UUID, user: User): Future[Option[Project]]
     def find(slug: String): Future[Option[Project]]
     def insert(project: Project)(implicit conn: Connection): Future[Project]
     def update(project: Project)(implicit conn: Connection): Future[Project]

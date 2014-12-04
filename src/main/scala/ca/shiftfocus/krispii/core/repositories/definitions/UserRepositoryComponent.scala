@@ -39,10 +39,10 @@ trait UserRepositoryComponent {
     def list: Future[IndexedSeq[User]]
 
     /**
-     * List users with filter for roles and sections.
+     * List users with filter for roles and classes.
      *
      * @param rolesFilter an optional list of roles to filter by
-     * @param sectionsFilter an optional list of sections to filter by
+     * @param classesFilter an optional list of classes to filter by
      * @return an [[IndexedSeq]] of [[UserInfo]]
      */
     def list(userIds: IndexedSeq[UUID]): Future[IndexedSeq[User]]
@@ -55,9 +55,9 @@ trait UserRepositoryComponent {
      * @return Some(user) if valid, otherwise None.
      */
     def list(section: Class): Future[IndexedSeq[User]]
-    def listForSections(sections: IndexedSeq[Class]): Future[IndexedSeq[User]]
+    def listForSections(classes: IndexedSeq[Class]): Future[IndexedSeq[User]]
     def listForRoles(roles: IndexedSeq[String]): Future[IndexedSeq[User]]
-    def listForRolesAndSections(roles: IndexedSeq[String], sections: IndexedSeq[String]): Future[IndexedSeq[User]]
+    def listForRolesAndSections(roles: IndexedSeq[String], classes: IndexedSeq[String]): Future[IndexedSeq[User]]
 
     /**
      * Find methods return a single user.

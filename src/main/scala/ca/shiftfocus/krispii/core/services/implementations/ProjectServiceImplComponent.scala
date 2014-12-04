@@ -16,6 +16,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
         TaskResponseRepositoryComponent with
         TaskScratchpadRepositoryComponent with
         TaskFeedbackRepositoryComponent with
+        UserRepositoryComponent with
         ComponentRepositoryComponent with
         ClassRepositoryComponent with
         DB =>
@@ -31,6 +32,17 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      */
     override def list: Future[IndexedSeq[Project]] = {
       projectRepository.list
+    }.recover {
+      case exception => throw exception
+    }
+
+    override def list(classId: UUID): Future[IndexedSeq[Project]] = {
+      for {
+        theClass <- classRepository.find(classId).map(_.get)
+        projects <- projectRepository.list(theClass)
+      } yield projects
+    }.recover {
+      case exception => throw exception
     }
 
     /**
@@ -50,6 +62,8 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
         case Some(project) => Some(project.copy(parts = parts))
         case None => None
       }
+    }.recover {
+      case exception => throw exception
     }
 
     /**
@@ -75,6 +89,36 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
         case Some(project) => Some(project.copy(parts = parts))
         case None => None
       }
+    }.recover {
+      case exception => throw exception
+    }
+
+    /**
+     * Find a single project.
+     *
+     * @return an optional project
+     */
+    override def find(projectId: UUID, userId: UUID): Future[Option[Project]] = {
+      for {
+        user <- userRepository.find(userId).map(_.get)
+        projectOption <- projectRepository.find(projectId, user)
+        parts <- { projectOption match {
+          case Some(project) => partRepository.list(project).flatMap { parts =>
+            Future.sequence(parts.map { part =>
+              taskRepository.list(part).map { tasks =>
+                part.copy(tasks = tasks)
+              }
+            })
+          }
+          case None => Future.successful(IndexedSeq())
+        }}
+      }
+      yield projectOption match {
+        case Some(project) => Some(project.copy(parts = parts))
+        case None => None
+      }
+    }.recover {
+      case exception => throw exception
     }
 
     /**

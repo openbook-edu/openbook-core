@@ -173,7 +173,7 @@ trait AuthServiceComponent {
      * @param roleName  the name of the role
      * @return a boolean indicator if the role was added
      */
-    def addRole(userId: UUID, roleName: String)
+    def addRole(userId: UUID, roleName: String): Future[Boolean]
 
     /**
      * Remove a role from a user.
@@ -182,7 +182,7 @@ trait AuthServiceComponent {
      * @param roleName  the name of the role
      * @return a boolean indicator if the role was removed
      */
-    def removeRole(userId: UUID, roleName: String)
+    def removeRole(userId: UUID, roleName: String): Future[Boolean]
 
     /**
      * Add a role to a given list of users.

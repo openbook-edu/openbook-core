@@ -102,19 +102,19 @@ trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
               },
               day = values.get("day") match {
                 case Some(day: LocalDate) => day
-                case None => sectionSchedule.day
+                case _ => sectionSchedule.day
               },
               startTime = values.get("startTime") match {
                 case Some(startTime: LocalTime) => startTime
-                case None => sectionSchedule.startTime
+                case _ => sectionSchedule.startTime
               },
               endTime = values.get("endTime") match {
                 case Some(endTime: LocalTime) => endTime
-                case None => sectionSchedule.endTime
+                case _ => sectionSchedule.endTime
               },
               description = values.get("description") match {
                 case Some(description: String) => description
-                case None => sectionSchedule.description
+                case _ => sectionSchedule.description
               }
             ))
         }

@@ -341,7 +341,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
                 throw new UsernameAlreadyExistsException(s"The username ${user.username} has already been registered.")
               }
               case (Some(userEmail), Some(userUsername)) => {
-                throw new EmailAndUsernameAlreadyExistException("Both the username ${userUsername.username} and e-mail ${userEmail.email} have already been registered.")
+                throw new EmailAndUsernameAlreadyExistException(s"Both the username ${userUsername.username} and e-mail ${userEmail.email} have already been registered.")
               }
               case _ => {}
             }
@@ -496,15 +496,17 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param roleName  the name of the role
      * @return a boolean indicator if the role was added
      */
-    override def addRole(userId: UUID, roleName: String) = transactional { implicit conn =>
-      val fUserOption = userRepository.find(userId)
-      val fRoleOption = roleRepository.find(roleName)
-      for {
-        userOption <- fUserOption
-        roleOption <- fRoleOption
-        roleAdded <- roleRepository.addToUser(userOption.get, roleOption.get)
+    override def addRole(userId: UUID, roleName: String): Future[Boolean] = {
+      transactional { implicit conn =>
+        val fUserOption = userRepository.find(userId)
+        val fRoleOption = roleRepository.find(roleName)
+        for {
+          userOption <- fUserOption
+          roleOption <- fRoleOption
+          roleAdded <- roleRepository.addToUser(userOption.get, roleOption.get)
+        }
+        yield roleAdded
       }
-      yield roleAdded
     }
 
 
@@ -515,15 +517,17 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param roleName  the name of the role
      * @return a boolean indicator if the role was removed
      */
-    override def removeRole(userId: UUID, roleName: String) = transactional { implicit conn =>
-      val fUserOption = userRepository.find(userId)
-      val fRoleOption = roleRepository.find(roleName)
-      for {
-        userOption <- fUserOption
-        roleOption <- fRoleOption
-        roleRemoved <- roleRepository.removeFromUser(userOption.get, roleOption.get)
+    override def removeRole(userId: UUID, roleName: String): Future[Boolean] = {
+      transactional { implicit conn =>
+        val fUserOption = userRepository.find(userId)
+        val fRoleOption = roleRepository.find(roleName)
+        for {
+          userOption <- fUserOption
+          roleOption <- fRoleOption
+          roleRemoved <- roleRepository.removeFromUser(userOption.get, roleOption.get)
+        }
+        yield roleRemoved
       }
-      yield roleRemoved
     }
 
     /**

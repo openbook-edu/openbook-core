@@ -233,7 +233,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      */
     override def delete(project: Project)(implicit conn: Connection): Future[Boolean] = {
       val future = for {
-        queryResult <- conn.sendPreparedStatement(Purge, Array(project.id.bytes, project.version))
+        queryResult <- conn.sendPreparedStatement(Delete, Array(project.id.bytes, project.version))
       }
       yield {
         queryResult.rowsAffected > 0

@@ -2,7 +2,6 @@ package ca.shiftfocus.krispii.core.models.tasks
 
 import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models.Part
-import ca.shiftfocus.krispii.core.models.tasks.CommonTaskSettings
 import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._

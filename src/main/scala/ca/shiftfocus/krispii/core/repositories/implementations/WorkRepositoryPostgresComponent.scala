@@ -304,7 +304,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
         new DateTime,
         work.revision,
         work.answer match {
-          case matchList: IndexedSeq[MatchingTask.Match] => matchList.map { item => s"${item.left}:${item.right}"}
+          case (head: MatchingTask.Match)::rest => work.answer.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => s"${item.left}:${item.right}"}
           case anything => anything
         }
       )).map { result =>

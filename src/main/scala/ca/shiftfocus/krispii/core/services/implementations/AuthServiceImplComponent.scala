@@ -259,7 +259,21 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param surname  The user's family name.
      * @return the created user
      */
-    override def create(username: String, email: String, password: String, givenname: String, surname: String): Future[User] = {
+    override def create(username: String, email: String, password: String, givenname: String, surname: String): Future[User] =
+      create(username, email, password, givenname, surname, UUID.random)
+
+    /**
+     * Create a new user. Throws exceptions if the e-mail and username aren't unique.
+     *
+     * @param username  A unique identifier for this user.
+     * @param email  The user's unique e-mail address.
+     * @param password  The user's password.
+     * @param givenname  The user's first name.
+     * @param surname  The user's family name.
+     * @param id The ID to allocate for this user, if left out, it will be random.
+     * @return the created user
+     */
+    override def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.random): Future[User] = {
       transactional { implicit conn =>
         // Before we do anything, we need to verify that the username and email are
         // unique. Throw a temper tantrum if they aren't.
@@ -282,13 +296,16 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
               val webcrank = Passwords.scrypt()
               val passwordHash = Some(webcrank.crypt(password))
               val newUser = User(
+                id = id,
                 username = username,
                 email = email,
                 passwordHash = passwordHash,
                 givenname = givenname,
                 surname = surname
               )
-              userRepository.insert(newUser)(conn)
+              val insert = userRepository.insert(newUser)
+              println(insert.isCompleted)
+              insert
             }
           }
         }}

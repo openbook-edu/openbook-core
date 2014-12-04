@@ -104,9 +104,9 @@ class AuthServiceSpec
       "return a new user if the email and password are unique and the user was created" in {
         (userRepository.find(_: String)) when(testUserA.username) returns(Future.successful(None))
         (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(None))
-        (userRepository.insert(_: User)(_: Connection)) when(*, mockConnection) returns(Future.successful(testUserA))
+        (userRepository.insert(_: User)(_: Connection)) when(testUserA, mockConnection) returns(Future.successful(testUserA))
 
-        val fNewUser = authService.create(testUserA.username, testUserA.email, password, testUserA.givenname, testUserA.surname)
+        val fNewUser = authService.create(testUserA.username, testUserA.email, password, testUserA.givenname, testUserA.surname,testUserA.id)
         Await.result(fNewUser, Duration.Inf) should be (testUserA)
       }
       "throw an exception if email is not unique" in {

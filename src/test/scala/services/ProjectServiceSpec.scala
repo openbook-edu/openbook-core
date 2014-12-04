@@ -246,7 +246,7 @@ class ProjectServiceSpec
         (partRepository.list(_:Project)) when(testProject) returns Future.successful(indexedPart)
         (partRepository.update(_:Part)(_: Connection)) when(testPart, mockConnection) returns Future.successful(testPart)
         (partRepository.insert(_:Part)(_: Connection)) when(*, mockConnection) returns Future.successful(testPart)
-        (DB.serialized(_:*)(_:E => Future[R])) when(*, partRepository.update) returns Future.successful(indexedPart)
+        (DB.serialized(_: IndexedSeq[Part])(_: Part => Future[Part])) when(IndexedSeq[Part](), partRepository.update) returns Future.successful(indexedPart)
 
         val fNewPart = projectService.createPart(testProject.id, testPart.name, testPart.description, testPart.position)
         Await.result(fNewPart, Duration.Inf).position should be (testPart.position)

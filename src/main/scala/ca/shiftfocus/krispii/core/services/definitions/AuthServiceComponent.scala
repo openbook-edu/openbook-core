@@ -93,6 +93,8 @@ trait AuthServiceComponent {
      */
     def create(username: String, email: String, password: String, givenname: String, surname: String): Future[User]
 
+    def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID): Future[User]
+
     /**
      * Update an existing user. Throws exceptions if the e-mail and username aren't unique.
      *

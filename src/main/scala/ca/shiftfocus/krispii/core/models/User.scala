@@ -20,6 +20,21 @@ case class User(
   createdAt: Option[DateTime] = None,
   updatedAt: Option[DateTime] = None
 ) {
+  /**
+   * Indicates whether another user is equal to this one.
+   *
+   * Two users are considered to be the same if they share the same UUID.
+   *
+   * @param that
+   * @return
+   */
+  override def equals(anotherObject: Any): Boolean = {
+    anotherObject match {
+      case anotherUser: User => this.id == anotherUser.id
+      case _ => false
+    }
+  }
+
   override def toString() = {
     s"User(id: ${id.string}, version: $version, username: $username, email: $email, full name: '$givenname $surname')"
   }

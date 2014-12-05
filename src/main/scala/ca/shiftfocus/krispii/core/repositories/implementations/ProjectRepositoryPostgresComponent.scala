@@ -27,7 +27,8 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
 
     val Select =
       """
-         |SELECT id, version, class_id, name, slug, description, availability, created_at, updated_at
+         |SELECT projects.id as id, projects.version as version, projects.class_id, projects.name as name, projects.slug as slug,
+         |       projects.description as description, projects.availability as availability, projects.created_at as created_at, projects.updated_at as updated_at
        """.stripMargin
 
     val From =
@@ -46,21 +47,21 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
       s"""
          |$Select
          |$From
-      """
+      """.stripMargin
 
     val SelectOne =
       s"""
          |$Select
          |$From
-         |WHERE id = ?
-      """
+         |WHERE projects.id = ?
+      """.stripMargin
 
     val SelectOneForUser =
       s"""
          |$Select
          |$From, classes, users_classes
-         |WHERE project.id = ?
-         |  AND project.class_id = classes.id
+         |WHERE projects.id = ?
+         |  AND projects.class_id = classes.id
          |  AND (classes.teacher_id = ? OR (
          |    classes.id = users_classes.class_id AND users_classes.user_id = ?
          |  ))
@@ -75,7 +76,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
 
     val SelectIdBySlug =
       s"""
-         |SELECT id
+         |SELECT projects.id
          |$From
          |WHERE slug = ?
        """.stripMargin

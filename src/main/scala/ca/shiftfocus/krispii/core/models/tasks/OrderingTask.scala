@@ -67,9 +67,9 @@ object OrderingTask {
       settings = CommonTaskSettings(row),
 
       // Specific to this type
-      elements = row("choices").asInstanceOf[IndexedSeq[String]],
-      answer = row("answer").asInstanceOf[IndexedSeq[Int]],
-      randomizeChoices = row("randomize_choices").asInstanceOf[Boolean],
+      elements = Option(row("choices").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
+      answer  = Option(row("answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
+      randomizeChoices = row("randomize").asInstanceOf[Boolean],
 
       // All entities have these
       createdAt = Some(row("created_at").asInstanceOf[DateTime]),
@@ -89,7 +89,7 @@ object OrderingTask {
         version  = (js \ "version").as[Long], // CommonTaskSettings
         settings = (js \ "settings").as[CommonTaskSettings],
         elements = (js \ "elements").as[IndexedSeq[String]],
-        answer   = (js \ "answer").as[IndexedSeq[Int]],
+        answer   = (js \ "answers").as[IndexedSeq[Int]],
         randomizeChoices = (js \ "randomizeChoices").as[Boolean],
         createdAt = (js \ "createdAt").as[Option[DateTime]],
         updatedAt = (js \ "updatedAt").as[Option[DateTime]]

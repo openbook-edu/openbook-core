@@ -43,11 +43,15 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |  short_answer_tasks.max_length,
          |  multiple_choice_tasks.choices,
          |  multiple_choice_tasks.answers,
+         |  multiple_choice_tasks.allow_multiple,
+         |  multiple_choice_tasks.randomize,
          |  ordering_tasks.choices,
          |  ordering_tasks.answers,
+         |  ordering_tasks.randomize,
          |  matching_tasks.choices_left,
          |  matching_tasks.choices_right,
-         |  matching_Tasks.answers
+         |  matching_Tasks.answers,
+         |  matching_Tasks.randomize
        """.stripMargin
 
     val From = "FROM tasks"

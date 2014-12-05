@@ -153,7 +153,7 @@ object Task {
    * the appropriate writer.
    */
   implicit val jsonWrites = new Writes[Task] {
-    def writes(task: Task): JsValue = task match {
+    def writes(aTask: Task): JsValue = aTask match {
       case task: LongAnswerTask => Json.toJson(task).as[JsObject].deepMerge(Json.obj(
         "taskType" -> LongAnswer
       ))

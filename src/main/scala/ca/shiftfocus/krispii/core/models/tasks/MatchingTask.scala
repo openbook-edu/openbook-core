@@ -85,13 +85,13 @@ object MatchingTask {
       settings = CommonTaskSettings(row),
 
       // Specific to this type
-      elementsLeft = row("elements_left").asInstanceOf[IndexedSeq[String]],
-      elementsRight = row("elements_right").asInstanceOf[IndexedSeq[String]],
-      answer = row("answer").asInstanceOf[IndexedSeq[String]].map { element =>
+      elementsLeft = Option(row("elements_left").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
+      elementsRight = Option(row("elements_right").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
+      answer = Option(row("answers").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]).map { element =>
         val split = element.split(":")
         Match(split(0).toInt, split(1).toInt)
       },
-      randomizeChoices = row("randomize_choices").asInstanceOf[Boolean],
+      randomizeChoices = row("randomize").asInstanceOf[Boolean],
 
       // All entities have these
       createdAt = Some(row("created_at").asInstanceOf[DateTime]),

@@ -54,7 +54,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
          |$From
          |WHERE id = ?
          |$OrderBy
-       """
+       """.stripMargin
 
     val Insert =
       s"""

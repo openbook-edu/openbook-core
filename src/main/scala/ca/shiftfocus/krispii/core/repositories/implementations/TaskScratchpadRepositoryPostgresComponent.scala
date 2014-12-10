@@ -29,9 +29,9 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
       val extraFields = fields.mkString(",")
       val questions = fields.map(_ => "?").mkString(",")
       s"""
-        INSERT INTO $table (user_id, task_id, revision, version, status, created_at, updated_at, $extraFields)
-        VALUES (?, ?, ?, 1, 1, ?, ?, $questions)
-        RETURNING user_id, task_id, revision, version, status, created_at, updated_at, $extraFields
+        INSERT INTO $table (user_id, task_id, revision, version, created_at, updated_at, $extraFields)
+        VALUES (?, ?, ?, 1, ?, ?, $questions)
+        RETURNING user_id, task_id, revision, version, created_at, updated_at, $extraFields
       """
     }
 
@@ -44,15 +44,13 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
           AND task_id = ?
           AND revision = ?
           AND version = ?
-          AND status = 1
-        RETURNING user_id, task_id, revision, version, status, created_at, updated_at, $extraFields
+        RETURNING user_id, task_id, revision, version,  created_at, updated_at, $extraFields
       """
     }
 
     val SelectAll = s"""
       SELECT user_id, task_id, revision, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
       ORDER BY id asc
     """
 
@@ -62,7 +60,6 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
       WHERE user_id = ?
         AND task_id = ?
         AND revision = ?
-        AND status = 1
       LIMIT 1
     """
 
@@ -71,7 +68,6 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
       FROM $table
       WHERE user_id = ?
         AND task_id = ?
-        AND status = 1
       ORDER BY revision DESC
     """
 
@@ -80,7 +76,6 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
       FROM $table
       WHERE user_id = ?
         AND task_id = ?
-        AND status = 1
       ORDER BY revision DESC
       LIMIT 1
     """
@@ -93,7 +88,6 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
         AND parts.id = tasks.part_id
         AND projects.id = parts.project_id
         AND task_notes.task_id = tasks.id
-        AND task_notes.status = 1
         AND revision = (SELECT MAX(revision) FROM task_notes WHERE user_id= ? AND task_id=tasks.id)
     """
 
@@ -103,7 +97,6 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
         ON (sr1.user_id = sr2.user_id AND sr1.task_id < sr2.task_id)
       WHERE user_id = ?
         AND sr1.task_id IS NULL
-        AND status = 1
       ORDER BY revision DESC
     """
 
@@ -113,13 +106,11 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
         ON (sr1.task_id = sr2.task_id AND sr1.user_id < sr2.user_id)
       WHERE task_id = ?
         AND sr1.user_id IS NULL
-        AND status = 1
       ORDER BY revision DESC
     """
 
     val Delete = s"""
-      UPDATE $table
-      SET status = 0
+      DELETE FROM $table
       WHERE user_id = ?
         AND task_id = ?
         AND version = ?

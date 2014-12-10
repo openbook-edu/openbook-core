@@ -34,7 +34,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     val SelectAll = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
       ORDER BY $orderBy
     """
 
@@ -42,15 +41,14 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
       WHERE id = ?
-        AND status = 1
     """
 
     val Insert = {
       val extraFields = fields.mkString(",")
       val questions = fields.map(_ => "?").mkString(",")
       s"""
-        INSERT INTO $table (id, version, status, created_at, updated_at, $extraFields)
-        VALUES (?, 1, 1, ?, ?, $questions)
+        INSERT INTO $table (id, version, created_at, updated_at, $extraFields)
+        VALUES (?, 1, ?, ?, $questions)
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
@@ -62,13 +60,12 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
         SET $extraFields , version = ?, updated_at = ?
         WHERE id = ?
           AND version = ?
-          AND status = 1
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
 
     val Delete = s"""
-      UPDATE $table SET status = 0 WHERE id = ? AND version = ?
+      DELETE FROM $table WHERE id = ? AND version = ?
     """
 
     val DeleteByProject = s"""
@@ -87,7 +84,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
       WHERE project_id = ?
-        AND status = 1
       ORDER BY position ASC
     """
 
@@ -96,7 +92,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       FROM $table
       WHERE project_id = ?
         AND position = ?
-        AND status = 1
       LIMIT 1
     """
 
@@ -106,7 +101,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       FROM $table, projects
       WHERE parts.project_id = projects.id
         AND projects.slug = ?
-        AND status = 1
     """
 
     val SelectByComponentId = s"""
@@ -115,57 +109,54 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       FROM $table
       INNER JOIN components_parts ON parts.id = components_parts.part_id
       WHERE components_parts.component_id = ?
-        AND status = 1
     """
 
     val SelectEnabledForUserAndProjectId = s"""
       SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
              parts.project_id, parts.name as name, parts.description as description, parts.position as position,
-             sections.name as section_name, users.username as username
-      FROM parts, projects, sections, sections_projects, users_sections, users, scheduled_sections_parts
+             classes.name as section_name, users.username as username
+      FROM parts, projects, classes, classes_projects, users_classes, users, scheduled_classes_parts
       WHERE projects.id = ?
         AND users.id = ?
         AND parts.project_id = projects.id
-        AND sections_projects.project_id = projects.id
-        AND sections_projects.section_id = sections.id
-        AND users_sections.section_id = sections_projects.section_id
-        AND users_sections.user_id = users.id
-        AND scheduled_sections_parts.section_id = sections.id
-        AND scheduled_sections_parts.part_id = parts.id
-        AND scheduled_sections_parts.active = TRUE
-        AND parts.status = 1
+        AND classes_projects.project_id = projects.id
+        AND classes_projects.class_id = classes.id
+        AND users_classes.class_id = classes_projects.class_id
+        AND users_classes.user_id = users.id
+        AND scheduled_classes_parts.class_id = classes.id
+        AND scheduled_classes_parts.part_id = parts.id
+        AND scheduled_classes_parts.active = TRUE
     """
 
     val SelectEnabledForSectionAndProjectId = s"""
       SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
              parts.project_id, parts.name as name, parts.description as description, parts.position as position,
-             sections.name as section_name
-      FROM parts, projects, sections, sections_projects, scheduled_sections_parts
+             classes.name as section_name
+      FROM parts, projects, classes, classes_projects, scheduled_classes_parts
       WHERE projects.id = ?
-        AND sections.id = ?
+        AND classes.id = ?
         AND parts.project_id = projects.id
-        AND sections_projects.project_id = projects.id
-        AND sections_projects.section_id = sections.id
-        AND scheduled_sections_parts.section_id = sections.id
-        AND scheduled_sections_parts.part_id = parts.id
-        AND scheduled_sections_parts.active = TRUE
-        AND parts.status = 1
+        AND classes_projects.project_id = projects.id
+        AND classes_projects.class_id = classes.id
+        AND scheduled_classes_parts.class_id = classes.id
+        AND scheduled_classes_parts.part_id = parts.id
+        AND scheduled_classes_parts.active = TRUE
     """
 
     val IsPartEnabledForUser = s"""
-      SELECT scheduled_sections_parts.active
-      FROM parts, users_sections, scheduled_sections_parts
+      SELECT scheduled_classes_parts.active
+      FROM parts, users_classes, scheduled_classes_parts
       WHERE parts.id = ?
-        AND users_sections.user_id = ?
-        AND users_sections.section_id = scheduled_sections_parts.section_id
-        AND scheduled_sections_parts.part_id = parts.id
+        AND users_classes.user_id = ?
+        AND users_classes.class_id = scheduled_classes_parts.class_id
+        AND scheduled_classes_parts.part_id = parts.id
     """
 
     val IsPartEnabledForSection = s"""
-      SELECT scheduled_sections_parts.active
-      FROM scheduled_sections_parts
-      WHERE scheduled_sections_parts.part_id = ?
-        AND scheduled_sections_parts.section_id = ?
+      SELECT scheduled_classes_parts.active
+      FROM scheduled_classes_parts
+      WHERE scheduled_classes_parts.part_id = ?
+        AND scheduled_classes_parts.class_id = ?
     """
 
     val ReorderParts1 = s"""
@@ -281,10 +272,10 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
      * List enabled parts of a project for a specific section.
      *
      * @param project the [[Project]] to list parts from
-     * @param section the [[Section]] to select enabled parts for
+     * @param section the [[Class]] to select enabled parts for
      * @return an vector of the enabled parts
      */
-    def listEnabled(project: Project, section: Section): Future[IndexedSeq[Part]] = {
+    def listEnabled(project: Project, section: Class): Future[IndexedSeq[Part]] = {
       db.pool.sendPreparedStatement(SelectEnabledForSectionAndProjectId, Seq[Any](project.id.bytes, section.id.bytes)).map { queryResult =>
         val partList = queryResult.rows.get.map {
           item: RowData => Part(item)
@@ -299,7 +290,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
 
     /**
      * List enabled parts of a project for a user. Will check for parts
-     * enabled in *any* of that user's sections.
+     * enabled in *any* of that user's classes.
      *
      * @param project the [[Project]] to list parts from
      * @param user the [[User]] to select enabled parts for
@@ -347,7 +338,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     /**
      * Returns a boolean indicating whether a part is active for a given section.
      */
-    def isEnabled(part: Part, section: Section): Future[Boolean] = {
+    def isEnabled(part: Part, section: Class): Future[Boolean] = {
       val isEnabled = for {
         result <- db.pool.sendPreparedStatement(IsPartEnabledForSection, Array(part.id.bytes, section.id.bytes))
       }

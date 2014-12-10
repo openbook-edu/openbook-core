@@ -35,29 +35,26 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     val SelectAll = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
       ORDER BY $orderBy
     """
 
     val SelectWithIds = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
     """
 
     val SelectOne = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
       WHERE id = ?
-        AND status = 1
     """
 
     val Insert = {
       val extraFields = fields.mkString(",")
       val questions = fields.map(_ => "?").mkString(",")
       s"""
-        INSERT INTO $table (id, version, status, created_at, updated_at, $extraFields)
-        VALUES (?, 1, 1, ?, ?, $questions)
+        INSERT INTO $table (id, version, created_at, updated_at, $extraFields)
+        VALUES (?, 1, ?, ?, $questions)
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
@@ -69,13 +66,12 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
         SET $extraFields , version = ?, updated_at = ?
         WHERE id = ?
           AND version = ?
-          AND status = 1
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
 
     val Delete = s"""
-      UPDATE $table SET status = 0 WHERE id = ? AND version = ?
+      DELETE FROM $table WHERE id = ? AND version = ?
     """
 
     val Restore = s"""
@@ -93,7 +89,6 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
         SET $extraFields , version = ?, updated_at = ?
         WHERE id = ?
           AND version = ?
-          AND status = 1
         RETURNING version
       """
     }
@@ -102,34 +97,31 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM users
       WHERE email = ?
-        AND status = 1
     """
 
     val SelectOneByIdentifier = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM users
       WHERE (email = ? OR username = ?)
-        AND status = 1
       LIMIT 1
     """
 
     val AddUser = """
-      INSERT INTO users_sections (user_id, section_id, created_at)
+      INSERT INTO users_classes (user_id, class_id, created_at)
       VALUES (?, ?, ?)
     """
 
     val RemoveUser = """
-      DELETE FROM users_sections
+      DELETE FROM users_classes
       WHERE user_id = ?
-        AND section_id = ?
+        AND class_id = ?
     """
 
     val ListUsers = s"""
       SELECT id, version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
-      FROM users, users_sections
-      WHERE users.id = users_sections.user_id
-        AND users_sections.section_id = ?
-        AND users.status = 1
+      FROM users, users_classes
+      WHERE users.id = users_classes.user_id
+        AND users_classes.class_id = ?
       ORDER BY $orderBy
     """
 
@@ -139,45 +131,37 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       WHERE users.id = users_roles.user_id
         AND roles.id = users_roles.role_id
         AND roles.name = ANY (?::text[])
-        AND users.status = 1
-        AND roles.status = 1
       GROUP BY users.id
       ORDER BY $orderBy
     """
 
     val ListUsersFilterBySections = s"""
       SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
-      FROM users, sections, users_sections
-      WHERE users.id = users_sections.user_id
-        AND sections.id = users_sections.section_id
-        AND users.status = 1
-        AND sections.status = 1
+      FROM users, classes, users_classes
+      WHERE users.id = users_classes.user_id
+        AND classes.id = users_classes.class_id
     """
 
     val ListUsersFilterByRolesAndSections = s"""
       SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
-      FROM users, roles, users_roles, sections, users_sections
+      FROM users, roles, users_roles, classes, users_classes
       WHERE users.id = users_roles.user_id
         AND roles.id = users_roles.role_id
         AND roles.name = ANY (?::text[])
-        AND users.id = users_sections.user_id
-        AND sections.id = users_sections.section_id
-        AND sections.name = ANY (?::text[])
-        AND users.status = 1
-        AND roles.status = 1
-        AND sections.status = 1
+        AND users.id = users_classes.user_id
+        AND classes.id = users_classes.class_id
+        AND classes.name = ANY (?::text[])
       GROUP BY users.id
       ORDER BY $orderBy
     """
 
     val HasProject = s"""
       SELECT projects.id
-      FROM users_sections
-      INNER JOIN sections_projects ON users_sections.section_id = sections_projects.section_id
-      INNER JOIN projects ON sections_projects.project_id = projects.id
-      WHERE sections_projects.project_id = ?
-        AND users_sections.user_id = ?
-        AND projects.status = 1
+      FROM users_classes
+      INNER JOIN classes_projects ON users_classes.class_id = classes_projects.class_id
+      INNER JOIN projects ON classes_projects.project_id = projects.id
+      WHERE classes_projects.project_id = ?
+        AND users_classes.user_id = ?
     """
 
     /**
@@ -224,7 +208,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      *
      *
      */
-    override def list(section: Section): Future[IndexedSeq[User]] = {
+    override def list(section: Class): Future[IndexedSeq[User]] = {
       db.pool.sendPreparedStatement(ListUsers, Array(section.id.bytes)).map { queryResult =>
         val userList = queryResult.rows.get.map {
           item: RowData => {
@@ -241,13 +225,13 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     }
 
     /**
-     * List the users belonging to a set of sections.
+     * List the users belonging to a set of classes.
      *
-     * @param sections an [[IndexedSeq]] of [[Section]] to filter by.
+     * @param classes an [[IndexedSeq]] of [[Class]] to filter by.
      * @return an [[IndexedSeq]] of [[User]]
      */
-    override def listForSections(sections: IndexedSeq[Section]) = {
-      Future.sequence(sections.map(list)).map(_.flatten).recover {
+    override def listForSections(classes: IndexedSeq[Class]) = {
+      Future.sequence(classes.map(list)).map(_.flatten).recover {
         case exception => {
           throw exception
         }
@@ -273,14 +257,14 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     }
 
     /**
-     * List users filtering by both roles and sections.
+     * List users filtering by both roles and classes.
      *
      * @param roles an [[IndexedSeq]] of [[String]] naming the roles to filter by.
-     * @param sections an [[IndexedSeq]] of [[Section]] to filter by.
+     * @param classes an [[IndexedSeq]] of [[Class]] to filter by.
      * @return an [[IndexedSeq]] of [[User]]
      */
-    override def listForRolesAndSections(roles: IndexedSeq[String], sections: IndexedSeq[String]) = {
-      db.pool.sendPreparedStatement(ListUsersFilterByRolesAndSections, Array[Any](roles, sections)).map { queryResult =>
+    override def listForRolesAndSections(roles: IndexedSeq[String], classes: IndexedSeq[String]) = {
+      db.pool.sendPreparedStatement(ListUsersFilterByRolesAndSections, Array[Any](roles, classes)).map { queryResult =>
         queryResult.rows.get.map {
           item: RowData => User(item)
         }

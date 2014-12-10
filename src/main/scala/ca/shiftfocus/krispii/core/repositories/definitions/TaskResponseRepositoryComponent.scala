@@ -30,6 +30,6 @@ trait TaskResponseRepositoryComponent {
     def update(taskResponse: TaskResponse)(implicit conn: Connection): Future[TaskResponse]
     def delete(taskResponse: TaskResponse)(implicit conn: Connection): Future[Boolean]
     def delete(task: Task)(implicit conn: Connection): Future[Boolean]
-    def forceComplete(task: Task, section: Section)(implicit conn: Connection): Future[Boolean]
+    def forceComplete(task: Task, section: Class)(implicit conn: Connection): Future[Boolean]
   }
 }

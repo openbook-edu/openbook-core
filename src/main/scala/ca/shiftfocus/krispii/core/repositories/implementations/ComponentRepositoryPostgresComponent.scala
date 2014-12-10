@@ -29,7 +29,6 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       LEFT JOIN audio_components ON components.id = audio_components.component_id
       LEFT JOIN text_components ON components.id = text_components.component_id
       LEFT JOIN video_components ON components.id = video_components.component_id
-      WHERE status = 1
       ORDER BY title ASC
     """
 
@@ -44,7 +43,6 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       LEFT JOIN audio_components ON components.id = audio_components.component_id
       LEFT JOIN text_components ON components.id = text_components.component_id
       LEFT JOIN video_components ON components.id = video_components.component_id
-      WHERE status = 1
         AND components.id = ?
     """
 
@@ -60,8 +58,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       LEFT JOIN audio_components ON components.id = audio_components.component_id
       LEFT JOIN text_components ON components.id = text_components.component_id
       LEFT JOIN video_components ON components.id = video_components.component_id
-      WHERE status = 1
-        AND components_parts.part_id = ?
+      WHERE components_parts.part_id = ?
         AND version = ?
       GROUP BY components.id
       ORDER BY components.title ASC
@@ -78,17 +75,16 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
              components.created_at as created_at, components.updated_at as updated_at
       FROM components
       INNER JOIN users ON users.id = ?
-      INNER JOIN users_sections ON users.id = users_sections.user_id
-      INNER JOIN sections_projects ON users_sections.section_id = sections_projects.section_id
-      INNER JOIN projects ON projects.id = sections_projects.project_id
+      INNER JOIN users_classes ON users.id = users_classes.user_id
+      INNER JOIN classes_projects ON users_classes.class_id = classes_projects.class_id
+      INNER JOIN projects ON projects.id = classes_projects.project_id
       INNER JOIN components_parts ON components.id = components_parts.component_id
       INNER JOIN parts ON projects.id = parts.project_id AND parts.id = components_parts.part_id
-      INNER JOIN scheduled_sections_parts ON components_parts.part_id = scheduled_sections_parts.part_id  AND scheduled_sections_parts.part_id = parts.id AND scheduled_sections_parts.section_id = users_sections.section_id
+      INNER JOIN scheduled_classes_parts ON components_parts.part_id = scheduled_classes_parts.part_id  AND scheduled_classes_parts.part_id = parts.id AND scheduled_classes_parts.class_id = users_classes.class_id
       LEFT JOIN audio_components ON components.id = audio_components.component_id
       LEFT JOIN text_components ON components.id = text_components.component_id
       LEFT JOIN video_components ON components.id = video_components.component_id
-      WHERE components.status = 1
-        AND parts.project_id = ?
+      WHERE parts.project_id = ?
       GROUP BY components.id, audio_components.component_id, text_components.component_id, video_components.component_id
       ORDER BY components.title ASC
     """
@@ -107,8 +103,8 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
 
     val InsertAudio = """
       WITH component AS (
-        INSERT INTO components (id, version, title, questions, things_to_think_about, type, status, created_at, updated_at)
-        VALUES (?, 1, ?, ?, ?, 'audio', 1, ?, ?)
+        INSERT INTO components (id, version, title, questions, things_to_think_about, type, created_at, updated_at)
+        VALUES (?, 1, ?, ?, ?, 'audio', ?, ?)
         RETURNING id, version
       )
       INSERT INTO audio_components (component_id, soundcloud_id)
@@ -120,8 +116,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       WITH component AS (
         UPDATE components
         SET version = ?, title = ?, questions = ?, things_to_think_about = ?, type = 'audio', updated_at = ?
-        WHERE status = 1
-          AND id = ?
+        WHERE id = ?
           AND version = ?
         RETURNING id, version
       )
@@ -134,8 +129,8 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
 
     val InsertText = """
       WITH component AS (
-        INSERT INTO components (id, version, title, questions, things_to_think_about, type, status, created_at, updated_at)
-        VALUES (?, 1, ?, ?, ?, 'text', 1, ?, ?)
+        INSERT INTO components (id, version, title, questions, things_to_think_about, type, created_at, updated_at)
+        VALUES (?, 1, ?, ?, ?, 'text', ?, ?)
         RETURNING id, version
       )
       INSERT INTO text_components (component_id, content)
@@ -147,8 +142,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       WITH component AS (
         UPDATE components
         SET version = ?, title = ?, questions = ?, things_to_think_about = ?, type = 'text', updated_at = ?
-        WHERE status = 1
-          AND id = ?
+        WHERE id = ?
           AND version = ?
         RETURNING id, version
       )
@@ -161,8 +155,8 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
 
     val InsertVideo = """
       WITH component AS (
-        INSERT INTO components (id, version, title, questions, things_to_think_about, type, status, created_at, updated_at)
-        VALUES (?, 1, ?, ?, ?, 'video', 1, ?, ?)
+        INSERT INTO components (id, version, title, questions, things_to_think_about, type, created_at, updated_at)
+        VALUES (?, 1, ?, ?, ?, 'video', ?, ?)
         RETURNING id, version
       )
       INSERT INTO video_components (component_id, vimeo_id, width, height)
@@ -174,8 +168,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       WITH component AS (
         UPDATE components
         SET version = ?, title = ?, questions = ?, things_to_think_about = ?, type = 'video', updated_at = ?
-        WHERE status = 1
-          AND id = ?
+        WHERE id = ?
           AND version = ?
         RETURNING id, version
       )

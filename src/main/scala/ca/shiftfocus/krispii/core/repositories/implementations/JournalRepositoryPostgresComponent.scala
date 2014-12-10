@@ -29,15 +29,13 @@ trait JournalRepositoryPostgresComponent extends JournalRepositoryComponent {
     val SelectAll = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
       ORDER BY $orderBy
     """
 
     val SelectAllInDateRange = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
-        AND created_at >= ?
+      WHERE created_at >= ?
         AND created_at <= ?
       ORDER BY $orderBy
     """
@@ -45,16 +43,14 @@ trait JournalRepositoryPostgresComponent extends JournalRepositoryComponent {
     val SelectByUserId = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
-        AND user_id = ?
+      WHERE user_id = ?
       ORDER BY $orderBy
     """
 
     val SelectByUserIdInDateRange = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
-        AND user_id = ?
+      WHERE user_id = ?
         AND created_at >= ?
         AND created_at <= ?
       ORDER BY $orderBy
@@ -64,15 +60,14 @@ trait JournalRepositoryPostgresComponent extends JournalRepositoryComponent {
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
       WHERE id = ?
-        AND status = 1
     """
 
     val Insert = {
       val extraFields = fields.mkString(",")
       val questions = fields.map(_ => "?").mkString(",")
       s"""
-        INSERT INTO $table (id, version, status, created_at, updated_at, $extraFields)
-        VALUES (?, 1, 1, ?, ?, $questions)
+        INSERT INTO $table (id, version, created_at, updated_at, $extraFields)
+        VALUES (?, 1, ?, ?, $questions)
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
@@ -84,13 +79,12 @@ trait JournalRepositoryPostgresComponent extends JournalRepositoryComponent {
         SET $extraFields , version = ?, updated_at = ?
         WHERE id = ?
           AND version = ?
-          AND status = 1
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
 
     val Delete = s"""
-      UPDATE $table SET status = 0 WHERE id = ? AND version = ?
+      DELETE FROM $table WHERE id = ? AND version = ?
     """
 
     /**

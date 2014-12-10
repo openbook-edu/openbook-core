@@ -14,7 +14,22 @@ case class Role(
   name: String,
   createdAt: Option[DateTime] = None,
   updatedAt: Option[DateTime] = None
-)
+) {
+  /**
+   * Override equals such that Roles can be compared against
+   * strings to check if that string matches the role name.
+   *
+   * @param that
+   * @return boolean indicating equality
+   */
+  override def equals(that: Any): Boolean = {
+    that match {
+      case thatRole: Role => this.id == thatRole.id
+      case thatString: String => this.name == thatString
+      case _ => false
+    }
+  }
+}
 
 object Role {
 

@@ -12,8 +12,8 @@ import scala.concurrent.Future
 
 trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
   self: UserRepositoryComponent with
-        SectionRepositoryComponent with
-        SectionScheduleRepositoryComponent with
+        ClassRepositoryComponent with
+        ClassScheduleRepositoryComponent with
         ProjectRepositoryComponent with
         DB =>
 
@@ -24,7 +24,7 @@ trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
     /**
      * List all section schedules.
      */
-    override def list: Future[IndexedSeq[SectionSchedule]] = {
+    override def list: Future[IndexedSeq[ClassSchedule]] = {
       sectionScheduleRepository.list(db.pool)
     }
 
@@ -34,9 +34,9 @@ trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
      * @param id the UUID of the section to list for.
      * @return a vector of the given section's schedules
      */
-    override def listBySection(id: UUID): Future[IndexedSeq[SectionSchedule]] = {
+    override def listBySection(id: UUID): Future[IndexedSeq[ClassSchedule]] = {
       for {
-        section <- sectionRepository.find(id).map(_.get)
+        section <- classRepository.find(id).map(_.get)
         schedules <- sectionScheduleRepository.list(section)(db.pool)
       }
       yield schedules
@@ -44,7 +44,7 @@ trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
       case exception => throw exception
     }
 
-    override def find(id: UUID): Future[Option[SectionSchedule]] = {
+    override def find(id: UUID): Future[Option[ClassSchedule]] = {
       sectionScheduleRepository.find(id)(db.pool).recover {
         case exception => throw exception
       }
@@ -53,19 +53,19 @@ trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
     /**
      * Create a new section schedule.
      *
-     * @param sectionId the ID of the section this scheduled time belongs to
+     * @param classId the ID of the section this scheduled time belongs to
      * @param day the date on which this schedule is scheduled
      * @param startTime the time of day that the schedule starts
      * @param endTime the time of day that the schedule ends
      * @param description a brief description may be entered
      * @return the newly created section schedule
      */
-    override def create(sectionId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String): Future[SectionSchedule] = {
+    override def create(classId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String): Future[ClassSchedule] = {
       transactional { implicit connection =>
         for {
-          section <- sectionRepository.find(sectionId).map(_.get)
-          newSchedule <- sectionScheduleRepository.insert(SectionSchedule(
-            sectionId = section.id,
+          section <- classRepository.find(classId).map(_.get)
+          newSchedule <- sectionScheduleRepository.insert(ClassSchedule(
+            classId = section.id,
             day = day,
             startTime = startTime,
             endTime = endTime,
@@ -81,14 +81,14 @@ trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
     /**
      * Update an existing section schedule.
      *
-     * @param sectionId the ID of the section this scheduled time belongs to
+     * @param classId the ID of the section this scheduled time belongs to
      * @param day the date on which this schedule is scheduled
      * @param startTime the time of day that the schedule starts
      * @param endTime the time of day that the schedule ends
      * @param description a brief description may be entered
      * @return the newly created section schedule
      */
-    override def update(id: UUID, version: Long, values: Map[String, Any]): Future[SectionSchedule] = {
+    override def update(id: UUID, version: Long, values: Map[String, Any]): Future[ClassSchedule] = {
       transactional { implicit connection =>
         for {
           sectionSchedule <- sectionScheduleRepository.find(id).map(_.get)
@@ -96,25 +96,25 @@ trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
             // data fields if they were provided.
             sectionSchedule.copy(
               version = version,
-              sectionId = values.get("sectionId") match {
-                case Some(sectionId: UUID) => sectionId
-                case _ => sectionSchedule.sectionId
+              classId = values.get("classId") match {
+                case Some(classId: UUID) => classId
+                case _ => sectionSchedule.classId
               },
               day = values.get("day") match {
                 case Some(day: LocalDate) => day
-                case None => sectionSchedule.day
+                case _ => sectionSchedule.day
               },
               startTime = values.get("startTime") match {
                 case Some(startTime: LocalTime) => startTime
-                case None => sectionSchedule.startTime
+                case _ => sectionSchedule.startTime
               },
               endTime = values.get("endTime") match {
                 case Some(endTime: LocalTime) => endTime
-                case None => sectionSchedule.endTime
+                case _ => sectionSchedule.endTime
               },
               description = values.get("description") match {
                 case Some(description: String) => description
-                case None => sectionSchedule.description
+                case _ => sectionSchedule.description
               }
             ))
         }

@@ -12,10 +12,10 @@ import play.api.libs.functional.syntax._
 import org.joda.time.LocalDate
 import org.joda.time.LocalTime
 
-case class SectionSchedule(
+case class ClassSchedule(
   id: UUID = UUID.random,
   version: Long = 0,
-  sectionId: UUID,
+  classId: UUID,
   day: LocalDate,
   startTime: LocalTime,
   endTime: LocalTime,
@@ -24,17 +24,17 @@ case class SectionSchedule(
   updatedAt: Option[DateTime] = None
 )
 
-object SectionSchedule extends LocalDateTimeJson {
+object ClassSchedule extends LocalDateTimeJson {
 
-  def apply(row: RowData): SectionSchedule = {
+  def apply(row: RowData): ClassSchedule = {
     val day = row("day").asInstanceOf[DateTime]
     val startTime = row("start_time").asInstanceOf[DateTime]
     val endTime = row("end_time").asInstanceOf[DateTime]
 
-    SectionSchedule(
+    ClassSchedule(
       UUID(row("id").asInstanceOf[Array[Byte]]),
       row("version").asInstanceOf[Long],
-      UUID(row("section_id").asInstanceOf[Array[Byte]]),
+      UUID(row("class_id").asInstanceOf[Array[Byte]]),
       day.toLocalDate(),
       new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), startTime.getHourOfDay(), startTime.getMinuteOfHour, startTime.getSecondOfMinute()).toLocalTime(),
       new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), endTime.getHourOfDay(), endTime.getMinuteOfHour, endTime.getSecondOfMinute()).toLocalTime(),
@@ -44,29 +44,29 @@ object SectionSchedule extends LocalDateTimeJson {
     )
   }
 
-  implicit val sectionScheduleReads: Reads[SectionSchedule] = (
+  implicit val sectionScheduleReads: Reads[ClassSchedule] = (
     (__ \ "id").read[UUID] and
     (__ \ "version").read[Long] and
-    (__ \ "sectionId").read[UUID] and
+    (__ \ "classId").read[UUID] and
     (__ \ "day").read[LocalDate] and
     (__ \ "startTime").read[LocalTime] and
     (__ \ "endTime").read[LocalTime] and
     (__ \ "description").read[String] and
     (__ \ "createdAt").readNullable[DateTime] and
     (__ \ "updatedAt").readNullable[DateTime]
-  )(SectionSchedule.apply(_: UUID, _: Long, _: UUID, _: LocalDate, _: LocalTime, _: LocalTime, _: String, _: Option[DateTime], _: Option[DateTime]))
+  )(ClassSchedule.apply(_: UUID, _: Long, _: UUID, _: LocalDate, _: LocalTime, _: LocalTime, _: String, _: Option[DateTime], _: Option[DateTime]))
 
-  implicit val sectionScheduleWrites: Writes[SectionSchedule] = (
+  implicit val sectionScheduleWrites: Writes[ClassSchedule] = (
     (__ \ "id").write[UUID] and
     (__ \ "version").write[Long] and
-    (__ \ "sectionId").write[UUID] and
+    (__ \ "classId").write[UUID] and
     (__ \ "day").write[LocalDate] and
     (__ \ "startTime").write[LocalTime] and
     (__ \ "endTime").write[LocalTime] and
     (__ \ "description").write[String] and
     (__ \ "createdAt").writeNullable[DateTime] and
     (__ \ "updatedAt").writeNullable[DateTime]
-  )(unlift(SectionSchedule.unapply))
+  )(unlift(ClassSchedule.unapply))
 }
 
 /*
@@ -89,7 +89,7 @@ object SectionSchedulePost extends LocalDateTimeJson {
 
 case class SectionSchedulePut(
   version: Long,
-  sectionId: Option[UUID],
+  classId: Option[UUID],
   day: Option[LocalDate],
   startTime: Option[LocalTime],
   endTime: Option[LocalTime],
@@ -98,7 +98,7 @@ case class SectionSchedulePut(
 object SectionSchedulePut extends LocalDateTimeJson {
   implicit val sectionScheduleReads: Reads[SectionSchedulePut] = (
     (__ \ "version").read[Long] and
-      (__ \ "sectionId").readNullable[UUID] and
+      (__ \ "classId").readNullable[UUID] and
       (__ \ "day").readNullable[LocalDate] and
       (__ \ "startTime").readNullable[LocalTime] and
       (__ \ "endTime").readNullable[LocalTime] and

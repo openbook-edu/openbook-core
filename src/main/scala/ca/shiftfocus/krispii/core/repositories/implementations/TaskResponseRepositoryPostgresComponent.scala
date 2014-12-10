@@ -42,8 +42,8 @@ trait TaskResponseRepositoryPostgresComponent extends TaskResponseRepositoryComp
       val extraFields = fields.mkString(",")
       val questions = fields.map(_ => "?").mkString(",")
       s"""
-        INSERT INTO $table (user_id, task_id, revision, version, status, created_at, updated_at, $extraFields)
-        VALUES (?, ?, ?, 1, 1, ?, ?, $questions)
+        INSERT INTO $table (user_id, task_id, revision, version, created_at, updated_at, $extraFields)
+        VALUES (?, ?, ?, 1, ?, ?, $questions)
         RETURNING user_id, task_id, revision, version, created_at, updated_at, $fieldsText
       """
     }
@@ -57,7 +57,6 @@ trait TaskResponseRepositoryPostgresComponent extends TaskResponseRepositoryComp
           AND task_id = ?
           AND revision = ?
           AND version = ?
-          AND status = 1
         RETURNING user_id, task_id, revision, version, created_at, updated_at, $fieldsText
       """
     }
@@ -65,7 +64,6 @@ trait TaskResponseRepositoryPostgresComponent extends TaskResponseRepositoryComp
     val SelectAll = s"""
       SELECT user_id, task_id, revision, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
       ORDER BY id asc
     """
 
@@ -74,7 +72,6 @@ trait TaskResponseRepositoryPostgresComponent extends TaskResponseRepositoryComp
       FROM $table
       WHERE user_id = ?
         AND task_id = ?
-        AND status = 1
       ORDER BY revision DESC
     """
 
@@ -83,7 +80,6 @@ trait TaskResponseRepositoryPostgresComponent extends TaskResponseRepositoryComp
       FROM $table
       WHERE user_id = ?
         AND task_id = ?
-        AND status = 1
       ORDER BY revision DESC
       LIMIT 1
     """
@@ -96,7 +92,6 @@ trait TaskResponseRepositoryPostgresComponent extends TaskResponseRepositoryComp
         AND parts.id = tasks.part_id
         AND projects.id = parts.project_id
         AND student_responses.task_id = tasks.id
-        AND student_responses.status = 1
         AND revision = (SELECT MAX(revision) FROM student_responses WHERE user_id= ? AND task_id=tasks.id)
     """
 
@@ -106,7 +101,6 @@ trait TaskResponseRepositoryPostgresComponent extends TaskResponseRepositoryComp
       WHERE user_id = ?
         AND task_id = ?
         AND revision = ?
-        AND status = 1
       LIMIT 1
     """
 
@@ -116,7 +110,6 @@ trait TaskResponseRepositoryPostgresComponent extends TaskResponseRepositoryComp
         ON (sr1.user_id = sr2.user_id AND sr1.task_id < sr2.task_id)
       WHERE user_id = ?
         AND sr1.task_id IS NULL
-        AND status = 1
       ORDER BY revision DESC
     """
 
@@ -126,13 +119,11 @@ trait TaskResponseRepositoryPostgresComponent extends TaskResponseRepositoryComp
         ON (sr1.task_id = sr2.task_id AND sr1.user_id < sr2.user_id)
       WHERE task_id = ?
         AND sr1.user_id IS NULL
-        AND status = 1
       ORDER BY revision DESC
     """
 
     val Delete = s"""
-      UPDATE $table
-      SET status = 0
+      DELETE FROM $table
       WHERE user_id = ?
         AND task_id = ?
         AND version = ?
@@ -150,14 +141,14 @@ trait TaskResponseRepositoryPostgresComponent extends TaskResponseRepositoryComp
     """
 
     val ForceCompleteStepOne = s"""
-      INSERT INTO $table (user_id, task_id, revision, version, status, created_at, updated_at, response, is_complete)
-      SELECT users_sections.user_id, ? as task_id, 1, 1, 1, ? as created_at, ? as updated_at, '[no response, forced complete]' as response, 't' as is_complete
-      FROM users_sections
-      WHERE users_sections.section_id = ?
+      INSERT INTO $table (user_id, task_id, revision, version, created_at, updated_at, response, is_complete)
+      SELECT users_classes.user_id, ? as task_id, 1, 1, ? as created_at, ? as updated_at, '[no response, forced complete]' as response, 't' as is_complete
+      FROM users_classes
+      WHERE users_classes.class_id = ?
         AND NOT EXISTS (
           SELECT user_id, task_id
           FROM $table
-          WHERE user_id = users_sections.user_id
+          WHERE user_id = users_classes.user_id
             AND task_id = ?
         )
     """
@@ -166,12 +157,11 @@ trait TaskResponseRepositoryPostgresComponent extends TaskResponseRepositoryComp
       UPDATE student_responses sr1
       SET is_complete = 't'
       FROM student_responses sr2
-      INNER JOIN users_sections ON users_sections.user_id = sr2.user_id
-      WHERE users_sections.section_id = ?
+      INNER JOIN users_classes ON users_classes.user_id = sr2.user_id
+      WHERE users_classes.class_id = ?
         AND sr2.task_id = ?
         AND sr1.user_id = sr2.user_id
         AND sr1.task_id = sr2.task_id
-        AND sr2.status = 1
     """
 
     /**
@@ -183,7 +173,7 @@ trait TaskResponseRepositoryPostgresComponent extends TaskResponseRepositoryComp
      * @param task the task to force to complete
      * @param section the section of students to force completion for
      */
-    override def forceComplete(task: Task, section: Section)(implicit conn: Connection): Future[Boolean] = {
+    override def forceComplete(task: Task, section: Class)(implicit conn: Connection): Future[Boolean] = {
       for {
         result1 <- conn.sendPreparedStatement(ForceCompleteStepOne, Array[Any](task.id.bytes, new DateTime, new DateTime, section.id.bytes, task.id.bytes))
         result2 <- conn.sendPreparedStatement(ForceCompleteStepTwo, Array[Any](section.id.bytes, task.id.bytes))

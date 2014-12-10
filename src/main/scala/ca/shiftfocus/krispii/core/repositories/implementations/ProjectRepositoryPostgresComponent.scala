@@ -24,103 +24,94 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
    * A concrete implementation of the ProjectRepository class.
    */
   private class ProjectRepositoryPSQL extends ProjectRepository {
-    def fields = Seq("name", "slug", "description")
-    def table = "projects"
-    def orderBy = "name ASC"
-    val fieldsText = fields.mkString(", ")
-    val questions = fields.map(_ => "?").mkString(", ")
+
+    val Select =
+      """
+         |SELECT projects.id as id, projects.version as version, projects.class_id, projects.name as name, projects.slug as slug,
+         |       projects.description as description, projects.availability as availability, projects.created_at as created_at, projects.updated_at as updated_at
+       """.stripMargin
+
+    val From =
+      """
+        |FROM projects
+      """.stripMargin
+
+    val Returning =
+      """
+        |RETURNING id, version, class_id, name, slug, description, availability, created_at, updated_at
+      """.stripMargin
+
 
     // User CRUD operations
-    val SelectAll = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE status = 1
-      ORDER BY $orderBy
-    """
-
-    val SelectOne = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE id = ?
-        AND status = 1
-    """
-
-    val Insert = {
-      val extraFields = fields.mkString(",")
-      val questions = fields.map(_ => "?").mkString(",")
+    val SelectAll =
       s"""
-        INSERT INTO $table (id, version, status, created_at, updated_at, $extraFields)
-        VALUES (?, 1, 1, ?, ?, $questions)
-        RETURNING id, version, created_at, updated_at, $fieldsText
-      """
-    }
+         |$Select
+         |$From
+      """.stripMargin
 
-    val Update = {
-      val extraFields = fields.map(" " + _ + " = ? ").mkString(",")
+    val SelectOne =
       s"""
-        UPDATE $table
-        SET $extraFields , version = ?, updated_at = ?
-        WHERE id = ?
-          AND version = ?
-          AND status = 1
-        RETURNING id, version, created_at, updated_at, $fieldsText
-      """
-    }
+         |$Select
+         |$From
+         |WHERE projects.id = ?
+      """.stripMargin
+
+    val SelectOneForUser =
+      s"""
+         |$Select
+         |$From, classes, users_classes
+         |WHERE projects.id = ?
+         |  AND projects.class_id = classes.id
+         |  AND (classes.teacher_id = ? OR (
+         |    classes.id = users_classes.class_id AND users_classes.user_id = ?
+         |  ))
+       """.stripMargin
+
+    val SelectOneBySlug =
+      s"""
+         |$Select
+         |$From
+         |WHERE slug = ?
+       """.stripMargin
+
+    val SelectIdBySlug =
+      s"""
+         |SELECT projects.id
+         |$From
+         |WHERE slug = ?
+       """.stripMargin
+
+    val ListByClass =
+      s"""
+         |$Select
+         |$From
+         |WHERE class_id = ?
+       """.stripMargin
+
+
+    val Insert =
+      s"""
+        |INSERT INTO projects (id, version, class_id, name, slug, description, availability, created_at, updated_at)
+        |VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?)
+        |$Returning
+      """.stripMargin
+
+    val Update =
+      s"""
+        |UPDATE projects
+        |SET class_id = ?, name = ?, slug = ?, description = ?, availability = ?, version = ?, updated_at = ?
+        |WHERE id = ?
+        |  AND version = ?
+        |$Returning
+      """.stripMargin
 
     val Delete = s"""
-      UPDATE $table SET status = 0 WHERE id = ? AND version = ?
-    """
-
-    val Restore = s"""
-      UPDATE $table SET status = 1 WHERE id = ? AND version = ? AND status = 0
-    """
-
-    val Purge = s"""
-      DELETE FROM $table WHERE id = ? AND version = ?
-    """
-
-    val SelectOneBySlug = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE slug = ?
-        AND status = 1
-    """
-
-    val SelectIdBySlug = s"""
-      SELECT id
-      FROM $table
-      WHERE slug = ?
-        AND status = 1
-    """
-
-    val AddProject = """
-      INSERT INTO sections_projects (section_id, project_id, created_at)
-      VALUES (?, ?, ?)
-    """
-
-    val RemoveProject = """
-      DELETE FROM sections_projects
-      WHERE section_id = ?
-        AND project_id = ?
-    """
-
-    val RemoveProjectFromAll = """
-      DELETE FROM sections_projects
-      WHERE project_id = ?
-    """
-
-    val ListBySection = """
-      SELECT id, version, projects.name as name, projects.slug as slug, description, projects.created_at as created_at, projects.updated_at as updated_at
-      FROM projects, sections_projects
-      WHERE projects.id = sections_projects.project_id
-        AND sections_projects.section_id = ?
-        AND projects.status = 1
+      DELETE FROM projects WHERE id = ? AND version = ?
     """
 
     /**
      * Find all Projects.
      *
-     * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return a vector of the returned Projects
      */
     override def list: Future[IndexedSeq[Project]] = {
@@ -140,11 +131,10 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      * Find all Projects belonging to a given section.
      *
      * @param section The section to return projects from.
-     * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return a vector of the returned Projects
      */
-    override def list(section: Section): Future[IndexedSeq[Project]] = {
-      db.pool.sendPreparedStatement(ListBySection, Array[Any](section.id.bytes)).map { queryResult =>
+    override def list(`class`: Class): Future[IndexedSeq[Project]] = {
+      db.pool.sendPreparedStatement(ListByClass, Array[Any](`class`.id.bytes)).map { queryResult =>
         queryResult.rows.get.map {
           item: RowData => Project(item)
         }
@@ -159,7 +149,6 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      * Find a single entry by ID.
      *
      * @param id the 128-bit UUID, as a byte array, to search for.
-     * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return an optional Project if one was found
      */
     override def find(id: UUID): Future[Option[Project]] = {
@@ -178,8 +167,26 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
     /**
      * Find a single entry by ID.
      *
+     * @param id the 128-bit UUID, as a byte array, to search for.
+     * @return an optional Project if one was found
+     */
+    override def find(projectId: UUID, user: User): Future[Option[Project]] = {
+      db.pool.sendPreparedStatement(SelectOneForUser, Array[Any](projectId.bytes, user.id.bytes, user.id.bytes)).map { result =>
+        result.rows.get.headOption match {
+          case Some(rowData) => Some(Project(rowData))
+          case None => None
+        }
+      }.recover {
+        case exception => {
+          throw exception
+        }
+      }
+    }
+
+    /**
+     * Find a single entry by ID.
+     *
      * @param slug The project slug to search by.
-     * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return an optional RowData object containing the results
      */
     def find(slug: String): Future[Option[Project]] = {
@@ -205,11 +212,13 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
     override def insert(project: Project)(implicit conn: Connection): Future[Project] = {
       conn.sendPreparedStatement(Insert, Array(
         project.id.bytes,
-        new DateTime,
-        new DateTime,
+        project.classId.bytes,
         project.name,
         project.slug,
-        project.description
+        project.description,
+        project.availability,
+        new DateTime,
+        new DateTime
       )).map {
         result => {
           Project(result.rows.get.head)
@@ -230,9 +239,11 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      */
     override def update(project: Project)(implicit conn: Connection): Future[Project] = {
       conn.sendPreparedStatement(Update, Array(
+        project.classId.bytes,
         project.name,
         project.slug,
         project.description,
+        project.availability,
         (project.version + 1),
         new DateTime,
         project.id.bytes,
@@ -257,66 +268,13 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      */
     override def delete(project: Project)(implicit conn: Connection): Future[Boolean] = {
       val future = for {
-        queryResult <- conn.sendPreparedStatement(Purge, Array(project.id.bytes, project.version))
+        queryResult <- conn.sendPreparedStatement(Delete, Array(project.id.bytes, project.version))
       }
       yield {
         queryResult.rowsAffected > 0
       }
 
       future.recover {
-        case exception => {
-          throw exception
-        }
-      }
-    }
-
-    /**
-     * Associate a role to a user.
-     *
-     * @param section The section to add to
-     * @param project The project to add to the section
-     * @param conn An implicit connection object. Can be used in a transactional chain.
-     * @return a boolean indicator whether the operation was successful.
-     */
-    override def addToSection(section: Section, project: Project)(implicit conn: Connection): Future[Boolean] = {
-      conn.sendPreparedStatement(AddProject, Array(section.id.bytes, project.id.bytes, new DateTime)).map {
-        result => (result.rowsAffected > 0)
-      }.recover {
-        case exception => {
-          throw exception
-        }
-      }
-    }
-
-    /**
-     * Remove a project from a section.
-     *
-     * @param section The section to remove from
-     * @param project The project to remove
-     * @param conn An implicit connection object. Can be used in a transactional chain.
-     * @return a boolean indicator whether the operation was successful.
-     */
-    override def removeFromSection(section: Section, project: Project)(implicit conn: Connection): Future[Boolean] = {
-      conn.sendPreparedStatement(RemoveProject, Array(section.id.bytes, project.id.bytes)).map {
-        result => (result.rowsAffected > 0)
-      }.recover {
-        case exception => {
-          throw exception
-        }
-      }
-    }
-
-    /**
-     * Remove a project from a section.
-     *
-     * @param project The project to remove.
-     * @param conn An implicit connection object. Can be used in a transactional chain.
-     * @return a boolean indicator whether the operation was successful.
-     */
-    override def removeFromAllSections(project: Project)(implicit conn: Connection): Future[Boolean] = {
-      conn.sendPreparedStatement(RemoveProjectFromAll, Array(project.id.bytes)).map {
-        result => (result.rowsAffected > 0)
-      }.recover {
         case exception => {
           throw exception
         }

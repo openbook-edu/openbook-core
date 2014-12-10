@@ -9,7 +9,7 @@ import play.api.libs.functional.syntax._
 
 
 
-case class Section(
+case class Class(
   id: UUID = UUID.random,
   version: Long = 0,
   courseId: UUID,
@@ -19,10 +19,10 @@ case class Section(
   updatedAt: Option[DateTime] = None
 )
 
-object Section {
+object Class {
 
-  def apply(row: RowData): Section = {
-    Section(
+  def apply(row: RowData): Class = {
+    Class(
       UUID(row("id").asInstanceOf[Array[Byte]]),
       row("version").asInstanceOf[Long],
       UUID(row("course_id").asInstanceOf[Array[Byte]]),
@@ -36,7 +36,7 @@ object Section {
     )
   }
 
-  implicit val sectionReads: Reads[Section] = (
+  implicit val sectionReads: Reads[Class] = (
     (__ \ "id").read[UUID] and
     (__ \ "version").read[Long] and
     (__ \ "courseId").read[UUID] and
@@ -44,9 +44,9 @@ object Section {
     (__ \ "name").read[String] and
     (__ \ "createdAt").readNullable[DateTime] and
     (__ \ "updatedAt").readNullable[DateTime]
-  )(Section.apply(_: UUID, _: Long, _: UUID, _: Option[UUID], _: String, _: Option[DateTime], _: Option[DateTime]))
+  )(Class.apply(_: UUID, _: Long, _: UUID, _: Option[UUID], _: String, _: Option[DateTime], _: Option[DateTime]))
 
-  implicit val sectionWrites: Writes[Section] = (
+  implicit val sectionWrites: Writes[Class] = (
     (__ \ "id").write[UUID] and
     (__ \ "version").write[Long] and
     (__ \ "courseId").write[UUID] and
@@ -54,7 +54,7 @@ object Section {
     (__ \ "name").write[String] and
     (__ \ "createdAt").writeNullable[DateTime] and
     (__ \ "updatedAt").writeNullable[DateTime]
-  )(unlift(Section.unapply))
+  )(unlift(Class.unapply))
 
 }
 

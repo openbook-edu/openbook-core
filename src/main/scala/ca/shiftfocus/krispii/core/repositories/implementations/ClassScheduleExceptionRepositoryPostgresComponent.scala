@@ -14,13 +14,13 @@ import org.joda.time.LocalTime
 import org.joda.time.LocalDate
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
-trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionScheduleExceptionRepositoryComponent {
+trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExceptionRepositoryComponent {
   self: PostgresDB =>
 
-  override val sectionScheduleExceptionRepository: SectionScheduleExceptionRepository = new SectionScheduleExceptionRepositoryPSQL
+  override val sectionScheduleExceptionRepository: ClassScheduleExceptionRepository = new ClassScheduleExceptionRepositoryPSQL
 
-  private class SectionScheduleExceptionRepositoryPSQL extends SectionScheduleExceptionRepository {
-    def fields = Seq("section_id", "day", "start_time", "end_time")
+  private class ClassScheduleExceptionRepositoryPSQL extends ClassScheduleExceptionRepository {
+    def fields = Seq("class_id", "day", "start_time", "end_time")
     def table = "section_schedule_exceptions"
     def orderBy = "created_at ASC"
     val fieldsText = fields.mkString(", ")
@@ -30,7 +30,6 @@ trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionSchedul
     val SelectAll = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
       ORDER BY $orderBy
     """
 
@@ -38,15 +37,14 @@ trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionSchedul
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
       WHERE id = ?
-        AND status = 1
     """
 
     val Insert = {
       val extraFields = fields.mkString(",")
       val questions = fields.map(_ => "?").mkString(",")
       s"""
-        INSERT INTO $table (id, version, status, created_at, updated_at, $extraFields)
-        VALUES (?, 1, 1, ?, ?, $questions)
+        INSERT INTO $table (id, version, created_at, updated_at, $extraFields)
+        VALUES (?, 1, ?, ?, $questions)
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
@@ -58,7 +56,6 @@ trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionSchedul
         SET $extraFields , version = ?, updated_at = ?
         WHERE id = ?
           AND version = ?
-          AND status = 1
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
@@ -70,8 +67,7 @@ trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionSchedul
     val SelectBySectionId = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE section_id = ?
-        AND status = 1
+      WHERE class_id = ?
       ORDER BY day asc, start_time asc, end_time asc
     """
 
@@ -79,7 +75,7 @@ trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionSchedul
       s"""SELECT id, version, created_at, updated_at, $fieldsText
          |FROM $table
          |WHERE user_id = ?
-         |  AND section_id = ?
+         |  AND class_id = ?
          |ORDER BY id ASC
        """.stripMargin
 
@@ -89,7 +85,7 @@ trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionSchedul
      * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return a vector of the returned courses
      */
-    override def list(user: User, section: Section): Future[IndexedSeq[SectionScheduleException]] = {
+    override def list(user: User, section: Class): Future[IndexedSeq[SectionScheduleException]] = {
       db.pool.sendQuery(SelectForUserAndSection).map { queryResult =>
         val scheduleList = queryResult.rows.get.map {
           item: RowData => SectionScheduleException(item)
@@ -105,7 +101,7 @@ trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionSchedul
     /**
      * Find all schedule exceptions for a given section.
      */
-    override def list(section: Section): Future[IndexedSeq[SectionScheduleException]] = {
+    override def list(section: Class): Future[IndexedSeq[SectionScheduleException]] = {
       val cacheString = s"schedule.id_list.section[${section.id.string}]"
       db.pool.sendPreparedStatement(SelectBySectionId, Array[Any](section.id.bytes)).map { queryResult =>
         val scheduleList = queryResult.rows.get.map {
@@ -154,7 +150,7 @@ trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionSchedul
         sectionScheduleException.id.bytes,
         new DateTime,
         new DateTime,
-        sectionScheduleException.sectionId.bytes,
+        sectionScheduleException.classId.bytes,
         dayDT,
         startTimeDT,
         endTimeDT
@@ -179,7 +175,7 @@ trait SectionScheduleExceptionRepositoryPostgresComponent extends SectionSchedul
       val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), sectionScheduleException.endTime.getHourOfDay(), sectionScheduleException.endTime.getMinuteOfHour, sectionScheduleException.endTime.getSecondOfMinute())
 
       conn.sendPreparedStatement(Update, Array(
-        sectionScheduleException.sectionId.bytes,
+        sectionScheduleException.classId.bytes,
         dayDT,
         startTimeDT,
         endTimeDT,

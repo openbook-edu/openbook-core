@@ -10,10 +10,12 @@ import play.api.libs.functional.syntax._
 
 case class Project(
   id: UUID = UUID.random,
+  classId: UUID,
   version: Long = 0,
   name: String,
   slug: String,
   description: String,
+  availability: String = Project.Availability.AnyTime,
   parts: IndexedSeq[Part],
   createdAt: Option[DateTime] = None,
   updatedAt: Option[DateTime] = None
@@ -21,13 +23,21 @@ case class Project(
 
 object Project {
 
+  object Availability {
+    val AnyTime = "any"
+    val FreeTime = "free"
+    val ClassTime = "class"
+  }
+
   def apply(row: RowData): Project = {
     Project(
       UUID(row("id").asInstanceOf[Array[Byte]]),
+      UUID(row("class_id").asInstanceOf[Array[Byte]]),
       row("version").asInstanceOf[Long],
       row("name").asInstanceOf[String],
       row("slug").asInstanceOf[String],
       row("description").asInstanceOf[String],
+      row("availability").asInstanceOf[String],
       IndexedSeq[Part](),
       Some(row("created_at").asInstanceOf[DateTime]),
       Some(row("updated_at").asInstanceOf[DateTime])
@@ -36,21 +46,25 @@ object Project {
 
   implicit val projectReads: Reads[Project] = (
     (__ \ "id").read[UUID] and
+    (__ \ "classId").read[UUID] and
     (__ \ "version").read[Long] and
     (__ \ "name").read[String] and
     (__ \ "slug").read[String] and
     (__ \ "description").read[String] and
+    (__ \ "availability").read[String] and
     (__ \ "parts").read[IndexedSeq[Part]] and
     (__ \ "createdAt").readNullable[DateTime] and
     (__ \ "updatedAt").readNullable[DateTime]
-  )(Project.apply(_: UUID, _: Long, _: String, _: String, _: String, _: IndexedSeq[Part], _: Option[DateTime], _: Option[DateTime]))
+  )(Project.apply(_: UUID, _: UUID, _: Long, _: String, _: String, _: String, _: String, _: IndexedSeq[Part], _: Option[DateTime], _: Option[DateTime]))
 
   implicit val projectWrites: Writes[Project] = (
     (__ \ "id").write[UUID] and
+    (__ \ "classId").write[UUID] and
     (__ \ "version").write[Long] and
     (__ \ "name").write[String] and
     (__ \ "slug").write[String] and
     (__ \ "description").write[String] and
+    (__ \ "availability").write[String] and
     (__ \ "parts").write[IndexedSeq[Part]] and
     (__ \ "createdAt").writeNullable[DateTime] and
     (__ \ "updatedAt").writeNullable[DateTime]

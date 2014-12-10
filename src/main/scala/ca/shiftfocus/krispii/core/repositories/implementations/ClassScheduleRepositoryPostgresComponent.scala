@@ -14,13 +14,13 @@ import org.joda.time.LocalTime
 import org.joda.time.LocalDate
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
-trait SectionScheduleRepositoryPostgresComponent extends SectionScheduleRepositoryComponent {
+trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryComponent {
   self: PostgresDB =>
 
   override val sectionScheduleRepository: SectionScheduleRepository = new SectionScheduleRepositoryPSQL
 
   private class SectionScheduleRepositoryPSQL extends SectionScheduleRepository {
-    def fields = Seq("section_id", "day", "start_time", "end_time", "description")
+    def fields = Seq("class_id", "day", "start_time", "end_time", "description")
 
     def table = "section_schedules"
 
@@ -33,7 +33,6 @@ trait SectionScheduleRepositoryPostgresComponent extends SectionScheduleReposito
     val SelectAll = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE status = 1
       ORDER BY $orderBy
     """
 
@@ -41,15 +40,14 @@ trait SectionScheduleRepositoryPostgresComponent extends SectionScheduleReposito
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
       WHERE id = ?
-        AND status = 1
     """
 
     val Insert = {
       val extraFields = fields.mkString(",")
       val questions = fields.map(_ => "?").mkString(",")
       s"""
-        INSERT INTO $table (id, version, status, created_at, updated_at, $extraFields)
-        VALUES (?, 1, 1, ?, ?, $questions)
+        INSERT INTO $table (id, version, created_at, updated_at, $extraFields)
+        VALUES (?, 1, ?, ?, $questions)
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
@@ -61,7 +59,6 @@ trait SectionScheduleRepositoryPostgresComponent extends SectionScheduleReposito
         SET $extraFields , version = ?, updated_at = ?
         WHERE id = ?
           AND version = ?
-          AND status = 1
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
     }
@@ -73,32 +70,29 @@ trait SectionScheduleRepositoryPostgresComponent extends SectionScheduleReposito
     val SelectBySectionId = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE section_id = ?
-        AND status = 1
+      WHERE class_id = ?
       ORDER BY day asc, start_time asc, end_time asc
     """
 
     val IsAnythingScheduledForUser = s"""
       SELECT section_schedules.id
       FROM section_schedules
-      INNER JOIN users_sections ON users_sections.section_id = section_schedules.section_id AND users_sections.user_id = ?
+      INNER JOIN users_classes ON users_classes.class_id = section_schedules.class_id AND users_classes.user_id = ?
       WHERE section_schedules.day = ?
         AND section_schedules.start_time <= ?
         AND section_schedules.end_time >= ?
-        AND section_schedules.status = 1
       ORDER BY day asc, start_time asc, end_time asc
     """
 
     val IsProjectScheduledForUser = s"""
       SELECT section_schedules.id
       FROM section_schedules
-      INNER JOIN users_sections ON users_sections.section_id = section_schedules.section_id AND users_sections.user_id = ?
-      INNER JOIN sections_projects ON sections_projects.section_id = section_schedules.section_id
-      WHERE sections_projects.project_id = ?
+      INNER JOIN users_classes ON users_classes.class_id = section_schedules.class_id AND users_classes.user_id = ?
+      INNER JOIN classes_projects ON classes_projects.class_id = section_schedules.class_id
+      WHERE classes_projects.project_id = ?
         AND section_schedules.day = ?
         AND section_schedules.start_time <= ?
         AND section_schedules.end_time >= ?
-        AND section_schedules.status = 1
     """
 
     /**
@@ -127,10 +121,10 @@ trait SectionScheduleRepositoryPostgresComponent extends SectionScheduleReposito
      * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return a vector of the returned courses
      */
-    override def list(implicit conn: Connection): Future[IndexedSeq[SectionSchedule]] = {
+    override def list(implicit conn: Connection): Future[IndexedSeq[ClassSchedule]] = {
       db.pool.sendQuery(SelectAll).map { queryResult =>
         val scheduleList = queryResult.rows.get.map {
-          item: RowData => SectionSchedule(item)
+          item: RowData => ClassSchedule(item)
         }
         scheduleList
       }.recover {
@@ -143,10 +137,10 @@ trait SectionScheduleRepositoryPostgresComponent extends SectionScheduleReposito
     /**
      * Find all schedules for a given section.
      */
-    override def list(section: Section)(implicit conn: Connection): Future[IndexedSeq[SectionSchedule]] = {
+    override def list(section: Class)(implicit conn: Connection): Future[IndexedSeq[ClassSchedule]] = {
       db.pool.sendPreparedStatement(SelectBySectionId, Array[Any](section.id.bytes)).map { queryResult =>
         val scheduleList = queryResult.rows.get.map {
-          item: RowData => SectionSchedule(item)
+          item: RowData => ClassSchedule(item)
         }
         scheduleList
       }.recover {
@@ -163,10 +157,10 @@ trait SectionScheduleRepositoryPostgresComponent extends SectionScheduleReposito
      * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return an optional task if one was found
      */
-    override def find(id: UUID)(implicit conn: Connection): Future[Option[SectionSchedule]] = {
+    override def find(id: UUID)(implicit conn: Connection): Future[Option[ClassSchedule]] = {
       db.pool.sendPreparedStatement(SelectOne, Array[Any](id)).map { result =>
         result.rows.get.headOption match {
-          case Some(rowData) => Option(SectionSchedule(rowData))
+          case Some(rowData) => Option(ClassSchedule(rowData))
           case None => None
         }
       }.recover {
@@ -182,7 +176,7 @@ trait SectionScheduleRepositoryPostgresComponent extends SectionScheduleReposito
      * @param course The course to be inserted
      * @return the new course
      */
-    override def insert(sectionSchedule: SectionSchedule)(implicit conn: Connection): Future[SectionSchedule] = {
+    override def insert(sectionSchedule: ClassSchedule)(implicit conn: Connection): Future[ClassSchedule] = {
       val dayDT = sectionSchedule.day.toDateTimeAtStartOfDay()
       val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), sectionSchedule.startTime.getHourOfDay(), sectionSchedule.startTime.getMinuteOfHour, sectionSchedule.startTime.getSecondOfMinute())
       val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), sectionSchedule.endTime.getHourOfDay(), sectionSchedule.endTime.getMinuteOfHour, sectionSchedule.endTime.getSecondOfMinute())
@@ -191,13 +185,13 @@ trait SectionScheduleRepositoryPostgresComponent extends SectionScheduleReposito
         sectionSchedule.id.bytes,
         new DateTime,
         new DateTime,
-        sectionSchedule.sectionId.bytes,
+        sectionSchedule.classId.bytes,
         dayDT,
         startTimeDT,
         endTimeDT,
         sectionSchedule.description
       )).map {
-        result => SectionSchedule(result.rows.get.head)
+        result => ClassSchedule(result.rows.get.head)
       }.recover {
         case exception => {
           throw exception
@@ -211,13 +205,13 @@ trait SectionScheduleRepositoryPostgresComponent extends SectionScheduleReposito
      * @param course The course to be updated.
      * @return the updated course
      */
-    override def update(sectionSchedule: SectionSchedule)(implicit conn: Connection): Future[SectionSchedule] = {
+    override def update(sectionSchedule: ClassSchedule)(implicit conn: Connection): Future[ClassSchedule] = {
       val dayDT = sectionSchedule.day.toDateTimeAtStartOfDay()
       val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), sectionSchedule.startTime.getHourOfDay(), sectionSchedule.startTime.getMinuteOfHour, sectionSchedule.startTime.getSecondOfMinute())
       val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), sectionSchedule.endTime.getHourOfDay(), sectionSchedule.endTime.getMinuteOfHour, sectionSchedule.endTime.getSecondOfMinute())
 
       conn.sendPreparedStatement(Update, Array(
-        sectionSchedule.sectionId.bytes,
+        sectionSchedule.classId.bytes,
         dayDT,
         startTimeDT,
         endTimeDT,
@@ -226,7 +220,7 @@ trait SectionScheduleRepositoryPostgresComponent extends SectionScheduleReposito
         sectionSchedule.id.bytes,
         sectionSchedule.version
       )).map {
-        result => SectionSchedule(result.rows.get.head)
+        result => ClassSchedule(result.rows.get.head)
       }.recover {
         case exception => {
           throw exception
@@ -240,7 +234,7 @@ trait SectionScheduleRepositoryPostgresComponent extends SectionScheduleReposito
      * @param course The course to delete.
      * @return A boolean indicating whether the operation was successful.
      */
-    override def delete(sectionSchedule: SectionSchedule)(implicit conn: Connection): Future[Boolean] = {
+    override def delete(sectionSchedule: ClassSchedule)(implicit conn: Connection): Future[Boolean] = {
       conn.sendPreparedStatement(Delete, Array(sectionSchedule.id.bytes, sectionSchedule.version)).map {
         result => {
           (result.rowsAffected > 0)

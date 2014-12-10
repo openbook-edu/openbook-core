@@ -27,7 +27,7 @@ import play.api.libs.functional.syntax._
  */
 case class MultipleChoiceTask(
   // Primary Key
-  id: UUID,
+  id: UUID = UUID.random,
   // Combination must be unique
   partId: UUID,
   position: Int,
@@ -71,10 +71,10 @@ object MultipleChoiceTask {
       settings = CommonTaskSettings(row),
 
       // Specific to this type
-      choices = row("choices").asInstanceOf[IndexedSeq[String]],
-      answer = row("answer").asInstanceOf[IndexedSeq[Int]],
+      choices = Option(row("choices").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
+      answer  = Option(row("answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
       allowMultiple = row("allow_multiple").asInstanceOf[Boolean],
-      randomizeChoices = row("randomize_choices").asInstanceOf[Boolean],
+      randomizeChoices = row("randomize").asInstanceOf[Boolean],
 
       // All entities have these
       createdAt = Some(row("created_at").asInstanceOf[DateTime]),
@@ -93,7 +93,7 @@ object MultipleChoiceTask {
         position = (js \ "position").as[Int],
         version  = (js \ "version").as[Long],
         settings = (js \ "settings").as[CommonTaskSettings],
-        choices = (js \ "elements").as[IndexedSeq[String]],
+        choices  = (js \ "elements").as[IndexedSeq[String]],
         answer   = (js \ "answer").as[IndexedSeq[Int]],
         allowMultiple = (js \ "allowMultiple").as[Boolean],
         randomizeChoices = (js \ "randomizeChoices").as[Boolean],
@@ -106,19 +106,19 @@ object MultipleChoiceTask {
   /**
    * Unserialize a [[MultipleChoiceTask]] from JSON.
    */
-  implicit val taskReads: Reads[MultipleChoiceTask] = (
-    (__ \ "id").read[UUID] and
-      (__ \ "partId").read[UUID] and
-      (__ \ "position").read[Int] and
-      (__ \ "version").read[Long] and
-      (__ \ "settings").read[CommonTaskSettings] and
-      (__ \ "choices").read[IndexedSeq[String]] and
-      (__ \ "answer").read[IndexedSeq[Int]] and
-      (__ \ "allowMultiple").read[Boolean] and
-      (__ \ "randomizeChoices").read[Boolean] and
-      (__ \ "createdAt").readNullable[DateTime] and
-      (__ \ "updatedAt").readNullable[DateTime]
-    )(MultipleChoiceTask.apply(_: UUID, _: UUID, _: Int, _: Long, _: CommonTaskSettings, _: IndexedSeq[String], _: IndexedSeq[Int], _: Boolean, _: Boolean, _: Option[DateTime], _: Option[DateTime]))
+//  implicit val taskReads: Reads[MultipleChoiceTask] = (
+//    (__ \ "id").read[UUID] and
+//      (__ \ "partId").read[UUID] and
+//      (__ \ "position").read[Int] and
+//      (__ \ "version").read[Long] and
+//      (__ \ "settings").read[CommonTaskSettings] and
+//      (__ \ "choices").read[IndexedSeq[String]] and
+//      (__ \ "answer").read[IndexedSeq[Int]] and
+//      (__ \ "allowMultiple").read[Boolean] and
+//      (__ \ "randomizeChoices").read[Boolean] and
+//      (__ \ "createdAt").readNullable[DateTime] and
+//      (__ \ "updatedAt").readNullable[DateTime]
+//    )(MultipleChoiceTask.apply(_: UUID, _: UUID, _: Int, _: Long, _: CommonTaskSettings, _: IndexedSeq[String], _: IndexedSeq[Int], _: Boolean, _: Boolean, _: Option[DateTime], _: Option[DateTime]))
 
   /**
    * Serialize a [[MultipleChoiceTask]] to JSON.

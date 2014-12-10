@@ -8,7 +8,7 @@ import org.joda.time.DateTime
 case class MatchingWork(
   studentId: UUID,
   taskId: UUID,
-  sectionId: UUID,
+  classId: UUID,
   revision: Long,
   answer: IndexedSeq[Match],
   isComplete: Boolean = false,
@@ -27,7 +27,7 @@ object MatchingWork {
     MatchingWork(
       studentId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
       taskId    = UUID(row("student_id").asInstanceOf[Array[Byte]]),
-      sectionId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
+      classId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
       revision  = row("revision").asInstanceOf[Long],
       answer    = row("answer").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element =>
         Match(element(0), element(1))

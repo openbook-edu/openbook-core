@@ -12,10 +12,12 @@ trait ProjectServiceComponent {
   trait ProjectService {
     // Projects
     def list: Future[IndexedSeq[Project]]
+    def list(classId: UUID): Future[IndexedSeq[Project]]
     def find(id: UUID): Future[Option[Project]]
     def find(projectSlug: String): Future[Option[Project]]
-    def create(name: String, slug: String, description: String): Future[Project]
-    def update(id: UUID, version: Long, name: String, slug: String, description: String): Future[Project]
+    def find(projectId: UUID, userId: UUID): Future[Option[Project]]
+    def create(classId: UUID, name: String, slug: String, description: String, availability: String): Future[Project]
+    def update(id: UUID, version: Long, classId: UUID, name: String, slug: String, description: String, availability: String): Future[Project]
     def delete(id: UUID, version: Long): Future[Boolean]
 
     def taskGroups(project: Project, user: User): Future[IndexedSeq[TaskGroup]]

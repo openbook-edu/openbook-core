@@ -8,8 +8,6 @@
 package ca.shiftfocus.krispii.core.models
 
 case class Context(
-  user: User,
-  session: Session,
-  roles: IndexedSeq[String],
-  sections: IndexedSeq[Section]
+  userInfo: UserInfo,
+  session: Session
 )

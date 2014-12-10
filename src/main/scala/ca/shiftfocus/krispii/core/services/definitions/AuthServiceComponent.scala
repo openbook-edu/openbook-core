@@ -91,9 +91,7 @@ trait AuthServiceComponent {
      * @param surname  The user's family name.
      * @return the created user
      */
-    def create(username: String, email: String, password: String, givenname: String, surname: String): Future[User]
-
-    def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID): Future[User]
+    def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.random): Future[User]
 
     /**
      * Update an existing user. Throws exceptions if the e-mail and username aren't unique.
@@ -147,7 +145,7 @@ trait AuthServiceComponent {
      * @param name  the name of the Role to create
      * @return the newly created Role
      */
-    def createRole(name: String): Future[Role]
+    def createRole(name: String, id: UUID = UUID.random): Future[Role]
 
     /**
      * Update a Role
@@ -175,7 +173,7 @@ trait AuthServiceComponent {
      * @param roleName  the name of the role
      * @return a boolean indicator if the role was added
      */
-    def addRole(userId: UUID, roleName: String)
+    def addRole(userId: UUID, roleName: String): Future[Boolean]
 
     /**
      * Remove a role from a user.
@@ -184,7 +182,7 @@ trait AuthServiceComponent {
      * @param roleName  the name of the role
      * @return a boolean indicator if the role was removed
      */
-    def removeRole(userId: UUID, roleName: String)
+    def removeRole(userId: UUID, roleName: String): Future[Boolean]
 
     /**
      * Add a role to a given list of users.

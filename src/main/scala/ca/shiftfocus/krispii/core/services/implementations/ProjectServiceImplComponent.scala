@@ -389,8 +389,6 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
           project <- projectRepository.find(part.projectId).map(_.get)
           partList <- partRepository.list(project)
           partListUpdated <- {
-            // If there is already a part with this position, shift it (and all following parts)
-            // back by one to make room for the new one.
             val filteredPartList = partList.filter({ item => item.id != part.id && item.position > part.position}).map(part => part.copy(position = part.position - 1))
             if (filteredPartList.nonEmpty)
               serialized(filteredPartList)(partRepository.update)

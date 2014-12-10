@@ -28,8 +28,9 @@ trait ProjectTestEnvironmentComponent
   with TaskResponseRepositoryComponent
   with TaskScratchpadRepositoryComponent
   with TaskFeedbackRepositoryComponent
+  with UserRepositoryComponent
   with ComponentRepositoryComponent
-  with SectionRepositoryComponent
+  with ClassRepositoryComponent
   with DB {
   val logger = Logger[this.type]
 
@@ -71,7 +72,8 @@ class ProjectServiceSpec
   override val taskScratchpadRepository = stub[TaskScratchpadRepository]
   override val taskFeedbackRepository = stub[TaskFeedbackRepository]
   override val componentRepository = stub[ComponentRepository]
-  override val sectionRepository = stub[SectionRepository]
+  override val classRepository = stub[ClassRepository]
+  override val userRepository = stub[UserRepository]
   override val db = stub[DBSettings]
 
   (db.pool _) when() returns(mockConnection)
@@ -86,7 +88,18 @@ class ProjectServiceSpec
     surname = "UserA"
   )
 
+  val testCourse = Course(
+    name = "test course"
+  )
+
+  val testClass = Class(
+    courseId = testCourse.id,
+    teacherId = Option(testUserA.id),
+    name = "test class"
+  )
+
   val testProject = Project(
+    classId = testClass.id,
     name = "Project name",
     slug = "Project slug",
     description = "Project description",
@@ -100,6 +113,7 @@ class ProjectServiceSpec
   )
 
   val testProjectB = Project(
+    classId = testClass.id,
     name = "Project B name",
     slug = "Project B slug",
     description = "Project B description",
@@ -146,7 +160,7 @@ class ProjectServiceSpec
     )
   )
 
-  // This test should be firs, otherwise it gives java.lang.NullPointerException
+  // NOTE: ProjectService.reorderParts test should be first, otherwise it gives java.lang.NullPointerException
   "ProjectService.reorderParts" should {
     inSequence {
       "reorder part" in {
@@ -170,7 +184,7 @@ class ProjectServiceSpec
         (partRepository.insert(_: Part)(_: Connection)) when(*, mockConnection) returns Future.successful(testPart)
         (taskRepository.insert(_: Task)(_: Connection)) when(*, mockConnection) returns Future.successful(testTask)
 
-        val fNewProject = projectService.create(testProjectB.name, testProjectB.slug, testProjectB.description)
+        val fNewProject = projectService.create(testClass.id, testProjectB.name, testProjectB.slug, testProjectB.description, testProjectB.availability)
 
         val project = Await.result(fNewProject, Duration.Inf)
         project.id should be(testProjectB.id)
@@ -191,7 +205,7 @@ class ProjectServiceSpec
         (projectRepository.find(_:UUID)) when(testProject.id) returns Future(Option(testProject))
         (projectRepository.update(_:Project)(_: Connection)) when(testProject, mockConnection) returns Future.successful(testProject)
 
-        val fUpdatedProject = projectService.update(testProject.id, testProject.version, testProject.name, testProject.slug, testProject.description)
+        val fUpdatedProject = projectService.update(testProject.id, testProject.version, testClass.id, testProject.name, testProject.slug, testProject.description, testProject.availability)
         Await.result(fUpdatedProject, Duration.Inf) should be (testProject)
       }
     }
@@ -210,7 +224,7 @@ class ProjectServiceSpec
         (taskResponseRepository.delete(_:Task)(_: Connection)) when(testTask, mockConnection) returns Future(true)
         (taskFeedbackRepository.delete(_:Task)(_: Connection)) when(testTask, mockConnection) returns Future(true)
         (taskRepository.delete(_:Task)(_: Connection)) when(testTask, mockConnection) returns Future(true)
-        (sectionRepository.disablePart(_:Part)(_: Connection)) when(testPart, mockConnection) returns Future(true)
+        (classRepository.disablePart(_:Part)(_: Connection)) when(testPart, mockConnection) returns Future(true)
         (componentRepository.removeFromPart(_:Part)(_: Connection)) when(testPart, mockConnection) returns Future(true)
         (partRepository.delete(_:Project)(_: Connection)) when(testProject, mockConnection) returns Future(true)
         (projectRepository.delete(_:Project)(_: Connection)) when(testProject, mockConnection) returns Future(true)
@@ -223,13 +237,14 @@ class ProjectServiceSpec
 
   "ProjectService.taskGroups" should {
     val indexedPart = Vector(testPart)
+    val indexedPartB = Vector(testPartB)
     val indexedTask = Vector(testTask)
 
     inSequence {
-      "have Task.NotStarted if TaskResponse has another taskId" in {
+      "have TaskGroupItem status NotStarted if TaskResponse has another taskId and TaskGroup status Unlocked if parts ids are equal" in {
         val testTaskResponse = TaskResponse(
           userId = testUserA.id,
-          taskId = testUserA.id,
+          taskId = testUserA.id, // Use another UUID
           content = "Content",
           isComplete = true
         )
@@ -254,9 +269,41 @@ class ProjectServiceSpec
         (taskResponseRepository.list(_:User, _:Project)(_:Connection)) when(*, *, *) returns Future.successful(indexedTaskResponse)
 
         val fTaskGroups = projectService.taskGroups(testProject, testUserA)
-        Await.result(fTaskGroups, Duration.Inf) should be (indexedTaskGroup)
+        val result = Await.result(fTaskGroups, Duration.Inf)
+        result should be (indexedTaskGroup)
       }
-      "have Task.Complete with TRUE TaskResponse" in {
+      "have TaskGroupItem status NotStarted if TaskResponse has another taskId and TaskGroup status Locked if parts ids are different" in {
+        val testTaskResponse = TaskResponse(
+          userId = testUserA.id,
+          taskId = testUserA.id, // Use another UUID
+          content = "Content",
+          isComplete = true
+        )
+
+        val testTaskGroupItem = TaskGroupItem(
+          status = 0,
+          task = testTask
+        )
+
+        val testTaskGroup = TaskGroup(
+          part = testPart,
+          status = 0,
+          tasks = IndexedSeq[TaskGroupItem](testTaskGroupItem)
+        )
+
+        val indexedTaskGroup = Vector(testTaskGroup)
+        val indexedTaskResponse = Vector(testTaskResponse)
+
+        (partRepository.list(_:Project)) when(testProject) returns Future.successful(indexedPart)
+        (partRepository.listEnabled(_:Project, _:User)) when(testProject, testUserA) returns Future.successful(indexedPartB)
+        (taskRepository.list(_:Project)) when(*) returns Future.successful(indexedTask)
+        (taskResponseRepository.list(_:User, _:Project)(_:Connection)) when(*, *, *) returns Future.successful(indexedTaskResponse)
+
+        val fTaskGroups = projectService.taskGroups(testProject, testUserA)
+        val result = Await.result(fTaskGroups, Duration.Inf)
+        result should be (indexedTaskGroup)
+      }
+      "have TaskGroupItem status Complete with TRUE TaskResponse" in {
         val testTaskResponse = TaskResponse(
           userId = testUserA.id,
           taskId = testTask.id,
@@ -286,7 +333,7 @@ class ProjectServiceSpec
         val fTaskGroups = projectService.taskGroups(testProject, testUserA)
         Await.result(fTaskGroups, Duration.Inf) should be (indexedTaskGroup)
       }
-      "have Task.Incomplete with FALSE TaskResponse" in {
+      "have TaskGroupItem status Incomplete with FALSE TaskResponse" in {
         val testTaskResponse = TaskResponse(
           userId = testUserA.id,
           taskId = testTask.id,
@@ -319,8 +366,7 @@ class ProjectServiceSpec
     }
   }
 
-
-  // TODO - find the way to check possitions of existing parts
+  // TODO - find the way to check positions of existing parts
   "ProjectService.createPart" should {
     inSequence {
       "create new part and update existing parts if their possition >=" in {
@@ -359,6 +405,7 @@ class ProjectServiceSpec
     }
   }
 
+  // TODO - find the way to check shifted positions
   "ProjectService.updatePart" should {
     val testPartForException = Part(
       projectId = testProjectB.id,
@@ -389,7 +436,7 @@ class ProjectServiceSpec
         result.description should be ("New part description")
         result.position should be (testPart.position + 2)
       }
-      "throw an DatabaseException to check exception" in {
+      "throw an DatabaseException to check exception in serialized method" in {
         val indexedPart = Vector(testPartForException)
 
         (partRepository.find(_:UUID)) when(testPart.id) returns Future(Option(testPart))
@@ -429,6 +476,7 @@ class ProjectServiceSpec
     }
   }
 
+  // TODO - find the way to check positions -1
   "ProjectService.deletePart" should {
     inSequence {
       "delete part" in {
@@ -445,7 +493,7 @@ class ProjectServiceSpec
         (taskResponseRepository.delete(_:Task)(_: Connection)) when(*, mockConnection) returns Future.successful(true)
         (taskFeedbackRepository.delete(_:Task)(_: Connection)) when(*, mockConnection) returns Future.successful(true)
         (taskRepository.delete(_:Part)(_: Connection)) when(*, mockConnection) returns Future.successful(true)
-        (sectionRepository.disablePart(_:Part)(_: Connection)) when(*, mockConnection) returns Future.successful(true)
+        (classRepository.disablePart(_:Part)(_: Connection)) when(*, mockConnection) returns Future.successful(true)
         (componentRepository.removeFromPart(_:Part)(_: Connection)) when(*, mockConnection) returns Future.successful(true)
         (partRepository.delete(_:Part)(_: Connection)) when(*, mockConnection) returns Future.successful(true)
 
@@ -797,5 +845,4 @@ class ProjectServiceSpec
       }
     }
   }
-
 }

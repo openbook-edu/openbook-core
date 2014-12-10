@@ -21,7 +21,7 @@ trait AuthTestEnvironmentComponent extends
 AuthServiceImplComponent with
 UserRepositoryComponent with
 RoleRepositoryComponent with
-SectionRepositoryComponent with
+ClassRepositoryComponent with
 SessionRepositoryComponent with
 DB
 
@@ -38,7 +38,7 @@ class AuthServiceSpec
 
   override val userRepository = stub[UserRepository]
   override val roleRepository = stub[RoleRepository]
-  override val sectionRepository = stub[SectionRepository]
+  override val classRepository = stub[ClassRepository]
   override val sessionRepository = stub[SessionRepository]
 
   override val db = stub[DBSettings]
@@ -69,10 +69,10 @@ class AuthServiceSpec
     name = "Role name A"
   )
 
-  val testSectionA = Section(
+  val testSectionA = Class(
     courseId = testUserA.id,
     teacherId = Option(testUserA.id),
-    name = "Role name A"
+    name = "Class name A"
   )
 
   "AuthService.authenticate" should {
@@ -143,7 +143,7 @@ class AuthServiceSpec
         // Mock authService.find
         (userRepository.find(_: UUID)) when(testUserA.id) returns(Future.successful(Some(testUserA)))
         (roleRepository.list(_: User)) when(testUserA) returns(Future.successful(indexedRole))
-        (sectionRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedSection))
+        (classRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedSection))
 
         // Conflicting user
         (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(Some(testUserA)))
@@ -159,7 +159,7 @@ class AuthServiceSpec
         // Mock authService.find
         (userRepository.find(_: UUID)) when(testUserA.id) returns(Future.successful(Some(testUserA)))
         (roleRepository.list(_: User)) when(testUserA) returns(Future.successful(indexedRole))
-        (sectionRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedSection))
+        (classRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedSection))
 
         // Conflicting user
         (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(Some(testUserA)))
@@ -175,7 +175,7 @@ class AuthServiceSpec
         // Mock authService.find
         (userRepository.find(_: UUID)) when(testUserA.id) returns(Future.successful(Some(testUserA)))
         (roleRepository.list(_: User)) when(testUserA) returns(Future.successful(indexedRole))
-        (sectionRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedSection))
+        (classRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedSection))
 
         // Conflicting user
         (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(Some(testUserB)))
@@ -191,7 +191,7 @@ class AuthServiceSpec
         // Mock authService.find
         (userRepository.find(_: UUID)) when(testUserA.id) returns(Future.successful(Some(testUserA)))
         (roleRepository.list(_: User)) when(testUserA) returns(Future.successful(indexedRole))
-        (sectionRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedSection))
+        (classRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedSection))
 
         // Conflicting user
         (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(Some(testUserB)))

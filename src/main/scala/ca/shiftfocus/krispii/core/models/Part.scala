@@ -16,6 +16,7 @@ case class Part(
   name: String,
   description: String = "",
   position: Int = 0,
+  enabled: Boolean = true,
   tasks: IndexedSeq[Task] = IndexedSeq(),
   createdAt: Option[DateTime] = None,
   updatedAt: Option[DateTime] = None
@@ -35,6 +36,7 @@ object Part {
       name        = row("name").asInstanceOf[String],
       description = row("description").asInstanceOf[String],
       position    = row("position").asInstanceOf[Int],
+      enabled     = row("enabled").asInstanceOf[Boolean],
       createdAt   = Some(row("created_at").asInstanceOf[DateTime]),
       updatedAt   = Some(row("updated_at").asInstanceOf[DateTime])
     )
@@ -47,10 +49,11 @@ object Part {
     (__ \ "name").read[String] and
     (__ \ "description").read[String] and
     (__ \ "position").read[Int] and
+    (__ \ "enabled").read[Boolean] and
     (__ \ "tasks").read[IndexedSeq[Task]] and
     (__ \ "createdAt").readNullable[DateTime] and
     (__ \ "updatedAt").readNullable[DateTime]
-  )(Part.apply(_: UUID, _: Long, _: UUID, _: String, _: String, _: Int, _: IndexedSeq[Task], _: Option[DateTime], _: Option[DateTime]))
+  )(Part.apply(_: UUID, _: Long, _: UUID, _: String, _: String, _: Int, _: Boolean, _: IndexedSeq[Task], _: Option[DateTime], _: Option[DateTime]))
 
   implicit val partWrites: Writes[Part] = (
     (__ \ "id").write[UUID] and
@@ -59,6 +62,7 @@ object Part {
     (__ \ "name").write[String] and
     (__ \ "description").write[String] and
     (__ \ "position").write[Int] and
+    (__ \ "enabled").write[Boolean] and
     (__ \ "tasks").write[IndexedSeq[Task]] and
     (__ \ "createdAt").writeNullable[DateTime] and
     (__ \ "updatedAt").writeNullable[DateTime]
@@ -74,14 +78,16 @@ case class PartPost(
   projectId: UUID,
   name: String,
   description: String,
-  position: Int
+  position: Int,
+  enabled: Boolean
 )
 object PartPost {
   implicit val projectPostReads = (
     (__ \ "projectId").read[UUID] and
     (__ \ "name").read[String] and
     (__ \ "description").read[String] and
-    (__ \ "position").read[Int]
+    (__ \ "position").read[Int] and
+    (__ \ "enabled").read[Boolean]
   )(PartPost.apply _)
 }
 
@@ -90,7 +96,8 @@ case class PartPut(
   projectId: UUID,
   name: String,
   description: String,
-  position: Int
+  position: Int,
+  enabled: Boolean
 )
 object PartPut {
   implicit val projectPutReads = (
@@ -98,6 +105,7 @@ object PartPut {
     (__ \ "projectId").read[UUID] and
     (__ \ "name").read[String] and
     (__ \ "description").read[String] and
-    (__ \ "position").read[Int]
+    (__ \ "position").read[Int] and
+    (__ \ "enabled").read[Boolean]
   )(PartPut.apply _)
 }

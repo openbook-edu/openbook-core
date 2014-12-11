@@ -134,19 +134,15 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
     """
 
     val SelectNowByUserId = s"""
-      $Select
-        COALESCE(sr.is_complete, FALSE) AS is_complete
+      $Select, COALESCE(sr.is_complete, FALSE) AS is_complete
       $From
       $Join
-      INNER JOIN parts ON parts.id = tasks.part_id
-      INNER JOIN projects ON parts.project_id = projects.id
       INNER JOIN users ON users.id = ?
-      INNER JOIN users_classes ON users.id = users_classes.user_id
-      INNER JOIN scheduled_classes_parts ON users_classes.class_id = scheduled_classes_parts.class_id AND scheduled_classes_parts.part_id = parts.id
+      INNER JOIN projects ON projects.id = ?
+      INNER JOIN parts ON parts.project_id = projects.id AND parts.enabled = 't'
+      INNER JOIN users_classes ON users_classes.class_id = projects.class_id AND users_classes.user_id = users.id
       LEFT JOIN (SELECT user_id, task_id, revision, is_complete FROM student_responses ORDER BY revision DESC) as sr ON users.id = sr.user_id AND tasks.id = sr.task_id
-      WHERE projects.slug = ?
-        AND scheduled_classes_parts.active = TRUE
-        AND COALESCE(sr.is_complete, FALSE) = FALSE
+      WHERE COALESCE(sr.is_complete, FALSE) = FALSE
       ORDER BY parts.position ASC, tasks.position ASC
       LIMIT 1
     """
@@ -379,6 +375,28 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      */
     override def find(id: UUID): Future[Option[Task]] = {
       db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map { result =>
+        result.rows.get.headOption match {
+          case Some(rowData) => {
+            Some(Task(rowData))
+          }
+          case None => None
+        }
+      }.recover {
+        case exception => {
+          throw exception
+        }
+      }
+    }
+
+    /**
+     * Find a single entry by ID.
+     *
+     * @param id the UUID to search for
+     * @param conn An implicit connection object. Can be used in a transactional chain.
+     * @return an optional task if one was found
+     */
+    override def findNow(user: User, project: Project): Future[Option[Task]] = {
+      db.pool.sendPreparedStatement(SelectNowByUserId, Array[Any](user.id.bytes, project.id.bytes)).map { result =>
         result.rows.get.headOption match {
           case Some(rowData) => {
             Some(Task(rowData))

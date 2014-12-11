@@ -25,6 +25,7 @@ trait TaskRepositoryComponent {
     def list(project: Project, partNum: Int): Future[IndexedSeq[Task]]
     //def list(section: Section): Future[IndexedSeq[Task]]
     def find(id: UUID): Future[Option[Task]]
+    def findNow(student: User, project: Project): Future[Option[Task]]
     def find(project: Project, partNum: Int, taskNum: Int): Future[Option[Task]]
     //def find(slug: String): Future[Option[Task]]
     def insert(task: Task)(implicit conn: Connection): Future[Task]

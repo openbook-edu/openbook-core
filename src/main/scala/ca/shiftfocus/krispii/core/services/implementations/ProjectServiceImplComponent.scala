@@ -122,6 +122,35 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
     }
 
     /**
+     * Find a single project.
+     *
+     * @return an optional project
+     */
+    override def find(projectSlug: String, userId: UUID): Future[Option[Project]] = {
+      for {
+        user <- userRepository.find(userId).map(_.get)
+        project <- projectRepository.find(projectSlug).map(_.get)
+        projectOption <- projectRepository.find(project.id, user)
+        parts <- { projectOption match {
+          case Some(project) => partRepository.list(project).flatMap { parts =>
+            Future.sequence(parts.map { part =>
+              taskRepository.list(part).map { tasks =>
+                part.copy(tasks = tasks)
+              }
+            })
+          }
+          case None => Future.successful(IndexedSeq())
+        }}
+      }
+      yield projectOption match {
+        case Some(project) => Some(project.copy(parts = parts))
+        case None => None
+      }
+    }.recover {
+      case exception => throw exception
+    }
+
+    /**
      * Create a new project, with a single part and an empty task.
      *
      * New projects will *always* need at least one part and task to be useful,
@@ -601,6 +630,26 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
       for {
         project <- projectRepository.find(projectSlug).map(_.get)
         taskOption <- taskRepository.find(project, partNum, taskNum)
+      }
+      yield taskOption
+    }.recover {
+      case exception => throw exception
+    }
+
+    /**
+     * Find a task by its position in a project.
+     *
+     * @param projectSlug the text slug of the project this task is in
+     * @param partNum the number (corresponds to 'position' field) of the part
+     *                that this task is in.
+     * @param taskNum the number (position) of the task inside the part.
+     * @return an [[Option[Task]]] if one was found.
+     */
+    override def findNowTask(userId: UUID, projectId: UUID): Future[Option[Task]] = {
+      for {
+        student <- userRepository.find(userId).map(_.get)
+        project <- projectRepository.find(projectId).map(_.get)
+        taskOption <- taskRepository.findNow(student, project)
       }
       yield taskOption
     }.recover {

@@ -16,6 +16,7 @@ trait ProjectServiceComponent {
     def find(id: UUID): Future[Option[Project]]
     def find(projectSlug: String): Future[Option[Project]]
     def find(projectId: UUID, userId: UUID): Future[Option[Project]]
+    def find(projectSlug: String, userId: UUID): Future[Option[Project]]
     def create(classId: UUID, name: String, slug: String, description: String, availability: String): Future[Project]
     def update(id: UUID, version: Long, classId: UUID, name: String, slug: String, description: String, availability: String): Future[Project]
     def delete(id: UUID, version: Long): Future[Boolean]
@@ -37,6 +38,8 @@ trait ProjectServiceComponent {
     def listTasks(projectId: UUID, partNum: Int): Future[IndexedSeq[Task]]
     def findTask(taskId: UUID): Future[Option[Task]]
     def findTask(projectSlug: String, partNum: Int, taskNum: Int): Future[Option[Task]]
+    def findNowTask(userId: UUID, projectId: UUID): Future[Option[Task]]
+
     def createTask(partId: UUID, taskType: Int, name: String, description: String, position: Int, dependencyId: Option[UUID] = None): Future[Task]
 
     def updateLongAnswerTask(taskId: UUID,

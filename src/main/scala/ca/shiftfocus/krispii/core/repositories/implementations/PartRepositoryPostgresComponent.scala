@@ -24,7 +24,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
    * A concrete implementation of the ProjectRepository class.
    */
   private class PartRepositoryPSQL extends PartRepository {
-    def fields = Seq("project_id", "name", "description", "position")
+    def fields = Seq("project_id", "name", "description", "position", "enabled")
     def table = "parts"
     def orderBy = "surname ASC, givenname ASC"
     val fieldsText = fields.mkString(", ")
@@ -373,7 +373,8 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
         part.projectId.bytes,
         part.name,
         part.description,
-        part.position
+        part.position,
+        part.enabled
       )).map {
         result => {
           Part(result.rows.get.head)
@@ -397,6 +398,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
         part.name,
         part.description,
         part.position,
+        part.enabled,
         (part.version + 1),
         new DateTime,
         part.id.bytes,

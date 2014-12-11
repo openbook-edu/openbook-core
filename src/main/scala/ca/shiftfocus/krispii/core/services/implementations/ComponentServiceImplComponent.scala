@@ -124,7 +124,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
     override def updateAudio(id: UUID, version: Long, values: Map[String, Any]): Future[Component] = {
       transactional { implicit connection =>
         for {
-          existingComponent <- componentRepository.find(id).map(_.asInstanceOf[AudioComponent])
+          existingComponent <- componentRepository.find(id).map(_.get.asInstanceOf[AudioComponent])
           componentToUpdate <- Future.successful(existingComponent.copy(
             version = version,
             title = values.get("title") match {
@@ -155,7 +155,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
     override def updateText(id: UUID, version: Long, values: Map[String, Any]): Future[Component] = {
       transactional { implicit connection =>
         for {
-          existingComponent <- componentRepository.find(id).map(_.asInstanceOf[TextComponent])
+          existingComponent <- componentRepository.find(id).map(_.get.asInstanceOf[TextComponent])
           componentToUpdate <- Future.successful(existingComponent.copy(
             version = version,
             title = values.get("title") match {
@@ -186,7 +186,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
     override def updateVideo(id: UUID, version: Long, values: Map[String, Any]): Future[Component] = {
       transactional { implicit connection =>
         for {
-          existingComponent <- componentRepository.find(id).map(_.asInstanceOf[VideoComponent])
+          existingComponent <- componentRepository.find(id).map(_.get.asInstanceOf[VideoComponent])
           componentToUpdate <- Future.successful(existingComponent.copy(
             version = version,
             title = values.get("title") match {

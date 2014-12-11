@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models._
 import scala.concurrent.Future
+import java.awt.Color
 
 trait SchoolServiceComponent {
 
@@ -21,8 +22,8 @@ trait SchoolServiceComponent {
     def listSectionsByTeacher(userId: UUID): Future[IndexedSeq[Class]]
     def listSectionsByProject(projectId: UUID): Future[IndexedSeq[Class]]
     def findSection(id: UUID): Future[Option[Class]]
-    def createSection(courseId: UUID, teacherId: Option[UUID], name: String): Future[Class]
-    def updateSection(id: UUID, version: Long, courseId: UUID, teacherId: Option[UUID], name: String): Future[Class]
+    def createSection(teacherId: Option[UUID], name: String, color: Color): Future[Class]
+    def updateSection(id: UUID, version: Long, teacherId: Option[UUID], name: String, color: Color): Future[Class]
     def deleteSection(id: UUID, version: Long): Future[Boolean]
 
     // Utility functions for section management, assuming you already found a section object.

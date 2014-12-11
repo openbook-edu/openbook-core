@@ -1,5 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
+import java.awt.Color
+
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
@@ -115,7 +117,12 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     override def listSectionsByUser(userId: UUID): Future[IndexedSeq[Class]] = {
       for {
         user <- userRepository.find(userId).map(_.get)
-        sections <- classRepository.list(user, false)
+        sectionsInt <- classRepository.list(user, false)
+        sections <- Future sequence sectionsInt.map { section =>
+          projectRepository.list(section).map { classProjects =>
+            section.copy(projects = Some(classProjects))
+          }
+        }
       }
       yield sections
     }.recover {
@@ -134,7 +141,12 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     override def listSectionsByTeacher(userId: UUID): Future[IndexedSeq[Class]] = {
       for {
         user <- userRepository.find(userId).map(_.get)
-        sections <- classRepository.list(user, true)
+        sectionsInt <- classRepository.list(user, true)
+        sections <- Future sequence sectionsInt.map { section =>
+          projectRepository.list(section).map { classProjects =>
+            section.copy(projects = Some(classProjects))
+          }
+        }
       }
       yield sections
     }.recover {
@@ -150,7 +162,12 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     override def listSectionsByProject(projectId: UUID): Future[IndexedSeq[Class]] = {
       for {
         project <- projectRepository.find(projectId).map(_.get)
-        sections <- classRepository.list(project)
+        sectionsInt <- classRepository.list(project)
+        sections <- Future sequence sectionsInt.map { section =>
+          projectRepository.list(section).map { classProjects =>
+            section.copy(projects = Some(classProjects))
+          }
+        }
       }
       yield sections
     }.recover {
@@ -175,24 +192,22 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @param name the name of this section
      * @return the newly created [[Class]]
      */
-    override def createSection(courseId: UUID, teacherId: Option[UUID], name: String): Future[Class] = {
+    override def createSection(teacherId: Option[UUID], name: String, color: Color): Future[Class] = {
       transactional { implicit connection =>
-        val fCourse = courseRepository.find(courseId).map(_.get)
         val foTeacher = teacherId match {
           case Some(id) => userRepository.find(id)
           case None => Future.successful(None)
         }
 
         for {
-          course <- fCourse
           oTeacher <- foTeacher
           newSection <- classRepository.insert(Class(
-            courseId = course.id,
             teacherId = oTeacher match {
               case Some(teacher) => Some(teacher.id)
               case None => None
             },
-            name = name
+            name = name,
+            color = color
           ))
         }
         yield newSection
@@ -209,10 +224,9 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @param name the name of this section
      * @return the newly created [[Class]]
      */
-    override def updateSection(id: UUID, version: Long, courseId: UUID, teacherId: Option[UUID], name: String): Future[Class] = {
+    override def updateSection(id: UUID, version: Long, teacherId: Option[UUID], name: String, color: Color): Future[Class] = {
       transactional { implicit connection =>
         val fExistingSection = classRepository.find(id).map(_.get.copy(version = version))
-        val fCourse = courseRepository.find(courseId).map(_.get)
         val foTeacher = teacherId match {
           case Some(id) => userRepository.find(id)
           case None => Future.successful(None)
@@ -220,15 +234,14 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
 
         for {
           existingSection <- fExistingSection
-          course <- fCourse
           oTeacher <- foTeacher
           updatedSection <- classRepository.update(existingSection.copy(
-            courseId = course.id,
             teacherId = oTeacher match {
               case Some(teacher) => Some(teacher.id)
               case None => None
             },
-            name = name
+            name = name,
+            color = color
           ))
         }
         yield updatedSection

@@ -21,8 +21,8 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
 
     val Select =
       s"""
-         |SELECT classes.id as id, classes.version as version, classes.course_id as course_id, classes.teacher_id as teacher_id,
-         |       classes.name as name, classes.created_at as created_at, classes.updated_at as updated_at
+         |SELECT classes.id as id, classes.version as version, classes.teacher_id as teacher_id,
+         |       classes.name as name, classes.color as color, classes.created_at as created_at, classes.updated_at as updated_at
        """.stripMargin
 
     val From =
@@ -37,7 +37,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
 
     val Returning =
       s"""
-         |RETURNING id, version, course_id, teacher_id, name, created_at, updated_at
+         |RETURNING id, version, teacher_id, name, color, created_at, updated_at
        """.stripMargin
 
     // User CRUD operations
@@ -58,7 +58,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
 
     val Insert =
       s"""
-         |INSERT INTO classes (id, version, course_id, teacher_id, name, created_at, updated_at)
+         |INSERT INTO classes (id, version, teacher_id, name, color, created_at, updated_at)
          |VALUES (?, 1, ?, ?, ?, ?, ?)
          |$Returning
       """.stripMargin
@@ -66,7 +66,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     val Update =
       s"""
          |UPDATE classes
-         |SET version = ?, course_id = ?, teacher_id = ?, name = ?, updated_at = ?
+         |SET version = ?, teacher_id = ?, name = ?, color = ?, updated_at = ?
          |WHERE id = ?
          |  AND version = ?
          |$Returning
@@ -552,12 +552,12 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     def insert(`class`: Class)(implicit conn: Connection): Future[Class] = {
       conn.sendPreparedStatement(Insert, Array(
         `class`.id.bytes,
-        `class`.courseId.bytes,
         `class`.teacherId match {
           case Some(id) => Some(id.bytes)
           case _ => None
         },
         `class`.name,
+        `class`.color.getRGB,
         new DateTime,
         new DateTime
       )).map {
@@ -582,12 +582,12 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     def update(`class`: Class)(implicit conn: Connection): Future[Class] = {
       conn.sendPreparedStatement(Update, Array(
         (`class`.version + 1),
-        `class`.courseId.bytes,
         `class`.teacherId match {
           case Some(id) => Some(id.bytes)
           case _ => None
         },
         `class`.name,
+        `class`.color.getRGB,
         new DateTime,
         `class`.id,
         `class`.version

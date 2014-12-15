@@ -1,3 +1,5 @@
+import java.awt.Color
+
 import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.models._
@@ -93,9 +95,9 @@ class ProjectServiceSpec
   )
 
   val testClass = Class(
-    courseId = testCourse.id,
     teacherId = Option(testUserA.id),
-    name = "test class"
+    name = "test class",
+    color = new Color(24, 6, 8)
   )
 
   val testProject = Project(

@@ -1,6 +1,7 @@
 //package services //Need to be commented to run the tests
 
 import ca.shiftfocus.uuid.UUID
+import java.awt.Color
 import ca.shiftfocus.krispii.core.models._
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.{Future,ExecutionContext,Await}
@@ -69,10 +70,10 @@ class AuthServiceSpec
     name = "Role name A"
   )
 
-  val testSectionA = Class(
-    courseId = testUserA.id,
+  val testClassA = Class(
     teacherId = Option(testUserA.id),
-    name = "Class name A"
+    name = "Class name A",
+    color = new Color(24, 6, 8)
   )
 
   "AuthService.authenticate" should {
@@ -135,7 +136,7 @@ class AuthServiceSpec
 
   "AuthService.update" should {
     val indexedRole = Vector(testRoleA)
-    val indexedSection = Vector(testSectionA)
+    val indexedClass = Vector(testClassA)
     val values: Map[String, String] = Map("email" -> testUserA.email, "username" -> testUserA.username)
 
     inSequence {
@@ -143,7 +144,7 @@ class AuthServiceSpec
         // Mock authService.find
         (userRepository.find(_: UUID)) when(testUserA.id) returns(Future.successful(Some(testUserA)))
         (roleRepository.list(_: User)) when(testUserA) returns(Future.successful(indexedRole))
-        (classRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedSection))
+        (classRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedClass))
 
         // Conflicting user
         (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(Some(testUserA)))
@@ -159,7 +160,7 @@ class AuthServiceSpec
         // Mock authService.find
         (userRepository.find(_: UUID)) when(testUserA.id) returns(Future.successful(Some(testUserA)))
         (roleRepository.list(_: User)) when(testUserA) returns(Future.successful(indexedRole))
-        (classRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedSection))
+        (classRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedClass))
 
         // Conflicting user
         (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(Some(testUserA)))
@@ -175,7 +176,7 @@ class AuthServiceSpec
         // Mock authService.find
         (userRepository.find(_: UUID)) when(testUserA.id) returns(Future.successful(Some(testUserA)))
         (roleRepository.list(_: User)) when(testUserA) returns(Future.successful(indexedRole))
-        (classRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedSection))
+        (classRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedClass))
 
         // Conflicting user
         (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(Some(testUserB)))
@@ -191,7 +192,7 @@ class AuthServiceSpec
         // Mock authService.find
         (userRepository.find(_: UUID)) when(testUserA.id) returns(Future.successful(Some(testUserA)))
         (roleRepository.list(_: User)) when(testUserA) returns(Future.successful(indexedRole))
-        (classRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedSection))
+        (classRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedClass))
 
         // Conflicting user
         (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(Some(testUserB)))

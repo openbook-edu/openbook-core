@@ -1,3 +1,5 @@
+import java.awt.Color
+
 import ca.shiftfocus.uuid.UUID
 import webcrank.password.Passwords
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -81,9 +83,9 @@ class ComponentServiceSpec
   )
 
   val testClass = Class(
-    courseId = testCourse.id,
     teacherId = Option(testUserA.id),
-    name = "test class"
+    name = "test class",
+    color = new Color(24, 6, 8)
   )
 
   val testProject = Project(

@@ -270,6 +270,7 @@ class UserRepositorySpec
         user.givenname should be(testUserA.givenname)
         user.surname should be(testUserA.surname)
         user.createdAt.toString() should be (testUserA.createdAt.toString())
+        user.updatedAt.toString() should be (testUserA.updatedAt.toString())
       }
       "find a user by their identifiers - email" in {
         val result = userRepository.find(testUserA.email).map(_.get)

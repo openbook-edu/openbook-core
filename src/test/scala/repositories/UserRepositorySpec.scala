@@ -26,7 +26,7 @@ with PostgresDB {
   val project_path = new File(".").getAbsolutePath()
   val create_schema_path = s"${project_path}/src/test/resources/schemas/create_schema.sql"
   val drop_schema_path = s"${project_path}/src/test/resources/schemas/drop_schema.sql"
-  val data_schema_path = s"${project_path}/src/test/resources/schemas/users/data_schema.sql"
+  val data_schema_path = s"${project_path}/src/test/resources/schemas/data_schema.sql"
 
   /**
    * Implements query from schema file
@@ -287,6 +287,11 @@ class UserRepositorySpec
         user.surname should be(testUserA.surname)
         user.createdAt.toString() should be (testUserA.createdAt.toString())
         user.updatedAt.toString() should be (testUserA.updatedAt.toString())
+      }
+      "throw an exception if user wasn't found by ID" in {
+        val result = userRepository.find(UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")).map(_.get)
+
+        an [java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
       }
       "find a user by their identifiers - email" in {
         val result = userRepository.find(testUserA.email).map(_.get)

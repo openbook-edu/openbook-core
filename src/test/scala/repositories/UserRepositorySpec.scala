@@ -3,6 +3,7 @@ import java.io.File
 
 import ca.shiftfocus.krispii.core.models.{Class, User}
 import ca.shiftfocus.uuid.UUID
+import org.joda.time.{DateTimeZone, DateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Await
 import scala.concurrent.duration._
@@ -62,7 +63,9 @@ with PostgresDB {
     username = "testUserA",
     passwordHash = Some("$s0$100801$SIZ9lgHz0kPMgtLB37Uyhw==$wyKhNrg/MmUvlYuVygDctBE5LHBjLB91nyaiTpjbeyM="),
     givenname = "TestA",
-    surname = "UserA"
+    surname = "UserA",
+    createdAt = Option(new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
 
   val testUserB = User(
@@ -72,9 +75,11 @@ with PostgresDB {
     username = "testUserB",
     passwordHash = Some("$s0$100801$84r2edPRqM/8xFCe+G1PPw==$p7dTGjBJpGUMoyQ1Nqat1i4SBV6aT6BX7h1WU6cLRnc="),
     givenname = "TestB",
-    surname = "UserB"
+    surname = "UserB",
+    updatedAt = Option(new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
 
+  // User has no references in other tables
   val testUserC = User(
     id = UUID("f5f98407-3a0b-4ea5-952a-575886e90586"),
     version = 3L,
@@ -82,7 +87,8 @@ with PostgresDB {
     username = "testUserC",
     passwordHash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3WmWjo="),
     givenname = "TestC",
-    surname = "UserC"
+    surname = "UserC",
+    updatedAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
 
   // New user no data in DB
@@ -263,6 +269,7 @@ class UserRepositorySpec
         user.username should be(testUserA.username)
         user.givenname should be(testUserA.givenname)
         user.surname should be(testUserA.surname)
+        user.createdAt.toString() should be (testUserA.createdAt.toString())
       }
       "find a user by their identifiers - email" in {
         val result = userRepository.find(testUserA.email).map(_.get)
@@ -333,33 +340,34 @@ class UserRepositorySpec
     inSequence {
       "update an existing user" in {
 
-        val result = userRepository.update(testUserC.copy(
-          email = "newtestUserC@example.com",
-          username = "newtestUserC",
-          givenname = "newTestC",
-          surname = "newUserC"
+        val result = userRepository.update(testUserA.copy(
+          email = "newtestUserA@example.com",
+          username = "newtestUserA",
+          givenname = "newTestA",
+          surname = "newUserA"
         ))
 
         val user = Await.result(result, Duration.Inf)
 
-        user.id should be (testUserC.id)
-        user.version should be (testUserC.version + 1)
-        user.email should be ("newtestUserC@example.com")
-        user.username should be ("newtestUserC")
-        user.givenname should be ("newTestC")
-        user.surname should be ("newUserC")
+        user.id should be (testUserA.id)
+        user.version should be (testUserA.version + 1)
+        user.email should be ("newtestUserA@example.com")
+        user.username should be ("newtestUserA")
+        user.givenname should be ("newTestA")
+        user.surname should be ("newUserA")
 
         // Find updated user and check
-        val result2 = userRepository.find("newtestUserC@example.com").map(_.get)
+        val result2 = userRepository.find("newtestUserA@example.com").map(_.get)
 
         val updated_user = Await.result(result2, Duration.Inf)
 
-        updated_user.id should be (testUserC.id)
-        updated_user.version should be (testUserC.version + 1)
-        updated_user.email should be ("newtestUserC@example.com")
-        updated_user.username should be ("newtestUserC")
-        updated_user.givenname should be ("newTestC")
-        updated_user.surname should be ("newUserC")
+        updated_user.id should be (testUserA.id)
+        updated_user.version should be (testUserA.version + 1)
+        updated_user.email should be ("newtestUserA@example.com")
+        updated_user.username should be ("newtestUserA")
+        updated_user.givenname should be ("newTestA")
+        updated_user.surname should be ("newUserA")
+        updated_user.updatedAt.toString() should not be (testUserA.updatedAt.toString())
       }
       "throw an exception when update an existing user with wrong version" in {
         val result = userRepository.update(testUserB.copy(
@@ -382,6 +390,7 @@ class UserRepositorySpec
         user.username should be (testUserB.username)
         user.givenname should be (testUserB.givenname)
         user.surname should be (testUserB.surname)
+        user.updatedAt.toString() should be (testUserB.updatedAt.toString())
       }
       "throw an exception when update an unexisting existing user" in {
         an [java.util.NoSuchElementException] should be thrownBy userRepository.update(User(
@@ -425,19 +434,21 @@ class UserRepositorySpec
 
   "UserRepository.delete" should {
     inSequence {
-      "delete a user from the database" in {
-        val result = userRepository.delete(testUserD)
+      "delete a user from the database if user has no references in other tables" in {
+        val result = userRepository.delete(testUserC)
 
         val is_deleted = Await.result(result, Duration.Inf)
-
         is_deleted should be (true)
 
         // Check if user has been deleted
-        val result2 = userRepository.find(testUserD.email)
+        val result2 = userRepository.find(testUserC.email)
 
         val deleted_user = Await.result(result2, Duration.Inf)
-
         deleted_user should be (None)
+      }
+      "throw an exception if user has references in other tables" in {
+        val result = userRepository.delete(testUserB)
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
       }
     }
   }

@@ -76,6 +76,7 @@ with PostgresDB {
     passwordHash = Some("$s0$100801$84r2edPRqM/8xFCe+G1PPw==$p7dTGjBJpGUMoyQ1Nqat1i4SBV6aT6BX7h1WU6cLRnc="),
     givenname = "TestB",
     surname = "UserB",
+    createdAt = Option(new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
 
@@ -88,6 +89,7 @@ with PostgresDB {
     passwordHash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3WmWjo="),
     givenname = "TestC",
     surname = "UserC",
+    createdAt = Option(new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
 
@@ -139,6 +141,8 @@ class UserRepositorySpec
             users(key).username should be(user.username)
             users(key).givenname should be(user.givenname)
             users(key).surname should be(user.surname)
+            users(key).createdAt.toString should be(user.createdAt.toString)
+            users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
       }
@@ -156,6 +160,8 @@ class UserRepositorySpec
             users(key).username should be(user.username)
             users(key).givenname should be(user.givenname)
             users(key).surname should be(user.surname)
+            users(key).createdAt.toString should be(user.createdAt.toString)
+            users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
       }
@@ -177,6 +183,8 @@ class UserRepositorySpec
             users(key).username should be(user.username)
             users(key).givenname should be(user.givenname)
             users(key).surname should be(user.surname)
+            users(key).createdAt.toString should be(user.createdAt.toString)
+            users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
 
@@ -188,6 +196,8 @@ class UserRepositorySpec
             users2(key).username should be(user.username)
             users2(key).givenname should be(user.givenname)
             users2(key).surname should be(user.surname)
+            users2(key).createdAt.toString should be(user.createdAt.toString)
+            users2(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
       }
@@ -209,6 +219,8 @@ class UserRepositorySpec
             users(key).username should be(user.username)
             users(key).givenname should be(user.givenname)
             users(key).surname should be(user.surname)
+            users(key).createdAt.toString should be(user.createdAt.toString)
+            users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
       }
@@ -230,6 +242,8 @@ class UserRepositorySpec
             users(key).username should be(user.username)
             users(key).givenname should be(user.givenname)
             users(key).surname should be(user.surname)
+            users(key).createdAt.toString should be(user.createdAt.toString)
+            users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
       }
@@ -251,6 +265,8 @@ class UserRepositorySpec
             users(key).username should be(user.username)
             users(key).givenname should be(user.givenname)
             users(key).surname should be(user.surname)
+            users(key).createdAt.toString should be(user.createdAt.toString)
+            users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
       }
@@ -283,6 +299,8 @@ class UserRepositorySpec
         user.username should be(testUserA.username)
         user.givenname should be(testUserA.givenname)
         user.surname should be(testUserA.surname)
+        user.createdAt.toString should be(testUserA.createdAt.toString)
+        user.updatedAt.toString should be(testUserA.updatedAt.toString)
       }
       "find a user by their identifiers - username" in {
         val result = userRepository.find(testUserB.username).map(_.get)
@@ -295,6 +313,8 @@ class UserRepositorySpec
         user.username should be(testUserB.username)
         user.givenname should be(testUserB.givenname)
         user.surname should be(testUserB.surname)
+        user.createdAt.toString should be(testUserB.createdAt.toString)
+        user.updatedAt.toString should be(testUserB.updatedAt.toString)
       }
       "not find a user by their identifiers - email (unexisting email)" in {
         val result = userRepository.find("unexisting_email@example.com")
@@ -326,6 +346,8 @@ class UserRepositorySpec
         user.username should be (testUserC.username)
         user.givenname should be (testUserC.givenname)
         user.surname should be (testUserC.surname)
+        user.createdAt.toString should be(testUserC.createdAt.toString)
+        user.updatedAt.toString should be(testUserC.updatedAt.toString)
       }
       "not find a user by unexisting e-mail address" in {
         val result = userRepository.find("unexisting_email@example.com")
@@ -356,6 +378,8 @@ class UserRepositorySpec
         user.username should be ("newtestUserA")
         user.givenname should be ("newTestA")
         user.surname should be ("newUserA")
+        user.createdAt.toString should be(testUserA.createdAt.toString)
+        user.updatedAt.toString should not be(testUserA.updatedAt.toString)
 
         // Find updated user and check
         val result2 = userRepository.find("newtestUserA@example.com").map(_.get)
@@ -368,6 +392,7 @@ class UserRepositorySpec
         updated_user.username should be ("newtestUserA")
         updated_user.givenname should be ("newTestA")
         updated_user.surname should be ("newUserA")
+        user.createdAt.toString should be(testUserA.createdAt.toString)
         updated_user.updatedAt.toString() should not be (testUserA.updatedAt.toString())
       }
       "throw an exception when update an existing user with wrong version" in {
@@ -391,7 +416,8 @@ class UserRepositorySpec
         user.username should be (testUserB.username)
         user.givenname should be (testUserB.givenname)
         user.surname should be (testUserB.surname)
-        user.updatedAt.toString() should be (testUserB.updatedAt.toString())
+        user.createdAt.toString should be(testUserB.createdAt.toString)
+        user.updatedAt.toString should be (testUserB.updatedAt.toString)
       }
       "throw an exception when update an unexisting existing user" in {
         an [java.util.NoSuchElementException] should be thrownBy userRepository.update(User(

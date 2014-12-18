@@ -96,7 +96,6 @@ with PostgresDB {
   // New user no data in DB
   val testUserD = User(
     id = UUID("4d97f26c-df3f-4866-8919-11f51f14e9c4"),
-    version = 1L,
     email = "testUserD@example.com",
     username = "testUserD",
     passwordHash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3W1234="),
@@ -409,22 +408,8 @@ class UserRepositorySpec
         ))
 
         an [java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
-
-        // Verify if user hasn't been changed
-        val result2 = userRepository.find(testUserB.email).map(_.get)
-
-        val user = Await.result(result2, Duration.Inf)
-
-        user.id should be (testUserB.id)
-        user.version should be (testUserB.version)
-        user.email should be (testUserB.email)
-        user.username should be (testUserB.username)
-        user.givenname should be (testUserB.givenname)
-        user.surname should be (testUserB.surname)
-        user.createdAt.toString should be(testUserB.createdAt.toString)
-        user.updatedAt.toString should be (testUserB.updatedAt.toString)
       }
-      "throw an exception when update an unexisting existing user" in {
+      "throw an exception when update an unexisting user" in {
         an [java.util.NoSuchElementException] should be thrownBy userRepository.update(User(
           email = "unexisting_email@example.com",
           username = "unexisting_username",
@@ -460,6 +445,11 @@ class UserRepositorySpec
         new_user.username should be (testUserD.username)
         new_user.givenname should be (testUserD.givenname)
         new_user.surname should be (testUserD.surname)
+      }
+      "throw an exception if user already exists" in {
+        val result = userRepository.insert(testUserA)
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
       }
     }
   }

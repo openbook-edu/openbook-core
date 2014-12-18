@@ -84,6 +84,29 @@ trait RoleRepoTestEnvironment
     updatedAt = Option(new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
 
+  // User has no references in other tables
+  val testUserC = User(
+    id = UUID("f5f98407-3a0b-4ea5-952a-575886e90586"),
+    version = 3L,
+    email = "testUserC@example.com",
+    username = "testUserC",
+    passwordHash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3WmWjo="),
+    givenname = "TestC",
+    surname = "UserC",
+    createdAt = Option(new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  // New user no data in DB
+  val testUserD = User(
+    id = UUID("4d97f26c-df3f-4866-8919-11f51f14e9c4"),
+    email = "testUserD@example.com",
+    username = "testUserD",
+    passwordHash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3W1234="),
+    givenname = "TestD",
+    surname = "UserD"
+  )
+
   val testRoleA = Role(
     id = UUID("1430e950-77f9-4b30-baf8-bb226fc7091a"),
     version = 1L,
@@ -106,6 +129,18 @@ trait RoleRepoTestEnvironment
     name = "test role C",
     createdAt = Option(new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  // New role no data in DB
+  val testRoleD = Role(
+    id = UUID("b82d356d-a1bb-4e07-b28f-d15060fb42c2"),
+    name = "test role D"
+  )
+
+  // New role no data in DB
+  val testRoleE = Role(
+    id = UUID("29a84d7b-f90a-4a26-a224-b70631fdfbe4"),
+    name = "test role E"
   )
 
 }
@@ -148,6 +183,18 @@ with RoleRepoTestEnvironment {
             roles(key).updatedAt.toString should be(role.updatedAt.toString)
           }
         }
+      }
+      "return empty Vector() if such user doesn't exist" in {
+        val result = roleRepository.list(User(
+          email = "unexisting_email@example.com",
+          username = "unexisting_username",
+          givenname = "unexisting_givenname",
+          surname = "unexisting_surname"
+        ))
+
+        val roles = Await.result(result, Duration.Inf)
+
+        roles should be (Vector())
       }
       "list the roles associated with a users" in {
         val result = roleRepository.list(Vector(testUserA, testUserB))
@@ -210,26 +257,269 @@ with RoleRepoTestEnvironment {
         role.createdAt.toString should be(testRoleA.createdAt.toString)
         role.updatedAt.toString should be(testRoleA.updatedAt.toString)
       }
+      "throw an exception if entry wasn't found by name" in {
+        val result = roleRepository.find("unexisting_role_name").map(_.get)
+
+        an[java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
+      }
     }
   }
 
   "RoleRepository.addUsers" should {
     inSequence {
-      "add users" in {
-        val result = roleRepository.addUsers(testRoleC, Vector(testUserA, testUserB))
+      "add roles to users" in {
+        val query_result = roleRepository.addUsers(testRoleC, Vector(testUserA, testUserB))
 
-        val query = """
+        Await.result(query_result, Duration.Inf) should be (true)
+
+        // Find user roles by user ID
+        val find_roles_query = """
           SELECT id, version, roles.name as name, roles.created_at as created_at, updated_at
           FROM roles, users_roles
           WHERE roles.id = users_roles.role_id
             AND users_roles.user_id = ?
                     """
 
-        db.pool.sendPreparedStatement(query, Array[Any](testUserA.id.bytes)).map { queryResult =>
+        // Find roles for testUserA
+        val resultForUserA = db.pool.sendPreparedStatement(find_roles_query, Array[Any](testUserA.id.bytes)).map { queryResult =>
           val roleList = queryResult.rows.get.map {
             item: RowData => Role(item)
           }
+          roleList
         }
+
+        val roleListUserA = Await.result(resultForUserA, Duration.Inf)
+        roleListUserA contains testRoleC should be (true)
+
+        // Find roles for testUserA
+        val resultForUserB = db.pool.sendPreparedStatement(find_roles_query, Array[Any](testUserB.id.bytes)).map { queryResult =>
+          val roleList = queryResult.rows.get.map {
+            item: RowData => Role(item)
+          }
+          roleList
+        }
+
+        val roleListUserB = Await.result(resultForUserB, Duration.Inf)
+        roleListUserB contains testRoleC should be (true)
+      }
+    }
+    "throw an exception if we add the role to the user that already has this role" in {
+      val query_result = roleRepository.addUsers(testRoleB, Vector(testUserA))
+
+      an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy  Await.result(query_result, Duration.Inf)
+    }
+  }
+
+  "RoleRepository.removeUsers" should {
+    inSequence {
+      "remove role from users" in {
+        val query_result = roleRepository.removeUsers(testRoleB, Vector(testUserA, testUserB))
+
+        Await.result(query_result, Duration.Inf) should be (true)
+
+        // Find user roles by user ID
+        val find_roles_query = """
+          SELECT id, version, roles.name as name, roles.created_at as created_at, updated_at
+          FROM roles, users_roles
+          WHERE roles.id = users_roles.role_id
+            AND users_roles.user_id = ?
+                    """
+
+        // Find roles for testUserA
+        val resultForUserA = db.pool.sendPreparedStatement(find_roles_query, Array[Any](testUserA.id.bytes)).map { queryResult =>
+          val roleList = queryResult.rows.get.map {
+            item: RowData => Role(item)
+          }
+          roleList
+        }
+
+        val roleListUserA = Await.result(resultForUserA, Duration.Inf)
+        roleListUserA contains testRoleB should be (false)
+
+        // Find roles for testUserA
+        val resultForUserB = db.pool.sendPreparedStatement(find_roles_query, Array[Any](testUserB.id.bytes)).map { queryResult =>
+          val roleList = queryResult.rows.get.map {
+            item: RowData => Role(item)
+          }
+          roleList
+        }
+
+        val roleListUserB = Await.result(resultForUserB, Duration.Inf)
+        roleListUserB contains testRoleB should be (false)
+      }
+    }
+    "return FALSE if the user doesn't have this role" in {
+      val query_result = roleRepository.removeUsers(testRoleA, Vector(testUserB))
+
+      val role = Await.result(query_result, Duration.Inf)
+      role should be (false)
+    }
+  }
+
+  "RoleRepository.insert" should {
+    inSequence {
+      "save a Role row" in {
+        val result = roleRepository.insert(Role(
+          id = testRoleD.id,
+          name = testRoleD.name
+        ))
+
+        val role = Await.result(result, Duration.Inf)
+        role.id should be(testRoleD.id)
+        role.name should be(testRoleD.name)
+
+        // Check Role record
+        val checkResult = roleRepository.find(testRoleD.id).map(_.get)
+
+        val checkRole = Await.result(checkResult, Duration.Inf)
+        checkRole.id should be(testRoleD.id)
+        checkRole.name should be(testRoleD.name)
+      }
+      "throw an exception if role already exists" in {
+        val result = roleRepository.insert(testRoleA)
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+    }
+  }
+
+  "RoleRepository.update" should {
+    inSequence {
+      "update an existing Role" in {
+        val result = roleRepository.update(testRoleC.copy(
+          name = "new test role C"
+        ))
+
+        val role = Await.result(result, Duration.Inf)
+        role.name should be("new test role C")
+
+        // Check Role record
+        val checkResult = roleRepository.find(testRoleC.id).map(_.get)
+
+        val checkRole = Await.result(checkResult, Duration.Inf)
+        checkRole.name should be("new test role C")
+      }
+      "throw an exception when update an existing Role with wrong version" in {
+        val result = roleRepository.update(testRoleC.copy(
+          version = 99L,
+          name = "new test role C"
+        ))
+
+        an[java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+      "throw an exception when update an unexisting Role" in {
+        val result = roleRepository.update(Role(
+          name = "test role E"
+        ))
+
+        an[java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+    }
+  }
+
+  "RoleRepository.delete" should {
+    inSequence{
+      "delete role if role has no references in other tables" in {
+        val result = roleRepository.delete(testRoleB)
+
+        Await.result(result, Duration.Inf) should be (true)
+
+        // Check if role has been deleted
+        val result2 = roleRepository.find(testRoleB.id)
+
+        val deleted_role = Await.result(result2, Duration.Inf)
+        deleted_role should be (None)
+      }
+      "throw an exception if role has references in other tables" in {
+        val result = roleRepository.delete(testRoleA)
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+    }
+  }
+
+  "RoleRepository.addToUser" should {
+    inSequence {
+      "associate a role (by object) to a user" in {
+        val query_result = roleRepository.addToUser(testUserC, testRoleC)
+
+        Await.result(query_result, Duration.Inf) should be (true)
+
+        // Find user roles by user ID
+        val find_roles_query = """
+          SELECT id, version, roles.name as name, roles.created_at as created_at, updated_at
+          FROM roles, users_roles
+          WHERE roles.id = users_roles.role_id
+            AND users_roles.user_id = ?
+                               """
+
+        // Find roles for testUserC
+        val result = db.pool.sendPreparedStatement(find_roles_query, Array[Any](testUserC.id.bytes)).map { queryResult =>
+          val roleList = queryResult.rows.get.map {
+            item: RowData => Role(item)
+          }
+          roleList
+        }
+
+        val roleList = Await.result(result, Duration.Inf)
+        roleList contains testRoleC should be (true)
+      }
+
+      "associate a role (by name) to a user" in {
+        val query_result = roleRepository.addToUser(testUserC, testRoleA.name)
+
+        Await.result(query_result, Duration.Inf) should be (true)
+
+        // Find user roles by user ID
+        val find_roles_query = """
+          SELECT id, version, roles.name as name, roles.created_at as created_at, updated_at
+          FROM roles, users_roles
+          WHERE roles.id = users_roles.role_id
+            AND users_roles.user_id = ?
+                               """
+
+        // Find roles for testUserC
+        val result = db.pool.sendPreparedStatement(find_roles_query, Array[Any](testUserC.id.bytes)).map { queryResult =>
+          val roleList = queryResult.rows.get.map {
+            item: RowData => Role(item)
+          }
+          roleList
+        }
+
+        val roleList = Await.result(result, Duration.Inf)
+        roleList contains testRoleA should be (true)
+      }
+      "throw an exception if user doesn't exist" in {
+        val query_result = roleRepository.addToUser(testUserD, testRoleA)
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(query_result, Duration.Inf)
+      }
+      "throw an exception if role (object) doesn't exist" in {
+        val query_result = roleRepository.addToUser(testUserA, testRoleE)
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(query_result, Duration.Inf)
+      }
+      "return FALSE if role (name) doesn't exist" in {
+        val query_result = roleRepository.addToUser(testUserA, testRoleE.name)
+
+        Await.result(query_result, Duration.Inf) should be (false)
+      }
+    }
+  }
+
+  // testRoleA from testUserA
+  "RoleRepository.removeFromUser" should {
+    inSequence {
+      "not finished yet" in {
+
+      }
+    }
+  }
+
+  "RoleRepository.removeFromAllUsers" should {
+    inSequence {
+      "not finished yet" in {
+
       }
     }
   }

@@ -199,7 +199,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
     }
 
     /**
-     * List the roles associated with a user.
+     * List the roles associated with a users.
      */
     override def list(users: IndexedSeq[User]): Future[Map[UUID, IndexedSeq[Role]]] = {
       val arrayString = users.map { user =>

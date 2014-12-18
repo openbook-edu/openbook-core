@@ -126,6 +126,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
     val SelectByPosition = s"""
       $Select
       $From, parts, projects
+      $Join
       WHERE projects.id = ?
         AND parts.position = ?
         AND tasks.position = ?

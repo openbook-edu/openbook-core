@@ -1,5 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
+import ca.shiftfocus.diffmatchpatch
+import ca.shiftfocus.diffmatchpatch._
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import ca.shiftfocus.krispii.core.models.work._
 import com.github.mauricio.async.db.Connection
@@ -11,6 +13,7 @@ import ca.shiftfocus.uuid.UUID
 import play.api.Logger
 import org.joda.time.DateTime
 import scala.concurrent.Future
+import diffmatchpatch.Patch
 
 trait WorkServiceImplComponent extends WorkServiceComponent {
   self: UserRepositoryComponent with
@@ -166,17 +169,30 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * @param isComplete whether the student is finished with the task
      * @return the newly created work
      */
-    override def createLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, answer: String, isComplete: Boolean): Future[LongAnswerWork] = {
+    override def createLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, patch: Patch, isComplete: Boolean): Future[LongAnswerWork] = {
       transactional { implicit connection =>
-        val newWork = LongAnswerWork(
+        val latestText = diffmatchpatch.DiffMatchPatch.patch_apply(List(patch), "")
+        val patchText = diffmatchpatch.DiffMatchPatch.patch_toText(List(patch))
+        val firstRevision = LongAnswerWork(
           studentId = userId,
           taskId = taskId,
           classId = classId,
           revision = 1,
-          answer = answer,
+          answer = patchText,
           isComplete = isComplete
         )
-        createWork(newWork).map(_.asInstanceOf[LongAnswerWork])
+        val latestWork = LongAnswerWork(
+          studentId = userId,
+          taskId = taskId,
+          classId = classId,
+          revision = -1,
+          answer = latestText,
+          isComplete = isComplete
+        )
+        for {
+          createdFirstRev <- createWork(firstRevision).map(_.asInstanceOf[LongAnswerWork])
+          createdLatest <- createWork(latestWork).map(_.asInstanceOf[LongAnswerWork])
+        } yield createdLatest
       }
     }
 
@@ -319,7 +335,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
       } yield updatedWork
     }
 
-    def updateLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long, version: Long, answer: String, isComplete: Boolean): Future[LongAnswerWork] = {
+    def updateLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long, version: Long, patch: String, isComplete: Boolean): Future[LongAnswerWork] = {
       transactional { implicit connection =>
         val fUser = userRepository.find(userId).map(_.get)
         val fTask = taskRepository.find(taskId).map(_.get)
@@ -328,29 +344,12 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
           user <- fUser
           task <- fTask
           section <- fSection
-          existingWork <- workRepository.find(user, task, section, revision).map(_.get.asInstanceOf[LongAnswerWork])
-          newerWork <- Future successful existingWork.copy(
-            answer = answer,
-            isComplete = isComplete
+          existingWork <- workRepository.find(user, task, section, -1).map(_.get.asInstanceOf[LongAnswerWork])
+          newRevision <- Future successful existingWork.copy(
+            answer = patch
           )
-          updatedWork <- workRepository.update(existingWork, false)
-        }
-        yield updatedWork.asInstanceOf[LongAnswerWork]
-      }
-    }
-
-    def updateLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long, version: Long, answer: String, isComplete: Boolean, newRevision: Boolean): Future[LongAnswerWork] = {
-      transactional { implicit connection =>
-        val fUser = userRepository.find(userId).map(_.get)
-        val fTask = taskRepository.find(taskId).map(_.get)
-        val fSection = classRepository.find(classId).map(_.get)
-        for {
-          user <- fUser
-          task <- fTask
-          section <- fSection
-          existingWork <- workRepository.find(user, task, section, revision).map(_.get.asInstanceOf[LongAnswerWork])
           newerWork <- Future successful existingWork.copy(
-            answer = answer,
+            answer = patch,
             isComplete = isComplete
           )
           updatedWork <- workRepository.update(existingWork, newRevision)

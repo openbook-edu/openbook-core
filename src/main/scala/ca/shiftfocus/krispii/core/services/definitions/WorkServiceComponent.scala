@@ -5,6 +5,7 @@ import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import scala.concurrent.Future
+import ca.shiftfocus.diffmatchpatch.Patch
 
 /**
  * The WorkService provides an interface to manage student work,
@@ -23,7 +24,7 @@ trait WorkServiceComponent {
     def findWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long): Future[Option[Work]]
 
     // Create methods for each work type
-    def createLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, answer: String, isComplete: Boolean): Future[LongAnswerWork]
+    def createLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, answer: Patch, isComplete: Boolean): Future[LongAnswerWork]
     def createShortAnswerWork(userId: UUID, taskId: UUID, classId: UUID, answer: String, isComplete: Boolean): Future[ShortAnswerWork]
     def createMultipleChoiceWork(userId: UUID, taskId: UUID, classId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[MultipleChoiceWork]
     def createOrderingWork(userId: UUID, taskId: UUID, classId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[OrderingWork]

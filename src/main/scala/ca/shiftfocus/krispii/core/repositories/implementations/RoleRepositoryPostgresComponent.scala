@@ -199,7 +199,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
     }
 
     /**
-     * List the roles associated with a user.
+     * List the roles associated with a users.
      */
     override def list(users: IndexedSeq[User]): Future[Map[UUID, IndexedSeq[Role]]] = {
       val arrayString = users.map { user =>
@@ -210,7 +210,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
 
       db.pool.sendQuery(query).map { queryResult =>
         val tuples = queryResult.rows.get.map { item: RowData =>
-          (UUID(item("id").asInstanceOf[Array[Byte]]), Role(item))
+          (UUID(item("user_id").asInstanceOf[Array[Byte]]), Role(item))
         }
         val tupledWithUsers = users.map { user =>
           (user.id, tuples.filter(_._1 == user.id).map(_._2))

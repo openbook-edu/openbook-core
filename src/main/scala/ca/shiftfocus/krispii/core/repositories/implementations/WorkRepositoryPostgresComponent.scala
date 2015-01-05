@@ -21,7 +21,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
 
     val Select =
       s"""
-         |SELECT work.student_id, work.task_id, work.class_id, work.revision
+         |SELECT work.student_id, work.task_id, work.class_id, work.version
          |       work.is_complete, work.created_at, work.updated_at
          |       long_answer_work.answer,
          |       short_answer_work.answer,
@@ -84,6 +84,15 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |$Select
          |$From
          |$Join
+         |WHERE id = ?
+         |LIMIT 1
+       """.stripMargin
+
+    val SelectByStudentTaskClass =
+      s"""
+         |$Select
+         |$From
+         |$Join
          |WHERE user_id = ?
          |  AND task_id = ?
          |  AND class_id = ?
@@ -109,9 +118,8 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |  SELECT work.student_id as student_id,
          |         work.task_id as task_id,
          |         work.class_id as class_id,
-         |         ? as revision,
          |         ? as answer
-         |RETURNING student_id, task_id, class_id, revision, version, answer, is_complete, created_at, updated_at
+         |RETURNING student_id, task_id, class_id, version, answer, is_complete, created_at, updated_at
        """.stripMargin
 
     val Update =
@@ -133,11 +141,8 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |)
          |UPDATE $table
          |SET answer = ?
-         |WHERE student_id = work.student_id
-         |  AND task_id = work.task_id
-         |  AND class_id = work.class_id
-         |  AND revision = ?
-         |RETURNING student_id, task_id, class_id, revision, version, answer, is_complete, created_at, updated_at
+         |WHERE work_id = work.id
+         |RETURNING id, student_id, task_id, class_id, version, answer, is_complete, created_at, updated_at
        """.stripMargin
 
     def UpdateWithNewRevision(table: String): String =
@@ -145,11 +150,11 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |WITH work AS (
          |  $Update
          |)
-         |INSERT INTO $table (student_id, task_id, class_id, revision, answer)
+         |INSERT INTO $table (student_id, task_id, class_id, version, answer)
          |  SELECT work.student_id as student_id,
          |         work.task_id as task_id,
          |         work.class_id as class_id,
-         |         ? as revision,
+         |         ? as version,
          |         ? as answer
          |RETURNING student_id, task_id, class_id, revision, version, answer, is_complete, created_at, updated_at
        """.stripMargin
@@ -235,6 +240,27 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param section
      * @return
      */
+    override def find(workId: UUID): Future[Option[Work]] = {
+      db.pool.sendPreparedStatement(SelectById, Array[Any](
+        workId.bytes
+      )).map { result =>
+        result.rows.get.headOption match {
+          case Some(rowData) => Some(Work(rowData))
+          case None => None
+        }
+      }.recover {
+        case exception => throw exception
+      }
+    }
+
+    /**
+     * Find the latest revision of a single work.
+     *
+     * @param task
+     * @param user
+     * @param section
+     * @return
+     */
     override def find(user: User, task: Task, section: Class): Future[Option[Work]] = {
       db.pool.sendPreparedStatement(SelectLatestById, Array[Any](
         user.id.bytes,
@@ -301,7 +327,6 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
         work.isComplete,
         new DateTime,
         new DateTime,
-        work.revision,
         work.answer match {
           case (head: MatchingTask.Match)::rest => work.answer.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => s"${item.left}:${item.right}"}
           case anything => anything
@@ -325,7 +350,8 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param conn
      * @return
      */
-    override def update(work: Work, newRevision: Boolean = true)(implicit conn: Connection): Future[Work] = {
+    override def update(work: Work)(implicit conn: Connection): Future[Work] = update(work, false)
+    override def update(work: Work, newRevision: Boolean)(implicit conn: Connection): Future[Work] = {
       val tableName = work match {
         case specific: LongAnswerWork => "long_answer_work"
         case specific: ShortAnswerWork => "short_answer_work"
@@ -343,21 +369,20 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
           work.taskId.bytes,
           work.classId.bytes,
           work.version,
-          work.revision + 1,
+          work.version +1,
           work.answer
         ))
       }
       else {
         conn.sendPreparedStatement(UpdateKeepLatestRevision(tableName), Array[Any](
-          work.version +1,
+          work.version,
           work.isComplete,
           new DateTime,
           work.studentId.bytes,
           work.taskId.bytes,
           work.classId.bytes,
           work.version,
-          work.answer,
-          work.revision
+          work.answer
         ))
       }
 
@@ -381,7 +406,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
           work.studentId.bytes,
           work.taskId.bytes,
           work.classId.bytes,
-          work.revision
+          work.version
         ))
       }
       else {

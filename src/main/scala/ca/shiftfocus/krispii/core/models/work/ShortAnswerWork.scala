@@ -5,11 +5,13 @@ import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
 
 case class ShortAnswerWork(
+  id: UUID = UUID.random,
   studentId: UUID,
   taskId: UUID,
   classId: UUID,
-  revision: Long,
-  answer: String,
+  documentId: UUID,
+  override val version: Long = 0,
+  override val answer: String = "",
   isComplete: Boolean = false,
   createdAt: Option[DateTime] = None,
   updatedAt: Option[DateTime] = None
@@ -27,7 +29,8 @@ object ShortAnswerWork {
       studentId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
       taskId    = UUID(row("student_id").asInstanceOf[Array[Byte]]),
       classId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
-      revision  = row("revision").asInstanceOf[Long],
+      documentId = UUID(row("document_id").asInstanceOf[Array[Byte]]),
+      version  = row("version").asInstanceOf[Long],
       answer    = row("answer").asInstanceOf[String],
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt = Some(row("created_at").asInstanceOf[DateTime]),

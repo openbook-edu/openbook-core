@@ -6,11 +6,12 @@ import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
 
 case class MatchingWork(
+  id: UUID = UUID.random,
   studentId: UUID,
   taskId: UUID,
   classId: UUID,
-  revision: Long,
-  answer: IndexedSeq[Match],
+  override val version: Long,
+  override val answer: IndexedSeq[Match],
   isComplete: Boolean = false,
   createdAt: Option[DateTime] = None,
   updatedAt: Option[DateTime] = None
@@ -25,10 +26,11 @@ object MatchingWork {
    */
   def apply(row: RowData): MatchingWork = {
     MatchingWork(
+      id = UUID(row("id").asInstanceOf[Array[Byte]]),
       studentId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
       taskId    = UUID(row("student_id").asInstanceOf[Array[Byte]]),
       classId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
-      revision  = row("revision").asInstanceOf[Long],
+      version  = row("version").asInstanceOf[Long],
       answer    = row("answer").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element =>
         Match(element(0), element(1))
       },

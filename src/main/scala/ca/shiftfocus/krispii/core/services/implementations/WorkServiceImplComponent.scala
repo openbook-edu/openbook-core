@@ -1,7 +1,5 @@
 package ca.shiftfocus.krispii.core.services
 
-import ca.shiftfocus.diffmatchpatch
-import ca.shiftfocus.diffmatchpatch._
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import ca.shiftfocus.krispii.core.models.work._
 import com.github.mauricio.async.db.Connection
@@ -13,7 +11,6 @@ import ca.shiftfocus.uuid.UUID
 import play.api.Logger
 import org.joda.time.DateTime
 import scala.concurrent.Future
-import diffmatchpatch.Patch
 
 trait WorkServiceImplComponent extends WorkServiceComponent {
   self: UserRepositoryComponent with
@@ -26,6 +23,9 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
         TaskFeedbackRepositoryComponent with
         TaskScratchpadRepositoryComponent with
         ComponentScratchpadRepositoryComponent with
+
+        DocumentServiceComponent with
+        DocumentRepositoryComponent with
 
         DB =>
 
@@ -80,6 +80,25 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
       yield responses
 
       fResponses.recover {
+        case exception => throw exception
+      }
+    }
+
+    /**
+     * Find the latest revision of a user's work, for a task, in a section.
+     *
+     * @param userId
+     * @param taskId
+     * @param classId
+     * @return
+     */
+    override def findWork(workId: UUID): Future[Option[Work]] = {
+      val fWork = for {
+        work <- workRepository.find(workId)
+      }
+      yield work
+
+      fWork.recover {
         case exception => throw exception
       }
     }
@@ -169,30 +188,24 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * @param isComplete whether the student is finished with the task
      * @return the newly created work
      */
-    override def createLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, patch: Patch, isComplete: Boolean): Future[LongAnswerWork] = {
+    override def createLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, isComplete: Boolean): Future[LongAnswerWork] = {
       transactional { implicit connection =>
-        val latestText = diffmatchpatch.DiffMatchPatch.patch_apply(List(patch), "")
-        val patchText = diffmatchpatch.DiffMatchPatch.patch_toText(List(patch))
-        val firstRevision = LongAnswerWork(
-          studentId = userId,
-          taskId = taskId,
-          classId = classId,
-          revision = 1,
-          answer = patchText,
-          isComplete = isComplete
-        )
-        val latestWork = LongAnswerWork(
-          studentId = userId,
-          taskId = taskId,
-          classId = classId,
-          revision = -1,
-          answer = latestText,
-          isComplete = isComplete
-        )
+        val fUser = userRepository.find(userId).map(_.get)
+        val fTask = taskRepository.find(taskId).map(_.get)
+        val fSection = classRepository.find(classId).map(_.get)
         for {
-          createdFirstRev <- createWork(firstRevision).map(_.asInstanceOf[LongAnswerWork])
-          createdLatest <- createWork(latestWork).map(_.asInstanceOf[LongAnswerWork])
-        } yield createdLatest
+          user <- fUser
+          task <- fTask
+          section <- fSection
+          document <- documentService.create(UUID.random, user, "", "")
+          work <- createWork(LongAnswerWork(
+            studentId = user.id,
+            taskId = task.id,
+            classId = section.id,
+            documentId = document.id,
+            isComplete = isComplete
+          ))
+        } yield work.asInstanceOf[LongAnswerWork]
       }
     }
 
@@ -208,17 +221,24 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * @param isComplete whether the student is finished with the task
      * @return the newly created work
      */
-    override def createShortAnswerWork(userId: UUID, taskId: UUID, classId: UUID, answer: String, isComplete: Boolean): Future[ShortAnswerWork] = {
+    override def createShortAnswerWork(userId: UUID, taskId: UUID, classId: UUID, isComplete: Boolean): Future[ShortAnswerWork] = {
       transactional { implicit connection =>
-        val newWork = ShortAnswerWork(
-          studentId = userId,
-          taskId = taskId,
-          classId = classId,
-          revision = 1,
-          answer = answer,
-          isComplete = isComplete
-        )
-        createWork(newWork).map(_.asInstanceOf[ShortAnswerWork])
+        val fUser = userRepository.find(userId).map(_.get)
+        val fTask = taskRepository.find(taskId).map(_.get)
+        val fSection = classRepository.find(classId).map(_.get)
+        for {
+          user <- fUser
+          task <- fTask
+          section <- fSection
+          document <- documentService.create(UUID.random, user, "", "")
+          work <- createWork(ShortAnswerWork(
+            studentId = user.id,
+            taskId = task.id,
+            classId = section.id,
+            documentId = document.id,
+            isComplete = isComplete
+          ))
+        } yield work.asInstanceOf[ShortAnswerWork]
       }
     }
 
@@ -240,7 +260,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
           studentId = userId,
           taskId = taskId,
           classId = classId,
-          revision = 1,
+          version = 1,
           answer = answer,
           isComplete = isComplete
         )
@@ -266,7 +286,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
           studentId = userId,
           taskId = taskId,
           classId = classId,
-          revision = 1,
+          version = 1,
           answer = answer,
           isComplete = isComplete
         )
@@ -292,7 +312,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
           studentId = userId,
           taskId = taskId,
           classId = classId,
-          revision = 1,
+          version = 1,
           answer = answer,
           isComplete = isComplete
         )
@@ -327,18 +347,18 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
           if (newerWork.version != latestRevision.version) {
             throw TaskResponseOutOfDateException("The task response has changed since you last saw it!")
           }
-          if (!newRevision && newerWork.revision != latestRevision.revision) {
-            throw TaskResponseOutOfDateException("You can only modify the latest revision or insert a new one!")
-          }
           workRepository.update(newerWork, newRevision)
         }
       } yield updatedWork
     }
 
-    def updateLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long, version: Long, patch: String, isComplete: Boolean): Future[LongAnswerWork] =
-      updateLongAnswerWork(userId, taskId, classId, revision, version, patch, isComplete, false)
-
-    def updateLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long, version: Long, patch: String, isComplete: Boolean, newRevision: Boolean): Future[LongAnswerWork] = {
+    /**
+     * Update a long answer work.
+     *
+     * Because the contents of the work are handled by the Document service, this method only
+     * serves to update the work's completed status.
+     */
+    def updateLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, isComplete: Boolean): Future[LongAnswerWork] = {
       transactional { implicit connection =>
         val fUser = userRepository.find(userId).map(_.get)
         val fTask = taskRepository.find(taskId).map(_.get)
@@ -347,21 +367,23 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
           user <- fUser
           task <- fTask
           section <- fSection
-          existingWork <- workRepository.find(user, task, section, -1).map(_.get.asInstanceOf[LongAnswerWork])
-          newerRevision <- Future successful existingWork.copy(
-            answer = patch
-          )
-          newerWork <- Future successful existingWork.copy(
-            answer = patch,
+          existingWork <- workRepository.find(user, task, section).map(_.get.asInstanceOf[LongAnswerWork])
+          workToUpdate <- Future successful existingWork.copy(
             isComplete = isComplete
           )
-          updatedWork <- workRepository.update(existingWork, newRevision)
+          updatedWork <- workRepository.update(workToUpdate)
         }
         yield updatedWork.asInstanceOf[LongAnswerWork]
       }
     }
 
-    def updateShortAnswerWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long, version: Long, answer: String, isComplete: Boolean): Future[ShortAnswerWork] = {
+    /**
+     * Update a short answer work.
+     *
+     * Because the contents of the work are handled by the Document service, this method only
+     * serves to update the work's completed status.
+     */
+    def updateShortAnswerWork(userId: UUID, taskId: UUID, classId: UUID, isComplete: Boolean): Future[ShortAnswerWork] = {
       transactional { implicit connection =>
         val fUser = userRepository.find(userId).map(_.get)
         val fTask = taskRepository.find(taskId).map(_.get)
@@ -370,16 +392,17 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
           user <- fUser
           task <- fTask
           section <- fSection
-          existingWork <- workRepository.find(user, task, section, revision).map(_.get.asInstanceOf[ShortAnswerWork])
-          newerWork <- Future successful existingWork.copy(
-            answer = answer,
+          existingWork <- workRepository.find(user, task, section).map(_.get.asInstanceOf[ShortAnswerWork])
+          workToUpdate <- Future successful existingWork.copy(
             isComplete = isComplete
           )
-          updatedWork <- workRepository.update(existingWork, true)
+          updatedWork <- workRepository.update(workToUpdate)
         }
         yield updatedWork.asInstanceOf[ShortAnswerWork]
       }
     }
+
+
 
     def updateMultipleChoiceWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[MultipleChoiceWork] = {
       transactional { implicit connection =>

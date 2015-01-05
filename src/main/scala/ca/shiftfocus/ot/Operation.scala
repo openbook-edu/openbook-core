@@ -1,4 +1,4 @@
-spackage ca.shiftfocus.ot
+package ca.shiftfocus.ot
 
 import play.api.libs.json._
 

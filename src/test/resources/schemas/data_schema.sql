@@ -60,4 +60,16 @@ INSERT INTO users_roles (user_id, role_id, created_at)
 VALUES ('\x6c0e29bdd05b4b2981156be93e936c59', '\xa011504cd11840cdb9eb6e10d5738c67', '2014-08-15 14:01:19.545-04');
 
 
+/* PROJECTS */
+/* project A -> class A */
+INSERT INTO projects (id, version, class_id, name, slug, description, availability, created_at, updated_at)
+VALUES ('\xc9b4cfceaed448fd94f5c980763dfddc', 1, '\x217c5622ff9e43728e6a95fb3bae300b', 'test project A', 'test project slug A', 'test project A description', 'any', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04')
+
+/* project B -> class B */
+INSERT INTO projects (id, version, class_id, name, slug, description, availability, created_at, updated_at)
+VALUES ('\xe4ae3b9098714339b05c8d39e3aaf65d', 2, '\x404c800a53854e6b867e365a1e6b00de', 'test project B', 'test project slug B', 'test project B description', 'free', '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04')
+
+/* project C -> class B */
+INSERT INTO projects (id, version, class_id, name, slug, description, availability, created_at, updated_at)
+VALUES ('\x4ac4d872451b4092b13f643d6d5fa930', 3, '\x404c800a53854e6b867e365a1e6b00de', 'test project C', 'test project slug C', 'test project C description', 'class', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04')
 

@@ -1,27 +1,31 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.models.{DocumentRevision, Document}
+import java.util.NoSuchElementException
+
+import ca.shiftfocus.krispii.core.models.document.Revision
+import ca.shiftfocus.krispii.core.models.document.Document
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import ca.shiftfocus.ot.Operation
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.Connection
+import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import org.joda.time.DateTime
+import play.api.Logger
+import ws.kahn.ot.Operation
 
+import scala.collection.immutable.HashMap
 import scala.concurrent.Future
 
+
 trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
-  self: PostgresDB =>
+  self: UserRepositoryComponent with PostgresDB =>
 
   override val documentRepository: DocumentRepository = new DocumentRepositoryPostgres
 
   private class DocumentRepositoryPostgres extends DocumentRepository {
 
-    // -- query building bits --------
-
     val SelectDocument =
       s"""
-         |SELECT documents.id as id, documents.version as version, documents.content as content, documents.checksum as checksum,
-         |       documents.created_at as created_at, documents.updated_at as updated_at
+         |SELECT id, version, title, latest_text, owner_id, editor_ids, created_at, updated_at
        """.stripMargin
 
     val FromDocuments =
@@ -29,173 +33,173 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
          |FROM documents
        """.stripMargin
 
+    val ReturningDocument =
+      s"""
+         |RETURNING id, version, title, latest_text, owner_id, editor_ids, created_at, updated_at
+       """.stripMargin
 
     val SelectRevision =
       s"""
-         |SELECT document_revisions.document_id as document_id, document_revisions.version as version,
-         |       document_revisions.revision as revision, document_revisions.created_at as created_at
+         |SELECT revisions.document_id as document_id, revisions.version as version,
+         |       revisions.author_id as author_id,
+         |       revisions.operation as operation, revisions.created_at as created_at
        """.stripMargin
 
     val FromRevisions =
       s"""
-         |FROM document_revisions
+         |FROM revisions
        """.stripMargin
 
-    // -- sql queries --------
-
-    val ListDocuments =
-      s"""
-         |$SelectDocument
-         |$FromDocuments
-       """.stripMargin
-
-
-    val ListRevisions =
-      s"""
-         |$SelectRevision
-         |$FromRevisions
-         |WHERE document_id = ?
-         |ORDER BY version ASC
-       """.stripMargin
-
-    val ListRevisionsMinVer =
-      s"""
-         |$SelectRevision
-         |$FromRevisions
-         |WHERE document_id = ?
-         |  AND version >= ?
-         |ORDER BY version ASC
-       """.stripMargin
-
-    val ListRevisionsMaxVer =
-      s"""
-         |$SelectRevision
-         |$FromRevisions
-         |WHERE document_id = ?
-         |  AND version <= ?
-         |ORDER BY version ASC
-       """.stripMargin
-
-    val ListRevisionsRangeVer =
-      s"""
-         |$SelectRevision
-         |$FromRevisions
-         |WHERE document_id = ?
-         |  AND version >= ?
-         |  AND version <= ?
-         |ORDER BY version ASC
-       """.stripMargin
+    // ----
 
     val FindDocument =
       s"""
          |$SelectDocument
          |$FromDocuments
-         |WHERE id = ?
+         |WHERE documents.id = ?
        """.stripMargin
 
     val CreateDocument =
       s"""
-         |INSERT INTO documents (id, version, contents, checksum, created_at, updated_at)
-         |VALUES (?, ?, ?, ?, ?, ?)
+         |INSERT INTO documents (id, version, title, latest_text, owner_id, created_at, updated_at)
+         |VALUES (?, 0, ?, ?, ?, ?, ?)
+         |$ReturningDocument
        """.stripMargin
 
-    // Fetch a group of documents, optionally with their revision histories.
-    override def list(documentIds: IndexedSeq[UUID]): Future[IndexedSeq[Document]] = {
-      val arrayString = documentIds.map { documentId =>
-        val cleanId = documentId.string filterNot ("-" contains _)
-        s"decode('$cleanId', 'hex')"
-      }.mkString("ARRAY[", ",", "]")
-      val query = s"""${ListDocuments} WHERE ARRAY[document_revisions.document_id] <@ $arrayString"""
+    val UpdateDocument =
+      s"""
+         |UPDATE documents
+         |SET version = ?, title = ?, latest_text = ?, owner_id = ?, editor_ids = ?, updated_at = ?
+         |WHERE id = ?
+         |  AND version = ?
+         |$ReturningDocument
+       """.stripMargin
 
-      db.pool.sendQuery(query).map { result =>
-        result.rows.get.map { row => Document(row) }
-      }.recover {
-        case exception => throw exception
-      }
-    }
+    // ----
 
-    // Fetch (optionally just a slice of) a document's revision history.
-    override def revisions(documentId: UUID, maybeFromVer: Option[Long] = None, maybeToVer: Option[Long] = None): Future[IndexedSeq[DocumentRevision]] = {
+    val ListRecentRevisions =
+      s"""
+         |$SelectRevision
+         |$FromRevisions
+         |WHERE document_id = ?
+         |  AND version > ?
+         |ORDER BY version ASC
+       """.stripMargin
 
-      // Build query and data arguments based on method input.
-      val (query, data) = (maybeFromVer, maybeToVer) match {
-        case (Some(fromVer), Some(toVer)) => {
-          (ListRevisionsRangeVer, Seq[Any](documentId.bytes, fromVer, toVer))
-        }
-        case (Some(fromVer), None) => {
-          (ListRevisionsMinVer, Seq[Any](documentId.bytes, fromVer))
-        }
-        case (None, Some(toVer)) => {
-          (ListRevisionsMaxVer, Seq[Any](documentId.bytes, toVer))
-        }
-        case (None, None) => {
-          (ListRevisions, Seq[Any](documentId.bytes))
-        }
-      }
+    val PushRevision =
+      s"""
+         |INSERT INTO revisions (document_id, version, author_id, operation, created_at)
+         |VALUES (?, ?, ?, ?, ?)
+         |RETURNING document_id, version, operation, created_at
+       """.stripMargin
 
-      // Send the actual query and return results, recovering exceptions.
-      db.pool.sendPreparedStatement(query, data).map { result =>
-        result.rows.get.map { row => DocumentRevision(row) }
-      }.recover {
-        case exception => throw exception
-      }
+    // ----
 
-    }
-
-    // Fetch a single document, optionally with its revision history.
-    override def find(documentId: UUID, withHistory: Boolean = false, fromVer: Option[Long] = None, toVer: Option[Long] = None): Future[Option[Document]] = {
+    /**
+     * Find an individual document.
+     *
+     * @param id
+     * @return
+     */
+    override def find(id: UUID): Future[Option[Document]] = {
       for {
-        history <- if (withHistory) { revisions(documentId, fromVer, toVer) } else { Future successful IndexedSeq.empty[DocumentRevision] }
-        document <- db.pool.sendPreparedStatement(FindDocument, Seq[Any](documentId.bytes)).map { result =>
-          result.rows.get.headOption match {
-            case Some(row) => Some(Document(row, history))
-            case None => None
-          }
-        }
-      } yield document
+        result <- db.pool.sendPreparedStatement(FindDocument, Seq[Any](id.bytes)).map(_.rows.get.headOption.get)
+        owner <- userRepository.find(UUID(result("owner_id").asInstanceOf[Array[Byte]])).map(_.get)
+        editors <- userRepository.list(result("editor_ids").asInstanceOf[Array[Array[Byte]]].map(UUID.apply))
+      }
+      yield Some(Document(result)(owner, editors))
     }.recover {
-      case exception => throw exception
+      case exception: NoSuchElementException => None
+      case exception => {
+        Logger.error("Database error while finding document.")
+        throw exception
+      }
     }
 
-    // Create a new document. Creates a new, empty, document with the given ID.
-    override def create(documentId: UUID)(implicit conn: Connection): Future[Document] = {
+    /**
+     * Create a new empty document.
+     *
+     */
+    override def insert(document: Document)(implicit conn: Connection): Future[Document] = {
       conn.sendPreparedStatement(CreateDocument, Seq[Any](
-        documentId.bytes, 0, "", Array.empty[Byte], new DateTime, new DateTime
+        document.id.bytes, document.title, "", document.owner.id.bytes, new DateTime, new DateTime
       )).map { result =>
-         Document(result.rows.get.head)
+        Document(result.rows.get.head)(document.owner, document.editors)
+      }.recover {
+        case exception => {
+          Logger.error(exception.getMessage())
+          Logger.error("Error inserting document.")
+          throw exception
+        }
+      }
+    }
+
+    /**
+     * Update an existing document.
+     *
+     * Do not call this function to update the document's text unless you know what you're doing! The latest_text
+     * field stores exactly that... a snapshot of the latest document text. That snapshot should be constructed
+     * from the revision history stored in the revisions table.
+     */
+    override def update(document: Document)(implicit conn: Connection): Future[Document] = {
+      conn.sendPreparedStatement(UpdateDocument, Seq[Any](
+        document.version + 1, document.title, document.content, document.owner.id.bytes, document.editors.map(_.id.bytes),
+        new DateTime, document.id.bytes, document.version
+      )).map { result =>
+        Document(result.rows.get.head)(document.owner, document.editors)
       }.recover {
         case exception => throw exception
       }
     }
 
     /**
-     * Push an update onto a document. This is where the magic happens!
+     * List revisions for a document.
      *
-     * Given a document ID, and a version to apply against, and a chain of operations called a "revision", this will
-     * push the new revision onto the document's revision history, update the latest copy of the document, and bump the
-     * version number.
+     * Should make 2 db queries: one for the list of revisions, and a second for the list of authors.
      *
-     * If the revision has been pushed with an "outdated" version, then that revision will be "transformed" against the
-     * more recent revisions and applied. We should also transform the more recent revisions against the appended one,
-     * and relay them back to the caller.
-     *
-     * This is "operational transformation". The more recent operations are considered the "server" operation, and
-     * the operation to be pushed is considered the "client" operation. They are transformed against each other and the
-     * server applies one transformation onto the history stack, and sends the other transformation back to the client.
-     *
-     * @param documentId
+     * @param document
      * @param version
-     * @param revisions
-     * @param connection
      * @return
      */
-    override def push(documentId: UUID, version: Long, revisions: IndexedSeq[Operation])(implicit connection: Connection): Future[Option[(DocumentRevision, Array[Byte])]] = {
-
+    override def list(document: Document, version: Long = 0): Future[IndexedSeq[Revision]] = {
+      for {
+        rows <- db.pool.sendPreparedStatement(ListRecentRevisions, Seq[Any](document.id.bytes, version)).map(_.rows.get)
+        authorIds <- Future successful rows.map { row =>
+          UUID(row("author_ID").asInstanceOf[Array[Byte]])
+        }.distinct
+        users <- userRepository.list(authorIds).map({ users => HashMap(users.map({ user => (user.id, user) }): _*) })
+        revisions <- Future successful rows.map { row =>
+          val authorId = UUID(row("author_ID").asInstanceOf[Array[Byte]])
+          Revision(row)(users(authorId))
+        }
+      }
+      yield revisions
+    }.recover {
+      case exception => throw exception
     }
 
-    // Delete a document and its revision history.
-    override def delete(documentId: UUID, version: Long)(implicit connection: Connection): Future[Boolean] = {
-
+    /**
+     * Insert a revision into the database.
+     *
+     * @param revision
+     * @param conn
+     * @return
+     */
+    override def insert(revision: Revision)(implicit conn: Connection): Future[Revision] = {
+      conn.sendPreparedStatement(PushRevision, Seq[Any](
+        revision.documentId.bytes,
+        revision.version,
+        revision.author.id.bytes,
+        Operation.writes.writes(revision.operation).toString(),
+        new DateTime
+      )).map { result =>
+        revision
+      }.recover {
+        case exception => {
+          Logger.error("Error inserting revision")
+          throw exception
+        }
+      }
     }
 
   }

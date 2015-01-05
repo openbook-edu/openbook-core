@@ -14,7 +14,8 @@ resolvers ++= Seq(
   "Typesafe" at "http://repo.typesafe.com/typesafe/releases",
   "ShiftFocus" at "https://maven.shiftfocus.ca/repositories/releases",
   "Sonatype" at "https://oss.sonatype.org/content/repositories/releases",
-  "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"
+  "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
+  "Kahn's Repo" at "http://repo.kahn.ws/maven/snapshots"
 )
 
 // Scala compiler options
@@ -45,7 +46,8 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-api" % "1.7.5",
   "org.slf4j" % "slf4j-simple" % "1.7.5",
   "org.clapper" %% "grizzled-slf4j" % "1.0.2",
-  "ca.shiftfocus" %% "uuid" % "1.0.0"
+  "ca.shiftfocus" %% "uuid" % "1.0.0",
+  "ws.kahn" %% "ot" % "1.0-SNAPSHOT"
 )
 
 // -- SBT Publish settings --------

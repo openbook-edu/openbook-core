@@ -335,7 +335,10 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
       } yield updatedWork
     }
 
-    def updateLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long, version: Long, patch: String, isComplete: Boolean): Future[LongAnswerWork] = {
+    def updateLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long, version: Long, patch: String, isComplete: Boolean): Future[LongAnswerWork] =
+      updateLongAnswerWork(userId, taskId, classId, revision, version, patch, isComplete, false)
+
+    def updateLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long, version: Long, patch: String, isComplete: Boolean, newRevision: Boolean): Future[LongAnswerWork] = {
       transactional { implicit connection =>
         val fUser = userRepository.find(userId).map(_.get)
         val fTask = taskRepository.find(taskId).map(_.get)
@@ -345,7 +348,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
           task <- fTask
           section <- fSection
           existingWork <- workRepository.find(user, task, section, -1).map(_.get.asInstanceOf[LongAnswerWork])
-          newRevision <- Future successful existingWork.copy(
+          newerRevision <- Future successful existingWork.copy(
             answer = patch
           )
           newerWork <- Future successful existingWork.copy(

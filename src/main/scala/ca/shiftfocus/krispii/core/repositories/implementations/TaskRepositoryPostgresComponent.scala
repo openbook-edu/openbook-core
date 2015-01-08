@@ -125,13 +125,13 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
 
     val SelectByPosition = s"""
       $Select
-      $From, parts, projects
+      $From
       $Join
+      INNER JOIN projects ON projects.id = parts.project_id
+      INNER JOIN parts ON parts.id = tasks.part_id
       WHERE projects.id = ?
         AND parts.position = ?
         AND tasks.position = ?
-        AND projects.id = parts.project_id
-        AND parts.id = tasks.part_id
     """
 
     val SelectNowByUserId = s"""

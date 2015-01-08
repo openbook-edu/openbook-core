@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.models.document.{Revision, Document}
 import ca.shiftfocus.uuid.UUID
+import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.Future
 import ws.kahn.ot._

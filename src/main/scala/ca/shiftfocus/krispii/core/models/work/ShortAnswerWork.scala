@@ -9,13 +9,13 @@ case class ShortAnswerWork(
   studentId: UUID,
   taskId: UUID,
   classId: UUID,
-  documentId: UUID,
+  override val documentId: UUID,
   override val version: Long = 0,
   override val answer: String = "",
   isComplete: Boolean = false,
   createdAt: Option[DateTime] = None,
   updatedAt: Option[DateTime] = None
-) extends Work
+) extends DocumentWork
 
 object ShortAnswerWork {
 

@@ -1,14 +1,12 @@
-import java.awt.Color
 import java.io.File
 import com.github.mauricio.async.db.RowData
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import ca.shiftfocus.krispii.core.models.{Role, Class, User}
+import ca.shiftfocus.krispii.core.models.{Role, User}
 import ca.shiftfocus.krispii.core.repositories.RoleRepositoryPostgresComponent
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
 import grizzled.slf4j.Logger
-import org.joda.time.{DateTimeZone, DateTime}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{MustMatchers, WordSpec, BeforeAndAfterAll, Suite}
 import org.scalatest._
@@ -60,95 +58,25 @@ trait RoleRepoTestEnvironment
     load_schema(drop_schema_path)
   }
 
-  val testUserA = User(
-    id = UUID("36c8c0ca-50aa-4806-afa5-916a5e33a81f"),
-    version = 1L,
-    email = "testUserA@example.com",
-    username = "testUserA",
-    passwordHash = Some("$s0$100801$SIZ9lgHz0kPMgtLB37Uyhw==$wyKhNrg/MmUvlYuVygDctBE5LHBjLB91nyaiTpjbeyM="),
-    givenname = "TestA",
-    surname = "UserA",
-    createdAt = Option(new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-    updatedAt = Option(new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")))
-  )
+  // Find user roles by user ID
+  val find_roles_query = """
+    SELECT id, version, roles.name as name, roles.created_at as created_at, updated_at
+    FROM roles, users_roles
+    WHERE roles.id = users_roles.role_id
+      AND users_roles.user_id = ?
+                   """
 
-  val testUserB = User(
-    id = UUID("6c0e29bd-d05b-4b29-8115-6be93e936c59"),
-    version = 2L,
-    email = "testUserB@example.com",
-    username = "testUserB",
-    passwordHash = Some("$s0$100801$84r2edPRqM/8xFCe+G1PPw==$p7dTGjBJpGUMoyQ1Nqat1i4SBV6aT6BX7h1WU6cLRnc="),
-    givenname = "TestB",
-    surname = "UserB",
-    createdAt = Option(new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-    updatedAt = Option(new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04")))
-  )
-
-  // User has no references in other tables
-  val testUserC = User(
-    id = UUID("f5f98407-3a0b-4ea5-952a-575886e90586"),
-    version = 3L,
-    email = "testUserC@example.com",
-    username = "testUserC",
-    passwordHash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3WmWjo="),
-    givenname = "TestC",
-    surname = "UserC",
-    createdAt = Option(new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-    updatedAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")))
-  )
-
-  // New user no data in DB
-  val testUserD = User(
-    id = UUID("4d97f26c-df3f-4866-8919-11f51f14e9c4"),
-    email = "testUserD@example.com",
-    username = "testUserD",
-    passwordHash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3W1234="),
-    givenname = "TestD",
-    surname = "UserD"
-  )
-
-  val testRoleA = Role(
-    id = UUID("1430e950-77f9-4b30-baf8-bb226fc7091a"),
-    version = 1L,
-    name = "test role A",
-    createdAt = Option(new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-    updatedAt = Option(new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")))
-  )
-
-  val testRoleB = Role(
-    id = UUID("a011504c-d118-40cd-b9eb-6e10d5738c67"),
-    version = 2L,
-    name = "test role B",
-    createdAt = Option(new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-    updatedAt = Option(new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")))
-  )
-
-  val testRoleC = Role(
-    id = UUID("31a4c2e6-762a-4303-bbb8-e64c24048920"),
-    version = 3L,
-    name = "test role C",
-    createdAt = Option(new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-    updatedAt = Option(new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04")))
-  )
-
-  // New role no data in DB
-  val testRoleD = Role(
-    id = UUID("b82d356d-a1bb-4e07-b28f-d15060fb42c2"),
-    name = "test role D"
-  )
-
-  // New role no data in DB
-  val testRoleE = Role(
-    id = UUID("29a84d7b-f90a-4a26-a224-b70631fdfbe4"),
-    name = "test role E"
-  )
-
+  val SelectOne = """
+      SELECT id, version, roles.name as name, roles.created_at as created_at, updated_at
+      FROM roles
+      WHERE id = ?
+    """
 }
 
 class RoleRepositorySpec extends WordSpec
-with MustMatchers
-with MockFactory
-with RoleRepoTestEnvironment {
+  with MustMatchers
+  with MockFactory
+  with RoleRepoTestEnvironment {
 
   "RoleRepository.list" should {
     inSequence {
@@ -157,8 +85,8 @@ with RoleRepoTestEnvironment {
 
         val roles = Await.result(result, Duration.Inf)
 
-        roles should be(Vector(testRoleA, testRoleB, testRoleC))
-        Map[Int, Role](0 -> testRoleA, 1 -> testRoleB, 2 -> testRoleC).foreach {
+        roles should be(Vector(TestValues.testRoleA, TestValues.testRoleB, TestValues.testRoleC, TestValues.testRoleF, TestValues.testRoleG))
+        Map[Int, Role](0 -> TestValues.testRoleA, 1 -> TestValues.testRoleB, 2 -> TestValues.testRoleC, 3 -> TestValues.testRoleF, 4 -> TestValues.testRoleG).foreach {
           case (key, role: Role) => {
             roles(key).id should be(role.id)
             roles(key).version should be(role.version)
@@ -169,12 +97,12 @@ with RoleRepoTestEnvironment {
         }
       }
       "list the roles associated with a user" in {
-        val result = roleRepository.list(testUserA)
+        val result = roleRepository.list(TestValues.testUserA)
 
         val roles = Await.result(result, Duration.Inf)
 
-        roles should be(Vector(testRoleA, testRoleB))
-        Map[Int, Role](0 -> testRoleA, 1 -> testRoleB).foreach {
+        roles should be(Vector(TestValues.testRoleA, TestValues.testRoleB, TestValues.testRoleF, TestValues.testRoleG))
+        Map[Int, Role](0 -> TestValues.testRoleA, 1 -> TestValues.testRoleB, 2 -> TestValues.testRoleF, 3 -> TestValues.testRoleG).foreach {
           case (key, role: Role) => {
             roles(key).id should be(role.id)
             roles(key).version should be(role.version)
@@ -197,33 +125,33 @@ with RoleRepoTestEnvironment {
         roles should be (Vector())
       }
       "list the roles associated with a users" in {
-        val result = roleRepository.list(Vector(testUserA, testUserB))
+        val result = roleRepository.list(Vector(TestValues.testUserA, TestValues.testUserB))
 
         val roles = Await.result(result, Duration.Inf)
         roles should be(Map(
-          testUserA.id -> Vector(testRoleA, testRoleB),
-          testUserB.id -> Vector(testRoleB)
+          TestValues.testUserA.id -> Vector(TestValues.testRoleA, TestValues.testRoleB, TestValues.testRoleF, TestValues.testRoleG),
+          TestValues.testUserB.id -> Vector(TestValues.testRoleA, TestValues.testRoleB, TestValues.testRoleF, TestValues.testRoleG)
         ))
 
-        // Check for testUserA
-        Map[Int, Role](0 -> testRoleA, 1 -> testRoleB).foreach {
+        // Check for TestValues.testUserA
+        Map[Int, Role](0 -> TestValues.testRoleA, 1 -> TestValues.testRoleB, 2 -> TestValues.testRoleF, 3 -> TestValues.testRoleG).foreach {
           case (key, role: Role) => {
-            roles(testUserA.id)(key).id should be(role.id)
-            roles(testUserA.id)(key).version should be(role.version)
-            roles(testUserA.id)(key).name should be(role.name)
-            roles(testUserA.id)(key).createdAt.toString should be(role.createdAt.toString)
-            roles(testUserA.id)(key).updatedAt.toString should be(role.updatedAt.toString)
+            roles(TestValues.testUserA.id)(key).id should be(role.id)
+            roles(TestValues.testUserA.id)(key).version should be(role.version)
+            roles(TestValues.testUserA.id)(key).name should be(role.name)
+            roles(TestValues.testUserA.id)(key).createdAt.toString should be(role.createdAt.toString)
+            roles(TestValues.testUserA.id)(key).updatedAt.toString should be(role.updatedAt.toString)
           }
         }
 
-        // Check for testUserB
-        Map[Int, Role](0 -> testRoleB).foreach {
+        // Check for TestValues.testUserB
+        Map[Int, Role](0 -> TestValues.testRoleA, 1 -> TestValues.testRoleB, 2 -> TestValues.testRoleF, 3 -> TestValues.testRoleG).foreach {
           case (key, role: Role) => {
-            roles(testUserB.id)(key).id should be(role.id)
-            roles(testUserB.id)(key).version should be(role.version)
-            roles(testUserB.id)(key).name should be(role.name)
-            roles(testUserB.id)(key).createdAt.toString should be(role.createdAt.toString)
-            roles(testUserB.id)(key).updatedAt.toString should be(role.updatedAt.toString)
+            roles(TestValues.testUserB.id)(key).id should be(role.id)
+            roles(TestValues.testUserB.id)(key).version should be(role.version)
+            roles(TestValues.testUserB.id)(key).name should be(role.name)
+            roles(TestValues.testUserB.id)(key).createdAt.toString should be(role.createdAt.toString)
+            roles(TestValues.testUserB.id)(key).updatedAt.toString should be(role.updatedAt.toString)
           }
         }
       }
@@ -233,34 +161,34 @@ with RoleRepoTestEnvironment {
   "RoleRepository.find" should {
     inSequence {
       "find a single entry by ID" in {
-        val result = roleRepository.find(testRoleA.id).map(_.get)
+        val result = roleRepository.find(TestValues.testRoleA.id).map(_.get)
 
         val role = Await.result(result, Duration.Inf)
-        role.id should be(testRoleA.id)
-        role.version should be(testRoleA.version)
-        role.name should be(testRoleA.name)
-        role.createdAt.toString should be(testRoleA.createdAt.toString)
-        role.updatedAt.toString should be(testRoleA.updatedAt.toString)
+        role.id should be(TestValues.testRoleA.id)
+        role.version should be(TestValues.testRoleA.version)
+        role.name should be(TestValues.testRoleA.name)
+        role.createdAt.toString should be(TestValues.testRoleA.createdAt.toString)
+        role.updatedAt.toString should be(TestValues.testRoleA.updatedAt.toString)
       }
-      "throw an exception if entry wasn't found by ID" in {
-        val result = roleRepository.find(UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")).map(_.get)
+      "be NONE if entry wasn't found by ID" in {
+        val result = roleRepository.find(UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477"))
 
-        an[java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
+        Await.result(result, Duration.Inf) should be (None)
       }
       "find a single entry by name" in {
-        val result = roleRepository.find(testRoleA.name).map(_.get)
+        val result = roleRepository.find(TestValues.testRoleA.name).map(_.get)
 
         val role = Await.result(result, Duration.Inf)
-        role.id should be(testRoleA.id)
-        role.version should be(testRoleA.version)
-        role.name should be(testRoleA.name)
-        role.createdAt.toString should be(testRoleA.createdAt.toString)
-        role.updatedAt.toString should be(testRoleA.updatedAt.toString)
+        role.id should be(TestValues.testRoleA.id)
+        role.version should be(TestValues.testRoleA.version)
+        role.name should be(TestValues.testRoleA.name)
+        role.createdAt.toString should be(TestValues.testRoleA.createdAt.toString)
+        role.updatedAt.toString should be(TestValues.testRoleA.updatedAt.toString)
       }
-      "throw an exception if entry wasn't found by name" in {
-        val result = roleRepository.find("unexisting_role_name").map(_.get)
+      "be NONE if entry wasn't found by name" in {
+        val result = roleRepository.find("unexisting_role_name")
 
-        an[java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
+        Await.result(result, Duration.Inf) should be (None)
       }
     }
   }
@@ -268,20 +196,12 @@ with RoleRepoTestEnvironment {
   "RoleRepository.addUsers" should {
     inSequence {
       "add roles to users" in {
-        val query_result = roleRepository.addUsers(testRoleC, Vector(testUserA, testUserB))
+        val query_result = roleRepository.addUsers(TestValues.testRoleC, Vector(TestValues.testUserA, TestValues.testUserB))
 
         Await.result(query_result, Duration.Inf) should be (true)
 
-        // Find user roles by user ID
-        val find_roles_query = """
-          SELECT id, version, roles.name as name, roles.created_at as created_at, updated_at
-          FROM roles, users_roles
-          WHERE roles.id = users_roles.role_id
-            AND users_roles.user_id = ?
-                    """
-
-        // Find roles for testUserA
-        val resultForUserA = db.pool.sendPreparedStatement(find_roles_query, Array[Any](testUserA.id.bytes)).map { queryResult =>
+        // Find roles for TestValues.testUserA
+        val resultForUserA = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserA.id.bytes)).map { queryResult =>
           val roleList = queryResult.rows.get.map {
             item: RowData => Role(item)
           }
@@ -289,10 +209,10 @@ with RoleRepoTestEnvironment {
         }
 
         val roleListUserA = Await.result(resultForUserA, Duration.Inf)
-        roleListUserA contains testRoleC should be (true)
+        roleListUserA contains TestValues.testRoleC should be (true)
 
-        // Find roles for testUserA
-        val resultForUserB = db.pool.sendPreparedStatement(find_roles_query, Array[Any](testUserB.id.bytes)).map { queryResult =>
+        // Find roles for TestValues.testUserB
+        val resultForUserB = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserB.id.bytes)).map { queryResult =>
           val roleList = queryResult.rows.get.map {
             item: RowData => Role(item)
           }
@@ -300,11 +220,16 @@ with RoleRepoTestEnvironment {
         }
 
         val roleListUserB = Await.result(resultForUserB, Duration.Inf)
-        roleListUserB contains testRoleC should be (true)
+        roleListUserB contains TestValues.testRoleC should be (true)
       }
     }
-    "throw an exception if we add the role to the user that already has this role" in {
-      val query_result = roleRepository.addUsers(testRoleB, Vector(testUserA))
+    "throw a GenericDatabaseException if we add a role to the user that already has this role" in {
+      val query_result = roleRepository.addUsers(TestValues.testRoleB, Vector(TestValues.testUserA))
+
+      an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy  Await.result(query_result, Duration.Inf)
+    }
+    "throw a GenericDatabaseException if we add a role to unexisting user" in {
+      val query_result = roleRepository.addUsers(TestValues.testRoleB, Vector(TestValues.testUserD))
 
       an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy  Await.result(query_result, Duration.Inf)
     }
@@ -313,20 +238,12 @@ with RoleRepoTestEnvironment {
   "RoleRepository.removeUsers" should {
     inSequence {
       "remove role from users" in {
-        val query_result = roleRepository.removeUsers(testRoleB, Vector(testUserA, testUserB))
+        val query_result = roleRepository.removeUsers(TestValues.testRoleB, Vector(TestValues.testUserA, TestValues.testUserB))
 
         Await.result(query_result, Duration.Inf) should be (true)
 
-        // Find user roles by user ID
-        val find_roles_query = """
-          SELECT id, version, roles.name as name, roles.created_at as created_at, updated_at
-          FROM roles, users_roles
-          WHERE roles.id = users_roles.role_id
-            AND users_roles.user_id = ?
-                    """
-
-        // Find roles for testUserA
-        val resultForUserA = db.pool.sendPreparedStatement(find_roles_query, Array[Any](testUserA.id.bytes)).map { queryResult =>
+        // Find roles for TestValues.testUserA
+        val resultForUserA = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserA.id.bytes)).map { queryResult =>
           val roleList = queryResult.rows.get.map {
             item: RowData => Role(item)
           }
@@ -334,10 +251,10 @@ with RoleRepoTestEnvironment {
         }
 
         val roleListUserA = Await.result(resultForUserA, Duration.Inf)
-        roleListUserA contains testRoleB should be (false)
+        roleListUserA contains TestValues.testRoleB should be (false)
 
-        // Find roles for testUserA
-        val resultForUserB = db.pool.sendPreparedStatement(find_roles_query, Array[Any](testUserB.id.bytes)).map { queryResult =>
+        // Find roles for TestValues.testUserB
+        val resultForUserB = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserB.id.bytes)).map { queryResult =>
           val roleList = queryResult.rows.get.map {
             item: RowData => Role(item)
           }
@@ -345,11 +262,11 @@ with RoleRepoTestEnvironment {
         }
 
         val roleListUserB = Await.result(resultForUserB, Duration.Inf)
-        roleListUserB contains testRoleB should be (false)
+        roleListUserB contains TestValues.testRoleB should be (false)
       }
     }
     "return FALSE if the user doesn't have this role" in {
-      val query_result = roleRepository.removeUsers(testRoleA, Vector(testUserB))
+      val query_result = roleRepository.removeUsers(TestValues.testRoleA, Vector(TestValues.testUserC))
 
       val role = Await.result(query_result, Duration.Inf)
       role should be (false)
@@ -360,23 +277,29 @@ with RoleRepoTestEnvironment {
     inSequence {
       "save a Role row" in {
         val result = roleRepository.insert(Role(
-          id = testRoleD.id,
-          name = testRoleD.name
+          id = TestValues.testRoleD.id,
+          name = TestValues.testRoleD.name
         ))
 
         val role = Await.result(result, Duration.Inf)
-        role.id should be(testRoleD.id)
-        role.name should be(testRoleD.name)
+        role.id should be(TestValues.testRoleD.id)
+        role.name should be(TestValues.testRoleD.name)
 
         // Check Role record
-        val checkResult = roleRepository.find(testRoleD.id).map(_.get)
+        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testRoleD.id.bytes)).map { queryResult =>
+          val roleList = queryResult.rows.get.map {
+            item: RowData => Role(item)
+          }
+          roleList
+        }
 
-        val checkRole = Await.result(checkResult, Duration.Inf)
-        checkRole.id should be(testRoleD.id)
-        checkRole.name should be(testRoleD.name)
+        val roleList = Await.result(queryResult, Duration.Inf)
+        roleList(0).id should be (TestValues.testRoleD.id)
+        roleList(0).version should be (TestValues.testRoleD.version)
+        roleList(0).name should be (TestValues.testRoleD.name)
       }
-      "throw an exception if role already exists" in {
-        val result = roleRepository.insert(testRoleA)
+      "throw a GenericDatabaseException if role already exists" in {
+        val result = roleRepository.insert(TestValues.testRoleA)
 
         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
       }
@@ -386,28 +309,36 @@ with RoleRepoTestEnvironment {
   "RoleRepository.update" should {
     inSequence {
       "update an existing Role" in {
-        val result = roleRepository.update(testRoleC.copy(
+        val result = roleRepository.update(TestValues.testRoleC.copy(
           name = "new test role C"
         ))
 
         val role = Await.result(result, Duration.Inf)
         role.name should be("new test role C")
+        role.createdAt.toString should be (TestValues.testRoleC.createdAt.toString)
+        role.updatedAt.toString should not be (TestValues.testRoleC.updatedAt.toString)
 
         // Check Role record
-        val checkResult = roleRepository.find(testRoleC.id).map(_.get)
+        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testRoleC.id.bytes)).map { queryResult =>
+          val roleList = queryResult.rows.get.map {
+            item: RowData => Role(item)
+          }
+          roleList
+        }
 
-        val checkRole = Await.result(checkResult, Duration.Inf)
-        checkRole.name should be("new test role C")
+        val roleList = Await.result(queryResult, Duration.Inf)
+
+        roleList(0).name should be("new test role C")
       }
-      "throw an exception when update an existing Role with wrong version" in {
-        val result = roleRepository.update(testRoleC.copy(
+      "throw a NoSuchElementException when update an existing Role with wrong version" in {
+        val result = roleRepository.update(TestValues.testRoleC.copy(
           version = 99L,
           name = "new test role C"
         ))
 
         an[java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
       }
-      "throw an exception when update an unexisting Role" in {
+      "throw a NoSuchElementException when update an unexisting Role" in {
         val result = roleRepository.update(Role(
           name = "test role E"
         ))
@@ -420,18 +351,22 @@ with RoleRepoTestEnvironment {
   "RoleRepository.delete" should {
     inSequence{
       "delete role if role has no references in other tables" in {
-        val result = roleRepository.delete(testRoleB)
+        val result = roleRepository.delete(TestValues.testRoleB)
 
         Await.result(result, Duration.Inf) should be (true)
 
         // Check if role has been deleted
-        val result2 = roleRepository.find(testRoleB.id)
+        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testRoleB.id.bytes)).map { queryResult =>
+          val roleList = queryResult.rows.get.map {
+            item: RowData => Role(item)
+          }
+          roleList
+        }
 
-        val deleted_role = Await.result(result2, Duration.Inf)
-        deleted_role should be (None)
+        Await.result(queryResult, Duration.Inf) should be (Vector())
       }
-      "throw an exception if role has references in other tables" in {
-        val result = roleRepository.delete(testRoleA)
+      "throw a GenericDatabaseException if role has references in other tables" in {
+        val result = roleRepository.delete(TestValues.testRoleA)
 
         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
       }
@@ -441,20 +376,12 @@ with RoleRepoTestEnvironment {
   "RoleRepository.addToUser" should {
     inSequence {
       "associate a role (by object) to a user" in {
-        val query_result = roleRepository.addToUser(testUserC, testRoleC)
+        val query_result = roleRepository.addToUser(TestValues.testUserC, TestValues.testRoleC)
 
         Await.result(query_result, Duration.Inf) should be (true)
 
-        // Find user roles by user ID
-        val find_roles_query = """
-          SELECT id, version, roles.name as name, roles.created_at as created_at, updated_at
-          FROM roles, users_roles
-          WHERE roles.id = users_roles.role_id
-            AND users_roles.user_id = ?
-                               """
-
-        // Find roles for testUserC
-        val result = db.pool.sendPreparedStatement(find_roles_query, Array[Any](testUserC.id.bytes)).map { queryResult =>
+        // Find roles for TestValues.testUserC
+        val result = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserC.id.bytes)).map { queryResult =>
           val roleList = queryResult.rows.get.map {
             item: RowData => Role(item)
           }
@@ -462,24 +389,16 @@ with RoleRepoTestEnvironment {
         }
 
         val roleList = Await.result(result, Duration.Inf)
-        roleList contains testRoleC should be (true)
+        roleList contains TestValues.testRoleC should be (true)
       }
 
       "associate a role (by name) to a user" in {
-        val query_result = roleRepository.addToUser(testUserC, testRoleA.name)
+        val query_result = roleRepository.addToUser(TestValues.testUserC, TestValues.testRoleA.name)
 
         Await.result(query_result, Duration.Inf) should be (true)
 
-        // Find user roles by user ID
-        val find_roles_query = """
-          SELECT id, version, roles.name as name, roles.created_at as created_at, updated_at
-          FROM roles, users_roles
-          WHERE roles.id = users_roles.role_id
-            AND users_roles.user_id = ?
-                               """
-
-        // Find roles for testUserC
-        val result = db.pool.sendPreparedStatement(find_roles_query, Array[Any](testUserC.id.bytes)).map { queryResult =>
+        // Find roles for TestValues.testUserC
+        val result = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserC.id.bytes)).map { queryResult =>
           val roleList = queryResult.rows.get.map {
             item: RowData => Role(item)
           }
@@ -487,39 +406,143 @@ with RoleRepoTestEnvironment {
         }
 
         val roleList = Await.result(result, Duration.Inf)
-        roleList contains testRoleA should be (true)
+        roleList contains TestValues.testRoleA should be (true)
       }
-      "throw an exception if user doesn't exist" in {
-        val query_result = roleRepository.addToUser(testUserD, testRoleA)
+      "throw a GenericDatabaseException exception if user doesn't exist" in {
+        val query_result = roleRepository.addToUser(TestValues.testUserD, TestValues.testRoleA)
 
         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(query_result, Duration.Inf)
       }
-      "throw an exception if role (object) doesn't exist" in {
-        val query_result = roleRepository.addToUser(testUserA, testRoleE)
+      "throw a GenericDatabaseException exception if role (object) doesn't exist" in {
+        val query_result = roleRepository.addToUser(TestValues.testUserA, TestValues.testRoleE)
 
         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(query_result, Duration.Inf)
       }
       "return FALSE if role (name) doesn't exist" in {
-        val query_result = roleRepository.addToUser(testUserA, testRoleE.name)
+        val query_result = roleRepository.addToUser(TestValues.testUserA, TestValues.testRoleE.name)
 
         Await.result(query_result, Duration.Inf) should be (false)
       }
     }
   }
 
-  // testRoleA from testUserA
   "RoleRepository.removeFromUser" should {
     inSequence {
-      "not finished yet" in {
+      "remove role from user when role is object" in {
+        val query_result = roleRepository.removeFromUser(TestValues.testUserA, TestValues.testRoleA)
 
+        Await.result(query_result, Duration.Inf) should be (true)
+
+        // Find roles for TestValues.testUserA
+        val result = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserA.id.bytes)).map { queryResult =>
+          val roleList = queryResult.rows.get.map {
+            item: RowData => Role(item)
+          }
+          roleList
+        }
+
+        val roleList = Await.result(result, Duration.Inf)
+        roleList contains TestValues.testRoleA should be (false)
+      }
+      "remove role from user by role name" in {
+        val query_result = roleRepository.removeFromUser(TestValues.testUserB, TestValues.testRoleA.name)
+
+        Await.result(query_result, Duration.Inf) should be (true)
+
+        // Find roles for TestValues.testUserB
+        val result = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserB.id.bytes)).map { queryResult =>
+          val roleList = queryResult.rows.get.map {
+            item: RowData => Role(item)
+          }
+          roleList
+        }
+
+        val roleList = Await.result(result, Duration.Inf)
+        roleList contains TestValues.testRoleA should be (false)
+      }
+      "return FALSE if role (object) doesn't exist" in {
+        val query_result = roleRepository.removeFromUser(TestValues.testUserA, TestValues.testRoleE)
+
+        Await.result(query_result, Duration.Inf) should be (false)
+      }
+      "return FALSE if role (name) doesn't exist" in {
+        val query_result = roleRepository.removeFromUser(TestValues.testUserA, TestValues.testRoleE.name)
+
+        Await.result(query_result, Duration.Inf) should be (false)
+      }
+      "return FALSE if user doesn't exist" in {
+        val query_result = roleRepository.removeFromUser(TestValues.testUserD, TestValues.testRoleA)
+
+        Await.result(query_result, Duration.Inf) should be (false)
       }
     }
   }
 
   "RoleRepository.removeFromAllUsers" should {
     inSequence {
-      "not finished yet" in {
+      "remove role from all users when role is object"  in {
+        val query_result = roleRepository.removeFromAllUsers(TestValues.testRoleF)
 
+        Await.result(query_result, Duration.Inf) should be (true)
+
+        // Find roles for TestValues.testUserA
+        val resultForUserA = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserA.id.bytes)).map { queryResult =>
+          val roleList = queryResult.rows.get.map {
+            item: RowData => Role(item)
+          }
+          roleList
+        }
+
+        val roleListUserA = Await.result(resultForUserA, Duration.Inf)
+        roleListUserA contains TestValues.testRoleF should be (false)
+
+        // Find roles for TestValues.testUserB
+        val resultForUserB = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserB.id.bytes)).map { queryResult =>
+          val roleList = queryResult.rows.get.map {
+            item: RowData => Role(item)
+          }
+          roleList
+        }
+
+        val roleListUserB = Await.result(resultForUserB, Duration.Inf)
+        roleListUserB contains TestValues.testRoleF should be (false)
+      }
+      "remove role from all users by role name" in {
+        val query_result = roleRepository.removeFromAllUsers(TestValues.testRoleG.name)
+
+        Await.result(query_result, Duration.Inf) should be (true)
+
+        // Find roles for TestValues.testUserA
+        val resultForUserA = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserA.id.bytes)).map { queryResult =>
+          val roleList = queryResult.rows.get.map {
+            item: RowData => Role(item)
+          }
+          roleList
+        }
+
+        val roleListUserA = Await.result(resultForUserA, Duration.Inf)
+        roleListUserA contains TestValues.testRoleG should be (false)
+
+        // Find roles for TestValues.testUserB
+        val resultForUserB = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserB.id.bytes)).map { queryResult =>
+          val roleList = queryResult.rows.get.map {
+            item: RowData => Role(item)
+          }
+          roleList
+        }
+
+        val roleListUserB = Await.result(resultForUserB, Duration.Inf)
+        roleListUserB contains TestValues.testRoleG should be (false)
+      }
+      "return FALSE if role (object) doesn't exist" in {
+        val query_result = roleRepository.removeFromAllUsers(TestValues.testRoleE)
+
+        Await.result(query_result, Duration.Inf) should be (false)
+      }
+      "return FALSE if role (name) doesn't exist" in {
+        val query_result = roleRepository.removeFromAllUsers(TestValues.testRoleE.name)
+
+        Await.result(query_result, Duration.Inf) should be (false)
       }
     }
   }

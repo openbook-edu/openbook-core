@@ -190,6 +190,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      */
     override def createLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, isComplete: Boolean): Future[LongAnswerWork] = {
       transactional { implicit connection =>
+        Logger.debug("Starting to create long answer work")
         val fUser = userRepository.find(userId).map(_.get)
         val fTask = taskRepository.find(taskId).map(_.get)
         val fSection = classRepository.find(classId).map(_.get)

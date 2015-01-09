@@ -26,9 +26,9 @@ object MultipleChoiceWork {
   def apply(row: RowData): MultipleChoiceWork = {
     MultipleChoiceWork(
       id = UUID(row("id").asInstanceOf[Array[Byte]]),
-      studentId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
-      taskId    = UUID(row("student_id").asInstanceOf[Array[Byte]]),
-      classId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
+      studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
+      taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
+      classId = UUID(row("class_id").asInstanceOf[Array[Byte]]),
       version  = row("version").asInstanceOf[Long],
       answer    = row("answer").asInstanceOf[IndexedSeq[Int]],
       isComplete = row("is_complete").asInstanceOf[Boolean],

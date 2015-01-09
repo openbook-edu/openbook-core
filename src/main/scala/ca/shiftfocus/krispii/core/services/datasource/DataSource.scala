@@ -111,8 +111,8 @@ trait PostgresDB extends DB {
     override def pool = connectionPool
 
     private val connectionPool = new ConnectionPool(factory, new PoolConfiguration(
-      maxObjects = 60,
-      maxIdle = 50,
+      maxObjects = 30,
+      maxIdle = 25,
       maxQueueSize = 1000,
       validationInterval = 50)
     )

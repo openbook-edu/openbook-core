@@ -1,8 +1,8 @@
-import java.awt.Color
 import java.io.File
 
 import ca.shiftfocus.krispii.core.models.{Class, User}
 import ca.shiftfocus.uuid.UUID
+import com.github.mauricio.async.db.RowData
 import org.joda.time.{DateTimeZone, DateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Await
@@ -56,66 +56,12 @@ with PostgresDB {
     load_schema(drop_schema_path)
   }
 
-  val testUserA = User(
-    id = UUID("36c8c0ca-50aa-4806-afa5-916a5e33a81f"),
-    version = 1L,
-    email = "testUserA@example.com",
-    username = "testUserA",
-    passwordHash = Some("$s0$100801$SIZ9lgHz0kPMgtLB37Uyhw==$wyKhNrg/MmUvlYuVygDctBE5LHBjLB91nyaiTpjbeyM="),
-    givenname = "TestA",
-    surname = "UserA",
-    createdAt = Option(new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-    updatedAt = Option(new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")))
-  )
-
-  val testUserB = User(
-    id = UUID("6c0e29bd-d05b-4b29-8115-6be93e936c59"),
-    version = 2L,
-    email = "testUserB@example.com",
-    username = "testUserB",
-    passwordHash = Some("$s0$100801$84r2edPRqM/8xFCe+G1PPw==$p7dTGjBJpGUMoyQ1Nqat1i4SBV6aT6BX7h1WU6cLRnc="),
-    givenname = "TestB",
-    surname = "UserB",
-    createdAt = Option(new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-    updatedAt = Option(new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04")))
-  )
-
-  // User has no references in other tables
-  val testUserC = User(
-    id = UUID("f5f98407-3a0b-4ea5-952a-575886e90586"),
-    version = 3L,
-    email = "testUserC@example.com",
-    username = "testUserC",
-    passwordHash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3WmWjo="),
-    givenname = "TestC",
-    surname = "UserC",
-    createdAt = Option(new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-    updatedAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")))
-  )
-
-  // New user no data in DB
-  val testUserD = User(
-    id = UUID("4d97f26c-df3f-4866-8919-11f51f14e9c4"),
-    email = "testUserD@example.com",
-    username = "testUserD",
-    passwordHash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3W1234="),
-    givenname = "TestD",
-    surname = "UserD"
-  )
-
-  val testClassA = Class(
-    id = UUID("217c5622-ff9e-4372-8e6a-95fb3bae300b"),
-    teacherId = Option(testUserA.id),
-    name = "test class A",
-    color = new Color(24, 6, 8)
-  )
-
-  val testClassB = Class(
-    id = UUID("404c800a-5385-4e6b-867e-365a1e6b00de"),
-    teacherId = Option(testUserB.id),
-    name = "test class B",
-    color = new Color(34, 8, 16)
-  )
+  val SelectOneByIdentifier = """
+      SELECT id, version, created_at, updated_at, username, email, password_hash, givenname, surname
+      FROM users
+      WHERE (email = ? OR username = ?)
+      LIMIT 1
+    """
 }
 
 class UserRepositorySpec
@@ -131,8 +77,8 @@ class UserRepositorySpec
 
         val users = Await.result(result, Duration.Inf)
 
-        users should be(Vector(testUserA, testUserB, testUserC))
-        Map[Int, User](0 -> testUserA, 1 -> testUserB, 2 -> testUserC).foreach {
+        users should be(Vector(TestValues.testUserA, TestValues.testUserB, TestValues.testUserC))
+        Map[Int, User](0 -> TestValues.testUserA, 1 -> TestValues.testUserB, 2 -> TestValues.testUserC).foreach {
           case (key, user: User) => {
             users(key).id should be(user.id)
             users(key).version should be(user.version)
@@ -146,12 +92,12 @@ class UserRepositorySpec
         }
       }
       "list users with a specified set of user Ids" in {
-        val result = userRepository.list(Vector(testUserC.id, testUserA.id))
+        val result = userRepository.list(Vector(TestValues.testUserC.id, TestValues.testUserA.id))
 
         val users = Await.result(result, Duration.Inf)
 
-        users should be(Vector(testUserC, testUserA))
-        Map[Int, User](0 -> testUserC, 1 -> testUserA).foreach {
+        users should be(Vector(TestValues.testUserC, TestValues.testUserA))
+        Map[Int, User](0 -> TestValues.testUserC, 1 -> TestValues.testUserA).foreach {
           case (key, user: User) => {
             users(key).id should be(user.id)
             users(key).version should be(user.version)
@@ -164,17 +110,22 @@ class UserRepositorySpec
           }
         }
       }
+      "throw an NoSuchElementException if set contains unexisting user ID" in {
+        val result = userRepository.list(Vector(TestValues.testUserD.id))
+
+        an [java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
+      }
       "list users in a given section(class)" in {
-        val result = userRepository.list(testClassA)
-        val result2 = userRepository.list(testClassB)
+        val result = userRepository.list(TestValues.testClassA)
+        val result2 = userRepository.list(TestValues.testClassB)
 
         val users = Await.result(result, Duration.Inf)
         val users2 = Await.result(result2, Duration.Inf)
 
-        users should be(Vector(testUserA))
-        users2 should be(Vector(testUserB))
+        users should be(Vector(TestValues.testUserA))
+        users2 should be(Vector(TestValues.testUserB))
 
-        Map[Int, User](0 -> testUserA).foreach {
+        Map[Int, User](0 -> TestValues.testUserA).foreach {
           case (key, user: User) => {
             users(key).id should be(user.id)
             users(key).version should be(user.version)
@@ -187,7 +138,7 @@ class UserRepositorySpec
           }
         }
 
-        Map[Int, User](0 -> testUserB).foreach {
+        Map[Int, User](0 -> TestValues.testUserB).foreach {
           case (key, user: User) => {
             users2(key).id should be(user.id)
             users2(key).version should be(user.version)
@@ -200,17 +151,22 @@ class UserRepositorySpec
           }
         }
       }
+      "return empty Vector() if section(class) unexists" in {
+        val result = userRepository.list(TestValues.testClassC)
+
+        Await.result(result, Duration.Inf) should be (Vector())
+      }
     }
   }
 
   "UserRepository.listForSections" should {
     inSequence{
       "list the users belonging to a set of classes" in {
-        val result = userRepository.listForSections(Vector(testClassA, testClassB))
+        val result = userRepository.listForSections(Vector(TestValues.testClassA, TestValues.testClassB))
 
         val users = Await.result(result, Duration.Inf)
-        users should be (Vector(testUserA, testUserB))
-        Map[Int, User](0 -> testUserA, 1 -> testUserB).foreach {
+        users should be (Vector(TestValues.testUserA, TestValues.testUserB))
+        Map[Int, User](0 -> TestValues.testUserA, 1 -> TestValues.testUserB).foreach {
           case (key, user: User) => {
             users(key).id should be(user.id)
             users(key).version should be(user.version)
@@ -222,6 +178,11 @@ class UserRepositorySpec
             users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
+      }
+      "return empty Vector() if set of classes contains unexisting class" in {
+        val result = userRepository.listForSections(Vector(TestValues.testClassC))
+
+        Await.result(result, Duration.Inf) should be (Vector())
       }
     }
   }
@@ -232,8 +193,8 @@ class UserRepositorySpec
         val result = userRepository.listForRoles(Vector("test role A", "test role B"))
 
         val users = Await.result(result, Duration.Inf)
-        users should be (Vector(testUserA, testUserB))
-        Map[Int, User](0 -> testUserA, 1 -> testUserB).foreach {
+        users should be (Vector(TestValues.testUserA, TestValues.testUserB))
+        Map[Int, User](0 -> TestValues.testUserA, 1 -> TestValues.testUserB).foreach {
           case (key, user: User) => {
             users(key).id should be(user.id)
             users(key).version should be(user.version)
@@ -245,6 +206,11 @@ class UserRepositorySpec
             users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
+      }
+      "return empty Vector() if set of roles contains unexisting role name" in {
+        val result = userRepository.listForRoles(Vector("unexisting role"))
+
+        Await.result(result, Duration.Inf) should be (Vector())
       }
     }
   }
@@ -255,8 +221,8 @@ class UserRepositorySpec
         val result = userRepository.listForRolesAndSections(Vector("test role A", "test role B"), Vector("test class A", "test class B"))
 
         val users = Await.result(result, Duration.Inf)
-        users should be (Vector(testUserA, testUserB))
-        Map[Int, User](0 -> testUserA, 1 -> testUserB).foreach {
+        users should be (Vector(TestValues.testUserA, TestValues.testUserB))
+        Map[Int, User](0 -> TestValues.testUserA, 1 -> TestValues.testUserB).foreach {
           case (key, user: User) => {
             users(key).id should be(user.id)
             users(key).version should be(user.version)
@@ -269,56 +235,84 @@ class UserRepositorySpec
           }
         }
       }
+      "return only one user if set of roles contains more elements than set of classes" in {
+        val result = userRepository.listForRolesAndSections(Vector("test role A", "test role B"), Vector("test class A"))
+
+        val users = Await.result(result, Duration.Inf)
+        users should be (Vector(TestValues.testUserA))
+        Map[Int, User](0 -> TestValues.testUserA).foreach {
+          case (key, user: User) => {
+            users(key).id should be(user.id)
+            users(key).version should be(user.version)
+            users(key).email should be(user.email)
+            users(key).username should be(user.username)
+            users(key).givenname should be(user.givenname)
+            users(key).surname should be(user.surname)
+            users(key).createdAt.toString should be(user.createdAt.toString)
+            users(key).updatedAt.toString should be(user.updatedAt.toString)
+          }
+        }
+      }
+      "return empty Vector() if set of roles contains only unexisting role name" in {
+        val result = userRepository.listForRolesAndSections(Vector("unexisting role"), Vector("test class A", "test class B"))
+
+        Await.result(result, Duration.Inf) should be (Vector())
+      }
+      "return empty Vector() if set of classes contains only unexisting class name" in {
+        val result = userRepository.listForRolesAndSections(Vector("test role A", "test role B"), Vector("unexisting class"))
+
+        Await.result(result, Duration.Inf) should be (Vector())
+      }
     }
   }
 
   "UserRepository.find" should {
     inSequence {
       "find a user by ID" in {
-        val result = userRepository.find(testUserA.id).map(_.get)
+        val result = userRepository.find(TestValues.testUserA.id).map(_.get)
 
         val user = Await.result(result, Duration.Inf)
-        user.id should be(testUserA.id)
-        user.version should be(testUserA.version)
-        user.email should be(testUserA.email)
-        user.username should be(testUserA.username)
-        user.givenname should be(testUserA.givenname)
-        user.surname should be(testUserA.surname)
-        user.createdAt.toString() should be (testUserA.createdAt.toString())
-        user.updatedAt.toString() should be (testUserA.updatedAt.toString())
+        user.id should be(TestValues.testUserA.id)
+        user.version should be(TestValues.testUserA.version)
+        user.email should be(TestValues.testUserA.email)
+        user.username should be(TestValues.testUserA.username)
+        user.givenname should be(TestValues.testUserA.givenname)
+        user.surname should be(TestValues.testUserA.surname)
+        user.createdAt.toString() should be (TestValues.testUserA.createdAt.toString())
+        user.updatedAt.toString() should be (TestValues.testUserA.updatedAt.toString())
       }
-      "throw an exception if user wasn't found by ID" in {
-        val result = userRepository.find(UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")).map(_.get)
+      "be None if user wasn't found by ID" in {
+        val result = userRepository.find(UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477"))
 
-        an [java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
+        Await.result(result, Duration.Inf) should be (None)
       }
       "find a user by their identifiers - email" in {
-        val result = userRepository.find(testUserA.email).map(_.get)
+        val result = userRepository.find(TestValues.testUserA.email).map(_.get)
 
         val user = Await.result(result, Duration.Inf)
 
-        user.id should be(testUserA.id)
-        user.version should be(testUserA.version)
-        user.email should be(testUserA.email)
-        user.username should be(testUserA.username)
-        user.givenname should be(testUserA.givenname)
-        user.surname should be(testUserA.surname)
-        user.createdAt.toString should be(testUserA.createdAt.toString)
-        user.updatedAt.toString should be(testUserA.updatedAt.toString)
+        user.id should be(TestValues.testUserA.id)
+        user.version should be(TestValues.testUserA.version)
+        user.email should be(TestValues.testUserA.email)
+        user.username should be(TestValues.testUserA.username)
+        user.givenname should be(TestValues.testUserA.givenname)
+        user.surname should be(TestValues.testUserA.surname)
+        user.createdAt.toString should be(TestValues.testUserA.createdAt.toString)
+        user.updatedAt.toString should be(TestValues.testUserA.updatedAt.toString)
       }
       "find a user by their identifiers - username" in {
-        val result = userRepository.find(testUserB.username).map(_.get)
+        val result = userRepository.find(TestValues.testUserB.username).map(_.get)
 
         val user = Await.result(result, Duration.Inf)
 
-        user.id should be(testUserB.id)
-        user.version should be(testUserB.version)
-        user.email should be(testUserB.email)
-        user.username should be(testUserB.username)
-        user.givenname should be(testUserB.givenname)
-        user.surname should be(testUserB.surname)
-        user.createdAt.toString should be(testUserB.createdAt.toString)
-        user.updatedAt.toString should be(testUserB.updatedAt.toString)
+        user.id should be(TestValues.testUserB.id)
+        user.version should be(TestValues.testUserB.version)
+        user.email should be(TestValues.testUserB.email)
+        user.username should be(TestValues.testUserB.username)
+        user.givenname should be(TestValues.testUserB.givenname)
+        user.surname should be(TestValues.testUserB.surname)
+        user.createdAt.toString should be(TestValues.testUserB.createdAt.toString)
+        user.updatedAt.toString should be(TestValues.testUserB.updatedAt.toString)
       }
       "not find a user by their identifiers - email (unexisting email)" in {
         val result = userRepository.find("unexisting_email@example.com")
@@ -340,18 +334,18 @@ class UserRepositorySpec
   "UserRepository.findByEmail" should {
     inSequence {
       "find a user by e-mail address" in {
-        val result = userRepository.find(testUserC.email).map(_.get)
+        val result = userRepository.find(TestValues.testUserC.email).map(_.get)
 
         val user = Await.result(result, Duration.Inf)
 
-        user.id should be (testUserC.id)
-        user.version should be (testUserC.version)
-        user.email should be (testUserC.email)
-        user.username should be (testUserC.username)
-        user.givenname should be (testUserC.givenname)
-        user.surname should be (testUserC.surname)
-        user.createdAt.toString should be(testUserC.createdAt.toString)
-        user.updatedAt.toString should be(testUserC.updatedAt.toString)
+        user.id should be (TestValues.testUserC.id)
+        user.version should be (TestValues.testUserC.version)
+        user.email should be (TestValues.testUserC.email)
+        user.username should be (TestValues.testUserC.username)
+        user.givenname should be (TestValues.testUserC.givenname)
+        user.surname should be (TestValues.testUserC.surname)
+        user.createdAt.toString should be(TestValues.testUserC.createdAt.toString)
+        user.updatedAt.toString should be(TestValues.testUserC.updatedAt.toString)
       }
       "not find a user by unexisting e-mail address" in {
         val result = userRepository.find("unexisting_email@example.com")
@@ -367,7 +361,7 @@ class UserRepositorySpec
     inSequence {
       "update an existing user" in {
 
-        val result = userRepository.update(testUserA.copy(
+        val result = userRepository.update(TestValues.testUserA.copy(
           email = "newtestUserA@example.com",
           username = "newtestUserA",
           givenname = "newTestA",
@@ -376,31 +370,37 @@ class UserRepositorySpec
 
         val user = Await.result(result, Duration.Inf)
 
-        user.id should be (testUserA.id)
-        user.version should be (testUserA.version + 1)
+        user.id should be (TestValues.testUserA.id)
+        user.version should be (TestValues.testUserA.version + 1)
         user.email should be ("newtestUserA@example.com")
         user.username should be ("newtestUserA")
         user.givenname should be ("newTestA")
         user.surname should be ("newUserA")
-        user.createdAt.toString should be(testUserA.createdAt.toString)
-        user.updatedAt.toString should not be(testUserA.updatedAt.toString)
+        user.createdAt.toString should be(TestValues.testUserA.createdAt.toString)
+        user.updatedAt.toString should not be(TestValues.testUserA.updatedAt.toString)
 
         // Find updated user and check
-        val result2 = userRepository.find("newtestUserA@example.com").map(_.get)
+        val queryResult = db.pool.sendPreparedStatement(SelectOneByIdentifier, Array[Any]("newtestUserA@example.com", "newtestUserA@example.com")).map { queryResult =>
+          val userList = queryResult.rows.get.map {
+            item: RowData => User(item)
+          }
+          userList
+        }
 
-        val updated_user = Await.result(result2, Duration.Inf)
+        val userList = Await.result(queryResult, Duration.Inf)
+        val updated_user = userList(0)
 
-        updated_user.id should be (testUserA.id)
-        updated_user.version should be (testUserA.version + 1)
+        updated_user.id should be (TestValues.testUserA.id)
+        updated_user.version should be (TestValues.testUserA.version + 1)
         updated_user.email should be ("newtestUserA@example.com")
         updated_user.username should be ("newtestUserA")
         updated_user.givenname should be ("newTestA")
         updated_user.surname should be ("newUserA")
-        user.createdAt.toString should be(testUserA.createdAt.toString)
-        updated_user.updatedAt.toString() should not be (testUserA.updatedAt.toString())
+        user.createdAt.toString should be(TestValues.testUserA.createdAt.toString)
+        updated_user.updatedAt.toString() should not be (TestValues.testUserA.updatedAt.toString())
       }
-      "throw an exception when update an existing user with wrong version" in {
-        val result = userRepository.update(testUserB.copy(
+      "throw a NoSuchElementException when update an existing user with wrong version" in {
+        val result = userRepository.update(TestValues.testUserB.copy(
           version = 99L,
           username = "newtestUserB",
           givenname = "newTestB",
@@ -409,7 +409,7 @@ class UserRepositorySpec
 
         an [java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
       }
-      "throw an exception when update an unexisting user" in {
+      "throw a NoSuchElementException when update an unexisting user" in {
         an [java.util.NoSuchElementException] should be thrownBy userRepository.update(User(
           email = "unexisting_email@example.com",
           username = "unexisting_username",
@@ -423,31 +423,37 @@ class UserRepositorySpec
   "UserRepository.insert" should {
     inSequence {
       "save a new User" in {
-        val result = userRepository.insert(testUserD)
+        val result = userRepository.insert(TestValues.testUserD)
 
         val user = Await.result(result, Duration.Inf)
 
-        user.id should be (testUserD.id)
-        user.version should be (testUserD.version)
-        user.email should be (testUserD.email)
-        user.username should be (testUserD.username)
-        user.givenname should be (testUserD.givenname)
-        user.surname should be (testUserD.surname)
+        user.id should be (TestValues.testUserD.id)
+        user.version should be (TestValues.testUserD.version)
+        user.email should be (TestValues.testUserD.email)
+        user.username should be (TestValues.testUserD.username)
+        user.givenname should be (TestValues.testUserD.givenname)
+        user.surname should be (TestValues.testUserD.surname)
 
         // Find new user and check
-        val result2 = userRepository.find(testUserD.email).map(_.get)
+        val queryResult = db.pool.sendPreparedStatement(SelectOneByIdentifier, Array[Any](TestValues.testUserD.email, TestValues.testUserD.email)).map { queryResult =>
+          val userList = queryResult.rows.get.map {
+            item: RowData => User(item)
+          }
+          userList
+        }
 
-        val new_user = Await.result(result2, Duration.Inf)
+        val userList = Await.result(queryResult, Duration.Inf)
+        val new_user = userList(0)
 
-        new_user.id should be (testUserD.id)
-        new_user.version should be (testUserD.version)
-        new_user.email should be (testUserD.email)
-        new_user.username should be (testUserD.username)
-        new_user.givenname should be (testUserD.givenname)
-        new_user.surname should be (testUserD.surname)
+        new_user.id should be (TestValues.testUserD.id)
+        new_user.version should be (TestValues.testUserD.version)
+        new_user.email should be (TestValues.testUserD.email)
+        new_user.username should be (TestValues.testUserD.username)
+        new_user.givenname should be (TestValues.testUserD.givenname)
+        new_user.surname should be (TestValues.testUserD.surname)
       }
-      "throw an exception if user already exists" in {
-        val result = userRepository.insert(testUserA)
+      "throw a GenericDatabaseException if user already exists" in {
+        val result = userRepository.insert(TestValues.testUserA)
 
         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
       }
@@ -457,19 +463,23 @@ class UserRepositorySpec
   "UserRepository.delete" should {
     inSequence {
       "delete a user from the database if user has no references in other tables" in {
-        val result = userRepository.delete(testUserC)
+        val result = userRepository.delete(TestValues.testUserC)
 
         val is_deleted = Await.result(result, Duration.Inf)
         is_deleted should be (true)
 
         // Check if user has been deleted
-        val result2 = userRepository.find(testUserC.email)
+        val queryResult = db.pool.sendPreparedStatement(SelectOneByIdentifier, Array[Any](TestValues.testUserC.email, TestValues.testUserC.email)).map { queryResult =>
+          val userList = queryResult.rows.get.map {
+            item: RowData => User(item)
+          }
+          userList
+        }
 
-        val deleted_user = Await.result(result2, Duration.Inf)
-        deleted_user should be (None)
+        Await.result(queryResult, Duration.Inf) should be (Vector())
       }
-      "throw an exception if user has references in other tables" in {
-        val result = userRepository.delete(testUserB)
+      "throw a GenericDatabaseException if user has references in other tables" in {
+        val result = userRepository.delete(TestValues.testUserB)
         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
       }
     }

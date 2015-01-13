@@ -132,16 +132,21 @@ VALUES ('\xe4ae3b9098714339b05c8d39e3aaf65d', 2, '\x404c800a53854e6b867e365a1e6b
 INSERT INTO projects (id, version, class_id, name, slug, description, availability, created_at, updated_at)
 VALUES ('\x4ac4d872451b4092b13f643d6d5fa930', 3, '\x404c800a53854e6b867e365a1e6b00de', 'test project C', 'test project slug C', 'test project C description', 'class', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
-
 /* CLASSES_PROJECTS */
-/* class A -> project A */
-INSERT INTO classes_projects (project_id, class_id, created_at)
-VALUES ('\xc9b4cfceaed448fd94f5c980763dfddc', '\x217c5622ff9e43728e6a95fb3bae300b', '2014-08-01 14:01:19.545-04');
 
-/* class B -> project B */
-INSERT INTO classes_projects (project_id, class_id, created_at)
-VALUES ('\xe4ae3b9098714339b05c8d39e3aaf65d', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-02 14:01:19.545-04');
+/* PARTS */
+/* part A -> project A */
+INSERT INTO parts (id, version, project_id, name, description, position, enabled, created_at, updated_at)
+VALUES ('\x5cd214be6bba47fa9f350eb8bafec397', 1, '\xc9b4cfceaed448fd94f5c980763dfddc', 'test part A', 'test part A description', 10, true,'2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
 
-/* class B -> project C */
-INSERT INTO classes_projects (project_id, class_id, created_at)
-VALUES ('\x4ac4d872451b4092b13f643d6d5fa930', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-03 14:01:19.545-04');
+/* part B -> project A */
+INSERT INTO parts (id, version, project_id, name, description, position, enabled, created_at, updated_at)
+VALUES ('\xabb84847a3d247a0ae7d8ce04063afc7', 2, '\xc9b4cfceaed448fd94f5c980763dfddc', 'test part B', 'test part B description', 11, true,'2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
+
+/* part C -> project B */
+INSERT INTO parts (id, version, project_id, name, description, position, enabled, created_at, updated_at)
+VALUES ('\xfb01f11b7f2341c8877b68410be62aa5', 3, '\xe4ae3b9098714339b05c8d39e3aaf65d', 'test part C', 'test part C description', 12, true,'2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
+
+
+/* SCHEDULED_CLASSES_PARTS */
+

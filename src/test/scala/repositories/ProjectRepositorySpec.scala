@@ -292,22 +292,6 @@ class ProjectRepositorySpec extends WordSpec
 
   "ProjectRepository.delete" should {
     inSequence {
-//      // This is not aplicable as there always will be a reference in classses_projects table.
-//      "delete project if project has no references in other tables" in {
-//        val result = projectRepository.delete(TestValues.testProjectA)
-//
-//        Await.result(result, Duration.Inf) should be (true)
-//
-//        // Check if role has been deleted
-//        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testProjectA.id.bytes)).map { queryResult =>
-//          val projectList = queryResult.rows.get.map {
-//            item: RowData => Project(item)
-//          }
-//          projectList
-//        }
-//
-//        Await.result(queryResult, Duration.Inf) should be (Vector())
-//      }
       "throw a GenericDatabaseException if project has references in other tables" in {
         val result = projectRepository.delete(TestValues.testProjectA)
 

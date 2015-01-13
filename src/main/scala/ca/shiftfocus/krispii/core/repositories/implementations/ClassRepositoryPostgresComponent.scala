@@ -175,13 +175,6 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
          |$OrderBy
        """.stripMargin
 
-//    val ListSectionsForUserList =
-//      s"""
-//         |SELECT id, version, teacher_id, course_id, classes.name as name, classes.created_at as created_at, classes.updated_at as updated_at
-//         |FROM classes, users_classes
-//         |WHERE classes.id = users_classes.class_id
-//       """.stripMargin
-
     val ListSectionsForUserList =
       s"""
          |SELECT user_id, id, version, teacher_id, color, classes.name as name, classes.created_at as created_at, classes.updated_at as updated_at
@@ -337,7 +330,6 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
       db.pool.sendQuery(query).map { queryResult =>
         val startTimeUsC = System.nanoTime() / 1000
         val tuples = queryResult.rows.get.map { item: RowData =>
-//          (UUID(item("id").asInstanceOf[Array[Byte]]), Class(item))
           (UUID(item("user_id").asInstanceOf[Array[Byte]]), Class(item))
         }
         val tupledWithUsers = users.map { user =>
@@ -597,7 +589,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
         `class`.name,
         `class`.color.getRGB,
         new DateTime,
-        `class`.id,
+        `class`.id.bytes,
         `class`.version
       )).map {
         result => Class(result.rows.get.head)

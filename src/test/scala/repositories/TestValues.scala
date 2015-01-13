@@ -132,7 +132,7 @@ object TestValues {
    */
   val testClassC = Class(
     id = UUID("7cf524fa-aa7f-4bfe-93d7-8cd7787fd030"),
-    teacherId = Option(UUID("36c8c0ca-50aa-4806-afa5-916a5e33a81f")),
+    teacherId = Option(UUID("36c8c0ca-50aa-4806-afa5-916a5e33a81f")), // testUserA.id
     name = "unexisting class C",
     color = new Color(24, 6, 8)
   )
@@ -145,6 +145,16 @@ object TestValues {
     color = new Color(4, 28, 56),
     createdAt = Option(new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  /**
+   * No data in DB for insert
+   */
+  val testClassE = Class(
+    id = UUID("d0b05b14-4a5f-4727-ac43-bd8671aab53c"),
+    teacherId = Option(UUID("36c8c0ca-50aa-4806-afa5-916a5e33a81f")), // testUserA.id
+    name = "unexisting class E",
+    color = new Color(45, 10, 15)
   )
 
 

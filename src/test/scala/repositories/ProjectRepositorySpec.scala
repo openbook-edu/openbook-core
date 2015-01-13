@@ -77,8 +77,7 @@ class ProjectRepositorySpec extends WordSpec
 
         val projects = Await.result(result, Duration.Inf)
 
-        // Should be Vector... doesn't work!
-//        projects should be(Vector(TestValues.testProjectA, TestValues.testProjectB, TestValues.testProjectC))
+        projects.toString should be(Vector(TestValues.testProjectA, TestValues.testProjectB, TestValues.testProjectC).toString)
 
         Map[Int, Project](0 -> TestValues.testProjectA, 1 -> TestValues.testProjectB, 2 -> TestValues.testProjectC).foreach {
           case (key, project: Project) => {
@@ -98,8 +97,7 @@ class ProjectRepositorySpec extends WordSpec
         val result = projectRepository.list(TestValues.testClassA)
         val projects = Await.result(result, Duration.Inf)
 
-        // Should be Vector... doesn't work!
-//        projects should be(Vector(TestValues.testProjectA))
+        projects.toString should be(Vector(TestValues.testProjectA).toString)
 
         Map[Int, Project](0 -> TestValues.testProjectA).foreach {
           case (key, project: Project) => {
@@ -145,7 +143,7 @@ class ProjectRepositorySpec extends WordSpec
 
         Await.result(result, Duration.Inf) should be (None)
       }
-      "find project by ID and User (author)" in {
+      "find project by ID and User (author)"  + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET in {
         val result = projectRepository.find(TestValues.testProjectB.id, TestValues.testUserB).map(_.get)
         val project = Await.result(result, Duration.Inf)
 
@@ -174,7 +172,7 @@ class ProjectRepositorySpec extends WordSpec
 
         Await.result(result, Duration.Inf) should be (None)
       }
-      "find project by slug" in {
+      "find project by slug"  + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET  in {
         val result = projectRepository.find(TestValues.testProjectA.slug).map(_.get)
         val project = Await.result(result, Duration.Inf)
 
@@ -292,10 +290,24 @@ class ProjectRepositorySpec extends WordSpec
 
   "ProjectRepository.delete" should {
     inSequence {
+      "delete project" in {
+        fail("Has refernces in other tables")
+      }
       "throw a GenericDatabaseException if project has references in other tables" in {
         val result = projectRepository.delete(TestValues.testProjectA)
 
         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+      "return FALSE if Project hasn't been found" in {
+        val result = projectRepository.delete(Project(
+          classId = UUID("217c5622-ff9e-4372-8e6a-95fb3bae300b"),
+          name = "unexisting  P",
+          slug = "unexisting  P slug",
+          description = "unexisting  P description",
+          parts = Vector()
+        ))
+
+        Await.result(result, Duration.Inf) should be(false)
       }
     }
   }

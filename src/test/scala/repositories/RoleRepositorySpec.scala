@@ -155,6 +155,29 @@ class RoleRepositorySpec extends WordSpec
           }
         }
       }
+      "return empty Vector() if such users doesn't exist" in {
+        val result = roleRepository.list(Vector(
+          User(
+          id = UUID("a626c45c-8de2-45ea-a361-c64ced9ac58e"),
+          email = "unexisting_email@example.com",
+          username = "unexisting_username",
+          givenname = "unexisting_givenname",
+          surname = "unexisting_surname"
+          ),
+          User(
+          id = UUID("054834b9-424e-493d-835b-9e5f49172cad"),
+          email = "unexisting_email2@example.com",
+          username = "unexisting_username2",
+          givenname = "unexisting_givenname2",
+          surname = "unexisting_surname2"
+          )
+        ))
+
+        val roles = Await.result(result, Duration.Inf)
+
+        roles(UUID("a626c45c-8de2-45ea-a361-c64ced9ac58e")) should be (Vector())
+        roles(UUID("054834b9-424e-493d-835b-9e5f49172cad")) should be (Vector())
+      }
     }
   }
 
@@ -193,7 +216,7 @@ class RoleRepositorySpec extends WordSpec
     }
   }
 
-  "RoleRepository.addUsers" should {
+  "RoleRepository.addUsers" + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET should {
     inSequence {
       "add roles to users" in {
         val query_result = roleRepository.addUsers(TestValues.testRoleC, Vector(TestValues.testUserA, TestValues.testUserB))
@@ -235,7 +258,7 @@ class RoleRepositorySpec extends WordSpec
     }
   }
 
-  "RoleRepository.removeUsers" should {
+  "RoleRepository.removeUsers" + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET should {
     inSequence {
       "remove role from users" in {
         val query_result = roleRepository.removeUsers(TestValues.testRoleB, Vector(TestValues.testUserA, TestValues.testUserB))
@@ -306,7 +329,7 @@ class RoleRepositorySpec extends WordSpec
     }
   }
 
-  "RoleRepository.update" should {
+  "RoleRepository.update" + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET should {
     inSequence {
       "update an existing Role" in {
         val result = roleRepository.update(TestValues.testRoleC.copy(
@@ -369,6 +392,13 @@ class RoleRepositorySpec extends WordSpec
         val result = roleRepository.delete(TestValues.testRoleA)
 
         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+      "return FALSE if Role hasn't been found" in {
+        val result = roleRepository.delete(Role(
+          name = "unexisting role"
+        ))
+
+        Await.result(result, Duration.Inf) should be(false)
       }
     }
   }
@@ -444,7 +474,7 @@ class RoleRepositorySpec extends WordSpec
         val roleList = Await.result(result, Duration.Inf)
         roleList contains TestValues.testRoleA should be (false)
       }
-      "remove role from user by role name" in {
+      "remove role from user by role name" + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET in {
         val query_result = roleRepository.removeFromUser(TestValues.testUserB, TestValues.testRoleA.name)
 
         Await.result(query_result, Duration.Inf) should be (true)
@@ -507,7 +537,7 @@ class RoleRepositorySpec extends WordSpec
         val roleListUserB = Await.result(resultForUserB, Duration.Inf)
         roleListUserB contains TestValues.testRoleF should be (false)
       }
-      "remove role from all users by role name" in {
+      "remove role from all users by role name" + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET in {
         val query_result = roleRepository.removeFromAllUsers(TestValues.testRoleG.name)
 
         Await.result(query_result, Duration.Inf) should be (true)

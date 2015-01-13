@@ -601,6 +601,9 @@ class ClassRepositorySpec
   // TODO - add should return FALSE if hasn't been found to all tests
   "ClassRepository.delete" should {
     inSequence {
+      "delete class" in {
+        fail("Has refernces in other tables")
+      }
       "throw a GenericDatabaseException if class has references in other tables" in {
         val result = classRepository.delete(TestValues.testClassB)
 

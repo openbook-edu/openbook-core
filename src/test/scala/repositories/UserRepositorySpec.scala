@@ -77,8 +77,23 @@ class UserRepositorySpec
 
         val users = Await.result(result, Duration.Inf)
 
-        users should be(Vector(TestValues.testUserA, TestValues.testUserB, TestValues.testUserC))
-        Map[Int, User](0 -> TestValues.testUserA, 1 -> TestValues.testUserB, 2 -> TestValues.testUserC).foreach {
+        users should be(Vector(
+          TestValues.testUserA,
+          TestValues.testUserB,
+          TestValues.testUserC,
+          TestValues.testUserE,
+          TestValues.testUserF,
+          TestValues.testUserG,
+          TestValues.testUserH
+        ))
+        Map[Int, User](
+          0 -> TestValues.testUserA,
+          1 -> TestValues.testUserB,
+          2 -> TestValues.testUserC,
+          3 -> TestValues.testUserE,
+          4 -> TestValues.testUserF,
+          5 -> TestValues.testUserG,
+          6 -> TestValues.testUserH).foreach {
           case (key, user: User) => {
             users(key).id should be(user.id)
             users(key).version should be(user.version)
@@ -123,7 +138,7 @@ class UserRepositorySpec
         val users2 = Await.result(result2, Duration.Inf)
 
         users should be(Vector(TestValues.testUserA))
-        users2 should be(Vector(TestValues.testUserB))
+        users2 should be(Vector(TestValues.testUserB, TestValues.testUserE,TestValues.testUserG, TestValues.testUserH))
 
         Map[Int, User](0 -> TestValues.testUserA).foreach {
           case (key, user: User) => {
@@ -165,8 +180,21 @@ class UserRepositorySpec
         val result = userRepository.listForSections(Vector(TestValues.testClassA, TestValues.testClassB))
 
         val users = Await.result(result, Duration.Inf)
-        users should be (Vector(TestValues.testUserA, TestValues.testUserB))
-        Map[Int, User](0 -> TestValues.testUserA, 1 -> TestValues.testUserB).foreach {
+
+        users should be (Vector(
+          TestValues.testUserA,
+          TestValues.testUserB,
+          TestValues.testUserE,
+          TestValues.testUserG,
+          TestValues.testUserH
+        ))
+
+        Map[Int, User](
+          0 -> TestValues.testUserA,
+          1 -> TestValues.testUserB,
+          2 -> TestValues.testUserE,
+          3 -> TestValues.testUserG,
+          4 -> TestValues.testUserH).foreach {
           case (key, user: User) => {
             users(key).id should be(user.id)
             users(key).version should be(user.version)
@@ -481,6 +509,16 @@ class UserRepositorySpec
       "throw a GenericDatabaseException if user has references in other tables" in {
         val result = userRepository.delete(TestValues.testUserB)
         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+      "return FALSE if User hasn't been found" in {
+        val result = userRepository.delete(User(
+          email = "unexisting_email@example.com",
+          username = "unexisting_username",
+          givenname = "unexisting_givenname",
+          surname = "unexisting_surname"
+        ))
+
+        Await.result(result, Duration.Inf) should be(false)
       }
     }
   }

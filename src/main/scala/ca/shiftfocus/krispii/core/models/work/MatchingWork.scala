@@ -27,9 +27,9 @@ object MatchingWork {
   def apply(row: RowData): MatchingWork = {
     MatchingWork(
       id = UUID(row("id").asInstanceOf[Array[Byte]]),
-      studentId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
-      taskId    = UUID(row("student_id").asInstanceOf[Array[Byte]]),
-      classId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
+      studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
+      taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
+      classId = UUID(row("class_id").asInstanceOf[Array[Byte]]),
       version  = row("version").asInstanceOf[Long],
       answer    = row("answer").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element =>
         Match(element(0), element(1))
@@ -41,4 +41,3 @@ object MatchingWork {
   }
 
 }
-

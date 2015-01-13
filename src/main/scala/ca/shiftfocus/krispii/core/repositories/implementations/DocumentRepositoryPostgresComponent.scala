@@ -4,6 +4,7 @@ import java.util.NoSuchElementException
 
 import ca.shiftfocus.krispii.core.models.document.Revision
 import ca.shiftfocus.krispii.core.models.document.Document
+import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.Connection
@@ -40,14 +41,12 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
 
     val SelectRevision =
       s"""
-         |SELECT revisions.document_id as document_id, revisions.version as version,
-         |       revisions.author_id as author_id,
-         |       revisions.operation as operation, revisions.created_at as created_at
+         |SELECT document_id, version, author_id, operation, created_at
        """.stripMargin
 
     val FromRevisions =
       s"""
-         |FROM revisions
+         |FROM document_revisions
        """.stripMargin
 
     // ----
@@ -88,9 +87,9 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
 
     val PushRevision =
       s"""
-         |INSERT INTO revisions (document_id, version, author_id, operation, created_at)
+         |INSERT INTO document_revisions (document_id, version, author_id, operation, created_at)
          |VALUES (?, ?, ?, ?, ?)
-         |RETURNING document_id, version, operation, created_at
+         |RETURNING document_id, version, author_id, operation, created_at
        """.stripMargin
 
     // ----
@@ -103,13 +102,17 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
      */
     override def find(id: UUID): Future[Option[Document]] = {
       for {
-        result <- db.pool.sendPreparedStatement(FindDocument, Seq[Any](id.bytes)).map(_.rows.get.headOption.get)
+        result <- db.pool.sendPreparedStatement(FindDocument, Seq[Any](id.bytes)).map(_.rows.get.headOption.get).map({ result =>
+          Logger.debug("got document")
+          result
+        })
         owner <- userRepository.find(UUID(result("owner_id").asInstanceOf[Array[Byte]])).map(_.get)
-        editors <- userRepository.list(result("editor_ids").asInstanceOf[Array[Array[Byte]]].map(UUID.apply))
+        editors <- Future successful IndexedSeq.empty[User]
       }
       yield Some(Document(result)(owner, editors))
     }.recover {
       case exception: NoSuchElementException => None
+      case exception: NullPointerException => None
       case exception => {
         Logger.error("Database error while finding document.")
         throw exception

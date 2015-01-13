@@ -127,11 +127,9 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
       $Select
       $From
       $Join
-      INNER JOIN projects ON projects.id = parts.project_id
-      INNER JOIN parts ON parts.id = tasks.part_id
-      WHERE projects.id = ?
-        AND parts.position = ?
-        AND tasks.position = ?
+      INNER JOIN parts ON parts.id = tasks.part_id AND parts.position = ?
+      INNER JOIN projects ON projects.id = parts.project_id AND projects.id = ?
+      WHERE tasks.position = ?
     """
 
     val SelectNowByUserId = s"""
@@ -422,7 +420,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      */
     override def find(project: Project, partNum: Int, taskNum: Int): Future[Option[Task]] = {
       partRepository.find(project, partNum).flatMap { partOption =>
-        db.pool.sendPreparedStatement(SelectByPosition, Array[Any](project.id.bytes, partNum, taskNum)).map { result =>
+        db.pool.sendPreparedStatement(SelectByPosition, Array[Any](partNum, project.id.bytes, taskNum)).map { result =>
           result.rows.get.headOption match {
             case Some(rowData) => Some(Task(rowData))
             case None => None

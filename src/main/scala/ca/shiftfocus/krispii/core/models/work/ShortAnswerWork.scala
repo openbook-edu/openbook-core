@@ -26,12 +26,12 @@ object ShortAnswerWork {
    */
   def apply(row: RowData): ShortAnswerWork = {
     ShortAnswerWork(
-      studentId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
-      taskId    = UUID(row("student_id").asInstanceOf[Array[Byte]]),
-      classId = UUID(row("student_id").asInstanceOf[Array[Byte]]),
+      studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
+      taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
+      classId = UUID(row("class_id").asInstanceOf[Array[Byte]]),
       documentId = UUID(row("document_id").asInstanceOf[Array[Byte]]),
       version  = row("version").asInstanceOf[Long],
-      answer    = row("answer").asInstanceOf[String],
+      answer    = "",
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt = Some(row("created_at").asInstanceOf[DateTime]),
       updatedAt = Some(row("updated_at").asInstanceOf[DateTime])

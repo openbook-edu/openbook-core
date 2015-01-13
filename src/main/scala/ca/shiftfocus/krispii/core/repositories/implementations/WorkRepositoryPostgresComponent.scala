@@ -21,24 +21,34 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
 
     val Select =
       s"""
-         |SELECT work.student_id, work.task_id, work.class_id, work.version
-         |       work.is_complete, work.created_at, work.updated_at
-         |       long_answer_work.answer,
-         |       short_answer_work.answer,
-         |       multiple_choice_work.answer,
-         |       ordering_work.answer,
-         |       matching_work.answer
+         |SELECT work.id as id,
+         |       work.user_id as user_id,
+         |       work.task_id as task_id,
+         |       work.class_id as class_id,
+         |       work.is_complete as is_complete,
+         |       work.created_at as created_at,
+         |       work.updated_at as updated_at,
+         |       work.work_type as work_type,
+         |       work.version as version,
+         |       long_answer_work.document_id as long_answer_document_id,
+         |       short_answer_work.document_id as short_answer_document_id,
+         |       multiple_choice_work.answer as multiple_choice_answer,
+         |       multiple_choice_work.version as multiple_choice_version,
+         |       ordering_work.answer as ordering_answer,
+         |       ordering_work.version as ordering_version,
+         |       matching_work.answer as matching_answer,
+         |       matching_work.version as matching_version
        """.stripMargin
 
     val From = "FROM work"
 
     val Join =
       s"""
-         |LEFT JOIN long_answer_work ON work.id = long_answer_work.task_id
-         |LEFT JOIN short_answer_work ON work.id = short_answer_work.task_id
-         |LEFT JOIN multiple_choice_work ON work.id = multiple_choice_work.task_id
-         |LEFT JOIN ordering_work ON work.id = ordering_work.task_id
-         |LEFT JOIN matching_work ON work.id = matching_work.task_id
+         |LEFT JOIN long_answer_work ON work.id = long_answer_work.work_id
+         |LEFT JOIN short_answer_work ON work.id = short_answer_work.work_id
+         |LEFT JOIN multiple_choice_work ON work.id = multiple_choice_work.work_id
+         |LEFT JOIN ordering_work ON work.id = ordering_work.work_id
+         |LEFT JOIN matching_work ON work.id = matching_work.work_id
        """.stripMargin
 
     // -- Select queries -----------------------------------------------------------------------------------------------
@@ -54,7 +64,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |  AND parts.id = tasks.part_id
          |  AND projects.id = parts.project_id
          |  AND student_responses.task_id = tasks.id
-         |  AND revision = (SELECT MAX(revision) FROM student_responses WHERE user_id= ? AND task_id=tasks.id)
+         |  AND version = (SELECT MAX(version) FROM student_responses WHERE user_id= ? AND task_id=tasks.id)
        """.stripMargin
 
     val ListRevisionsById =
@@ -67,7 +77,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |  AND class_id = ?
        """.stripMargin
 
-    val SelectLatestById =
+    val SelectByStudentTaskClass =
       s"""
          |$Select
          |$From
@@ -75,7 +85,6 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |WHERE user_id = ?
          |  AND task_id = ?
          |  AND class_id = ?
-         |  AND revision = (SELECT MAX(revision) FROM student_responses WHERE user_id = ? AND task_id = ? AND class_id = ?)
          |LIMIT 1
        """.stripMargin
 
@@ -88,39 +97,35 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |LIMIT 1
        """.stripMargin
 
-    val SelectByStudentTaskClass =
-      s"""
-         |$Select
-         |$From
-         |$Join
-         |WHERE user_id = ?
-         |  AND task_id = ?
-         |  AND class_id = ?
-         |  AND revision = ?
-         |LIMIT 1
-       """.stripMargin
-
     // -- Insert and Update  -------------------------------------------------------------------------------------------
 
     val Insert =
       s"""
-         |INSERT INTO work (student_id, task_id, class_id, version, is_complete, created_at, updated_at
-         |VALUES (?, ?, ?, 1, ?, ?, ?)
-         |RETURNING student_id, task_id, class_id, version, is_complete, created_at, updated_at
+         |INSERT INTO work (id, user_id, task_id, class_id, version, is_complete, created_at, updated_at, work_type)
+         |VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
+         |RETURNING id, user_id, task_id, class_id, is_complete, created_at, updated_at
        """.stripMargin
 
-    def InsertIntoAny(table: String): String =
+    def InsertIntoDocumentWork(table: String): String =
       s"""
-         |WITH work AS (
+         |WITH w AS (
          |  $Insert
          |)
-         |INSERT INTO $table (student_id, task_id, class_id, revision, answer)
-         |  SELECT work.student_id as student_id,
-         |         work.task_id as task_id,
-         |         work.class_id as class_id,
-         |         ? as answer
-         |RETURNING student_id, task_id, class_id, version, answer, is_complete, created_at, updated_at
+         |INSERT INTO $table (work_id, document_id)
+         |  SELECT w.id as work_id,
+         |         ? as document_id
+         |  FROM w
        """.stripMargin
+
+    def InsertIntoVersionedWork(table: String): String =
+      s"""
+         |WITH w AS (
+         |  $Insert
+         |)
+         |INSERT INTO $table (work_id, version, answer)
+         |  SELECT work.id as work_id, work.version as version, ? as answer
+         |  FROM w
+       """
 
     val Update =
       s"""
@@ -128,7 +133,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |SET version = ?,
          |    is_complete = ?,
          |    updated_at = ?
-         |WHERE student_id = ?
+         |WHERE user_id = ?
          |  AND task_id = ?
          |  AND class_id = ?
          |  AND version = ?
@@ -142,7 +147,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |UPDATE $table
          |SET answer = ?
          |WHERE work_id = work.id
-         |RETURNING id, student_id, task_id, class_id, version, answer, is_complete, created_at, updated_at
+         |RETURNING id, user_id, task_id, class_id, version, answer, is_complete, created_at, updated_at
        """.stripMargin
 
     def UpdateWithNewRevision(table: String): String =
@@ -150,13 +155,13 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |WITH work AS (
          |  $Update
          |)
-         |INSERT INTO $table (student_id, task_id, class_id, version, answer)
-         |  SELECT work.student_id as student_id,
+         |INSERT INTO $table (user_id, task_id, class_id, version, answer)
+         |  SELECT work.user_id as user_id,
          |         work.task_id as task_id,
          |         work.class_id as class_id,
          |         ? as version,
          |         ? as answer
-         |RETURNING student_id, task_id, class_id, revision, version, answer, is_complete, created_at, updated_at
+         |RETURNING user_id, task_id, class_id, revision, version, answer, is_complete, created_at, updated_at
        """.stripMargin
 
     // -- Delete -------------------------------------------------------------------------------------------------------
@@ -262,7 +267,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @return
      */
     override def find(user: User, task: Task, section: Class): Future[Option[Work]] = {
-      db.pool.sendPreparedStatement(SelectLatestById, Array[Any](
+      db.pool.sendPreparedStatement(SelectByStudentTaskClass, Array[Any](
         user.id.bytes,
         task.id.bytes,
         section.id.bytes
@@ -285,7 +290,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @return
      */
     override def find(user: User, task: Task, section: Class, revision: Long): Future[Option[Work]] = {
-      db.pool.sendPreparedStatement(SelectLatestById, Array[Any](
+      db.pool.sendPreparedStatement(SelectByStudentTaskClass, Array[Any](
         user.id.bytes,
         task.id.bytes,
         section.id.bytes,
@@ -313,26 +318,34 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @return
      */
     override def insert(work: Work)(implicit conn: Connection): Future[Work] = {
-      val tableName = work match {
-        case specific: LongAnswerWork => "long_answer_work"
-        case specific: ShortAnswerWork => "short_answer_work"
-        case specific: MultipleChoiceWork => "multiple_choice_work"
-        case specific: OrderingWork => "ordering_work"
-        case specific: MatchingWork => "matching_work"
+      val query = work match {
+        case specific: LongAnswerWork => InsertIntoDocumentWork("long_answer_work")
+        case specific: ShortAnswerWork => InsertIntoDocumentWork("short_answer_work")
+        case specific: MultipleChoiceWork => InsertIntoVersionedWork("multiple_choice_work")
+        case specific: OrderingWork => InsertIntoVersionedWork("ordering_work")
+        case specific: MatchingWork => InsertIntoVersionedWork("matching_work")
       }
-      conn.sendPreparedStatement(InsertIntoAny(tableName), Array[Any](
+
+      val baseParams = Seq[Any](
+        work.id.bytes,
         work.studentId.bytes,
         work.taskId.bytes,
         work.classId.bytes,
         work.isComplete,
         new DateTime,
-        new DateTime,
-        work.answer match {
-          case (head: MatchingTask.Match)::rest => work.answer.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => s"${item.left}:${item.right}"}
-          case anything => anything
-        }
-      )).map { result =>
-        Work(result.rows.get.head)
+        new DateTime
+      )
+
+      val params = work match {
+        case specific: LongAnswerWork => baseParams ++ Array[Any](Task.LongAnswer, specific.documentId.bytes)
+        case specific: ShortAnswerWork => baseParams ++ Array[Any](Task.ShortAnswer, specific.documentId.bytes)
+        case specific: MultipleChoiceWork => baseParams ++ Array[Any](Task.MultipleChoice, specific.answer)
+        case specific: OrderingWork => baseParams ++ Array[Any](Task.Ordering, specific.answer)
+        case specific: MatchingWork => baseParams ++ Array[Any](Task.Matching, specific.answer.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => s"${item.left}:${item.right}"})
+      }
+
+      conn.sendPreparedStatement(query, params).map { result =>
+        work
       }.recover {
         case exception => throw exception
       }

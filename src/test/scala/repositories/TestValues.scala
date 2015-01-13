@@ -1,6 +1,6 @@
-import ca.shiftfocus.krispii.core.models.{Role, Class, User, Project}
+import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.uuid.UUID
-import org.joda.time.{DateTimeZone, DateTime}
+import org.joda.time.{DateTimeZone, DateTime, LocalDate, LocalTime}
 import java.awt.Color
 
 object TestValues {
@@ -157,6 +157,58 @@ object TestValues {
     color = new Color(45, 10, 15)
   )
 
+
+  /* SECTION SCHEDULE EXCEPTION */
+  val testSectionScheduleExceptionA = SectionScheduleException(
+    id = UUID("da17e24a-a545-4d74-94e1-427896e13ebe"),
+    userId = UUID("36c8c0ca-50aa-4806-afa5-916a5e33a81f"), // User A
+    classId = UUID("217c5622-ff9e-4372-8e6a-95fb3bae300b"), // Class A
+    version = 1L,
+    day = new LocalDate(2014, 8, 1),
+    startTime = new LocalTime(14, 1, 19),
+    endTime = new LocalTime(15, 1, 19),
+    createdAt = Option(new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  val testSectionScheduleExceptionB = SectionScheduleException(
+    id = UUID("3a285f0c-66d0-41b2-851b-cfcd203550d9"),
+    userId = UUID("6c0e29bd-d05b-4b29-8115-6be93e936c59"), // User B
+    classId = UUID("404c800a-5385-4e6b-867e-365a1e6b00de"), // Class B
+    version = 2L,
+    day = new LocalDate(2014, 8, 4),
+    startTime = new LocalTime(16, 1, 19),
+    endTime = new LocalTime(17, 1, 19),
+    createdAt = Option(new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  val testSectionScheduleExceptionC = SectionScheduleException(
+    id = UUID("4d7ca313-f216-4f59-85ae-88bcbca70317"),
+    userId = UUID("871b5250-6712-4e54-8ab6-0784cae0bc64"), // User E
+    classId = UUID("404c800a-5385-4e6b-867e-365a1e6b00de"), // Class B
+    version = 3L,
+    day = new LocalDate(2014, 8, 7),
+    startTime = new LocalTime(10, 1, 19),
+    endTime = new LocalTime(11, 1, 19),
+    createdAt = Option(new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  /**
+   * No data in DB
+   */
+  val testSectionScheduleExceptionD = SectionScheduleException(
+    id = UUID("848c8b4f-f566-4d7f-8a16-b4a76107778a"),
+    userId = UUID("871b5250-6712-4e54-8ab6-0784cae0bc64"), // User E
+    classId = UUID("404c800a-5385-4e6b-867e-365a1e6b00de"), // Class B
+    version = 4L,
+    day = new LocalDate(2014, 8, 8),
+    startTime = new LocalTime(12, 1, 19),
+    endTime = new LocalTime(13, 1, 19),
+    createdAt = Option(new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
 
   /* ROLES */
   val testRoleA = Role(

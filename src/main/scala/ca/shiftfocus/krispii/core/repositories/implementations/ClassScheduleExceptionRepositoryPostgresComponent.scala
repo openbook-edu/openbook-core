@@ -20,8 +20,8 @@ trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExc
   override val sectionScheduleExceptionRepository: ClassScheduleExceptionRepository = new ClassScheduleExceptionRepositoryPSQL
 
   private class ClassScheduleExceptionRepositoryPSQL extends ClassScheduleExceptionRepository {
-    def fields = Seq("class_id", "day", "start_time", "end_time")
-    def table = "section_schedule_exceptions"
+    def fields = Seq("user_id", "class_id", "day", "start_time", "end_time")
+    def table = "class_schedule_exceptions"
     def orderBy = "created_at ASC"
     val fieldsText = fields.mkString(", ")
     val questions = fields.map(_ => "?").mkString(", ")
@@ -86,7 +86,7 @@ trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExc
      * @return a vector of the returned courses
      */
     override def list(user: User, section: Class): Future[IndexedSeq[SectionScheduleException]] = {
-      db.pool.sendQuery(SelectForUserAndSection).map { queryResult =>
+      db.pool.sendPreparedStatement(SelectForUserAndSection, Array[Any](user.id.bytes, section.id.bytes)).map { queryResult =>
         val scheduleList = queryResult.rows.get.map {
           item: RowData => SectionScheduleException(item)
         }
@@ -123,9 +123,9 @@ trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExc
      * @return an optional task if one was found
      */
     override def find(id: UUID): Future[Option[SectionScheduleException]] = {
-      db.pool.sendPreparedStatement(SelectOne, Array[Any](id)).map { result =>
+      db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map { result =>
         result.rows.get.headOption match {
-          case Some(rowData) => Option(SectionScheduleException(rowData))
+          case Some(rowData) => Some(SectionScheduleException(rowData))
           case None => None
         }
       }.recover {

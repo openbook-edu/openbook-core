@@ -301,6 +301,7 @@ CREATE TABLE student_responses (
 );
 
 CREATE TABLE class_schedule_exceptions (
+  id bytea NOT NULL PRIMARY KEY,
   user_id bytea NOT NULL REFERENCES users(id),
   class_id bytea NOT NULL REFERENCES classes(id),
   version bigint,

@@ -150,6 +150,7 @@ trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExc
         sectionScheduleException.id.bytes,
         new DateTime,
         new DateTime,
+        sectionScheduleException.userId.bytes,
         sectionScheduleException.classId.bytes,
         dayDT,
         startTimeDT,
@@ -175,10 +176,12 @@ trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExc
       val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), sectionScheduleException.endTime.getHourOfDay(), sectionScheduleException.endTime.getMinuteOfHour, sectionScheduleException.endTime.getSecondOfMinute())
 
       conn.sendPreparedStatement(Update, Array(
+        sectionScheduleException.userId.bytes,
         sectionScheduleException.classId.bytes,
         dayDT,
         startTimeDT,
         endTimeDT,
+        (sectionScheduleException.version + 1),
         new DateTime,
         sectionScheduleException.id.bytes,
         sectionScheduleException.version

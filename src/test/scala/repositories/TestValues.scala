@@ -210,6 +210,18 @@ object TestValues {
     updatedAt = Option(new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
 
+  /**
+   * No data in DB for insert
+   */
+  val testSectionScheduleExceptionE = SectionScheduleException(
+    id = UUID("3e0ba0ec-8427-4ff1-8fe0-2aaeda67ae36"),
+    userId = UUID("871b5250-6712-4e54-8ab6-0784cae0bc64"), // User E
+    classId = UUID("404c800a-5385-4e6b-867e-365a1e6b00de"), // Class B
+    day = new LocalDate(2014, 8, 9),
+    startTime = new LocalTime(14, 1, 19),
+    endTime = new LocalTime(15, 1, 19)
+  )
+
   /* ROLES */
   val testRoleA = Role(
     id = UUID("1430e950-77f9-4b30-baf8-bb226fc7091a"),

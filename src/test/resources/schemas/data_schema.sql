@@ -64,6 +64,20 @@ INSERT INTO users_classes (user_id, class_id, created_at)
 VALUES ('\x5099a6b48809400d8e380119184d0f93', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-10 14:01:19.545-04');
 
 
+/* CLASS_SCHEDULES */
+/* ClassSchedule A -> Class A */
+INSERT INTO class_schedules (id, version, class_id, day, start_time, end_time, description, created_at, updated_at)
+VALUES ('\x308792b27a2943c8ad51a5c4f306cdaf', 1, '\x217c5622ff9e43728e6a95fb3bae300b', '2015-01-15', '2015-01-15 14:38:19-04', '2015-01-15 15:38:19-04', 'test ClassSchedule A description', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
+
+/* ClassSchedule B -> Class B */
+INSERT INTO class_schedules (id, version, class_id, day, start_time, end_time, description, created_at, updated_at)
+VALUES ('\xdc1190c2b5fd4bac95fa7d67e1f1d445', 2, '\x404c800a53854e6b867e365a1e6b00de', '2015-01-16', '2015-01-16 12:38:19-04', '2015-01-16 13:38:19-04', 'test ClassSchedule B description', '2014-08-04 14:01:19.545-04','2014-08-05 14:01:19.545-04');
+
+/* ClassSchedule C -> Class B */
+INSERT INTO class_schedules (id, version, class_id, day, start_time, end_time, description, created_at, updated_at)
+VALUES ('\x6df9d164b1514c389acd6b91301a199d', 3, '\x404c800a53854e6b867e365a1e6b00de', '2015-01-17', '2015-01-17 16:38:19-04', '2015-01-17 17:38:19-04', 'test ClassSchedule C description', '2014-08-06 14:01:19.545-04','2014-08-07 14:01:19.545-04');
+
+
 /* CLASS_SCHEDULE_EXCEPTIONS */
 /* SectionScheduleException A -> UserA -> ClassA */
 INSERT INTO class_schedule_exceptions (id, user_id, class_id, version, day, start_time, end_time, created_at, updated_at)

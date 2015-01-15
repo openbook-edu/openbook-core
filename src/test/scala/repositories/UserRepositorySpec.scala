@@ -456,7 +456,7 @@ class UserRepositorySpec
         val user = Await.result(result, Duration.Inf)
 
         user.id should be (TestValues.testUserD.id)
-        user.version should be (TestValues.testUserD.version)
+        user.version should be (1L)
         user.email should be (TestValues.testUserD.email)
         user.username should be (TestValues.testUserD.username)
         user.givenname should be (TestValues.testUserD.givenname)
@@ -474,7 +474,7 @@ class UserRepositorySpec
         val new_user = userList(0)
 
         new_user.id should be (TestValues.testUserD.id)
-        new_user.version should be (TestValues.testUserD.version)
+        new_user.version should be (1L)
         new_user.email should be (TestValues.testUserD.email)
         new_user.username should be (TestValues.testUserD.username)
         new_user.givenname should be (TestValues.testUserD.givenname)

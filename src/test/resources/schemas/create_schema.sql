@@ -230,8 +230,7 @@ CREATE TABLE class_schedules (
   end_time timestamp with time zone,
   description text,
   created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  status int
+  updated_at timestamp with time zone
 );
 
 CREATE TABLE users_roles (

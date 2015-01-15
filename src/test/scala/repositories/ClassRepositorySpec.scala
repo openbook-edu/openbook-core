@@ -508,6 +508,7 @@ class ClassRepositorySpec
     }
   }
 
+  // TODO insert with unexisting teacher id
   "ClassRepository.insert"  + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET should {
     inSequence {
       "insert new class" in {
@@ -517,7 +518,7 @@ class ClassRepositorySpec
 
         newClass.id should be (TestValues.testClassE.id)
         newClass.teacherId should be (TestValues.testClassE.teacherId)
-        newClass.version should be (TestValues.testClassE.version)
+        newClass.version should be (1L)
         newClass.name should be (TestValues.testClassE.name)
         newClass.color should be (TestValues.testClassE.color)
 
@@ -533,7 +534,7 @@ class ClassRepositorySpec
 
         classList(0).id should be(TestValues.testClassE.id)
         classList(0).teacherId should be(TestValues.testClassE.teacherId)
-        classList(0).version should be(TestValues.testClassE.version)
+        classList(0).version should be(1L)
         classList(0).name should be(TestValues.testClassE.name)
         classList(0).color should be(TestValues.testClassE.color)
       }

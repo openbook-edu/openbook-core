@@ -11,7 +11,7 @@ import grizzled.slf4j.Logger
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{MustMatchers, WordSpec, BeforeAndAfterAll, Suite}
 import org.scalatest._
-import Matchers._
+import org.scalatest.Matchers._
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
@@ -130,6 +130,7 @@ class ClassScheduleExceptionRepositorySpec
     }
   }
 
+  // TODO insert with unexisting user id, class id
   "ClassScheduleExceptionRepository.insert" should {
     inSequence {
       "create a new section schedule exception" in {
@@ -140,10 +141,28 @@ class ClassScheduleExceptionRepositorySpec
         newSectionScheduleException.id should be(TestValues.testSectionScheduleExceptionE.id)
         newSectionScheduleException.userId should be(TestValues.testSectionScheduleExceptionE.userId)
         newSectionScheduleException.classId should be(TestValues.testSectionScheduleExceptionE.classId)
-        newSectionScheduleException.version should be(TestValues.testSectionScheduleExceptionE.version)
+        newSectionScheduleException.version should be(1L)
         newSectionScheduleException.day should be(TestValues.testSectionScheduleExceptionE.day)
         newSectionScheduleException.startTime should be(TestValues.testSectionScheduleExceptionE.startTime)
         newSectionScheduleException.endTime should be(TestValues.testSectionScheduleExceptionE.endTime)
+
+        // Check
+        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testSectionScheduleExceptionE.id.bytes)).map { queryResult =>
+          val sectionScheduleExceptionRepositoryList = queryResult.rows.get.map {
+            item: RowData => SectionScheduleException(item)
+          }
+          sectionScheduleExceptionRepositoryList
+        }
+
+        val sectionScheduleExceptionRepositoryList = Await.result(queryResult, Duration.Inf)
+
+        sectionScheduleExceptionRepositoryList(0).id should be(TestValues.testSectionScheduleExceptionE.id)
+        sectionScheduleExceptionRepositoryList(0).userId should be(TestValues.testSectionScheduleExceptionE.userId)
+        sectionScheduleExceptionRepositoryList(0).classId should be(TestValues.testSectionScheduleExceptionE.classId)
+        sectionScheduleExceptionRepositoryList(0).version should be(1L)
+        sectionScheduleExceptionRepositoryList(0).day should be(TestValues.testSectionScheduleExceptionE.day)
+        sectionScheduleExceptionRepositoryList(0).startTime should be(TestValues.testSectionScheduleExceptionE.startTime)
+        sectionScheduleExceptionRepositoryList(0).endTime should be(TestValues.testSectionScheduleExceptionE.endTime)
       }
       "throw a GenericDatabaseException if class already exists" in {
         val result = sectionScheduleExceptionRepository.insert(TestValues.testSectionScheduleExceptionA)

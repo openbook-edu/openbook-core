@@ -67,3 +67,5 @@ publishTo := {
     }
   ) as ("maven", privateKeyFile))
 }
+
+parallelExecution in Test := false

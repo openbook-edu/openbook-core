@@ -307,6 +307,7 @@ class RoleRepositorySpec extends WordSpec
         val role = Await.result(result, Duration.Inf)
         role.id should be(TestValues.testRoleD.id)
         role.name should be(TestValues.testRoleD.name)
+        role.version should be(1L)
 
         // Check Role record
         val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testRoleD.id.bytes)).map { queryResult =>
@@ -318,7 +319,7 @@ class RoleRepositorySpec extends WordSpec
 
         val roleList = Await.result(queryResult, Duration.Inf)
         roleList(0).id should be (TestValues.testRoleD.id)
-        roleList(0).version should be (TestValues.testRoleD.version)
+        roleList(0).version should be (1L)
         roleList(0).name should be (TestValues.testRoleD.name)
       }
       "throw a GenericDatabaseException if role already exists" in {
@@ -338,6 +339,7 @@ class RoleRepositorySpec extends WordSpec
 
         val role = Await.result(result, Duration.Inf)
         role.name should be("new test role C")
+        role.version should be(TestValues.testRoleC.version + 1)
         role.createdAt.toString should be (TestValues.testRoleC.createdAt.toString)
         role.updatedAt.toString should not be (TestValues.testRoleC.updatedAt.toString)
 
@@ -352,6 +354,7 @@ class RoleRepositorySpec extends WordSpec
         val roleList = Await.result(queryResult, Duration.Inf)
 
         roleList(0).name should be("new test role C")
+        roleList(0).version should be(TestValues.testRoleC.version + 1)
       }
       "throw a NoSuchElementException when update an existing Role with wrong version" in {
         val result = roleRepository.update(TestValues.testRoleC.copy(

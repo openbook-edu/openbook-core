@@ -22,7 +22,7 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
   private class SectionScheduleRepositoryPSQL extends SectionScheduleRepository {
     def fields = Seq("class_id", "day", "start_time", "end_time", "description")
 
-    def table = "section_schedules"
+    def table = "class_schedules"
 
     def orderBy = "created_at ASC"
 
@@ -75,32 +75,40 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
     """
 
     val IsAnythingScheduledForUser = s"""
-      SELECT section_schedules.id
-      FROM section_schedules
-      INNER JOIN users_classes ON users_classes.class_id = section_schedules.class_id AND users_classes.user_id = ?
-      WHERE section_schedules.day = ?
-        AND section_schedules.start_time <= ?
-        AND section_schedules.end_time >= ?
+      SELECT $table.id
+      FROM $table
+      INNER JOIN users_classes
+      ON users_classes.class_id = $table.class_id
+        AND users_classes.user_id = ?
+      WHERE $table.day = ?
+        AND $table.start_time <= ?
+        AND $table.end_time >= ?
       ORDER BY day asc, start_time asc, end_time asc
     """
 
     val IsProjectScheduledForUser = s"""
-      SELECT section_schedules.id
-      FROM section_schedules
-      INNER JOIN users_classes ON users_classes.class_id = section_schedules.class_id AND users_classes.user_id = ?
-      INNER JOIN classes_projects ON classes_projects.class_id = section_schedules.class_id
-      WHERE classes_projects.project_id = ?
-        AND section_schedules.day = ?
-        AND section_schedules.start_time <= ?
-        AND section_schedules.end_time >= ?
+      SELECT $table.id
+      FROM $table
+      INNER JOIN users_classes
+      ON users_classes.class_id = $table.class_id
+        AND users_classes.user_id = ?
+      INNER JOIN projects
+      ON projects.class_id = $table.class_id
+      WHERE projects.id = ?
+        AND $table.day = ?
+        AND $table.start_time <= ?
+        AND $table.end_time >= ?
     """
 
     /**
      *
      */
     override def isAnythingScheduledForUser(user: User, currentDay: LocalDate, currentTime: LocalTime)(implicit conn: Connection): Future[Boolean] = {
+      val dayDT = currentDay.toDateTimeAtStartOfDay()
+      val TimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), currentTime.getHourOfDay(), currentTime.getMinuteOfHour, currentTime.getSecondOfMinute())
+
       for {
-        result <- conn.sendPreparedStatement(IsAnythingScheduledForUser, Array(user.id.bytes, currentDay.toDateTimeAtStartOfDay(), currentTime.toDateTimeToday(), currentTime.toDateTimeToday()))
+        result <- conn.sendPreparedStatement(IsAnythingScheduledForUser, Array(user.id.bytes, dayDT, TimeDT, TimeDT))
       }
       yield (result.rows.get.length > 0)
     }
@@ -109,14 +117,17 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
      *
      */
     override def isProjectScheduledForUser(project: Project, user: User, currentDay: LocalDate, currentTime: LocalTime)(implicit conn: Connection): Future[Boolean] = {
+      val dayDT = currentDay.toDateTimeAtStartOfDay()
+      val TimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), currentTime.getHourOfDay(), currentTime.getMinuteOfHour, currentTime.getSecondOfMinute())
+
       for {
-        result <- conn.sendPreparedStatement(IsProjectScheduledForUser, Array(user.id.bytes, project.id.bytes, currentDay.toDateTimeAtStartOfDay(), currentTime.toDateTimeToday(), currentTime.toDateTimeToday()))
+        result <- conn.sendPreparedStatement(IsProjectScheduledForUser, Array(user.id.bytes, project.id.bytes, dayDT, TimeDT, TimeDT))
       }
       yield (result.rows.get.length > 0)
     }
 
     /**
-     * Find all courses.
+     * List all schedules.
      *
      * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return a vector of the returned courses
@@ -135,7 +146,7 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
     }
 
     /**
-     * Find all schedules for a given section.
+     * List all schedules for a given class
      */
     override def list(section: Class)(implicit conn: Connection): Future[IndexedSeq[ClassSchedule]] = {
       db.pool.sendPreparedStatement(SelectBySectionId, Array[Any](section.id.bytes)).map { queryResult =>
@@ -158,9 +169,9 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
      * @return an optional task if one was found
      */
     override def find(id: UUID)(implicit conn: Connection): Future[Option[ClassSchedule]] = {
-      db.pool.sendPreparedStatement(SelectOne, Array[Any](id)).map { result =>
+      db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map { result =>
         result.rows.get.headOption match {
-          case Some(rowData) => Option(ClassSchedule(rowData))
+          case Some(rowData) => Some(ClassSchedule(rowData))
           case None => None
         }
       }.recover {
@@ -171,7 +182,7 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
     }
 
     /**
-     * Create a new course.
+     * Create a new schedule.
      *
      * @param course The course to be inserted
      * @return the new course
@@ -200,7 +211,7 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
     }
 
     /**
-     * Update a course.
+     * Update a schedule.
      *
      * @param course The course to be updated.
      * @return the updated course
@@ -216,6 +227,7 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
         startTimeDT,
         endTimeDT,
         sectionSchedule.description,
+        (sectionSchedule.version + 1),
         new DateTime,
         sectionSchedule.id.bytes,
         sectionSchedule.version
@@ -229,7 +241,7 @@ trait ClassScheduleRepositoryPostgresComponent extends ClassScheduleRepositoryCo
     }
 
     /**
-     * Delete a course.
+     * Delete a schedule.
      *
      * @param course The course to delete.
      * @return A boolean indicating whether the operation was successful.

@@ -194,6 +194,7 @@ class ProjectRepositorySpec extends WordSpec
     }
   }
 
+  // TODO insert with uexisting class id
   "ProjectRepository.insert" should {
     inSequence {
       "insert new project" in {
@@ -202,7 +203,7 @@ class ProjectRepositorySpec extends WordSpec
 
         project.id should be(TestValues.testProjectD.id)
         project.classId should be(TestValues.testProjectD.classId)
-        project.version should be(TestValues.testProjectD.version)
+        project.version should be(1L)
         project.name should be(TestValues.testProjectD.name)
         project.slug should be(TestValues.testProjectD.slug)
         project.description should be(TestValues.testProjectD.description)
@@ -220,7 +221,7 @@ class ProjectRepositorySpec extends WordSpec
 
         projectList(0).id should be(TestValues.testProjectD.id)
         projectList(0).classId should be(TestValues.testProjectD.classId)
-        projectList(0).version should be(TestValues.testProjectD.version)
+        projectList(0).version should be(1L)
         projectList(0).name should be(TestValues.testProjectD.name)
         projectList(0).slug should be(TestValues.testProjectD.slug)
         projectList(0).description should be(TestValues.testProjectD.description)

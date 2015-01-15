@@ -222,6 +222,57 @@ object TestValues {
     endTime = new LocalTime(15, 1, 19)
   )
 
+
+  /* CLASSES SCHEDULES */
+  /* Because in db there is time zone 4 for startTime and endTime, here hours should be -1 */
+  val testClassScheduleA = ClassSchedule(
+    id = UUID("308792b2-7a29-43c8-ad51-a5c4f306cdaf"),
+    version = 1L,
+    classId = UUID("217c5622-ff9e-4372-8e6a-95fb3bae300b"), // Class A
+    day = new LocalDate(2015, 1, 15),
+    startTime = new LocalTime(13, 38, 19),
+    endTime = new LocalTime(14, 38, 19),
+    description = "test ClassSchedule A description",
+    createdAt = Option(new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  val testClassScheduleB = ClassSchedule(
+    id = UUID("dc1190c2-b5fd-4bac-95fa-7d67e1f1d445"),
+    version = 2L,
+    classId = UUID("404c800a-5385-4e6b-867e-365a1e6b00de"), // Class B
+    day = new LocalDate(2015, 1, 16),
+    startTime = new LocalTime(11, 38, 19),
+    endTime = new LocalTime(12, 38, 19),
+    description = "test ClassSchedule B description",
+    createdAt = Option(new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  val testClassScheduleC = ClassSchedule(
+    id = UUID("6df9d164-b151-4c38-9acd-6b91301a199d"),
+    version = 3L,
+    classId = UUID("404c800a-5385-4e6b-867e-365a1e6b00de"), // Class B
+    day = new LocalDate(2015, 1, 17),
+    startTime = new LocalTime(15, 38, 19),
+    endTime = new LocalTime(16, 38, 19),
+    description = "test ClassSchedule C description",
+    createdAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  /**
+   * No data in DB for insert
+   */
+  val testClassScheduleD = ClassSchedule(
+    id = UUID("02eaad44-5f0a-4c75-b05a-c92991903c10"),
+    classId = UUID("404c800a-5385-4e6b-867e-365a1e6b00de"), // Class B
+    day = new LocalDate(2015, 1, 18),
+    startTime = new LocalTime(16, 38, 19),
+    endTime = new LocalTime(17, 38, 19),
+    description = "test ClassSchedule D description"
+  )
+
   /* ROLES */
   val testRoleA = Role(
     id = UUID("1430e950-77f9-4b30-baf8-bb226fc7091a"),

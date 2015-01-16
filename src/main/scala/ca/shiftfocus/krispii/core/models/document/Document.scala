@@ -14,7 +14,8 @@ case class Document(
   id: UUID = UUID.random,
   version: Long = 0,
   title: String,
-  content: String,
+  plaintext: String,
+  delta: Delta,
   owner: User,
   editors: IndexedSeq[User],
   revisions: IndexedSeq[Operation] = IndexedSeq.empty[Operation],
@@ -25,7 +26,7 @@ case class Document(
   /**
    * Checksum is computed from the content string.
    */
-  val checksum: Array[Byte] = Document.md5(this.content)
+  val checksum: Array[Byte] = Document.md5(this.plaintext)
 
 }
 
@@ -45,7 +46,8 @@ object Document {
       id = UUID(row("id").asInstanceOf[Array[Byte]]),
       version = row("version").asInstanceOf[Long],
       title = row("title").asInstanceOf[String],
-      content = row("latest_text").asInstanceOf[String],
+      plaintext = row("plaintext").asInstanceOf[String],
+      delta = Json.parse(row("delta").asInstanceOf[String]).as[Delta],
       owner = owner,
       editors = editors,
       createdAt = Option(row("created_at").asInstanceOf[DateTime]),
@@ -57,7 +59,8 @@ object Document {
     (__ \ "id").write[UUID] and
       (__ \ "version").write[Long] and
       (__ \ "title").write[String] and
-      (__ \ "content").write[String] and
+      (__ \ "plaintext").write[String] and
+      (__ \ "delta").write[Delta] and
       (__ \ "ownerId").write[User] and
       (__ \ "editorIds").write[IndexedSeq[User]] and
       (__ \ "revisions").write[IndexedSeq[Operation]] and

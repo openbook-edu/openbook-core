@@ -8,7 +8,7 @@ import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import org.joda.time.DateTime
 import scala.concurrent.Future
-import ws.kahn.ot.Operation
+import ws.kahn.ot.Delta
 
 trait DocumentServiceImplComponent extends DocumentServiceComponent {
   self: DocumentRepositoryComponent with
@@ -50,9 +50,18 @@ trait DocumentServiceImplComponent extends DocumentServiceComponent {
      * @param initialContent
      * @return
      */
-    override def create(id: UUID = UUID.random, owner: User, title: String, initialContent: String): Future[Document] = {
+    override def create(id: UUID = UUID.random, owner: User, title: String, initialDelta: Delta): Future[Document] = {
       transactional { implicit connection =>
-        documentRepository.insert(Document(id = id, title = title, content = initialContent, owner = owner, editors = IndexedSeq.empty[User]))
+        documentRepository.insert(
+          Document(
+            id = id,
+            title = title,
+            plaintext = initialDelta.applyTo(""),
+            delta = initialDelta,
+            owner = owner,
+            editors = IndexedSeq.empty[User]
+          )
+        )
       }
     }
 
@@ -84,7 +93,7 @@ trait DocumentServiceImplComponent extends DocumentServiceComponent {
      *
      * @param documentId the [[ca.shiftfocus.uuid.UUID]] of the document to update
      * @param version the version of the document to update from
-     * @param operation the operation to be performed on the document
+     * @param delta the operation to be performed on the document
      * @return a [[PushResult]] object containing:
      *           document: the new version of the document
      *           revision: the newly pushed (and possibly transformed) revision
@@ -93,36 +102,39 @@ trait DocumentServiceImplComponent extends DocumentServiceComponent {
      *                      the client's document. The client may need to transform them further
      *                      against any additional edits they have in the clientside operation buffer.
      */
-    override def push(documentId: UUID, version: Long, author: User, operation: Operation): Future[PushResult] = {
+    override def push(documentId: UUID, version: Long, author: User, delta: Delta): Future[PushResult] = {
       transactional { implicit connection =>
         for {
-        // 1. Get the document
-          document         <- documentRepository.find(documentId).map(_.get)
+          // 1. Get the document
+          document <- documentRepository.find(documentId).map(_.get)
 
           // 2. Look for the more recent server operations
-          recentRevisions  <- documentRepository.list(document, version)
+          recentRevisions <- documentRepository.list(document, version)
 
           pushResult <- {
             // If there were more recent revisions
             if (recentRevisions.nonEmpty) {
               for {
-                recentOperations <- Future successful recentRevisions.map(_.operation)
-                recentServerOp   <- Future successful recentOperations.foldLeft(recentOperations.head) {
-                  (left: Operation, right: Operation) => left composeWith right
+                recentDeltas <- Future successful recentRevisions.map(_.delta)
+                recentServerDelta   <- Future successful recentDeltas.foldLeft(recentDeltas.head) {
+                  (left: Delta, right: Delta) => left o right
                 }
 
                 // 3. Transform the client's operation and the server's operations against each other
-                (xfServerOp, xfClientOp) <- Future successful Operation.transform(recentServerOp, operation)
+                transformedDelta <- Future successful { recentServerDelta x delta }
 
                 // 4. Update the document with the latest text
-                updatedDocument <- documentRepository.update(document.copy(content = xfClientOp.applyTo(document.content)))
+                updatedDocument <- documentRepository.update(document.copy(
+                  plaintext = transformedDelta.applyTo(document.plaintext),
+                  delta = document.delta o transformedDelta
+                ))
 
                 // 5. Insert the new revision into the history
                 pushedRevision <- documentRepository.insert(
                   Revision(documentId = document.id,
                     version = document.version + 1,
                     author = author,
-                    operation = xfClientOp,
+                    delta = transformedDelta,
                     createdAt = Some(new DateTime))
                 )
               } yield PushResult(document = updatedDocument, revision = pushedRevision, serverOps = recentRevisions)
@@ -130,14 +142,17 @@ trait DocumentServiceImplComponent extends DocumentServiceComponent {
             // If there were no more recent revisions
             else {
               for {
-                updatedDocument <- documentRepository.update(document.copy(content = operation.applyTo(document.content)))
+                updatedDocument <- documentRepository.update(document.copy(
+                  plaintext = delta.applyTo(document.plaintext),
+                  delta = document.delta o delta
+                ))
 
                 // 5. Insert the new revision into the history
                 pushedRevision <- documentRepository.insert(
                   Revision(documentId = document.id,
                     version = document.version + 1,
                     author = author,
-                    operation = operation,
+                    delta = delta,
                     createdAt = Some(new DateTime))
                 )
               } yield PushResult(document = updatedDocument, revision = pushedRevision, serverOps = recentRevisions)

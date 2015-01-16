@@ -11,7 +11,7 @@ import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import org.joda.time.DateTime
 import play.api.Logger
-import ws.kahn.ot.Operation
+import ws.kahn.ot.Delta
 
 import scala.collection.immutable.HashMap
 import scala.concurrent.Future
@@ -26,7 +26,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
 
     val SelectDocument =
       s"""
-         |SELECT id, version, title, latest_text, owner_id, editor_ids, created_at, updated_at
+         |SELECT id, version, title, plaintext, delta, owner_id, editor_ids, created_at, updated_at
        """.stripMargin
 
     val FromDocuments =
@@ -36,12 +36,12 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
 
     val ReturningDocument =
       s"""
-         |RETURNING id, version, title, latest_text, owner_id, editor_ids, created_at, updated_at
+         |RETURNING id, version, title, plaintext, delta, owner_id, editor_ids, created_at, updated_at
        """.stripMargin
 
     val SelectRevision =
       s"""
-         |SELECT document_id, version, author_id, operation, created_at
+         |SELECT document_id, version, author_id, delta, created_at
        """.stripMargin
 
     val FromRevisions =
@@ -60,7 +60,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
 
     val CreateDocument =
       s"""
-         |INSERT INTO documents (id, version, title, latest_text, owner_id, created_at, updated_at)
+         |INSERT INTO documents (id, version, title, plaintext, delta, owner_id, created_at, updated_at)
          |VALUES (?, 0, ?, ?, ?, ?, ?)
          |$ReturningDocument
        """.stripMargin
@@ -68,7 +68,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
     val UpdateDocument =
       s"""
          |UPDATE documents
-         |SET version = ?, title = ?, latest_text = ?, owner_id = ?, editor_ids = ?, updated_at = ?
+         |SET version = ?, title = ?, plaintext = ?, delta = ?, owner_id = ?, editor_ids = ?, updated_at = ?
          |WHERE id = ?
          |  AND version = ?
          |$ReturningDocument
@@ -87,7 +87,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
 
     val PushRevision =
       s"""
-         |INSERT INTO document_revisions (document_id, version, author_id, operation, created_at)
+         |INSERT INTO document_revisions (document_id, version, author_id, delta, created_at)
          |VALUES (?, ?, ?, ?, ?)
          |RETURNING document_id, version, author_id, operation, created_at
        """.stripMargin
@@ -125,7 +125,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
      */
     override def insert(document: Document)(implicit conn: Connection): Future[Document] = {
       conn.sendPreparedStatement(CreateDocument, Seq[Any](
-        document.id.bytes, document.title, "", document.owner.id.bytes, new DateTime, new DateTime
+        document.id.bytes, document.title, document.plaintext, document.delta, document.owner.id.bytes, new DateTime, new DateTime
       )).map { result =>
         Document(result.rows.get.head)(document.owner, document.editors)
       }.recover {
@@ -146,7 +146,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
      */
     override def update(document: Document)(implicit conn: Connection): Future[Document] = {
       conn.sendPreparedStatement(UpdateDocument, Seq[Any](
-        document.version + 1, document.title, document.content, document.owner.id.bytes, document.editors.map(_.id.bytes),
+        document.version + 1, document.title, document.plaintext, document.delta, document.owner.id.bytes, document.editors.map(_.id.bytes),
         new DateTime, document.id.bytes, document.version
       )).map { result =>
         Document(result.rows.get.head)(document.owner, document.editors)
@@ -193,7 +193,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
         revision.documentId.bytes,
         revision.version,
         revision.author.id.bytes,
-        Operation.writes.writes(revision.operation).toString(),
+        Delta.writes.writes(revision.delta).toString(),
         new DateTime
       )).map { result =>
         revision

@@ -63,6 +63,35 @@ VALUES ('\xc4d948967e1b45fabae74fb3a89a4d63', '\x404c800a53854e6b867e365a1e6b00d
 INSERT INTO users_classes (user_id, class_id, created_at)
 VALUES ('\x5099a6b48809400d8e380119184d0f93', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-10 14:01:19.545-04');
 
+
+/* CLASS_SCHEDULES */
+/* ClassSchedule A -> Class A */
+INSERT INTO class_schedules (id, version, class_id, day, start_time, end_time, description, created_at, updated_at)
+VALUES ('\x308792b27a2943c8ad51a5c4f306cdaf', 1, '\x217c5622ff9e43728e6a95fb3bae300b', '2015-01-15', '2015-01-15 14:38:19-04', '2015-01-15 15:38:19-04', 'test ClassSchedule A description', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
+
+/* ClassSchedule B -> Class B */
+INSERT INTO class_schedules (id, version, class_id, day, start_time, end_time, description, created_at, updated_at)
+VALUES ('\xdc1190c2b5fd4bac95fa7d67e1f1d445', 2, '\x404c800a53854e6b867e365a1e6b00de', '2015-01-16', '2015-01-16 12:38:19-04', '2015-01-16 13:38:19-04', 'test ClassSchedule B description', '2014-08-04 14:01:19.545-04','2014-08-05 14:01:19.545-04');
+
+/* ClassSchedule C -> Class B */
+INSERT INTO class_schedules (id, version, class_id, day, start_time, end_time, description, created_at, updated_at)
+VALUES ('\x6df9d164b1514c389acd6b91301a199d', 3, '\x404c800a53854e6b867e365a1e6b00de', '2015-01-17', '2015-01-17 16:38:19-04', '2015-01-17 17:38:19-04', 'test ClassSchedule C description', '2014-08-06 14:01:19.545-04','2014-08-07 14:01:19.545-04');
+
+
+/* CLASS_SCHEDULE_EXCEPTIONS */
+/* SectionScheduleException A -> UserA -> ClassA */
+INSERT INTO class_schedule_exceptions (id, user_id, class_id, version, day, start_time, end_time, created_at, updated_at)
+VALUES ('\xda17e24aa5454d7494e1427896e13ebe', '\x36c8c0ca50aa4806afa5916a5e33a81f', '\x217c5622ff9e43728e6a95fb3bae300b', 1, '2014-08-01', '2014-08-01 14:01:19.545-04', '2014-08-01 15:01:19.545-04', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
+
+/* SectionScheduleException B -> UserB -> ClassB */
+INSERT INTO class_schedule_exceptions (id, user_id, class_id, version, day, start_time, end_time, created_at, updated_at)
+VALUES ('\x3a285f0c66d041b2851bcfcd203550d9', '\x6c0e29bdd05b4b2981156be93e936c59', '\x404c800a53854e6b867e365a1e6b00de', 2, '2014-08-04', '2014-08-04 16:01:19.545-04', '2014-08-04 17:01:19.545-04', '2014-08-05 14:01:19.545-04','2014-08-06 14:01:19.545-04');
+
+/* SectionScheduleException C -> UserE -> ClassB */
+INSERT INTO class_schedule_exceptions (id, user_id, class_id, version, day, start_time, end_time, created_at, updated_at)
+VALUES ('\x4d7ca313f2164f5985ae88bcbca70317', '\x871b525067124e548ab60784cae0bc64', '\x404c800a53854e6b867e365a1e6b00de', 3, '2014-08-07', '2014-08-07 10:01:19.545-04', '2014-08-07 11:01:19.545-04', '2014-08-08 14:01:19.545-04','2014-08-09 14:01:19.545-04');
+
+
 /* ROLES */
 /* role A */
 INSERT INTO roles (id, version, name, created_at, updated_at)
@@ -132,16 +161,21 @@ VALUES ('\xe4ae3b9098714339b05c8d39e3aaf65d', 2, '\x404c800a53854e6b867e365a1e6b
 INSERT INTO projects (id, version, class_id, name, slug, description, availability, created_at, updated_at)
 VALUES ('\x4ac4d872451b4092b13f643d6d5fa930', 3, '\x404c800a53854e6b867e365a1e6b00de', 'test project C', 'test project slug C', 'test project C description', 'class', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
+/* CLASSES_PROJECTS - table should be deleted */
 
-/* CLASSES_PROJECTS */
-/* class A -> project A */
-INSERT INTO classes_projects (project_id, class_id, created_at)
-VALUES ('\xc9b4cfceaed448fd94f5c980763dfddc', '\x217c5622ff9e43728e6a95fb3bae300b', '2014-08-01 14:01:19.545-04');
+/* PARTS */
+/* part A -> project A */
+INSERT INTO parts (id, version, project_id, name, description, position, enabled, created_at, updated_at)
+VALUES ('\x5cd214be6bba47fa9f350eb8bafec397', 1, '\xc9b4cfceaed448fd94f5c980763dfddc', 'test part A', 'test part A description', 10, true,'2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
 
-/* class B -> project B */
-INSERT INTO classes_projects (project_id, class_id, created_at)
-VALUES ('\xe4ae3b9098714339b05c8d39e3aaf65d', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-02 14:01:19.545-04');
+/* part B -> project A */
+INSERT INTO parts (id, version, project_id, name, description, position, enabled, created_at, updated_at)
+VALUES ('\xabb84847a3d247a0ae7d8ce04063afc7', 2, '\xc9b4cfceaed448fd94f5c980763dfddc', 'test part B', 'test part B description', 11, true,'2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
-/* class B -> project C */
-INSERT INTO classes_projects (project_id, class_id, created_at)
-VALUES ('\x4ac4d872451b4092b13f643d6d5fa930', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-03 14:01:19.545-04');
+/* part C -> project B */
+INSERT INTO parts (id, version, project_id, name, description, position, enabled, created_at, updated_at)
+VALUES ('\xfb01f11b7f2341c8877b68410be62aa5', 3, '\xe4ae3b9098714339b05c8d39e3aaf65d', 'test part C', 'test part C description', 12, true,'2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
+
+
+/* SCHEDULED_CLASSES_PARTS - table should be deleted */
+

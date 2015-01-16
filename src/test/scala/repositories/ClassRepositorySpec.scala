@@ -1,8 +1,10 @@
+import java.awt.Color
 import java.io.File
 import ca.shiftfocus.krispii.core.models.Class
 import ca.shiftfocus.krispii.core.repositories.{UserRepositoryComponent, ClassRepositoryPostgresComponent}
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
+import com.github.mauricio.async.db.RowData
 import grizzled.slf4j.Logger
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{MustMatchers, WordSpec, BeforeAndAfterAll, Suite}
@@ -57,12 +59,12 @@ trait ClassRepoTestEnvironment
     load_schema(drop_schema_path)
   }
 
-//  val SelectOne = """
-//     SELECT classes.id as id, classes.version as version, classes.teacher_id as teacher_id,
-//     classes.name as name, classes.color as color, classes.created_at as created_at, classes.updated_at as updated_at
-//     FROM classes
-//     WHERE classes.id = ?
-//                  """
+  val SelectOne = """
+     SELECT classes.id as id, classes.version as version, classes.teacher_id as teacher_id,
+     classes.name as name, classes.color as color, classes.created_at as created_at, classes.updated_at as updated_at
+     FROM classes
+     WHERE classes.id = ?
+                  """
 
   val countUserInClass = """
       SELECT *
@@ -94,11 +96,7 @@ class ClassRepositorySpec
 
         val classes = Await.result(result, Duration.Inf)
 
-        // Should be Vector... doesn't work!
-//        classes should be(Vector(TestValues.testClassA, TestValues.testClassB))
-        classes contains TestValues.testClassA should be (true)
-        classes contains TestValues.testClassB should be (true)
-        classes contains TestValues.testClassD should be (true)
+        classes.toString should be(Vector(TestValues.testClassA, TestValues.testClassB, TestValues.testClassD).toString)
 
         Map[Int, Class](0 -> TestValues.testClassA, 1 -> TestValues.testClassB, 2 -> TestValues.testClassD).foreach {
           case (key, clas: Class) => {
@@ -112,19 +110,10 @@ class ClassRepositorySpec
       "select rows by their course ID" in {
         fail("There is no column called 'course_id' in table 'classes', also table 'courses' is not linked with any other table")
       }
-      "select rows by their project ID" in {
+      // TODO - Rewrite this method
+      "select rows by their project ID"  + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET in {
+        fail("Method is deprecated, talbe CLASSES_PROJECTS will be deleted")
         val result = classRepository.list(TestValues.testProjectA)
-
-        val classes = Await.result(result, Duration.Inf)
-
-        Map[Int, Class](0 -> TestValues.testClassA).foreach {
-          case (key, clas: Class) => {
-            classes(key).id should be(clas.id)
-            classes(key).teacherId should be(clas.teacherId)
-            classes(key).name should be(clas.name)
-            classes(key).color should be(clas.color)
-          }
-        }
       }
       "return empty Vector() for unexisting project" in {
         val result = classRepository.list(TestValues.testProjectD)
@@ -198,7 +187,7 @@ class ClassRepositorySpec
 
         classes should be(Vector())
       }
-      "list the classes associated with a users" in {
+      "list the classes associated with a users" + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET in {
         val result = classRepository.list(Vector(TestValues.testUserA, TestValues.testUserB))
         val classes = Await.result(result, Duration.Inf)
 
@@ -261,7 +250,7 @@ class ClassRepositorySpec
     }
   }
 
-  "ClassRepository.findUserForTeacher" should {
+  "ClassRepository.findUserForTeacher"  + Console.RED + Console.BOLD + " (NOTE: No Javadoc for this method) " + Console.RESET should {
     inSequence {
       "confirm that student is in teacher's class" in {
         val result = classRepository.findUserForTeacher(TestValues.testUserE, TestValues.testUserB).map(_.get)
@@ -338,9 +327,11 @@ class ClassRepositorySpec
     }
   }
 
+  // TODO - Rewrite this method
   "ClassRepository.hasProject" should {
     inSequence {
       "verify if this user has access to this project through any of his classes" in {
+        fail("Method is deprecated, talbe CLASSES_PROJECTS will be deleted")
         val result = classRepository.hasProject(TestValues.testUserE, TestValues.testProjectB)
 
         Await.result(result, Duration.Inf) should be(true)
@@ -400,24 +391,12 @@ class ClassRepositorySpec
     }
   }
 
-  "ClassRepository.addProjects" + Console.RED + Console.BOLD + " (NOTE: Method is deprecated, talbe CLASSES_PROJECTS will be deleted) " + Console.RESET should {
+
+  // TODO - Rewrite this method
+  "ClassRepository.addProjects" should {
     inSequence {
       "add projects to a `class`" in {
-        val result = classRepository.addProjects(TestValues.testClassA, Vector(TestValues.testProjectB, TestValues.testProjectC))
-
-        Await.result(result, Duration.Inf) should be(true)
-
-        // Check project B in class A
-        val queryResultProjectB = db.pool.sendPreparedStatement(countProjectInClass, Array[Any](TestValues.testProjectB.id.bytes, TestValues.testClassA.id.bytes))
-        val rowsAffectedProjectB = Await.result(queryResultProjectB, Duration.Inf).rowsAffected
-
-        rowsAffectedProjectB should be (1)
-
-        // Check project C in class A
-        val queryResultProjectC = db.pool.sendPreparedStatement(countProjectInClass, Array[Any](TestValues.testProjectC.id.bytes, TestValues.testClassA.id.bytes))
-        val rowsAffectedProjectC = Await.result(queryResultProjectC, Duration.Inf).rowsAffected
-
-        rowsAffectedProjectC should be (1)
+        fail("Method is deprecated, talbe CLASSES_PROJECTS will be deleted")
       }
     }
   }
@@ -471,10 +450,11 @@ class ClassRepositorySpec
     }
   }
 
-  "ClassRepository.removeProjects" + Console.RED + Console.BOLD + " (NOTE: Method is deprecated, table CLASSES_PROJECTS will be deleted) " + Console.RESET should {
+  // TODO - Rewrite this method
+  "ClassRepository.removeProjects" should {
     inSequence {
       "remove projects from class" in {
-
+        fail("Method is deprecated, talbe CLASSES_PROJECTS will be deleted")
       }
     }
   }
@@ -519,10 +499,143 @@ class ClassRepositorySpec
     }
   }
 
-  "ClassRepository.removeAllProjects" + Console.RED + Console.BOLD + " (NOTE: Method is deprecated, table CLASSES_PROJECTS will be deleted) " + Console.RESET should {
+  // TODO - Rewrite this method
+  "ClassRepository.removeAllProjects" should {
     inSequence {
       "remove all projects from class" in {
+        fail("Method is deprecated, talbe CLASSES_PROJECTS will be deleted")
+      }
+    }
+  }
 
+  // TODO insert with unexisting teacher id
+  "ClassRepository.insert"  + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET should {
+    inSequence {
+      "insert new class" in {
+        val result = classRepository.insert(TestValues.testClassE)
+
+        val newClass = Await.result(result, Duration.Inf)
+
+        newClass.id should be (TestValues.testClassE.id)
+        newClass.teacherId should be (TestValues.testClassE.teacherId)
+        newClass.version should be (1L)
+        newClass.name should be (TestValues.testClassE.name)
+        newClass.color should be (TestValues.testClassE.color)
+
+        // Check
+        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testClassE.id.bytes)).map { queryResult =>
+          val classList = queryResult.rows.get.map {
+            item: RowData => Class(item)
+          }
+          classList
+        }
+
+        val classList = Await.result(queryResult, Duration.Inf)
+
+        classList(0).id should be(TestValues.testClassE.id)
+        classList(0).teacherId should be(TestValues.testClassE.teacherId)
+        classList(0).version should be(1L)
+        classList(0).name should be(TestValues.testClassE.name)
+        classList(0).color should be(TestValues.testClassE.color)
+      }
+      "throw a GenericDatabaseException if class already exists" in {
+        val result = classRepository.insert(TestValues.testClassA)
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+    }
+  }
+
+  "ClassRepository.update"  + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET should {
+    inSequence {
+      "update existing class" in {
+        val result = classRepository.update(TestValues.testClassA.copy(
+          teacherId = Option(TestValues.testUserG.id),
+          name = "new test class A name",
+          color = new Color(78, 40, 23)
+        ))
+
+        val updatedClass = Await.result(result, Duration.Inf)
+
+        updatedClass.id should be (TestValues.testClassA.id)
+        updatedClass.teacherId should be (Some(TestValues.testUserG.id)) // TODO - check why SOME?
+        updatedClass.version should be (TestValues.testClassA.version + 1)
+        updatedClass.name should be ("new test class A name")
+        updatedClass.color should be (new Color(78, 40, 23))
+
+        // Check
+        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testClassA.id.bytes)).map { queryResult =>
+          val classList = queryResult.rows.get.map {
+            item: RowData => Class(item)
+          }
+          classList
+        }
+
+        val classList = Await.result(queryResult, Duration.Inf)
+
+        classList(0).id should be(TestValues.testClassA.id)
+        classList(0).teacherId should be(Some(TestValues.testUserG.id))
+        classList(0).version should be(TestValues.testClassA.version + 1)
+        classList(0).name should be("new test class A name")
+        classList(0).color should be(new Color(78, 40, 23))
+      }
+      "throw a NoSuchElementException when update an existing Class with wrong version" in {
+        val result = classRepository.update(TestValues.testClassA.copy(
+          version = 99L,
+          name = "new test class A name"
+        ))
+
+        an[java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+      "throw a NoSuchElementException when update an unexisting Class" in {
+        val result = classRepository.update(Class(
+          teacherId = Option(TestValues.testUserG.id),
+          name = "new test class A name",
+          color = new Color(8, 4, 3)
+        ))
+
+        an[java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+    }
+  }
+
+  // TODO - add should return FALSE if hasn't been found to all tests
+  "ClassRepository.delete" should {
+    inSequence {
+      "delete class" in {
+        fail("Has refernces in other tables")
+      }
+      "throw a GenericDatabaseException if class has references in other tables" in {
+        val result = classRepository.delete(TestValues.testClassB)
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+      "return FALSE if Class hasn't been found" in {
+        val result = classRepository.delete(Class(
+          teacherId = Option(TestValues.testUserG.id),
+          name = "new test class A name",
+          color = new Color(8, 4, 3)
+        ))
+
+        Await.result(result, Duration.Inf) should be(false)
+      }
+    }
+  }
+
+  // TODO - Rewrite this method
+  "ClassRepository.enablePart" should {
+    inSequence {
+      "enable a particular project part for this Section's users" in {
+        fail("Method is deprecated, talbe SCHEDULED_CLASSES_PARTS will be deleted")
+      }
+    }
+  }
+
+  // TODO - Rewrite this method
+  "ClassRepository.disablePart" should {
+    inSequence {
+      "disable a particular project part for this Section's users" in {
+        fail("Method is deprecated, talbe SCHEDULED_CLASSES_PARTS will be deleted")
       }
     }
   }

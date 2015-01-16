@@ -230,8 +230,7 @@ CREATE TABLE class_schedules (
   end_time timestamp with time zone,
   description text,
   created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  status int
+  updated_at timestamp with time zone
 );
 
 CREATE TABLE users_roles (
@@ -301,6 +300,7 @@ CREATE TABLE student_responses (
 );
 
 CREATE TABLE class_schedule_exceptions (
+  id bytea NOT NULL PRIMARY KEY,
   user_id bytea NOT NULL REFERENCES users(id),
   class_id bytea NOT NULL REFERENCES classes(id),
   version bigint,

@@ -192,7 +192,14 @@ class ClassScheduleRepositorySpec
         classScheduleList(0).endTime should be(TestValues.testClassScheduleD.endTime)
         classScheduleList(0).description should be(TestValues.testClassScheduleD.description)
       }
-      "throw a GenericDatabaseException if class already exists" in {
+      "throw a GenericDatabaseException if schedule contains unexisting class id" in {
+        val result = sectionScheduleRepository.insert(TestValues.testClassScheduleE.copy(
+          classId = UUID("41010a6e-9ccc-4c36-b92c-4a6b45ec0655")
+        ))
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+      "throw a GenericDatabaseException if schedule already exists" in {
         val result = sectionScheduleRepository.insert(TestValues.testClassScheduleA)
 
         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)

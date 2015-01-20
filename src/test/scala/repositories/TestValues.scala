@@ -273,6 +273,18 @@ object TestValues {
     description = "test ClassSchedule D description"
   )
 
+  /**
+   * No data in DB
+   */
+  val testClassScheduleE = ClassSchedule(
+    id = UUID("43ac00c3-7546-41f0-bc93-72cc81158597"),
+    classId = UUID("404c800a-5385-4e6b-867e-365a1e6b00de"), // Class B
+    day = new LocalDate(2015, 1, 19),
+    startTime = new LocalTime(17, 38, 19),
+    endTime = new LocalTime(18, 38, 19),
+    description = "test ClassSchedule E description"
+  )
+
   /* ROLES */
   val testRoleA = Role(
     id = UUID("1430e950-77f9-4b30-baf8-bb226fc7091a"),
@@ -372,7 +384,7 @@ object TestValues {
   )
 
   /**
-   * No data in DB
+   * No data in DB for insert
    */
   val testProjectD = Project(
     id = UUID("00743ada-1d3a-4912-adc8-fb8a0b1b7443"),
@@ -380,6 +392,19 @@ object TestValues {
     name = "test project D",
     slug = "test project slug D",
     description = "test project D description",
+    availability = "class",
+    parts = Vector()
+  )
+
+  /**
+   * No data in DB
+   */
+  val testProjectE = Project(
+    id = UUID("b36919cb-2df0-43b7-bb7f-36cae797deaa"),
+    classId = UUID("217c5622-ff9e-4372-8e6a-95fb3bae300b"),
+    name = "test project E",
+    slug = "test project slug E",
+    description = "test project E description",
     availability = "class",
     parts = Vector()
   )

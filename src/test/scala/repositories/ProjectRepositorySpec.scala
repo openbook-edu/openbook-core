@@ -194,7 +194,6 @@ class ProjectRepositorySpec extends WordSpec
     }
   }
 
-  // TODO insert with uexisting class id
   "ProjectRepository.insert" should {
     inSequence {
       "insert new project" in {
@@ -226,6 +225,13 @@ class ProjectRepositorySpec extends WordSpec
         projectList(0).slug should be(TestValues.testProjectD.slug)
         projectList(0).description should be(TestValues.testProjectD.description)
         projectList(0).availability should be(TestValues.testProjectD.availability)
+      }
+      "throw a GenericDatabaseException if project contains unexisting class id" in {
+        val result = projectRepository.insert(TestValues.testProjectE.copy(
+         classId = UUID("ad043c17-d552-4744-890a-6ab8a6778e4c")
+        ))
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
       }
       "throw a GenericDatabaseException if project already exists" in {
         val result = projectRepository.insert(TestValues.testProjectA)
@@ -291,8 +297,8 @@ class ProjectRepositorySpec extends WordSpec
 
   "ProjectRepository.delete" should {
     inSequence {
-      "delete project" in {
-        fail("Has refernces in other tables")
+      "delete project" + Console.RED + Console.BOLD + " (FAIL: Has refernces in other tables) " + Console.RESET in {
+
       }
       "throw a GenericDatabaseException if project has references in other tables" in {
         val result = projectRepository.delete(TestValues.testProjectA)

@@ -130,7 +130,6 @@ class ClassScheduleExceptionRepositorySpec
     }
   }
 
-  // TODO insert with unexisting user id, class id
   "ClassScheduleExceptionRepository.insert" should {
     inSequence {
       "create a new section schedule exception" in {
@@ -164,7 +163,21 @@ class ClassScheduleExceptionRepositorySpec
         sectionScheduleExceptionRepositoryList(0).startTime should be(TestValues.testSectionScheduleExceptionE.startTime)
         sectionScheduleExceptionRepositoryList(0).endTime should be(TestValues.testSectionScheduleExceptionE.endTime)
       }
-      "throw a GenericDatabaseException if class already exists" in {
+      "throw a GenericDatabaseException if section schedule exception contains unexisting user ID" in {
+        val result = sectionScheduleExceptionRepository.insert(TestValues.testSectionScheduleExceptionD.copy(
+          userId = UUID("9d8ed645-b055-4a69-ab7d-387791c1e064")
+        ))
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+      "throw a GenericDatabaseException if section schedule exception contains unexisting class ID" in {
+        val result = sectionScheduleExceptionRepository.insert(TestValues.testSectionScheduleExceptionD.copy(
+          classId = UUID("9d8ed645-b055-4a69-ab7d-387791c1e064")
+        ))
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+      "throw a GenericDatabaseException if section schedule exception already exists" in {
         val result = sectionScheduleExceptionRepository.insert(TestValues.testSectionScheduleExceptionA)
 
         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)

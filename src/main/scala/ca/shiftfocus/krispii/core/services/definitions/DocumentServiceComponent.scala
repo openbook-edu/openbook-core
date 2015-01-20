@@ -36,13 +36,13 @@ trait DocumentServiceComponent {
     def listRevisions(documentId: UUID, fromVersion: Long = 0): Future[IndexedSeq[Revision]]
 
     // Create a new document
-    def create(id: UUID = UUID.random, owner: User, title: String, initialContent: String): Future[Document]
+    def create(id: UUID = UUID.random, owner: User, title: String, initialDelta: Delta): Future[Document]
 
     // Update a document (title only, to update contents, push a new revision)
     def update(id: UUID, version: Long, owner: User, editors: IndexedSeq[User], title: String): Future[Document]
 
     // Push a new revision of a document
-    def push(id: UUID, version: Long, author: User, operation: Operation): Future[PushResult]
+    def push(id: UUID, version: Long, author: User, delta: Delta): Future[PushResult]
 
   }
 }

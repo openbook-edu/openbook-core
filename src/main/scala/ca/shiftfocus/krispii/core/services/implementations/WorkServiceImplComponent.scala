@@ -10,6 +10,7 @@ import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.uuid.UUID
 import play.api.Logger
 import org.joda.time.DateTime
+import ws.kahn.ot.Delta
 import scala.concurrent.Future
 
 trait WorkServiceImplComponent extends WorkServiceComponent {
@@ -198,7 +199,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
           user <- fUser
           task <- fTask
           section <- fSection
-          document <- documentService.create(UUID.random, user, "", "")
+          document <- documentService.create(UUID.random, user, "", Delta(IndexedSeq(), 0))
           work <- createWork(LongAnswerWork(
             studentId = user.id,
             taskId = task.id,
@@ -231,7 +232,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
           user <- fUser
           task <- fTask
           section <- fSection
-          document <- documentService.create(UUID.random, user, "", "")
+          document <- documentService.create(UUID.random, user, "", Delta(IndexedSeq(), 0))
           work <- createWork(ShortAnswerWork(
             studentId = user.id,
             taskId = task.id,

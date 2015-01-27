@@ -57,7 +57,7 @@ with PostgresDB {
   }
 
   val SelectOneByIdentifier = """
-      SELECT id, version, created_at, updated_at, username, email, password_hash, givenname, surname
+      SELECT *
       FROM users
       WHERE (email = ? OR username = ?)
       LIMIT 1
@@ -385,6 +385,7 @@ class UserRepositorySpec
     }
   }
 
+  // TODO - insert with existing username
   "UserRepository.update" should {
     inSequence {
       "update an existing user" in {
@@ -433,6 +434,13 @@ class UserRepositorySpec
           username = "newtestUserB",
           givenname = "newTestB",
           surname = "newUserB"
+        ))
+
+        an [java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+      "throw a NoSuchElementException when update an existing user with username that already exists" in {
+        val result = userRepository.update(TestValues.testUserB.copy(
+          username = TestValues.testUserC.username
         ))
 
         an [java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)

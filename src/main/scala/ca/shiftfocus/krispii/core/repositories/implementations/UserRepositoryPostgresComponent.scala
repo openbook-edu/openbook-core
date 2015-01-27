@@ -38,6 +38,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       ORDER BY $orderBy
     """
 
+    // TODO - not used
     val SelectWithIds = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
@@ -50,6 +51,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     """
 
     val Insert = {
+      // TODO - What is difference between this and fieldsText
       val extraFields = fields.mkString(",")
       val questions = fields.map(_ => "?").mkString(",")
       s"""
@@ -70,18 +72,22 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       """
     }
 
+    // TODO - not used
     val Delete = s"""
       DELETE FROM $table WHERE id = ? AND version = ?
     """
 
+    // TODO - not used
     val Restore = s"""
       UPDATE $table SET status = 1 WHERE id = ? AND version = ? AND status = 0
     """
+
 
     val Purge = s"""
       DELETE FROM $table WHERE id = ? AND version = ?
     """
 
+    // TODO - not used
     val UpdateNoPass = {
       val extraFields = fields.filter(_ != "password_hash").map(" " + _ + " = ? ").mkString(",")
       s"""
@@ -106,16 +112,19 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       LIMIT 1
     """
 
+    // TODO - not used
     val AddUser = """
       INSERT INTO users_classes (user_id, class_id, created_at)
       VALUES (?, ?, ?)
     """
 
+    // TODO - not used
     val RemoveUser = """
       DELETE FROM users_classes
       WHERE user_id = ?
         AND class_id = ?
     """
+
 
     val ListUsers = s"""
       SELECT id, version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
@@ -135,6 +144,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       ORDER BY $orderBy
     """
 
+    // TODO - not used
     val ListUsersFilterBySections = s"""
       SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
       FROM users, classes, users_classes
@@ -155,6 +165,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       ORDER BY $orderBy
     """
 
+    // TODO - not used
     val HasProject = s"""
       SELECT projects.id
       FROM users_classes

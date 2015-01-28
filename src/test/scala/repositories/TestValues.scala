@@ -162,6 +162,14 @@ object TestValues {
     updatedAt = Option(new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
 
+  val testRoleH = Role(
+    id = UUID("2a3edf38-750a-46aa-8428-9fb08e648ee8"),
+    version = 6L,
+    name = "test role H",
+    createdAt = Option(new DateTime(2014, 8, 19, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 20, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
 
   /* CLASSES */
   val testClassA = Class(
@@ -211,6 +219,14 @@ object TestValues {
     id = UUID("d0b05b14-4a5f-4727-ac43-bd8671aab53c"),
     teacherId = Option(testUserA.id),
     name = "unexisting class E",
+    color = new Color(45, 10, 15)
+  )
+
+  val testClassF = Class(
+    id = UUID("287b61f5-da6b-4de7-8535-3bc500cffac7"),
+    version = 4L,
+    teacherId = Option(testUserA.id),
+    name = "unexisting class F",
     color = new Color(45, 10, 15)
   )
 //

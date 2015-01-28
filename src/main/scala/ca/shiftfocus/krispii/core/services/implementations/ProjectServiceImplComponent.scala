@@ -224,6 +224,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
       }
     }
 
+    // TODO - rewrite method because of classRepository.disablePart
     /**
      * Delete a project.
      *
@@ -448,6 +449,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
       }
     }
 
+    // TODO rewrite method because of classRepository.disablePart(part)
     /**
      * Delete a part.
      *

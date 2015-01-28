@@ -49,6 +49,10 @@ VALUES ('\x45b3552707ad4c4f9051f0e755216163', 4, 'test role F', '2014-08-15 14:0
 INSERT INTO roles (id, version, name, created_at, updated_at)
 VALUES ('\x45cc7cc8987645f58efeccd4dba7ea69', 5, 'test role G', '2014-08-17 14:01:19.545-04', '2014-08-18 14:01:19.545-04');
 
+/* role H */
+INSERT INTO roles (id, version, name, created_at, updated_at)
+VALUES ('\x2a3edf38750a46aa84289fb08e648ee8', 6, 'test role H', '2014-08-19 14:01:19.545-04', '2014-08-20 14:01:19.545-04');
+
 
 /* USERS_ROLES*/
 /* UserA -> RoleA */
@@ -73,15 +77,23 @@ VALUES ('\x6c0e29bdd05b4b2981156be93e936c59', '\x1430e95077f94b30baf8bb226fc7091
 
 /* UserB -> RoleB */
 INSERT INTO users_roles (user_id, role_id, created_at)
-VALUES ('\x6c0e29bdd05b4b2981156be93e936c59', '\xa011504cd11840cdb9eb6e10d5738c67', '2014-08-15 14:01:19.545-04');
+VALUES ('\x6c0e29bdd05b4b2981156be93e936c59', '\xa011504cd11840cdb9eb6e10d5738c67', '2014-08-16 14:01:19.545-04');
 
 /* UserB -> RoleF */
 INSERT INTO users_roles (user_id, role_id, created_at)
-VALUES ('\x6c0e29bdd05b4b2981156be93e936c59', '\x45b3552707ad4c4f9051f0e755216163', '2014-08-15 14:01:19.545-04');
+VALUES ('\x6c0e29bdd05b4b2981156be93e936c59', '\x45b3552707ad4c4f9051f0e755216163', '2014-08-17 14:01:19.545-04');
 
 /* UserB -> RoleG */
 INSERT INTO users_roles (user_id, role_id, created_at)
-VALUES ('\x6c0e29bdd05b4b2981156be93e936c59', '\x45cc7cc8987645f58efeccd4dba7ea69', '2014-08-15 14:01:19.545-04');
+VALUES ('\x6c0e29bdd05b4b2981156be93e936c59', '\x45cc7cc8987645f58efeccd4dba7ea69', '2014-08-18 14:01:19.545-04');
+
+/* UserF -> RoleC */
+INSERT INTO users_roles (user_id, role_id, created_at)
+VALUES ('\x4d01347ec5924e5fb09fdd281b3d9b87', '\x31a4c2e6762a4303bbb8e64c24048920', '2014-08-19 14:01:19.545-04');
+
+/* UserF -> RoleH */
+INSERT INTO users_roles (user_id, role_id, created_at)
+VALUES ('\x4d01347ec5924e5fb09fdd281b3d9b87', '\x2a3edf38750a46aa84289fb08e648ee8', '2014-08-20 14:01:19.545-04');
 
 
 /* CLASSES */
@@ -96,6 +108,10 @@ VALUES ('\x404c800a53854e6b867e365a1e6b00de', 2, '\x6c0e29bdd05b4b2981156be93e93
 /* class D -> user F (teacher) */
 INSERT INTO classes (id, version, teacher_id, name, color, created_at, updated_at)
 VALUES ('\x94cc65bb45424f628e08d58522e7b5f1', 3, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test class D', 269368, '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+
+/* class F -> user F (teacher) */
+INSERT INTO classes (id, version, teacher_id, name, color, created_at, updated_at)
+VALUES ('\x287b61f5da6b4de785353bc500cffac7', 4, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test class F', 269368, '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 
 
 /* USERS_CLASSES */

@@ -74,12 +74,13 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
          |WHERE slug = ?
        """.stripMargin
 
-    val SelectIdBySlug =
-      s"""
-         |SELECT projects.id
-         |$From
-         |WHERE slug = ?
-       """.stripMargin
+    // TODO - not used
+//    val SelectIdBySlug =
+//      s"""
+//         |SELECT projects.id
+//         |$From
+//         |WHERE slug = ?
+//       """.stripMargin
 
     val ListByClass =
       s"""
@@ -165,7 +166,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
     }
 
     /**
-     * Find a single entry by ID.
+     * Find project by ID and User (teacher || student).
      *
      * @param id the 128-bit UUID, as a byte array, to search for.
      * @return an optional Project if one was found
@@ -184,7 +185,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
     }
 
     /**
-     * Find a single entry by ID.
+     * Find project by slug.
      *
      * @param slug The project slug to search by.
      * @return an optional RowData object containing the results

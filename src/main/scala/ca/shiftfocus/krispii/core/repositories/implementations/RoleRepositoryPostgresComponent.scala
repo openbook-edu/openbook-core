@@ -76,9 +76,10 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       DELETE FROM $table WHERE id = ? AND version = ?
     """
 
-    val Restore = s"""
-      UPDATE $table SET status = 1 WHERE id = ? AND version = ? AND status = 0
-    """
+    // TODO - not used
+//    val Restore = s"""
+//      UPDATE $table SET status = 1 WHERE id = ? AND version = ? AND status = 0
+//    """
 
     val Purge = s"""
       DELETE FROM $table WHERE id = ? AND version = ?
@@ -94,7 +95,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       INSERT INTO users_roles (user_id, role_id, created_at)
         SELECT ? AS user_id, roles.id, ? AS created_at
         FROM roles
-        WHERE name = ?
+        WHERE roles.name = ?
     """
 
     val RemoveRole = """
@@ -261,6 +262,13 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       }
     }
 
+    /**
+     * Add role to users
+     * @param role
+     * @param userList
+     * @param conn
+     * @return
+     */
     def addUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[Boolean] = {
       val cleanRoleId = role.id.string filterNot ("-" contains _)
       val query = AddUsers + userList.map { user =>
@@ -280,6 +288,13 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       }
     }
 
+    /**
+     * Remove role from users
+     * @param role
+     * @param userList
+     * @param conn
+     * @return
+     */
     def removeUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection) = {
       val cleanRoleId = role.id.string filterNot ("-" contains _)
       val arrayString = userList.map { user =>
@@ -321,7 +336,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
     }
 
     /**
-     * Save a Role row.
+     * Update a Role.
      *
      * @return id of the saved/new role.
      */
@@ -357,7 +372,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
     }
 
     /**
-     * Associate a role to a user.
+     * Associate a role to a user by role object.
      */
     override def addToUser(user: User, role: Role)(implicit conn: Connection): Future[Boolean] = {
       conn.sendPreparedStatement(AddRole, Array[Any](user.id.bytes, role.id.bytes, new DateTime)).map { result =>
@@ -371,7 +386,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
     }
 
     /**
-     * Associate a role to a user.
+     * Associate a role to a user by role name.
      */
     override def addToUser(user: User, name: String)(implicit conn: Connection): Future[Boolean] = {
       conn.sendPreparedStatement(AddRoleByName, Array[Any](user.id.bytes, new DateTime, name)).map { result =>
@@ -385,7 +400,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
     }
 
     /**
-     * Remove a role from a user.
+     * Remove a role from a user by role object.
      */
     override def removeFromUser(user: User, role: Role)(implicit conn: Connection): Future[Boolean] = {
       conn.sendPreparedStatement(RemoveRole, Array[Any](user.id.bytes, role.id.bytes)).map { result =>
@@ -399,7 +414,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
     }
 
     /**
-     * Associate a role to a user.
+     * Remove a role from a user by role name.
      */
     override def removeFromUser(user: User, name: String)(implicit conn: Connection): Future[Boolean] = {
       conn.sendPreparedStatement(RemoveRoleByName, Array[Any](user.id.bytes, name)).map { result =>
@@ -413,7 +428,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
     }
 
     /**
-     * Remove a role from all users.
+     * Remove a role from all users by role object.
      */
     override def removeFromAllUsers(role: Role)(implicit conn: Connection): Future[Boolean] = {
       conn.sendPreparedStatement(RemoveFromAllUsers, Array[Any](role.id.bytes)).map { result =>
@@ -431,7 +446,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
     }
 
     /**
-     * Associate a role to a user.
+     * Remove a role from all users by role name.
      */
     override def removeFromAllUsers(name: String)(implicit conn: Connection): Future[Boolean] = {
       conn.sendPreparedStatement(RemoveFromAllUsersByName, Array[Any](name)).map { result =>

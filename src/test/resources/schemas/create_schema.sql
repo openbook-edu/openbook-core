@@ -28,7 +28,7 @@ CREATE TABLE users_roles (
 CREATE TABLE classes (
   id bytea PRIMARY KEY,
   version bigint,
-  teacher_id bytea NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  teacher_id bytea NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   name text,
   color integer,
   created_at timestamp with time zone,
@@ -36,8 +36,8 @@ CREATE TABLE classes (
 );
 
 CREATE TABLE users_classes (
-  user_id bytea REFERENCES users(id),
-  class_id bytea REFERENCES classes(id),
+  user_id bytea REFERENCES users(id) ON DELETE CASCADE,
+  class_id bytea REFERENCES classes(id) ON DELETE CASCADE,
   created_at timestamp with time zone,
   PRIMARY KEY (user_id, class_id)
 );
@@ -206,11 +206,11 @@ CREATE TABLE component_notes (
 
 CREATE TABLE work (
   id bytea PRIMARY KEY,
-  user_id bytea NOT NULL REFERENCES users(id),
-  task_id bytea NOT NULL REFERENCES tasks(id),
+  user_id bytea NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  task_id bytea NOT NULL REFERENCES tasks(id) ON DELETE RESTRICT,
   version bigint,
   contents text,
-  is_complete boolean, /* default? NOT NULL?*/
+  is_complete boolean DEFAULT false,
   work_type int,
   created_at timestamp with time zone,
   updated_at timestamp with time zone,
@@ -218,33 +218,33 @@ CREATE TABLE work (
 );
 
 CREATE TABLE long_answer_work (
-  work_id bytea REFERENCES work(id),
-  document_id bytea REFERENCES documents(id),
+  work_id bytea REFERENCES work(id) ON DELETE CASCADE,
+  document_id bytea REFERENCES documents(id) ON DELETE RESTRICT,
   PRIMARY KEY (work_id, document_id)
 );
 
 CREATE TABLE short_answer_work (
-  work_id bytea REFERENCES work(id),
-  document_id bytea REFERENCES documents(id),
+  work_id bytea REFERENCES work(id) ON DELETE CASCADE,
+  document_id bytea REFERENCES documents(id) ON DELETE RESTRICT,
   PRIMARY KEY (work_id, document_id)
 );
 
 CREATE TABLE multiple_choice_work (
-  work_id bytea REFERENCES work(id),
+  work_id bytea REFERENCES work(id) ON DELETE CASCADE,
   version bigint,
   response int[],
   PRIMARY KEY (work_id, version)
 );
 
 CREATE TABLE ordering_work (
-  work_id bytea REFERENCES work(id),
+  work_id bytea REFERENCES work(id) ON DELETE CASCADE,
   version bigint,
   response int[],
   PRIMARY KEY (work_id, version)
 );
 
 CREATE TABLE matching_work (
-  work_id bytea REFERENCES work(id),
+  work_id bytea REFERENCES work(id) ON DELETE CASCADE,
   version bigint,
   response int[][2],
   PRIMARY KEY (work_id, version)

@@ -462,7 +462,6 @@ class UserRepositorySpec
     }
   }
 
-    // TODO - unique email, username
   "UserRepository.insert" should {
     inSequence {
       "save a new User" in {
@@ -543,8 +542,9 @@ class UserRepositorySpec
 
         Await.result(queryResult, Duration.Inf) should be (Vector())
       }
-      "throw a GenericDatabaseException if user has references in other tables" in {
+      "throw a GenericDatabaseException if user is teacher and has references in other tables" in {
         val result = userRepository.delete(TestValues.testUserB)
+
         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
       }
       "return FALSE if User hasn't been found" in {

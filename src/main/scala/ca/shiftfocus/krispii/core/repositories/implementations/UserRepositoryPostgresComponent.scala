@@ -39,10 +39,10 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     """
 
     // TODO - not used
-    val SelectWithIds = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-    """
+//    val SelectWithIds = s"""
+//      SELECT id, version, created_at, updated_at, $fieldsText
+//      FROM $table
+//    """
 
     val SelectOne = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
@@ -73,14 +73,14 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     }
 
     // TODO - not used
-    val Delete = s"""
-      DELETE FROM $table WHERE id = ? AND version = ?
-    """
+//    val Delete = s"""
+//      DELETE FROM $table WHERE id = ? AND version = ?
+//    """
 
     // TODO - not used
-    val Restore = s"""
-      UPDATE $table SET status = 1 WHERE id = ? AND version = ? AND status = 0
-    """
+//    val Restore = s"""
+//      UPDATE $table SET status = 1 WHERE id = ? AND version = ? AND status = 0
+//    """
 
 
     val Purge = s"""
@@ -88,16 +88,16 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     """
 
     // TODO - not used
-    val UpdateNoPass = {
-      val extraFields = fields.filter(_ != "password_hash").map(" " + _ + " = ? ").mkString(",")
-      s"""
-        UPDATE users
-        SET $extraFields , version = ?, updated_at = ?
-        WHERE id = ?
-          AND version = ?
-        RETURNING version
-      """
-    }
+//    val UpdateNoPass = {
+//      val extraFields = fields.filter(_ != "password_hash").map(" " + _ + " = ? ").mkString(",")
+//      s"""
+//        UPDATE users
+//        SET $extraFields , version = ?, updated_at = ?
+//        WHERE id = ?
+//          AND version = ?
+//        RETURNING version
+//      """
+//    }
 
     val SelectOneEmail = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
@@ -113,17 +113,17 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     """
 
     // TODO - not used
-    val AddUser = """
-      INSERT INTO users_classes (user_id, class_id, created_at)
-      VALUES (?, ?, ?)
-    """
+//    val AddUser = """
+//      INSERT INTO users_classes (user_id, class_id, created_at)
+//      VALUES (?, ?, ?)
+//    """
 
     // TODO - not used
-    val RemoveUser = """
-      DELETE FROM users_classes
-      WHERE user_id = ?
-        AND class_id = ?
-    """
+//    val RemoveUser = """
+//      DELETE FROM users_classes
+//      WHERE user_id = ?
+//        AND class_id = ?
+//    """
 
 
     val ListUsers = s"""
@@ -145,12 +145,12 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     """
 
     // TODO - not used
-    val ListUsersFilterBySections = s"""
-      SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
-      FROM users, classes, users_classes
-      WHERE users.id = users_classes.user_id
-        AND classes.id = users_classes.class_id
-    """
+//    val ListUsersFilterBySections = s"""
+//      SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
+//      FROM users, classes, users_classes
+//      WHERE users.id = users_classes.user_id
+//        AND classes.id = users_classes.class_id
+//    """
 
     val ListUsersFilterByRolesAndSections = s"""
       SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
@@ -166,14 +166,14 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     """
 
     // TODO - not used
-    val HasProject = s"""
-      SELECT projects.id
-      FROM users_classes
-      INNER JOIN classes_projects ON users_classes.class_id = classes_projects.class_id
-      INNER JOIN projects ON classes_projects.project_id = projects.id
-      WHERE classes_projects.project_id = ?
-        AND users_classes.user_id = ?
-    """
+//    val HasProject = s"""
+//      SELECT projects.id
+//      FROM users_classes
+//      INNER JOIN classes_projects ON users_classes.class_id = classes_projects.class_id
+//      INNER JOIN projects ON classes_projects.project_id = projects.id
+//      WHERE classes_projects.project_id = ?
+//        AND users_classes.user_id = ?
+//    """
 
     /**
      * List all users.

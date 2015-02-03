@@ -36,6 +36,11 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
       case exception => throw exception
     }
 
+    /**
+     * Find all Projects belonging to a given class.
+     * @param classId
+     * @return
+     */
     override def list(classId: UUID): Future[IndexedSeq[Project]] = {
       for {
         theClass <- classRepository.find(classId).map(_.get)
@@ -46,83 +51,44 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
     }
 
     /**
-     * Find a single project.
+     * Find a single project by slug.
      *
      * @return an optional project
      */
     override def find(projectSlug: String): Future[Option[Project]] = {
-      for {
-        projectOption <- projectRepository.find(projectSlug)
-        parts <- { projectOption match {
-          case Some(project) => partRepository.list(project)
-          case None => Future.successful(IndexedSeq())
-        }}
-      }
-      yield projectOption match {
-        case Some(project) => Some(project.copy(parts = parts))
-        case None => None
-      }
+      projectRepository.find(projectSlug)
     }.recover {
       case exception => throw exception
     }
 
     /**
-     * Find a single project.
+     * Find a single project by ID.
      *
      * @return an optional project
      */
     override def find(id: UUID): Future[Option[Project]] = {
-      for {
-        projectOption <- projectRepository.find(id)
-        parts <- { projectOption match {
-          case Some(project) => partRepository.list(project).flatMap { parts =>
-            Future.sequence(parts.map { part =>
-              taskRepository.list(part).map { tasks =>
-                part.copy(tasks = tasks)
-              }
-            })
-          }
-          case None => Future.successful(IndexedSeq())
-        }}
-      }
-      yield projectOption match {
-        case Some(project) => Some(project.copy(parts = parts))
-        case None => None
-      }
+      projectRepository.find(id)
     }.recover {
       case exception => throw exception
     }
 
     /**
-     * Find a single project.
+     * Find project by ID and UserID (teacher || student).
      *
      * @return an optional project
      */
     override def find(projectId: UUID, userId: UUID): Future[Option[Project]] = {
       for {
         user <- userRepository.find(userId).map(_.get)
-        projectOption <- projectRepository.find(projectId, user)
-        parts <- { projectOption match {
-          case Some(project) => partRepository.list(project).flatMap { parts =>
-            Future.sequence(parts.map { part =>
-              taskRepository.list(part).map { tasks =>
-                part.copy(tasks = tasks)
-              }
-            })
-          }
-          case None => Future.successful(IndexedSeq())
-        }}
+        project <- projectRepository.find(projectId, user)
       }
-      yield projectOption match {
-        case Some(project) => Some(project.copy(parts = parts))
-        case None => None
-      }
+      yield project
     }.recover {
       case exception => throw exception
     }
 
     /**
-     * Find a single project.
+     * Find a single project by slug and UserID.
      *
      * @return an optional project
      */
@@ -131,19 +97,9 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
         user <- userRepository.find(userId).map(_.get)
         project <- projectRepository.find(projectSlug).map(_.get)
         projectOption <- projectRepository.find(project.id, user)
-        parts <- { projectOption match {
-          case Some(project) => partRepository.list(project).flatMap { parts =>
-            Future.sequence(parts.map { part =>
-              taskRepository.list(part).map { tasks =>
-                part.copy(tasks = tasks)
-              }
-            })
-          }
-          case None => Future.successful(IndexedSeq())
-        }}
       }
       yield projectOption match {
-        case Some(project) => Some(project.copy(parts = parts))
+        case Some(project) => Some(project)
         case None => None
       }
     }.recover {
@@ -224,7 +180,6 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
       }
     }
 
-    // TODO - rewrite method because of classRepository.disablePart
     /**
      * Delete a project.
      *
@@ -302,23 +257,6 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
     }
 
     /**
-     * List the parts in a project.
-     *
-     * @param projectId the id of the project
-     * @return a vector of this project's parts
-     */
-    override def listParts(projectId: UUID): Future[IndexedSeq[Part]] = {
-      val fPartList = for {
-        project <- projectRepository.find(projectId).map(_.get)
-        partList <- partRepository.list(project)
-      } yield partList
-
-      fPartList.recover {
-        case exception => throw exception
-      }
-    }
-
-    /**
      * List the parts that have a component.
      *
      * @param componentId the [[UUID]] of the component to filter by
@@ -380,7 +318,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
           newPart <- partRepository.insert(Part(
             projectId = project.id,
             name = name,
-            description = description,
+//            description = description,
             position = position
           ))
         } yield newPart
@@ -438,7 +376,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
           updatedPart <- partRepository.update(existingPart.copy(
             version = version,
             name = name,
-            description = description,
+//            description = description,
             position = newPosition
           ))
         } yield updatedPart
@@ -449,7 +387,6 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
       }
     }
 
-    // TODO rewrite method because of classRepository.disablePart(part)
     /**
      * Delete a part.
      *
@@ -508,53 +445,6 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
           }
         }
       } yield reordered
-    }.recover {
-      case exception => throw exception
-    }
-
-    /**
-     * List all tasks associated with a project.
-     *
-     * @param projectId the unique ID of the project to list for
-     * @return a vector of tasks
-     */
-    override def listTasks: Future[IndexedSeq[Task]] = {
-      Logger.debug(s"projectService.listTasks")
-      for {
-        taskList <- taskRepository.list
-      } yield taskList
-    }.recover {
-      case exception => throw exception
-    }
-
-    /**
-     * List all tasks associated with a project.
-     *
-     * @param projectId the unique ID of the project to list for
-     * @return a vector of tasks
-     */
-    override def listTasks(projectId: UUID): Future[IndexedSeq[Task]] = {
-      Logger.debug(s"projectService.listTasks(${projectId.string})")
-      for {
-        project <- projectRepository.find(projectId).map(_.get)
-        taskList <- taskRepository.list(project)
-      } yield taskList
-    }.recover {
-      case exception => throw exception
-    }
-
-    /**
-     * List all tasks associated with a project part.
-     *
-     * @param projectId the unique ID of the project to list for
-     * @return a vector of tasks
-     */
-    override def listTasks(projectId: UUID, partNum: Int): Future[IndexedSeq[Task]] = {
-      Logger.debug(s"projectService.listTasks(${projectId.string}, ${partNum})")
-      for {
-        project <- projectRepository.find(projectId).map(_.get)
-        taskList <- taskRepository.list(project, partNum)
-      } yield taskList
     }.recover {
       case exception => throw exception
     }

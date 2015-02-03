@@ -1,9 +1,12 @@
 import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.models.tasks.{Task, CommonTaskSettings, LongAnswerTask}
 import ca.shiftfocus.uuid.UUID
 import org.joda.time.{DateTimeZone, DateTime, LocalDate, LocalTime}
 import java.awt.Color
 
 object TestValues {
+  // Make text red, bold in console for debuging
+  // Console.RED + Console.BOLD + " (TEXT) " + Console.RESET
 
   /* USERS */
   val testUserA = User(
@@ -225,168 +228,96 @@ object TestValues {
   val testClassF = Class(
     id = UUID("287b61f5-da6b-4de7-8535-3bc500cffac7"),
     version = 4L,
-    teacherId = Option(testUserA.id),
-    name = "unexisting class F",
-    color = new Color(45, 10, 15)
+    teacherId = Option(testUserF.id),
+    name = "test class F",
+    color = new Color(4, 28, 56),
+    createdAt = Option(new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
-//
-//  /* SCHEDULES */
-//  /* Because in db there is time zone 4 for startTime and endTime, here hours should be -1 */
-//  val testClassScheduleA = ClassSchedule(
-//    id = UUID("308792b2-7a29-43c8-ad51-a5c4f306cdaf"),
-//    classId = testClassA.id,
-//    version = 1L,
-//    startTime = new LocalTime(13, 38, 19),
-//    length = 12345,
-//    reason = "test ClassSchedule A reason",
-//    createdAt = Option(new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-//    updatedAt = Option(new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")))
-//  )
-//
-//  val testClassScheduleB = ClassSchedule(
-//    id = UUID("dc1190c2-b5fd-4bac-95fa-7d67e1f1d445"),
-//    classId = testClassB.id,
-//    version = 2L,
-//    startTime = new LocalTime(11, 38, 19),
-//    length = 12345,
-//    reason = "test ClassSchedule B reason",
-//    createdAt = Option(new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-//    updatedAt = Option(new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")))
-//  )
-//
-//  val testClassScheduleC = ClassSchedule(
-//    id = UUID("6df9d164-b151-4c38-9acd-6b91301a199d"),
-//    classId = testClassB.id,
-//    version = 3L,
-//    startTime = new LocalTime(15, 38, 19),
-//    length = 12345,
-//    reason = "test ClassSchedule C reason",
-//    createdAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-//    updatedAt = Option(new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")))
-//  )
-//
-//  /**
-//   * No data in DB for insert
-//   */
-//  val testClassScheduleD = ClassSchedule(
-//    id = UUID("02eaad44-5f0a-4c75-b05a-c92991903c10"),
-//    classId = testClassB.id,
-//    startTime = new LocalTime(16, 38, 19),
-//    length = new LocalTime(17, 38, 19),
-//    reason = "test ClassSchedule D reason"
-//  )
-//
-//  /**
-//   * No data in DB
-//   */
-//  val testClassScheduleE = ClassSchedule(
-//    id = UUID("43ac00c3-7546-41f0-bc93-72cc81158597"),
-//    classId = testClassB.id,
-//    startTime = new LocalTime(17, 38, 19),
-//    length = 12345,
-//    reason = "test ClassSchedule E reason"
-//  )
-//
-//
-//  /* SCHEDULE EXCEPTIONS */
-//  val testSectionScheduleExceptionA = SectionScheduleException(
-//    id = UUID("da17e24a-a545-4d74-94e1-427896e13ebe"),
-//    userId = testUserA.id,
-//    classId = testClassA.id,
-//    version = 1L,
-//    day = new LocalDate(2014, 8, 1),
-//    startTime = new LocalTime(14, 1, 19),
-//    endTime = new LocalTime(15, 1, 19),
-//    reason = "testSectionScheduleExceptionA reason",
-//    createdAt = Option(new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-//    updatedAt = Option(new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")))
-//  )
-//
-//  val testSectionScheduleExceptionB = SectionScheduleException(
-//    id = UUID("3a285f0c-66d0-41b2-851b-cfcd203550d9"),
-//    userId = testUserB.id,
-//    classId = testClassB.id,
-//    version = 2L,
-//    day = new LocalDate(2014, 8, 4),
-//    startTime = new LocalTime(16, 1, 19),
-//    endTime = new LocalTime(17, 1, 19),
-//    reason = "testSectionScheduleExceptionB reason",
-//    createdAt = Option(new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-//    updatedAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")))
-//  )
-//
-//  val testSectionScheduleExceptionC = SectionScheduleException(
-//    id = UUID("4d7ca313-f216-4f59-85ae-88bcbca70317"),
-//    userId = testUserE.id,
-//    classId = testClassB.id,
-//    version = 3L,
-//    day = new LocalDate(2014, 8, 7),
-//    startTime = new LocalTime(10, 1, 19),
-//    endTime = new LocalTime(11, 1, 19),
-//    reason = "testSectionScheduleExceptionC reason",
-//    createdAt = Option(new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-//    updatedAt = Option(new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")))
-//  )
-//
-//  /**
-//   * No data in DB
-//   */
-//  val testSectionScheduleExceptionD = SectionScheduleException(
-//    id = UUID("848c8b4f-f566-4d7f-8a16-b4a76107778a"),
-//    userId = testUserE.id,
-//    classId = testClassB.id,
-//    version = 4L,
-//    day = new LocalDate(2014, 8, 8),
-//    startTime = new LocalTime(12, 1, 19),
-//    endTime = new LocalTime(13, 1, 19),
-//    reason = "testSectionScheduleExceptionD reason",
-//    createdAt = Option(new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-//    updatedAt = Option(new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")))
-//  )
-//
-//  /**
-//   * No data in DB for insert
-//   */
-//  val testSectionScheduleExceptionE = SectionScheduleException(
-//    id = UUID("3e0ba0ec-8427-4ff1-8fe0-2aaeda67ae36"),
-//    userId = testUserE.id,
-//    classId = testClassB.id,
-//    day = new LocalDate(2014, 8, 9),
-//    startTime = new LocalTime(14, 1, 19),
-//    endTime = new LocalTime(15, 1, 19),
-//    reason = "testSectionScheduleExceptionE reason"
-//  )
+
+  /* LONG ANSWER TASKS */
+  val testLongAnswerTaskA = LongAnswerTask(
+    id = UUID("5cd214be-6bba-47fa-9f35-0eb8bafec397"),
+    version = 1L,
+    partId = UUID("5cd214be-6bba-47fa-9f35-0eb8bafec397"), // testPartA.id
+    position = 10,
+    settings = CommonTaskSettings(
+      dependencyId = None,
+      title = "test longAnswerTask A",
+      description = "test longAnswerTask A description",
+      notesAllowed = true
+    ),
+    createdAt = Option(new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  /* PARTS */
+  val testPartA = Part(
+    id = UUID("5cd214be-6bba-47fa-9f35-0eb8bafec397"),
+    version = 1L,
+    projectId = UUID("c9b4cfce-aed4-48fd-94f5-c980763dfddc"), // testProjectA.id,
+    name = "test part A",
+    enabled = true,
+    position = 10,
+    tasks = Vector(testLongAnswerTaskA),
+    createdAt = Option(new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  val testPartB = Part(
+    id = UUID("abb84847-a3d2-47a0-ae7d-8ce04063afc7"),
+    version = 2L,
+    projectId = UUID("c9b4cfce-aed4-48fd-94f5-c980763dfddc"), // testProjectA.id,
+    name = "test part B",
+    enabled = true,
+    position = 11,
+    tasks = Vector(),
+    createdAt = Option(new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  val testPartC = Part(
+    id = UUID("fb01f11b-7f23-41c8-877b-68410be62aa5"),
+    version = 2L,
+    projectId = UUID("e4ae3b90-9871-4339-b05c-8d39e3aaf65d"), // testProjectB.id,
+    name = "test part C",
+    enabled = true,
+    position = 12,
+    tasks = Vector(),
+    createdAt = Option(new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
 
   /* PROJECTS */
   val testProjectA = Project(
     id = UUID("c9b4cfce-aed4-48fd-94f5-c980763dfddc"),
-    classId = UUID("217c5622-ff9e-4372-8e6a-95fb3bae300b"),
+    classId = testClassA.id,
     version = 1L,
     name = "test project A",
     slug = "test project slug A",
     description = "test project A description",
     availability = "any",
-    parts = Vector(),
+    parts = Vector(testPartA, testPartB),
     createdAt = Option(new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
 
   val testProjectB = Project(
     id = UUID("e4ae3b90-9871-4339-b05c-8d39e3aaf65d"),
-    classId = UUID("404c800a-5385-4e6b-867e-365a1e6b00de"),
+    classId = testClassB.id,
     version = 2L,
     name = "test project B",
     slug = "test project slug B",
     description = "test project B description",
     availability = "free",
-    parts = Vector(),
+    parts = Vector(testPartC),
     createdAt = Option(new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
 
   val testProjectC = Project(
     id = UUID("4ac4d872-451b-4092-b13f-643d6d5fa930"),
-    classId = UUID("404c800a-5385-4e6b-867e-365a1e6b00de"),
+    classId = testClassB.id,
     version = 3L,
     name = "test project C",
     slug = "test project slug C",
@@ -402,7 +333,7 @@ object TestValues {
    */
   val testProjectD = Project(
     id = UUID("00743ada-1d3a-4912-adc8-fb8a0b1b7443"),
-    classId = UUID("217c5622-ff9e-4372-8e6a-95fb3bae300b"),
+    classId = testClassA.id,
     name = "test project D",
     slug = "test project slug D",
     description = "test project D description",
@@ -415,11 +346,165 @@ object TestValues {
    */
   val testProjectE = Project(
     id = UUID("b36919cb-2df0-43b7-bb7f-36cae797deaa"),
-    classId = UUID("217c5622-ff9e-4372-8e6a-95fb3bae300b"),
+    classId = testClassA.id,
     name = "test project E",
     slug = "test project slug E",
     description = "test project E description",
     availability = "class",
     parts = Vector()
   )
+
+
+  //  /* SCHEDULES */
+  //  /* Because in db there is time zone 4 for startTime and endTime, here hours should be -1 */
+  //  val testClassScheduleA = ClassSchedule(
+  //    id = UUID("308792b2-7a29-43c8-ad51-a5c4f306cdaf"),
+  //    classId = testClassA.id,
+  //    version = 1L,
+  //    startTime = new LocalTime(13, 38, 19),
+  //    //    length = 12345,
+  //    //    reason = "test ClassSchedule A reason",
+  //
+  //    day = new LocalDate(2015, 1, 15),
+  //    description = "test ClassSchedule A description",
+  //    endTime = new LocalTime(14, 38, 19),
+  //
+  //    createdAt = Option(new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+  //    updatedAt = Option(new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  //  )
+  //
+  //  val testClassScheduleB = ClassSchedule(
+  //    id = UUID("dc1190c2-b5fd-4bac-95fa-7d67e1f1d445"),
+  //    classId = testClassB.id,
+  //    version = 2L,
+  //    startTime = new LocalTime(11, 38, 19),
+  ////    length = 12345,
+  ////    reason = "test ClassSchedule B reason",
+  //
+  //    day = new LocalDate(2015, 1, 16),
+  //    description = "test ClassSchedule B description",
+  //    endTime = new LocalTime(12, 38, 19),
+  //
+  //    createdAt = Option(new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+  //    updatedAt = Option(new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  //  )
+  //
+  //  val testClassScheduleC = ClassSchedule(
+  //    id = UUID("6df9d164-b151-4c38-9acd-6b91301a199d"),
+  //    classId = testClassB.id,
+  //    version = 3L,
+  //    startTime = new LocalTime(15, 38, 19),
+  ////    length = 12345,
+  ////    reason = "test ClassSchedule C reason",
+  //
+  //    day = new LocalDate(2015, 1, 17),
+  //    description = "test ClassSchedule C description",
+  //    endTime = new LocalTime(16, 38, 19),
+  //
+  //    createdAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+  //    updatedAt = Option(new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  //  )
+  //
+  //  /**
+  //   * No data in DB for insert
+  //   */
+  //  val testClassScheduleD = ClassSchedule(
+  //    id = UUID("02eaad44-5f0a-4c75-b05a-c92991903c10"),
+  //    classId = testClassB.id,
+  //    startTime = new LocalTime(16, 38, 19),
+  ////    length = new LocalTime(17, 38, 19),
+  ////    reason = "test ClassSchedule D reason"
+  //
+  //    day = new LocalDate(2015, 1, 18),
+  //    description = "test ClassSchedule D description",
+  //    endTime = new LocalTime(17, 38, 19)
+  //
+  //  )
+  //
+  //  /**
+  //   * No data in DB
+  //   */
+  //  val testClassScheduleE = ClassSchedule(
+  //    id = UUID("43ac00c3-7546-41f0-bc93-72cc81158597"),
+  //    classId = testClassB.id,
+  //    startTime = new LocalTime(17, 38, 19),
+  ////    length = 12345,
+  ////    reason = "test ClassSchedule E reason"
+  //
+  //    day = new LocalDate(2015, 1, 19),
+  //    description = "test ClassSchedule A description",
+  //    endTime = new LocalTime(18, 38, 19)
+  //
+  //  )
+  //
+  //
+  //  /* SCHEDULE EXCEPTIONS */
+  //  val testSectionScheduleExceptionA = SectionScheduleException(
+  //    id = UUID("da17e24a-a545-4d74-94e1-427896e13ebe"),
+  //    userId = testUserA.id,
+  //    classId = testClassA.id,
+  //    version = 1L,
+  //    day = new LocalDate(2014, 8, 1),
+  //    startTime = new LocalTime(14, 1, 19),
+  //    endTime = new LocalTime(15, 1, 19),
+  //    reason = "testSectionScheduleExceptionA reason",
+  //    createdAt = Option(new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+  //    updatedAt = Option(new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  //  )
+  //
+  //  val testSectionScheduleExceptionB = SectionScheduleException(
+  //    id = UUID("3a285f0c-66d0-41b2-851b-cfcd203550d9"),
+  //    userId = testUserB.id,
+  //    classId = testClassB.id,
+  //    version = 2L,
+  //    day = new LocalDate(2014, 8, 4),
+  //    startTime = new LocalTime(16, 1, 19),
+  //    endTime = new LocalTime(17, 1, 19),
+  //    reason = "testSectionScheduleExceptionB reason",
+  //    createdAt = Option(new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+  //    updatedAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  //  )
+  //
+  //  val testSectionScheduleExceptionC = SectionScheduleException(
+  //    id = UUID("4d7ca313-f216-4f59-85ae-88bcbca70317"),
+  //    userId = testUserE.id,
+  //    classId = testClassB.id,
+  //    version = 3L,
+  //    day = new LocalDate(2014, 8, 7),
+  //    startTime = new LocalTime(10, 1, 19),
+  //    endTime = new LocalTime(11, 1, 19),
+  //    reason = "testSectionScheduleExceptionC reason",
+  //    createdAt = Option(new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+  //    updatedAt = Option(new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  //  )
+  //
+  //  /**
+  //   * No data in DB
+  //   */
+  //  val testSectionScheduleExceptionD = SectionScheduleException(
+  //    id = UUID("848c8b4f-f566-4d7f-8a16-b4a76107778a"),
+  //    userId = testUserE.id,
+  //    classId = testClassB.id,
+  //    version = 4L,
+  //    day = new LocalDate(2014, 8, 8),
+  //    startTime = new LocalTime(12, 1, 19),
+  //    endTime = new LocalTime(13, 1, 19),
+  //    reason = "testSectionScheduleExceptionD reason",
+  //    createdAt = Option(new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+  //    updatedAt = Option(new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  //  )
+  //
+  //  /**
+  //   * No data in DB for insert
+  //   */
+  //  val testSectionScheduleExceptionE = SectionScheduleException(
+  //    id = UUID("3e0ba0ec-8427-4ff1-8fe0-2aaeda67ae36"),
+  //    userId = testUserE.id,
+  //    classId = testClassB.id,
+  //    day = new LocalDate(2014, 8, 9),
+  //    startTime = new LocalTime(14, 1, 19),
+  //    endTime = new LocalTime(15, 1, 19),
+  //    reason = "testSectionScheduleExceptionE reason"
+  //  )
 }
+

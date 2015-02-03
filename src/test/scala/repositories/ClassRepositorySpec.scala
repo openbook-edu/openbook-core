@@ -97,9 +97,9 @@ class ClassRepositorySpec
 
         val classes = Await.result(result, Duration.Inf)
 
-        classes.toString should be(Vector(TestValues.testClassA, TestValues.testClassB, TestValues.testClassD).toString)
+        classes.toString should be(Vector(TestValues.testClassA, TestValues.testClassB, TestValues.testClassD, TestValues.testClassF).toString)
 
-        Map[Int, Class](0 -> TestValues.testClassA, 1 -> TestValues.testClassB, 2 -> TestValues.testClassD).foreach {
+        Map[Int, Class](0 -> TestValues.testClassA, 1 -> TestValues.testClassB, 2 -> TestValues.testClassD, 3 -> TestValues.testClassF).foreach {
           case (key, clas: Class) => {
             classes(key).id should be(clas.id)
             classes(key).teacherId should be(clas.teacherId)

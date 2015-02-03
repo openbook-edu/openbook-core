@@ -5,6 +5,9 @@
 //import grizzled.slf4j.Logger
 //import org.scalamock.scalatest.MockFactory
 //import org.scalatest.{MustMatchers, WordSpec, BeforeAndAfterAll, Suite}
+//import org.scalatest._
+//import Matchers._
+//import scala.concurrent.ExecutionContext.Implicits.global
 //
 //import scala.concurrent.Await
 //import scala.concurrent.duration.Duration
@@ -49,7 +52,7 @@
 //  // After test
 //  override def afterAll(): Unit = {
 //    // DROP tables
-//    //    load_schema(drop_schema_path)
+//    load_schema(drop_schema_path)
 //  }
 //}
 //
@@ -59,4 +62,13 @@
 //  with MockFactory
 //  with ComponentRepoTestEnvironment {
 //
+//    "bla" should {
+//      inSequence {
+//        "do" in {
+//          val a = 1
+//
+//          a should be (1)
+//        }
+//      }
+//    }
 //  }

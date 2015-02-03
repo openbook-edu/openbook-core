@@ -12,6 +12,7 @@ import play.api.libs.functional.syntax._
 case class Class(
   id: UUID = UUID.random,
   version: Long = 0,
+  // TODO - why OPTION?
   teacherId: Option[UUID],
   name: String,
   color: Color,

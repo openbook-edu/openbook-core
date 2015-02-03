@@ -40,6 +40,14 @@ case class ShortAnswerTask(
    */
   override val taskType: Int = Task.ShortAnswer
 
+  override def equals(other: Any): Boolean = {
+    other match {
+      case otherShortAnswerTask: ShortAnswerTask => {
+        this.id == otherShortAnswerTask.id
+      }
+      case _ => false
+    }
+  }
 }
 
 object ShortAnswerTask {

@@ -193,6 +193,10 @@ VALUES ('\xfb01f11b7f2341c8877b68410be62aa5', 3, '\xe4ae3b9098714339b05c8d39e3aa
 
 
 /* TASKS */
+/* longAnswerTask A -> part A*/
 INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
-VALUES ('\x5cd214be6bba47fa9f350eb8bafec397', 1, '\x5cd214be6bba47fa9f350eb8bafec397', null, 'name', 'desc', 10, 10, true, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+VALUES ('\x5cd214be6bba47fa9f350eb8bafec397', 1, '\x5cd214be6bba47fa9f350eb8bafec397', null, 'test longAnswerTask A', 'test longAnswerTask A description', 10, 0, true, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+
+INSERT INTO long_answer_tasks (task_id)
+VALUES ('\x5cd214be6bba47fa9f350eb8bafec397');
 

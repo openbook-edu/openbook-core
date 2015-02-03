@@ -1,8 +1,9 @@
-import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.tasks.{Task, CommonTaskSettings, LongAnswerTask}
-import ca.shiftfocus.uuid.UUID
-import org.joda.time.{DateTimeZone, DateTime, LocalDate, LocalTime}
 import java.awt.Color
+
+import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.models.tasks.{CommonTaskSettings, LongAnswerTask}
+import ca.shiftfocus.uuid.UUID
+import org.joda.time.{DateTime, DateTimeZone}
 
 object TestValues {
   // Make text red, bold in console for debuging

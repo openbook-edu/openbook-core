@@ -43,6 +43,14 @@ case class OrderingTask(
    */
   override val taskType: Int = Task.Ordering
 
+  override def equals(other: Any): Boolean = {
+    other match {
+      case otherOrderingTask: OrderingTask => {
+        this.id == otherOrderingTask.id
+      }
+      case _ => false
+    }
+  }
 }
 
 object OrderingTask {

@@ -57,7 +57,7 @@ with PostgresDB {
   }
 
   val SelectOneByIdentifier = """
-      SELECT id, version, created_at, updated_at, username, email, password_hash, givenname, surname
+      SELECT *
       FROM users
       WHERE (email = ? OR username = ?)
       LIMIT 1
@@ -437,6 +437,20 @@ class UserRepositorySpec
 
         an [java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
       }
+      "throw a GenericDatabaseException when update an existing user with username that already exists" in {
+        val result = userRepository.update(TestValues.testUserB.copy(
+          username = TestValues.testUserC.username
+        ))
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+      "throw a GenericDatabaseException when update an existing user with email that already exists" in {
+        val result = userRepository.update(TestValues.testUserB.copy(
+          email = TestValues.testUserC.email
+        ))
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
+      }
       "throw a NoSuchElementException when update an unexisting user" in {
         an [java.util.NoSuchElementException] should be thrownBy userRepository.update(User(
           email = "unexisting_email@example.com",
@@ -485,6 +499,28 @@ class UserRepositorySpec
 
         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
       }
+      "throw a GenericDatabaseException if username already exists" in {
+        val result = userRepository.insert(User(
+          email = "unexistinguser@example.com",
+          username = TestValues.testUserB.username,
+          passwordHash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3W1234="),
+          givenname = "unexisting",
+          surname = "user"
+        ))
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
+      }
+      "throw a GenericDatabaseException if email already exists" in {
+        val result = userRepository.insert(User(
+          email = TestValues.testUserB.email,
+          username = "unexisting user",
+          passwordHash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3W1234="),
+          givenname = "unexisting",
+          surname = "user"
+        ))
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
+      }
     }
   }
 
@@ -506,8 +542,9 @@ class UserRepositorySpec
 
         Await.result(queryResult, Duration.Inf) should be (Vector())
       }
-      "throw a GenericDatabaseException if user has references in other tables" in {
+      "throw a GenericDatabaseException if user is teacher and has references in other tables" in {
         val result = userRepository.delete(TestValues.testUserB)
+
         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
       }
       "return FALSE if User hasn't been found" in {

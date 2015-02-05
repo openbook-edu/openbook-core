@@ -39,6 +39,14 @@ case class LongAnswerTask(
    */
   override val taskType: Int = Task.LongAnswer
 
+  override def equals(other: Any): Boolean = {
+    other match {
+      case otherLongAnswerTask: LongAnswerTask => {
+        this.id == otherLongAnswerTask.id
+      }
+      case _ => false
+    }
+  }
 }
 
 object LongAnswerTask {

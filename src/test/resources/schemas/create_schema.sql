@@ -1,17 +1,8 @@
-/* Users schema */
-CREATE TABLE roles (
-  id bytea NOT NULL PRIMARY KEY,
-  version bigint,
-  name text,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone
-);
-
 CREATE TABLE users (
-  id bytea NOT NULL PRIMARY KEY,
+  id bytea PRIMARY KEY,
   version bigint,
-  email text,
-  username text,
+  email text UNIQUE,
+  username text UNIQUE,
   password_hash text,
   givenname text,
   surname text,
@@ -19,37 +10,65 @@ CREATE TABLE users (
   updated_at timestamp with time zone
 );
 
-CREATE TABLE courses (
-  id bytea NOT NULL PRIMARY KEY,
+CREATE TABLE roles (
+  id bytea PRIMARY KEY,
   version bigint,
   name text,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
 
+CREATE TABLE users_roles (
+  user_id bytea REFERENCES users(id) ON DELETE CASCADE,
+  role_id bytea REFERENCES roles(id) ON DELETE CASCADE,
+  created_at timestamp with time zone,
+  PRIMARY KEY (user_id, role_id)
+);
+
 CREATE TABLE classes (
-  id bytea NOT NULL PRIMARY KEY,
+  id bytea PRIMARY KEY,
   version bigint,
-  teacher_id bytea REFERENCES users(id),
+  teacher_id bytea NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   name text,
   color integer,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
 
-CREATE TABLE project_templates (
-  id bytea NOT NULL PRIMARY KEY,
+CREATE TABLE users_classes (
+  user_id bytea REFERENCES users(id) ON DELETE CASCADE,
+  class_id bytea REFERENCES classes(id) ON DELETE CASCADE,
+  created_at timestamp with time zone,
+  PRIMARY KEY (user_id, class_id)
+);
+
+CREATE TABLE schedules (
+  id bytea PRIMARY KEY,
+  class_id bytea NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
   version bigint,
-  name text,
-  slug text,
-  description text,
+  start_time timestamp with time zone,
+  length int,
+  reason text,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone
+);
+
+CREATE TABLE schedule_exceptions (
+  id bytea PRIMARY KEY,
+  user_id bytea NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  class_id bytea NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  version bigint,
+  day timestamp with time zone,
+  start_time timestamp with time zone,
+  end_time timestamp with time zone,
+  reason text,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
 
 CREATE TABLE projects (
-  id bytea NOT NULL PRIMARY KEY,
-  class_id bytea NOT NULL REFERENCES classes(id),
+  id bytea PRIMARY KEY,
+  class_id bytea NOT NULL REFERENCES classes(id) ON DELETE RESTRICT,
   version bigint,
   name text,
   slug text,
@@ -60,24 +79,61 @@ CREATE TABLE projects (
 );
 
 CREATE TABLE parts (
-  id bytea NOT NULL PRIMARY KEY,
+  id bytea PRIMARY KEY,
   version bigint,
-  project_id bytea NOT NULL REFERENCES projects(id),
+  project_id bytea NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   name text,
-  description text,
-  position int,
   enabled boolean DEFAULT true,
+  position int,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
 
+/*
+  All editable multi-line text areas will be considered "documents" and stored with a single mechanism.
 
+  The "documents" table is like the "master record" for each document. It contains data such as
+  the current version of the document, its latest computed contents, and the latest computed checksum of its
+  contents. It also contains the times that it was created and last updated.
+*/
+
+CREATE TABLE documents (
+  id bytea PRIMARY KEY,
+  version bigint,
+  owner_id bytea NOT NULL REFERENCES users(id),
+  title text,
+  plaintext text,
+  delta json,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone
+);
+
+/*
+  Each document revision is stored in a separate revision table.
+
+  The revisions table stores the complete revision history of a document. It is keyed by both the document ID and
+  version number. Each row stores the time it was created and the revision details in a json representation with the
+  following format:
+
+  [{"p": 123, "t": "i", "chars": "blahblah"}]
+
+  Where "p" is the position of the edit, "t" is either "i" for insert or "d" for delete, and "chars" is the text to be
+  inserted or deleted. It can consist of an array of json values.
+*/
+
+CREATE TABLE document_revisions (
+  document_id bytea NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  version bigint,
+  author_id bytea NOT NULL REFERENCES users(id),
+  delta json,
+  created_at timestamp with time zone
+);
 
 CREATE TABLE tasks (
-  id bytea NOT NULL PRIMARY KEY,
+  id bytea PRIMARY KEY,
   version bigint,
-  part_id bytea NOT NULL REFERENCES parts(id),
-  dependency_id bytea REFERENCES tasks(id),
+  part_id bytea NOT NULL REFERENCES parts(id) ON DELETE CASCADE,
+  dependency_id bytea REFERENCES tasks(id) ON DELETE RESTRICT,
   name text,
   description text,
   position int,
@@ -88,16 +144,16 @@ CREATE TABLE tasks (
 );
 
 CREATE TABLE long_answer_tasks (
-  task_id bytea NOT NULL PRIMARY KEY REFERENCES tasks(id)
+  task_id bytea PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE
 );
 
 CREATE TABLE short_answer_tasks (
-  task_id bytea NOT NULL PRIMARY KEY REFERENCES tasks(id),
+  task_id bytea PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
   max_length int
 );
 
 CREATE TABLE multiple_choice_tasks (
-  task_id bytea NOT NULL PRIMARY KEY REFERENCES tasks(id),
+  task_id bytea PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
   choices text[],
   answers int[],
   allow_multiple boolean DEFAULT false,
@@ -105,233 +161,131 @@ CREATE TABLE multiple_choice_tasks (
 );
 
 CREATE TABLE ordering_tasks (
-  task_id bytea NOT NULL PRIMARY KEY REFERENCES tasks(id),
+  task_id bytea PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
   choices text[],
   answers int[],
   randomize boolean DEFAULT true
 );
 
 CREATE TABLE matching_tasks (
-  task_id bytea NOT NULL PRIMARY KEY REFERENCES tasks(id),
+  task_id bytea PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
   choices_left text[],
   choices_right text[],
   answers int[][2],
   randomize boolean DEFAULT true
 );
 
-
-
-CREATE TABLE work (
-  user_id bytea REFERENCES users(id),
-  task_id bytea REFERENCES tasks(id),
-  revision bigint,
-  version bigint,
-  is_complete boolean,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  PRIMARY KEY (user_id, task_id, revision)
+CREATE TABLE task_feedbacks (
+  task_id    bytea REFERENCES tasks(id) ON DELETE RESTRICT,
+  student_id bytea REFERENCES users(id) ON DELETE CASCADE,
+  document_id bytea REFERENCES documents(id) ON DELETE RESTRICT,
+  PRIMARY KEY (task_id, student_id, document_id)
 );
 
-CREATE TABLE long_answer_work (
-  user_id bytea REFERENCES users(id),
-  task_id bytea REFERENCES tasks(id),
-  revision bigint,
-  response text,
-  PRIMARY KEY (user_id, task_id, revision)
+CREATE TABLE task_notes (
+  user_id bytea REFERENCES users(id) ON DELETE CASCADE,
+  task_id bytea REFERENCES tasks(id) ON DELETE RESTRICT,
+  document_id bytea REFERENCES documents(id) ON DELETE RESTRICT,
+  PRIMARY KEY (user_id, task_id, document_id)
 );
-
-CREATE TABLE short_answer_work (
-  user_id bytea REFERENCES users(id),
-  task_id bytea REFERENCES tasks(id),
-  revision bigint,
-  response text,
-  PRIMARY KEY (user_id, task_id, revision)
-);
-
-CREATE TABLE multiple_choice_work (
-  user_id bytea REFERENCES users(id),
-  task_id bytea REFERENCES tasks(id),
-  revision bigint,
-  response int[],
-  PRIMARY KEY (user_id, task_id, revision)
-);
-
-CREATE TABLE ordering_work (
-  user_id bytea REFERENCES users(id),
-  task_id bytea REFERENCES tasks(id),
-  revision bigint,
-  response int[],
-  PRIMARY KEY (user_id, task_id, revision)
-);
-
-CREATE TABLE matching_work (
-  user_id bytea REFERENCES users(id),
-  task_id bytea REFERENCES tasks(id),
-  revision bigint,
-  response int[][2],
-  PRIMARY KEY (user_id, task_id, revision)
-);
-
 
 CREATE TABLE components (
-  id bytea NOT NULL PRIMARY KEY,
+  id bytea PRIMARY KEY,
   version bigint,
   title text,
   questions text,
   things_to_think_about text,
   type text,
   created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  status int
+  updated_at timestamp with time zone
 );
 
-
-CREATE TABLE audio_components (
-  component_id bytea NOT NULL PRIMARY KEY REFERENCES components(id),
-  soundcloud_id text
+CREATE TABLE parts_components (
+  component_id bytea REFERENCES components(id) ON DELETE CASCADE,
+  part_id bytea REFERENCES parts(id) ON DELETE CASCADE,
+  created_at timestamp with time zone,
+  PRIMARY KEY (component_id, part_id)
 );
 
 CREATE TABLE text_components (
-  component_id bytea NOT NULL PRIMARY KEY REFERENCES components(id),
-  content text
+  component_id bytea PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
+  text text
 );
 
 CREATE TABLE video_components (
-  component_id bytea NOT NULL PRIMARY KEY REFERENCES components(id),
+  component_id bytea PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
   vimeo_id text,
   width int,
   height int
 );
 
-CREATE TABLE activity_log (
-  id bytea NOT NULL PRIMARY KEY,
-  version bigint,
-  user_id bytea REFERENCES users(id),
-  message text,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  status int
-);
-
-
-CREATE TABLE components_parts (
-  component_id bytea REFERENCES components(id),
-  part_id bytea REFERENCES parts(id),
-  created_at timestamp with time zone,
-  PRIMARY KEY (component_id, part_id)
-);
-
-CREATE TABLE class_schedules (
-  id bytea NOT NULL PRIMARY KEY,
-  version bigint,
-  class_id bytea NOT NULL REFERENCES classes(id),
-  day timestamp with time zone,
-  start_time timestamp with time zone,
-  end_time timestamp with time zone,
-  description text,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone
-);
-
-CREATE TABLE users_roles (
-  user_id bytea REFERENCES users(id),
-  role_id bytea REFERENCES roles(id),
-  created_at timestamp with time zone,
-  PRIMARY KEY (user_id, role_id)
-);
-
-CREATE TABLE users_classes (
-  user_id bytea REFERENCES users(id),
-  class_id bytea REFERENCES classes(id),
-  created_at timestamp with time zone,
-  PRIMARY KEY (user_id, class_id)
-);
-
-CREATE TABLE classes_projects (
-  project_id bytea REFERENCES projects(id),
-  class_id bytea REFERENCES classes(id),
-  created_at timestamp with time zone,
-  PRIMARY KEY (project_id, class_id)
-);
-
-CREATE TABLE scheduled_classes_parts (
-  class_id bytea REFERENCES classes(id),
-  part_id bytea REFERENCES parts(id),
-  active boolean,
-  created_at timestamp with time zone,
-  PRIMARY KEY (class_id, part_id)
-);
-
-CREATE TABLE task_notes (
-  user_id bytea REFERENCES users(id),
-  task_id bytea REFERENCES tasks(id),
-  revision bigint,
-  version bigint,
-  notes text,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  status int,
-  PRIMARY KEY (user_id, task_id, revision)
+CREATE TABLE audio_components (
+  component_id bytea PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
+  soundcloud_id text
 );
 
 CREATE TABLE component_notes (
-  user_id bytea REFERENCES users(id),
-  component_id bytea REFERENCES components(id),
-  revision bigint,
-  version bigint,
-  notes text,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  status int,
-  PRIMARY KEY (user_id, component_id, revision)
+  user_id bytea REFERENCES users(id) ON DELETE CASCADE,
+  component_id bytea REFERENCES components(id) ON DELETE RESTRICT,
+  document_id bytea REFERENCES documents(id) ON DELETE RESTRICT,
+  PRIMARY KEY (user_id, component_id, document_id)
 );
 
-CREATE TABLE student_responses (
-  user_id bytea REFERENCES users(id),
-  task_id bytea REFERENCES tasks(id),
-  revision bigint,
+/*
+  Master records for student work.
+*/
+
+CREATE TABLE work (
+  id bytea PRIMARY KEY,
+  user_id bytea NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  task_id bytea NOT NULL REFERENCES tasks(id) ON DELETE RESTRICT,
   version bigint,
-  response text,
-  is_complete boolean,
+  contents text,
+  is_complete boolean DEFAULT false,
+  work_type int,
   created_at timestamp with time zone,
   updated_at timestamp with time zone,
-  status int,
-  PRIMARY KEY (user_id, task_id, revision)
+  UNIQUE (user_id, task_id)
 );
 
-CREATE TABLE class_schedule_exceptions (
-  id bytea NOT NULL PRIMARY KEY,
-  user_id bytea NOT NULL REFERENCES users(id),
-  class_id bytea NOT NULL REFERENCES classes(id),
-  version bigint,
-  day timestamp with time zone,
-  start_time timestamp with time zone,
-  end_time timestamp with time zone,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone
+/*
+  Long Answer and Short Answer work just are versioned using the OT document system. Thus
+  their tables merely hold pointers to Documents.
+*/
+
+CREATE TABLE long_answer_work (
+  work_id bytea REFERENCES work(id) ON DELETE CASCADE,
+  document_id bytea REFERENCES documents(id) ON DELETE RESTRICT,
+  PRIMARY KEY (work_id, document_id)
 );
 
-CREATE TABLE task_feedbacks (
-  teacher_id bytea NOT NULL REFERENCES users(id),
-  student_id bytea NOT NULL REFERENCES users(id),
-  task_id    bytea NOT NULL REFERENCES tasks(id),
-  revision bigint,
-  version bigint,
-  content text,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  PRIMARY KEY (teacher_id, student_id, task_id, revision)
+CREATE TABLE short_answer_work (
+  work_id bytea REFERENCES work(id) ON DELETE CASCADE,
+  document_id bytea REFERENCES documents(id) ON DELETE RESTRICT,
+  PRIMARY KEY (work_id, document_id)
 );
 
-CREATE TABLE logbook (
-  id bytea NOT NULL PRIMARY KEY,
+/*
+  Multiple choice, ordering and matching are versioned using their own tables.
+*/
+
+CREATE TABLE multiple_choice_work (
+  work_id bytea REFERENCES work(id) ON DELETE CASCADE,
   version bigint,
-  remote_address text,
-  request_uri text,
-  user_agent text,
-  user_id bytea,
-  message text,
-  created_at timestamp with time zone,
-  updated_at timestamp with time zone,
-  status int
+  response int[],
+  PRIMARY KEY (work_id, version)
+);
+
+CREATE TABLE ordering_work (
+  work_id bytea REFERENCES work(id) ON DELETE CASCADE,
+  version bigint,
+  response int[],
+  PRIMARY KEY (work_id, version)
+);
+
+CREATE TABLE matching_work (
+  work_id bytea REFERENCES work(id) ON DELETE CASCADE,
+  version bigint,
+  response int[][2],
+  PRIMARY KEY (work_id, version)
 );

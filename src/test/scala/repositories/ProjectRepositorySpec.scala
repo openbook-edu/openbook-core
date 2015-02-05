@@ -1,6 +1,6 @@
 import java.io.File
 import ca.shiftfocus.krispii.core.models.Project
-import ca.shiftfocus.krispii.core.repositories.ProjectRepositoryPostgresComponent
+import ca.shiftfocus.krispii.core.repositories.{PartRepositoryComponent, ProjectRepositoryPostgresComponent}
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.RowData
@@ -11,15 +11,22 @@ import org.scalatest._
 import Matchers._
 import scala.concurrent.ExecutionContext.Implicits.global
 
-import scala.concurrent.Await
+import scala.concurrent.{Future, Await}
 import scala.concurrent.duration.Duration
 
 trait ProjectRepoTestEnvironment
   extends ProjectRepositoryPostgresComponent
+  with PartRepositoryComponent
   with Suite
   with BeforeAndAfterAll
+  with MustMatchers
+  with MockFactory
   with PostgresDB {
   val logger = Logger[this.type]
+
+  /* START MOCK */
+  override val partRepository = stub[PartRepository]
+  /* END MOCK */
 
   implicit val connection = db.pool
 
@@ -57,26 +64,29 @@ trait ProjectRepoTestEnvironment
   }
 
   val SelectOne = """
-     SELECT projects.id as id, projects.version as version, projects.class_id, projects.name as name, projects.slug as slug,
-     projects.description as description, projects.availability as availability, projects.created_at as created_at, projects.updated_at as updated_at
+     SELECT *
      FROM projects
      WHERE projects.id = ?
                   """
 }
 
-class ProjectRepositorySpec extends WordSpec
-  with MustMatchers
-  with MockFactory
+class ProjectRepositorySpec
+  extends WordSpec
   with ProjectRepoTestEnvironment {
 
-  // TODO - check why "should be Vector..." doesn't work
+
+
   "ProjectRepository.list" should {
     inSequence {
       "find all projects" in {
+        // Put here parts = Vector(), because after db query Project object is created without parts.
+        (partRepository.list(_: Project)) when(TestValues.testProjectA.copy(parts = Vector())) returns(Future.successful(Vector(TestValues.testPartA, TestValues.testPartB)))
+        (partRepository.list(_: Project)) when(TestValues.testProjectB.copy(parts = Vector())) returns(Future.successful(Vector(TestValues.testPartC)))
+        (partRepository.list(_: Project)) when(TestValues.testProjectC.copy(parts = Vector())) returns(Future.successful(Vector()))
+
         val result = projectRepository.list
 
         val projects = Await.result(result, Duration.Inf)
-
         projects.toString should be(Vector(TestValues.testProjectA, TestValues.testProjectB, TestValues.testProjectC).toString)
 
         Map[Int, Project](0 -> TestValues.testProjectA, 1 -> TestValues.testProjectB, 2 -> TestValues.testProjectC).foreach {
@@ -88,12 +98,16 @@ class ProjectRepositorySpec extends WordSpec
             projects(key).slug should be(project.slug)
             projects(key).description should be(project.description)
             projects(key).availability should be(project.availability)
+            projects(key).parts should be(project.parts)
             projects(key).createdAt.toString should be(project.createdAt.toString)
             projects(key).updatedAt.toString should be(project.updatedAt.toString)
           }
         }
       }
       "find all projects belonging to a given section" in {
+        // Put here parts = Vector(), because after db query Project object is created without parts.
+        (partRepository.list(_: Project)) when(TestValues.testProjectA.copy(parts = Vector())) returns(Future.successful(Vector(TestValues.testPartA, TestValues.testPartB)))
+
         val result = projectRepository.list(TestValues.testClassA)
         val projects = Await.result(result, Duration.Inf)
 
@@ -108,6 +122,7 @@ class ProjectRepositorySpec extends WordSpec
             projects(key).slug should be(project.slug)
             projects(key).description should be(project.description)
             projects(key).availability should be(project.availability)
+            projects(key).parts should be(project.parts)
             projects(key).createdAt.toString should be(project.createdAt.toString)
             projects(key).updatedAt.toString should be(project.updatedAt.toString)
           }
@@ -125,6 +140,9 @@ class ProjectRepositorySpec extends WordSpec
   "ProjectRepository.find" should {
     inSequence {
       "find project by ID" in {
+        // Put here parts = Vector(), because after db query Project object is created without parts.
+        (partRepository.list(_: Project)) when(TestValues.testProjectA.copy(parts = Vector())) returns(Future.successful(Vector(TestValues.testPartA, TestValues.testPartB)))
+
         val result = projectRepository.find(TestValues.testProjectA.id).map(_.get)
         val project = Await.result(result, Duration.Inf)
 
@@ -135,6 +153,7 @@ class ProjectRepositorySpec extends WordSpec
         project.slug should be(TestValues.testProjectA.slug)
         project.description should be(TestValues.testProjectA.description)
         project.availability should be(TestValues.testProjectA.availability)
+        project.parts should be(TestValues.testProjectA.parts)
         project.createdAt.toString should be(TestValues.testProjectA.createdAt.toString)
         project.updatedAt.toString should be(TestValues.testProjectA.updatedAt.toString)
       }
@@ -143,7 +162,10 @@ class ProjectRepositorySpec extends WordSpec
 
         Await.result(result, Duration.Inf) should be (None)
       }
-      "find project by ID and User (author)"  + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET in {
+      "find project by ID and User (teacher)" in {
+        // Put here parts = Vector(), because after db query Project object is created without parts.
+        (partRepository.list(_: Project)) when(TestValues.testProjectB.copy(parts = Vector())) returns(Future.successful(Vector(TestValues.testPartC)))
+
         val result = projectRepository.find(TestValues.testProjectB.id, TestValues.testUserB).map(_.get)
         val project = Await.result(result, Duration.Inf)
 
@@ -157,22 +179,56 @@ class ProjectRepositorySpec extends WordSpec
         project.createdAt.toString should be(TestValues.testProjectB.createdAt.toString)
         project.updatedAt.toString should be(TestValues.testProjectB.updatedAt.toString)
       }
+      "find project by ID and User (student)" in {
+        // Put here parts = Vector(), because after db query Project object is created without parts.
+        (partRepository.list(_: Project)) when(TestValues.testProjectB.copy(parts = Vector())) returns(Future.successful(Vector(TestValues.testPartC)))
+
+        val result = projectRepository.find(TestValues.testProjectB.id, TestValues.testUserG).map(_.get)
+        val project = Await.result(result, Duration.Inf)
+
+        project.id should be(TestValues.testProjectB.id)
+        project.classId should be(TestValues.testProjectB.classId)
+        project.version should be(TestValues.testProjectB.version)
+        project.name should be(TestValues.testProjectB.name)
+        project.slug should be(TestValues.testProjectB.slug)
+        project.description should be(TestValues.testProjectB.description)
+        project.availability should be(TestValues.testProjectB.availability)
+        project.createdAt.toString should be(TestValues.testProjectB.createdAt.toString)
+        project.updatedAt.toString should be(TestValues.testProjectB.updatedAt.toString)
+      }
+      "be NONE if user is not connected with a project" in {
+        // Put here parts = Vector(), because after db query Project object is created without parts.
+        (partRepository.list(_: Project)) when(TestValues.testProjectB.copy(parts = Vector())) returns(Future.successful(Vector(TestValues.testPartC)))
+
+        val result = projectRepository.find(TestValues.testProjectB.id, TestValues.testUserA)
+
+        Await.result(result, Duration.Inf) should be (None)
+      }
       "be NONE if project ID is wrong" in {
         val result = projectRepository.find(UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477"), TestValues.testUserB)
 
         Await.result(result, Duration.Inf) should be (None)
       }
       "be NONE if User (author) unexists" in {
+        // Put here parts = Vector(), because after db query Project object is created without parts.
+        (partRepository.list(_: Project)) when(TestValues.testProjectB.copy(parts = Vector())) returns(Future.successful(Vector(TestValues.testPartC)))
+
         val result = projectRepository.find(TestValues.testProjectB.id, TestValues.testUserD)
 
         Await.result(result, Duration.Inf) should be (None)
       }
       "be NONE if User (author) is not found" in {
+        // Put here parts = Vector(), because after db query Project object is created without parts.
+        (partRepository.list(_: Project)) when(TestValues.testProjectB.copy(parts = Vector())) returns(Future.successful(Vector(TestValues.testPartC)))
+
         val result = projectRepository.find(TestValues.testProjectB.id, TestValues.testUserC)
 
         Await.result(result, Duration.Inf) should be (None)
       }
-      "find project by slug"  + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET  in {
+      "find project by slug" in {
+        // Put here parts = Vector(), because after db query Project object is created without parts.
+        (partRepository.list(_: Project)) when(TestValues.testProjectA.copy(parts = Vector())) returns(Future.successful(Vector(TestValues.testPartA, TestValues.testPartB)))
+
         val result = projectRepository.find(TestValues.testProjectA.slug).map(_.get)
         val project = Await.result(result, Duration.Inf)
 
@@ -245,21 +301,21 @@ class ProjectRepositorySpec extends WordSpec
   "ProjectRepository.update" should {
     inSequence {
       "update project" in {
-        val result = projectRepository.update(TestValues.testProjectC.copy(
-          name = "new test project C",
-          slug = "new test project slug C",
-          description = "new test project C description",
+        val result = projectRepository.update(TestValues.testProjectA.copy(
+          name = "new test project A",
+          slug = "new test project slug A",
+          description = "new test project A description",
           availability = "any"
         ))
         val project = Await.result(result, Duration.Inf)
 
-        project.name should be("new test project C")
-        project.slug should be("new test project slug C")
-        project.description should be("new test project C description")
+        project.name should be("new test project A")
+        project.slug should be("new test project slug A")
+        project.description should be("new test project A description")
         project.availability should be("any")
 
         // Check record in db
-        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testProjectC.id.bytes)).map { queryResult =>
+        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testProjectA.id.bytes)).map { queryResult =>
           val projectList = queryResult.rows.get.map {
             item: RowData => Project(item)
           }
@@ -268,9 +324,9 @@ class ProjectRepositorySpec extends WordSpec
 
         val projectList = Await.result(queryResult, Duration.Inf)
 
-        projectList(0).name should be("new test project C")
-        projectList(0).slug should be("new test project slug C")
-        projectList(0).description should be("new test project C description")
+        projectList(0).name should be("new test project A")
+        projectList(0).slug should be("new test project slug A")
+        projectList(0).description should be("new test project A description")
         projectList(0).availability should be("any")
       }
       "throw a NoSuchElementException when update an existing Project with wrong version" in {
@@ -282,13 +338,7 @@ class ProjectRepositorySpec extends WordSpec
         an[java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
       }
       "throw a NoSuchElementException when update an unexisting Project" in {
-        val result = projectRepository.update(Project(
-          classId = UUID("217c5622-ff9e-4372-8e6a-95fb3bae300b"),
-          name = "unexisting  P",
-          slug = "unexisting  P slug",
-          description = "unexisting  P description",
-          parts = Vector()
-        ))
+        val result = projectRepository.update(TestValues.testProjectE)
 
         an[java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
       }
@@ -297,22 +347,38 @@ class ProjectRepositorySpec extends WordSpec
 
   "ProjectRepository.delete" should {
     inSequence {
-      "delete project" + Console.RED + Console.BOLD + " (FAIL: Has refernces in other tables) " + Console.RESET in {
+      "delete a project if project doesn't have references in other tables" in {
+        val result = projectRepository.delete(TestValues.testProjectC)
 
+        Await.result(result, Duration.Inf) should be (true)
+
+        // Check
+        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testProjectC.id.bytes)).map { queryResult =>
+          val projectList = queryResult.rows.get.map {
+            item: RowData => Project(item)
+          }
+          projectList
+        }
+
+        Await.result(queryResult, Duration.Inf) should be (Vector())
       }
-      "throw a GenericDatabaseException if project has references in other tables" in {
-        val result = projectRepository.delete(TestValues.testProjectA)
+      "delete a project if project has references in other tables" in {
+        val result = projectRepository.delete(TestValues.testProjectB)
 
-        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
+        Await.result(result, Duration.Inf) should be (true)
+
+        // Check
+        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testProjectB.id.bytes)).map { queryResult =>
+          val projectList = queryResult.rows.get.map {
+            item: RowData => Project(item)
+          }
+          projectList
+        }
+
+        Await.result(queryResult, Duration.Inf) should be (Vector())
       }
       "return FALSE if Project hasn't been found" in {
-        val result = projectRepository.delete(Project(
-          classId = UUID("217c5622-ff9e-4372-8e6a-95fb3bae300b"),
-          name = "unexisting  P",
-          slug = "unexisting  P slug",
-          description = "unexisting  P description",
-          parts = Vector()
-        ))
+        val result = projectRepository.delete(TestValues.testProjectE)
 
         Await.result(result, Duration.Inf) should be(false)
       }

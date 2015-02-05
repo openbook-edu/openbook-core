@@ -13,7 +13,8 @@ import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
 trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
-  self: PostgresDB =>
+  self: TaskRepositoryComponent with
+        PostgresDB =>
 
   /**
    * Override with this trait's version of the ProjectRepository.
@@ -24,13 +25,16 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
    * A concrete implementation of the ProjectRepository class.
    */
   private class PartRepositoryPSQL extends PartRepository {
-    def fields = Seq("project_id", "name", "description", "position", "enabled")
+    def fields = Seq("project_id", "name", "position", "enabled")
     def table = "parts"
+
+    // TODO no such fields
     def orderBy = "surname ASC, givenname ASC"
+
     val fieldsText = fields.mkString(", ")
     val questions = fields.map(_ => "?").mkString(", ")
 
-    // User CRUD operations
+    // CRUD operations
     val SelectAll = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
@@ -372,7 +376,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
         new DateTime,
         part.projectId.bytes,
         part.name,
-        part.description,
+//        part.description,
         part.position,
         part.enabled
       )).map {
@@ -396,7 +400,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       conn.sendPreparedStatement(Update, Array(
         part.projectId.bytes,
         part.name,
-        part.description,
+//        part.description,
         part.position,
         part.enabled,
         (part.version + 1),

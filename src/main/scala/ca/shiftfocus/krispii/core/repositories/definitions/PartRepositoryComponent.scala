@@ -20,7 +20,6 @@ trait PartRepositoryComponent {
      */
     def list: Future[IndexedSeq[Part]]
     def list(project: Project): Future[IndexedSeq[Part]]
-    //def list(section: Section): Future[IndexedSeq[Part]]
     def list(component: Component): Future[IndexedSeq[Part]]
     def listEnabled(project: Project, user: User): Future[IndexedSeq[Part]]
     def listEnabled(project: Project, section: Class): Future[IndexedSeq[Part]]

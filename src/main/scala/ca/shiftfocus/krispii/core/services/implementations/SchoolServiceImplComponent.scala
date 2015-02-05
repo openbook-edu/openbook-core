@@ -268,6 +268,7 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
 
     // Utility functions for section management, assuming you already found a section object.
 
+    // TODO - delete
     /**
      * Enable a part for a section.
      *
@@ -286,6 +287,7 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
       }
     }
 
+    // TODO - delete
     /**
      * Disable a part for a section.
      *

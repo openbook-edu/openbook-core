@@ -24,7 +24,6 @@ trait ProjectServiceComponent {
     def taskGroups(project: Project, user: User): Future[IndexedSeq[TaskGroup]]
 
     // Parts
-    def listParts(projectId: UUID): Future[IndexedSeq[Part]]
     def listPartsInComponent(componentId: UUID): Future[IndexedSeq[Part]]
     def findPart(partId: UUID): Future[Option[Part]]
     def createPart(projectId: UUID, name: String, description: String, position: Int): Future[Part]
@@ -33,9 +32,6 @@ trait ProjectServiceComponent {
     def reorderParts(projectId: UUID, partIds: IndexedSeq[UUID]): Future[Project]
 
     // Tasks
-    def listTasks: Future[IndexedSeq[Task]]
-    def listTasks(projectId: UUID): Future[IndexedSeq[Task]]
-    def listTasks(projectId: UUID, partNum: Int): Future[IndexedSeq[Task]]
     def findTask(taskId: UUID): Future[Option[Task]]
     def findTask(projectSlug: String, partNum: Int, taskNum: Int): Future[Option[Task]]
     def findNowTask(userId: UUID, projectId: UUID): Future[Option[Task]]

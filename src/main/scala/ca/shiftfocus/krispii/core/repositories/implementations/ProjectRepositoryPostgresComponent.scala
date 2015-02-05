@@ -13,7 +13,8 @@ import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
 trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
-  self: PostgresDB =>
+  self: PartRepositoryComponent with
+        PostgresDB =>
 
   /**
    * Override with this trait's version of the ProjectRepository.
@@ -74,12 +75,13 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
          |WHERE slug = ?
        """.stripMargin
 
-    val SelectIdBySlug =
-      s"""
-         |SELECT projects.id
-         |$From
-         |WHERE slug = ?
-       """.stripMargin
+    // TODO - not used
+//    val SelectIdBySlug =
+//      s"""
+//         |SELECT projects.id
+//         |$From
+//         |WHERE slug = ?
+//       """.stripMargin
 
     val ListByClass =
       s"""
@@ -115,30 +117,46 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      * @return a vector of the returned Projects
      */
     override def list: Future[IndexedSeq[Project]] = {
-      db.pool.sendQuery(SelectAll).map { queryResult =>
-        val projectList = queryResult.rows.get.map {
-          item: RowData => Project(item)
+      val projectList = for {
+        queryResult <- db.pool.sendQuery(SelectAll)
+        projects <- Future successful {
+          queryResult.rows.get.map { item => Project(item) }
         }
-        projectList
-      }.recover {
+        result <- Future sequence { projects.map { project =>
+          partRepository.list(project).map { partList =>
+            project.copy(parts = partList)
+          }
+        }}
+      } yield result
+
+      projectList.recover {
         case exception => {
           throw exception
         }
       }
     }
 
+
     /**
-     * Find all Projects belonging to a given section.
+     * Find all Projects belonging to a given class.
      *
      * @param section The section to return projects from.
      * @return a vector of the returned Projects
      */
     override def list(`class`: Class): Future[IndexedSeq[Project]] = {
-      db.pool.sendPreparedStatement(ListByClass, Array[Any](`class`.id.bytes)).map { queryResult =>
-        queryResult.rows.get.map {
-          item: RowData => Project(item)
+      val projectList = for {
+        queryResult <- db.pool.sendPreparedStatement(ListByClass, Array[Any](`class`.id.bytes))
+        projects <- Future successful {
+          queryResult.rows.get.map { item => Project(item) }
         }
-      }.recover {
+        result <- Future sequence { projects.map { project =>
+          partRepository.list(project).map { partList =>
+            project.copy(parts = partList)
+          }
+        }}
+      } yield result
+
+      projectList.recover {
         case exception => {
           throw exception
         }
@@ -152,12 +170,24 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      * @return an optional Project if one was found
      */
     override def find(id: UUID): Future[Option[Project]] = {
-      db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map { result =>
-        result.rows.get.headOption match {
-          case Some(rowData) => Some(Project(rowData))
-          case None => None
+      val project = for {
+        queryResult <- db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes))
+        projectOption <- Future successful {
+          queryResult.rows.get.headOption match {
+            case Some(rowData) => Some(Project(rowData))
+            case None => None
+          }
         }
-      }.recover {
+        parts <- { projectOption match {
+          case Some(project) => partRepository.list(project)
+          case None => Future.successful(IndexedSeq())
+        }}
+      } yield projectOption match {
+        case Some(project) => Some(project.copy(parts = parts))
+        case None => None
+      }
+
+      project.recover {
         case exception => {
           throw exception
         }
@@ -165,18 +195,30 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
     }
 
     /**
-     * Find a single entry by ID.
+     * Find project by ID and User (teacher || student).
      *
      * @param id the 128-bit UUID, as a byte array, to search for.
      * @return an optional Project if one was found
      */
     override def find(projectId: UUID, user: User): Future[Option[Project]] = {
-      db.pool.sendPreparedStatement(SelectOneForUser, Array[Any](projectId.bytes, user.id.bytes, user.id.bytes)).map { result =>
-        result.rows.get.headOption match {
-          case Some(rowData) => Some(Project(rowData))
+      val project = for {
+        queryResult <- db.pool.sendPreparedStatement(SelectOneForUser, Array[Any](projectId.bytes, user.id.bytes, user.id.bytes))
+        projectOption <- Future successful {
+          queryResult.rows.get.headOption match {
+            case Some(rowData) => Some(Project(rowData))
+            case None => None
+          }
+        }
+        parts <- { projectOption match {
+          case Some(project) => partRepository.list(project)
+          case None => Future.successful(IndexedSeq())
+        }}
+      } yield projectOption match {
+          case Some(project) => Some(project.copy(parts = parts))
           case None => None
         }
-      }.recover {
+
+      project.recover {
         case exception => {
           throw exception
         }
@@ -184,18 +226,30 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
     }
 
     /**
-     * Find a single entry by ID.
+     * Find a project by slug.
      *
      * @param slug The project slug to search by.
      * @return an optional RowData object containing the results
      */
     def find(slug: String): Future[Option[Project]] = {
-      db.pool.sendPreparedStatement(SelectOneBySlug, Array[Any](slug)).map { result =>
-        result.rows.get.headOption match {
-          case Some(rowData) => Some(Project(rowData))
+      val project = for {
+        queryResult <- db.pool.sendPreparedStatement(SelectOneBySlug, Array[Any](slug))
+        projectOption <- Future successful {
+          queryResult.rows.get.headOption match {
+            case Some(rowData) => Some(Project(rowData))
+            case None => None
+          }
+        }
+        parts <- { projectOption match {
+          case Some(project) => partRepository.list(project)
+          case None => Future.successful(IndexedSeq())
+        }}
+      } yield projectOption match {
+          case Some(project) => Some(project.copy(parts = parts))
           case None => None
         }
-      }.recover {
+
+      project.recover {
         case exception => {
           throw exception
         }

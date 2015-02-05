@@ -19,7 +19,31 @@ case class Project(
   parts: IndexedSeq[Part],
   createdAt: Option[DateTime] = None,
   updatedAt: Option[DateTime] = None
-)
+) {
+  override def equals(other: Any): Boolean = {
+    other match {
+      case otherProject: Project => {
+        this.id == otherProject.id &&
+        this.classId == otherProject.classId &&
+        this.version == otherProject.version &&
+        this.name == otherProject.name &&
+        this.slug == otherProject.slug &&
+        this.description == otherProject.description &&
+        this.availability == otherProject.availability &&
+        this.parts == otherProject.parts
+//          {(this.createdAt, otherProject.createdAt) match {
+//          case (Some(thisDate), Some(thatDate)) => thisDate.equals(thatDate)
+//          case _ => false
+//        }} &&
+//        {(this.updatedAt, otherProject.updatedAt) match {
+//          case (Some(thisDate), Some(thatDate)) => thisDate.equals(thatDate)
+//          case _ => false
+//        }}
+      }
+      case _ => false
+    }
+  }
+}
 
 object Project {
 

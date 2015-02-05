@@ -85,8 +85,8 @@ class RoleRepositorySpec extends WordSpec
 
         val roles = Await.result(result, Duration.Inf)
 
-        roles should be(Vector(TestValues.testRoleA, TestValues.testRoleB, TestValues.testRoleC, TestValues.testRoleF, TestValues.testRoleG))
-        Map[Int, Role](0 -> TestValues.testRoleA, 1 -> TestValues.testRoleB, 2 -> TestValues.testRoleC, 3 -> TestValues.testRoleF, 4 -> TestValues.testRoleG).foreach {
+        roles should be(Vector(TestValues.testRoleA, TestValues.testRoleB, TestValues.testRoleC, TestValues.testRoleF, TestValues.testRoleG, TestValues.testRoleH))
+        Map[Int, Role](0 -> TestValues.testRoleA, 1 -> TestValues.testRoleB, 2 -> TestValues.testRoleC, 3 -> TestValues.testRoleF, 4 -> TestValues.testRoleG, 5 -> TestValues.testRoleH).foreach {
           case (key, role: Role) => {
             roles(key).id should be(role.id)
             roles(key).version should be(role.version)
@@ -216,9 +216,16 @@ class RoleRepositorySpec extends WordSpec
     }
   }
 
-  "RoleRepository.addUsers" + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET should {
+  /*
+    After implementation
+    In db: RoleA, RoleB, RoleC, RoleF, RoleG, RoleH
+    testUserA -> RoleA, RoleB, RoleF, RoleG, RoleC
+    testUserB -> RoleA, RoleB, RoleF, RoleG, RoleC
+    testUserF -> RoleC, RoleH
+  */
+  "RoleRepository.addUsers" should {
     inSequence {
-      "add roles to users" in {
+      "add role to users" in {
         val query_result = roleRepository.addUsers(TestValues.testRoleC, Vector(TestValues.testUserA, TestValues.testUserB))
 
         Await.result(query_result, Duration.Inf) should be (true)
@@ -256,9 +263,21 @@ class RoleRepositorySpec extends WordSpec
 
       an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy  Await.result(query_result, Duration.Inf)
     }
+    "throw a GenericDatabaseException if we add an unexisting role to user" in {
+      val query_result = roleRepository.addUsers(TestValues.testRoleD, Vector(TestValues.testUserD))
+
+      an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy  Await.result(query_result, Duration.Inf)
+    }
   }
 
-  "RoleRepository.removeUsers" + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET should {
+  /*
+    After implementation
+    In db: RoleA, RoleB, RoleC, RoleF, RoleG, RoleH
+    testUserA -> RoleA, RoleF, RoleG, RoleC
+    testUserB -> RoleA, RoleF, RoleG, RoleC
+    testUserF -> RoleC, RoleH
+  */
+  "RoleRepository.removeUsers" should {
     inSequence {
       "remove role from users" in {
         val query_result = roleRepository.removeUsers(TestValues.testRoleB, Vector(TestValues.testUserA, TestValues.testUserB))
@@ -296,6 +315,10 @@ class RoleRepositorySpec extends WordSpec
     }
   }
 
+  /*
+    After implementation
+    In db: RoleA, RoleB, RoleC, RoleD, RoleF, RoleG, RoleH
+  */
   "RoleRepository.insert" should {
     inSequence {
       "save a Role row" in {
@@ -330,7 +353,7 @@ class RoleRepositorySpec extends WordSpec
     }
   }
 
-  "RoleRepository.update" + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET should {
+  "RoleRepository.update" should {
     inSequence {
       "update an existing Role" in {
         val result = roleRepository.update(TestValues.testRoleC.copy(
@@ -374,9 +397,16 @@ class RoleRepositorySpec extends WordSpec
     }
   }
 
+  /*
+    After implementation
+    In db: RoleC, RoleD, RoleF, RoleG, RoleH
+    testUserA -> RoleF, RoleG, RoleC
+    testUserB -> RoleF, RoleG, RoleC
+    testUserF -> RoleC, RoleH
+  */
   "RoleRepository.delete" should {
     inSequence{
-      "delete role if role has no references in other tables" in {
+      "delete role if role doesn't have any references in other tables" in {
         val result = roleRepository.delete(TestValues.testRoleB)
 
         Await.result(result, Duration.Inf) should be (true)
@@ -391,10 +421,20 @@ class RoleRepositorySpec extends WordSpec
 
         Await.result(queryResult, Duration.Inf) should be (Vector())
       }
-      "throw a GenericDatabaseException if role has references in other tables" in {
+      "delete role if role has a references in other tables" in {
         val result = roleRepository.delete(TestValues.testRoleA)
 
-        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
+        Await.result(result, Duration.Inf) should be (true)
+
+        // Check if role has been deleted
+        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testRoleA.id.bytes)).map { queryResult =>
+          val roleList = queryResult.rows.get.map {
+            item: RowData => Role(item)
+          }
+          roleList
+        }
+
+        Await.result(queryResult, Duration.Inf) should be (Vector())
       }
       "return FALSE if Role hasn't been found" in {
         val result = roleRepository.delete(Role(
@@ -406,6 +446,13 @@ class RoleRepositorySpec extends WordSpec
     }
   }
 
+  /*
+    After implementation
+    In db: RoleC, RoleD, RoleF, RoleG, RoleH
+    testUserA -> RoleF, RoleG, RoleC
+    testUserB -> RoleF, RoleG, RoleC
+    testUserF -> RoleC, RoleH
+  */
   "RoleRepository.addToUser" should {
     inSequence {
       "associate a role (by object) to a user" in {
@@ -426,7 +473,7 @@ class RoleRepositorySpec extends WordSpec
       }
 
       "associate a role (by name) to a user" in {
-        val query_result = roleRepository.addToUser(TestValues.testUserC, TestValues.testRoleA.name)
+        val query_result = roleRepository.addToUser(TestValues.testUserC, TestValues.testRoleH.name)
 
         Await.result(query_result, Duration.Inf) should be (true)
 
@@ -439,10 +486,10 @@ class RoleRepositorySpec extends WordSpec
         }
 
         val roleList = Await.result(result, Duration.Inf)
-        roleList contains TestValues.testRoleA should be (true)
+        roleList contains TestValues.testRoleH should be (true)
       }
       "throw a GenericDatabaseException exception if user doesn't exist" in {
-        val query_result = roleRepository.addToUser(TestValues.testUserD, TestValues.testRoleA)
+        val query_result = roleRepository.addToUser(TestValues.testUserD, TestValues.testRoleB)
 
         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(query_result, Duration.Inf)
       }
@@ -456,18 +503,34 @@ class RoleRepositorySpec extends WordSpec
 
         Await.result(query_result, Duration.Inf) should be (false)
       }
+      "throw a GenericDatabaseException exception if user has already this role (object)" in {
+        val query_result = roleRepository.addToUser(TestValues.testUserA, TestValues.testRoleF)
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(query_result, Duration.Inf)
+      }
+      "throw a GenericDatabaseException exception if user has already this role (name)" in {
+        val query_result = roleRepository.addToUser(TestValues.testUserA, TestValues.testRoleF.name)
+
+        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(query_result, Duration.Inf)
+      }
     }
   }
 
+  /*
+    After implementation
+    In db: RoleC, RoleD, RoleF, RoleG, RoleH
+    testUserA -> RoleF, RoleG, RoleC
+    testUserB -> RoleF, RoleG, RoleC
+  */
   "RoleRepository.removeFromUser" should {
     inSequence {
       "remove role from user when role is object" in {
-        val query_result = roleRepository.removeFromUser(TestValues.testUserA, TestValues.testRoleA)
+        val query_result = roleRepository.removeFromUser(TestValues.testUserF, TestValues.testRoleC)
 
         Await.result(query_result, Duration.Inf) should be (true)
 
         // Find roles for TestValues.testUserA
-        val result = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserA.id.bytes)).map { queryResult =>
+        val result = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserF.id.bytes)).map { queryResult =>
           val roleList = queryResult.rows.get.map {
             item: RowData => Role(item)
           }
@@ -475,15 +538,15 @@ class RoleRepositorySpec extends WordSpec
         }
 
         val roleList = Await.result(result, Duration.Inf)
-        roleList contains TestValues.testRoleA should be (false)
+        roleList contains TestValues.testRoleC should be (false)
       }
-      "remove role from user by role name" + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET in {
-        val query_result = roleRepository.removeFromUser(TestValues.testUserB, TestValues.testRoleA.name)
+      "remove role from user by role name" in {
+        val query_result = roleRepository.removeFromUser(TestValues.testUserF, TestValues.testRoleH.name)
 
         Await.result(query_result, Duration.Inf) should be (true)
 
         // Find roles for TestValues.testUserB
-        val result = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserB.id.bytes)).map { queryResult =>
+        val result = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserF.id.bytes)).map { queryResult =>
           val roleList = queryResult.rows.get.map {
             item: RowData => Role(item)
           }
@@ -491,7 +554,7 @@ class RoleRepositorySpec extends WordSpec
         }
 
         val roleList = Await.result(result, Duration.Inf)
-        roleList contains TestValues.testRoleA should be (false)
+        roleList contains TestValues.testRoleH should be (false)
       }
       "return FALSE if role (object) doesn't exist" in {
         val query_result = roleRepository.removeFromUser(TestValues.testUserA, TestValues.testRoleE)
@@ -508,9 +571,25 @@ class RoleRepositorySpec extends WordSpec
 
         Await.result(query_result, Duration.Inf) should be (false)
       }
+      "return FALSE if user doesn't have this role (object)" in {
+        val query_result = roleRepository.removeFromUser(TestValues.testUserG, TestValues.testRoleG)
+
+        Await.result(query_result, Duration.Inf) should be (false)
+      }
+      "return FALSE if user doesn't have this role (name)" in {
+        val query_result = roleRepository.removeFromUser(TestValues.testUserG, TestValues.testRoleG)
+
+        Await.result(query_result, Duration.Inf) should be (false)
+      }
     }
   }
 
+  /*
+    After implementation
+    In db: RoleC, RoleD, RoleF, RoleG, RoleH
+    testUserA -> RoleC
+    testUserB -> RoleC
+  */
   "RoleRepository.removeFromAllUsers" should {
     inSequence {
       "remove role from all users when role is object"  in {
@@ -540,7 +619,7 @@ class RoleRepositorySpec extends WordSpec
         val roleListUserB = Await.result(resultForUserB, Duration.Inf)
         roleListUserB contains TestValues.testRoleF should be (false)
       }
-      "remove role from all users by role name" + Console.RED + Console.BOLD + " (NOTE: Please check Javadoc for this method) " + Console.RESET in {
+      "remove role from all users by role name" in {
         val query_result = roleRepository.removeFromAllUsers(TestValues.testRoleG.name)
 
         Await.result(query_result, Duration.Inf) should be (true)
@@ -574,6 +653,16 @@ class RoleRepositorySpec extends WordSpec
       }
       "return FALSE if role (name) doesn't exist" in {
         val query_result = roleRepository.removeFromAllUsers(TestValues.testRoleE.name)
+
+        Await.result(query_result, Duration.Inf) should be (false)
+      }
+      "return FALSE if no one from users doesn't have this role (object)" in {
+        val query_result = roleRepository.removeFromAllUsers(TestValues.testRoleG)
+
+        Await.result(query_result, Duration.Inf) should be (false)
+      }
+      "return FALSE if no one from users doesn't have this role (name)" in {
+        val query_result = roleRepository.removeFromAllUsers(TestValues.testRoleG.name)
 
         Await.result(query_result, Duration.Inf) should be (false)
       }

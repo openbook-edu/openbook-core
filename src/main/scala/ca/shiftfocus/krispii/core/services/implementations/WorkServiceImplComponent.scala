@@ -199,7 +199,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
           user <- fUser
           task <- fTask
           section <- fSection
-          document <- documentService.create(UUID.random, user, "", Delta(IndexedSeq(), 0))
+          document <- documentService.create(UUID.random, user, "", Delta(IndexedSeq()))
           work <- createWork(LongAnswerWork(
             studentId = user.id,
             taskId = task.id,
@@ -232,7 +232,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
           user <- fUser
           task <- fTask
           section <- fSection
-          document <- documentService.create(UUID.random, user, "", Delta(IndexedSeq(), 0))
+          document <- documentService.create(UUID.random, user, "", Delta(IndexedSeq()))
           work <- createWork(ShortAnswerWork(
             studentId = user.id,
             taskId = task.id,

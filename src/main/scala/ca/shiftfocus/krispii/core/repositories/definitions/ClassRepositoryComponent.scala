@@ -12,7 +12,6 @@ trait ClassRepositoryComponent {
 
   trait ClassRepository {
     def list: Future[IndexedSeq[Class]]
-    def list(course: Course): Future[IndexedSeq[Class]]
     def list(project: Project): Future[IndexedSeq[Class]]
     def list(users: IndexedSeq[User]): Future[Map[UUID, IndexedSeq[Class]]]
     def list(user: User, asTeacher: Boolean = false): Future[IndexedSeq[Class]]
@@ -31,10 +30,7 @@ trait ClassRepositoryComponent {
     def removeAllUsers(section: Class)(implicit conn: Connection): Future[Boolean]
     def findUserForTeacher(student: User, teacher: User): Future[Option[User]]
 
-    def addProjects(section: Class, projects: IndexedSeq[Project])(implicit conn: Connection): Future[Boolean]
-    def removeProjects(section: Class, projects: IndexedSeq[Project])(implicit conn: Connection): Future[Boolean]
-    def removeAllProjects(section: Class)(implicit conn: Connection): Future[Boolean]
-
+    // TODO - delete
     def enablePart(section: Class, part: Part)(implicit conn: Connection): Future[Boolean]
     def disablePart(section: Class, part: Part)(implicit conn: Connection): Future[Boolean]
     def disablePart(part: Part)(implicit conn: Connection): Future[Boolean]

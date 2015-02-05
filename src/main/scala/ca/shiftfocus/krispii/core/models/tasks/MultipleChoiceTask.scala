@@ -47,6 +47,14 @@ case class MultipleChoiceTask(
    */
   override val taskType: Int = Task.MultipleChoice
 
+  override def equals(other: Any): Boolean = {
+    other match {
+      case otherMultipleChoiceTask: MultipleChoiceTask => {
+        this.id == otherMultipleChoiceTask.id
+      }
+      case _ => false
+    }
+  }
 }
 
 object MultipleChoiceTask {

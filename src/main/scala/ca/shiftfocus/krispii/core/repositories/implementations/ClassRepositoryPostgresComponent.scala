@@ -78,14 +78,6 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
          |WHERE id = ? AND version = ?
        """.stripMargin
 
-    val ListByCourseId =
-      s"""
-         |$Select
-         |$From
-         |WHERE course_id = ?
-         |$OrderBy
-       """.stripMargin
-
     val ListByTeacherId =
       s"""
          |$Select
@@ -103,6 +95,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
          |$OrderBy
        """.stripMargin
 
+    // TODO - not used
     val ListSectionsByTeacherId =
       s"""
          |$Select
@@ -111,22 +104,24 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
          |$OrderBy
       """.stripMargin
 
-    val ListSectionsForProject =
+    val ListClassForProject =
       s"""
          |$Select
-         |$From, classes_projects
-         |WHERE classes.id = classes_projects.class_id
-         |  AND classes_projects.project_id = ?
+         |$From, projects
+         |WHERE classes.id = projects.class_id
+         |  AND projects.id = ?
          |$OrderBy
        """.stripMargin
 
 
+    // TODO - not used
     val EnablePart =
       s"""
          |INSERT INTO scheduled_classes_parts (class_id, part_id, active, created_at)
          |VALUES (?, ?, TRUE, ?)
        """.stripMargin
 
+    // TODO - not used
     val DisablePart =
       s"""
          |DELETE FROM scheduled_classes_parts
@@ -134,6 +129,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
          |  AND part_id = ?
        """.stripMargin
 
+    // TODO - not used
     val DisableForAllParts =
       s"""
          |DELETE FROM scheduled_classes_parts
@@ -141,6 +137,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
        """.stripMargin
 
 
+    // TODO - not used
     val AddProjects =
       s"""
          |INSERT INTO classes_projects (class_id, project_id, created_at)
@@ -166,6 +163,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
          |  AND class_id = ?
        """.stripMargin
 
+    // TODO - not used, is implemented in UserRepo
     val ListUsers =
       s"""
          |SELECT id, version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
@@ -188,6 +186,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
          |WHERE class_id =
        """.stripMargin
 
+    // TODO - not used
     val RemoveProjects =
       s"""
          |DELETE FROM classes_projects
@@ -200,19 +199,21 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
          |WHERE class_id = ?
        """.stripMargin
 
+    // TODO - not used
     val RemoveAllProjects =
       s"""
          |DELETE FROM classes_projects
          |WHERE class_id = ?
        """.stripMargin
 
+
     val HasProject =
       s"""
          |SELECT projects.id
-         |FROM users_classes
-         |INNER JOIN classes_projects ON users_classes.class_id = classes_projects.class_id
-         |INNER JOIN projects ON classes_projects.project_id = projects.id
-         |WHERE classes_projects.project_id = ?
+         |FROM projects
+         |INNER JOIN classes ON classes.id = projects.class_id
+         |INNER JOIN users_classes ON users_classes.class_id = classes.id
+         |WHERE projects.id = ?
          |  AND users_classes.user_id = ?
        """.stripMargin
     
@@ -231,8 +232,6 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     /**
      * List all classes.
      *
-     * @param conn  an implicit Connection must be in scope. This allows this
-     *             method to be called inside a transaction block.
      * @return an  array of Sections
      */
     def list: Future[IndexedSeq[Class]] = {
@@ -249,35 +248,14 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     }
 
     /**
-     * Select rows by their course ID.
-     *
-     * @param course  the course to filter by
-     * @param conn  an implicit Connection must be in scope. This allows this
-     *              method to be called inside a transaction block.
-     * @return an array of Sections
-     */
-    def list(course: Course): Future[IndexedSeq[Class]] = {
-      db.pool.sendPreparedStatement(ListByCourseId, Seq[Any](course.id.bytes)).map { queryResult =>
-        queryResult.rows.get.map {
-          item: RowData => Class(item)
-        }
-      }.recover {
-        case exception => {
-          throw exception
-        }
-      }
-    }
-
-    /**
-     * Select rows by their course ID.
+     * Return class by its project.
      *
      * @param project  the project to filter by
-     * @param conn  an implicit Connection must be in scope. This allows this
-     *              method to be called inside a transaction block.
+     *
      * @return a result set
      */
     def list(project: Project): Future[IndexedSeq[Class]] = {
-      db.pool.sendPreparedStatement(ListSectionsForProject, Seq[Any](project.id.bytes)).map { queryResult =>
+      db.pool.sendPreparedStatement(ListClassForProject, Seq[Any](project.id.bytes)).map { queryResult =>
         queryResult.rows.get.map {
           item: RowData => Class(item)
         }
@@ -294,8 +272,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
      * @param user the user to search by
      * @param asTeacher  whether we are searching for classes this user teachers,
      *                   or classes this user is a student of.
-     * @param conn  an implicit Connection must be in scope. This allows this
-     *              method to be called inside a transaction block.
+     *
      * @return the found classes
      */
     def list(user: User, asTeacher: Boolean = false): Future[IndexedSeq[Class]] = {
@@ -312,7 +289,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     }
 
     /**
-     * List the roles associated with a user.
+     * List the classes associated with a user.
      */
     override def list(users: IndexedSeq[User]): Future[Map[UUID, IndexedSeq[Class]]] = {
       val arrayString = users.map { user =>
@@ -362,6 +339,13 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
       }
     }
 
+    /**
+     * Find student in teacher's class
+     *
+     * @param student
+     * @param teacher
+     * @return
+     */
     override def findUserForTeacher(student: User, teacher: User): Future[Option[User]] = {
       db.pool.sendPreparedStatement(FindUserForTeacher, Array[Any](teacher.id.bytes, student.id.bytes)).map { result =>
         result.rows.get.headOption match {
@@ -394,7 +378,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     }
 
     /**
-     * Remove a role from a user.
+     * Remove a user from a class.
      */
     override def removeUser(user: User, `class`: Class)(implicit conn: Connection) = {
       val future = for {
@@ -411,7 +395,11 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
 
     /**
      * Verify if this user has access to this project through any of his classes.
-     * @type {[type]}
+     *
+     * @param user
+     * @param project
+     * @param conn
+     * @return
      */
     override def hasProject(user: User, project: Project)(implicit conn: Connection): Future[Boolean] = {
       val future = for {
@@ -448,27 +436,6 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     }
 
     /**
-     * Add projects to a `class`.
-     *
-     * @param `class`  the `class` to add users to.
-     * @param projects  an array of projects to be added.
-     * @param conn  an implicit database Connection.
-     * @return a boolean indicating if the action was successful.
-     */
-    def addProjects(`class`: Class, projects: IndexedSeq[Project])(implicit conn: Connection) = {
-      val cleanSectionId = `class`.id.string filterNot ("-" contains _)
-      val query = AddProjects + projects.map { project =>
-        val cleanProjectId = project.id.string filterNot ("-" contains _)
-        s"('\\x$cleanSectionId', '\\x$cleanProjectId', '${new DateTime}')"
-      }.mkString(",")
-
-      for {
-        result <- conn.sendQuery(query)
-      }
-      yield (result.rowsAffected > 0)
-    }
-
-    /**
      * Remove users from a `class`.
      *
      * @param `class`  the `class` to remove users from.
@@ -490,27 +457,6 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
       yield (result.rowsAffected > 0)
     }
 
-    /**
-     * Remove projects from a `class`.
-     *
-     * @param `class`  the `class` to remove projects from.
-     * @param projects  an array of the projectsto be removed.
-     * @param conn  an implicit database Connection.
-     * @return a boolean indicating if the action was successful.
-     */
-    def removeProjects(`class`: Class, projects: IndexedSeq[Project])(implicit conn: Connection) = {
-      val cleanSectionId = `class`.id.string filterNot ("-" contains _)
-      val arrayString = projects.map { project =>
-        val cleanProjectId = project.id.string filterNot ("-" contains _)
-        s"decode('$cleanProjectId', 'hex')"
-      }.mkString("ARRAY[", ",", "]")
-      val query = s"""${RemoveProjects} '\\x$cleanSectionId' AND ARRAY[project_id] <@ $arrayString"""
-      Logger.debug(arrayString)
-      for {
-        result <- conn.sendQuery(query)
-      }
-      yield (result.rowsAffected > 0)
-    }
 
     /**
      * Remove all users from a `class`.
@@ -527,27 +473,11 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     }
 
     /**
-     * Remove all projects from a `class`.
+     * Insert a Class row.
      *
-     * @param `class`  the `class` to remove projects from.
-     * @param conn  an implicit database Connection.
-     * @return a boolean indicating if the action was successful.
-     */
-    def removeAllProjects(`class`: Class)(implicit conn: Connection) = {
-      for {
-        result <- conn.sendPreparedStatement(RemoveAllProjects, Array[Any](`class`.id.bytes))
-      }
-      yield (result.rowsAffected > 0)
-    }
-
-    /**
-     * Insert a Section row.
-     *
-     * @param id the UUID of the new `class`, as a byte array
-     * @param courseId the UUID of the course this `class` is attached with
-     * @param maybeTeacherId the (optional) UUID of a teacher to associate this `class` with
-     * @param name the name of this `class`
-     * @return id of the saved/new role. Failure to insert should throw an exception.
+     * @param `class`
+     * @param conn
+     * @return
      */
     def insert(`class`: Class)(implicit conn: Connection): Future[Class] = {
       conn.sendPreparedStatement(Insert, Array(
@@ -570,14 +500,11 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     }
 
     /**
-     * Update a Section row.
+     * Update a Class row
      *
-     * @param id the UUID of the new `class`, as a byte array
-     * @param version the current version of the `class` (for optimistic offline locking)
-     * @param courseId the UUID of the course this `class` is attached with
-     * @param maybeTeacherId the (optional) UUID of a teacher to associate this `class` with
-     * @param name the name of this `class`
-     * @return optional version of the updated Section, if a `class` was found to update.
+     * @param `class`
+     * @param conn
+     * @return
      */
     def update(`class`: Class)(implicit conn: Connection): Future[Class] = {
       conn.sendPreparedStatement(Update, Array(
@@ -601,8 +528,10 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
     }
 
     /**
+     * Delete a Class row.
      *
-     * @param id
+     * @param `class`
+     * @param conn
      * @return
      */
     def delete(`class`: Class)(implicit conn: Connection): Future[Boolean] = {
@@ -618,6 +547,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
       }
     }
 
+    // TODO - delete
     /**
      * Enable a particular project part for this Section's users.
      *
@@ -643,6 +573,7 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
       }
     }
 
+    // TODO - delete
     /**
      * Disable a particular project part for this Section's users.
      *
@@ -668,10 +599,10 @@ trait ClassRepositoryPostgresComponent extends ClassRepositoryComponent {
       }
     }
 
+    // TODO - delete
     /**
      * Disable a particular project part for this Section's users.
      *
-     * @param `class`  the `class` to disable the part for.
      * @param part  the part to disable.
      * @return a boolean indicating whether the operation was successful.
      */

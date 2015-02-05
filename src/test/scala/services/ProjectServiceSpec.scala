@@ -11,7 +11,7 @@
 //import com.redis.E
 //import grizzled.slf4j.Logger
 //import org.scalamock.scalatest.MockFactory
-//import org.scalatest.WordSpec
+//import org.scalatest.{Suite, WordSpec}
 //import webcrank.password.Passwords
 //import scala.concurrent.duration.Duration
 //import scala.concurrent.duration.DurationConversions.spanConvert._
@@ -33,34 +33,14 @@
 //  with UserRepositoryComponent
 //  with ComponentRepositoryComponent
 //  with ClassRepositoryComponent
-//  with DB {
+//  with DB
+//  with Suite
+//  with MockFactory{
 //  val logger = Logger[this.type]
 //
 //  val webcrank = Passwords.scrypt()
 //  val password = "userpass"
 //  val passwordHash = webcrank.crypt(password)
-//
-//  override def serialized[E, R, L[E] <: IndexedSeq[E]](collection: L[E])(fn: E => Future[R]): Future[IndexedSeq[R]] = {
-//    collection.foldLeft(Future(IndexedSeq.empty[R])) { (fAccumulated, nextItem) =>
-//      for {
-//        accumulated <- fAccumulated
-//        nextResult <- { (nextItem) match {
-//          case part: Part => {
-//            if (part.name == "exception") { throw new DatabaseException("DatabaseException Message") }
-//            else fn(nextItem)
-//          }
-//          case _ => fn(nextItem)
-//        }}
-//      }
-//      yield accumulated :+ nextResult
-//    }
-//  }
-//}
-//
-//class ProjectServiceSpec
-//  extends WordSpec
-//  with MockFactory
-//  with ProjectTestEnvironmentComponent {
 //
 //  val mockConnection = stub[Connection]
 //  override def transactional[A](f : Connection => Future[A]): Future[A] = {
@@ -82,99 +62,36 @@
 //
 //  implicit val conn = mockConnection
 //
-//  val testUserA = User(
-//    email = "testUserA@example.org",
-//    username = "testUserA",
-//    passwordHash = Some(passwordHash),
-//    givenname = "Test",
-//    surname = "UserA"
-//  )
+//  override def serialized[E, R, L[E] <: IndexedSeq[E]](collection: L[E])(fn: E => Future[R]): Future[IndexedSeq[R]] = {
+//    collection.foldLeft(Future(IndexedSeq.empty[R])) { (fAccumulated, nextItem) =>
+//      for {
+//        accumulated <- fAccumulated
+//        nextResult <- { (nextItem) match {
+//          case part: Part => {
+//            if (part.name == "exception") { throw new DatabaseException("DatabaseException Message") }
+//            else fn(nextItem)
+//          }
+//          case _ => fn(nextItem)
+//        }}
+//      }
+//      yield accumulated :+ nextResult
+//    }
+//  }
+//}
 //
-//  val testCourse = Course(
-//    name = "test course"
-//  )
-//
-//  val testClass = Class(
-//    teacherId = Option(testUserA.id),
-//    name = "test class",
-//    color = new Color(24, 6, 8)
-//  )
-//
-//  val testProject = Project(
-//    classId = testClass.id,
-//    name = "Project name",
-//    slug = "Project slug",
-//    description = "Project description",
-//    parts = IndexedSeq[Part]()
-//  )
-//
-//  val testPart = Part(
-//    projectId = testProject.id,
-//    name = "Part name",
-//    position = 1
-//  )
-//
-//  val testProjectB = Project(
-//    classId = testClass.id,
-//    name = "Project B name",
-//    slug = "Project B slug",
-//    description = "Project B description",
-//    parts = IndexedSeq[Part](testPart)
-//  )
-//
-//  val testPartB = Part(
-//    projectId = testProjectB.id,
-//    name = "Part name B",
-//    position = 1
-//  )
-//
-//  val testPartC = Part(
-//    projectId = testProjectB.id,
-//    name = "Part name C",
-//    position = 2
-//  )
-//
-//  val testTask = LongAnswerTask(
-//    partId = testPart.id,
-//    position = 1,
-//    settings = CommonTaskSettings(
-//      title = "Task title",
-//      description = "Task description"
-//    )
-//  )
-//
-//  val testUpdatedTask = LongAnswerTask(
-//    partId = testPartB.id,
-//    position = 2,
-//    settings = CommonTaskSettings(
-//      title = "Updated Task title",
-//      description = "Updated Task description"
-//    )
-//  )
-//
-//  val testShortAnswerTask = ShortAnswerTask(
-//    id = UUID.random,
-//    partId = testPart.id,
-//    position = 1,
-//    settings = CommonTaskSettings(
-//      title = "ShortAnswerTask title",
-//      description = "ShortAnswerTask description"
-//    )
-//  )
+//class ProjectServiceSpec
+//  extends WordSpec
+//  with ProjectTestEnvironmentComponent {
 //
 //  // NOTE: ProjectService.reorderParts test should be first, otherwise it gives java.lang.NullPointerException
 //  "ProjectService.reorderParts" should {
 //    inSequence {
 //      "reorder part" in {
-//        val indexedPart = Vector(testPart)
-//        val indexedPartId = Vector(testPart.id)
+//        (projectRepository.find(_:UUID)) when(TestValues.testProjectA.id) returns Future(Option(TestValues.testProjectA))
+//        (partRepository.reorder(_:Project, _:IndexedSeq[Part])(_: Connection)) when(*, *, mockConnection) returns Future.successful(TestValues.testProjectA.parts)
 //
-//        (projectRepository.find(_:UUID)) when(testProjectB.id) returns Future(Option(testProjectB))
-//        (partRepository.list(_:Project)) when(testProjectB) returns Future.successful(indexedPart)
-//        (partRepository.reorder(_:Project, _:IndexedSeq[Part])(_: Connection)) when(*, *, mockConnection) returns Future.successful(indexedPart)
-//
-//        val fReorderParts = projectService.reorderParts(testProjectB.id, indexedPartId)
-//        Await.result(fReorderParts, Duration.Inf) should be (testProjectB)
+//        val fReorderParts = projectService.reorderParts(TestValues.testProjectA.id, Vector(TestValues.testPartB.id, TestValues.testPartA.id))
+//        Await.result(fReorderParts, Duration.Inf) should be (TestValues.testProjectA)
 //      }
 //    }
 //  }

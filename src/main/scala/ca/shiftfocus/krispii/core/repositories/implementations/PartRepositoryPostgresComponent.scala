@@ -14,7 +14,7 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
 trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
   self: TaskRepositoryComponent with
-        PostgresDB =>
+    PostgresDB =>
 
   /**
    * Override with this trait's version of the ProjectRepository.
@@ -28,9 +28,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     def fields = Seq("project_id", "name", "position", "enabled")
     def table = "parts"
 
-    // TODO no such fields
-    def orderBy = "surname ASC, givenname ASC"
-
     val fieldsText = fields.mkString(", ")
     val questions = fields.map(_ => "?").mkString(", ")
 
@@ -38,7 +35,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     val SelectAll = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      ORDER BY $orderBy
     """
 
     val SelectOne = s"""
@@ -111,8 +107,8 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
              project_id, parts.name as name, parts.description as description, parts.position as position
       FROM $table
-      INNER JOIN components_parts ON parts.id = components_parts.part_id
-      WHERE components_parts.component_id = ?
+      INNER JOIN parts_components ON parts.id = parts_components.part_id
+      WHERE parts_components.component_id = ?
     """
 
     val SelectEnabledForUserAndProjectId = s"""
@@ -177,16 +173,22 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     /**
      * Find all parts.
      *
-     * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return a vector of the returned Projects
      */
     override def list: Future[IndexedSeq[Part]] = {
-      db.pool.sendQuery(SelectAll).map { queryResult =>
-        val partList = queryResult.rows.get.map {
-          item: RowData => Part(item)
+      val partList = for {
+        queryResult <- db.pool.sendQuery(SelectAll)
+        parts <- Future successful {
+          queryResult.rows.get.map { item => Part(item) }
         }
-        partList
-      }.recover {
+        result <- Future sequence { parts.map { part =>
+          taskRepository.list(part).map { taskList =>
+            part.copy(tasks = taskList)
+          }
+        }}
+      } yield result
+
+      partList.recover {
         case exception => {
           throw exception
         }
@@ -197,16 +199,22 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
      * Find all Parts belonging to a given Project.
      *
      * @param project The project to return parts from.
-     * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return a vector of the returned Projects
      */
     override def list(project: Project): Future[IndexedSeq[Part]] = {
-      db.pool.sendPreparedStatement(SelectByProjectId, Array[Any](project.id.bytes)).map { queryResult =>
-        val partList = queryResult.rows.get.map {
-          item: RowData => Part(item)
+      val partList = for {
+        queryResult <- db.pool.sendPreparedStatement(SelectByProjectId, Array[Any](project.id.bytes))
+        parts <- Future successful {
+          queryResult.rows.get.map { item => Part(item) }
         }
-        partList
-      }.recover {
+        result <- Future sequence { parts.map { part =>
+          taskRepository.list(part).map { taskList =>
+            part.copy(tasks = taskList)
+          }
+        }}
+      } yield result
+
+      partList.recover {
         case exception => {
           throw exception
         }
@@ -214,17 +222,22 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     }
 
     /**
-     * Selects rows by their project ID.
-     *
-     * @param projectId the project UUID as a byte array
+     * Find all Parts belonging to a given Component.
      */
     override def list(component: Component): Future[IndexedSeq[Part]] = {
-      db.pool.sendPreparedStatement(SelectByComponentId, Array[Any](component.id.bytes)).map { queryResult =>
-        val partList = queryResult.rows.get.map {
-          item: RowData => Part(item)
+      val partList = for {
+        queryResult <- db.pool.sendPreparedStatement(SelectByComponentId, Array[Any](component.id.bytes))
+        parts <- Future successful {
+          queryResult.rows.get.map { item => Part(item) }
         }
-        partList
-      }.recover {
+        result <- Future sequence { parts.map { part =>
+          taskRepository.list(part).map { taskList =>
+            part.copy(tasks = taskList)
+          }
+        }}
+      } yield result
+
+      partList.recover {
         case exception => {
           throw exception
         }
@@ -376,7 +389,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
         new DateTime,
         part.projectId.bytes,
         part.name,
-//        part.description,
+        //        part.description,
         part.position,
         part.enabled
       )).map {
@@ -400,7 +413,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       conn.sendPreparedStatement(Update, Array(
         part.projectId.bytes,
         part.name,
-//        part.description,
+        //        part.description,
         part.position,
         part.enabled,
         (part.version + 1),

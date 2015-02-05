@@ -13,9 +13,10 @@ crossScalaVersions := Seq("2.10.4", "2.11.2")
 resolvers ++= Seq(
   "Typesafe" at "http://repo.typesafe.com/typesafe/releases",
   "ShiftFocus" at "https://maven.shiftfocus.ca/repositories/releases",
+  "ShiftFocus Snapshots" at "https://maven.shiftfocus.ca/repositories/snapshots",
   "Sonatype" at "https://oss.sonatype.org/content/repositories/releases",
-  "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
-  "Kahn's Repo" at "http://repo.kahn.ws/maven/snapshots"
+  "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"//,
+  //"Kahn's Repo" at "http://repo.kahn.ws/maven/snapshots"
 )
 
 // Scala compiler options

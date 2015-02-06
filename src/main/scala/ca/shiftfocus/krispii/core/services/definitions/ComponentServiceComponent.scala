@@ -26,6 +26,8 @@ trait ComponentServiceComponent {
     def addToPart(componentId: UUID, partId: UUID): Future[Boolean]
     def removeFromPart(componentId: UUID, partId: UUID): Future[Boolean]
 
+    def userCanAccess(componentId: UUID, userInfo: UserInfo): Future[Boolean]
+
     def detaggify(text: String): String
   }
 }

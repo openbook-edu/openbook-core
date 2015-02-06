@@ -97,7 +97,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
 
     val SelectByProjectSlug = s"""
       SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
-             project_id, parts.name as name, parts.description as description, parts.position as position
+             project_id, parts.name as name, parts.position as position
       FROM $table, projects
       WHERE parts.project_id = projects.id
         AND projects.slug = ?
@@ -105,7 +105,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
 
     val SelectByComponentId = s"""
       SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
-             project_id, parts.name as name, parts.description as description, parts.position as position
+             project_id, parts.name as name, parts.position as position
       FROM $table
       INNER JOIN parts_components ON parts.id = parts_components.part_id
       WHERE parts_components.component_id = ?
@@ -113,7 +113,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
 
     val SelectEnabledForUserAndProjectId = s"""
       SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
-             parts.project_id, parts.name as name, parts.description as description, parts.position as position,
+             parts.project_id, parts.name as name, parts.position as position,
              classes.name as section_name, users.username as username
       FROM parts, projects, classes, classes_projects, users_classes, users, scheduled_classes_parts
       WHERE projects.id = ?
@@ -130,7 +130,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
 
     val SelectEnabledForSectionAndProjectId = s"""
       SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
-             parts.project_id, parts.name as name, parts.description as description, parts.position as position,
+             parts.project_id, parts.name as name, parts.position as position,
              classes.name as section_name
       FROM parts, projects, classes, classes_projects, scheduled_classes_parts
       WHERE projects.id = ?

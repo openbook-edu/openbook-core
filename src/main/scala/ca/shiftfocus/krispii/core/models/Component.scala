@@ -9,6 +9,7 @@ import play.api.libs.functional.syntax._
 abstract class Component {
   val id: UUID
   val version: Long
+  val ownerId: UUID
   val title: String
   val questions: String
   val thingsToThinkAbout: String
@@ -30,6 +31,7 @@ object Component {
         case "audio" => AudioComponent(
           id = (js \ "id").as[UUID],
           version = (js \ "version").as[Long],
+          ownerId = (js \ "ownerId").as[UUID],
           title = (js \ "title").as[String],
           questions = (js \ "questions").as[String],
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
@@ -40,6 +42,7 @@ object Component {
         case "text" => TextComponent(
           id = (js \ "id").as[UUID],
           version = (js \ "version").as[Long],
+          ownerId = (js \ "ownerId").as[UUID],
           title = (js \ "title").as[String],
           questions = (js \ "questions").as[String],
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
@@ -50,6 +53,7 @@ object Component {
         case "video" => VideoComponent(
           id = (js \ "id").as[UUID],
           version = (js \ "version").as[Long],
+          ownerId = (js \ "ownerId").as[UUID],
           title = (js \ "title").as[String],
           questions = (js \ "questions").as[String],
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],

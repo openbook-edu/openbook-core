@@ -13,6 +13,7 @@ trait ComponentRepositoryComponent {
   trait ComponentRepository {
     def list(implicit conn: Connection): Future[IndexedSeq[Component]]
     def list(part: Part)(implicit conn: Connection): Future[IndexedSeq[Component]]
+    def list(project: Project)(implicit conn: Connection): Future[IndexedSeq[Component]]
     def list(project: Project, user: User)(implicit conn: Connection): Future[IndexedSeq[Component]]
 
     def find(id: UUID)(implicit conn: Connection): Future[Option[Component]]

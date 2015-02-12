@@ -9,7 +9,10 @@ import play.api.Logger
 import scala.concurrent.Future
 
 trait ComponentServiceImplComponent extends ComponentServiceComponent {
-  self: ComponentRepositoryComponent with
+  self: AuthServiceComponent with
+        ProjectServiceComponent with
+        SchoolServiceComponent with
+        ComponentRepositoryComponent with
         UserRepositoryComponent with
         ProjectRepositoryComponent with
         PartRepositoryComponent with
@@ -34,7 +37,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
      * @param partId the unique ID of the part to filter by
      * @return an array of components
      */
-    override def list(partId: UUID): Future[IndexedSeq[Component]] = {
+    override def listByPart(partId: UUID): Future[IndexedSeq[Component]] = {
       for {
         part <- partRepository.find(partId).map(_.get)
         componentList <- componentRepository.list(part)(db.pool)
@@ -53,7 +56,26 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
      * @param userId the user to check for
      * @return an array of components
      */
-    override def list(projectId: UUID, userId: UUID): Future[IndexedSeq[Component]] = {
+    override def listByProject(projectId: UUID): Future[IndexedSeq[Component]] = {
+      for {
+        project <- projectRepository.find(projectId).map(_.get)
+        componentList <- componentRepository.list(project)(db.pool)
+      }
+      yield componentList
+    }.recover {
+      case exception => throw exception
+    }
+
+    /**
+     * List components by project and user, thus listing "enabled" components.
+     *
+     * A user can view components that are enabled in any of their sections.
+     *
+     * @param projectId the unique ID of the part to filter by
+     * @param userId the user to check for
+     * @return an array of components
+     */
+    override def listByProject(projectId: UUID, userId: UUID): Future[IndexedSeq[Component]] = {
       val fProject = projectRepository.find(projectId).map(_.get)
       val fUser = userRepository.find(userId).map(_.get)
 
@@ -77,8 +99,9 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
       componentRepository.find(id)(db.pool)
     }
 
-    override def createAudio(title: String, questions: String, thingsToThinkAbout: String, soundcloudId: String): Future[Component] = {
+    override def createAudio(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, soundcloudId: String): Future[Component] = {
       val newComponent = AudioComponent(
+        ownerId = ownerId,
         title = title,
         questions = questions,
         thingsToThinkAbout = thingsToThinkAbout,
@@ -91,8 +114,9 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
       case exception => throw exception
     }
 
-    override def createText(title: String, questions: String, thingsToThinkAbout: String, content: String): Future[Component] = {
+    override def createText(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, content: String): Future[Component] = {
       val newComponent = TextComponent(
+        ownerId = ownerId,
         title = title,
         questions = questions,
         thingsToThinkAbout = thingsToThinkAbout,
@@ -105,8 +129,9 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
       case exception => throw exception
     }
 
-    override def createVideo(title: String, questions: String, thingsToThinkAbout: String, vimeoId: String, height: Int, width: Int): Future[Component] = {
+    override def createVideo(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, vimeoId: String, height: Int, width: Int): Future[Component] = {
       val newComponent = VideoComponent(
+        ownerId = ownerId,
         title = title,
         questions = questions,
         thingsToThinkAbout = thingsToThinkAbout,
@@ -121,12 +146,13 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
       case exception => throw exception
     }
 
-    override def updateAudio(id: UUID, version: Long, values: Map[String, Any]): Future[Component] = {
+    override def updateAudio(id: UUID, version: Long, ownerId: UUID, values: Map[String, Any]): Future[Component] = {
       transactional { implicit connection =>
         for {
           existingComponent <- componentRepository.find(id).map(_.get.asInstanceOf[AudioComponent])
           componentToUpdate <- Future.successful(existingComponent.copy(
             version = version,
+            ownerId = ownerId,
             title = values.get("title") match {
               case Some(title: String) => title
               case _ => existingComponent.title
@@ -152,12 +178,13 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
       }
     }
 
-    override def updateText(id: UUID, version: Long, values: Map[String, Any]): Future[Component] = {
+    override def updateText(id: UUID, version: Long, ownerId: UUID, values: Map[String, Any]): Future[Component] = {
       transactional { implicit connection =>
         for {
           existingComponent <- componentRepository.find(id).map(_.get.asInstanceOf[TextComponent])
           componentToUpdate <- Future.successful(existingComponent.copy(
             version = version,
+            ownerId = ownerId,
             title = values.get("title") match {
               case Some(title: String) => title
               case _ => existingComponent.title
@@ -183,12 +210,13 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
       }
     }
 
-    override def updateVideo(id: UUID, version: Long, values: Map[String, Any]): Future[Component] = {
+    override def updateVideo(id: UUID, version: Long, ownerId: UUID, values: Map[String, Any]): Future[Component] = {
       transactional { implicit connection =>
         for {
           existingComponent <- componentRepository.find(id).map(_.get.asInstanceOf[VideoComponent])
           componentToUpdate <- Future.successful(existingComponent.copy(
             version = version,
+            ownerId = ownerId,
             title = values.get("title") match {
               case Some(title: String) => title
               case _ => existingComponent.title
@@ -293,5 +321,54 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
       text
     }
 
+    /**
+     * Can a given user access a given component.
+     *
+     * @param componentId the unique id of the component for which access is requested
+     * @param user the user who is requesting to view the component
+     * @param role the role under which the user is requesting the component
+     * @return
+     */
+    override def userCanAccess(component: Component, userInfo: UserInfo): Future[Boolean] = {
+      // Admins can view everything
+      if (userInfo.roles.map(_.name).contains("administrator")) {
+        Future successful true
+      }
+      // Owners can view anything they create
+      else if (component.ownerId == userInfo.id) {
+        Future successful true
+      }
+      else {
+        // Teachers can view the component if it's in one of their projects
+        if (userInfo.roles.map(_.name).contains("teacher")) {
+          val fAsTeacher = for {
+            courses <- schoolService.listSectionsByTeacher(userInfo.user.id)
+            projects <- Future.sequence(courses.map { course => schoolService.listProjects(course) }).map(_.flatten)
+            components <- Future.sequence(projects.map { project => componentService.list(project.id) }).map(_.flatten)
+          } yield components.contains(component)
+
+          fAsTeacher.flatMap { asTeacher =>
+            if (asTeacher) {
+              Future successful true
+            }
+            else {
+              for {
+                courses <- schoolService.listSectionsByUser(userInfo.user.id)
+                projects <- Future.sequence(courses.map { course => schoolService.listProjects(course) }).map(_.flatten)
+                components <- Future.sequence(projects.map { project => componentService.list(project.id) }).map(_.flatten)
+              } yield components.contains(component)
+            }
+          }
+        }
+        // Students can view the component if it's in one of their projects and attached to an active part
+        else if (userInfo.roles.map(_.name).contains("student")) {
+
+        }
+        else {
+          Future successful false
+        }
+      }
+    }
   }
+
 }

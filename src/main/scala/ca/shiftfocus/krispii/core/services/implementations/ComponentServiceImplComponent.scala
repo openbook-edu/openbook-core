@@ -335,34 +335,69 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
         Future successful true
       }
       // Owners can view anything they create
-      else if (component.ownerId == userInfo.id) {
+      else if (component.ownerId == userInfo.user.id) {
         Future successful true
       }
       else {
         // Teachers can view the component if it's in one of their projects
         if (userInfo.roles.map(_.name).contains("teacher")) {
-          val fAsTeacher = for {
+
+          val fAsTeacher: Future[Boolean] = for {
             courses <- schoolService.listSectionsByTeacher(userInfo.user.id)
-            projects <- Future.sequence(courses.map { course => schoolService.listProjects(course) }).map(_.flatten)
-            components <- Future.sequence(projects.map { project => componentService.list(project.id) }).map(_.flatten)
-          } yield components.contains(component)
+
+            projects <-
+              Future.sequence(courses.map {
+                course => schoolService.listProjects(course)
+              }).map(_.flatten)
+
+            components <-
+              Future.sequence(projects.map {
+                project => componentService.listByProject(project.id)
+              }).map(_.flatten)
+          }
+          yield components.contains(component)
 
           fAsTeacher.flatMap { asTeacher =>
             if (asTeacher) {
               Future successful true
             }
             else {
+              // Teachers are also students:
+              // - list their courses
+              // - then list their projects for those courses
+              // - then list the components for the enabled parts in those projects
               for {
                 courses <- schoolService.listSectionsByUser(userInfo.user.id)
-                projects <- Future.sequence(courses.map { course => schoolService.listProjects(course) }).map(_.flatten)
-                components <- Future.sequence(projects.map { project => componentService.list(project.id) }).map(_.flatten)
-              } yield components.contains(component)
+                projects <-
+                  Future.sequence(courses.map {
+                    course => schoolService.listProjects(course)
+                  }).map(_.flatten)
+                parts = projects.map(_.parts.filter(_.enabled == true)).flatten
+                components <-
+                  Future.sequence(parts.map {
+                    part => componentService.listByPart(part.id)
+                  }).map(_.flatten)
+              }
+              yield components.contains(component)
             }
           }
         }
+
         // Students can view the component if it's in one of their projects and attached to an active part
         else if (userInfo.roles.map(_.name).contains("student")) {
-
+          for {
+            courses <- schoolService.listSectionsByUser(userInfo.user.id)
+            projects <-
+              Future.sequence(courses.map {
+                course => schoolService.listProjects(course)
+              }).map(_.flatten)
+            parts = projects.map(_.parts.filter(_.enabled == true)).flatten
+            components <-
+              Future.sequence(parts.map {
+                part => componentService.listByPart(part.id)
+              }).map(_.flatten)
+          }
+          yield components.contains(component)
         }
         else {
           Future successful false

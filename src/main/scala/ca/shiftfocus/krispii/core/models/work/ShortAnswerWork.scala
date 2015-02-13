@@ -8,7 +8,7 @@ case class ShortAnswerWork(
   id: UUID = UUID.random,
   studentId: UUID,
   taskId: UUID,
-  classId: UUID,
+  courseId: UUID,
   override val documentId: UUID,
   override val version: Long = 0,
   override val answer: String = "",
@@ -28,7 +28,7 @@ object ShortAnswerWork {
     ShortAnswerWork(
       studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
       taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      classId = UUID(row("class_id").asInstanceOf[Array[Byte]]),
+      courseId = UUID(row("course_id").asInstanceOf[Array[Byte]]),
       documentId = UUID(row("document_id").asInstanceOf[Array[Byte]]),
       version  = row("version").asInstanceOf[Long],
       answer    = "",

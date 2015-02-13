@@ -128,7 +128,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
         AND scheduled_classes_parts.active = TRUE
     """
 
-    val SelectEnabledForSectionAndProjectId = s"""
+    val SelectEnabledForCourseAndProjectId = s"""
       SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
              parts.project_id, parts.name as name, parts.position as position,
              classes.name as section_name
@@ -152,7 +152,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
         AND scheduled_classes_parts.part_id = parts.id
     """
 
-    val IsPartEnabledForSection = s"""
+    val IsPartEnabledForCourse = s"""
       SELECT scheduled_classes_parts.active
       FROM scheduled_classes_parts
       WHERE scheduled_classes_parts.part_id = ?
@@ -289,11 +289,11 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
      * List enabled parts of a project for a specific section.
      *
      * @param project the [[Project]] to list parts from
-     * @param section the [[Class]] to select enabled parts for
+     * @param section the [[Course]] to select enabled parts for
      * @return an vector of the enabled parts
      */
-    def listEnabled(project: Project, section: Class): Future[IndexedSeq[Part]] = {
-      db.pool.sendPreparedStatement(SelectEnabledForSectionAndProjectId, Seq[Any](project.id.bytes, section.id.bytes)).map { queryResult =>
+    def listEnabled(project: Project, section: Course): Future[IndexedSeq[Part]] = {
+      db.pool.sendPreparedStatement(SelectEnabledForCourseAndProjectId, Seq[Any](project.id.bytes, section.id.bytes)).map { queryResult =>
         val partList = queryResult.rows.get.map {
           item: RowData => Part(item)
         }
@@ -355,9 +355,9 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     /**
      * Returns a boolean indicating whether a part is active for a given section.
      */
-    def isEnabled(part: Part, section: Class): Future[Boolean] = {
+    def isEnabled(part: Part, section: Course): Future[Boolean] = {
       val isEnabled = for {
-        result <- db.pool.sendPreparedStatement(IsPartEnabledForSection, Array(part.id.bytes, section.id.bytes))
+        result <- db.pool.sendPreparedStatement(IsPartEnabledForCourse, Array(part.id.bytes, section.id.bytes))
       }
       yield result.rows.headOption match {
           case Some(resultSet) => resultSet.headOption match {

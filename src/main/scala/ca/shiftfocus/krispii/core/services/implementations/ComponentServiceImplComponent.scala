@@ -50,7 +50,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
     /**
      * List components by project and user, thus listing "enabled" components.
      *
-     * A user can view components that are enabled in any of their sections.
+     * A user can view components that are enabled in any of their courses.
      *
      * @param projectId the unique ID of the part to filter by
      * @param userId the user to check for
@@ -69,7 +69,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
     /**
      * List components by project and user, thus listing "enabled" components.
      *
-     * A user can view components that are enabled in any of their sections.
+     * A user can view components that are enabled in any of their courses.
      *
      * @param projectId the unique ID of the part to filter by
      * @param userId the user to check for
@@ -258,7 +258,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
      * Add a component to a specific part.
      *
      * This associates a component with a project part. When that part is
-     * enabled for a section, users in that section will be able to
+     * enabled for a course, users in that course will be able to
      * access that component in their enabled components list.
      *
      * @param componentId the unique ID of the component to add
@@ -285,7 +285,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
      * Remove a component from a specific part.
      *
      * This disassociates a component with a project part. When that part is
-     * enabled for a section, users in that section will be able to
+     * enabled for a course, users in that course will be able to
      * access that component in their enabled components list.
      *
      * @param componentId the unique ID of the component to remove
@@ -343,7 +343,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
         if (userInfo.roles.map(_.name).contains("teacher")) {
 
           val fAsTeacher: Future[Boolean] = for {
-            courses <- schoolService.listSectionsByTeacher(userInfo.user.id)
+            courses <- schoolService.listCoursesByTeacher(userInfo.user.id)
 
             projects <-
               Future.sequence(courses.map {
@@ -367,7 +367,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
               // - then list their projects for those courses
               // - then list the components for the enabled parts in those projects
               for {
-                courses <- schoolService.listSectionsByUser(userInfo.user.id)
+                courses <- schoolService.listCoursesByUser(userInfo.user.id)
                 projects <-
                   Future.sequence(courses.map {
                     course => schoolService.listProjects(course)
@@ -386,7 +386,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
         // Students can view the component if it's in one of their projects and attached to an active part
         else if (userInfo.roles.map(_.name).contains("student")) {
           for {
-            courses <- schoolService.listSectionsByUser(userInfo.user.id)
+            courses <- schoolService.listCoursesByUser(userInfo.user.id)
             projects <-
               Future.sequence(courses.map {
                 course => schoolService.listProjects(course)

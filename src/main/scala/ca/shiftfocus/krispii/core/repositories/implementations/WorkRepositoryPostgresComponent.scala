@@ -24,7 +24,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |SELECT work.id as id,
          |       work.user_id as user_id,
          |       work.task_id as task_id,
-         |       work.class_id as class_id,
+         |       work.course_id as course_id,
          |       work.is_complete as is_complete,
          |       work.created_at as created_at,
          |       work.updated_at as updated_at,
@@ -60,7 +60,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |$Join
          |WHERE projects.id = ?
          |  AND user_id = ?
-         |  AND class_id = ?
+         |  AND course_id = ?
          |  AND parts.id = tasks.part_id
          |  AND projects.id = parts.project_id
          |  AND student_responses.task_id = tasks.id
@@ -74,17 +74,17 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |$Join
          |WHERE user_id = ?
          |  AND task_id = ?
-         |  AND class_id = ?
+         |  AND course_id = ?
        """.stripMargin
 
-    val SelectByStudentTaskClass =
+    val SelectByStudentTaskCourse =
       s"""
          |$Select
          |$From
          |$Join
          |WHERE user_id = ?
          |  AND task_id = ?
-         |  AND class_id = ?
+         |  AND course_id = ?
          |LIMIT 1
        """.stripMargin
 
@@ -101,9 +101,9 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
 
     val Insert =
       s"""
-         |INSERT INTO work (id, user_id, task_id, class_id, version, is_complete, created_at, updated_at, work_type)
+         |INSERT INTO work (id, user_id, task_id, course_id, version, is_complete, created_at, updated_at, work_type)
          |VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
-         |RETURNING id, user_id, task_id, class_id, is_complete, created_at, updated_at
+         |RETURNING id, user_id, task_id, course_id, is_complete, created_at, updated_at
        """.stripMargin
 
     def InsertIntoDocumentWork(table: String): String =
@@ -135,7 +135,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |    updated_at = ?
          |WHERE user_id = ?
          |  AND task_id = ?
-         |  AND class_id = ?
+         |  AND course_id = ?
          |  AND version = ?
        """.stripMargin
 
@@ -147,7 +147,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |UPDATE $table
          |SET answer = ?
          |WHERE work_id = work.id
-         |RETURNING id, user_id, task_id, class_id, version, answer, is_complete, created_at, updated_at
+         |RETURNING id, user_id, task_id, course_id, version, answer, is_complete, created_at, updated_at
        """.stripMargin
 
     def UpdateWithNewRevision(table: String): String =
@@ -155,13 +155,13 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |WITH work AS (
          |  $Update
          |)
-         |INSERT INTO $table (user_id, task_id, class_id, version, answer)
+         |INSERT INTO $table (user_id, task_id, course_id, version, answer)
          |  SELECT work.user_id as user_id,
          |         work.task_id as task_id,
-         |         work.class_id as class_id,
+         |         work.course_id as course_id,
          |         ? as version,
          |         ? as answer
-         |RETURNING user_id, task_id, class_id, revision, version, answer, is_complete, created_at, updated_at
+         |RETURNING user_id, task_id, course_id, revision, version, answer, is_complete, created_at, updated_at
        """.stripMargin
 
     // -- Delete -------------------------------------------------------------------------------------------------------
@@ -175,7 +175,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |$Join
          |WHERE user_id = ?
          |  AND task_id = ?
-         |  AND class_id = ?
+         |  AND course_id = ?
        """.stripMargin
 
     val DeleteRevision =
@@ -185,7 +185,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |$Join
          |WHERE user_id = ?
          |  AND task_id = ?
-         |  AND class_id = ?
+         |  AND course_id = ?
          |  AND revision = ?
        """.stripMargin
 
@@ -202,14 +202,14 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      *
      * @param project
      * @param user
-     * @param section
+     * @param course
      * @return
      */
-    override def list(user: User, section: Class, project: Project): Future[IndexedSeq[Work]] = {
+    override def list(user: User, course: Course, project: Project): Future[IndexedSeq[Work]] = {
       db.pool.sendPreparedStatement(ListLatestByProjectForUser, Array[Any](
         project.id.bytes,
         user.id.bytes,
-        section.id.bytes
+        course.id.bytes
       )).map { result =>
         result.rows.get.map { item: RowData => Work(item) }
       }.recover {
@@ -222,14 +222,14 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      *
      * @param task
      * @param user
-     * @param section
+     * @param course
      * @return
      */
-    override def list(user: User, task: Task, section: Class): Future[IndexedSeq[Work]] = {
+    override def list(user: User, task: Task, course: Course): Future[IndexedSeq[Work]] = {
       db.pool.sendPreparedStatement(ListRevisionsById, Array[Any](
         task.id.bytes,
         user.id.bytes,
-        section.id.bytes
+        course.id.bytes
       )).map { result =>
         result.rows.get.map { item: RowData => Work(item) }
       }.recover {
@@ -242,7 +242,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      *
      * @param task
      * @param user
-     * @param section
+     * @param course
      * @return
      */
     override def find(workId: UUID): Future[Option[Work]] = {
@@ -263,14 +263,14 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      *
      * @param task
      * @param user
-     * @param section
+     * @param course
      * @return
      */
-    override def find(user: User, task: Task, section: Class): Future[Option[Work]] = {
-      db.pool.sendPreparedStatement(SelectByStudentTaskClass, Array[Any](
+    override def find(user: User, task: Task, course: Course): Future[Option[Work]] = {
+      db.pool.sendPreparedStatement(SelectByStudentTaskCourse, Array[Any](
         user.id.bytes,
         task.id.bytes,
-        section.id.bytes
+        course.id.bytes
       )).map { result =>
         result.rows.get.headOption match {
           case Some(rowData) => Some(Work(rowData))
@@ -286,14 +286,14 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      *
      * @param task
      * @param user
-     * @param section
+     * @param course
      * @return
      */
-    override def find(user: User, task: Task, section: Class, revision: Long): Future[Option[Work]] = {
-      db.pool.sendPreparedStatement(SelectByStudentTaskClass, Array[Any](
+    override def find(user: User, task: Task, course: Course, revision: Long): Future[Option[Work]] = {
+      db.pool.sendPreparedStatement(SelectByStudentTaskCourse, Array[Any](
         user.id.bytes,
         task.id.bytes,
-        section.id.bytes,
+        course.id.bytes,
         revision
       )).map { result =>
         result.rows.get.headOption match {
@@ -330,7 +330,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
         work.id.bytes,
         work.studentId.bytes,
         work.taskId.bytes,
-        work.classId.bytes,
+        work.courseId.bytes,
         work.isComplete,
         new DateTime,
         new DateTime
@@ -380,7 +380,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
           new DateTime,
           work.studentId.bytes,
           work.taskId.bytes,
-          work.classId.bytes,
+          work.courseId.bytes,
           work.version,
           work.version +1,
           work.answer
@@ -393,7 +393,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
           new DateTime,
           work.studentId.bytes,
           work.taskId.bytes,
-          work.classId.bytes,
+          work.courseId.bytes,
           work.version,
           work.answer
         ))
@@ -418,7 +418,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
         conn.sendPreparedStatement(DeleteRevision, Array[Any](
           work.studentId.bytes,
           work.taskId.bytes,
-          work.classId.bytes,
+          work.courseId.bytes,
           work.version
         ))
       }
@@ -426,7 +426,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
         conn.sendPreparedStatement(Delete, Array[Any](
           work.studentId.bytes,
           work.taskId.bytes,
-          work.classId.bytes
+          work.courseId.bytes
         ))
       }
 

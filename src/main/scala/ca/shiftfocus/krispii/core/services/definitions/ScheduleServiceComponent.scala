@@ -12,12 +12,12 @@ trait ScheduleServiceComponent {
 
   trait ScheduleService {
 
-    def list: Future[IndexedSeq[ClassSchedule]]
-    def listBySection(classId: UUID): Future[IndexedSeq[ClassSchedule]]
-    def find(id: UUID): Future[Option[ClassSchedule]]
+    def list: Future[IndexedSeq[CourseSchedule]]
+    def listByCourse(courseId: UUID): Future[IndexedSeq[CourseSchedule]]
+    def find(id: UUID): Future[Option[CourseSchedule]]
 
-    def create(classId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String): Future[ClassSchedule]
-    def update(id: UUID, version: Long, values: Map[String, Any]): Future[ClassSchedule]
+    def create(courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String): Future[CourseSchedule]
+    def update(id: UUID, version: Long, values: Map[String, Any]): Future[CourseSchedule]
     def delete(id: UUID, version: Long): Future[Boolean]
 
     def isAnythingScheduledForUser(userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[Boolean]

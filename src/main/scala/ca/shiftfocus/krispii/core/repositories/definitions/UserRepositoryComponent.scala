@@ -54,10 +54,10 @@ trait UserRepositoryComponent {
      * @param password
      * @return Some(user) if valid, otherwise None.
      */
-    def list(section: Class): Future[IndexedSeq[User]]
-    def listForSections(classes: IndexedSeq[Class]): Future[IndexedSeq[User]]
+    def list(section: Course): Future[IndexedSeq[User]]
+    def listForCourses(classes: IndexedSeq[Course]): Future[IndexedSeq[User]]
     def listForRoles(roles: IndexedSeq[String]): Future[IndexedSeq[User]]
-    def listForRolesAndSections(roles: IndexedSeq[String], classes: IndexedSeq[String]): Future[IndexedSeq[User]]
+    def listForRolesAndCourses(roles: IndexedSeq[String], classes: IndexedSeq[String]): Future[IndexedSeq[User]]
 
     /**
      * Find methods return a single user.

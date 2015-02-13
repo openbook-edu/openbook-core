@@ -9,16 +9,16 @@ import org.joda.time.LocalTime
 import org.joda.time.LocalDate
 import scala.concurrent.Future
 
-trait ClassScheduleRepositoryComponent {
-  val sectionScheduleRepository: SectionScheduleRepository
+trait CourseScheduleRepositoryComponent {
+  val courseScheduleRepository: CourseScheduleRepository
 
-  trait SectionScheduleRepository {
-    def list(implicit conn: Connection): Future[IndexedSeq[ClassSchedule]]
-    def list(section: Class)(implicit conn: Connection): Future[IndexedSeq[ClassSchedule]]
-    def find(id: UUID)(implicit conn: Connection): Future[Option[ClassSchedule]]
-    def insert(sectionSchedule: ClassSchedule)(implicit conn: Connection): Future[ClassSchedule]
-    def update(sectionSchedule: ClassSchedule)(implicit conn: Connection): Future[ClassSchedule]
-    def delete(sectionSchedule: ClassSchedule)(implicit conn: Connection): Future[Boolean]
+  trait CourseScheduleRepository {
+    def list(implicit conn: Connection): Future[IndexedSeq[CourseSchedule]]
+    def list(course: Course)(implicit conn: Connection): Future[IndexedSeq[CourseSchedule]]
+    def find(id: UUID)(implicit conn: Connection): Future[Option[CourseSchedule]]
+    def insert(courseSchedule: CourseSchedule)(implicit conn: Connection): Future[CourseSchedule]
+    def update(courseSchedule: CourseSchedule)(implicit conn: Connection): Future[CourseSchedule]
+    def delete(courseSchedule: CourseSchedule)(implicit conn: Connection): Future[Boolean]
 
     def isAnythingScheduledForUser(user: User, currentDay: LocalDate, currentTime: LocalTime)(implicit conn: Connection): Future[Boolean]
     def isProjectScheduledForUser(project: Project, user: User, currentDay: LocalDate, currentTime: LocalTime)(implicit conn: Connection): Future[Boolean]

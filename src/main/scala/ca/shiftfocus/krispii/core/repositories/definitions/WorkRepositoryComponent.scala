@@ -10,14 +10,14 @@ import scala.concurrent.Future
 
 trait WorkRepositoryComponent {
   val workRepository: WorkRepository
-  
+
   trait WorkRepository {
-    def list(user: User, section: Class, project: Project): Future[IndexedSeq[Work]]
-    def list(user: User, task: Task, section: Class): Future[IndexedSeq[Work]]
+    def list(user: User, course: Course, project: Project): Future[IndexedSeq[Work]]
+    def list(user: User, task: Task, course: Course): Future[IndexedSeq[Work]]
 
     def find(workId: UUID): Future[Option[Work]]
-    def find(user: User, task: Task, section: Class): Future[Option[Work]]
-    def find(user: User, task: Task, section: Class, revision: Long): Future[Option[Work]]
+    def find(user: User, task: Task, course: Course): Future[Option[Work]]
+    def find(user: User, task: Task, course: Course, revision: Long): Future[Option[Work]]
 
     def insert(work: Work)(implicit conn: Connection): Future[Work]
     def update(work: Work)(implicit conn: Connection): Future[Work]
@@ -25,6 +25,6 @@ trait WorkRepositoryComponent {
 
     def delete(work: Work, thisRevisionOnly: Boolean = false)(implicit conn: Connection): Future[Boolean]
     def delete(task: Task)(implicit conn: Connection): Future[Boolean]
-    //def forceComplete(task: Task, section: Section)(implicit conn: Connection): Future[Boolean]
+    //def forceComplete(task: Task, course: Course)(implicit conn: Connection): Future[Boolean]
   }
 }

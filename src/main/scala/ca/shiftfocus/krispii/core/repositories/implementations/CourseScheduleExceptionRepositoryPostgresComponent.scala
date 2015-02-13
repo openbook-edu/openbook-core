@@ -14,14 +14,14 @@ import org.joda.time.LocalTime
 import org.joda.time.LocalDate
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
-trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExceptionRepositoryComponent {
+trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleExceptionRepositoryComponent {
   self: PostgresDB =>
 
-  override val sectionScheduleExceptionRepository: ClassScheduleExceptionRepository = new ClassScheduleExceptionRepositoryPSQL
+  override val courseScheduleExceptionRepository: CourseScheduleExceptionRepository = new CourseScheduleExceptionRepositoryPSQL
 
-  private class ClassScheduleExceptionRepositoryPSQL extends ClassScheduleExceptionRepository {
-    def fields = Seq("user_id", "class_id", "day", "start_time", "end_time")
-    def table = "class_schedule_exceptions"
+  private class CourseScheduleExceptionRepositoryPSQL extends CourseScheduleExceptionRepository {
+    def fields = Seq("user_id", "course_id", "day", "start_time", "end_time")
+    def table = "course_schedule_exceptions"
     def orderBy = "created_at ASC"
     val fieldsText = fields.mkString(", ")
     val questions = fields.map(_ => "?").mkString(", ")
@@ -64,31 +64,31 @@ trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExc
       DELETE FROM $table WHERE id = ? AND version = ?
     """
 
-    val SelectBySectionId = s"""
+    val SelectByCourseId = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
-      WHERE class_id = ?
+      WHERE course_id = ?
       ORDER BY day asc, start_time asc, end_time asc
     """
 
-    val SelectForUserAndSection =
+    val SelectForUserAndCourse =
       s"""SELECT id, version, created_at, updated_at, $fieldsText
          |FROM $table
          |WHERE user_id = ?
-         |  AND class_id = ?
+         |  AND course_id = ?
          |ORDER BY id ASC
        """.stripMargin
 
     /**
-     * Find all scheduling exceptions for one student in one section.
+     * Find all scheduling exceptions for one student in one course.
      *
      * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return a vector of the returned courses
      */
-    override def list(user: User, section: Class): Future[IndexedSeq[SectionScheduleException]] = {
-      db.pool.sendPreparedStatement(SelectForUserAndSection, Array[Any](user.id.bytes, section.id.bytes)).map { queryResult =>
+    override def list(user: User, course: Course): Future[IndexedSeq[CourseScheduleException]] = {
+      db.pool.sendPreparedStatement(SelectForUserAndCourse, Array[Any](user.id.bytes, course.id.bytes)).map { queryResult =>
         val scheduleList = queryResult.rows.get.map {
-          item: RowData => SectionScheduleException(item)
+          item: RowData => CourseScheduleException(item)
         }
         scheduleList
       }.recover {
@@ -99,13 +99,13 @@ trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExc
     }
 
     /**
-     * Find all schedule exceptions for a given section.
+     * Find all schedule exceptions for a given course.
      */
-    override def list(section: Class): Future[IndexedSeq[SectionScheduleException]] = {
-      val cacheString = s"schedule.id_list.section[${section.id.string}]"
-      db.pool.sendPreparedStatement(SelectBySectionId, Array[Any](section.id.bytes)).map { queryResult =>
+    override def list(course: Course): Future[IndexedSeq[CourseScheduleException]] = {
+      val cacheString = s"schedule.id_list.course[${course.id.string}]"
+      db.pool.sendPreparedStatement(SelectByCourseId, Array[Any](course.id.bytes)).map { queryResult =>
         val scheduleList = queryResult.rows.get.map {
-          item: RowData => SectionScheduleException(item)
+          item: RowData => CourseScheduleException(item)
         }
         scheduleList
       }.recover {
@@ -122,10 +122,10 @@ trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExc
      * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return an optional task if one was found
      */
-    override def find(id: UUID): Future[Option[SectionScheduleException]] = {
+    override def find(id: UUID): Future[Option[CourseScheduleException]] = {
       db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map { result =>
         result.rows.get.headOption match {
-          case Some(rowData) => Some(SectionScheduleException(rowData))
+          case Some(rowData) => Some(CourseScheduleException(rowData))
           case None => None
         }
       }.recover {
@@ -136,27 +136,27 @@ trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExc
     }
 
     /**
-     * Create a new section schedule exception.
+     * Create a new course schedule exception.
      *
      * @param course The course to be inserted
      * @return the new course
      */
-    override def insert(sectionScheduleException: SectionScheduleException)(implicit conn: Connection): Future[SectionScheduleException] = {
-      val dayDT = sectionScheduleException.day.toDateTimeAtStartOfDay()
-      val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), sectionScheduleException.startTime.getHourOfDay(), sectionScheduleException.startTime.getMinuteOfHour, sectionScheduleException.startTime.getSecondOfMinute())
-      val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), sectionScheduleException.endTime.getHourOfDay(), sectionScheduleException.endTime.getMinuteOfHour, sectionScheduleException.endTime.getSecondOfMinute())
+    override def insert(courseScheduleException: CourseScheduleException)(implicit conn: Connection): Future[CourseScheduleException] = {
+      val dayDT = courseScheduleException.day.toDateTimeAtStartOfDay()
+      val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.startTime.getHourOfDay(), courseScheduleException.startTime.getMinuteOfHour, courseScheduleException.startTime.getSecondOfMinute())
+      val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.endTime.getHourOfDay(), courseScheduleException.endTime.getMinuteOfHour, courseScheduleException.endTime.getSecondOfMinute())
 
       conn.sendPreparedStatement(Insert, Array(
-        sectionScheduleException.id.bytes,
+        courseScheduleException.id.bytes,
         new DateTime,
         new DateTime,
-        sectionScheduleException.userId.bytes,
-        sectionScheduleException.classId.bytes,
+        courseScheduleException.userId.bytes,
+        courseScheduleException.courseId.bytes,
         dayDT,
         startTimeDT,
         endTimeDT
       )).map {
-        result => SectionScheduleException(result.rows.get.head)
+        result => CourseScheduleException(result.rows.get.head)
       }.recover {
         case exception => {
           throw exception
@@ -170,23 +170,23 @@ trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExc
      * @param course The course to be updated.
      * @return the updated course
      */
-    override def update(sectionScheduleException: SectionScheduleException)(implicit conn: Connection): Future[SectionScheduleException] = {
-      val dayDT = sectionScheduleException.day.toDateTimeAtStartOfDay()
-      val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), sectionScheduleException.startTime.getHourOfDay(), sectionScheduleException.startTime.getMinuteOfHour, sectionScheduleException.startTime.getSecondOfMinute())
-      val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), sectionScheduleException.endTime.getHourOfDay(), sectionScheduleException.endTime.getMinuteOfHour, sectionScheduleException.endTime.getSecondOfMinute())
+    override def update(courseScheduleException: CourseScheduleException)(implicit conn: Connection): Future[CourseScheduleException] = {
+      val dayDT = courseScheduleException.day.toDateTimeAtStartOfDay()
+      val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.startTime.getHourOfDay(), courseScheduleException.startTime.getMinuteOfHour, courseScheduleException.startTime.getSecondOfMinute())
+      val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.endTime.getHourOfDay(), courseScheduleException.endTime.getMinuteOfHour, courseScheduleException.endTime.getSecondOfMinute())
 
       conn.sendPreparedStatement(Update, Array(
-        sectionScheduleException.userId.bytes,
-        sectionScheduleException.classId.bytes,
+        courseScheduleException.userId.bytes,
+        courseScheduleException.courseId.bytes,
         dayDT,
         startTimeDT,
         endTimeDT,
-        (sectionScheduleException.version + 1),
+        (courseScheduleException.version + 1),
         new DateTime,
-        sectionScheduleException.id.bytes,
-        sectionScheduleException.version
+        courseScheduleException.id.bytes,
+        courseScheduleException.version
       )).map {
-        result => SectionScheduleException(result.rows.get.head)
+        result => CourseScheduleException(result.rows.get.head)
       }.recover {
         case exception => {
           throw exception
@@ -200,8 +200,8 @@ trait ClassScheduleExceptionRepositoryPostgresComponent extends ClassScheduleExc
      * @param course The course to delete.
      * @return A boolean indicating whether the operation was successful.
      */
-    override def delete(sectionScheduleException: SectionScheduleException)(implicit conn: Connection): Future[Boolean] = {
-      conn.sendPreparedStatement(Delete, Array(sectionScheduleException.id.bytes, sectionScheduleException.version)).map {
+    override def delete(courseScheduleException: CourseScheduleException)(implicit conn: Connection): Future[Boolean] = {
+      conn.sendPreparedStatement(Delete, Array(courseScheduleException.id.bytes, courseScheduleException.version)).map {
         result => {
           (result.rowsAffected > 0)
         }

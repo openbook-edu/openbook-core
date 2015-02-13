@@ -15,7 +15,7 @@ trait Work {
   val id: UUID
   val studentId: UUID
   val taskId: UUID
-  val classId: UUID
+  val courseId: UUID
   val version: Long = 0
   val answer: AnyRef
   val isComplete: Boolean
@@ -41,7 +41,7 @@ object Work {
       val id         = (js \ "id").as[UUID]
       val studentId  = (js \ "studentId").as[UUID]
       val taskId     = (js \ "taskId"   ).as[UUID]
-      val classId  = (js \ "classId").as[UUID]
+      val courseId  = (js \ "courseId").as[UUID]
       val version   = (js \ "version" ).as[Long]
       val documentId = (js \ "documentId").asOpt[UUID]
       val answer     = (js \ "answer")
@@ -53,7 +53,7 @@ object Work {
         case LongAnswer => LongAnswerWork(id = id,
                                           studentId = studentId,
                                           taskId = taskId,
-                                          classId = classId,
+                                          courseId = courseId,
                                           documentId = documentId.get,
                                           version = version,
                                           answer = answer.as[String],
@@ -64,7 +64,7 @@ object Work {
         case ShortAnswer => ShortAnswerWork(id = id,
                                             studentId = studentId,
                                             taskId = taskId,
-                                            classId = classId,
+                                            courseId = courseId,
                                             documentId = documentId.get,
                                             version = version,
                                             answer = answer.as[String],
@@ -75,7 +75,7 @@ object Work {
         case MultipleChoice => MultipleChoiceWork(id = id,
                                                   studentId = studentId,
                                                   taskId = taskId,
-                                                  classId = classId,
+                                                  courseId = courseId,
                                                   version = version,
                                                   answer = answer.as[IndexedSeq[Int]],
                                                   isComplete = isComplete,
@@ -85,7 +85,7 @@ object Work {
         case Ordering => OrderingWork(id = id,
                                       studentId = studentId,
                                       taskId = taskId,
-                                      classId = classId,
+                                      courseId = courseId,
                                       version = version,
                                       answer = answer.as[IndexedSeq[Int]],
                                       isComplete = isComplete,
@@ -95,7 +95,7 @@ object Work {
         case Matching => MatchingWork(id = id,
                                       studentId = studentId,
                                       taskId = taskId,
-                                      classId = classId,
+                                      courseId = courseId,
                                       version = version,
                                       answer = answer.as[IndexedSeq[Match]],
                                       isComplete = isComplete,
@@ -112,7 +112,7 @@ object Work {
       val jsVal = Json.obj(
         "studentId" -> work.studentId,
         "taskId" -> work.taskId,
-        "classId" -> work.classId,
+        "courseId" -> work.courseId,
         "version" -> work.version,
         "answer" -> {
           work match {

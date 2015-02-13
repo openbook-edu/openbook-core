@@ -18,7 +18,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
         ProjectRepositoryComponent with
         TaskRepositoryComponent with
         ComponentRepositoryComponent with
-        ClassRepositoryComponent with
+        CourseRepositoryComponent with
         WorkRepositoryComponent with
         TaskResponseRepositoryComponent with
         TaskFeedbackRepositoryComponent with
@@ -36,22 +36,22 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
 
     /**
      * List the latest revision of all of a user's work in a project for a specific
-     * section.
+     * course.
      *
      * @param userId the user to list work for
-     * @param classId a section that the user belongs to to list work in
-     * @param projectId a project that belongs to the section to list work for
+     * @param courseId a course that the user belongs to to list work in
+     * @param projectId a project that belongs to the course to list work for
      * @return an array of work
      */
-    override def listWork(userId: UUID, classId: UUID, projectId: UUID): Future[IndexedSeq[Work]] = {
+    override def listWork(userId: UUID, courseId: UUID, projectId: UUID): Future[IndexedSeq[Work]] = {
       val fUser = userRepository.find(userId).map(_.get)
-      val fSection = classRepository.find(classId).map(_.get)
+      val fCourse = courseRepository.find(courseId).map(_.get)
       val fProject = projectRepository.find(projectId).map(_.get)
       val fResponses = for {
         user <- fUser
-        section <- fSection
+        course <- fCourse
         project <- fProject
-        responses <- workRepository.list(user, section, project)
+        responses <- workRepository.list(user, course, project)
       }
       yield responses
 
@@ -61,22 +61,22 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     }
 
     /**
-     * List all of a user's work revisions for a specific task in a specific section.
+     * List all of a user's work revisions for a specific task in a specific course.
      *
      * @param userId
-     * @param classId
+     * @param courseId
      * @param taskId
      * @return
      */
-    override def listWorkRevisions(userId: UUID, classId: UUID, taskId: UUID): Future[IndexedSeq[Work]] = {
+    override def listWorkRevisions(userId: UUID, courseId: UUID, taskId: UUID): Future[IndexedSeq[Work]] = {
       val fUser = userRepository.find(userId).map(_.get)
       val fTask = taskRepository.find(taskId).map(_.get)
-      val fSection = classRepository.find(classId).map(_.get)
+      val fCourse = courseRepository.find(courseId).map(_.get)
       val fResponses = for {
         user <- fUser
         task <- fTask
-        section <- fSection
-        responses <- workRepository.list(user, task, section)
+        course <- fCourse
+        responses <- workRepository.list(user, task, course)
       }
       yield responses
 
@@ -86,11 +86,11 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     }
 
     /**
-     * Find the latest revision of a user's work, for a task, in a section.
+     * Find the latest revision of a user's work, for a task, in a course.
      *
      * @param userId
      * @param taskId
-     * @param classId
+     * @param courseId
      * @return
      */
     override def findWork(workId: UUID): Future[Option[Work]] = {
@@ -105,22 +105,22 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     }
 
     /**
-     * Find the latest revision of a user's work, for a task, in a section.
+     * Find the latest revision of a user's work, for a task, in a course.
      *
      * @param userId
      * @param taskId
-     * @param classId
+     * @param courseId
      * @return
      */
-    override def findWork(userId: UUID, taskId: UUID, classId: UUID): Future[Option[Work]] = {
+    override def findWork(userId: UUID, taskId: UUID, courseId: UUID): Future[Option[Work]] = {
       val fUser = userRepository.find(userId).map(_.get)
       val fTask = taskRepository.find(taskId).map(_.get)
-      val fSection = classRepository.find(classId).map(_.get)
+      val fCourse = courseRepository.find(courseId).map(_.get)
       val fResponses = for {
         user <- fUser
         task <- fTask
-        section <- fSection
-        responses <- workRepository.find(user, task, section)
+        course <- fCourse
+        responses <- workRepository.find(user, task, course)
       }
       yield responses
 
@@ -130,23 +130,23 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     }
 
     /**
-     * Find a specific revision of a user's work, for a task, in a section.
+     * Find a specific revision of a user's work, for a task, in a course.
      *
      * @param userId
      * @param taskId
-     * @param classId
+     * @param courseId
      * @param revision
      * @return
      */
-    override def findWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long): Future[Option[Work]] = {
+    override def findWork(userId: UUID, taskId: UUID, courseId: UUID, revision: Long): Future[Option[Work]] = {
       val fUser = userRepository.find(userId).map(_.get)
       val fTask = taskRepository.find(taskId).map(_.get)
-      val fSection = classRepository.find(classId).map(_.get)
+      val fCourse = courseRepository.find(courseId).map(_.get)
       val fResponses = for {
         user <- fUser
         task <- fTask
-        section <- fSection
-        responses <- workRepository.find(user, task, section, revision)
+        course <- fCourse
+        responses <- workRepository.find(user, task, course, revision)
       }
       yield responses
 
@@ -166,11 +166,11 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     private def createWork(newWork: Work)(implicit conn: Connection): Future[Work] = {
       val fUser = userRepository.find(newWork.studentId).map(_.get)
       val fTask = taskRepository.find(newWork.taskId).map(_.get)
-      val fSection = classRepository.find(newWork.classId).map(_.get)
+      val fCourse = courseRepository.find(newWork.courseId).map(_.get)
       for {
         user <- fUser
         task <- fTask
-        section <- fSection
+        course <- fCourse
         createdWork <- workRepository.insert(newWork)
       } yield createdWork
     }
@@ -180,30 +180,30 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     /**
      * Create a long-answer work item.
      *
-     * Use this method when entering student work on a task for the first time (in a given section).
+     * Use this method when entering student work on a task for the first time (in a given course).
      *
      * @param userId the id of the student whose work is being entered
      * @param taskId the task for which the work was done
-     * @param classId the section to which the task's project belongs
+     * @param courseId the course to which the task's project belongs
      * @param answer the student's answer to the task (this is the actual "work")
      * @param isComplete whether the student is finished with the task
      * @return the newly created work
      */
-    override def createLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, isComplete: Boolean): Future[LongAnswerWork] = {
+    override def createLongAnswerWork(userId: UUID, taskId: UUID, courseId: UUID, isComplete: Boolean): Future[LongAnswerWork] = {
       transactional { implicit connection =>
         Logger.debug("Starting to create long answer work")
         val fUser = userRepository.find(userId).map(_.get)
         val fTask = taskRepository.find(taskId).map(_.get)
-        val fSection = classRepository.find(classId).map(_.get)
+        val fCourse = courseRepository.find(courseId).map(_.get)
         for {
           user <- fUser
           task <- fTask
-          section <- fSection
+          course <- fCourse
           document <- documentService.create(UUID.random, user, "", Delta(IndexedSeq()))
           work <- createWork(LongAnswerWork(
             studentId = user.id,
             taskId = task.id,
-            classId = section.id,
+            courseId = course.id,
             documentId = document.id,
             isComplete = isComplete
           ))
@@ -214,29 +214,29 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     /**
      * Create a short-answer work item.
      *
-     * Use this method when entering student work on a task for the first time (in a given section).
+     * Use this method when entering student work on a task for the first time (in a given course).
      *
      * @param userId the id of the student whose work is being entered
      * @param taskId the task for which the work was done
-     * @param classId the section to which the task's project belongs
+     * @param courseId the course to which the task's project belongs
      * @param answer the student's answer to the task (this is the actual "work")
      * @param isComplete whether the student is finished with the task
      * @return the newly created work
      */
-    override def createShortAnswerWork(userId: UUID, taskId: UUID, classId: UUID, isComplete: Boolean): Future[ShortAnswerWork] = {
+    override def createShortAnswerWork(userId: UUID, taskId: UUID, courseId: UUID, isComplete: Boolean): Future[ShortAnswerWork] = {
       transactional { implicit connection =>
         val fUser = userRepository.find(userId).map(_.get)
         val fTask = taskRepository.find(taskId).map(_.get)
-        val fSection = classRepository.find(classId).map(_.get)
+        val fCourse = courseRepository.find(courseId).map(_.get)
         for {
           user <- fUser
           task <- fTask
-          section <- fSection
+          course <- fCourse
           document <- documentService.create(UUID.random, user, "", Delta(IndexedSeq()))
           work <- createWork(ShortAnswerWork(
             studentId = user.id,
             taskId = task.id,
-            classId = section.id,
+            courseId = course.id,
             documentId = document.id,
             isComplete = isComplete
           ))
@@ -247,21 +247,21 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     /**
      * Create a multiple-choice work item.
      *
-     * Use this method when entering student work on a task for the first time (in a given section).
+     * Use this method when entering student work on a task for the first time (in a given course).
      *
      * @param userId the id of the student whose work is being entered
      * @param taskId the task for which the work was done
-     * @param classId the section to which the task's project belongs
+     * @param courseId the course to which the task's project belongs
      * @param answer the student's answer to the task (this is the actual "work")
      * @param isComplete whether the student is finished with the task
      * @return the newly created work
      */
-    override def createMultipleChoiceWork(userId: UUID, taskId: UUID, classId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[MultipleChoiceWork] = {
+    override def createMultipleChoiceWork(userId: UUID, taskId: UUID, courseId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[MultipleChoiceWork] = {
       transactional { implicit connection =>
         val newWork = MultipleChoiceWork(
           studentId = userId,
           taskId = taskId,
-          classId = classId,
+          courseId = courseId,
           version = 1,
           answer = answer,
           isComplete = isComplete
@@ -273,21 +273,21 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     /**
      * Create an ordering work item.
      *
-     * Use this method when entering student work on a task for the first time (in a given section).
+     * Use this method when entering student work on a task for the first time (in a given course).
      *
      * @param userId the id of the student whose work is being entered
      * @param taskId the task for which the work was done
-     * @param classId the section to which the task's project belongs
+     * @param courseId the course to which the task's project belongs
      * @param answer the student's answer to the task (this is the actual "work")
      * @param isComplete whether the student is finished with the task
      * @return the newly created work
      */
-    override def createOrderingWork(userId: UUID, taskId: UUID, classId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[OrderingWork] = {
+    override def createOrderingWork(userId: UUID, taskId: UUID, courseId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[OrderingWork] = {
       transactional { implicit connection =>
         val newWork = OrderingWork(
           studentId = userId,
           taskId = taskId,
-          classId = classId,
+          courseId = courseId,
           version = 1,
           answer = answer,
           isComplete = isComplete
@@ -299,21 +299,21 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     /**
      * Create a matching work item.
      *
-     * Use this method when entering student work on a task for the first time (in a given section).
+     * Use this method when entering student work on a task for the first time (in a given course).
      *
      * @param userId the id of the student whose work is being entered
      * @param taskId the task for which the work was done
-     * @param classId the section to which the task's project belongs
+     * @param courseId the course to which the task's project belongs
      * @param answer the student's answer to the task (this is the actual "work")
      * @param isComplete whether the student is finished with the task
      * @return the newly created work
      */
-    override def createMatchingWork(userId: UUID, taskId: UUID, classId: UUID, answer: IndexedSeq[Match], isComplete: Boolean): Future[MatchingWork] = {
+    override def createMatchingWork(userId: UUID, taskId: UUID, courseId: UUID, answer: IndexedSeq[Match], isComplete: Boolean): Future[MatchingWork] = {
       transactional { implicit connection =>
         val newWork = MatchingWork(
           studentId = userId,
           taskId = taskId,
-          classId = classId,
+          courseId = courseId,
           version = 1,
           answer = answer,
           isComplete = isComplete
@@ -339,12 +339,12 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     private def updateWork(newerWork: Work, newRevision: Boolean = true)(implicit conn: Connection): Future[Work] = {
       val fUser = userRepository.find(newerWork.studentId).map(_.get)
       val fTask = taskRepository.find(newerWork.taskId).map(_.get)
-      val fSection = classRepository.find(newerWork.classId).map(_.get)
+      val fCourse = courseRepository.find(newerWork.courseId).map(_.get)
       for {
         user <- fUser
         task <- fTask
-        section <- fSection
-        latestRevision <- workRepository.find(user, task, section).map(_.get)
+        course <- fCourse
+        latestRevision <- workRepository.find(user, task, course).map(_.get)
         updatedWork <- {
           if (newerWork.version != latestRevision.version) {
             throw TaskResponseOutOfDateException("The task response has changed since you last saw it!")
@@ -360,16 +360,16 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * Because the contents of the work are handled by the Document service, this method only
      * serves to update the work's completed status.
      */
-    def updateLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, isComplete: Boolean): Future[LongAnswerWork] = {
+    def updateLongAnswerWork(userId: UUID, taskId: UUID, courseId: UUID, isComplete: Boolean): Future[LongAnswerWork] = {
       transactional { implicit connection =>
         val fUser = userRepository.find(userId).map(_.get)
         val fTask = taskRepository.find(taskId).map(_.get)
-        val fSection = classRepository.find(classId).map(_.get)
+        val fCourse = courseRepository.find(courseId).map(_.get)
         for {
           user <- fUser
           task <- fTask
-          section <- fSection
-          existingWork <- workRepository.find(user, task, section).map(_.get.asInstanceOf[LongAnswerWork])
+          course <- fCourse
+          existingWork <- workRepository.find(user, task, course).map(_.get.asInstanceOf[LongAnswerWork])
           workToUpdate <- Future successful existingWork.copy(
             isComplete = isComplete
           )
@@ -385,16 +385,16 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * Because the contents of the work are handled by the Document service, this method only
      * serves to update the work's completed status.
      */
-    def updateShortAnswerWork(userId: UUID, taskId: UUID, classId: UUID, isComplete: Boolean): Future[ShortAnswerWork] = {
+    def updateShortAnswerWork(userId: UUID, taskId: UUID, courseId: UUID, isComplete: Boolean): Future[ShortAnswerWork] = {
       transactional { implicit connection =>
         val fUser = userRepository.find(userId).map(_.get)
         val fTask = taskRepository.find(taskId).map(_.get)
-        val fSection = classRepository.find(classId).map(_.get)
+        val fCourse = courseRepository.find(courseId).map(_.get)
         for {
           user <- fUser
           task <- fTask
-          section <- fSection
-          existingWork <- workRepository.find(user, task, section).map(_.get.asInstanceOf[ShortAnswerWork])
+          course <- fCourse
+          existingWork <- workRepository.find(user, task, course).map(_.get.asInstanceOf[ShortAnswerWork])
           workToUpdate <- Future successful existingWork.copy(
             isComplete = isComplete
           )
@@ -406,16 +406,16 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
 
 
 
-    def updateMultipleChoiceWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[MultipleChoiceWork] = {
+    def updateMultipleChoiceWork(userId: UUID, taskId: UUID, courseId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[MultipleChoiceWork] = {
       transactional { implicit connection =>
         val fUser = userRepository.find(userId).map(_.get)
         val fTask = taskRepository.find(taskId).map(_.get)
-        val fSection = classRepository.find(classId).map(_.get)
+        val fCourse = courseRepository.find(courseId).map(_.get)
         for {
           user <- fUser
           task <- fTask
-          section <- fSection
-          existingWork <- workRepository.find(user, task, section, revision).map(_.get.asInstanceOf[MultipleChoiceWork])
+          course <- fCourse
+          existingWork <- workRepository.find(user, task, course, revision).map(_.get.asInstanceOf[MultipleChoiceWork])
           newerWork <- Future successful existingWork.copy(
             answer = answer,
             isComplete = isComplete
@@ -426,16 +426,16 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
       }
     }
 
-    def updateOrderingWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[OrderingWork] = {
+    def updateOrderingWork(userId: UUID, taskId: UUID, courseId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[OrderingWork] = {
       transactional { implicit connection =>
         val fUser = userRepository.find(userId).map(_.get)
         val fTask = taskRepository.find(taskId).map(_.get)
-        val fSection = classRepository.find(classId).map(_.get)
+        val fCourse = courseRepository.find(courseId).map(_.get)
         for {
           user <- fUser
           task <- fTask
-          section <- fSection
-          existingWork <- workRepository.find(user, task, section, revision).map(_.get.asInstanceOf[OrderingWork])
+          course <- fCourse
+          existingWork <- workRepository.find(user, task, course, revision).map(_.get.asInstanceOf[OrderingWork])
           newerWork <- Future successful existingWork.copy(
             answer = answer,
             isComplete = isComplete
@@ -446,16 +446,16 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
       }
     }
 
-    def updateMatchingWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long, version: Long, answer: IndexedSeq[Match], isComplete: Boolean): Future[MatchingWork] = {
+    def updateMatchingWork(userId: UUID, taskId: UUID, courseId: UUID, revision: Long, version: Long, answer: IndexedSeq[Match], isComplete: Boolean): Future[MatchingWork] = {
       transactional { implicit connection =>
         val fUser = userRepository.find(userId).map(_.get)
         val fTask = taskRepository.find(taskId).map(_.get)
-        val fSection = classRepository.find(classId).map(_.get)
+        val fCourse = courseRepository.find(courseId).map(_.get)
         for {
           user <- fUser
           task <- fTask
-          section <- fSection
-          existingWork <- workRepository.find(user, task, section, revision).map(_.get.asInstanceOf[MatchingWork])
+          course <- fCourse
+          existingWork <- workRepository.find(user, task, course, revision).map(_.get.asInstanceOf[MatchingWork])
           newerWork <- Future successful existingWork.copy(
             answer = answer,
             isComplete = isComplete

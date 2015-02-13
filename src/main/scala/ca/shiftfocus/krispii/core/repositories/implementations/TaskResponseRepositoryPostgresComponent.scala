@@ -173,7 +173,7 @@ trait TaskResponseRepositoryPostgresComponent extends TaskResponseRepositoryComp
      * @param task the task to force to complete
      * @param section the section of students to force completion for
      */
-    override def forceComplete(task: Task, section: Class)(implicit conn: Connection): Future[Boolean] = {
+    override def forceComplete(task: Task, section: Course)(implicit conn: Connection): Future[Boolean] = {
       for {
         result1 <- conn.sendPreparedStatement(ForceCompleteStepOne, Array[Any](task.id.bytes, new DateTime, new DateTime, section.id.bytes, task.id.bytes))
         result2 <- conn.sendPreparedStatement(ForceCompleteStepTwo, Array[Any](section.id.bytes, task.id.bytes))

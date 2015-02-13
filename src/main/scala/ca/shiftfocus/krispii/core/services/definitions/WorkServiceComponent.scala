@@ -17,31 +17,31 @@ trait WorkServiceComponent {
   trait WorkService {
 
     // Finder methods for work
-    def listWork(userId: UUID, classId: UUID, projectId: UUID): Future[IndexedSeq[Work]]
-    def listWorkRevisions(userId: UUID, classId: UUID, taskId: UUID): Future[IndexedSeq[Work]]
+    def listWork(userId: UUID, courseId: UUID, projectId: UUID): Future[IndexedSeq[Work]]
+    def listWorkRevisions(userId: UUID, courseId: UUID, taskId: UUID): Future[IndexedSeq[Work]]
     def findWork(workId: UUID): Future[Option[Work]]
-    def findWork(userId: UUID, taskId: UUID, classId: UUID): Future[Option[Work]]
-    def findWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long): Future[Option[Work]]
+    def findWork(userId: UUID, taskId: UUID, courseId: UUID): Future[Option[Work]]
+    def findWork(userId: UUID, taskId: UUID, courseId: UUID, revision: Long): Future[Option[Work]]
 
 
     // Create methods for the textual work types
-    def createLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, isComplete: Boolean): Future[LongAnswerWork]
-    def createShortAnswerWork(userId: UUID, taskId: UUID, classId: UUID, isComplete: Boolean): Future[ShortAnswerWork]
+    def createLongAnswerWork(userId: UUID, taskId: UUID, courseId: UUID, isComplete: Boolean): Future[LongAnswerWork]
+    def createShortAnswerWork(userId: UUID, taskId: UUID, courseId: UUID, isComplete: Boolean): Future[ShortAnswerWork]
 
     // Create methods for the other work types
-    def createMultipleChoiceWork(userId: UUID, taskId: UUID, classId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[MultipleChoiceWork]
-    def createOrderingWork(userId: UUID, taskId: UUID, classId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[OrderingWork]
-    def createMatchingWork(userId: UUID, taskId: UUID, classId: UUID, answer: IndexedSeq[Match], isComplete: Boolean): Future[MatchingWork]
+    def createMultipleChoiceWork(userId: UUID, taskId: UUID, courseId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[MultipleChoiceWork]
+    def createOrderingWork(userId: UUID, taskId: UUID, courseId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[OrderingWork]
+    def createMatchingWork(userId: UUID, taskId: UUID, courseId: UUID, answer: IndexedSeq[Match], isComplete: Boolean): Future[MatchingWork]
 
 
     // Update methods for the textual work types
-    def updateLongAnswerWork(userId: UUID, taskId: UUID, classId: UUID, isComplete: Boolean): Future[LongAnswerWork]
-    def updateShortAnswerWork(userId: UUID, taskId: UUID, classId: UUID, isComplete: Boolean): Future[ShortAnswerWork]
+    def updateLongAnswerWork(userId: UUID, taskId: UUID, courseId: UUID, isComplete: Boolean): Future[LongAnswerWork]
+    def updateShortAnswerWork(userId: UUID, taskId: UUID, courseId: UUID, isComplete: Boolean): Future[ShortAnswerWork]
 
     // Update methods for the other work types
-    def updateMultipleChoiceWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[MultipleChoiceWork]
-    def updateOrderingWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[OrderingWork]
-    def updateMatchingWork(userId: UUID, taskId: UUID, classId: UUID, revision: Long, version: Long, answer: IndexedSeq[Match], isComplete: Boolean): Future[MatchingWork]
+    def updateMultipleChoiceWork(userId: UUID, taskId: UUID, courseId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[MultipleChoiceWork]
+    def updateOrderingWork(userId: UUID, taskId: UUID, courseId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[OrderingWork]
+    def updateMatchingWork(userId: UUID, taskId: UUID, courseId: UUID, revision: Long, version: Long, answer: IndexedSeq[Match], isComplete: Boolean): Future[MatchingWork]
 
 
     // Task feedbacks

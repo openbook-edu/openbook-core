@@ -52,18 +52,18 @@ trait AuthServiceComponent {
     /**
      * List all users.
      *
-     * @return a list of users with their roles and sections
+     * @return a list of users with their roles and courses
      */
     def list: Future[IndexedSeq[UserInfo]]
 
     /**
-     * List users with filter for roles and sections.
+     * List users with filter for roles and courses.
      *
      * @param rolesFilter an optional list of roles to filter by
-     * @param sectionsFilter an optional list of sections to filter by
-     * @return a list of users with their roles and sections
+     * @param coursesFilter an optional list of courses to filter by
+     * @return a list of users with their roles and courses
      */
-    def list(rolesFilter: Option[IndexedSeq[String]], sectionsFilter: Option[IndexedSeq[UUID]]): Future[IndexedSeq[UserInfo]]
+    def list(rolesFilter: Option[IndexedSeq[String]], coursesFilter: Option[IndexedSeq[UUID]]): Future[IndexedSeq[UserInfo]]
 
     /**
      * Find a user by their UUID.

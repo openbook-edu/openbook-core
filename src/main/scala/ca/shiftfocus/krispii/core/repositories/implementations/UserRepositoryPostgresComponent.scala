@@ -281,7 +281,10 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       ).map {
         result => buildUser(result.rows)
       }.recover {
-        case exception: GenericDatabaseException => -\/(PrimaryKeyExists(s"A row with key ${user.id.string} already exists"))
+        case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
+          case Some(nField) if nField == "users_pkey" => -\/(PrimaryKeyExists(s"A row with key ${user.id.string} already exists"))
+          case _ => -\/(FatalError("Unexpected exception", exception))
+        }
         case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
@@ -311,7 +314,10 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       yield buildUser(result.rows)
 
       future.recover {
-        case exception: GenericDatabaseException => -\/(PrimaryKeyExists(s"A row with key ${user.id.string} already exists"))
+        case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
+          case Some(nField) if nField == "users_pkey" => -\/(PrimaryKeyExists(s"A row with key ${user.id.string} already exists"))
+          case _ => -\/(FatalError("Unexpected exception", exception))
+        }
         case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }

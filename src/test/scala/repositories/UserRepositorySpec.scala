@@ -130,7 +130,7 @@ class UserRepositorySpec
 
         an [java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
       }
-      "list users in a given section(class)" in {
+      "list users in a given course" in {
         val result = userRepository.list(TestValues.testClassA)
         val result2 = userRepository.list(TestValues.testClassB)
 

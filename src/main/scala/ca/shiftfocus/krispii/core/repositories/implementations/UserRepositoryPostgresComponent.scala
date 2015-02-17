@@ -215,12 +215,12 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     }
 
     /**
-     * List users in a given section.
-     *
-     *
+     * List users in a given course.
+     * @param course
+     * @return Some(user) if valid, otherwise None.
      */
-    override def list(section: Course): Future[IndexedSeq[User]] = {
-      db.pool.sendPreparedStatement(ListUsers, Array(section.id.bytes)).map { queryResult =>
+    override def list(course: Course): Future[IndexedSeq[User]] = {
+      db.pool.sendPreparedStatement(ListUsers, Array(course.id.bytes)).map { queryResult =>
         val userList = queryResult.rows.get.map {
           item: RowData => {
             User(item)
@@ -236,13 +236,14 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     }
 
     /**
-     * List the users belonging to a set of classes.
+     * TODO - take a look at ListUsersFilterByCourses
+     * List the users belonging to a set of courses.
      *
-     * @param classes an [[IndexedSeq]] of [[Course]] to filter by.
+     * @param courses an [[IndexedSeq]] of [[Course]] to filter by.
      * @return an [[IndexedSeq]] of [[User]]
      */
-    override def listForCourses(classes: IndexedSeq[Course]) = {
-      Future.sequence(classes.map(list)).map(_.flatten).recover {
+    override def listForCourses(courses: IndexedSeq[Course]) = {
+      Future.sequence(courses.map(list)).map(_.flatten).recover {
         case exception => {
           throw exception
         }

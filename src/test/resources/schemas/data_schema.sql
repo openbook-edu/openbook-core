@@ -96,98 +96,98 @@ INSERT INTO users_roles (user_id, role_id, created_at)
 VALUES ('\x4d01347ec5924e5fb09fdd281b3d9b87', '\x2a3edf38750a46aa84289fb08e648ee8', '2014-08-20 14:01:19.545-04');
 
 
-/* CLASSES */
-/* class A -> user A (teacher) */
-INSERT INTO classes (id, version, teacher_id, name, color, created_at, updated_at)
-VALUES ('\x217c5622ff9e43728e6a95fb3bae300b', 1, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'test class A', 1574408, '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
+/* COURSES */
+/* course A -> user A (teacher) */
+INSERT INTO courses (id, version, teacher_id, name, color, created_at, updated_at)
+VALUES ('\x217c5622ff9e43728e6a95fb3bae300b', 1, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'test course A', 1574408, '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
-/* class B -> user B (teacher) */
-INSERT INTO classes (id, version, teacher_id, name, color, created_at, updated_at)
-VALUES ('\x404c800a53854e6b867e365a1e6b00de', 2, '\x6c0e29bdd05b4b2981156be93e936c59', 'test class B', 2230288, '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
+/* course B -> user B (teacher) */
+INSERT INTO courses (id, version, teacher_id, name, color, created_at, updated_at)
+VALUES ('\x404c800a53854e6b867e365a1e6b00de', 2, '\x6c0e29bdd05b4b2981156be93e936c59', 'test course B', 2230288, '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
 
-/* class D -> user F (teacher) */
-INSERT INTO classes (id, version, teacher_id, name, color, created_at, updated_at)
-VALUES ('\x94cc65bb45424f628e08d58522e7b5f1', 3, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test class D', 269368, '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+/* course D -> user F (teacher) */
+INSERT INTO courses (id, version, teacher_id, name, color, created_at, updated_at)
+VALUES ('\x94cc65bb45424f628e08d58522e7b5f1', 3, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test course D', 269368, '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
-/* class F -> user F (teacher) */
-INSERT INTO classes (id, version, teacher_id, name, color, created_at, updated_at)
-VALUES ('\x287b61f5da6b4de785353bc500cffac7', 4, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test class F', 269368, '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+/* course F -> user F (teacher) */
+INSERT INTO courses (id, version, teacher_id, name, color, created_at, updated_at)
+VALUES ('\x287b61f5da6b4de785353bc500cffac7', 4, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test course F', 269368, '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 
 
-/* USERS_CLASSES */
-/* UserA -> ClassA */
-INSERT INTO users_classes (user_id, class_id, created_at)
+/* USERS_COURSES */
+/* UserA -> CourseA */
+INSERT INTO users_courses (user_id, course_id, created_at)
 VALUES ('\x36c8c0ca50aa4806afa5916a5e33a81f', '\x217c5622ff9e43728e6a95fb3bae300b', '2014-08-07 14:01:19.545-04');
 
-/* UserB -> ClassB */
-INSERT INTO users_classes (user_id, class_id, created_at)
+/* UserB -> CourseB */
+INSERT INTO users_courses (user_id, course_id, created_at)
 VALUES ('\x6c0e29bdd05b4b2981156be93e936c59', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-08 14:01:19.545-04');
 
-/* UserE (student) -> ClassB */
-INSERT INTO users_classes (user_id, class_id, created_at)
+/* UserE (student) -> CourseB */
+INSERT INTO users_courses (user_id, course_id, created_at)
 VALUES ('\x871b525067124e548ab60784cae0bc64', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-09 14:01:19.545-04');
 
-/* UserG -> ClassB */
-INSERT INTO users_classes (user_id, class_id, created_at)
+/* UserG -> CourseB */
+INSERT INTO users_courses (user_id, course_id, created_at)
 VALUES ('\xc4d948967e1b45fabae74fb3a89a4d63', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-09 14:01:19.545-04');
 
-/* UserH -> ClassB */
-INSERT INTO users_classes (user_id, class_id, created_at)
+/* UserH -> CourseB */
+INSERT INTO users_courses (user_id, course_id, created_at)
 VALUES ('\x5099a6b48809400d8e380119184d0f93', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-10 14:01:19.545-04');
 
 
 /* SCHEDULES */
-/* ClassSchedule A -> Class A */
-INSERT INTO schedules (id, class_id, version, start_time, length, reason, created_at, updated_at)
-VALUES ('\x308792b27a2943c8ad51a5c4f306cdaf', '\x217c5622ff9e43728e6a95fb3bae300b', 1, '2015-01-15 14:38:19-04', 12345, 'test ClassSchedule A reason', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
+/* CourseSchedule A -> Course A */
+INSERT INTO schedules (id, course_id, version, start_time, length, reason, created_at, updated_at)
+VALUES ('\x308792b27a2943c8ad51a5c4f306cdaf', '\x217c5622ff9e43728e6a95fb3bae300b', 1, '2015-01-15 14:38:19-04', 12345, 'test CourseSchedule A reason', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
 
-/* ClassSchedule B -> Class B */
-INSERT INTO schedules (id, class_id, version, start_time, length, reason, created_at, updated_at)
-VALUES ('\xdc1190c2b5fd4bac95fa7d67e1f1d445', '\x404c800a53854e6b867e365a1e6b00de', 2, '2015-01-16 12:38:19-04', 12345, 'test ClassSchedule B reason', '2014-08-04 14:01:19.545-04','2014-08-05 14:01:19.545-04');
+/* CourseSchedule B -> Course B */
+INSERT INTO schedules (id, course_id, version, start_time, length, reason, created_at, updated_at)
+VALUES ('\xdc1190c2b5fd4bac95fa7d67e1f1d445', '\x404c800a53854e6b867e365a1e6b00de', 2, '2015-01-16 12:38:19-04', 12345, 'test CourseSchedule B reason', '2014-08-04 14:01:19.545-04','2014-08-05 14:01:19.545-04');
 
-/* ClassSchedule C -> Class B */
-INSERT INTO schedules (id, class_id, version, start_time, length, reason, created_at, updated_at)
-VALUES ('\x6df9d164b1514c389acd6b91301a199d', '\x404c800a53854e6b867e365a1e6b00de', 3, '2015-01-17 16:38:19-04', 12345, 'test ClassSchedule C reason', '2014-08-06 14:01:19.545-04','2014-08-07 14:01:19.545-04');
+/* CourseSchedule C -> Course B */
+INSERT INTO schedules (id, course_id, version, start_time, length, reason, created_at, updated_at)
+VALUES ('\x6df9d164b1514c389acd6b91301a199d', '\x404c800a53854e6b867e365a1e6b00de', 3, '2015-01-17 16:38:19-04', 12345, 'test CourseSchedule C reason', '2014-08-06 14:01:19.545-04','2014-08-07 14:01:19.545-04');
 
 
 /* SCHEDULE_EXCEPTIONS */
-/* SectionScheduleException A -> UserA -> ClassA */
-INSERT INTO schedule_exceptions (id, user_id, class_id, version, day, start_time, end_time, reason, created_at, updated_at)
+/* SectionScheduleException A -> UserA -> CourseA */
+INSERT INTO schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
 VALUES ('\xda17e24aa5454d7494e1427896e13ebe', '\x36c8c0ca50aa4806afa5916a5e33a81f', '\x217c5622ff9e43728e6a95fb3bae300b', 1, '2014-08-01', '2014-08-01 14:01:19.545-04', '2014-08-01 15:01:19.545-04', 'testSectionScheduleExceptionA reason', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
 
-/* SectionScheduleException B -> UserB -> ClassB */
-INSERT INTO schedule_exceptions (id, user_id, class_id, version, day, start_time, end_time, reason, created_at, updated_at)
+/* SectionScheduleException B -> UserB -> CourseB */
+INSERT INTO schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
 VALUES ('\x3a285f0c66d041b2851bcfcd203550d9', '\x6c0e29bdd05b4b2981156be93e936c59', '\x404c800a53854e6b867e365a1e6b00de', 2, '2014-08-04', '2014-08-04 16:01:19.545-04', '2014-08-04 17:01:19.545-04', 'testSectionScheduleExceptionB reason','2014-08-05 14:01:19.545-04','2014-08-06 14:01:19.545-04');
 
-/* SectionScheduleException C -> UserE -> ClassB */
-INSERT INTO schedule_exceptions (id, user_id, class_id, version, day, start_time, end_time, reason, created_at, updated_at)
+/* SectionScheduleException C -> UserE -> CourseB */
+INSERT INTO schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
 VALUES ('\x4d7ca313f2164f5985ae88bcbca70317', '\x871b525067124e548ab60784cae0bc64', '\x404c800a53854e6b867e365a1e6b00de', 3, '2014-08-07', '2014-08-07 10:01:19.545-04', '2014-08-07 11:01:19.545-04', 'testSectionScheduleExceptionC reason','2014-08-08 14:01:19.545-04','2014-08-09 14:01:19.545-04');
 
 
 /* PROJECTS */
-/* project A -> class A -> user A (teacher) */
-INSERT INTO projects (id, class_id, version, name, slug, description, availability, created_at, updated_at)
+/* project A -> course A -> user A (teacher) */
+INSERT INTO projects (id, course_id, version, name, slug, description, availability, created_at, updated_at)
 VALUES ('\xc9b4cfceaed448fd94f5c980763dfddc', '\x217c5622ff9e43728e6a95fb3bae300b', 1, 'test project A', 'test project slug A', 'test project A description', 'any', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
-/* project B -> class B -> user B (teacher) */
-INSERT INTO projects (id, class_id, version, name, slug, description, availability, created_at, updated_at)
+/* project B -> course B -> user B (teacher) */
+INSERT INTO projects (id, course_id, version, name, slug, description, availability, created_at, updated_at)
 VALUES ('\xe4ae3b9098714339b05c8d39e3aaf65d', '\x404c800a53854e6b867e365a1e6b00de', 2, 'test project B', 'test project slug B', 'test project B description', 'free', '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
 
-/* project C -> class B -> user B (teacher) */
-INSERT INTO projects (id, class_id, version, name, slug, description, availability, created_at, updated_at)
-VALUES ('\x4ac4d872451b4092b13f643d6d5fa930', '\x404c800a53854e6b867e365a1e6b00de', 3, 'test project C', 'test project slug C', 'test project C description', 'class', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+/* project C -> course B -> user B (teacher) */
+INSERT INTO projects (id, course_id, version, name, slug, description, availability, created_at, updated_at)
+VALUES ('\x4ac4d872451b4092b13f643d6d5fa930', '\x404c800a53854e6b867e365a1e6b00de', 3, 'test project C', 'test project slug C', 'test project C description', 'course', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
 
 /* PARTS */
-/* part A -> project A -> class A -> user A (teacher) */
+/* part A -> project A -> course A -> user A (teacher) */
 INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
 VALUES ('\x5cd214be6bba47fa9f350eb8bafec397', 1, '\xc9b4cfceaed448fd94f5c980763dfddc', 'test part A', true, 10, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
 
-/* part B -> project A -> class A -> user A (teacher) */
+/* part B -> project A -> course A -> user A (teacher) */
 INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
 VALUES ('\xabb84847a3d247a0ae7d8ce04063afc7', 2, '\xc9b4cfceaed448fd94f5c980763dfddc', 'test part B', false, 11, '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
-/* part C -> project B -> class B -> user B (teacher) */
+/* part C -> project B -> course B -> user B (teacher) */
 INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
 VALUES ('\xfb01f11b7f2341c8877b68410be62aa5', 3, '\xe4ae3b9098714339b05c8d39e3aaf65d', 'test part C', true, 12, '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
 

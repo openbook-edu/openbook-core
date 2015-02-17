@@ -128,9 +128,9 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
 
     val ListUsers = s"""
       SELECT id, version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
-      FROM users, users_classes
-      WHERE users.id = users_classes.user_id
-        AND users_classes.class_id = ?
+      FROM users, users_courses
+      WHERE users.id = users_courses.user_id
+        AND users_courses.course_id = ?
       ORDER BY $orderBy
     """
 
@@ -154,13 +154,13 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
 
     val ListUsersFilterByRolesAndCourses = s"""
       SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
-      FROM users, roles, users_roles, classes, users_classes
+      FROM users, roles, users_roles, courses, users_courses
       WHERE users.id = users_roles.user_id
         AND roles.id = users_roles.role_id
         AND roles.name = ANY (?::text[])
-        AND users.id = users_classes.user_id
-        AND classes.id = users_classes.class_id
-        AND classes.name = ANY (?::text[])
+        AND users.id = users_courses.user_id
+        AND courses.id = users_courses.course_id
+        AND courses.name = ANY (?::text[])
       GROUP BY users.id
       ORDER BY $orderBy
     """
@@ -269,14 +269,14 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     }
 
     /**
-     * List users filtering by both roles and classes.
+     * List users filtering by both roles and courses.
      *
      * @param roles an [[IndexedSeq]] of [[String]] naming the roles to filter by.
-     * @param classes an [[IndexedSeq]] of [[Course]] to filter by.
+     * @param courses an [[IndexedSeq]] of [[Course]] to filter by.
      * @return an [[IndexedSeq]] of [[User]]
      */
-    override def listForRolesAndCourses(roles: IndexedSeq[String], classes: IndexedSeq[String]) = {
-      db.pool.sendPreparedStatement(ListUsersFilterByRolesAndCourses, Array[Any](roles, classes)).map { queryResult =>
+    override def listForRolesAndCourses(roles: IndexedSeq[String], courses: IndexedSeq[String]) = {
+      db.pool.sendPreparedStatement(ListUsersFilterByRolesAndCourses, Array[Any](roles, courses)).map { queryResult =>
         queryResult.rows.get.map {
           item: RowData => User(item)
         }

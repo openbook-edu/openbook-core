@@ -1,9 +1,8 @@
 import java.io.File
 
-import ca.shiftfocus.krispii.core.models.{Class, User}
+import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.RowData
-import org.joda.time.{DateTimeZone, DateTime}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Await
 import scala.concurrent.duration._

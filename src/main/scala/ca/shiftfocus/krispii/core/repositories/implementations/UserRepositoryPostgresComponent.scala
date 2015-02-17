@@ -1,13 +1,19 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import com.github.mauricio.async.db.{RowData, Connection}
+import ca.shiftfocus.krispii.core.repositories.error.{FatalError, RepositoryError}
+import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
+import com.github.mauricio.async.db.{RowData, Connection, ResultSet}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.lib.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.uuid.UUID
 import scala.concurrent.Future
+import error._
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+
+import scalaz._
+import scalaz.syntax.either._
 
 trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
   // Because this concrete implementation is postgres specific, we will specifically
@@ -38,12 +44,6 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       ORDER BY $orderBy
     """
 
-    // TODO - not used
-//    val SelectWithIds = s"""
-//      SELECT id, version, created_at, updated_at, $fieldsText
-//      FROM $table
-//    """
-
     val SelectOne = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
       FROM $table
@@ -51,11 +51,8 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     """
 
     val Insert = {
-      // TODO - What is difference between this and fieldsText
-      val extraFields = fields.mkString(",")
-      val questions = fields.map(_ => "?").mkString(",")
       s"""
-        INSERT INTO $table (id, version, created_at, updated_at, $extraFields)
+        INSERT INTO $table (id, version, created_at, updated_at, $fieldsText)
         VALUES (?, 1, ?, ?, $questions)
         RETURNING id, version, created_at, updated_at, $fieldsText
       """
@@ -72,32 +69,9 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       """
     }
 
-    // TODO - not used
-//    val Delete = s"""
-//      DELETE FROM $table WHERE id = ? AND version = ?
-//    """
-
-    // TODO - not used
-//    val Restore = s"""
-//      UPDATE $table SET status = 1 WHERE id = ? AND version = ? AND status = 0
-//    """
-
-
     val Purge = s"""
       DELETE FROM $table WHERE id = ? AND version = ?
     """
-
-    // TODO - not used
-//    val UpdateNoPass = {
-//      val extraFields = fields.filter(_ != "password_hash").map(" " + _ + " = ? ").mkString(",")
-//      s"""
-//        UPDATE users
-//        SET $extraFields , version = ?, updated_at = ?
-//        WHERE id = ?
-//          AND version = ?
-//        RETURNING version
-//      """
-//    }
 
     val SelectOneEmail = s"""
       SELECT id, version, created_at, updated_at, $fieldsText
@@ -111,20 +85,6 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       WHERE (email = ? OR username = ?)
       LIMIT 1
     """
-
-    // TODO - not used
-//    val AddUser = """
-//      INSERT INTO users_classes (user_id, class_id, created_at)
-//      VALUES (?, ?, ?)
-//    """
-
-    // TODO - not used
-//    val RemoveUser = """
-//      DELETE FROM users_classes
-//      WHERE user_id = ?
-//        AND class_id = ?
-//    """
-
 
     val ListUsers = s"""
       SELECT id, version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
@@ -165,34 +125,16 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       ORDER BY $orderBy
     """
 
-    // TODO - not used
-//    val HasProject = s"""
-//      SELECT projects.id
-//      FROM users_classes
-//      INNER JOIN classes_projects ON users_classes.class_id = classes_projects.class_id
-//      INNER JOIN projects ON classes_projects.project_id = projects.id
-//      WHERE classes_projects.project_id = ?
-//        AND users_classes.user_id = ?
-//    """
-
     /**
      * List all users.
      *
      * @return an [[IndexedSeq]] of [[User]]
      */
-    override def list: Future[IndexedSeq[User]] = {
-      db.pool.sendQuery(SelectAll).map { queryResult =>
-        val startTimeUs = System.nanoTime() / 1000
-        val userList = queryResult.rows.get.map {
-          item: RowData => User(item)
-        }
-        val endTimeUs = System.nanoTime() / 1000
-        //Cache.set(s"users.list", userList.map(_.id), db.cacheExpiry)
-        userList
+    override def list: Future[\/[RepositoryError, IndexedSeq[User]]] = {
+      db.pool.sendQuery(SelectAll).map {
+        result => buildUserList(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("An unexpected error occurred.", exception))
       }
     }
 
@@ -202,36 +144,27 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * @param userIds an [[IndexedSeq]] of [[UUID]] of the users to list.
      * @return an [[IndexedSeq]] of [[User]]
      */
-    override def list(userIds: IndexedSeq[UUID]): Future[IndexedSeq[User]] = {
+    override def list(userIds: IndexedSeq[UUID]): Future[\/[RepositoryError, IndexedSeq[User]]] = {
       Future.sequence {
         userIds.map { userId =>
-          find(userId).map(_.get)
+          find(userId).map(_.toOption.get)
         }
+      }.map {
+        users => \/-(users)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: NoSuchElementException => -\/(NoResultsFound("One or more users could not be loaded."))
+        case exception: Throwable => -\/(FatalError("An unexpected error occurred.", exception))
       }
     }
 
     /**
-     * List users in a given section.
-     *
-     *
+     * List users in a given course.
      */
-    override def list(section: Course): Future[IndexedSeq[User]] = {
-      db.pool.sendPreparedStatement(ListUsers, Array(section.id.bytes)).map { queryResult =>
-        val userList = queryResult.rows.get.map {
-          item: RowData => {
-            User(item)
-          }
-        }
-        //Cache.set(s"users.list.section[${section.id.string}]", userList.map(_.id), db.cacheExpiry)
-        userList
+    override def list(course: Course): Future[\/[RepositoryError, IndexedSeq[User]]] = {
+      db.pool.sendPreparedStatement(ListUsers, Seq[Any](course.id.bytes)).map {
+        result => buildUserList(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("An unexpected error occurred.", exception))
       }
     }
 
@@ -241,13 +174,13 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * @param classes an [[IndexedSeq]] of [[Course]] to filter by.
      * @return an [[IndexedSeq]] of [[User]]
      */
-    override def listForCourses(classes: IndexedSeq[Course]) = {
-      Future.sequence(classes.map(list)).map(_.flatten).recover {
-        case exception => {
-          throw exception
-        }
-      }
-    }
+//    override def listForCourses(classes: IndexedSeq[Course]): Future[\/[RepositoryError, IndexedSeq[User]]] = {
+//      Future.sequence(classes.map(list)).map(_.flatten).recover {
+//        case exception => {
+//          throw exception
+//        }
+//      }
+//    }
 
     /**
      * List the users one of a set of roles.
@@ -255,17 +188,17 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * @param roles an [[IndexedSeq]] of [[String]] naming the roles to filter by.
      * @return an [[IndexedSeq]] of [[User]]
      */
-    override def listForRoles(roles: IndexedSeq[String]) = {
-      db.pool.sendPreparedStatement(ListUsersFilterByRoles, Array[Any](roles)).map { queryResult =>
-        queryResult.rows.get.map {
-          item: RowData => User(item)
-        }
-      }.recover {
-        case exception => {
-          throw exception
-        }
-      }
-    }
+//    override def listForRoles(roles: IndexedSeq[String]): Future[\/[RepositoryError, IndexedSeq[User]]] = {
+//      db.pool.sendPreparedStatement(ListUsersFilterByRoles, Array[Any](roles)).map { queryResult =>
+//        queryResult.rows.get.map {
+//          item: RowData => User(item)
+//        }
+//      }.recover {
+//        case exception => {
+//          throw exception
+//        }
+//      }
+//    }
 
     /**
      * List users filtering by both roles and classes.
@@ -274,17 +207,13 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * @param classes an [[IndexedSeq]] of [[Course]] to filter by.
      * @return an [[IndexedSeq]] of [[User]]
      */
-    override def listForRolesAndCourses(roles: IndexedSeq[String], classes: IndexedSeq[String]) = {
-      db.pool.sendPreparedStatement(ListUsersFilterByRolesAndCourses, Array[Any](roles, classes)).map { queryResult =>
-        queryResult.rows.get.map {
-          item: RowData => User(item)
-        }
-      }.recover {
-        case exception => {
-          throw exception
-        }
-      }
-    }
+//    override def listForRolesAndCourses(roles: IndexedSeq[String], classes: IndexedSeq[String]): Future[\/[RepositoryError, IndexedSeq[User]]] = {
+//      db.pool.sendPreparedStatement(ListUsersFilterByRolesAndCourses, Array[Any](roles, classes)).map { result =>
+//        rowsToUsers(result.rows)
+//      }.recover {
+//        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+//      }
+//    }
 
     /**
      * Find a user by ID.
@@ -292,20 +221,12 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * @param id the [[UUID]] of the user to search for.
      * @return an [[Option[User]]]
      */
-    override def find(id: UUID): Future[Option[User]] = {
-      db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map { result =>
-        result.rows.get.headOption match {
-          case Some(rowData) => {
-            Some(User(rowData))
-          }
-          case None => {
-            None
-          }
-        }
-      }
-    }.recover {
-      case exception => {
-        throw exception
+    override def find(id: UUID): Future[\/[RepositoryError, User]] = {
+      db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
+        result => buildUser(result.rows)
+      }.recover {
+        case exception: NoSuchElementException => -\/(PrimaryKeyExists(s"A row with key ${}"))
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -315,18 +236,12 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * @param identifier a [[String]] representing their e-mail or username.
      * @return an [[Option[User]]]
      */
-    override def find(identifier: String): Future[Option[User]] = {
-      db.pool.sendPreparedStatement(SelectOneByIdentifier, Array[Any](identifier, identifier)).map { result =>
-        result.rows.get.headOption match {
-          case Some(rowData) => {
-            Some(User(rowData))
-          }
-          case None => None
-        }
+    override def find(identifier: String): Future[\/[RepositoryError, User]] = {
+      db.pool.sendPreparedStatement(SelectOneByIdentifier, Array[Any](identifier, identifier)).map {
+        result => buildUser(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: NoSuchElementException => -\/(PrimaryKeyExists(s"A row with key ${}"))
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -336,16 +251,12 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * @param email the e-mail address of the user to find
      * @return an [[Option[User]]]
      */
-    override def findByEmail(email: String): Future[Option[User]] = {
-      db.pool.sendPreparedStatement(SelectOneEmail, Array[Any](email)).map { result =>
-        result.rows.get.headOption match {
-          case Some(rowData) => Some(User(rowData))
-          case None => None
-        }
+    override def findByEmail(email: String): Future[\/[RepositoryError, User]] = {
+      db.pool.sendPreparedStatement(SelectOneEmail, Array[Any](email)).map {
+        result => buildUser(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: NoSuchElementException => -\/(PrimaryKeyExists(s"A row with key ${}"))
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -359,7 +270,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * @param user the [[User]] to update in the database
      * @return the updated [[User]]
      */
-    def update(user: User)(implicit conn: Connection): Future[User] = {
+    def update(user: User)(implicit conn: Connection): Future[\/[RepositoryError, User]] = {
       conn.sendPreparedStatement(Update, Array[Any](
         user.username,
         user.email,
@@ -371,11 +282,10 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
         user.id.bytes,
         user.version)
       ).map {
-        result => User(result.rows.get.head)
+        result => buildUser(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: NoSuchElementException => -\/(PrimaryKeyExists(s"A row with key ${}"))
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -388,7 +298,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * @param user the [[User]] to insert into the database
      * @return the newly created [[User]]
      */
-    def insert(user: User)(implicit conn: Connection): Future[User] = {
+    def insert(user: User)(implicit conn: Connection): Future[\/[RepositoryError, User]] = {
       val future = for {
         result <- conn.sendPreparedStatement(Insert, Array(
           user.id.bytes,
@@ -401,12 +311,11 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
           user.surname
         ))
       }
-      yield User(result.rows.get.head)
+      yield buildUser(result.rows)
 
       future.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: NoSuchElementException => -\/(PrimaryKeyExists(s"A row with key ${}"))
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -416,19 +325,53 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * @param user the [[User]] to be deleted
      * @return a [[Boolean]] indicating success or failure
      */
-    def delete(user: User)(implicit conn: Connection): Future[Boolean] = {
-      val future = for {
-        queryResult <- conn.sendPreparedStatement(Purge, Array(user.id.bytes, user.version))
+    def delete(user: User)(implicit conn: Connection): Future[\/[RepositoryError, User]] = {
+      conn.sendPreparedStatement(Purge, Array(user.id.bytes, user.version)).map { result =>
+        if (result.rowsAffected == 1) \/-(user)
+        else -\/(NoResultsFound("Could not find a user row to delete."))
+      }.recover {
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
-      yield {
-        //uncache(user)
-        queryResult.rowsAffected > 0
-      }
+    }
 
-      future.recover {
-        case exception => {
-          throw exception
+
+
+    /**
+     * Transform result rows into a single user.
+     *
+     * @param maybeRows
+     * @return
+     */
+    private def buildUser(maybeResultSet: Option[ResultSet]): \/[RepositoryError, User] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => resultSet.headOption match {
+            case Some(firstRow) => \/-(User(firstRow))
+            case None => -\/(NoResultsFound("The query was successful but ResultSet was empty."))
+          }
+          case None => -\/(NoResultsFound("The query was successful but no ResultSet was returned."))
         }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a user from the row returned.", exception))
+      }
+    }
+
+    /**
+     * Converts an optional result set into
+     *
+     * @param maybeRows
+     * @return
+     */
+    private def buildUserList(maybeResultSet: Option[ResultSet]): \/[RepositoryError, IndexedSeq[User]] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => \/-(resultSet.map(User.apply))
+          case None => -\/(NoResultsFound("The query was successful but no ResultSet was returned."))
+        }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a user from the rows returned.", exception))
       }
     }
   }

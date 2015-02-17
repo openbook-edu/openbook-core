@@ -4,9 +4,9 @@ organization := "ca.shiftfocus"
 
 version := "1.0-SNAPSHOT"
 
-scalaVersion := "2.11.2"
+scalaVersion := "2.11.5"
 
-crossScalaVersions := Seq("2.10.4", "2.11.2")
+crossScalaVersions := Seq("2.10.4", "2.11.5")
 
 // trivial change to trigger a build
 
@@ -36,6 +36,8 @@ scalacOptions in ThisBuild ++= Seq(
 
 libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play" % "2.3.5",
+  "org.scalaz" %% "scalaz-core" % "7.1.1",
+  "org.scalaz" %% "scalaz-effect" % "7.1.1",
   "com.github.mauricio" %% "postgresql-async" % "0.2.15",
   "joda-time" % "joda-time" % "2.1",
   "net.sf.uadetector" % "uadetector-resources" % "2014.04",

@@ -405,6 +405,8 @@ object TestValues {
     version = 3L,
     projectId = UUID("e4ae3b90-9871-4339-b05c-8d39e3aaf65d"), // testProjectB.id,
     name = "test part C",
+    enabled = true,
+    position = 12,
     tasks = Vector(),
     createdAt = Option(new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")))
@@ -415,11 +417,7 @@ object TestValues {
     id = UUID("0229c34a-7504-468c-a061-6095b64ea7ec"),
     projectId = UUID("e4ae3b90-9871-4339-b05c-8d39e3aaf65d"), // testProjectB.id,
     name = "test part D",
-    enabled = true,
-    position = 13,
-    tasks = Vector(),
-    createdAt = Option(new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-    updatedAt = Option(new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+    tasks = Vector()
   )
 
 

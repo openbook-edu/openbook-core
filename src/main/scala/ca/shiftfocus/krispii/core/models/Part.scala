@@ -44,6 +44,7 @@ object Part {
       version     = row("version").asInstanceOf[Long],
       projectId   = UUID(row("project_id").asInstanceOf[Array[Byte]]),
       name        = row("name").asInstanceOf[String],
+    // TODO - remove description
 //      description = row("description").asInstanceOf[String],
       position    = row("position").asInstanceOf[Int],
       enabled     = row("enabled").asInstanceOf[Boolean],

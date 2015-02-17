@@ -60,11 +60,11 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
     val SelectOneForUser =
       s"""
          |$Select
-         |$From, classes, users_classes
+         |$From, courses, users_courses
          |WHERE projects.id = ?
-         |  AND projects.course_id = classes.id
-         |  AND (classes.teacher_id = ? OR (
-         |    classes.id = users_classes.course_id AND users_classes.user_id = ?
+         |  AND projects.course_id = courses.id
+         |  AND (courses.teacher_id = ? OR (
+         |    courses.id = users_courses.course_id AND users_courses.user_id = ?
          |  ))
        """.stripMargin
 
@@ -138,7 +138,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
 
 
     /**
-     * Find all Projects belonging to a given class.
+     * Find all Projects belonging to a given course.
      *
      * @param section The section to return projects from.
      * @return a vector of the returned Projects

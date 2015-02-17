@@ -96,13 +96,13 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
        """.stripMargin
 
     // TODO - not used
-    val ListCoursesByTeacherId =
-      s"""
-         |$Select
-         |$From
-         |WHERE teacher_id = ?
-         |$OrderBy
-      """.stripMargin
+//    val ListCoursesByTeacherId =
+//      s"""
+//         |$Select
+//         |$From
+//         |WHERE teacher_id = ?
+//         |$OrderBy
+//      """.stripMargin
 
     val ListCourseForProject =
       s"""
@@ -133,14 +133,14 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
        """.stripMargin
 
     // TODO - not used, is implemented in UserRepo
-    val ListUsers =
-      s"""
-         |SELECT id, version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
-         |FROM users, users_courses
-         |WHERE users.id = users_courses.user_id
-         |  AND users_courses.course_id = ?
-         |$OrderBy
-       """.stripMargin
+//    val ListUsers =
+//      s"""
+//         |SELECT id, version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
+//         |FROM users, users_courses
+//         |WHERE users.id = users_courses.user_id
+//         |  AND users_courses.course_id = ?
+//         |$OrderBy
+//       """.stripMargin
 
     val ListCoursesForUserList =
       s"""
@@ -156,11 +156,11 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
        """.stripMargin
 
     // TODO - not used
-    val RemoveProjects =
-      s"""
-         |DELETE FROM courses_projects
-         |WHERE course_id =
-       """.stripMargin
+//    val RemoveProjects =
+//      s"""
+//         |DELETE FROM courses_projects
+//         |WHERE course_id =
+//       """.stripMargin
 
     val RemoveAllUsers =
       s"""
@@ -169,11 +169,11 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
        """.stripMargin
 
     // TODO - not used
-    val RemoveAllProjects =
-      s"""
-         |DELETE FROM courses_projects
-         |WHERE course_id = ?
-       """.stripMargin
+//    val RemoveAllProjects =
+//      s"""
+//         |DELETE FROM courses_projects
+//         |WHERE course_id = ?
+//       """.stripMargin
 
 
     val HasProject =
@@ -217,7 +217,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
     }
 
     /**
-     * Return class by its project.
+     * Return course by its project.
      *
      * @param project  the project to filter by
      *
@@ -309,7 +309,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
     }
 
     /**
-     * Find student in teacher's class
+     * Find student in teacher's course
      *
      * @param student
      * @param teacher
@@ -347,7 +347,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
     }
 
     /**
-     * Remove a user from a class.
+     * Remove a user from a course.
      */
     override def removeUser(user: User, course: Course)(implicit conn: Connection) = {
       val future = for {
@@ -419,7 +419,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
         s"decode('$cleanUserId', 'hex')"
       }.mkString("ARRAY[", ",", "]")
       val query = s"""${RemoveUsers} '\\x$cleanCourseId' AND ARRAY[user_id] <@ $arrayString"""
-      Logger.debug(arrayString)
+//      Logger.debug(arrayString)
       for {
         result <- conn.sendQuery(query)
       }

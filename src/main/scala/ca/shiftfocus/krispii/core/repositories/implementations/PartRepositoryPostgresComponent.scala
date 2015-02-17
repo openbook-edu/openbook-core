@@ -64,17 +64,19 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       """
     }
 
-    val Delete = s"""
-      DELETE FROM $table WHERE id = ? AND version = ?
-    """
+    // TODO - not used
+//    val Delete = s"""
+//      DELETE FROM $table WHERE id = ? AND version = ?
+//    """
 
     val DeleteByProject = s"""
       DELETE FROM $table WHERE project_id = ?
     """
 
-    val Restore = s"""
-      UPDATE $table SET status = 1 WHERE id = ? AND version = ? AND status = 0
-    """
+    // TODO - not used
+//    val Restore = s"""
+//      UPDATE $table SET status = 1 WHERE id = ? AND version = ? AND status = 0
+//    """
 
     val Purge = s"""
       DELETE FROM $table WHERE id = ? AND version = ?
@@ -104,8 +106,8 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     """
 
     val ReorderParts1 = s"""
-      UPDATE parts AS p SET
-        position = c.position
+      UPDATE parts AS p
+      SET position = c.position
       FROM (VALUES
     """
 
@@ -192,7 +194,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
      * Find a single entry by ID.
      *
      * @param id the 128-bit UUID, as a byte array, to search for.
-     * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return an optional Project if one was found
      */
     override def find(id: UUID): Future[Option[Part]] = {
@@ -225,7 +226,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
      *
      * @param project The project to search within.
      * @param position The part's position within the project.
-     * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return an optional RowData object containing the results
      */
     override def find(project: Project, position: Int): Future[Option[Part]] = {
@@ -291,6 +291,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       conn.sendPreparedStatement(Update, Array(
         part.projectId.bytes,
         part.name,
+      // TODO remove description
         //        part.description,
         part.position,
         part.enabled,
@@ -330,7 +331,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     /**
      * Delete parts in a project.
      *
-     * @param part The part to delete.
+     * @param project
      * @return A boolean indicating whether the operation was successful.
      */
     def delete(project: Project)(implicit conn: Connection): Future[Boolean] = {
@@ -354,7 +355,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       val query = parts.map { part =>
         s"(decode('${part.id.cleanString}', 'hex'), ${part.position})"
       }.mkString(ReorderParts1, ",", ReorderParts2)
-
+println(Console.RED + Console.BOLD + query + Console.RESET)
       conn.sendQuery(query).flatMap {
         queryResult => {
           list(project)

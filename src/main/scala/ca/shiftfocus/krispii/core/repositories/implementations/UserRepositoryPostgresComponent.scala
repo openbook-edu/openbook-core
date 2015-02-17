@@ -225,7 +225,6 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
         result => buildUser(result.rows)
       }.recover {
-        case exception: NoSuchElementException => -\/(PrimaryKeyExists(s"A row with key ${}"))
         case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
@@ -240,7 +239,6 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       db.pool.sendPreparedStatement(SelectOneByIdentifier, Array[Any](identifier, identifier)).map {
         result => buildUser(result.rows)
       }.recover {
-        case exception: NoSuchElementException => -\/(PrimaryKeyExists(s"A row with key ${}"))
         case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
@@ -255,7 +253,6 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       db.pool.sendPreparedStatement(SelectOneEmail, Array[Any](email)).map {
         result => buildUser(result.rows)
       }.recover {
-        case exception: NoSuchElementException => -\/(PrimaryKeyExists(s"A row with key ${}"))
         case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
@@ -277,14 +274,14 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
         user.passwordHash.get,
         user.givenname,
         user.surname,
-        (user.version + 1),
+        user.version + 1,
         new DateTime,
         user.id.bytes,
         user.version)
       ).map {
         result => buildUser(result.rows)
       }.recover {
-        case exception: NoSuchElementException => -\/(PrimaryKeyExists(s"A row with key ${}"))
+        case exception: GenericDatabaseException => -\/(PrimaryKeyExists(s"A row with key ${user.id.string} already exists"))
         case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
@@ -314,7 +311,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       yield buildUser(result.rows)
 
       future.recover {
-        case exception: NoSuchElementException => -\/(PrimaryKeyExists(s"A row with key ${}"))
+        case exception: GenericDatabaseException => -\/(PrimaryKeyExists(s"A row with key ${user.id.string} already exists"))
         case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }

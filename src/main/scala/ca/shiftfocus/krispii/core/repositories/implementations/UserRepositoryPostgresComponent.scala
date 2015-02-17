@@ -12,7 +12,7 @@ import error._
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
-import scalaz._
+import scalaz.{\/, -\/, \/-}
 import scalaz.syntax.either._
 
 trait UserRepositoryPostgresComponent extends UserRepositoryComponent {

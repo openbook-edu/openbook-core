@@ -6,15 +6,9 @@ import ca.shiftfocus.krispii.core.lib._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.uuid.UUID
 import scala.concurrent.Future
+import error._
+import scalaz.{EitherT, \/}
 
-/**
- * In the "cake pattern", repositories take the role of Table Data Gateways. A
- * repository essentially *is* a TDG, but it's implemented as a class held in
- * a repository component trait.
- *
- * This allows a Service to mix in several repositories and have access to
- * their methods, without hardcoding the Service to a specific implementation.
- */
 trait UserRepositoryComponent {
   val userRepository: UserRepository
 
@@ -27,50 +21,22 @@ trait UserRepositoryComponent {
    * inside a transactional block.
    */
   trait UserRepository {
-    /**
-     * List methods return an indexed sequence of users.
-     */
+    def list: Future[\/[RepositoryError, IndexedSeq[User]]]
+    def list(userIds: IndexedSeq[UUID]): Future[\/[RepositoryError, IndexedSeq[User]]]
+    def list(course: Course): Future[\/[RepositoryError, IndexedSeq[User]]]
+    def listForCourses(course: IndexedSeq[Course]): Future[\/[RepositoryError, IndexedSeq[User]]]
+    def listForRoles(roles: IndexedSeq[String]): Future[\/[RepositoryError, IndexedSeq[User]]]
+    def listForRolesAndCourses(roles: IndexedSeq[String], classes: IndexedSeq[String]): Future[\/[RepositoryError, IndexedSeq[User]]]
 
-    /**
-     * List all users.
-     *
-     * @return an [[IndexedSeq]] of [[UserInfo]]
-     */
-    def list: Future[IndexedSeq[User]]
+    def findByEmail(email: String): Future[\/[RepositoryError, User]]
+    def find(userId: UUID): Future[\/[RepositoryError, User]]
+    def find(identifier: String): Future[\/[RepositoryError, User]]
 
-    /**
-     * List users with filter for roles and classes.
-     *
-     * @param rolesFilter an optional list of roles to filter by
-     * @param classesFilter an optional list of classes to filter by
-     * @return an [[IndexedSeq]] of [[UserInfo]]
-     */
-    def list(userIds: IndexedSeq[UUID]): Future[IndexedSeq[User]]
+    def insert(user: User)(implicit conn: Connection): Future[\/[RepositoryError, User]]
+    def update(user: User)(implicit conn: Connection): Future[\/[RepositoryError, User]]
+    def delete(user: User)(implicit conn: Connection): Future[\/[RepositoryError, User]]
 
-    /**
-     * Authenticates a given identifier/password combination.
-     *
-     * @param email
-     * @param password
-     * @return Some(user) if valid, otherwise None.
-     */
-    def list(section: Course): Future[IndexedSeq[User]]
-    def listForCourses(classes: IndexedSeq[Course]): Future[IndexedSeq[User]]
-    def listForRoles(roles: IndexedSeq[String]): Future[IndexedSeq[User]]
-    def listForRolesAndCourses(roles: IndexedSeq[String], classes: IndexedSeq[String]): Future[IndexedSeq[User]]
-
-    /**
-     * Find methods return a single user.
-     */
-    def findByEmail(email: String): Future[Option[User]]
-    def find(userId: UUID): Future[Option[User]]
-    def find(identifier: String): Future[Option[User]]
-
-    /**
-     * The C_UD from CRUD.
-     */
-    def insert(user: User)(implicit conn: Connection): Future[User]
-    def update(user: User)(implicit conn: Connection): Future[User]
-    def delete(user: User)(implicit conn: Connection): Future[Boolean]
+    protected def lift = EitherT.eitherT[Future, RepositoryError, User] _
+    protected def liftList = EitherT.eitherT[Future, RepositoryError, IndexedSeq[User]] _
   }
 }

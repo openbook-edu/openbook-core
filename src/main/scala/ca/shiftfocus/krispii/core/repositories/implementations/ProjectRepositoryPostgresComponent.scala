@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import com.github.mauricio.async.db.{RowData, Connection}
+import ca.shiftfocus.krispii.core.repositories.error.{FatalError, NoResultsFound, RepositoryError}
+import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.lib.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
@@ -11,6 +12,10 @@ import play.api.Logger
 import scala.concurrent.Future
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+
+import scalaz.syntax.traverse._
+import scalaz._
+import Scalaz._
 
 trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
   self: PartRepositoryComponent with
@@ -116,23 +121,25 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      *
      * @return a vector of the returned Projects
      */
-    override def list: Future[IndexedSeq[Project]] = {
-      val projectList = for {
-        queryResult <- db.pool.sendQuery(SelectAll)
-        projects <- Future successful {
-          queryResult.rows.get.map { item => Project(item) }
-        }
-        result <- Future sequence { projects.map { project =>
-          partRepository.list(project).map { partList =>
-            project.copy(parts = partList)
+    override def list: Future[\/[RepositoryError, IndexedSeq[Project]]] = {
+      val fProjectList = db.pool.sendQuery(SelectAll).map(res => buildProjectList(res.rows))
+
+      val fResult = for {
+        projectList <- liftList(fProjectList)
+        intermediate <- Future sequence projectList.map{ project =>
+          partRepository.list(project).map {
+            case \/-(partList) => \/-(project.copy(parts = partList))
+            case -\/(error: RepositoryError) => -\/(error)
           }
-        }}
+        }
+        result: IndexedSeq[Project] <- liftList(Future.successful {
+          if (intermediate.filter(_.isLeft).nonEmpty) -\/(intermediate.filter(_.isLeft).head.swap.toOption.get)
+          else \/-(intermediate.map(_.toOption.get))
+        })
       } yield result
 
-      projectList.recover {
-        case exception => {
-          throw exception
-        }
+      fResult.run.recover {
+        case exception: Throwable => -\/(FatalError("An unexpected error occurred.", exception))
       }
     }
 
@@ -332,6 +339,45 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
         case exception => {
           throw exception
         }
+      }
+    }
+
+    /**
+     * Transform a result set into a Project.
+     *
+     * @param maybeResultSet
+     * @return
+     */
+    private def buildProject(maybeResultSet: Option[ResultSet]): \/[RepositoryError, Project] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => resultSet.headOption match {
+            case Some(firstRow) => \/-(Project(firstRow))
+            case None => -\/(NoResultsFound("The query was successful but ResultSet was empty."))
+          }
+          case None => -\/(NoResultsFound("The query was successful but no ResultSet was returned."))
+        }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a project from the row returned.", exception))
+      }
+    }
+
+    /**
+     * Transform a result set into a Project.
+     *
+     * @param maybeResultSet
+     * @return
+     */
+    private def buildProjectList(maybeResultSet: Option[ResultSet]): \/[RepositoryError, IndexedSeq[Project]] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => \/-(resultSet.map(Project.apply))
+          case None => -\/(NoResultsFound("The query was successful but no ResultSet was returned."))
+        }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a project from the row returned.", exception))
       }
     }
   }

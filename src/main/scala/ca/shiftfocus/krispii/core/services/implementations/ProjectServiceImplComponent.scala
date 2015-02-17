@@ -432,6 +432,21 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
     }
 
     /**
+     * Helper method for easy enabling/disable of parts.
+     */
+    override def togglePart(partId: UUID): Future[Part] = {
+      transactional { implicit connection =>
+        val fUpdated = for {
+          part <- partRepository.find(partId).map(_.get)
+          toggled <- partRepository.update(part.copy(enabled = if (part.enabled) false else true))
+        }
+        yield toggled
+
+        fUpdated
+      }
+    }
+
+    /**
      * Reorder the parts in a project.
      */
     override def reorderParts(projectId: UUID, partIds: IndexedSeq[UUID]): Future[Project] = {

@@ -481,7 +481,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
         result.run.map {
           case \/-(role) => \/-(role)
           case -\/(repoError) => repoError match {
-            case error: PrimaryKeyExists => -\/(AlreadyExists(error.message))
+            case error: NoResultsFound => -\/(NotFound(error.message))
             case error: FatalError => -\/(UncaughtException(error.message))
             case error: RepositoryError => -\/(GenericError("Unknown error"))
           }

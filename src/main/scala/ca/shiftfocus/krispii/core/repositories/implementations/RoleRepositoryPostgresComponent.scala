@@ -269,10 +269,10 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
         result <- conn.sendQuery(query)
       }
       yield if (result.rowsAffected == 0) {
-          -\/(NonFatalError("No rows were modified"))
-        } else {
-          \/-(role)
-        }
+        -\/(NonFatalError("No rows were modified"))
+      } else {
+        \/-(role)
+      }
 
       wasAdded.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {

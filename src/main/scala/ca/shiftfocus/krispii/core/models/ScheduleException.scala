@@ -11,10 +11,10 @@ import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
 
-case class SectionScheduleException(
+case class CourseScheduleException(
   id: UUID = UUID.random,
   userId: UUID,
-  classId: UUID,
+  courseId: UUID,
   version: Long = 0,
   day: LocalDate,
   startTime: LocalTime,
@@ -23,17 +23,17 @@ case class SectionScheduleException(
   updatedAt: Option[DateTime] = None
 )
 
-object SectionScheduleException extends LocalDateTimeJson {
+object CourseScheduleException extends LocalDateTimeJson {
 
-  def apply(row: RowData): SectionScheduleException = {
+  def apply(row: RowData): CourseScheduleException = {
     val day = row("day").asInstanceOf[DateTime]
     val startTime = row("start_time").asInstanceOf[DateTime]
     val endTime = row("end_time").asInstanceOf[DateTime]
 
-    SectionScheduleException(
+    CourseScheduleException(
       UUID(row("id").asInstanceOf[Array[Byte]]),
       UUID(row("user_id").asInstanceOf[Array[Byte]]),
-      UUID(row("class_id").asInstanceOf[Array[Byte]]),
+      UUID(row("course_id").asInstanceOf[Array[Byte]]),
       row("version").asInstanceOf[Long],
       day.toLocalDate(),
       new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), startTime.getHourOfDay(), startTime.getMinuteOfHour, startTime.getSecondOfMinute()).toLocalTime(),
@@ -43,27 +43,27 @@ object SectionScheduleException extends LocalDateTimeJson {
     )
   }
 
-  implicit val sectionScheduleReads: Reads[SectionScheduleException] = (
+  implicit val courseScheduleReads: Reads[CourseScheduleException] = (
     (__ \ "id").read[UUID] and
       (__ \ "userId").read[UUID] and
-      (__ \ "classId").read[UUID] and
+      (__ \ "courseId").read[UUID] and
       (__ \ "version").read[Long] and
       (__ \ "day").read[LocalDate] and
       (__ \ "startTime").read[LocalTime] and
       (__ \ "endTime").read[LocalTime] and
       (__ \ "createdAt").readNullable[DateTime] and
       (__ \ "updatedAt").readNullable[DateTime]
-    )(SectionScheduleException.apply(_: UUID, _: UUID, _: UUID, _: Long, _: LocalDate, _: LocalTime, _: LocalTime, _: Option[DateTime], _: Option[DateTime]))
+    )(CourseScheduleException.apply(_: UUID, _: UUID, _: UUID, _: Long, _: LocalDate, _: LocalTime, _: LocalTime, _: Option[DateTime], _: Option[DateTime]))
 
-  implicit val sectionScheduleWrites: Writes[SectionScheduleException] = (
+  implicit val courseScheduleWrites: Writes[CourseScheduleException] = (
     (__ \ "id").write[UUID] and
       (__ \ "userId").write[UUID] and
-      (__ \ "classId").write[UUID] and
+      (__ \ "courseId").write[UUID] and
       (__ \ "version").write[Long] and
       (__ \ "day").write[LocalDate] and
       (__ \ "startTime").write[LocalTime] and
       (__ \ "endTime").write[LocalTime] and
       (__ \ "createdAt").writeNullable[DateTime] and
       (__ \ "updatedAt").writeNullable[DateTime]
-    )(unlift(SectionScheduleException.unapply))
+    )(unlift(CourseScheduleException.unapply))
 }

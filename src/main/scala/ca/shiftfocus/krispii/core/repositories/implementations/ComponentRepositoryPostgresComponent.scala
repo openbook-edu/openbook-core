@@ -19,7 +19,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
   private class ComponentRepositoryPSQL extends ComponentRepository {
 
     val SelectAll = """
-      SELECT id, version, title, questions, things_to_think_about, type,
+      SELECT id, version, owner_id, title, questions, things_to_think_about, type,
              audio_components.component_id as audio_components_id,
              text_components.component_id as text_components_id,
              video_components.component_id as video_components_id,
@@ -33,7 +33,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
     """
 
     val SelectOne = """
-      SELECT id, version, title, questions, things_to_think_about, type,
+      SELECT id, version, owner_id, title, questions, things_to_think_about, type,
              audio_components.component_id as audio_components_id,
              text_components.component_id as text_components_id,
              video_components.component_id as video_components_id,
@@ -47,7 +47,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
     """
 
     val SelectByPartId = """
-      SELECT id, version, title, questions, things_to_think_about, type,
+      SELECT id, version, owner_id, title, questions, things_to_think_about, type,
              audio_components.component_id as audio_components_id,
              text_components.component_id as text_components_id,
              video_components.component_id as video_components_id,
@@ -59,13 +59,31 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       LEFT JOIN text_components ON components.id = text_components.component_id
       LEFT JOIN video_components ON components.id = video_components.component_id
       WHERE components_parts.part_id = ?
-        AND version = ?
+      GROUP BY components.id
+      ORDER BY components.title ASC
+    """
+
+    val SelectByProjectId = """
+      SELECT id, version, owner_id, title, questions, things_to_think_about, type,
+             audio_components.component_id as audio_components_id,
+             text_components.component_id as text_components_id,
+             video_components.component_id as video_components_id,
+             soundcloud_id, content, vimeo_id, width, height,
+             created_at, updated_at
+      FROM components
+      INNER JOIN components_parts ON components.id = components_parts.component_id
+      INNER JOIN parts
+      LEFT JOIN audio_components ON components.id = audio_components.component_id
+      LEFT JOIN text_components ON components.id = text_components.component_id
+      LEFT JOIN video_components ON components.id = video_components.component_id
+      WHERE components_parts.part_id = parts.id
+        AND parts.project_id = ?
       GROUP BY components.id
       ORDER BY components.title ASC
     """
 
     val SelectEnabledByProjectId = """
-      SELECT components.id as id, components.version as version,
+      SELECT components.id as id, components.version as version, components.owner_id as owner_id,
              components.questions as questions, components.things_to_think_about as things_to_think_about,
              components.type as type, components.title as title,
              audio_components.component_id as audio_components_id,
@@ -103,8 +121,8 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
 
     val InsertAudio = """
       WITH component AS (
-        INSERT INTO components (id, version, title, questions, things_to_think_about, type, created_at, updated_at)
-        VALUES (?, 1, ?, ?, ?, 'audio', ?, ?)
+        INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
+        VALUES (?, 1, ?, ?, ?, ?, 'audio', ?, ?)
         RETURNING id, version
       )
       INSERT INTO audio_components (component_id, soundcloud_id)
@@ -115,7 +133,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
     val UpdateAudio = """
       WITH component AS (
         UPDATE components
-        SET version = ?, title = ?, questions = ?, things_to_think_about = ?, type = 'audio', updated_at = ?
+        SET version = ?, owner_id = ?, title = ?, questions = ?, things_to_think_about = ?, type = 'audio', updated_at = ?
         WHERE id = ?
           AND version = ?
         RETURNING id, version
@@ -129,8 +147,8 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
 
     val InsertText = """
       WITH component AS (
-        INSERT INTO components (id, version, title, questions, things_to_think_about, type, created_at, updated_at)
-        VALUES (?, 1, ?, ?, ?, 'text', ?, ?)
+        INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
+        VALUES (?, 1, ?, ?, ?, ?, 'text', ?, ?)
         RETURNING id, version
       )
       INSERT INTO text_components (component_id, content)
@@ -141,7 +159,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
     val UpdateText = """
       WITH component AS (
         UPDATE components
-        SET version = ?, title = ?, questions = ?, things_to_think_about = ?, type = 'text', updated_at = ?
+        SET version = ?, owner_id = ?, title = ?, questions = ?, things_to_think_about = ?, type = 'text', updated_at = ?
         WHERE id = ?
           AND version = ?
         RETURNING id, version
@@ -155,8 +173,8 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
 
     val InsertVideo = """
       WITH component AS (
-        INSERT INTO components (id, version, title, questions, things_to_think_about, type, created_at, updated_at)
-        VALUES (?, 1, ?, ?, ?, 'video', ?, ?)
+        INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
+        VALUES (?, 1, ?, ?, ?, ?, 'video', ?, ?)
         RETURNING id, version
       )
       INSERT INTO video_components (component_id, vimeo_id, width, height)
@@ -167,7 +185,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
     val UpdateVideo = """
       WITH component AS (
         UPDATE components
-        SET version = ?, title = ?, questions = ?, things_to_think_about = ?, type = 'video', updated_at = ?
+        SET version = ?, owner_id = ?, title = ?, questions = ?, things_to_think_about = ?, type = 'video', updated_at = ?
         WHERE id = ?
           AND version = ?
         RETURNING id, version
@@ -204,6 +222,25 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      */
     override def list(part: Part)(implicit conn: Connection): Future[IndexedSeq[Component]] = {
       conn.sendPreparedStatement(SelectByPartId, Array[Any](part.id.bytes)).map { queryResult =>
+        queryResult.rows.get.map {
+          item: RowData => Component(item)
+        }
+      }.recover {
+        case exception => {
+          throw exception
+        }
+      }
+    }
+
+    /**
+     * Find all components enabled for a specific user, in a specific project.
+     *
+     * @param project the project to search within
+     * @param user the user to search for
+     * @return an array of components
+     */
+    override def list(project: Project)(implicit conn: Connection): Future[IndexedSeq[Component]] = {
+      conn.sendPreparedStatement(SelectByProjectId, Array[Any](project.id.bytes)).map { queryResult =>
         queryResult.rows.get.map {
           item: RowData => Component(item)
         }
@@ -345,6 +382,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       Logger.debug("[AudioTDG.save] - Performing Insert.")
       conn.sendPreparedStatement(InsertAudio, Array(
         component.id.bytes,
+        component.ownerId.bytes,
         component.title,
         component.questions,
         component.thingsToThinkAbout,
@@ -370,6 +408,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       Logger.debug("[AudioTDG.save] - Performing Update.")
       conn.sendPreparedStatement(UpdateAudio, Array(
         (component.version + 1),
+        component.ownerId.bytes,
         component.title,
         component.questions,
         component.thingsToThinkAbout,
@@ -396,6 +435,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       Logger.debug("[TextTDG.insert] - Performing Insert.")
       conn.sendPreparedStatement(InsertText, Array(
         component.id.bytes,
+        component.ownerId.bytes,
         component.title,
         component.questions,
         component.thingsToThinkAbout,
@@ -421,6 +461,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       Logger.debug("[TextTDG.save] - Performing Update.")
       conn.sendPreparedStatement(UpdateText, Array(
         (component.version + 1),
+        component.ownerId.bytes,
         component.title,
         component.questions,
         component.thingsToThinkAbout,
@@ -447,6 +488,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       Logger.debug("[VideoTDG.save] - Performing Insert.")
       conn.sendPreparedStatement(InsertVideo, Array(
         component.id.bytes,
+        component.ownerId.bytes,
         component.title,
         component.questions,
         component.thingsToThinkAbout,
@@ -474,6 +516,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       Logger.debug("[VideoTDG.save] - Performing Update.")
       conn.sendPreparedStatement(UpdateVideo, Array(
         (component.version + 1),
+        component.ownerId.bytes,
         component.title,
         component.questions,
         component.thingsToThinkAbout,

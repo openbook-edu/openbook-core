@@ -22,12 +22,6 @@ trait PartRepositoryComponent {
     def list(project: Project): Future[IndexedSeq[Part]]
     def list(component: Component): Future[IndexedSeq[Part]]
 
-    // TODO remove
-//    def listEnabled(project: Project, user: User): Future[IndexedSeq[Part]]
-//    def listEnabled(project: Project, section: Class): Future[IndexedSeq[Part]]
-//    def isEnabled(part: Part, user: User): Future[Boolean]
-//    def isEnabled(part: Part, section: Class): Future[Boolean]
-
     def find(id: UUID): Future[Option[Part]]
     def find(project: Project, position: Int): Future[Option[Part]]
     def insert(part: Part)(implicit conn: Connection): Future[Part]

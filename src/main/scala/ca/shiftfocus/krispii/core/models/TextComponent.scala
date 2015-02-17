@@ -10,6 +10,7 @@ import play.api.libs.functional.syntax._
 case class TextComponent(
   id: UUID = UUID.random,
   version: Long = 0,
+  ownerId: UUID,
   title: String,
   questions: String,
   thingsToThinkAbout: String,
@@ -24,6 +25,7 @@ object TextComponent {
     TextComponent(
       UUID(row("id").asInstanceOf[Array[Byte]]),
       row("version").asInstanceOf[Long],
+      UUID(row("ownerId").asInstanceOf[Array[Byte]]),
       row("title").asInstanceOf[String],
       row("questions").asInstanceOf[String],
       row("things_to_think_about").asInstanceOf[String],
@@ -47,6 +49,7 @@ object TextComponent {
   implicit val textComponentWrites: Writes[TextComponent] = (
     (__ \ "id").write[UUID] and
     (__ \ "version").write[Long] and
+      (__ \ "ownerId").write[UUID] and
     (__ \ "title").write[String] and
     (__ \ "questions").write[String] and
     (__ \ "thingsToThinkAbout").write[String] and
@@ -59,6 +62,7 @@ object TextComponent {
 
 
 case class TextComponentPost(
+  ownerId: UUID,
   title: String,
   questions: Option[String],
   thingsToThinkAbout: Option[String],
@@ -66,6 +70,7 @@ case class TextComponentPost(
 )
 object TextComponentPost {
   implicit val projectPostReads = (
+    (__ \ "ownerId").read[UUID] and
     (__ \ "title").read[String] and
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and

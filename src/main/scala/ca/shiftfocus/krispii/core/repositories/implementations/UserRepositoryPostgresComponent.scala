@@ -145,14 +145,14 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     """
 
     // TODO - not used
-//    val ListUsersFilterBySections = s"""
+//    val ListUsersFilterByCourses = s"""
 //      SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
 //      FROM users, classes, users_classes
 //      WHERE users.id = users_classes.user_id
 //        AND classes.id = users_classes.class_id
 //    """
 
-    val ListUsersFilterByRolesAndSections = s"""
+    val ListUsersFilterByRolesAndCourses = s"""
       SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
       FROM users, roles, users_roles, classes, users_classes
       WHERE users.id = users_roles.user_id
@@ -219,7 +219,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      *
      *
      */
-    override def list(section: Class): Future[IndexedSeq[User]] = {
+    override def list(section: Course): Future[IndexedSeq[User]] = {
       db.pool.sendPreparedStatement(ListUsers, Array(section.id.bytes)).map { queryResult =>
         val userList = queryResult.rows.get.map {
           item: RowData => {
@@ -238,10 +238,10 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
     /**
      * List the users belonging to a set of classes.
      *
-     * @param classes an [[IndexedSeq]] of [[Class]] to filter by.
+     * @param classes an [[IndexedSeq]] of [[Course]] to filter by.
      * @return an [[IndexedSeq]] of [[User]]
      */
-    override def listForSections(classes: IndexedSeq[Class]) = {
+    override def listForCourses(classes: IndexedSeq[Course]) = {
       Future.sequence(classes.map(list)).map(_.flatten).recover {
         case exception => {
           throw exception
@@ -271,11 +271,11 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * List users filtering by both roles and classes.
      *
      * @param roles an [[IndexedSeq]] of [[String]] naming the roles to filter by.
-     * @param classes an [[IndexedSeq]] of [[Class]] to filter by.
+     * @param classes an [[IndexedSeq]] of [[Course]] to filter by.
      * @return an [[IndexedSeq]] of [[User]]
      */
-    override def listForRolesAndSections(roles: IndexedSeq[String], classes: IndexedSeq[String]) = {
-      db.pool.sendPreparedStatement(ListUsersFilterByRolesAndSections, Array[Any](roles, classes)).map { queryResult =>
+    override def listForRolesAndCourses(roles: IndexedSeq[String], classes: IndexedSeq[String]) = {
+      db.pool.sendPreparedStatement(ListUsersFilterByRolesAndCourses, Array[Any](roles, classes)).map { queryResult =>
         queryResult.rows.get.map {
           item: RowData => User(item)
         }

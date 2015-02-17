@@ -9,7 +9,7 @@ case class MatchingWork(
   id: UUID = UUID.random,
   studentId: UUID,
   taskId: UUID,
-  classId: UUID,
+  courseId: UUID,
   override val version: Long,
   override val answer: IndexedSeq[Match],
   isComplete: Boolean = false,
@@ -29,7 +29,7 @@ object MatchingWork {
       id = UUID(row("id").asInstanceOf[Array[Byte]]),
       studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
       taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      classId = UUID(row("class_id").asInstanceOf[Array[Byte]]),
+      courseId = UUID(row("course_id").asInstanceOf[Array[Byte]]),
       version  = row("version").asInstanceOf[Long],
       answer    = row("answer").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element =>
         Match(element(0), element(1))

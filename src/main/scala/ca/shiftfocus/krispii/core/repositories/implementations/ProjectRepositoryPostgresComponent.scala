@@ -28,7 +28,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
 
     val Select =
       """
-         |SELECT projects.id as id, projects.version as version, projects.class_id, projects.name as name, projects.slug as slug,
+         |SELECT projects.id as id, projects.version as version, projects.course_id, projects.name as name, projects.slug as slug,
          |       projects.description as description, projects.availability as availability, projects.created_at as created_at, projects.updated_at as updated_at
        """.stripMargin
 
@@ -39,7 +39,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
 
     val Returning =
       """
-        |RETURNING id, version, class_id, name, slug, description, availability, created_at, updated_at
+        |RETURNING id, version, course_id, name, slug, description, availability, created_at, updated_at
       """.stripMargin
 
 
@@ -62,9 +62,9 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
          |$Select
          |$From, classes, users_classes
          |WHERE projects.id = ?
-         |  AND projects.class_id = classes.id
+         |  AND projects.course_id = classes.id
          |  AND (classes.teacher_id = ? OR (
-         |    classes.id = users_classes.class_id AND users_classes.user_id = ?
+         |    classes.id = users_classes.course_id AND users_classes.user_id = ?
          |  ))
        """.stripMargin
 
@@ -83,17 +83,17 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
 //         |WHERE slug = ?
 //       """.stripMargin
 
-    val ListByClass =
+    val ListByCourse =
       s"""
          |$Select
          |$From
-         |WHERE class_id = ?
+         |WHERE course_id = ?
        """.stripMargin
 
 
     val Insert =
       s"""
-        |INSERT INTO projects (id, version, class_id, name, slug, description, availability, created_at, updated_at)
+        |INSERT INTO projects (id, version, course_id, name, slug, description, availability, created_at, updated_at)
         |VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?)
         |$Returning
       """.stripMargin
@@ -101,7 +101,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
     val Update =
       s"""
         |UPDATE projects
-        |SET class_id = ?, name = ?, slug = ?, description = ?, availability = ?, version = ?, updated_at = ?
+        |SET course_id = ?, name = ?, slug = ?, description = ?, availability = ?, version = ?, updated_at = ?
         |WHERE id = ?
         |  AND version = ?
         |$Returning
@@ -143,9 +143,9 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      * @param section The section to return projects from.
      * @return a vector of the returned Projects
      */
-    override def list(`class`: Class): Future[IndexedSeq[Project]] = {
+    override def list(course: Course): Future[IndexedSeq[Project]] = {
       val projectList = for {
-        queryResult <- db.pool.sendPreparedStatement(ListByClass, Array[Any](`class`.id.bytes))
+        queryResult <- db.pool.sendPreparedStatement(ListByCourse, Array[Any](course.id.bytes))
         projects <- Future successful {
           queryResult.rows.get.map { item => Project(item) }
         }
@@ -266,7 +266,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
     override def insert(project: Project)(implicit conn: Connection): Future[Project] = {
       conn.sendPreparedStatement(Insert, Array(
         project.id.bytes,
-        project.classId.bytes,
+        project.courseId.bytes,
         project.name,
         project.slug,
         project.description,
@@ -293,7 +293,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      */
     override def update(project: Project)(implicit conn: Connection): Future[Project] = {
       conn.sendPreparedStatement(Update, Array(
-        project.classId.bytes,
+        project.courseId.bytes,
         project.name,
         project.slug,
         project.description,

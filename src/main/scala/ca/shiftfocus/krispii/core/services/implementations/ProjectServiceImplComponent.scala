@@ -18,7 +18,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
         TaskFeedbackRepositoryComponent with
         UserRepositoryComponent with
         ComponentRepositoryComponent with
-        ClassRepositoryComponent with
+        CourseRepositoryComponent with
         DB =>
 
   override val projectService: ProjectService = new ProjectServiceImpl
@@ -38,13 +38,13 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
 
     /**
      * Find all Projects belonging to a given class.
-     * @param classId
+     * @param courseId
      * @return
      */
-    override def list(classId: UUID): Future[IndexedSeq[Project]] = {
+    override def list(courseId: UUID): Future[IndexedSeq[Project]] = {
       for {
-        theClass <- classRepository.find(classId).map(_.get)
-        projects <- projectRepository.list(theClass)
+        theCourse <- courseRepository.find(courseId).map(_.get)
+        projects <- projectRepository.list(theCourse)
       } yield projects
     }.recover {
       case exception => throw exception
@@ -117,10 +117,10 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @param description The new description for the project.
      * @return the updated project.
      */
-    override def create(classId: UUID, name: String, slug: String, description: String, availability: String): Future[Project] = {
+    override def create(courseId: UUID, name: String, slug: String, description: String, availability: String): Future[Project] = {
       // First instantiate a new Project, Part and Task.
       val newProject = Project(
-        classId = classId,
+        courseId = courseId,
         name = name,
         slug = slug,
         description = description,
@@ -163,13 +163,13 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @param description The new description for the project.
      * @return the updated project.
      */
-    override def update(id: UUID, version: Long, classId: UUID, name: String, slug: String, description: String, availability: String): Future[Project] = {
+    override def update(id: UUID, version: Long, courseId: UUID, name: String, slug: String, description: String, availability: String): Future[Project] = {
       transactional { implicit connection =>
         for {
           existingProjectOption <- projectRepository.find(id)
           updatedProject <- projectRepository.update(existingProjectOption.get.copy(
             version = version,
-            classId = classId,
+            courseId = courseId,
             name = name,
             slug = slug,
             description = description,
@@ -202,7 +202,6 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
           responsesDeleted <- serialized(tasks)(taskResponseRepository.delete)
           feedbacksDeleted <- serialized(tasks)(taskFeedbackRepository.delete)
           tasksDeleted <- serialized(tasks)(taskRepository.delete)
-          sectionsDisabled <- serialized(parts)(classRepository.disablePart)
           componentsRemoved <- serialized(parts)(componentRepository.removeFromPart)
           partsDeleted <- partRepository.delete(project)
           projectDeleted <- projectRepository.delete(project)
@@ -422,7 +421,6 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
           responsesDeleted <- serialized(tasks)(taskResponseRepository.delete)
           feedbacksDeleted <- serialized(tasks)(taskFeedbackRepository.delete)
           tasksDeleted <- taskRepository.delete(part)
-          sectionsDisabled <- classRepository.disablePart(part)
           componentsRemoved <- componentRepository.removeFromPart(part)
           deletedPart <- partRepository.delete(part)
         } yield deletedPart

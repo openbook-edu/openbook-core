@@ -9,6 +9,7 @@ import play.api.libs.functional.syntax._
 case class AudioComponent(
   id: UUID = UUID.random,
   version: Long = 0,
+  ownerId: UUID,
   title: String,
   questions: String,
   thingsToThinkAbout: String,
@@ -23,6 +24,7 @@ object AudioComponent {
     AudioComponent(
       UUID(row("id").asInstanceOf[Array[Byte]]),
       row("version").asInstanceOf[Long],
+      UUID(row("ownerId").asInstanceOf[Array[Byte]]),
       row("title").asInstanceOf[String],
       row("questions").asInstanceOf[String],
       row("things_to_think_about").asInstanceOf[String],
@@ -46,6 +48,7 @@ object AudioComponent {
   implicit val audioComponentWrites: Writes[AudioComponent] = (
     (__ \ "id").write[UUID] and
     (__ \ "version").write[Long] and
+    (__ \ "ownerId").write[UUID] and
     (__ \ "title").write[String] and
     (__ \ "questions").write[String] and
     (__ \ "thingsToThinkAbout").write[String] and
@@ -58,6 +61,7 @@ object AudioComponent {
 
 
 case class AudioComponentPost(
+  ownerId: UUID,
   title: String,
   questions: Option[String],
   thingsToThinkAbout: Option[String],
@@ -65,6 +69,7 @@ case class AudioComponentPost(
 )
 object AudioComponentPost {
   implicit val projectPostReads = (
+    (__ \ "ownerId").read[UUID] and
     (__ \ "title").read[String] and
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and

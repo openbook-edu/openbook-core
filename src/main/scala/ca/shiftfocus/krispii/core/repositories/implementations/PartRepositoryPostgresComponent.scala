@@ -95,15 +95,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       LIMIT 1
     """
 
-    //TODO - remove
-//    val SelectByProjectSlug = s"""
-//      SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
-//             project_id, parts.name as name, parts.position as position, parts.enabled as enabled
-//      FROM $table, projects
-//      WHERE parts.project_id = projects.id
-//        AND projects.slug = ?
-//    """
-
     val SelectByComponentId = s"""
       SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
              project_id, parts.name as name, parts.position as position, parts.enabled as enabled
@@ -111,82 +102,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       INNER JOIN parts_components ON parts.id = parts_components.part_id
       WHERE parts_components.component_id = ?
     """
-
-    // TODO remove
-//    val SelectEnabledForUserAndProjectId = s"""
-//      SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
-//             parts.project_id, parts.name as name, parts.position as position, parts.enabled as enabled,
-//             classes.name as section_name, users.username as username
-//      FROM parts
-//      INNER JOIN projects ON projects.id = parts.project_id
-//      INNER JOIN classes ON classes.id = projects.class_id
-//      INNER JOIN users_classes ON classes.id = users_classes.class_id
-//      INNER JOIN users ON users.id = users_classes.user_id
-//      WHERE parts.enabled = TRUE
-//        AND projects.id = ?
-//        AND users.id = ?
-//    """
-//    val SelectEnabledForUserAndProjectId = s"""
-//      SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
-//             parts.project_id, parts.name as name, parts.position as position, parts.enabled as enabled,
-//             classes.name as section_name, users.username as username
-//      FROM parts, projects, classes, classes_projects, users_classes, users, scheduled_classes_parts
-//      WHERE projects.id = ?
-//        AND users.id = ?
-//        AND parts.project_id = projects.id
-//        AND classes_projects.project_id = projects.id
-//        AND classes_projects.class_id = classes.id
-//        AND users_classes.class_id = classes_projects.class_id
-//        AND users_classes.user_id = users.id
-//        AND scheduled_classes_parts.class_id = classes.id
-//        AND scheduled_classes_parts.part_id = parts.id
-//        AND scheduled_classes_parts.active = TRUE
-//    """
-
-    // TODO - remove
-//    val SelectEnabledForSectionAndProjectId = s"""
-//      SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
-//             parts.project_id, parts.name as name, parts.position as position, parts.enabled as enabled,
-//             classes.name as section_name
-//      FROM parts
-//      INNER JOIN projects ON parts.project_id = projects.id
-//      INNER JOIN classes ON projects.class_id = classes.id
-//      WHERE parts.enabled = TRUE
-//        AND projects.id = ?
-//        AND classes.id = ?
-//    """
-//    val SelectEnabledForSectionAndProjectId = s"""
-//      SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
-//             parts.project_id, parts.name as name, parts.position as position, parts.enabled as enabled,
-//             classes.name as section_name
-//      FROM parts, projects, classes, classes_projects, scheduled_classes_parts
-//      WHERE projects.id = ?
-//        AND classes.id = ?
-//        AND parts.project_id = projects.id
-//        AND classes_projects.project_id = projects.id
-//        AND classes_projects.class_id = classes.id
-//        AND scheduled_classes_parts.class_id = classes.id
-//        AND scheduled_classes_parts.part_id = parts.id
-//        AND scheduled_classes_parts.active = TRUE
-//    """
-
-    // TODO remove
-//    val IsPartEnabledForUser = s"""
-//      SELECT scheduled_classes_parts.active
-//      FROM parts, users_classes, scheduled_classes_parts
-//      WHERE parts.id = ?
-//        AND users_classes.user_id = ?
-//        AND users_classes.class_id = scheduled_classes_parts.class_id
-//        AND scheduled_classes_parts.part_id = parts.id
-//    """
-
-    //TODO remove
-//    val IsPartEnabledForSection = s"""
-//      SELECT scheduled_classes_parts.active
-//      FROM scheduled_classes_parts
-//      WHERE scheduled_classes_parts.part_id = ?
-//        AND scheduled_classes_parts.class_id = ?
-//    """
 
     val ReorderParts1 = s"""
       UPDATE parts AS p SET
@@ -320,6 +235,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
           queryResult.rows.get.headOption match {
             case Some(rowData) => Some(Part(rowData))
             case None => None
+
           }
         }
         tasks <- { partOption match {
@@ -337,115 +253,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
         }
       }
     }
-
-//    /**
-//     * TODO remove
-//     * List enabled parts of a project for a specific class.
-//     *
-//     * @param project the [[Project]] to list parts from
-//     * @param section the [[Class]] to select enabled parts for
-//     * @return an vector of the enabled parts
-//     */
-//    def listEnabled(project: Project, section: Class): Future[IndexedSeq[Part]] = {
-//      val partList = for {
-//        queryResult <- db.pool.sendPreparedStatement(SelectEnabledForSectionAndProjectId, Seq[Any](project.id.bytes, section.id.bytes))
-//        parts <- Future successful {
-//          queryResult.rows.get.map { item => Part(item) }
-//        }
-//        result <- Future sequence { parts.map { part =>
-//          taskRepository.list(part).map { taskList =>
-//            part.copy(tasks = taskList)
-//          }
-//        }}
-//      } yield result
-//
-//      partList.recover {
-//        case exception => {
-//          throw exception
-//        }
-//      }
-//    }
-
-//    /**
-//     * TODO  remove
-//     * List enabled parts of a project for a user. Will check for parts
-//     * enabled in *any* of that user's classes.
-//     *
-//     * @param project the [[Project]] to list parts from
-//     * @param user the [[User]] to select enabled parts for
-//     * @return an vector of the enabled parts
-//     */
-//    def listEnabled(project: Project, user: User): Future[IndexedSeq[Part]] = {
-//      val partList = for {
-//        queryResult <- db.pool.sendPreparedStatement(SelectEnabledForUserAndProjectId, Seq[Any](project.id.bytes, user.id.bytes))
-//        parts <- Future successful {
-//          queryResult.rows.get.map { item => Part(item) }
-//        }
-//        result <- Future sequence { parts.map { part =>
-//          taskRepository.list(part).map { taskList =>
-//            part.copy(tasks = taskList)
-//          }
-//        }}
-//      } yield result
-//
-//      partList.recover {
-//        case exception => {
-//          throw exception
-//        }
-//      }
-//    }
-
-//    /**
-//     * TODO remove
-//     * Returns a boolean indicating whether a part is active for a given user.
-//     *
-//     * @param part
-//     */
-//    def isEnabled(part: Part, user: User): Future[Boolean] = {
-//      val isEnabled = for {
-//        result <- db.pool.sendPreparedStatement(IsPartEnabledForUser, Array(part.id.bytes, user.id.bytes))
-//      }
-//      yield result.rows.headOption match {
-//          case Some(resultSet) => resultSet.headOption match {
-//            case Some(row) => {
-//              val result = row("active").asInstanceOf[Boolean]
-//              result
-//            }
-//            case None => false
-//          }
-//          case None => false
-//        }
-//      isEnabled.recover {
-//        case exception => {
-//          throw exception
-//        }
-//      }
-//    }
-
-//    /**
-//     * TODO remove
-//     * Returns a boolean indicating whether a part is active for a given section.
-//     */
-//    def isEnabled(part: Part, section: Class): Future[Boolean] = {
-//      val isEnabled = for {
-//        result <- db.pool.sendPreparedStatement(IsPartEnabledForSection, Array(part.id.bytes, section.id.bytes))
-//      }
-//      yield result.rows.headOption match {
-//          case Some(resultSet) => resultSet.headOption match {
-//            case Some(row) => {
-//              val result = row("active").asInstanceOf[Boolean]
-//              result
-//            }
-//            case None => false
-//          }
-//          case None => false
-//        }
-//      isEnabled.recover {
-//        case exception => {
-//          throw exception
-//        }
-//      }
-//    }
 
     /**
      * Save a Part row.

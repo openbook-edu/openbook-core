@@ -43,7 +43,7 @@ case class User(
 case class UserInfo(
   user: User,
   roles: IndexedSeq[Role],
-  classes: IndexedSeq[Class]
+  courses: IndexedSeq[Course]
 )
 object UserInfo {
   implicit val userInfoWrites = new Writes[UserInfo] {
@@ -57,7 +57,7 @@ object UserInfo {
         "surname" -> userInfo.user.surname
       ).deepMerge(Json.obj(
         "roles" -> userInfo.roles.map(_.name.toLowerCase()),
-        "sections" -> userInfo.classes.map(_.name)
+        "sections" -> userInfo.courses.map(_.name)
       ))
     }
   }

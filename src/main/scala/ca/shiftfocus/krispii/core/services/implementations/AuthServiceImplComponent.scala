@@ -20,7 +20,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
   // requires, such as a repository and a database.
   self: UserRepositoryComponent with
         RoleRepositoryComponent with
-        ClassRepositoryComponent with
+        CourseRepositoryComponent with
         SessionRepositoryComponent with
         DB =>
 
@@ -47,33 +47,33 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
       userRepository.list.flatMap { users =>
         Future.sequence(users.map { user =>
           val fRoles = roleRepository.list(user)
-          val fSections = classRepository.list(user)
+          val fCourses = courseRepository.list(user)
 
           for {
             roles <- fRoles
-            sections <- fSections
+            courses <- fCourses
           }
-          yield UserInfo(user, roles, sections)
+          yield UserInfo(user, roles, courses)
         })
       }
     }
 
     /**
-     * List users with filter for roles and sections.
+     * List users with filter for roles and courses.
      *
      * @param rolesFilter an optional list of roles to filter by
-     * @param sectionsFilter an optional list of sections to filter by
+     * @param coursesFilter an optional list of courses to filter by
      * @return an [[IndexedSeq]] of [[UserInfo]]
      */
     override def list(rolesFilter: Option[IndexedSeq[String]],
-                      sectionsFilter: Option[IndexedSeq[UUID]]): Future[IndexedSeq[UserInfo]] = {
+                      coursesFilter: Option[IndexedSeq[UUID]]): Future[IndexedSeq[UserInfo]] = {
       // First build a future returning a list of users
-      val fUsers = (rolesFilter, sectionsFilter) match {
-        case (Some(roles), Some(sections)) => userRepository.listForRolesAndSections(roles, sections.map(_.string))
+      val fUsers = (rolesFilter, coursesFilter) match {
+        case (Some(roles), Some(courses)) => userRepository.listForRolesAndCourses(roles, courses.map(_.string))
         case (Some(roles), None) => userRepository.listForRoles(roles)
-        case (None, Some(classIds)) => {
-          val users = Future.sequence(classIds.map { classId => classRepository.find(classId).map(_.get) }).flatMap {
-            sections => userRepository.listForSections(sections)
+        case (None, Some(courseIds)) => {
+          val users = Future.sequence(courseIds.map { courseId => courseRepository.find(courseId).map(_.get) }).flatMap {
+            courses => userRepository.listForCourses(courses)
           }
           users
         }
@@ -82,22 +82,22 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
         }
       }
 
-      // Next find the roles and sections for those users.
+      // Next find the roles and courses for those users.
       fUsers.flatMap { users =>
         val fRoles = roleRepository.list(users)
-        val fSections = classRepository.list(users)
+        val fCourses = courseRepository.list(users)
 
         for {
           roles <- fRoles
-          sections <- fSections
+          courses <- fCourses
         }
         yield {
-          // Now pair each user with both their roles and sections
+          // Now pair each user with both their roles and courses
           val userInfoList = users.map { user =>
             UserInfo(
               user,
               roles.getOrElse(user.id, IndexedSeq()),
-              sections.getOrElse(user.id, IndexedSeq())
+              courses.getOrElse(user.id, IndexedSeq())
             )
           }
           userInfoList
@@ -208,7 +208,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * Find a user by their UUID.
      *
      * @param id  The user's universally unique identifier.
-     * @return if found, returns some UserInfo including their roles and sections.
+     * @return if found, returns some UserInfo including their roles and courses.
      */
     override def find(id: UUID): Future[Option[UserInfo]] = {
       Logger.debug(s"authService.find(${id.string})")
@@ -216,11 +216,11 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
         case Some(user) => {
           Logger.debug(s"authService.find(${id.string}) - found user")
           val fRoles = roleRepository.list(user)
-          val fSections = classRepository.list(user)
+          val fCourses = courseRepository.list(user)
           for {
             roles <- fRoles
-            sections <- fSections
-          } yield Some(UserInfo(user, roles, sections))
+            courses <- fCourses
+          } yield Some(UserInfo(user, roles, courses))
         }
         case None => {
           Logger.debug(s"authService.find(${id.string}) - not found")
@@ -233,17 +233,17 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * Find a user by their unique identifier.
      *
      * @param identifier  The unique e-mail or username identifying this user.
-     * @return if found, returns some UserInfo including their roles and sections.
+     * @return if found, returns some UserInfo including their roles and courses.
      */
     override def find(identifier: String): Future[Option[UserInfo]] = {
       userRepository.find(identifier).flatMap {
         case Some(user) => {
           val fRoles = roleRepository.list(user)
-          val fSections = classRepository.list(user)
+          val fCourses = courseRepository.list(user)
           for {
             roles <- fRoles
-            sections <- fSections
-          } yield Some(UserInfo(user, roles, sections))
+            courses <- fCourses
+          } yield Some(UserInfo(user, roles, courses))
         }
         case None => Future.successful(None)
       }
@@ -387,7 +387,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
     override def delete(id: UUID, version: Long): Future[Boolean] = {
       transactional { implicit connection =>
         // delete component notes, task notes, task responses
-        // remove roles, remove from sections
+        // remove roles, remove from courses
         // delete user
         Future.successful(true)
       }

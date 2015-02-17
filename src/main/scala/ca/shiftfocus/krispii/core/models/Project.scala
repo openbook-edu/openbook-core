@@ -10,7 +10,7 @@ import play.api.libs.functional.syntax._
 
 case class Project(
   id: UUID = UUID.random,
-  classId: UUID,
+  courseId: UUID,
   version: Long = 0,
   name: String,
   slug: String,
@@ -24,7 +24,7 @@ case class Project(
     other match {
       case otherProject: Project => {
         this.id == otherProject.id &&
-        this.classId == otherProject.classId &&
+        this.courseId == otherProject.courseId &&
         this.version == otherProject.version &&
         this.name == otherProject.name &&
         this.slug == otherProject.slug &&
@@ -50,13 +50,13 @@ object Project {
   object Availability {
     val AnyTime = "any"
     val FreeTime = "free"
-    val ClassTime = "class"
+    val CourseTime = "class"
   }
 
   def apply(row: RowData): Project = {
     Project(
       UUID(row("id").asInstanceOf[Array[Byte]]),
-      UUID(row("class_id").asInstanceOf[Array[Byte]]),
+      UUID(row("course_id").asInstanceOf[Array[Byte]]),
       row("version").asInstanceOf[Long],
       row("name").asInstanceOf[String],
       row("slug").asInstanceOf[String],
@@ -70,7 +70,7 @@ object Project {
 
   implicit val projectReads: Reads[Project] = (
     (__ \ "id").read[UUID] and
-    (__ \ "classId").read[UUID] and
+    (__ \ "courseId").read[UUID] and
     (__ \ "version").read[Long] and
     (__ \ "name").read[String] and
     (__ \ "slug").read[String] and
@@ -83,7 +83,7 @@ object Project {
 
   implicit val projectWrites: Writes[Project] = (
     (__ \ "id").write[UUID] and
-    (__ \ "classId").write[UUID] and
+    (__ \ "courseId").write[UUID] and
     (__ \ "version").write[Long] and
     (__ \ "name").write[String] and
     (__ \ "slug").write[String] and

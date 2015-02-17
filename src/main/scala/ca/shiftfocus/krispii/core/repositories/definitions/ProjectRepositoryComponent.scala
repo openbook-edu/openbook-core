@@ -19,7 +19,7 @@ trait ProjectRepositoryComponent {
      * The usual CRUD functions for the projects table.
      */
     def list: Future[IndexedSeq[Project]]
-    def list(section: Class): Future[IndexedSeq[Project]]
+    def list(course: Course): Future[IndexedSeq[Project]]
     def find(id: UUID): Future[Option[Project]]
     def find(projectId: UUID, user: User): Future[Option[Project]]
     def find(slug: String): Future[Option[Project]]

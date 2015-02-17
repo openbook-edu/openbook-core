@@ -176,22 +176,22 @@ object TestValues {
   )
 
 
-  /* CLASSES */
-  val testClassA = Class(
+  /* COURSES */
+  val testCourseA = Course(
     id = UUID("217c5622-ff9e-4372-8e6a-95fb3bae300b"),
     version = 1L,
     teacherId = Option(testUserA.id),
-    name = "test class A",
+    name = "test course A",
     color = new Color(24, 6, 8),
     createdAt = Option(new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
 
-  val testClassB = Class(
+  val testCourseB = Course(
     id = UUID("404c800a-5385-4e6b-867e-365a1e6b00de"),
     version = 2L,
     teacherId = Option(testUserB.id),
-    name = "test class B",
+    name = "test course B",
     color = new Color(34, 8, 16),
     createdAt = Option(new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")))
@@ -200,18 +200,18 @@ object TestValues {
   /**
    * No data in DB
    */
-  val testClassC = Class(
+  val testCourseC = Course(
     id = UUID("7cf524fa-aa7f-4bfe-93d7-8cd7787fd030"),
     teacherId = Option(testUserA.id),
-    name = "unexisting class C",
+    name = "unexisting course C",
     color = new Color(24, 6, 8)
   )
 
-  val testClassD = Class(
+  val testCourseD = Course(
     id = UUID("94cc65bb-4542-4f62-8e08-d58522e7b5f1"),
     version = 3L,
     teacherId = Option(testUserF.id),
-    name = "test class D",
+    name = "test course D",
     color = new Color(4, 28, 56),
     createdAt = Option(new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04")))
@@ -220,18 +220,18 @@ object TestValues {
   /**
    * No data in DB for insert
    */
-  val testClassE = Class(
+  val testCourseE = Course(
     id = UUID("d0b05b14-4a5f-4727-ac43-bd8671aab53c"),
     teacherId = Option(testUserA.id),
-    name = "unexisting class E",
+    name = "unexisting course E",
     color = new Color(45, 10, 15)
   )
 
-  val testClassF = Class(
+  val testCourseF = Course(
     id = UUID("287b61f5-da6b-4de7-8535-3bc500cffac7"),
     version = 4L,
     teacherId = Option(testUserF.id),
-    name = "test class F",
+    name = "test course F",
     color = new Color(4, 28, 56),
     createdAt = Option(new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04")))
@@ -337,6 +337,7 @@ object TestValues {
   val testTextComponentA = TextComponent(
     id = UUID("8cfc6089-8129-4c2e-9ed1-45d38077d438"),
     version = 1L,
+    ownerId = testUserA.id,
     title = "testTextComponentA title",
     questions = "testTextComponentA questions",
     thingsToThinkAbout = "testTextComponentA thingsToThinkAbout",
@@ -349,6 +350,7 @@ object TestValues {
   val testVideoComponentB = VideoComponent(
     id = UUID("50d07485-f33c-4755-9ccf-59d823cbb79e"),
     version = 2L,
+    ownerId = testUserA.id,
     title = "testVideoComponentB title",
     questions = "testVideoComponentB questions",
     thingsToThinkAbout = "testVideoComponentB thingsToThinkAbout",
@@ -363,6 +365,7 @@ object TestValues {
   val testAudioComponentC = AudioComponent(
     id = UUID("a51c6b53-5180-416d-aa77-1cc620dee9c0"),
     version = 3L,
+    ownerId = testUserA.id,
     title = "testAudioComponentC title",
     questions = "testAudioComponentC questions",
     thingsToThinkAbout = "testAudioComponentC thingsToThinkAbout",
@@ -402,6 +405,7 @@ object TestValues {
     version = 3L,
     projectId = UUID("e4ae3b90-9871-4339-b05c-8d39e3aaf65d"), // testProjectB.id,
     name = "test part C",
+    tasks = Vector(),
     createdAt = Option(new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
@@ -422,7 +426,7 @@ object TestValues {
   /* PROJECTS */
   val testProjectA = Project(
     id = UUID("c9b4cfce-aed4-48fd-94f5-c980763dfddc"),
-    classId = testClassA.id,
+    courseId = testCourseA.id,
     version = 1L,
     name = "test project A",
     slug = "test project slug A",
@@ -435,7 +439,7 @@ object TestValues {
 
   val testProjectB = Project(
     id = UUID("e4ae3b90-9871-4339-b05c-8d39e3aaf65d"),
-    classId = testClassB.id,
+    courseId = testCourseB.id,
     version = 2L,
     name = "test project B",
     slug = "test project slug B",
@@ -448,12 +452,12 @@ object TestValues {
 
   val testProjectC = Project(
     id = UUID("4ac4d872-451b-4092-b13f-643d6d5fa930"),
-    classId = testClassB.id,
+    courseId = testCourseB.id,
     version = 3L,
     name = "test project C",
     slug = "test project slug C",
     description = "test project C description",
-    availability = "class",
+    availability = "course",
     parts = Vector(),
     createdAt = Option(new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04")))
@@ -464,11 +468,11 @@ object TestValues {
    */
   val testProjectD = Project(
     id = UUID("00743ada-1d3a-4912-adc8-fb8a0b1b7443"),
-    classId = testClassA.id,
+    courseId = testCourseA.id,
     name = "test project D",
     slug = "test project slug D",
     description = "test project D description",
-    availability = "class",
+    availability = "course",
     parts = Vector()
   )
 
@@ -477,20 +481,20 @@ object TestValues {
    */
   val testProjectE = Project(
     id = UUID("b36919cb-2df0-43b7-bb7f-36cae797deaa"),
-    classId = testClassA.id,
+    courseId = testCourseA.id,
     name = "test project E",
     slug = "test project slug E",
     description = "test project E description",
-    availability = "class",
+    availability = "course",
     parts = Vector()
   )
 
 
   //  /* SCHEDULES */
   //  /* Because in db there is time zone 4 for startTime and endTime, here hours should be -1 */
-  //  val testClassScheduleA = ClassSchedule(
+  //  val testCourseScheduleA = ClassSchedule(
   //    id = UUID("308792b2-7a29-43c8-ad51-a5c4f306cdaf"),
-  //    classId = testClassA.id,
+  //    courseId = testCourseA.id,
   //    version = 1L,
   //    startTime = new LocalTime(13, 38, 19),
   //    //    length = 12345,
@@ -504,9 +508,9 @@ object TestValues {
   //    updatedAt = Option(new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   //  )
   //
-  //  val testClassScheduleB = ClassSchedule(
+  //  val testCourseScheduleB = ClassSchedule(
   //    id = UUID("dc1190c2-b5fd-4bac-95fa-7d67e1f1d445"),
-  //    classId = testClassB.id,
+  //    courseId = testCourseB.id,
   //    version = 2L,
   //    startTime = new LocalTime(11, 38, 19),
   ////    length = 12345,
@@ -520,9 +524,9 @@ object TestValues {
   //    updatedAt = Option(new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   //  )
   //
-  //  val testClassScheduleC = ClassSchedule(
+  //  val testCourseScheduleC = ClassSchedule(
   //    id = UUID("6df9d164-b151-4c38-9acd-6b91301a199d"),
-  //    classId = testClassB.id,
+  //    courseId = testCourseB.id,
   //    version = 3L,
   //    startTime = new LocalTime(15, 38, 19),
   ////    length = 12345,
@@ -539,9 +543,9 @@ object TestValues {
   //  /**
   //   * No data in DB for insert
   //   */
-  //  val testClassScheduleD = ClassSchedule(
+  //  val testCourseScheduleD = ClassSchedule(
   //    id = UUID("02eaad44-5f0a-4c75-b05a-c92991903c10"),
-  //    classId = testClassB.id,
+  //    courseId = testCourseB.id,
   //    startTime = new LocalTime(16, 38, 19),
   ////    length = new LocalTime(17, 38, 19),
   ////    reason = "test ClassSchedule D reason"
@@ -555,9 +559,9 @@ object TestValues {
   //  /**
   //   * No data in DB
   //   */
-  //  val testClassScheduleE = ClassSchedule(
+  //  val testCourseScheduleE = ClassSchedule(
   //    id = UUID("43ac00c3-7546-41f0-bc93-72cc81158597"),
-  //    classId = testClassB.id,
+  //    courseId = testCourseB.id,
   //    startTime = new LocalTime(17, 38, 19),
   ////    length = 12345,
   ////    reason = "test ClassSchedule E reason"
@@ -573,7 +577,7 @@ object TestValues {
   //  val testSectionScheduleExceptionA = SectionScheduleException(
   //    id = UUID("da17e24a-a545-4d74-94e1-427896e13ebe"),
   //    userId = testUserA.id,
-  //    classId = testClassA.id,
+  //    courseId = testCourseA.id,
   //    version = 1L,
   //    day = new LocalDate(2014, 8, 1),
   //    startTime = new LocalTime(14, 1, 19),
@@ -586,7 +590,7 @@ object TestValues {
   //  val testSectionScheduleExceptionB = SectionScheduleException(
   //    id = UUID("3a285f0c-66d0-41b2-851b-cfcd203550d9"),
   //    userId = testUserB.id,
-  //    classId = testClassB.id,
+  //    courseId = testCourseB.id,
   //    version = 2L,
   //    day = new LocalDate(2014, 8, 4),
   //    startTime = new LocalTime(16, 1, 19),
@@ -599,7 +603,7 @@ object TestValues {
   //  val testSectionScheduleExceptionC = SectionScheduleException(
   //    id = UUID("4d7ca313-f216-4f59-85ae-88bcbca70317"),
   //    userId = testUserE.id,
-  //    classId = testClassB.id,
+  //    courseId = testCourseB.id,
   //    version = 3L,
   //    day = new LocalDate(2014, 8, 7),
   //    startTime = new LocalTime(10, 1, 19),
@@ -615,7 +619,7 @@ object TestValues {
   //  val testSectionScheduleExceptionD = SectionScheduleException(
   //    id = UUID("848c8b4f-f566-4d7f-8a16-b4a76107778a"),
   //    userId = testUserE.id,
-  //    classId = testClassB.id,
+  //    courseId = testCourseB.id,
   //    version = 4L,
   //    day = new LocalDate(2014, 8, 8),
   //    startTime = new LocalTime(12, 1, 19),
@@ -631,7 +635,7 @@ object TestValues {
   //  val testSectionScheduleExceptionE = SectionScheduleException(
   //    id = UUID("3e0ba0ec-8427-4ff1-8fe0-2aaeda67ae36"),
   //    userId = testUserE.id,
-  //    classId = testClassB.id,
+  //    courseId = testCourseB.id,
   //    day = new LocalDate(2014, 8, 9),
   //    startTime = new LocalTime(14, 1, 19),
   //    endTime = new LocalTime(15, 1, 19),

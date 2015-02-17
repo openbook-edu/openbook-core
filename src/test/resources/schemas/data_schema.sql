@@ -165,29 +165,29 @@ VALUES ('\x4d7ca313f2164f5985ae88bcbca70317', '\x871b525067124e548ab60784cae0bc6
 
 
 /* PROJECTS */
-/* project A -> class A */
+/* project A -> class A -> user A (teacher) */
 INSERT INTO projects (id, class_id, version, name, slug, description, availability, created_at, updated_at)
 VALUES ('\xc9b4cfceaed448fd94f5c980763dfddc', '\x217c5622ff9e43728e6a95fb3bae300b', 1, 'test project A', 'test project slug A', 'test project A description', 'any', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
-/* project B -> class B */
+/* project B -> class B -> user B (teacher) */
 INSERT INTO projects (id, class_id, version, name, slug, description, availability, created_at, updated_at)
 VALUES ('\xe4ae3b9098714339b05c8d39e3aaf65d', '\x404c800a53854e6b867e365a1e6b00de', 2, 'test project B', 'test project slug B', 'test project B description', 'free', '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
 
-/* project C -> class B */
+/* project C -> class B -> user B (teacher) */
 INSERT INTO projects (id, class_id, version, name, slug, description, availability, created_at, updated_at)
 VALUES ('\x4ac4d872451b4092b13f643d6d5fa930', '\x404c800a53854e6b867e365a1e6b00de', 3, 'test project C', 'test project slug C', 'test project C description', 'class', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
 
 /* PARTS */
-/* part A -> project A */
+/* part A -> project A -> class A -> user A (teacher) */
 INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
 VALUES ('\x5cd214be6bba47fa9f350eb8bafec397', 1, '\xc9b4cfceaed448fd94f5c980763dfddc', 'test part A', true, 10, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
 
-/* part B -> project A */
+/* part B -> project A -> class A -> user A (teacher) */
 INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
 VALUES ('\xabb84847a3d247a0ae7d8ce04063afc7', 2, '\xc9b4cfceaed448fd94f5c980763dfddc', 'test part B', false, 11, '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
-/* part C -> project B */
+/* part C -> project B -> class B -> user B (teacher) */
 INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
 VALUES ('\xfb01f11b7f2341c8877b68410be62aa5', 3, '\xe4ae3b9098714339b05c8d39e3aaf65d', 'test part C', true, 12, '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
 

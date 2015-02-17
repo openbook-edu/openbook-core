@@ -50,7 +50,7 @@ object Project {
   object Availability {
     val AnyTime = "any"
     val FreeTime = "free"
-    val CourseTime = "class"
+    val CourseTime = "course"
   }
 
   def apply(row: RowData): Project = {

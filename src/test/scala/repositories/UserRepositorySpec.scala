@@ -131,8 +131,8 @@ class UserRepositorySpec
         an [java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
       }
       "list users in a given course" in {
-        val result = userRepository.list(TestValues.testClassA)
-        val result2 = userRepository.list(TestValues.testClassB)
+        val result = userRepository.list(TestValues.testCourseA)
+        val result2 = userRepository.list(TestValues.testCourseB)
 
         val users = Await.result(result, Duration.Inf)
         val users2 = Await.result(result2, Duration.Inf)
@@ -166,8 +166,8 @@ class UserRepositorySpec
           }
         }
       }
-      "return empty Vector() if section(class) unexists" in {
-        val result = userRepository.list(TestValues.testClassC)
+      "return empty Vector() if course unexists" in {
+        val result = userRepository.list(TestValues.testCourseC)
 
         Await.result(result, Duration.Inf) should be (Vector())
       }
@@ -176,8 +176,8 @@ class UserRepositorySpec
 
   "UserRepository.listForSections" should {
     inSequence{
-      "list the users belonging to a set of classes" in {
-        val result = userRepository.listForSections(Vector(TestValues.testClassA, TestValues.testClassB))
+      "list the users belonging to a set of courses" in {
+        val result = userRepository.listForCourses(Vector(TestValues.testCourseA, TestValues.testCourseB))
 
         val users = Await.result(result, Duration.Inf)
 
@@ -207,8 +207,8 @@ class UserRepositorySpec
           }
         }
       }
-      "return empty Vector() if set of classes contains unexisting class" in {
-        val result = userRepository.listForSections(Vector(TestValues.testClassC))
+      "return empty Vector() if set of courses contains unexisting course" in {
+        val result = userRepository.listForCourses(Vector(TestValues.testCourseC))
 
         Await.result(result, Duration.Inf) should be (Vector())
       }
@@ -245,8 +245,8 @@ class UserRepositorySpec
 
   "UserRepository.listForRolesAndSections" should {
     inSequence{
-      "list users filtering by both roles and classes" in {
-        val result = userRepository.listForRolesAndSections(Vector("test role A", "test role B"), Vector("test class A", "test class B"))
+      "list users filtering by both roles and courses" in {
+        val result = userRepository.listForRolesAndCourses(Vector(TestValues.testRoleA.name, TestValues.testRoleB.name), Vector(TestValues.testCourseA.name, TestValues.testCourseB.name))
 
         val users = Await.result(result, Duration.Inf)
         users should be (Vector(TestValues.testUserA, TestValues.testUserB))
@@ -263,8 +263,8 @@ class UserRepositorySpec
           }
         }
       }
-      "return only one user if set of roles contains more elements than set of classes" in {
-        val result = userRepository.listForRolesAndSections(Vector("test role A", "test role B"), Vector("test class A"))
+      "return only one user if set of roles contains more elements than set of courses" in {
+        val result = userRepository.listForRolesAndCourses(Vector(TestValues.testRoleA.name, TestValues.testRoleB.name), Vector(TestValues.testCourseA.name))
 
         val users = Await.result(result, Duration.Inf)
         users should be (Vector(TestValues.testUserA))
@@ -282,12 +282,12 @@ class UserRepositorySpec
         }
       }
       "return empty Vector() if set of roles contains only unexisting role name" in {
-        val result = userRepository.listForRolesAndSections(Vector("unexisting role"), Vector("test class A", "test class B"))
+        val result = userRepository.listForRolesAndCourses(Vector("unexisting role"), Vector(TestValues.testCourseA.name, TestValues.testCourseB.name))
 
         Await.result(result, Duration.Inf) should be (Vector())
       }
-      "return empty Vector() if set of classes contains only unexisting class name" in {
-        val result = userRepository.listForRolesAndSections(Vector("test role A", "test role B"), Vector("unexisting class"))
+      "return empty Vector() if set of courses contains unexisting course name" in {
+        val result = userRepository.listForRolesAndCourses(Vector(TestValues.testRoleA.name, TestValues.testRoleB.name), Vector("unexisting course"))
 
         Await.result(result, Duration.Inf) should be (Vector())
       }

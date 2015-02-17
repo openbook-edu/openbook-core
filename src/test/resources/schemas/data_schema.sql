@@ -185,7 +185,7 @@ VALUES ('\x5cd214be6bba47fa9f350eb8bafec397', 1, '\xc9b4cfceaed448fd94f5c980763d
 
 /* part B -> project A */
 INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
-VALUES ('\xabb84847a3d247a0ae7d8ce04063afc7', 2, '\xc9b4cfceaed448fd94f5c980763dfddc', 'test part B', true, 11, '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
+VALUES ('\xabb84847a3d247a0ae7d8ce04063afc7', 2, '\xc9b4cfceaed448fd94f5c980763dfddc', 'test part B', false, 11, '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
 /* part C -> project B */
 INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
@@ -228,3 +228,35 @@ VALUES ('\x7e9fe0e8e8214d84a7feac023fe6dfa3', 5, '\xabb84847a3d247a0ae7d8ce04063
 INSERT INTO matching_tasks (task_id, choices_left, choices_right, answers, randomize)
 VALUES ('\x7e9fe0e8e8214d84a7feac023fe6dfa3', '{choice left 5, choice left 6}', '{choice right 5, choice right 6}', '{5, 6}', true);
 
+
+/* COMPONENTS */
+/* testTextComponentA */
+INSERT INTO components (id, version, title, questions, things_to_think_about, type, created_at, updated_at)
+VALUES ('\x8cfc608981294c2e9ed145d38077d438', 1, 'testTextComponentA title', 'testTextComponentA questions', 'testTextComponentA thingsToThinkAbout', 'text', '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+
+INSERT INTO text_components (component_id, content)
+VALUES ('\x8cfc608981294c2e9ed145d38077d438', 'testTextComponentA content');
+
+/* testVideoComponentB */
+INSERT INTO components (id, version, title, questions, things_to_think_about, type, created_at, updated_at)
+VALUES ('\x50d07485f33c47559ccf59d823cbb79e', 2, 'testVideoComponentB title', 'testVideoComponentB questions', 'testVideoComponentB thingsToThinkAbout', 'video', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
+
+INSERT INTO video_components (component_id, vimeo_id, width, height)
+VALUES ('\x50d07485f33c47559ccf59d823cbb79e', '19579282', 640, 480);
+
+/* testAudionComponentC */
+INSERT INTO components (id, version, title, questions, things_to_think_about, type, created_at, updated_at)
+VALUES ('\xa51c6b535180416daa771cc620dee9c0', 3, 'testAudioComponentC title', 'testAudioComponentC questions', 'testAudioComponentC thingsToThinkAbout', 'audio', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
+
+INSERT INTO audio_components (component_id, soundcloud_id)
+VALUES ('\xa51c6b535180416daa771cc620dee9c0', 'dj-whisky-ft-nozipho-just');
+
+
+/* PARTS_COMPONENTS*/
+/* testTextComponentA -> PartA */
+INSERT INTO parts_components (component_id, part_id, created_at)
+VALUES ('\x8cfc608981294c2e9ed145d38077d438', '\x5cd214be6bba47fa9f350eb8bafec397', '2014-08-01 14:01:19.545-04');
+
+/* testTextComponentA -> PartB */
+INSERT INTO parts_components (component_id, part_id, created_at)
+VALUES ('\x8cfc608981294c2e9ed145d38077d438', '\xabb84847a3d247a0ae7d8ce04063afc7', '2014-08-02 14:01:19.545-04');

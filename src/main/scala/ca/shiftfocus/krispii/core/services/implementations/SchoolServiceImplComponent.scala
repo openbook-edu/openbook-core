@@ -320,6 +320,7 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
       projectRepository.list(section)
     }
 
+    // TODO rewrite
     /**
      * List all project parts that have been enabled for a section.
      *
@@ -327,13 +328,26 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @param classId the [[UUID]] of the [[Class]] to list parts for
      * @return an [[IndexedSeq]] of [[Part]].
      */
-    override def listEnabledParts(projectId: UUID, classId: UUID): Future[IndexedSeq[Part]] = {
+//    override def listEnabledParts(projectId: UUID, classId: UUID): Future[IndexedSeq[Part]] = {
+//      val fProject = projectRepository.find(projectId).map(_.get)
+//      val fSection = classRepository.find(classId).map(_.get)
+//      for {
+//        project <- fProject
+//        section <- fSection
+//        enabledParts <- partRepository.listEnabled(project, section)
+//      }
+//      yield enabledParts
+//    }.recover {
+//      case exception => throw exception
+//    }
+
+    override def listEnabledParts(projectId: UUID): Future[IndexedSeq[Part]] = {
       val fProject = projectRepository.find(projectId).map(_.get)
-      val fSection = classRepository.find(classId).map(_.get)
       for {
         project <- fProject
-        section <- fSection
-        enabledParts <- partRepository.listEnabled(project, section)
+        enabledParts <- {
+          Future successful project.parts.filter(_.enabled)
+        }
       }
       yield enabledParts
     }.recover {
@@ -476,7 +490,7 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
         projectOption <- projectRepository.find(projectSlug)
         user <- userRepository.find(userId).map(_.get)
         partsList <- { projectOption match {
-          case Some(project) => partRepository.listEnabled(project, user)
+          case Some(project) => Future successful project.parts.filter(_.enabled)
           case None => Future.successful(IndexedSeq[Part]())
         }}
       } yield partsList
@@ -484,23 +498,24 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
       case exception => throw exception
     }
 
-    override def isPartEnabledForUser(partId: UUID, userId: UUID): Future[Boolean] = {
-      for {
-        part <- partRepository.find(partId).map(_.get)
-        user <- userRepository.find(userId).map(_.get)
-        isEnabled <- partRepository.isEnabled(part, user)
-      }
-      yield isEnabled
-    }
+    // TODO remove
+//    override def isPartEnabledForUser(partId: UUID, userId: UUID): Future[Boolean] = {
+//      for {
+//        part <- partRepository.find(partId).map(_.get)
+//        user <- userRepository.find(userId).map(_.get)
+//        isEnabled <- partRepository.isEnabled(part, user)
+//      }
+//      yield isEnabled
+//    }
+//
+//    override def isPartEnabledForSection(partId: UUID, classId: UUID): Future[Boolean] = {
+//      for {
+//        part <- partRepository.find(partId).map(_.get)
+//        section <- classRepository.find(classId).map(_.get)
+//        isEnabled <- partRepository.isEnabled(part, section)
+//      }
+//      yield isEnabled
+//    }
 
-    override def isPartEnabledForSection(partId: UUID, classId: UUID): Future[Boolean] = {
-      for {
-        part <- partRepository.find(partId).map(_.get)
-        section <- classRepository.find(classId).map(_.get)
-        isEnabled <- partRepository.isEnabled(part, section)
-      }
-      yield isEnabled
-    }
   }
-
 }

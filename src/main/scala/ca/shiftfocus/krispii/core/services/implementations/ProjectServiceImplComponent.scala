@@ -211,6 +211,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
       }
     }
 
+    // TODO rewrite
     /**
      * Load the parts, tasks and responses of a project for a user, including
      * part/task status.
@@ -221,17 +222,20 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      */
     override def taskGroups(project: Project, user: User): Future[IndexedSeq[TaskGroup]] = {
       val fTaskGroups = for {
-        projectParts <- partRepository.list(project)
-        enabledParts <- partRepository.listEnabled(project, user)
+//        projectParts <- project.parts
+//        projectParts <- partRepository.list(project)
+//        enabledParts <- partRepository.listEnabled(project, user)
         tasks <- taskRepository.list(project)
         responses <- taskResponseRepository.list(user, project)(db.pool)
       }
       yield {
-        projectParts.map { part =>
+        project.parts.map { part =>
           TaskGroup(
             part = part,
             status = {
-              if (enabledParts.filter(_.id.string == part.id.string).nonEmpty) Part.Unlocked
+//              if (enabledParts.filter(_.id.string == part.id.string).nonEmpty) Part.Unlocked
+//              else Part.Locked
+              if (part.enabled == true) Part.Unlocked
               else Part.Locked
             },
             tasks = tasks.filter(_.partId.string == part.id.string).map { task =>

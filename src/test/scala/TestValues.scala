@@ -237,6 +237,8 @@ object TestValues {
     updatedAt = Option(new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
 
+
+  /* TASKS */
   /* LONG ANSWER TASKS */
   val testLongAnswerTaskA = LongAnswerTask(
     id = UUID("bf1a6ed0-9f83-4cb4-85c1-ad456299b3a3"),
@@ -329,6 +331,47 @@ object TestValues {
     updatedAt = Option(new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
 
+
+  /* COMPONENTS */
+  /* TEXT COMPONENT */
+  val testTextComponentA = TextComponent(
+    id = UUID("8cfc6089-8129-4c2e-9ed1-45d38077d438"),
+    version = 1L,
+    title = "testTextComponentA title",
+    questions = "testTextComponentA questions",
+    thingsToThinkAbout = "testTextComponentA thingsToThinkAbout",
+    content = "testTextComponentA content",
+    createdAt = Option(new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  /* VIDEO COMPONENT */
+  val testVideoComponentB = VideoComponent(
+    id = UUID("50d07485-f33c-4755-9ccf-59d823cbb79e"),
+    version = 2L,
+    title = "testVideoComponentB title",
+    questions = "testVideoComponentB questions",
+    thingsToThinkAbout = "testVideoComponentB thingsToThinkAbout",
+    vimeoId = "19579282",
+    width = 640,
+    height = 480,
+    createdAt = Option(new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  /* AUDIO COMPONENT */
+  val testAudioComponentC = AudioComponent(
+    id = UUID("a51c6b53-5180-416d-aa77-1cc620dee9c0"),
+    version = 3L,
+    title = "testAudioComponentC title",
+    questions = "testAudioComponentC questions",
+    thingsToThinkAbout = "testAudioComponentC thingsToThinkAbout",
+    soundcloudId = "dj-whisky-ft-nozipho-just",
+    createdAt = Option(new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+
   /* PARTS */
   val testPartA = Part(
     id = UUID("5cd214be-6bba-47fa-9f35-0eb8bafec397"),
@@ -347,7 +390,7 @@ object TestValues {
     version = 2L,
     projectId = UUID("c9b4cfce-aed4-48fd-94f5-c980763dfddc"), // testProjectA.id,
     name = "test part B",
-    enabled = true,
+    enabled = false,
     position = 11,
     tasks = Vector(testOrderingTaskD, testMatchingTaskE),
     createdAt = Option(new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
@@ -359,12 +402,22 @@ object TestValues {
     version = 3L,
     projectId = UUID("e4ae3b90-9871-4339-b05c-8d39e3aaf65d"), // testProjectB.id,
     name = "test part C",
-    enabled = true,
-    position = 12,
-    tasks = Vector(),
     createdAt = Option(new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
+
+  // No data in DB, for insert
+  val testPartD = Part(
+    id = UUID("0229c34a-7504-468c-a061-6095b64ea7ec"),
+    projectId = UUID("e4ae3b90-9871-4339-b05c-8d39e3aaf65d"), // testProjectB.id,
+    name = "test part D",
+    enabled = true,
+    position = 13,
+    tasks = Vector(),
+    createdAt = Option(new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
 
   /* PROJECTS */
   val testProjectA = Project(

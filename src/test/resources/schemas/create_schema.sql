@@ -209,7 +209,7 @@ CREATE TABLE parts_components (
 
 CREATE TABLE text_components (
   component_id bytea PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
-  text text
+  content text
 );
 
 CREATE TABLE video_components (

@@ -14,6 +14,7 @@ case class Part(
   version: Long = 0,
   projectId: UUID,
   name: String,
+//TODO remove descritpion everywhere
 //  description: String = "",
   position: Int = 0,
   enabled: Boolean = true,

@@ -64,7 +64,7 @@ trait UserRepositoryComponent {
      */
     def findByEmail(email: String): Future[Option[User]]
     def find(userId: UUID): Future[Option[User]]
-    def find(identifier: String): Future[Option[User]]
+    def find(identifier: String): Future[User]
 
     /**
      * The C_UD from CRUD.

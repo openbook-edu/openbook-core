@@ -25,7 +25,7 @@ CREATE TABLE users_roles (
   PRIMARY KEY (user_id, role_id)
 );
 
-CREATE TABLE classes (
+CREATE TABLE courses (
   id bytea PRIMARY KEY,
   version bigint,
   teacher_id bytea NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
@@ -35,16 +35,16 @@ CREATE TABLE classes (
   updated_at timestamp with time zone
 );
 
-CREATE TABLE users_classes (
+CREATE TABLE users_courses (
   user_id bytea REFERENCES users(id) ON DELETE CASCADE,
-  class_id bytea REFERENCES classes(id) ON DELETE CASCADE,
+  course_id bytea REFERENCES courses(id) ON DELETE CASCADE,
   created_at timestamp with time zone,
-  PRIMARY KEY (user_id, class_id)
+  PRIMARY KEY (user_id, course_id)
 );
 
 CREATE TABLE schedules (
   id bytea PRIMARY KEY,
-  class_id bytea NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  course_id bytea NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   version bigint,
   start_time timestamp with time zone,
   length int,
@@ -56,7 +56,7 @@ CREATE TABLE schedules (
 CREATE TABLE schedule_exceptions (
   id bytea PRIMARY KEY,
   user_id bytea NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  class_id bytea NOT NULL REFERENCES classes(id) ON DELETE CASCADE,
+  course_id bytea NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   version bigint,
   day timestamp with time zone,
   start_time timestamp with time zone,
@@ -68,7 +68,7 @@ CREATE TABLE schedule_exceptions (
 
 CREATE TABLE projects (
   id bytea PRIMARY KEY,
-  class_id bytea NOT NULL REFERENCES classes(id) ON DELETE RESTRICT,
+  course_id bytea NOT NULL REFERENCES courses(id) ON DELETE RESTRICT,
   version bigint,
   name text,
   slug text,
@@ -189,9 +189,11 @@ CREATE TABLE task_notes (
   PRIMARY KEY (user_id, task_id, document_id)
 );
 
+
 CREATE TABLE components (
   id bytea PRIMARY KEY,
   version bigint,
+  owner_id bytea REFERENCES users(id) ON DELETE CASCADE,
   title text,
   questions text,
   things_to_think_about text,

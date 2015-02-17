@@ -1,5 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
+import ca.shiftfocus.krispii.core.repositories.error._
+import ca.shiftfocus.krispii.core.services.error._
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
@@ -8,6 +10,8 @@ import ca.shiftfocus.uuid.UUID
 import play.api.Logger
 import scala.concurrent.Future
 import webcrank.password._
+
+import scalaz.{-\/, \/-, \/, EitherT}
 
 /**
  * This component provides the default implementation of AuthService.
@@ -408,11 +412,20 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param user  The user whose roles should be listed.
      * @return an array of this user's Roles
      */
-    override def listRoles(userId: UUID): Future[IndexedSeq[Role]] = {
-      for {
-        userOption <- userRepository.find(userId)
-        roles <- roleRepository.list(userOption.get)
+    override def listRoles(userId: UUID): Future[\/[ServiceError, IndexedSeq[Role]]] = {
+      val result = for {
+        user <- liftUser(userRepository.find(userId))
+        roles <- liftRoleList(roleRepository.list(user))
       } yield roles
+
+      result.run.map {
+        case \/-(roles) => \/-(roles)
+        case -\/(repoError) => repoError match {
+          case error: NoResultsFound => -\/(NotFound(error.message))
+          case error: FatalError => -\/(UncaughtException(error.message))
+          case error: RepositoryError => -\/(GenericError("Unknown error"))
+        }
+      }
     }
 
     /**
@@ -454,17 +467,25 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param name  the new name to assign this Role
      * @return the newly updated Role
      */
-    override def updateRole(id: UUID, version: Long, name: String): Future[Role] = {
+    override def updateRole(id: UUID, version: Long, name: String): Future[\/[ServiceError, Role]] = {
       transactional { implicit conn =>
-        for {
-          existingRole <- roleRepository.find(id)
-          updatedRole <- roleRepository.update(Role(
-            id = id,
+        val result = for {
+          existingRole <- liftRole(roleRepository.find(id))
+          updatedRole <- liftRole(roleRepository.update(existingRole.copy(
             version = version,
             name = name
-          ))
+          )))
         }
         yield updatedRole
+
+        result.run.map {
+          case \/-(role) => \/-(role)
+          case -\/(repoError) => repoError match {
+            case error: PrimaryKeyExists => -\/(AlreadyExists(error.message))
+            case error: FatalError => -\/(UncaughtException(error.message))
+            case error: RepositoryError => -\/(GenericError("Unknown error"))
+          }
+        }
       }
     }
 
@@ -565,5 +586,9 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
     }.recover {
       case exception => throw exception
     }
+
+    private def liftRole = EitherT.eitherT[Future, RepositoryError, Role] _
+    private def liftUser = EitherT.eitherT[Future, RepositoryError, User] _
+    private def liftRoleList = EitherT.eitherT[Future, RepositoryError, IndexedSeq[Role]] _
   }
 }

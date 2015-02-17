@@ -1,10 +1,12 @@
 package ca.shiftfocus.krispii.core.services
 
+import ca.shiftfocus.krispii.core.services.error.ServiceError
 import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import scala.concurrent.Future
+import scalaz.\/
 
 /**
  * The WorkService provides an interface to manage student work,
@@ -17,63 +19,63 @@ trait WorkServiceComponent {
   trait WorkService {
 
     // Finder methods for work
-    def listWork(userId: UUID, courseId: UUID, projectId: UUID): Future[IndexedSeq[Work]]
-    def listWorkRevisions(userId: UUID, courseId: UUID, taskId: UUID): Future[IndexedSeq[Work]]
-    def findWork(workId: UUID): Future[Option[Work]]
-    def findWork(userId: UUID, taskId: UUID, courseId: UUID): Future[Option[Work]]
-    def findWork(userId: UUID, taskId: UUID, courseId: UUID, revision: Long): Future[Option[Work]]
+    def listWork(userId: UUID, courseId: UUID, projectId: UUID): Future[\/[ServiceError, IndexedSeq[Work]]]
+    def listWorkRevisions(userId: UUID, courseId: UUID, taskId: UUID): Future[\/[ServiceError, IndexedSeq[Work]]]
+    def findWork(workId: UUID): Future[\/[ServiceError, Work]]
+    def findWork(userId: UUID, taskId: UUID, courseId: UUID): Future[\/[ServiceError, Work]]
+    def findWork(userId: UUID, taskId: UUID, courseId: UUID, revision: Long): Future[\/[ServiceError, Work]]
 
 
     // Create methods for the textual work types
-    def createLongAnswerWork(userId: UUID, taskId: UUID, courseId: UUID, isComplete: Boolean): Future[LongAnswerWork]
-    def createShortAnswerWork(userId: UUID, taskId: UUID, courseId: UUID, isComplete: Boolean): Future[ShortAnswerWork]
+    def createLongAnswerWork(userId: UUID, taskId: UUID, courseId: UUID, isComplete: Boolean): Future[\/[ServiceError, LongAnswerWork]]
+    def createShortAnswerWork(userId: UUID, taskId: UUID, courseId: UUID, isComplete: Boolean): Future[\/[ServiceError, ShortAnswerWork]]
 
     // Create methods for the other work types
-    def createMultipleChoiceWork(userId: UUID, taskId: UUID, courseId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[MultipleChoiceWork]
-    def createOrderingWork(userId: UUID, taskId: UUID, courseId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[OrderingWork]
-    def createMatchingWork(userId: UUID, taskId: UUID, courseId: UUID, answer: IndexedSeq[Match], isComplete: Boolean): Future[MatchingWork]
+    def createMultipleChoiceWork(userId: UUID, taskId: UUID, courseId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[ServiceError, MultipleChoiceWork]]
+    def createOrderingWork(userId: UUID, taskId: UUID, courseId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[ServiceError, OrderingWork]]
+    def createMatchingWork(userId: UUID, taskId: UUID, courseId: UUID, answer: IndexedSeq[Match], isComplete: Boolean): Future[\/[ServiceError, MatchingWork]]
 
 
     // Update methods for the textual work types
-    def updateLongAnswerWork(userId: UUID, taskId: UUID, courseId: UUID, isComplete: Boolean): Future[LongAnswerWork]
-    def updateShortAnswerWork(userId: UUID, taskId: UUID, courseId: UUID, isComplete: Boolean): Future[ShortAnswerWork]
+    def updateLongAnswerWork(userId: UUID, taskId: UUID, courseId: UUID, isComplete: Boolean): Future[\/[ServiceError, LongAnswerWork]]
+    def updateShortAnswerWork(userId: UUID, taskId: UUID, courseId: UUID, isComplete: Boolean): Future[\/[ServiceError, ShortAnswerWork]]
 
     // Update methods for the other work types
-    def updateMultipleChoiceWork(userId: UUID, taskId: UUID, courseId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[MultipleChoiceWork]
-    def updateOrderingWork(userId: UUID, taskId: UUID, courseId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[OrderingWork]
-    def updateMatchingWork(userId: UUID, taskId: UUID, courseId: UUID, revision: Long, version: Long, answer: IndexedSeq[Match], isComplete: Boolean): Future[MatchingWork]
+    def updateMultipleChoiceWork(userId: UUID, taskId: UUID, courseId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[ServiceError, MultipleChoiceWork]]
+    def updateOrderingWork(userId: UUID, taskId: UUID, courseId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[ServiceError, OrderingWork]]
+    def updateMatchingWork(userId: UUID, taskId: UUID, courseId: UUID, revision: Long, version: Long, answer: IndexedSeq[Match], isComplete: Boolean): Future[\/[ServiceError, MatchingWork]]
 
 
     // Task feedbacks
-    def listFeedbacks(studentId: UUID, projectId: UUID): Future[IndexedSeq[TaskFeedback]]
-    def listFeedbacks(teacherId: UUID, studentId: UUID, projectId: UUID): Future[IndexedSeq[TaskFeedback]]
-    def findFeedback(teacherId: UUID, studentId: UUID, taskId: UUID): Future[Option[TaskFeedback]]
-    def findFeedback(teacherId: UUID, studentId: UUID, taskId: UUID, revision: Long): Future[Option[TaskFeedback]]
+    def listFeedbacks(studentId: UUID, projectId: UUID): Future[\/[ServiceError, IndexedSeq[TaskFeedback]]]
+    def listFeedbacks(teacherId: UUID, studentId: UUID, projectId: UUID): Future[\/[ServiceError, IndexedSeq[TaskFeedback]]]
+    def findFeedback(teacherId: UUID, studentId: UUID, taskId: UUID): Future[\/[ServiceError, TaskFeedback]]
+    def findFeedback(teacherId: UUID, studentId: UUID, taskId: UUID, revision: Long): Future[\/[ServiceError, TaskFeedback]]
 
-    def createFeedback(teacherId: UUID, studentId: UUID, taskId: UUID, content: String): Future[TaskFeedback]
-    def updateFeedback(teacherId: UUID, studentId: UUID, taskId: UUID, revision: Long, version: Long, content: String): Future[TaskFeedback]
-    def updateFeedback(teacherId: UUID, studentId: UUID, taskId: UUID, revision: Long, version: Long, content: String, newRevision: Boolean): Future[TaskFeedback]
+    def createFeedback(teacherId: UUID, studentId: UUID, taskId: UUID, content: String): Future[\/[ServiceError, TaskFeedback]]
+    def updateFeedback(teacherId: UUID, studentId: UUID, taskId: UUID, revision: Long, version: Long, content: String): Future[\/[ServiceError, TaskFeedback]]
+    def updateFeedback(teacherId: UUID, studentId: UUID, taskId: UUID, revision: Long, version: Long, content: String, newRevision: Boolean): Future[\/[ServiceError, TaskFeedback]]
 
 
     // Task notes
-    def listTaskScratchpads(userId: UUID, projectId: UUID): Future[IndexedSeq[TaskScratchpad]]
-    def listTaskScratchpadRevisions(userId: UUID, taskId: UUID): Future[IndexedSeq[TaskScratchpad]]
-    def findTaskScratchpad(userId: UUID, taskId: UUID): Future[Option[TaskScratchpad]]
-    def findTaskScratchpad(userId: UUID, taskId: UUID, revision: Long): Future[Option[TaskScratchpad]]
+    def listTaskScratchpads(userId: UUID, projectId: UUID): Future[\/[ServiceError, IndexedSeq[TaskScratchpad]]]
+    def listTaskScratchpadRevisions(userId: UUID, taskId: UUID): Future[\/[ServiceError, IndexedSeq[TaskScratchpad]]]
+    def findTaskScratchpad(userId: UUID, taskId: UUID): Future[\/[ServiceError, TaskScratchpad]]
+    def findTaskScratchpad(userId: UUID, taskId: UUID, revision: Long): Future[\/[ServiceError, TaskScratchpad]]
 
-    def createTaskScratchpad(userId: UUID, taskId: UUID, content: String): Future[TaskScratchpad]
-    def updateTaskScratchpad(userId: UUID, taskId: UUID, revision: Long, version: Long, content: String): Future[TaskScratchpad]
-    def updateTaskScratchpad(userId: UUID, taskId: UUID, revision: Long, version: Long, content: String, newRevision: Boolean): Future[TaskScratchpad]
+    def createTaskScratchpad(userId: UUID, taskId: UUID, content: String): Future[\/[ServiceError, TaskScratchpad]]
+    def updateTaskScratchpad(userId: UUID, taskId: UUID, revision: Long, version: Long, content: String): Future[\/[ServiceError, TaskScratchpad]]
+    def updateTaskScratchpad(userId: UUID, taskId: UUID, revision: Long, version: Long, content: String, newRevision: Boolean): Future[\/[ServiceError, TaskScratchpad]]
 
     // Component notes
-    def listComponentScratchpads(userId: UUID, projectId: UUID): Future[IndexedSeq[ComponentScratchpad]]
-    def listComponentScratchpadRevisions(userId: UUID, componentId: UUID): Future[IndexedSeq[ComponentScratchpad]]
-    def findComponentScratchpad(userId: UUID, componentId: UUID): Future[Option[ComponentScratchpad]]
-    def findComponentScratchpad(userId: UUID, componentId: UUID, revision: Long): Future[Option[ComponentScratchpad]]
+    def listComponentScratchpads(userId: UUID, projectId: UUID): Future[\/[ServiceError, IndexedSeq[ComponentScratchpad]]]
+    def listComponentScratchpadRevisions(userId: UUID, componentId: UUID): Future[\/[ServiceError, IndexedSeq[ComponentScratchpad]]]
+    def findComponentScratchpad(userId: UUID, componentId: UUID): Future[\/[ServiceError, ComponentScratchpad]]
+    def findComponentScratchpad(userId: UUID, componentId: UUID, revision: Long): Future[\/[ServiceError, ComponentScratchpad]]
 
-    def createComponentScratchpad(userId: UUID, componentId: UUID, content: String): Future[ComponentScratchpad]
-    def updateComponentScratchpad(userId: UUID, componentId: UUID, revision: Long, version: Long, content: String): Future[ComponentScratchpad]
-    def updateComponentScratchpad(userId: UUID, componentId: UUID, revision: Long, version: Long, content: String, newRevision: Boolean): Future[ComponentScratchpad]
+    def createComponentScratchpad(userId: UUID, componentId: UUID, content: String): Future[\/[ServiceError, ComponentScratchpad]]
+    def updateComponentScratchpad(userId: UUID, componentId: UUID, revision: Long, version: Long, content: String): Future[\/[ServiceError, ComponentScratchpad]]
+    def updateComponentScratchpad(userId: UUID, componentId: UUID, revision: Long, version: Long, content: String, newRevision: Boolean): Future[\/[ServiceError, ComponentScratchpad]]
 
   }
 }

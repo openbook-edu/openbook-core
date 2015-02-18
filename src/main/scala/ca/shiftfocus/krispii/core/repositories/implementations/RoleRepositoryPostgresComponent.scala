@@ -207,18 +207,22 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       }.mkString("ARRAY[", ",", "]")
       val query = s"""${ListRolesForUserList} AND ARRAY[users_roles.user_id] <@ $arrayString"""
 
-
       db.pool.sendQuery(query).map { queryResult =>
-        val tuples = queryResult.rows.get.map { item: RowData =>
-          (UUID(item("user_id").asInstanceOf[Array[Byte]]), Role(item))
+        try {
+          val tuples = queryResult.rows.get.map { item: RowData =>
+            (UUID(item("user_id").asInstanceOf[Array[Byte]]), Role(item))
+          }
+          val tupledWithUsers = users.map { user =>
+            (user.id, tuples.filter(_._1 == user.id).map(_._2))
+          }
+          \/-(tupledWithUsers.toMap)
         }
-        val tupledWithUsers = users.map { user =>
-          (user.id, tuples.filter(_._1 == user.id).map(_._2))
+        catch {
+          case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build Role(s) from the row returned.", exception))
         }
-        \/-(tupledWithUsers.toMap)
       }.recover {
         case exception => {
-          throw exception
+          case exception: Throwable => -\/(FatalError("An unexpected error occurred.", exception))
         }
       }
     }

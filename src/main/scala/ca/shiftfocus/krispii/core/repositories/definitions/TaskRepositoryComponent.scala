@@ -29,7 +29,8 @@ trait TaskRepositoryComponent {
     def insert(task: Task)(implicit conn: Connection): Future[\/[RepositoryError, Task]]
     def update(task: Task)(implicit conn: Connection): Future[\/[RepositoryError, Task]]
     def delete(task: Task)(implicit conn: Connection): Future[\/[RepositoryError, Task]]
-    def delete(part: Part)(implicit conn: Connection): Future[\/[RepositoryError, Task]]
+    // TODO - changed return from Task to IndexedSeq[Task], because we delete all tasks belonging to a part
+    def delete(part: Part)(implicit conn: Connection): Future[\/[RepositoryError, IndexedSeq[Task]]]
 
     protected def lift = EitherT.eitherT[Future, RepositoryError, Task] _
     protected def liftList = EitherT.eitherT[Future, RepositoryError, IndexedSeq[Task]] _

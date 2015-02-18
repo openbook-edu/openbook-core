@@ -1,7 +1,10 @@
 package ca.shiftfocus.krispii.core.repositories
 
+import java.util.NoSuchElementException
+
 import ca.shiftfocus.krispii.core.models.tasks.Task
-import com.github.mauricio.async.db.{RowData, Connection}
+import ca.shiftfocus.krispii.core.repositories.error.{NonFatalError, NoResultsFound, FatalError, RepositoryError}
+import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.lib.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
@@ -170,6 +173,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |  FROM task
        """.stripMargin
 
+    // TODO - We need RETURNING for every Task type, except LongAnswer
     val InsertShortAnswer =
       s"""
          |WITH task AS (
@@ -225,6 +229,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |          name, description, position, notes_allowed, task_type
        """.stripMargin
 
+
     val UpdateLongAnswer =
       s"""
          |WITH task AS (
@@ -236,6 +241,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
          |          name, description, position, notes_allowed, task_type
        """.stripMargin
 
+    // TODO - We need to add specific fields in RETURNING for every type, here for ex. max_length and etc.
     val UpdateShortAnswer =
       s"""
          |WITH task AS (
@@ -295,19 +301,13 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
     /**
      * Find all tasks.
      *
-     * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return a vector of the returned tasks
      */
-    override def list: Future[IndexedSeq[Task]] = {
-      db.pool.sendQuery(SelectAll).map { queryResult =>
-        val taskList = queryResult.rows.get.map {
-          item: RowData => Task(item)
-        }
-        taskList
+    override def list:Future[\/[RepositoryError, IndexedSeq[Task]]] = {
+      db.pool.sendQuery(SelectAll).map {
+        result => buildTaskList(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -315,19 +315,13 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * Find all tasks belonging to a given part.
      *
      * @param part The part to return tasks from.
-     * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return a vector of the returned tasks
      */
-    override def list(part: Part): Future[IndexedSeq[Task]] = {
-      db.pool.sendPreparedStatement(SelectByPartId, Array[Any](part.id.bytes)).map { queryResult =>
-        val taskList = queryResult.rows.get.map {
-          item: RowData => Task(item)
-        }.sortBy(_.position)
-        taskList
+    override def list(part: Part): Future[\/[RepositoryError, IndexedSeq[Task]]] = {
+      db.pool.sendPreparedStatement(SelectByPartId, Array[Any](part.id.bytes)).map {
+        result => buildTaskList(result.rows).sortBy(_.position)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -335,19 +329,13 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * Find all tasks belonging to a given project.
      *
      * @param project The project to return parts from.
-     * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return a vector of the returned tasks
      */
-    override def list(project: Project): Future[IndexedSeq[Task]] = {
-      db.pool.sendPreparedStatement(SelectByProjectId, Array[Any](project.id.bytes)).map { queryResult =>
-        val taskList = queryResult.rows.get.map {
-          item: RowData => Task(item)
-        }
-        taskList
+    override def list(project: Project): Future[\/[RepositoryError, IndexedSeq[Task]]] = {
+      db.pool.sendPreparedStatement(SelectByProjectId, Array[Any](project.id.bytes)).map {
+        result => buildTaskList(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -357,11 +345,11 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * @param project the [[Project]] to list tasks from.
      * @param partNum the position of the part to list tasks from.
      */
-    override def list(project: Project, partNum: Int): Future[IndexedSeq[Task]] = {
+    override def list(project: Project, partNum: Int): Future[\/[RepositoryError, IndexedSeq[Task]]] = {
       partRepository.find(project, partNum).flatMap { partOption =>
         list(partOption.get)
       }.recover {
-        case exception => throw exception
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -369,66 +357,47 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * Find a single entry by ID.
      *
      * @param id the UUID to search for
-     * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return an optional task if one was found
      */
-    override def find(id: UUID): Future[Option[Task]] = {
-      db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map { result =>
-        result.rows.get.headOption match {
-          case Some(rowData) => {
-            Some(Task(rowData))
-          }
-          case None => None
-        }
+    override def find(id: UUID): Future[\/[RepositoryError, Task]] = {
+      db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
+        result => buildTask(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
     /**
-     * Find a single entry by ID.
+     * // TODO - check ScalaDoc.
+     * Find a task on which user is working now
      *
-     * @param id the UUID to search for
-     * @param conn An implicit connection object. Can be used in a transactional chain.
-     * @return an optional task if one was found
+     * @param user
+     * @param project
+     * @return
      */
-    override def findNow(user: User, project: Project): Future[Option[Task]] = {
-      db.pool.sendPreparedStatement(SelectNowByUserId, Array[Any](user.id.bytes, project.id.bytes)).map { result =>
-        result.rows.get.headOption match {
-          case Some(rowData) => {
-            Some(Task(rowData))
-          }
-          case None => None
-        }
+    override def findNow(user: User, project: Project): Future[\/[RepositoryError, Task]] = {
+      db.pool.sendPreparedStatement(SelectNowByUserId, Array[Any](user.id.bytes, project.id.bytes)).map {
+        result => buildTask(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
     /**
      * Find a task given its position within a part, its part's position within
-     * a project, and its project slug.
+     * a project, and its project.
      *
      * @param project the project to search within
      * @param partNum the number of the part within its project
      * @param taskNum the number of the task within its part
      * @return an optional task if one was found
      */
-    override def find(project: Project, partNum: Int, taskNum: Int): Future[Option[Task]] = {
+    override def find(project: Project, partNum: Int, taskNum: Int): Future[\/[RepositoryError, Task]] = {
       partRepository.find(project, partNum).flatMap { partOption =>
-        db.pool.sendPreparedStatement(SelectByPosition, Array[Any](partNum, project.id.bytes, taskNum)).map { result =>
-          result.rows.get.headOption match {
-            case Some(rowData) => Some(Task(rowData))
-            case None => None
-          }
+        db.pool.sendPreparedStatement(SelectByPosition, Array[Any](partNum, project.id.bytes, taskNum)).map {
+          result => buildTask(result.rows)
         }.recover {
-          case exception => {
-            throw exception
-          }
+          case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
         }
       }
     }
@@ -441,7 +410,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * @param task The task to be inserted
      * @return the new task
      */
-    override def insert(task: Task)(implicit conn: Connection): Future[Task] = {
+    override def insert(task: Task)(implicit conn: Connection): Future[\/[RepositoryError, Task]] = {
       // All tasks have these properties.
       val commonData =  Array[Any](
         task.id.bytes,
@@ -461,6 +430,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
       // Prepare the additional data to be sent depending on the type of task
       val dataArray = task match {
         case longAnswer: LongAnswerTask => commonData ++ Array[Any](Task.LongAnswer)
+
         case shortAnswer: ShortAnswerTask => commonData ++ Array[Any](
           Task.ShortAnswer,
           shortAnswer.maxLength
@@ -498,13 +468,9 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
 
       // Send the query
       conn.sendPreparedStatement(query, dataArray).map {
-        result => {
-          task
-        }
+        result => buildTask(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -514,7 +480,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * @param task The task to be updated.
      * @return the updated task
      */
-    override def update(task: Task)(implicit conn: Connection): Future[Task] = {
+    override def update(task: Task)(implicit conn: Connection): Future[\/[RepositoryError, Task]] = {
       // Start with the data common to all task types.
       val commonData = Array[Any](
         task.partId.bytes,
@@ -558,11 +524,9 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
 
       // Execute the query
       conn.sendPreparedStatement(Update, dataArray).map {
-        result => Task(result.rows.get.head)
+        result => buildTask(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -572,36 +536,79 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * @param task The task to delete.
      * @return A boolean indicating whether the operation was successful.
      */
-    override def delete(task: Task)(implicit conn: Connection): Future[Boolean] = {
+    override def delete(task: Task)(implicit conn: Connection): Future[\/[RepositoryError, Task]] = {
       conn.sendPreparedStatement(Delete, Array(task.id.bytes, task.version)).map {
         result => {
-          (result.rowsAffected > 0)
+          if (result.rowsAffected == 0) {
+            -\/(NonFatalError("No rows were modified"))
+          } else {
+            \/-(task)
+          }
         }
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
     /**
-     * Delete a task.
+     * // TODO - changed return from Task to IndexedSeq[Task], because we delete all tasks belonging to a part
+     * Delete all tasks belonging to a part.
      *
      * @param part the [[Part]] to delete tasks from.
      * @return A boolean indicating whether the operation was successful.
      */
-    override def delete(part: Part)(implicit conn: Connection): Future[Boolean] = {
+    override def delete(part: Part)(implicit conn: Connection): Future[\/[RepositoryError, IndexSeq[Task]]] = {
       list(part).flatMap { taskList =>
         conn.sendPreparedStatement(DeleteByPart, Array[Any](part.id.bytes)).map {
           result => {
-            val deleted = (result.rowsAffected == taskList.size)
-            deleted
+            if (result.rowsAffected == taskList.size) {
+              \/-(taskList)
+            } else {
+              -\/(NonFatalError("No rows were modified"))
+            }
           }
         }
       }.recover {
-        case exception => {
-          throw exception
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+      }
+    }
+
+    /**
+     * Transform result rows into a single task.
+     *
+     * @param maybeResultSet
+     * @return
+     */
+    private def buildTask(maybeResultSet: Option[ResultSet]): \/[RepositoryError, Task] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => resultSet.headOption match {
+            case Some(firstRow) => \/-(Task(firstRow))
+            case None => -\/(NoResultsFound("The query was successful but ResultSet was empty."))
+          }
+          case None => -\/(NoResultsFound("The query was successful but no ResultSet was returned."))
         }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a Task from the row returned.", exception))
+      }
+    }
+
+    /**
+     * Converts an optional result set into tasks list
+     *
+     * @param maybeResultSet
+     * @return
+     */
+    private def buildTaskList(maybeResultSet: Option[ResultSet]): \/[RepositoryError, IndexedSeq[Task]] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => \/-(resultSet.map(Task.apply))
+          case None => -\/(NoResultsFound("The query was successful but no ResultSet was returned."))
+        }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a Task List from the rows returned.", exception))
       }
     }
   }

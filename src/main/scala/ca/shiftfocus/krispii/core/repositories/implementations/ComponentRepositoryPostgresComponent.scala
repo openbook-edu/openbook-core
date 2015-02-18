@@ -1,6 +1,10 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import com.github.mauricio.async.db.{RowData, Connection}
+import java.util.NoSuchElementException
+
+import ca.shiftfocus.krispii.core.models.tasks.Task
+import ca.shiftfocus.krispii.core.repositories.error.{NonFatalError, NoResultsFound, FatalError, RepositoryError}
+import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.lib.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
@@ -202,15 +206,11 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      *
      * @return an array of components.
      */
-    override def list(implicit conn: Connection): Future[IndexedSeq[Component]] = {
-      conn.sendQuery(SelectAll).map { queryResult =>
-        queryResult.rows.get.map {
-          item: RowData => Component(item)
-        }
+    override def list(implicit conn: Connection): Future[\/[RepositoryError, IndexedSeq[Component]]] = {
+      conn.sendQuery(SelectAll).map {
+        result => buildComponentList(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -220,15 +220,11 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      * @param part the part to search in
      * @return an array of components
      */
-    override def list(part: Part)(implicit conn: Connection): Future[IndexedSeq[Component]] = {
+    override def list(part: Part)(implicit conn: Connection): Future[\/[RepositoryError, IndexedSeq[Component]]] = {
       conn.sendPreparedStatement(SelectByPartId, Array[Any](part.id.bytes)).map { queryResult =>
-        queryResult.rows.get.map {
-          item: RowData => Component(item)
-        }
+        result => buildComponentList(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -239,15 +235,11 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      * @param user the user to search for
      * @return an array of components
      */
-    override def list(project: Project)(implicit conn: Connection): Future[IndexedSeq[Component]] = {
+    override def list(project: Project)(implicit conn: Connection): Future[\/[RepositoryError, IndexedSeq[Component]]] = {
       conn.sendPreparedStatement(SelectByProjectId, Array[Any](project.id.bytes)).map { queryResult =>
-        queryResult.rows.get.map {
-          item: RowData => Component(item)
-        }
+        result => buildComponentList(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -258,15 +250,11 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      * @param user the user to search for
      * @return an array of components
      */
-    override def list(project: Project, user: User)(implicit conn: Connection): Future[IndexedSeq[Component]] = {
+    override def list(project: Project, user: User)(implicit conn: Connection): Future[\/[RepositoryError, IndexedSeq[Component]]] = {
       conn.sendPreparedStatement(SelectEnabledByProjectId, Array[Any](user.id.bytes, project.id.bytes)).map { queryResult =>
-        queryResult.rows.get.map {
-          item: RowData => Component(item)
-        }
+        result => buildComponentList(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -276,16 +264,11 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      * @param id the 128-bit UUID, as a byte array, to search for.
      * @return an optional RowData object containing the results
      */
-    override def find(id: UUID)(implicit conn: Connection): Future[Option[Component]] = {
-      conn.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map { result =>
-        result.rows.get.headOption match {
-          case Some(rowData) => Some(Component(rowData))
-          case None => None
-        }
+    override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError, Component]] = {
+      conn.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
+        result => buildComponent(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -296,12 +279,17 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      * @param part the part to add this component to
      * @return a boolean indicating whether the operation was successful
      */
-    override def addToPart(component: Component, part: Part)(implicit conn: Connection): Future[Boolean] = {conn.sendPreparedStatement(AddToPart, Array[Any](component.id.bytes, part.id.bytes, new DateTime)).map {
-        result => (result.rowsAffected > 0)
-      }.recover {
-        case exception => {
-          throw exception
+    override def addToPart(component: Component, part: Part)(implicit conn: Connection):Future[\/[RepositoryError, Component]] = {
+      conn.sendPreparedStatement(AddToPart, Array[Any](component.id.bytes, part.id.bytes, new DateTime)).map {
+        result => {
+          if (result.rowsAffected == 0) {
+            -\/(NonFatalError("No rows were modified"))
+          } else {
+            \/-(component)
+          }
         }
+      }.recover {
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -312,21 +300,31 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      * @param part the part to remove this component from
      * @return a boolean indicating whether the operation was successful
      */
-    override def removeFromPart(component: Component, part: Part)(implicit conn: Connection): Future[Boolean] = {conn.sendPreparedStatement(RemoveFromPart, Array[Any](component.id.bytes, part.id.bytes, new DateTime)).map {
-        result => (result.rowsAffected > 0)
-      }.recover {
-        case exception => {
-          throw exception
+    override def removeFromPart(component: Component, part: Part)(implicit conn: Connection): Future[\/[RepositoryError, Component]] = {
+      conn.sendPreparedStatement(RemoveFromPart, Array[Any](component.id.bytes, part.id.bytes, new DateTime)).map {
+        result => {
+          if (result.rowsAffected == 0) {
+            -\/(NonFatalError("No rows were modified"))
+          } else {
+            \/-(component)
+          }
         }
+      }.recover {
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
-    override def removeFromPart(part: Part)(implicit conn: Connection): Future[Boolean] = {conn.sendPreparedStatement(RemoveAllFromParts, Array[Any](part.id.bytes)).map {
-        result => (result.rowsAffected > 0)
-      }.recover {
-        case exception => {
-          throw exception
+    override def removeFromPart(part: Part)(implicit conn: Connection): Future[\/[RepositoryError, Component]] = {
+      conn.sendPreparedStatement(RemoveAllFromParts, Array[Any](part.id.bytes)).map {
+        result => {
+          if (result.rowsAffected == 0) {
+            -\/(NonFatalError("No rows were modified"))
+          } else {
+            \/-(component)
+          }
         }
+      }.recover {
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -336,15 +334,13 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      * @param component the component to be inserted
      * @return the newly created component
      */
-    override def insert(component: Component)(implicit conn: Connection): Future[Component] = {
+    override def insert(component: Component)(implicit conn: Connection): Future[\/[RepositoryError, Component]] = {
       {component match {
         case asAudio: AudioComponent => insertAudio(asAudio)
         case asText: TextComponent => insertText(asText)
         case asVideo: VideoComponent => insertVideo(asVideo)
       }}.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -354,15 +350,13 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      * @param component the component to be updated
      * @return the updated component
      */
-    override def update(component: Component)(implicit conn: Connection): Future[Component] = {
+    override def update(component: Component)(implicit conn: Connection): Future[\/[RepositoryError, Component]] = {
       {component match {
         case asAudio: AudioComponent => updateAudio(asAudio)
         case asText: TextComponent => updateText(asText)
         case asVideo: VideoComponent => updateVideo(asVideo)
       }}.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -378,7 +372,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      * @param component the audio component to insert
      * @return the created audio component
      */
-    private def insertAudio(component: AudioComponent)(implicit conn: Connection): Future[AudioComponent] = {
+    private def insertAudio(component: AudioComponent)(implicit conn: Connection): Future[\/[RepositoryError, AudioComponent]] = {
       Logger.debug("[AudioTDG.save] - Performing Insert.")
       conn.sendPreparedStatement(InsertAudio, Array(
         component.id.bytes,
@@ -390,11 +384,9 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
         new DateTime,
         component.soundcloudId)
       ).map {
-        result => AudioComponent(result.rows.get.head)
+        result => buildComponent(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -404,7 +396,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      * @param component the audio component to update
      * @return the updated audio component
      */
-    private def updateAudio(component: AudioComponent)(implicit conn: Connection): Future[AudioComponent] = {
+    private def updateAudio(component: AudioComponent)(implicit conn: Connection): Future[\/[RepositoryError, AudioComponent]] = {
       Logger.debug("[AudioTDG.save] - Performing Update.")
       conn.sendPreparedStatement(UpdateAudio, Array(
         (component.version + 1),
@@ -417,11 +409,9 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
         component.version,
         component.soundcloudId)
       ).map {
-        result => AudioComponent(result.rows.get.head)
+        result => buildComponent(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -431,7 +421,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      * @param component the text component to insert
      * @return the created text component
      */
-    private def insertText(component: TextComponent)(implicit conn: Connection): Future[TextComponent] = {
+    private def insertText(component: TextComponent)(implicit conn: Connection): Future[\/[RepositoryError, TextComponent]] = {
       Logger.debug("[TextTDG.insert] - Performing Insert.")
       conn.sendPreparedStatement(InsertText, Array(
         component.id.bytes,
@@ -443,11 +433,9 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
         new DateTime,
         component.content)
       ).map {
-        result => TextComponent(result.rows.get.head)
+        result => buildComponent(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -457,7 +445,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      * @param component the text component to update
      * @return the updated text component
      */
-    private def updateText(component: TextComponent)(implicit conn: Connection) = {
+    private def updateText(component: TextComponent)(implicit conn: Connection): Future[\/[RepositoryError, TextComponent]] = {
       Logger.debug("[TextTDG.save] - Performing Update.")
       conn.sendPreparedStatement(UpdateText, Array(
         (component.version + 1),
@@ -470,11 +458,9 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
         component.version,
         component.content)
       ).map {
-        result => TextComponent(result.rows.get.head)
+        result => buildComponent(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -484,7 +470,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      * @param component the video component to insert
      * @return the created video component
      */
-    private def insertVideo(component: VideoComponent)(implicit conn: Connection): Future[VideoComponent] = {
+    private def insertVideo(component: VideoComponent)(implicit conn: Connection): Future[\/[RepositoryError, VideoComponent]] = {
       Logger.debug("[VideoTDG.save] - Performing Insert.")
       conn.sendPreparedStatement(InsertVideo, Array(
         component.id.bytes,
@@ -498,11 +484,9 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
         component.width,
         component.height)
       ).map {
-        result => VideoComponent(result.rows.get.head)
+        result => buildComponent(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
 
@@ -512,7 +496,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      * @param component the video component to update
      * @return the updated video component
      */
-    private def updateVideo(component: VideoComponent)(implicit conn: Connection): Future[VideoComponent] = {
+    private def updateVideo(component: VideoComponent)(implicit conn: Connection): Future[\/[RepositoryError, VideoComponent]] = {
       Logger.debug("[VideoTDG.save] - Performing Update.")
       conn.sendPreparedStatement(UpdateVideo, Array(
         (component.version + 1),
@@ -527,11 +511,48 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
         component.width,
         component.height)
       ).map {
-        result => VideoComponent(result.rows.get.head)
+        result => buildComponent(result.rows)
       }.recover {
-        case exception => {
-          throw exception
+        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+      }
+    }
+
+    /**
+     * Transform result rows into a single component.
+     *
+     * @param maybeResultSet
+     * @return
+     */
+    private def buildComponent(maybeResultSet: Option[ResultSet]): \/[RepositoryError, Component] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => resultSet.headOption match {
+            case Some(firstRow) => \/-(Component(firstRow))
+            case None => -\/(NoResultsFound("The query was successful but ResultSet was empty."))
+          }
+          case None => -\/(NoResultsFound("The query was successful but no ResultSet was returned."))
         }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a Component from the row returned.", exception))
+      }
+    }
+
+    /**
+     * Converts an optional result set into components list
+     *
+     * @param maybeResultSet
+     * @return
+     */
+    private def buildComponentList(maybeResultSet: Option[ResultSet]): \/[RepositoryError, IndexedSeq[Component]] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => \/-(resultSet.map(Component.apply))
+          case None => -\/(NoResultsFound("The query was successful but no ResultSet was returned."))
+        }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a Component List from the rows returned.", exception))
       }
     }
   }

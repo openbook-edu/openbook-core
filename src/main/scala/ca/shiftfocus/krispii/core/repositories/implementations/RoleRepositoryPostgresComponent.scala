@@ -198,7 +198,6 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
     }
 
     /**
-     * TODO try catch
      * List the roles associated with a users.
      */
     override def list(users: IndexedSeq[User]): Future[\/[RepositoryError, Map[UUID, IndexedSeq[Role]]]] = {
@@ -287,11 +286,10 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       wasAdded.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField)
-            if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"Role doesn't exist"))
-          // TODO - check nField values
-            else if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User doesn't exist"))
-            else if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User has already this role"))
-            else => -\/(PrimaryKeyExists(s"Unknown db error"))
+            if nField == "users_roles_pkey" => -\/(PrimaryKeyExists(s"User has already this role"))
+            else if nField == "users_roles_user_id_fkey" => -\/(FKViolation(s"User doesn't exist"))
+            else if nField == "users_roles_role_id_fkey" => -\/(FKViolation(s"Role doesn't exist"))
+            else => -\/(FatalError(s"Unknown db error", exception))
           case _ => -\/(FatalError("Unexpected exception", exception))
         }
         case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
@@ -395,11 +393,10 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField)
-            if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"Role doesn't exist"))
-            // TODO - check nField values
-            else if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User doesn't exist"))
-            else if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User has already this role"))
-            else => -\/(PrimaryKeyExists(s"Unknown db error"))
+            if nField == "users_roles_pkey" => -\/(PrimaryKeyExists(s"User has already this role"))
+            else if nField == "users_roles_user_id_fkey" => -\/(FKViolation(s"User doesn't exist"))
+            else if nField == "users_roles_role_id_fkey" => -\/(FKViolation(s"Role doesn't exist"))
+            else => -\/(FatalError(s"Unknown db error", exception))
           case _ => -\/(FatalError("Unexpected exception", exception))
         }
         case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
@@ -416,11 +413,10 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField)
-            if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"Role doesn't exist"))
-            // TODO - check nField values
-            else if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User doesn't exist"))
-            else if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User has already this role"))
-            else => -\/(PrimaryKeyExists(s"Unknown db error"))
+            if nField == "users_roles_pkey" => -\/(PrimaryKeyExists(s"User has already this role"))
+            else if nField == "users_roles_user_id_fkey" => -\/(FKViolation(s"User doesn't exist"))
+            else if nField == "users_roles_role_id_fkey" => -\/(FKViolation(s"Role doesn't exist"))
+            else => -\/(FatalError(s"Unknown db error", exception))
           case _ => -\/(FatalError("Unexpected exception", exception))
         }
         case exception: Throwable => -\/(FatalError("Unexpected exception", exception))

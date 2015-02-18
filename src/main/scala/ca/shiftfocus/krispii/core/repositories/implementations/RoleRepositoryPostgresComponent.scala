@@ -179,7 +179,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       db.pool.sendQuery(SelectAll).map {
         result => buildRoleList(result.rows)
       }.recover {
-        case exception: Throwable => -\/(FatalE rror("An unexpected error occurred.", exception))
+        case exception: Throwable => -\/(FatalError("An unexpected error occurred.", exception))
       }
     }
 
@@ -515,7 +515,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
         }
       }
       catch {
-        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a Role from the rows returned.", exception))
+        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a Role List from the rows returned.", exception))
       }
     }
   }

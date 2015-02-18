@@ -282,7 +282,12 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
         result => buildUser(result.rows)
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-          case Some(nField) if nField == "users_pkey" => -\/(PrimaryKeyExists(s"A row with key ${user.id.string} already exists"))
+          case Some(nField)
+            if nField == "users_pkey" => -\/(PrimaryKeyExists(s"A row with key ${user.id.string} already exists"))
+            // TODO - check nField name
+            else if nField == "users_username_ukey" => -\/(UniqueKeyExists(s"User with username ${user.username} already exists"))
+            else if nField == "users_email_ukey" => -\/(UniqueKeyExists(s"User with email ${user.username} already exists"))
+            else => -\/(FatalError(s"Unknown db error", exception))
           case _ => -\/(FatalError("Unexpected exception", exception))
         }
         case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
@@ -315,7 +320,12 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
 
       future.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-          case Some(nField) if nField == "users_pkey" => -\/(PrimaryKeyExists(s"A row with key ${user.id.string} already exists"))
+          case Some(nField)
+            if nField == "users_pkey" => -\/(PrimaryKeyExists(s"A row with key ${user.id.string} already exists"))
+            // TODO - check nField name
+            else if nField == "users_username_ukey" => -\/(UniqueKeyExists(s"User with username ${user.username} already exists"))
+            else if nField == "users_email_ukey" => -\/(UniqueKeyExists(s"User with email ${user.username} already exists"))
+            else => -\/(FatalError(s"Unknown db error", exception))
           case _ => -\/(FatalError("Unexpected exception", exception))
         }
         case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
@@ -333,6 +343,13 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
         if (result.rowsAffected == 1) \/-(user)
         else -\/(NoResultsFound("Could not find a user row to delete."))
       }.recover {
+        case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
+          case Some(nField)
+            // TODO - check nField name
+            if nField == "courses_teacher_id_fkey" => -\/(FKViolation(s"User is teacher and has references in courses table, that has project"))
+            else => -\/(FatalError(s"Unknown db error", exception))
+          case _ => -\/(FatalError("Unexpected exception", exception))
+        }
         case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
       }
     }
@@ -374,7 +391,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
         }
       }
       catch {
-        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a user from the rows returned.", exception))
+        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a Users List from the rows returned.", exception))
       }
     }
   }

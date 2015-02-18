@@ -139,7 +139,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
       } yield result
 
       fResult.run.recover {
-        case exception: Throwable => -\/(FatalError("An unexpected error occurred.", exception))
+        case exception: Throwable => -\/(FatalError("An lunexpected error occurred.", exception))
       }
     }
 

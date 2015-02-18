@@ -4,7 +4,7 @@ import java.util.NoSuchElementException
 
 import ca.shiftfocus.krispii.core.repositories.error._
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
-import com.github.mauricio.async.db.{RowData, Connection}
+import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.lib.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
@@ -12,6 +12,7 @@ import ca.shiftfocus.uuid.UUID
 import play.api.Play.current
 
 import play.api.Logger
+import scala.Some
 import scala.concurrent.Future
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
@@ -209,13 +210,18 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
 
       db.pool.sendQuery(query).map { queryResult =>
         try {
-          val tuples = queryResult.rows.get.map { item: RowData =>
-            (UUID(item("user_id").asInstanceOf[Array[Byte]]), Role(item))
+          queryResult.rows match {
+            case Some(resultSet) => {
+              val tuples = resultSet.map { item: RowData =>
+                (UUID(item("user_id").asInstanceOf[Array[Byte]]), Role(item))
+              }
+              val tupledWithUsers = users.map { user =>
+                (user.id, tuples.filter(_._1 == user.id).map(_._2))
+              }
+              \/-(tupledWithUsers.toMap)
+            }
+            case None => -\/(NoResultsFound("The query was successful but no ResultSet was returned."))
           }
-          val tupledWithUsers = users.map { user =>
-            (user.id, tuples.filter(_._1 == user.id).map(_._2))
-          }
-          \/-(tupledWithUsers.toMap)
         }
         catch {
           case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build Role(s) from the row returned.", exception))
@@ -280,10 +286,12 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
 
       wasAdded.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-          case Some(nField) if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"Role doesn't exist"))
+          case Some(nField)
+            if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"Role doesn't exist"))
           // TODO - check nField values
-          case Some(nField) if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User doesn't exist"))
-          case Some(nField) if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User has already this role"))
+            else if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User doesn't exist"))
+            else if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User has already this role"))
+            else => -\/(PrimaryKeyExists(s"Unknown db error"))
           case _ => -\/(FatalError("Unexpected exception", exception))
         }
         case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
@@ -386,10 +394,12 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
         //Cache.remove(s"role_ids:user:${user.id.string}")
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-          case Some(nField) if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"Role doesn't exist"))
+          case Some(nField)
+            if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"Role doesn't exist"))
             // TODO - check nField values
-          case Some(nField) if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User doesn't exist"))
-          case Some(nField) if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User has already this role"))
+            else if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User doesn't exist"))
+            else if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User has already this role"))
+            else => -\/(PrimaryKeyExists(s"Unknown db error"))
           case _ => -\/(FatalError("Unexpected exception", exception))
         }
         case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
@@ -405,10 +415,12 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
         //Cache.remove(s"role_ids:user:${user.id.string}")
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-          case Some(nField) if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"Role doesn't exist"))
-          // TODO - check nField values
-          case Some(nField) if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User doesn't exist"))
-          case Some(nField) if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User has already this role"))
+          case Some(nField)
+            if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"Role doesn't exist"))
+            // TODO - check nField values
+            else if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User doesn't exist"))
+            else if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"User has already this role"))
+            else => -\/(PrimaryKeyExists(s"Unknown db error"))
           case _ => -\/(FatalError("Unexpected exception", exception))
         }
         case exception: Throwable => -\/(FatalError("Unexpected exception", exception))

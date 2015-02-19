@@ -1,18 +1,14 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import com.github.mauricio.async.db.{RowData, Connection}
-import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
-import ca.shiftfocus.krispii.core.lib.ExceptionWriter
+import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.uuid.UUID
-import play.api.Play.current
-
-import play.api.Logger
-import scala.concurrent.Future
-import org.joda.time.DateTime
-import org.joda.time.LocalTime
-import org.joda.time.LocalDate
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+import ca.shiftfocus.uuid.UUID
+import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
+import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
+import org.joda.time.DateTime
+import scala.concurrent.Future
+import scalaz.{-\/, \/-, \/}
 
 trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleExceptionRepositoryComponent {
   self: PostgresDB =>
@@ -20,60 +16,58 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
   override val courseScheduleExceptionRepository: CourseScheduleExceptionRepository = new CourseScheduleExceptionRepositoryPSQL
 
   private class CourseScheduleExceptionRepositoryPSQL extends CourseScheduleExceptionRepository {
-    def fields = Seq("user_id", "course_id", "day", "start_time", "end_time")
-    def table = "course_schedule_exceptions"
-    def orderBy = "created_at ASC"
-    val fieldsText = fields.mkString(", ")
-    val questions = fields.map(_ => "?").mkString(", ")
+    val Fields = "id, version, created_at, updated_at, user_id, course_id, day, start_time, end_time"
+    val Table = "course_schedule_exceptions"
+    val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
 
     // User CRUD operations
-    val SelectAll = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-      ORDER BY $orderBy
-    """
-
-    val SelectOne = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE id = ?
-    """
-
-    val Insert = {
-      val extraFields = fields.mkString(",")
-      val questions = fields.map(_ => "?").mkString(",")
+    val SelectAll =
       s"""
-        INSERT INTO $table (id, version, created_at, updated_at, $extraFields)
-        VALUES (?, 1, ?, ?, $questions)
-        RETURNING id, version, created_at, updated_at, $fieldsText
-      """
-    }
+         |SELECT $Fields
+         |FROM $Table
+       """.stripMargin
 
-    val Update = {
-      val extraFields = fields.map(" " + _ + " = ? ").mkString(",")
+    val SelectOne =
       s"""
-        UPDATE $table
-        SET $extraFields , version = ?, updated_at = ?
-        WHERE id = ?
-          AND version = ?
-        RETURNING id, version, created_at, updated_at, $fieldsText
-      """
-    }
+         |SELECT $Fields
+         |FROM $Table
+         |WHERE id = ?
+       """.stripMargin
 
-    val Delete = s"""
-      DELETE FROM $table WHERE id = ? AND version = ?
-    """
+    val Insert =
+      s"""
+         |INSERT INTO $Table ($Fields)
+         |VALUES ($QMarks)
+         |RETURNING $Fields
+       """.stripMargin
 
-    val SelectByCourseId = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE course_id = ?
-      ORDER BY day asc, start_time asc, end_time asc
-    """
+
+    val Update =
+      s"""
+         |UPDATE $Table
+         |SET user_id = ?, course_id = ?, day = ?, start_time = ?, end_time = ?, version = ?, updated_at = ?
+         |WHERE id = ?
+         |  AND version = ?
+         |RETURNING $Fields
+       """.stripMargin
+
+    val Delete =
+      s"""
+         |DELETE FROM $Table WHERE id = ? AND version = ?
+       """.stripMargin
+
+    val SelectForCourse =
+      s"""
+         |SELECT $Fields
+         |FROM $Table
+         |WHERE course_id = ?
+         |ORDER BY day asc, start_time asc, end_time asc
+       """.stripMargin
 
     val SelectForUserAndCourse =
-      s"""SELECT id, version, created_at, updated_at, $fieldsText
-         |FROM $table
+      s"""
+         |SELECT $Fields
+         |FROM $Table
          |WHERE user_id = ?
          |  AND course_id = ?
          |ORDER BY id ASC
@@ -85,33 +79,22 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
      * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return a vector of the returned courses
      */
-    override def list(user: User, course: Course): Future[IndexedSeq[CourseScheduleException]] = {
-      db.pool.sendPreparedStatement(SelectForUserAndCourse, Array[Any](user.id.bytes, course.id.bytes)).map { queryResult =>
-        val scheduleList = queryResult.rows.get.map {
-          item: RowData => CourseScheduleException(item)
-        }
-        scheduleList
+    override def list(user: User, course: Course): Future[\/[Fail, IndexedSeq[CourseScheduleException]]] = {
+      db.pool.sendPreparedStatement(SelectForUserAndCourse, Array[Any](user.id.bytes, course.id.bytes)).map { 
+        result => buildCourseScheduleExceptionList(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 
     /**
      * Find all schedule exceptions for a given course.
      */
-    override def list(course: Course): Future[IndexedSeq[CourseScheduleException]] = {
-      val cacheString = s"schedule.id_list.course[${course.id.string}]"
-      db.pool.sendPreparedStatement(SelectByCourseId, Array[Any](course.id.bytes)).map { queryResult =>
-        val scheduleList = queryResult.rows.get.map {
-          item: RowData => CourseScheduleException(item)
-        }
-        scheduleList
+    override def list(course: Course): Future[\/[Fail, IndexedSeq[CourseScheduleException]]] = {
+      db.pool.sendPreparedStatement(SelectForCourse, Array[Any](course.id.bytes)).map {
+        result => buildCourseScheduleExceptionList(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 
@@ -122,16 +105,11 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
      * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return an optional task if one was found
      */
-    override def find(id: UUID): Future[Option[CourseScheduleException]] = {
-      db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map { result =>
-        result.rows.get.headOption match {
-          case Some(rowData) => Some(CourseScheduleException(rowData))
-          case None => None
-        }
+    override def find(id: UUID): Future[\/[Fail, CourseScheduleException]] = {
+      db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
+        result => buildCourseScheduleException(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 
@@ -141,7 +119,7 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
      * @param course The course to be inserted
      * @return the new course
      */
-    override def insert(courseScheduleException: CourseScheduleException)(implicit conn: Connection): Future[CourseScheduleException] = {
+    override def insert(courseScheduleException: CourseScheduleException)(implicit conn: Connection): Future[\/[Fail, CourseScheduleException]] = {
       val dayDT = courseScheduleException.day.toDateTimeAtStartOfDay()
       val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.startTime.getHourOfDay(), courseScheduleException.startTime.getMinuteOfHour, courseScheduleException.startTime.getSecondOfMinute())
       val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.endTime.getHourOfDay(), courseScheduleException.endTime.getMinuteOfHour, courseScheduleException.endTime.getSecondOfMinute())
@@ -156,11 +134,9 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
         startTimeDT,
         endTimeDT
       )).map {
-        result => CourseScheduleException(result.rows.get.head)
+        result => buildCourseScheduleException(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 
@@ -170,7 +146,7 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
      * @param course The course to be updated.
      * @return the updated course
      */
-    override def update(courseScheduleException: CourseScheduleException)(implicit conn: Connection): Future[CourseScheduleException] = {
+    override def update(courseScheduleException: CourseScheduleException)(implicit conn: Connection): Future[\/[Fail, CourseScheduleException]] = {
       val dayDT = courseScheduleException.day.toDateTimeAtStartOfDay()
       val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.startTime.getHourOfDay(), courseScheduleException.startTime.getMinuteOfHour, courseScheduleException.startTime.getSecondOfMinute())
       val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.endTime.getHourOfDay(), courseScheduleException.endTime.getMinuteOfHour, courseScheduleException.endTime.getSecondOfMinute())
@@ -186,11 +162,9 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
         courseScheduleException.id.bytes,
         courseScheduleException.version
       )).map {
-        result => CourseScheduleException(result.rows.get.head)
+        result => buildCourseScheduleException(result.rows)
       }.recover {
-        case exception => {
-          throw exception
-        }
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 
@@ -200,15 +174,52 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
      * @param course The course to delete.
      * @return A boolean indicating whether the operation was successful.
      */
-    override def delete(courseScheduleException: CourseScheduleException)(implicit conn: Connection): Future[Boolean] = {
+    override def delete(courseScheduleException: CourseScheduleException)(implicit conn: Connection): Future[\/[Fail, CourseScheduleException]] = {
       conn.sendPreparedStatement(Delete, Array(courseScheduleException.id.bytes, courseScheduleException.version)).map {
-        result => {
-          (result.rowsAffected > 0)
-        }
+        result =>
+          if (result.rowsAffected == 1) \/-(courseScheduleException)
+          else -\/(NoResults("The query completed successfully, but nothing was deleted."))
       }.recover {
-        case exception => {
-          throw exception
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+      }
+    }
+
+    /**
+     * Build a TaskFeedback object from a database result.
+     *
+     * @param maybeResultSet the [[ResultSet]] from the database to use
+     * @return
+     */
+    private def buildCourseScheduleException(maybeResultSet: Option[ResultSet]): \/[Fail, CourseScheduleException] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => resultSet.headOption match {
+            case Some(firstRow) => \/-(CourseScheduleException(firstRow))
+            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
+          }
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
         }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(ExceptionalFail("Uncaught exception", exception))
+      }
+    }
+
+    /**
+     * Converts an optional result set into works list
+     *
+     * @param maybeResultSet the [[ResultSet]] from the database to use
+     * @return
+     */
+    private def buildCourseScheduleExceptionList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[CourseScheduleException]] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => \/-(resultSet.map(CourseScheduleException.apply))
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
+        }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a CourseScheduleException List from the rows returned.", exception))
       }
     }
   }

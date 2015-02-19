@@ -28,6 +28,6 @@ trait ComponentRepositoryComponent extends FutureMonad {
 
     def addToPart(component: Component, part: Part)(implicit conn: Connection): Future[\/[Fail, Component]]
     def removeFromPart(component: Component, part: Part)(implicit conn: Connection): Future[\/[Fail, Component]]
-    def removeFromPart(part: Part)(implicit conn: Connection): Future[\/[Fail, Component]]
+    def removeFromPart(part: Part)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Component]]]
   }
 }

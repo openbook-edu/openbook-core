@@ -403,7 +403,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
     private def updateAudio(component: AudioComponent)(implicit conn: Connection): Future[\/[Fail, AudioComponent]] = {
       Logger.debug("[AudioTDG.save] - Performing Update.")
       conn.sendPreparedStatement(UpdateAudio, Array(
-        (component.version + 1),
+        component.version + 1,
         component.ownerId.bytes,
         component.title,
         component.questions,
@@ -452,7 +452,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
     private def updateText(component: TextComponent)(implicit conn: Connection): Future[\/[Fail, TextComponent]] = {
       Logger.debug("[TextTDG.save] - Performing Update.")
       conn.sendPreparedStatement(UpdateText, Array(
-        (component.version + 1),
+        component.version + 1,
         component.ownerId.bytes,
         component.title,
         component.questions,
@@ -524,7 +524,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
     /**
      * Transform result rows into a single component.
      *
-     * @param maybeResultSet
+     * @param maybeResultSet the results from the database
      * @return
      */
     private def buildComponent(maybeResultSet: Option[ResultSet]): \/[Fail, Component] = {
@@ -545,7 +545,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
     /**
      * Converts an optional result set into components list
      *
-     * @param maybeResultSet
+     * @param maybeResultSet the results from the database
      * @return
      */
     private def buildComponentList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[Component]] = {

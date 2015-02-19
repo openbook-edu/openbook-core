@@ -285,11 +285,11 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
 
       wasAdded.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-          case Some(nField)
-            if nField == "users_roles_pkey" => -\/(EntityAlreadyExists(s"User has already this role"))
-            else if nField == "users_roles_user_id_fkey" => -\/(EntityReferenceFieldError(s"User doesn't exist"))
-            else if nField == "users_roles_role_id_fkey" => -\/(EntityReferenceFieldError(s"Role doesn't exist"))
-            else => -\/(ExceptionalFail(s"Unknown db error", exception))
+          case Some(nField) =>
+            if (nField == "users_roles_pkey") -\/(EntityAlreadyExists(s"User has already this role"))
+            else if (nField == "users_roles_user_id_fkey") -\/(EntityReferenceFieldError(s"User doesn't exist"))
+            else if (nField == "users_roles_role_id_fkey") -\/(EntityReferenceFieldError(s"Role doesn't exist"))
+            else -\/(ExceptionalFail(s"Unknown db error", exception))
           case _ => -\/(ExceptionalFail("Unexpected exception", exception))
         }
         case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
@@ -392,11 +392,11 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
         //Cache.remove(s"role_ids:user:${user.id.string}")
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-          case Some(nField)
-            if nField == "users_roles_pkey" => -\/(EntityAlreadyExists(s"User has already this role"))
-            else if nField == "users_roles_user_id_fkey" => -\/(EntityReferenceFieldError(s"User doesn't exist"))
-            else if nField == "users_roles_role_id_fkey" => -\/(EntityReferenceFieldError(s"Role doesn't exist"))
-            else => -\/(ExceptionalFail(s"Unknown db error", exception))
+          case Some(nField) =>
+            if (nField == "users_roles_pkey") -\/(EntityAlreadyExists(s"User has already this role"))
+            else if (nField == "users_roles_user_id_fkey") -\/(EntityReferenceFieldError(s"User doesn't exist"))
+            else if (nField == "users_roles_role_id_fkey") -\/(EntityReferenceFieldError(s"Role doesn't exist"))
+            else  -\/(ExceptionalFail(s"Unknown db error", exception))
           case _ => -\/(ExceptionalFail("Unexpected exception", exception))
         }
         case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
@@ -412,11 +412,11 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
         //Cache.remove(s"role_ids:user:${user.id.string}")
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-          case Some(nField)
-            if nField == "users_roles_pkey" => -\/(EntityAlreadyExists(s"User has already this role"))
-            else if nField == "users_roles_user_id_fkey" => -\/(EntityReferenceFieldError(s"User doesn't exist"))
-            else if nField == "users_roles_role_id_fkey" => -\/(EntityReferenceFieldError(s"Role doesn't exist"))
-            else => -\/(ExceptionalFail(s"Unknown db error", exception))
+          case Some(nField) =>
+            if (nField == "users_roles_pkey") -\/(EntityAlreadyExists(s"User has already this role"))
+            else if (nField == "users_roles_user_id_fkey") -\/(EntityReferenceFieldError(s"User doesn't exist"))
+            else if (nField == "users_roles_role_id_fkey") -\/(EntityReferenceFieldError(s"Role doesn't exist"))
+            else -\/(ExceptionalFail(s"Unknown db error", exception))
           case _ => -\/(ExceptionalFail("Unexpected exception", exception))
         }
         case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))

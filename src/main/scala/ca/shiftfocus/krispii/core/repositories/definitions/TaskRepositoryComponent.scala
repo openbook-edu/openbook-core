@@ -29,6 +29,6 @@ trait TaskRepositoryComponent extends FutureMonad {
     def insert(task: Task)(implicit conn: Connection): Future[\/[Fail, Task]]
     def update(task: Task)(implicit conn: Connection): Future[\/[Fail, Task]]
     def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, Task]]
-    def delete(part: Part)(implicit conn: Connection): Future[\/[Fail, Task]]
+    def delete(part: Part)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Task]]]
   }
 }

@@ -329,7 +329,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     }
 
     /**
-     * Delete parts in a project.
+     * Delete all parts in a project.
      *
      * @param project
      * @return A boolean indicating whether the operation was successful.
@@ -348,6 +348,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       }
     }
 
+    // TODO - what is difference between this method and update?
     /**
      * Re-order parts.
      */
@@ -355,7 +356,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       val query = parts.map { part =>
         s"(decode('${part.id.cleanString}', 'hex'), ${part.position})"
       }.mkString(ReorderParts1, ",", ReorderParts2)
-println(Console.RED + Console.BOLD + query + Console.RESET)
+
       conn.sendQuery(query).flatMap {
         queryResult => {
           list(project)

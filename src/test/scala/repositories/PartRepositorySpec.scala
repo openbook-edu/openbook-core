@@ -3,6 +3,7 @@ import java.io.File
 import ca.shiftfocus.krispii.core.models.Part
 import ca.shiftfocus.krispii.core.repositories.{TaskRepositoryComponent, PartRepositoryPostgresComponent}
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.RowData
 import grizzled.slf4j.Logger
 import org.scalamock.scalatest.MockFactory
@@ -83,14 +84,34 @@ class PartRepositorySpec
         (taskRepository.list(_: Part)) when(TestValues.testPartA.copy(tasks = Vector())) returns(Future.successful(Vector(TestValues.testLongAnswerTaskA, TestValues.testShortAnswerTaskB, TestValues.testMultipleChoiceTaskC)))
         (taskRepository.list(_: Part)) when(TestValues.testPartB.copy(tasks = Vector())) returns(Future.successful(Vector(TestValues.testOrderingTaskD, TestValues.testMatchingTaskE)))
         (taskRepository.list(_: Part)) when(TestValues.testPartC.copy(tasks = Vector())) returns(Future.successful(Vector()))
+        (taskRepository.list(_: Part)) when(TestValues.testPartE.copy(tasks = Vector())) returns(Future.successful(Vector()))
+        (taskRepository.list(_: Part)) when(TestValues.testPartF.copy(tasks = Vector())) returns(Future.successful(Vector()))
+        (taskRepository.list(_: Part)) when(TestValues.testPartG.copy(tasks = Vector())) returns(Future.successful(Vector()))
+        (taskRepository.list(_: Part)) when(TestValues.testPartH.copy(tasks = Vector())) returns(Future.successful(Vector()))
 
         val result = partRepository.list
 
         val parts = Await.result(result, Duration.Inf)
 
-        parts.toString() should be (Vector(TestValues.testPartA, TestValues.testPartB, TestValues.testPartC).toString())
+        parts.toString() should be (Vector(
+          TestValues.testPartA,
+          TestValues.testPartB,
+          TestValues.testPartC,
+          TestValues.testPartE,
+          TestValues.testPartF,
+          TestValues.testPartG,
+          TestValues.testPartH
+        ).toString())
 
-        Map[Int, Part](0 -> TestValues.testPartA, 1 -> TestValues.testPartB, 2 -> TestValues.testPartC).foreach {
+        Map[Int, Part](
+          0 -> TestValues.testPartA,
+          1 -> TestValues.testPartB,
+          2 -> TestValues.testPartC,
+          3 -> TestValues.testPartE,
+          4 -> TestValues.testPartF,
+          5 -> TestValues.testPartG,
+          6 -> TestValues.testPartH
+        ).foreach {
           case (key, part: Part) => {
             parts(key).id should be(part.id)
             parts(key).version should be(part.version)
@@ -108,14 +129,23 @@ class PartRepositorySpec
         // Put here parts = Vector(), because after db query Project object is created without parts.
         (taskRepository.list(_: Part)) when(TestValues.testPartA.copy(tasks = Vector())) returns(Future.successful(Vector(TestValues.testLongAnswerTaskA, TestValues.testShortAnswerTaskB, TestValues.testMultipleChoiceTaskC)))
         (taskRepository.list(_: Part)) when(TestValues.testPartB.copy(tasks = Vector())) returns(Future.successful(Vector(TestValues.testOrderingTaskD, TestValues.testMatchingTaskE)))
+        (taskRepository.list(_: Part)) when(TestValues.testPartG.copy(tasks = Vector())) returns(Future.successful(Vector()))
 
         val result = partRepository.list(TestValues.testProjectA)
 
         val parts = Await.result(result, Duration.Inf)
 
-        parts.toString() should be (Vector(TestValues.testPartA, TestValues.testPartB).toString())
+        parts.toString() should be (Vector(
+          TestValues.testPartA,
+          TestValues.testPartB,
+          TestValues.testPartG
+        ).toString())
 
-        Map[Int, Part](0 -> TestValues.testPartA, 1 -> TestValues.testPartB).foreach {
+        Map[Int, Part](
+          0 -> TestValues.testPartA,
+          1 -> TestValues.testPartB,
+          2 -> TestValues.testPartG
+        ).foreach {
           case (key, part: Part) => {
             parts(key).id should be(part.id)
             parts(key).version should be(part.version)
@@ -128,6 +158,11 @@ class PartRepositorySpec
             parts(key).updatedAt.toString should be(part.updatedAt.toString)
           }
         }
+      }
+      "return empty Vector() if project unexists" in {
+        val result = partRepository.list(TestValues.testProjectD)
+
+        Await.result(result, Duration.Inf) should be (Vector())
       }
       "find all Parts belonging to a given Component" in {
         // Put here parts = Vector(), because after db query Project object is created without parts.
@@ -154,6 +189,11 @@ class PartRepositorySpec
           }
         }
       }
+      "return empty Vector() if component unexists" in {
+        val result = partRepository.list(TestValues.testAudioComponentD)
+
+        Await.result(result, Duration.Inf) should be (Vector())
+      }
     }
   }
 
@@ -176,6 +216,11 @@ class PartRepositorySpec
         part.createdAt.toString should be(TestValues.testPartA.createdAt.toString)
         part.updatedAt.toString should be(TestValues.testPartA.updatedAt.toString)
       }
+      "be None if part wasn't found by ID" in {
+        val result = partRepository.find(UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477"))
+
+        Await.result(result, Duration.Inf) should be (None)
+      }
       "find a single entry by its position within a project" in {
         // Put here parts = Vector(), because after db query Project object is created without parts.
         (taskRepository.list(_: Part)) when(TestValues.testPartA.copy(tasks = Vector())) returns(Future.successful(Vector(TestValues.testLongAnswerTaskA, TestValues.testShortAnswerTaskB, TestValues.testMultipleChoiceTaskC)))
@@ -192,6 +237,16 @@ class PartRepositorySpec
         part.tasks should be(TestValues.testPartA.tasks)
         part.createdAt.toString should be(TestValues.testPartA.createdAt.toString)
         part.updatedAt.toString should be(TestValues.testPartA.updatedAt.toString)
+      }
+      "be None if project unexists" in {
+        val result = partRepository.find(TestValues.testProjectD, 10)
+
+        Await.result(result, Duration.Inf) should be (None)
+      }
+      "be None if position unexists" in {
+        val result = partRepository.find(TestValues.testProjectA, 99)
+
+        Await.result(result, Duration.Inf) should be (None)
       }
     }
   }
@@ -216,25 +271,25 @@ class PartRepositorySpec
   "PartRepository.update" should {
     inSequence {
       "update a part" in {
-        val result = partRepository.update(TestValues.testPartB.copy(
+        val result = partRepository.update(TestValues.testPartH.copy(
           projectId = TestValues.testProjectB.id,
-          name = "new test part B",
+          name = "new test part H",
           enabled = false,
-          position = TestValues.testPartB.position + 1
+          position = TestValues.testPartH.position + 1
           // Tasks shouldn't be changed
         ))
         val part = Await.result(result, Duration.Inf)
 
-        part.id should be(TestValues.testPartB.id)
-        part.version should be(TestValues.testPartB.version + 1)
+        part.id should be(TestValues.testPartH.id)
+        part.version should be(TestValues.testPartH.version + 1)
         part.projectId should be(TestValues.testProjectB.id)
-        part.name should be("new test part B")
+        part.name should be("new test part H")
         part.enabled should be(false)
-        part.position should be(TestValues.testPartB.position + 1)
+        part.position should be(TestValues.testPartH.position + 1)
         part.tasks should be(Vector())
 
         // Check if part has been updated
-        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testPartB.id.bytes)).map { queryResult =>
+        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testPartH.id.bytes)).map { queryResult =>
           val partList = queryResult.rows.get.map {
             item: RowData => Part(item)
           }
@@ -243,12 +298,12 @@ class PartRepositorySpec
 
         val partList = Await.result(queryResult, Duration.Inf)
 
-        partList(0).id should be(TestValues.testPartB.id)
-        partList(0).version should be(TestValues.testPartB.version + 1)
+        partList(0).id should be(TestValues.testPartH.id)
+        partList(0).version should be(TestValues.testPartH.version + 1)
         partList(0).projectId should be(TestValues.testProjectB.id)
-        partList(0).name should be("new test part B")
+        partList(0).name should be("new test part H")
         partList(0).enabled should be(false)
-        partList(0).position should be(TestValues.testPartB.position + 1)
+        partList(0).position should be(TestValues.testPartH.position + 1)
         partList(0).tasks should be(Vector())
       }
     }
@@ -270,8 +325,33 @@ class PartRepositorySpec
 
         Await.result(queryResult, Duration.Inf) should be (Vector())
       }
-      "delete parts in a project" in {
+      "delete all parts in a project" in {
+        // Put here parts = Vector(), because after db query Project object is created without parts.
+        (taskRepository.list(_: Part)) when(TestValues.testPartE.copy(tasks = Vector())) returns(Future.successful(Vector()))
+        (taskRepository.list(_: Part)) when(TestValues.testPartF.copy(tasks = Vector())) returns(Future.successful(Vector()))
 
+        val result = partRepository.delete(TestValues.testProjectC)
+        Await.result(result, Duration.Inf) should be (true)
+
+        // Check if partE has been deleted
+        val queryResultPartE = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testPartE.id.bytes)).map { queryResult =>
+          val partList = queryResult.rows.get.map {
+            item: RowData => Part(item)
+          }
+          partList
+        }
+
+        Await.result(queryResultPartE, Duration.Inf) should be (Vector())
+
+        // Check if partF has been deleted
+        val queryResultPartF = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testPartF.id.bytes)).map { queryResult =>
+          val partList = queryResult.rows.get.map {
+            item: RowData => Part(item)
+          }
+          partList
+        }
+
+        Await.result(queryResultPartF, Duration.Inf) should be (Vector())
       }
     }
   }
@@ -279,8 +359,49 @@ class PartRepositorySpec
   "PartRepository.reoder" should {
     inSequence {
       "re-oder parts" in {
-        val result = partRepository.reorder(TestValues.testProjectA, Vector(TestValues.testPartA, TestValues.testPartB))
-        Await.result(result, Duration.Inf) should be (Vector(TestValues.testPartA, TestValues.testPartB))
+        // Put here parts = Vector(), because after db query Project object is created without parts.
+        (taskRepository.list(_: Part)) when(TestValues.testPartA.copy(tasks = Vector())) returns(Future.successful(Vector(TestValues.testLongAnswerTaskA, TestValues.testShortAnswerTaskB, TestValues.testMultipleChoiceTaskC)))
+        (taskRepository.list(_: Part)) when(TestValues.testPartB.copy(tasks = Vector())) returns(Future.successful(Vector(TestValues.testOrderingTaskD, TestValues.testMatchingTaskE)))
+        (taskRepository.list(_: Part)) when(TestValues.testPartG.copy(tasks = Vector())) returns(Future.successful(Vector()))
+
+
+        val result = partRepository.reorder(TestValues.testProjectA, Vector(
+          TestValues.testPartA.copy(position = TestValues.testPartA.position + 1),
+          TestValues.testPartB.copy(position = TestValues.testPartB.position + 1)
+        ))
+        val parts = Await.result(result, Duration.Inf)
+
+        parts.toString() should be (
+          Vector(
+            TestValues.testPartA.copy(position = TestValues.testPartA.position + 1),
+            TestValues.testPartB.copy(position = TestValues.testPartB.position + 1),
+            TestValues.testPartG
+          ).toString())
+
+        Map[Int, Part](
+          0 -> TestValues.testPartA,
+          1 -> TestValues.testPartB,
+          2 -> TestValues.testPartG
+        ).foreach {
+          case (key, part: Part) => {
+            parts(key).id should be(part.id)
+            parts(key).version should be(part.version)
+            parts(key).projectId should be(part.projectId)
+            parts(key).name should be(part.name)
+            parts(key).enabled should be(part.enabled)
+
+            if (part.id == TestValues.testPartG.id) {
+              parts(key).position should be (part.position)
+            }
+            else {
+              parts(key).position should be (part.position + 1)
+            }
+
+            parts(key).tasks should be(part.tasks)
+            parts(key).createdAt.toString should be(part.createdAt.toString)
+            parts(key).updatedAt.toString should be(part.updatedAt.toString)
+          }
+        }
       }
     }
   }

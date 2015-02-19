@@ -374,6 +374,19 @@ object TestValues {
     updatedAt = Option(new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
 
+  /* No data in DB*/
+  val testAudioComponentD = AudioComponent(
+    id = UUID("d93e2fc0-3ac7-4940-9174-f0ba2c9887be"),
+    version = 4L,
+    ownerId = testUserA.id,
+    title = "testAudioComponentD title",
+    questions = "testAudioComponentD questions",
+    thingsToThinkAbout = "testAudioComponentD thingsToThinkAbout",
+    soundcloudId = "dj-whisky-ft-nozipho-just",
+    createdAt = Option(new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
 
   /* PARTS */
   val testPartA = Part(
@@ -418,6 +431,54 @@ object TestValues {
     projectId = UUID("e4ae3b90-9871-4339-b05c-8d39e3aaf65d"), // testProjectB.id,
     name = "test part D",
     tasks = Vector()
+  )
+
+  val testPartE = Part(
+    id = UUID("c850ec53-f0a9-460d-918a-5e6fd538f376"),
+    version = 4L,
+    projectId = UUID("4ac4d872-451b-4092-b13f-643d6d5fa930"), // testProjectC.id,
+    name = "test part E",
+    enabled = true,
+    position = 13,
+    tasks = Vector(),
+    createdAt = Option(new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  val testPartF = Part(
+    id = UUID("e8d52684-6afd-48e5-8049-a179e8868432"),
+    version = 5L,
+    projectId = UUID("4ac4d872-451b-4092-b13f-643d6d5fa930"), // testProjectC.id,
+    name = "test part F",
+    enabled = true,
+    position = 14,
+    tasks = Vector(),
+    createdAt = Option(new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  val testPartG = Part(
+    id = UUID("8e080c00-2b20-4e7b-b18c-2582d79e7e68"),
+    version = 6L,
+    projectId = UUID("c9b4cfce-aed4-48fd-94f5-c980763dfddc"), // testProjectA.id,
+    name = "test part G",
+    enabled = true,
+    position = 15,
+    tasks = Vector(),
+    createdAt = Option(new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  val testPartH = Part(
+    id = UUID("45a146b3-fd9a-4cab-9d1d-3e9b0b15e12c"),
+    version = 7L,
+    projectId = UUID("4ac4d872-451b-4092-b13f-643d6d5fa930"), // testProjectC.id,
+    name = "test part H",
+    enabled = true,
+    position = 16,
+    tasks = Vector(),
+    createdAt = Option(new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
 
 

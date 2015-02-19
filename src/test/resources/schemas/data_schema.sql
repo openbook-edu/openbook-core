@@ -191,6 +191,22 @@ VALUES ('\xabb84847a3d247a0ae7d8ce04063afc7', 2, '\xc9b4cfceaed448fd94f5c980763d
 INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
 VALUES ('\xfb01f11b7f2341c8877b68410be62aa5', 3, '\xe4ae3b9098714339b05c8d39e3aaf65d', 'test part C', true, 12, '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
 
+/* part E -> project C -> course B -> user B (teacher) */
+INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
+VALUES ('\xc850ec53f0a9460d918a5e6fd538f376', 4, '\x4ac4d872451b4092b13f643d6d5fa930', 'test part E', true, 13, '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
+
+/* part F -> project C -> course B -> user B (teacher) */
+INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
+VALUES ('\xe8d526846afd48e58049a179e8868432', 5, '\x4ac4d872451b4092b13f643d6d5fa930', 'test part F', true, 14, '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
+
+/* part G -> project A -> course A -> user A (teacher) */
+INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
+VALUES ('\x8e080c002b204e7bb18c2582d79e7e68', 6, '\xc9b4cfceaed448fd94f5c980763dfddc', 'test part G', true, 15, '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
+
+/* part H -> project C -> course B -> user B (teacher) */
+INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
+VALUES ('\x45a146b3fd9a4cab9d1d3e9b0b15e12c', 7, '\x4ac4d872451b4092b13f643d6d5fa930', 'test part H', true, 16, '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+
 
 /* TASKS */
 /* longAnswerTask A -> part A*/

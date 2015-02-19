@@ -10,20 +10,16 @@ import scala.concurrent.Future
 import scalaz.{\/, EitherT}
 
 trait ComponentScratchpadRepositoryComponent extends FutureMonad {
+  self: UserRepositoryComponent with
+        ComponentRepositoryComponent =>
 
   val componentScratchpadRepository: ComponentScratchpadRepository
 
   trait ComponentScratchpadRepository {
-    /**
-     * The usual CRUD functions for the projects table.
-     */
     def list(component: Component)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[ComponentScratchpad]]]
     def list(user: User)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[ComponentScratchpad]]]
-    def list(user: User, project: Project)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[ComponentScratchpad]]]
-    def list(user: User, component: Component)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[ComponentScratchpad]]]
 
     def find(user: User, component: Component)(implicit conn: Connection): Future[\/[Fail, ComponentScratchpad]]
-    def find(user: User, component: Component, revision: Long)(implicit conn: Connection): Future[\/[Fail, ComponentScratchpad]]
 
     def insert(componentScratchpad: ComponentScratchpad)(implicit conn: Connection): Future[\/[Fail, ComponentScratchpad]]
     def update(componentScratchpad: ComponentScratchpad)(implicit conn: Connection): Future[\/[Fail, ComponentScratchpad]]

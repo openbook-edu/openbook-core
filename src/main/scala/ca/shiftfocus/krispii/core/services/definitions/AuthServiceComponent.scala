@@ -1,8 +1,9 @@
 package ca.shiftfocus.krispii.core.services
 
-import ca.shiftfocus.krispii.core.services.error.Fail
-import ca.shiftfocus.uuid.UUID
+import ca.shiftfocus.krispii.core.fail._
+import ca.shiftfocus.krispii.core.lib.FutureMonad
 import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.uuid.UUID
 import scala.concurrent.Future
 import scalaz.\/
 
@@ -16,7 +17,7 @@ import scalaz.\/
  * implementation traits. It is the responsibility of the Controller to inject
  * the appropriate implementation trait.
  */
-trait AuthServiceComponent {
+trait AuthServiceComponent extends FutureMonad {
 
   /**
    * Defines the value that the AuthService instance should be stored in (and
@@ -83,7 +84,7 @@ trait AuthServiceComponent {
     def find(identifier: String): Future[\/[Fail, UserInfo]]
 
     /**
-     * Create a new user. Throws exceptions if the e-mail and username aren't unique.
+     * Create a new user.
      *
      * @param username  A unique identifier for this user.
      * @param email  The user's unique e-mail address.
@@ -95,7 +96,7 @@ trait AuthServiceComponent {
     def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.random): Future[\/[Fail, UserInfo]]
 
     /**
-     * Update an existing user. Throws exceptions if the e-mail and username aren't unique.
+     * Update an existing user.
      *
      * @param id  The unique ID of the user to be updated
      * @param version  The current version of the user

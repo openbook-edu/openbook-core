@@ -1,18 +1,15 @@
 package ca.shiftfocus.krispii.core.services
 
-import ca.shiftfocus.krispii.core.fail.Fail
-import ca.shiftfocus.krispii.core.repositories.error._
-import ca.shiftfocus.krispii.core.services.error._
-import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
+import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.uuid.UUID
+import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import play.api.Logger
 import scala.concurrent.Future
-import webcrank.password._
-
 import scalaz.{-\/, \/-, \/, EitherT}
+import webcrank.password._
 
 /**
  * This component provides the default implementation of AuthService.
@@ -48,19 +45,22 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      *
      * @return an [[IndexedSeq]] of [[UserInfo]]
      */
-    override def list: Future[IndexedSeq[UserInfo]] = {
-      userRepository.list.flatMap { users =>
-        Future.sequence(users.map { user =>
+    override def list: Future[\/[Fail, IndexedSeq[UserInfo]]] = {
+      (for {
+        users <- lift(userRepository.list)
+        intermediate <- Future sequence users.map { user =>
           val fRoles = roleRepository.list(user)
           val fCourses = courseRepository.list(user)
-
-          for {
-            roles <- fRoles
-            courses <- fCourses
-          }
-          yield UserInfo(user, roles, courses)
+          (for {
+            roles <- lift(fRoles)
+            courses <- lift(fCourses)
+          } yield UserInfo(user, roles, courses)).run
+        }
+        result <- lift(Future.successful {
+          if (intermediate.filter(_.isLeft).nonEmpty) -\/(intermediate.filter(_.isLeft).head.swap.toOption.get)
+          else \/-(intermediate.map(_.toOption.get))
         })
-      }
+      } yield result).run
     }
 
     /**
@@ -71,7 +71,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @return an [[IndexedSeq]] of [[UserInfo]]
      */
     override def list(rolesFilter: Option[IndexedSeq[String]],
-                      coursesFilter: Option[IndexedSeq[UUID]]): Future[IndexedSeq[UserInfo]] = {
+                      coursesFilter: Option[IndexedSeq[UUID]]): Future[\/[Fail, IndexedSeq[UserInfo]]] = {
       // First build a future returning a list of users
       val fUsers = (rolesFilter, coursesFilter) match {
         case (Some(roles), Some(courses)) => userRepository.listForRolesAndCourses(roles, courses.map(_.string))
@@ -87,29 +87,23 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
         }
       }
 
-      // Next find the roles and courses for those users.
-      fUsers.flatMap { users =>
-        val fRoles = roleRepository.list(users)
-        val fCourses = courseRepository.list(users)
+      // Now fetch their roles and courses, and return the list
+      (for {
+        users <- lift(fUsers)
+        fRoles = roleRepository.list(users)
+        fCourses = courseRepository.list(users)
 
-        for {
-          roles <- fRoles
-          courses <- fCourses
+        roles <- lift(fRoles)
+        courses <- lift(fCourses)
+
+        userInfoList = users.map { user =>
+          UserInfo(
+            user,
+            roles.getOrElse(user.id, IndexedSeq()),
+            courses.getOrElse(user.id, IndexedSeq())
+          )
         }
-        yield {
-          // Now pair each user with both their roles and courses
-          val userInfoList = users.map { user =>
-            UserInfo(
-              user,
-              roles.getOrElse(user.id, IndexedSeq()),
-              courses.getOrElse(user.id, IndexedSeq())
-            )
-          }
-          userInfoList
-        }
-      }.recover {
-        case exception => throw exception
-      }
+      } yield userInfoList).run
     }
 
     /**
@@ -119,22 +113,20 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param password
      * @return Some(user) if valid, otherwise None.
      */
-    override def authenticate(identifier: String, password: String): Future[Option[User]] = {
+    override def authenticate(identifier: String, password: String): Future[\/[Fail, User]] = {
       transactional { implicit conn =>
-        userRepository.find(identifier.trim()).map {
-          case Some(user) => {
-            user.passwordHash match {
-              case Some(hash) => {
-                if (Passwords.scrypt().verify(password.trim(), hash)) {
-                  Some(user)
-                }
-                else { None }
-              }
-              case None => None
+        (for {
+          user <- lift(userRepository.find(identifier.trim))
+          userHash = user.passwordHash.getOrElse("")
+          authUser <- lift(Future.successful {
+            if (Passwords.scrypt().verify(password.trim(), hash)) {
+              \/-(user)
             }
-          }
-          case None => None
-        }
+            else {
+              -\/(AuthFail("The password was invalid.")
+            }
+          })
+        } yield authUser).run
       }
     }
 
@@ -144,7 +136,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param userId
      * @return
      */
-    override def listSessions(userId: UUID): Future[IndexedSeq[Session]] = {
+    override def listSessions(userId: UUID): Future[\/[Fail, IndexedSeq[Session]]] = {
       sessionRepository.list(userId)
     }
 
@@ -154,7 +146,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param sessionId
      * @return
      */
-    override def findSession(sessionId: UUID): Future[Option[Session]] = {
+    override def findSession(sessionId: UUID): Future[\/[Fail, Session]] = {
       sessionRepository.find(sessionId)
     }
 
@@ -166,12 +158,12 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param userAgent
      * @return
      */
-    override def createSession(userId: UUID, ipAddress: String, userAgent: String): Future[Session] = {
+    override def createSession(userId: UUID, ipAddress: String, userAgent: String): Future[\/[Fail, Session]] = {
       sessionRepository.create(Session(
         userId = userId,
         ipAddress = ipAddress,
         userAgent = userAgent
-      )).recover { case exception => throw exception }
+      ))
     }
 
     /**
@@ -182,16 +174,16 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param userAgent
      * @return
      */
-    override def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Future[Session] = {
+    override def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Future[\/[Fail, Session]] = {
       val fUpdated = for {
-        session <- sessionRepository.find(sessionId).map(_.get)
-        updated <- sessionRepository.update(session.copy(
+        session <- lift(sessionRepository.find(sessionId))
+        updated <- lift(sessionRepository.update(session.copy(
           ipAddress = ipAddress,
           userAgent = userAgent
-        ))
+        )))
       } yield updated
 
-      fUpdated.recover { case exception => throw exception }
+      fUpdated.run
     }
 
     /**
@@ -200,13 +192,13 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param sessionId
      * @return
      */
-    override def deleteSession(sessionId: UUID): Future[Session] = {
+    override def deleteSession(sessionId: UUID): Future[\/[Fail, Session]] = {
       val fDeleted = for {
-        session <- sessionRepository.find(sessionId).map(_.get)
-        deleted <- sessionRepository.delete(session)
+        session <- lift(sessionRepository.find(sessionId).map(_.get))
+        deleted <- lift(sessionRepository.delete(session))
       } yield deleted
 
-      fDeleted.recover { case exception => throw exception }
+      fDeleted.run
     }
 
     /**
@@ -215,23 +207,14 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param id  The user's universally unique identifier.
      * @return if found, returns some UserInfo including their roles and courses.
      */
-    override def find(id: UUID): Future[Option[UserInfo]] = {
-      Logger.debug(s"authService.find(${id.string})")
-      userRepository.find(id).flatMap {
-        case Some(user) => {
-          Logger.debug(s"authService.find(${id.string}) - found user")
-          val fRoles = roleRepository.list(user)
-          val fCourses = courseRepository.list(user)
-          for {
-            roles <- fRoles
-            courses <- fCourses
-          } yield Some(UserInfo(user, roles, courses))
-        }
-        case None => {
-          Logger.debug(s"authService.find(${id.string}) - not found")
-          Future.successful(None)
-        }
-      }
+    override def find(id: UUID): Future[\/[Fail, UserInfo]] = {
+      (for {
+        user <- lift(userRepository.find(id))
+        fRoles = roleRepository.list(user)
+        fCourses = courseRepository.list(user)
+        roles <- lift(fRoles)
+        courses <- lift(fCourses)
+      } yield UserInfo(user, roles, courses)).run
     }
 
     /**
@@ -240,18 +223,14 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param identifier  The unique e-mail or username identifying this user.
      * @return if found, returns some UserInfo including their roles and courses.
      */
-    override def find(identifier: String): Future[Option[UserInfo]] = {
-      userRepository.find(identifier).flatMap {
-        case Some(user) => {
-          val fRoles = roleRepository.list(user)
-          val fCourses = courseRepository.list(user)
-          for {
-            roles <- fRoles
-            courses <- fCourses
-          } yield Some(UserInfo(user, roles, courses))
-        }
-        case None => Future.successful(None)
-      }
+    override def find(identifier: String): Future[\/[Fail, UserInfo]] = {
+      (for {
+        user <- lift(userRepository.find(identifier))
+        fRoles = roleRepository.list(user)
+        fCourses = courseRepository.list(user)
+        roles <- lift(fRoles)
+        courses <- lift(fCourses)
+      } yield UserInfo(user, roles, courses)).run
     }
 
     /**
@@ -403,7 +382,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      *
      * @return an array of Roles
      */
-    override def listRoles: Future[IndexedSeq[Role]] = {
+    override def listRoles: Future[\/[Fail, IndexedSeq[Role]]] = {
       roleRepository.list
     }
 
@@ -428,7 +407,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param id  the UUID of the Role to find
      * @return an optional Role
      */
-    override def findRole(id: UUID): Future[Option[Role]] = {
+    override def findRole(id: UUID): Future[\/[Fail, Role]] = {
       roleRepository.find(id)
     }
 
@@ -438,7 +417,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param id  the name of the Role to find
      * @return an optional Role
      */
-    override def findRole(name: String): Future[Option[Role]] = {
+    override def findRole(name: String): Future[\/[Fail, Role]] = {
       roleRepository.find(name)
     }
 
@@ -448,7 +427,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param name  the name of the Role to create
      * @return the newly created Role
      */
-    override def createRole(name: String, id: UUID = UUID.random): Future[Role] = {
+    override def createRole(name: String, id: UUID = UUID.random): Future[\/[Fail, Role]] = {
       val newRole = Role(name = name, id = id)
       roleRepository.insert(newRole)(db.pool)
     }
@@ -464,22 +443,14 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
     override def updateRole(id: UUID, version: Long, name: String): Future[\/[Fail, Role]] = {
       transactional { implicit conn =>
         val result = for {
-          existingRole <- liftRole(roleRepository.find(id))
-          updatedRole <- liftRole(roleRepository.update(existingRole.copy(
+          existingRole <- lift(roleRepository.find(id))
+          updatedRole <- lift(roleRepository.update(existingRole.copy(
             version = version,
             name = name
           )))
         }
         yield updatedRole
-
-        result.run.map {
-          case \/-(role) => \/-(role)
-          case -\/(repoError) => repoError match {
-            case error: NoResultsFound => -\/(NotFound(error.message))
-            case error: FatalError => -\/(UncaughtException(error.message))
-            case error: Fail => -\/(GenericError("Unknown error"))
-          }
-        }
+        result.run
       }
     }
 
@@ -490,17 +461,21 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      *  @param version  the version of the role for optimistic offline lock
      *  @return the deleted role
      */
-    override def deleteRole(id: UUID, version: Long): Future[Role] = {
+    override def deleteRole(id: UUID, version: Long): Future[\/[Fail, Role]] = {
       transactional { implicit conn =>
-        for {
-          role <- roleRepository.find(id).map { roleOption =>
-            if (roleOption.get.version != version) throw new OutOfDateException(s"Role ${id.string} has been updated since version $version, it's now at version ${roleOption.get.version}.")
-            roleOption.get
-          }
-          wasRemovedFromUsers <- roleRepository.removeFromAllUsers(role)
-          wasDeleted <- roleRepository.delete(role)
+        (for {
+          role <- lift(roleRepository.find(id).map {
+            case \/-(role) =>
+              if (role.version != version)
+                -\/(BadInput("Incorrect version, role out of date."))
+              else
+                \/-(role)
+            case -\/(error) => -\/(error)
+          })
+          wasRemovedFromUsers <- lift(roleRepository.removeFromAllUsers(role))
+          wasDeleted <- lift(roleRepository.delete(role))
         }
-        yield role
+        yield role).run
       }
     }
 
@@ -511,16 +486,16 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param roleName  the name of the role
      * @return a boolean indicator if the role was added
      */
-    override def addRole(userId: UUID, roleName: String): Future[Boolean] = {
+    override def addRole(userId: UUID, roleName: String): Future[\/[Fail, Role]] = {
       transactional { implicit conn =>
-        val fUserOption = userRepository.find(userId)
-        val fRoleOption = roleRepository.find(roleName)
-        for {
-          userOption <- fUserOption
-          roleOption <- fRoleOption
-          roleAdded <- roleRepository.addToUser(userOption.get, roleOption.get)
+        val fUser = userRepository.find(userId)
+        val fRole = roleRepository.find(roleName)
+        (for {
+          user <- lift(fUser)
+          role <- lift(fRole)
+          roleAdded <- roleRepository.addToUser(user, role)
         }
-        yield roleAdded
+        yield roleAdded).run
       }
     }
 
@@ -532,16 +507,16 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param roleName  the name of the role
      * @return a boolean indicator if the role was removed
      */
-    override def removeRole(userId: UUID, roleName: String): Future[Boolean] = {
+    override def removeRole(userId: UUID, roleName: String): Future[\/[Fail, Role]] = {
       transactional { implicit conn =>
-        val fUserOption = userRepository.find(userId)
-        val fRoleOption = roleRepository.find(roleName)
-        for {
-          userOption <- fUserOption
-          roleOption <- fRoleOption
-          roleRemoved <- roleRepository.removeFromUser(userOption.get, roleOption.get)
+        val fUser = userRepository.find(userId)
+        val fRole = roleRepository.find(roleName)
+        (for {
+          user <- lift(fUser)
+          role <- lift(fRole)
+          roleRemoved <- roleRepository.removeFromUser(user, role)
         }
-        yield roleRemoved
+        yield roleRemoved).run
       }
     }
 

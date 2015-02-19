@@ -2,6 +2,8 @@ package ca.shiftfocus.krispii.core.fail
 
 trait Fail { def message: String }
 
+case class AuthFail(message: String) extends Fail
+
 case class EntityAlreadyExists(message: String) extends Fail
 case class EntityReferenceFieldError(message: String) extends Fail
 case class EntityUniqueFieldError(message: String) extends Fail

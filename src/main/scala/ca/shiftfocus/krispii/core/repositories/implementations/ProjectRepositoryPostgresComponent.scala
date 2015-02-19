@@ -118,7 +118,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
       val fProjectList = db.pool.sendQuery(SelectAll).map(res => buildProjectList(res.rows))
 
       val fResult = for {
-        projectList <- lift[IndexedSeq[Project]](fProjectList)
+        projectList <- lift(fProjectList)
         intermediate <- Future sequence projectList.map{ project =>
           partRepository.list(project).map {
             case \/-(partList) => \/-(project.copy(parts = partList))

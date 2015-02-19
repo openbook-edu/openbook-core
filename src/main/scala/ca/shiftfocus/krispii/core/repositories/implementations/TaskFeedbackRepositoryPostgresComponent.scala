@@ -1,124 +1,80 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import com.github.mauricio.async.db.{RowData, Connection}
-import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
-import ca.shiftfocus.krispii.core.lib.ExceptionWriter
+import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.Task
-import ca.shiftfocus.uuid.UUID
-import play.api.Play.current
-
-import play.api.Logger
-import scala.concurrent.Future
-import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
+import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
+import org.joda.time.DateTime
+import scala.concurrent.Future
+import scalaz.{\/, -\/, \/-}
 
 trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComponent {
-  self: PostgresDB =>
+  self: UserRepositoryComponent with
+        ProjectRepositoryComponent with
+        TaskRepositoryComponent with
+        PostgresDB =>
 
   val taskFeedbackRepository: TaskFeedbackRepository = new TaskFeedbackRepositoryPSQL
 
   private class TaskFeedbackRepositoryPSQL extends TaskFeedbackRepository {
-    val table = "task_feedbacks"
-    val pkeyFields = List("teacher_id", "student_id", "task_id", "revision")
-    val pkeyText = pkeyFields.mkString(", ")
-    val pkeyQs = pkeyFields.map(_ => "?").mkString(", ")
-
-    val dataFields = List("content")
-    val fieldsText = dataFields.mkString(", ")
-    val dataQs = dataFields.map(_ => "?").mkString(", ")
-
-    /*
-     * SQL queries
-     */
+    val Fields = "student_id, task_id, version, document_id, created_at, updated_at"
+    val QMarks = "?, ?, ?, ?, ?, ?"
+    val Table = "task_feedbacks"
 
     val Insert =
       s"""
-         |INSERT INTO $table ($pkeyText, version, created_at, updated_at, $fieldsText)
-         |VALUES ($pkeyQs, 1, ?, ?, $dataQs)
-         |RETURNING $pkeyText, version, created_at, updated_at, $fieldsText
+         |INSERT INTO $Table ($Fields)
+         |VALUES (QMarks)
+         |RETURNING $Fields
       """.stripMargin
-
 
     val Update =
       s"""
-         |UPDATE $table
-         |SET content = ? , version = ?, updated_at = ?
-         |WHERE teacher_id = ?
-         |  AND student_id = ?
+         |UPDATE $Table
+         |SET version = ?, document_id = ?, updated_at = ?
+         |WHERE student_id = ?
          |  AND task_id = ?
-         |  AND revision = ?
          |  AND version = ?
-         |RETURNING $pkeyText, version, created_at, updated_at, $fieldsText
+         |RETURNING $Fields
       """.stripMargin
 
-
-    val ListRevisionsById = s"""
-      SELECT teacher_id, student_id, task_id, revision, version, created_at, updated_at, content
-      FROM $table
-      WHERE teacher_id = ?
-        AND student_id = ?
-        AND task_id = ?
-      ORDER BY revision DESC
-    """
-
-    val ListLatestForStudentAndProject =
+    val SelectAllForStudentAndProject =
       s"""
-         |SELECT $table.teacher_id, $table.student_id, $table.task_id, $table.revision,
-         |       $table.version, $table.created_at, $table.updated_at, $table.content
-         |FROM $table as tf, projects, parts, tasks
+         |SELECT $Fields
+         |FROM $Table as tf, projects, parts, tasks
          |WHERE student_id = ?
          |  AND projects.id = ?
          |  AND projects.id = parts.project_id
          |  AND parts.id = tasks.part_id
-         |  AND tasks.id = $table.task_id
-         |  AND revision = (SELECT MAX(revision) FROM $table as tf2 WHERE tf2.student_id = ? AND tf2.teacher_id = tf.teacher_id AND task_id = tasks.id)
+         |  AND tasks.id = tf.task_id
        """.stripMargin
 
-    val ListLatestForStudentAndTeacherAndProject =
+    val SelectAllForTask =
       s"""
-         |SELECT $table.teacher_id, $table.student_id, $table.task_id, $table.revision,
-         |       $table.version, $table.created_at, $table.updated_at, $table.content
-         |FROM $table as tf, projects, parts, tasks
-         |WHERE student_id = ?
-         |  AND teacher_id = ?
-         |  AND projects.id = ?
-         |  AND projects.id = parts.project_id
-         |  AND parts.id = tasks.part_id
-         |  AND tasks.id = $table.task_id
-         |  AND revision = (SELECT MAX(revision) FROM $table as tf2 WHERE tf2.student_id = ? AND tf2.teacher_id = ? AND task_id = tasks.id)
+         |SELECT $Fields
+         |FROM $Table
+         |WHERE task_id = ?
        """.stripMargin
 
-    val SelectLatestById =
+    val SelectOneById =
       s"""
-        |SELECT teacher_id, student_id, task_id, revision, version, created_at, updated_at, content
-        |FROM $table
-        |WHERE teacher_id = ?
-        |  AND student_id = ?
+        |SELECT $Fields
+        |FROM $Table
+        |WHERE student_id = ?
         |  AND task_id = ?
-        |ORDER BY revision DESC
-        |LIMIT 1
       """.stripMargin
-
-    val SelectRevisionById =
-      s"""
-         |SELECT teacher_id, student_id, task_id, revision, version, created_at, updated_at, content
-         |FROM $table
-         |WHERE teacher_id = ?
-         |  AND student_id = ?
-         |  AND task_id = ?
-         |  AND revision = ?
-       """.stripMargin
 
     val Delete = s"""
-      DELETE FROM $table
-      WHERE teacher_id = ?
-        AND student_id = ?
+      DELETE FROM $Table
+      WHERE student_id = ?
         AND task_id = ?
+        AND version = ?
     """
 
-    val DeleteByTask = s"""
-      DELETE FROM $table
+    val DeleteAllForTask = s"""
+      DELETE FROM $Table
       WHERE task_id = ?
     """
 
@@ -129,37 +85,31 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
      * @param project
      * @return
      */
-    def list(student: User, project: Project): Future[IndexedSeq[TaskFeedback]] = {
+    def list(student: User, project: Project): Future[\/[Fail, IndexedSeq[TaskFeedback]]] = {
       db.pool.sendPreparedStatement(
-        ListLatestForStudentAndProject,
+        SelectAllForStudentAndProject,
         Array[Any](student.id.bytes, project.id.bytes, student.id.bytes)
       ).map {
-        result => result.rows.get.map {
-          item: RowData => TaskFeedback(item)
-        }
+        result => buildTaskFeedbackList(result.rows)
       }.recover {
-        case exception => throw exception
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 
     /**
-     * List all feedbacks in a project for one student, for one teacher.
+     * List all feedbacks for a given task
      *
-     * @param teacher
-     * @param student
-     * @param project
+     * @param task the task to list feedbacks for
      * @return
      */
-    def list(teacher: User, student: User, project: Project): Future[IndexedSeq[TaskFeedback]] = {
+    def list(task: Task): Future[\/[Fail, IndexedSeq[TaskFeedback]]] = {
       db.pool.sendPreparedStatement(
-        ListLatestForStudentAndTeacherAndProject,
-        Array[Any](student.id.bytes, teacher.id.bytes, project.id.bytes, student.id.bytes, teacher.id.bytes)
+        SelectAllForTask,
+        Array[Any](task.id.bytes)
       ).map {
-        result => result.rows.get.map {
-          item: RowData => TaskFeedback(item)
-        }
+        result => buildTaskFeedbackList(result.rows)
       }.recover {
-        case exception => throw exception
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 
@@ -171,34 +121,11 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
      * @param task
      * @return
      */
-    def find(teacher: User, student: User, task: Task): Future[Option[TaskFeedback]] = {
-      db.pool.sendPreparedStatement(SelectLatestById, Array[Any](teacher.id.bytes, student.id.bytes, task.id.bytes)).map {
-        result => result.rows.get.headOption match {
-          case Some(rowData) => Some(TaskFeedback(rowData))
-          case None => None
-        }
+    def find(student: User, task: Task): Future[\/[Fail, TaskFeedback]] = {
+      db.pool.sendPreparedStatement(SelectOneById, Array[Any](student.id.bytes, task.id.bytes)).map {
+        result => buildTaskFeedback(result.rows)
       }.recover {
-        case exception => throw exception
-      }
-    }
-
-    /**
-     * Find a specific revision of a feedback.
-     *
-     * @param teacher
-     * @param student
-     * @param task
-     * @param revision
-     * @return
-     */
-    def find(teacher: User, student: User, task: Task, revision: Long): Future[Option[TaskFeedback]] = {
-      db.pool.sendPreparedStatement(SelectRevisionById, Array[Any](teacher.id.bytes, student.id.bytes, task.id.bytes, revision)).map {
-        result => result.rows.get.headOption match {
-          case Some(rowData) => Some(TaskFeedback(rowData))
-          case None => None
-        }
-      }.recover {
-        case exception => throw exception
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 
@@ -210,19 +137,17 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
      *             run this operation in a transaction.
      * @return
      */
-    def insert(feedback: TaskFeedback)(implicit conn: Connection): Future[TaskFeedback] = {
+    def insert(feedback: TaskFeedback)(implicit conn: Connection): Future[\/[Fail, TaskFeedback]] = {
       conn.sendPreparedStatement(Insert, Array[Any](
-        feedback.teacherId.bytes,
         feedback.studentId.bytes,
         feedback.taskId.bytes,
-        feedback.revision,
+        feedback.documentId.bytes,
         new DateTime,
-        new DateTime,
-        feedback.content
+        new DateTime
       )).map {
-        result => TaskFeedback(result.rows.get.head)
+        result => buildTaskFeedback(result.rows)
       }.recover {
-        case exception => throw exception
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 
@@ -234,58 +159,104 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
      *             run this operation in a transaction.
      * @return
      */
-    def update(feedback: TaskFeedback)(implicit conn: Connection): Future[TaskFeedback] = {
+    def update(feedback: TaskFeedback)(implicit conn: Connection): Future[\/[Fail, TaskFeedback]] = {
       conn.sendPreparedStatement(Insert, Array[Any](
-        feedback.content,
-        (feedback.version + 1),
+        feedback.version + 1,
+        feedback.documentId,
         new DateTime,
-        feedback.teacherId.bytes,
         feedback.studentId.bytes,
         feedback.taskId.bytes,
-        feedback.revision,
         feedback.version
       )).map {
-        result => TaskFeedback(result.rows.get.head)
+        result => buildTaskFeedback(result.rows)
       }.recover {
-        case exception => throw exception
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 
     /**
      * Delete a feedback.
      *
-     * @param feedback
+     * @param feedback the entity to be deleted
      * @param conn an implicit connection is required, which can be used to
      *             run this operation in a transaction.
      * @return
      */
-    def delete(feedback: TaskFeedback)(implicit conn: Connection): Future[Boolean] = {
+    def delete(feedback: TaskFeedback)(implicit conn: Connection): Future[\/[Fail, TaskFeedback]] = {
       conn.sendPreparedStatement(Delete, Array[Any](
-        feedback.teacherId,
         feedback.studentId,
-        feedback.taskId
+        feedback.taskId,
+        feedback.version
       )).map {
-        result => (result.rowsAffected > 0)
+        result =>
+          if (result.rowsAffected == 1) \/-(feedback)
+          else -\/(GenericFail("The query returned no errors, but the TaskFeedback was not deleted."))
       }.recover {
-        case exception => throw exception
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+      }
+    }
+
+    /**
+     * Delete a feedback.
+     *
+     * @param task the task for which feedbacks should be deleted
+     * @param conn an implicit connection is required, which can be used to
+     *             run this operation in a transaction.
+     * @return
+     */
+    def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskFeedback]]] = {
+      val result = for {
+        feedbackList <- lift(list(task))
+        deletedList <- lift(conn.sendPreparedStatement(DeleteAllForTask, Array[Any](task.id.bytes)).map {
+          result =>
+            if (result.rowsAffected == feedbackList.length) \/-(feedbackList)
+            else -\/(GenericFail("The query returned no errors, but the TaskFeedback was not deleted."))
+        })
+      } yield deletedList
+
+      result.run.recover {
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 
 
     /**
-     * Deletes all revisions of a task response for a particular task.
+     * Build a TaskFeedback object from a database result.
      *
-     * @param user the user whose task response will be deleted
-     * @param task the task to delete the response for
+     * @param maybeResultSet the [[ResultSet]] from the database to use
      * @return
      */
-    override def delete(task: Task)(implicit conn: Connection): Future[Boolean] = {
-      for {
-        queryResult <- conn.sendPreparedStatement(DeleteByTask, Array[Any](task.id.bytes))
+    private def buildTaskFeedback(maybeResultSet: Option[ResultSet]): \/[Fail, TaskFeedback] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => resultSet.headOption match {
+            case Some(firstRow) => \/-(TaskFeedback(firstRow))
+            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
+          }
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
+        }
       }
-      yield { queryResult.rowsAffected > 0 }
-    }.recover {
-      case exception => throw exception
+      catch {
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+      }
+    }
+
+    /**
+     * Converts an optional result set into works list
+     *
+     * @param maybeResultSet the [[ResultSet]] from the database to use
+     * @return
+     */
+    private def buildTaskFeedbackList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[TaskFeedback]] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => \/-(resultSet.map(TaskFeedback.apply))
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
+        }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a TaskFeedback List from the rows returned.", exception))
+      }
     }
 
   }

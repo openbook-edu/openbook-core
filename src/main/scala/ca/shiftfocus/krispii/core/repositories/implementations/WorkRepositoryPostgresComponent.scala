@@ -1,15 +1,13 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import java.util.NoSuchElementException
-
 import ca.shiftfocus.krispii.core.fail._
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
-import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.{MatchingTask, Task}
 import ca.shiftfocus.krispii.core.models.work._
+import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
+import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
+import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import org.joda.time.DateTime
 import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
@@ -431,7 +429,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
       fDelete.map {
         result => {
           if (result.rowsAffected == 0) {
-            -\/(NonExceptionalFail("No rows were modified"))
+            -\/(GenericFail("No rows were modified"))
           } else {
             \/-(work)
           }
@@ -455,7 +453,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
       conn.sendPreparedStatement(DeleteRevision, Array[Any](task.id.bytes)).map {
         result => {
           if (result.rowsAffected == 0) {
-            -\/(NonExceptionalFail("No rows were modified"))
+            -\/(GenericFail("No rows were modified"))
           } else {
             \/-(work)
           }
@@ -504,5 +502,5 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
       }
     }
 
-  }`
+  }
 }

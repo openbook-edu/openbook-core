@@ -15,7 +15,6 @@ trait CourseScheduleRepositoryComponent extends FutureMonad {
   val courseScheduleRepository: CourseScheduleRepository
 
   trait CourseScheduleRepository {
-    def list(implicit conn: Connection): Future[\/[Fail, IndexedSeq[CourseSchedule]]]
     def list(course: Course)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[CourseSchedule]]]
 
     def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, CourseSchedule]]

@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.repositories
 
 import java.util.NoSuchElementException
 
-import ca.shiftfocus.krispii.core.repositories.error.{NonFatalError, NoResultsFound, FatalError, RepositoryError}
+import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
@@ -12,6 +12,7 @@ import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.uuid.UUID
 import org.joda.time.DateTime
 import scala.concurrent.Future
+import scalaz.{\/, -\/, \/-}
 
 trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
   self: PostgresDB =>
@@ -209,7 +210,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param course
      * @return
      */
-    override def list(user: User, course: Course, project: Project): Future[\/[RepositoryError, IndexedSeq[Work]]] = {
+    override def list(user: User, course: Course, project: Project): Future[\/[Fail, IndexedSeq[Work]]] = {
       db.pool.sendPreparedStatement(ListLatestByProjectForUser, Array[Any](
         project.id.bytes,
         user.id.bytes,
@@ -217,19 +218,19 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
       )).map {
         result => buildWorkList(result.rows)
       }.recover {
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
     /**
-     * List all reivisons of a specific work.
+     * List all revisions of a specific work.
      *
      * @param task
      * @param user
      * @param course
      * @return
      */
-    override def list(user: User, task: Task, course: Course): Future[\/[RepositoryError, IndexedSeq[Work]]] = {
+    override def list(user: User, task: Task, course: Course): Future[\/[Fail, IndexedSeq[Work]]] = {
       db.pool.sendPreparedStatement(ListRevisionsById, Array[Any](
         task.id.bytes,
         user.id.bytes,
@@ -237,7 +238,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
       )).map {
         result => buildWorkList(result.rows)
       }.recover {
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -249,13 +250,13 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param course
      * @return
      */
-    override def find(workId: UUID): Future[\/[RepositoryError, Work]] = {
+    override def find(workId: UUID): Future[\/[Fail, Work]] = {
       db.pool.sendPreparedStatement(SelectById, Array[Any](
         workId.bytes
       )).map {
         result => buildWork(result.rows)
       }.recover {
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -268,7 +269,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param course
      * @return
      */
-    override def find(user: User, task: Task, course: Course): Future[\/[RepositoryError, Work]] = {
+    override def find(user: User, task: Task, course: Course): Future[\/[Fail, Work]] = {
       db.pool.sendPreparedStatement(SelectByStudentTaskCourse, Array[Any](
         user.id.bytes,
         task.id.bytes,
@@ -276,7 +277,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
       )).map {
         result => buildWork(result.rows)
       }.recover {
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -288,7 +289,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param course
      * @return
      */
-    override def find(user: User, task: Task, course: Course, revision: Long): Future[\/[RepositoryError, Work]] = {
+    override def find(user: User, task: Task, course: Course, revision: Long): Future[\/[Fail, Work]] = {
       db.pool.sendPreparedStatement(SelectByStudentTaskCourse, Array[Any](
         user.id.bytes,
         task.id.bytes,
@@ -297,7 +298,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
       )).map {
         result => buildWork(result.rows)
       }.recover {
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -313,7 +314,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param conn
      * @return
      */
-    override def insert(work: Work)(implicit conn: Connection): Future[\/[RepositoryError, Work]] = {
+    override def insert(work: Work)(implicit conn: Connection): Future[\/[Fail, Work]] = {
       val query = work match {
         case specific: LongAnswerWork => InsertIntoDocumentWork("long_answer_work")
         case specific: ShortAnswerWork => InsertIntoDocumentWork("short_answer_work")
@@ -343,7 +344,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
       conn.sendPreparedStatement(query, params).map {
         result => buildWork(result.rows)
       }.recover {
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -359,8 +360,8 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param conn
      * @return
      */
-    override def update(work: Work)(implicit conn: Connection): Future[\/[RepositoryError, Work]] = update(work, false)
-    override def update(work: Work, newRevision: Boolean)(implicit conn: Connection): Future[Work] = {
+    override def update(work: Work)(implicit conn: Connection): Future[\/[Fail, Work]] = update(work, false)
+    override def update(work: Work, newRevision: Boolean)(implicit conn: Connection): Future[\/[Fail, Work]] = {
       val tableName = work match {
         case specific: LongAnswerWork => "long_answer_work"
         case specific: ShortAnswerWork => "short_answer_work"
@@ -398,7 +399,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
       future.map {
         result => buildWork(result.rows)
       }.recover {
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -410,7 +411,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param conn
      * @return
      */
-    override def delete(work: Work, thisRevisionOnly: Boolean = false)(implicit conn: Connection): Future[\/[RepositoryError, Work]] = {
+    override def delete(work: Work, thisRevisionOnly: Boolean = false)(implicit conn: Connection): Future[\/[Fail, Work]] = {
       val fDelete = if (thisRevisionOnly) {
         conn.sendPreparedStatement(DeleteRevision, Array[Any](
           work.studentId.bytes,
@@ -430,13 +431,13 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
       fDelete.map {
         result => {
           if (result.rowsAffected == 0) {
-            -\/(NonFatalError("No rows were modified"))
+            -\/(NonExceptionalFail("No rows were modified"))
           } else {
             \/-(work)
           }
         }
       }.recover {
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -450,17 +451,17 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param conn
      * @return
      */
-    override def delete(task: Task)(implicit conn: Connection): Future[\/[RepositoryError, Work]] = {
+    override def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, Work]] = {
       conn.sendPreparedStatement(DeleteRevision, Array[Any](task.id.bytes)).map {
         result => {
           if (result.rowsAffected == 0) {
-            -\/(NonFatalError("No rows were modified"))
+            -\/(NonExceptionalFail("No rows were modified"))
           } else {
             \/-(work)
           }
         }
       }.recover {
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -470,18 +471,18 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param maybeResultSet
      * @return
      */
-    private def buildWork(maybeResultSet: Option[ResultSet]): \/[RepositoryError, Work] = {
+    private def buildWork(maybeResultSet: Option[ResultSet]): \/[Fail, Work] = {
       try {
         maybeResultSet match {
           case Some(resultSet) => resultSet.headOption match {
             case Some(firstRow) => \/-(Work(firstRow))
-            case None => -\/(NoResultsFound("The query was successful but ResultSet was empty."))
+            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
           }
-          case None => -\/(NoResultsFound("The query was successful but no ResultSet was returned."))
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
         }
       }
       catch {
-        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a Work from the row returned.", exception))
+        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Work from the row returned.", exception))
       }
     }
 
@@ -491,17 +492,17 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param maybeResultSet
      * @return
      */
-    private def buildWorkList(maybeResultSet: Option[ResultSet]): \/[RepositoryError, IndexedSeq[Work]] = {
+    private def buildWorkList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[Work]] = {
       try {
         maybeResultSet match {
           case Some(resultSet) => \/-(resultSet.map(Work.apply))
-          case None => -\/(NoResultsFound("The query was successful but no ResultSet was returned."))
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
         }
       }
       catch {
-        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a Work List from the rows returned.", exception))
+        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Work List from the rows returned.", exception))
       }
     }
 
-  }
+  }`
 }

@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.repositories.error.{FatalError, NoResultsFound, RepositoryError}
+import ca.shiftfocus.krispii.core.fail._
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.lib.ExceptionWriter
@@ -121,7 +121,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      *
      * @return a vector of the returned Projects
      */
-    override def list: Future[\/[RepositoryError, IndexedSeq[Project]]] = {
+    override def list: Future[\/[Fail, IndexedSeq[Project]]] = {
       val fProjectList = db.pool.sendQuery(SelectAll).map(res => buildProjectList(res.rows))
 
       val fResult = for {
@@ -129,7 +129,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
         intermediate <- Future sequence projectList.map{ project =>
           partRepository.list(project).map {
             case \/-(partList) => \/-(project.copy(parts = partList))
-            case -\/(error: RepositoryError) => -\/(error)
+            case -\/(error: Fail) => -\/(error)
           }
         }
         result: IndexedSeq[Project] <- liftList(Future.successful {
@@ -139,7 +139,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
       } yield result
 
       fResult.run.recover {
-        case exception: Throwable => -\/(FatalError("An lunexpected error occurred.", exception))
+        case exception: Throwable => -\/(ExceptionalFail("An lunexpected error occurred.", exception))
       }
     }
 
@@ -348,18 +348,18 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      * @param maybeResultSet
      * @return
      */
-    private def buildProject(maybeResultSet: Option[ResultSet]): \/[RepositoryError, Project] = {
+    private def buildProject(maybeResultSet: Option[ResultSet]): \/[Fail, Project] = {
       try {
         maybeResultSet match {
           case Some(resultSet) => resultSet.headOption match {
             case Some(firstRow) => \/-(Project(firstRow))
-            case None => -\/(NoResultsFound("The query was successful but ResultSet was empty."))
+            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
           }
-          case None => -\/(NoResultsFound("The query was successful but no ResultSet was returned."))
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
         }
       }
       catch {
-        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a project from the row returned.", exception))
+        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a project from the row returned.", exception))
       }
     }
 
@@ -369,15 +369,15 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      * @param maybeResultSet
      * @return
      */
-    private def buildProjectList(maybeResultSet: Option[ResultSet]): \/[RepositoryError, IndexedSeq[Project]] = {
+    private def buildProjectList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[Project]] = {
       try {
         maybeResultSet match {
           case Some(resultSet) => \/-(resultSet.map(Project.apply))
-          case None => -\/(NoResultsFound("The query was successful but no ResultSet was returned."))
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
         }
       }
       catch {
-        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a project from the row returned.", exception))
+        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a project from the row returned.", exception))
       }
     }
   }

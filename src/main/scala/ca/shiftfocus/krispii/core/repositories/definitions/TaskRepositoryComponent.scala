@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.repositories.error.RepositoryError
+import ca.shiftfocus.krispii.core.fail.Fail
 import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.lib._
@@ -10,28 +10,25 @@ import ca.shiftfocus.uuid.UUID
 import scala.concurrent.Future
 import scalaz.{EitherT, \/}
 
-trait TaskRepositoryComponent {
+trait TaskRepositoryComponent extends FutureMonad {
   self: ProjectRepositoryComponent with
         PartRepositoryComponent =>
 
   val taskRepository: TaskRepository
 
   trait TaskRepository {
-    def list: Future[\/[RepositoryError, IndexedSeq[Task]]]
-    def list(project: Project): Future[\/[RepositoryError, IndexedSeq[Task]]]
-    def list(part: Part): Future[\/[RepositoryError, IndexedSeq[Task]]]
-    def list(project: Project, partNum: Int): Future[\/[RepositoryError, IndexedSeq[Task]]]
+    def list: Future[\/[Fail, IndexedSeq[Task]]]
+    def list(project: Project): Future[\/[Fail, IndexedSeq[Task]]]
+    def list(part: Part): Future[\/[Fail, IndexedSeq[Task]]]
+    def list(project: Project, partNum: Int): Future[\/[Fail, IndexedSeq[Task]]]
 
-    def find(id: UUID): Future[\/[RepositoryError, Task]]
-    def findNow(student: User, project: Project): Future[\/[RepositoryError, Task]]
-    def find(project: Project, partNum: Int, taskNum: Int): Future[\/[RepositoryError, Task]]
+    def find(id: UUID): Future[\/[Fail, Task]]
+    def findNow(student: User, project: Project): Future[\/[Fail, Task]]
+    def find(project: Project, partNum: Int, taskNum: Int): Future[\/[Fail, Task]]
 
-    def insert(task: Task)(implicit conn: Connection): Future[\/[RepositoryError, Task]]
-    def update(task: Task)(implicit conn: Connection): Future[\/[RepositoryError, Task]]
-    def delete(task: Task)(implicit conn: Connection): Future[\/[RepositoryError, Task]]
-    def delete(part: Part)(implicit conn: Connection): Future[\/[RepositoryError, Task]]
-
-    protected def lift = EitherT.eitherT[Future, RepositoryError, Task] _
-    protected def liftList = EitherT.eitherT[Future, RepositoryError, IndexedSeq[Task]] _
+    def insert(task: Task)(implicit conn: Connection): Future[\/[Fail, Task]]
+    def update(task: Task)(implicit conn: Connection): Future[\/[Fail, Task]]
+    def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, Task]]
+    def delete(part: Part)(implicit conn: Connection): Future[\/[Fail, Task]]
   }
 }

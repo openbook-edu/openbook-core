@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
-import ca.shiftfocus.krispii.core.services.error.ServiceError
+import ca.shiftfocus.krispii.core.services.error.Fail
 import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models._
 import scala.concurrent.Future
@@ -39,23 +39,23 @@ trait AuthServiceComponent {
      * @param password a the user's password
      * @return the optionally authenticated user info
      */
-    def authenticate(identifier: String, password: String): Future[\/[ServiceError, User]]
+    def authenticate(identifier: String, password: String): Future[\/[Fail, User]]
 
     /*
      * Session definitions
      */
-    def listSessions(userId: UUID): Future[\/[ServiceError, IndexedSeq[Session]]]
-    def findSession(sessionId: UUID): Future[\/[ServiceError, Session]]
-    def createSession(userId: UUID, ipAddress: String, userAgent: String): Future[\/[ServiceError, Session]]
-    def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Future[\/[ServiceError, Session]]
-    def deleteSession(sessionId: UUID): Future[\/[ServiceError, Session]]
+    def listSessions(userId: UUID): Future[\/[Fail, IndexedSeq[Session]]]
+    def findSession(sessionId: UUID): Future[\/[Fail, Session]]
+    def createSession(userId: UUID, ipAddress: String, userAgent: String): Future[\/[Fail, Session]]
+    def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Future[\/[Fail, Session]]
+    def deleteSession(sessionId: UUID): Future[\/[Fail, Session]]
 
     /**
      * List all users.
      *
      * @return a list of users with their roles and courses
      */
-    def list: Future[\/[ServiceError, IndexedSeq[UserInfo]]]
+    def list: Future[\/[Fail, IndexedSeq[UserInfo]]]
 
     /**
      * List users with filter for roles and courses.
@@ -64,7 +64,7 @@ trait AuthServiceComponent {
      * @param coursesFilter an optional list of courses to filter by
      * @return a list of users with their roles and courses
      */
-    def list(rolesFilter: Option[IndexedSeq[String]], coursesFilter: Option[IndexedSeq[UUID]]): Future[\/[ServiceError, IndexedSeq[UserInfo]]]
+    def list(rolesFilter: Option[IndexedSeq[String]], coursesFilter: Option[IndexedSeq[UUID]]): Future[\/[Fail, IndexedSeq[UserInfo]]]
 
     /**
      * Find a user by their UUID.
@@ -72,7 +72,7 @@ trait AuthServiceComponent {
      * @param id  The user's universally unique identifier.
      * @return the optionally authenticated user info
      */
-    def find(id: UUID): Future[\/[ServiceError, UserInfo]]
+    def find(id: UUID): Future[\/[Fail, UserInfo]]
 
     /**
      * Find a user by their unique identifier.
@@ -80,7 +80,7 @@ trait AuthServiceComponent {
      * @param identifier  The unique e-mail or username identifying this user.
      * @return the optionally authenticated user info
      */
-    def find(identifier: String): Future[\/[ServiceError, UserInfo]]
+    def find(identifier: String): Future[\/[Fail, UserInfo]]
 
     /**
      * Create a new user. Throws exceptions if the e-mail and username aren't unique.
@@ -92,7 +92,7 @@ trait AuthServiceComponent {
      * @param surname  The user's family name.
      * @return the created user
      */
-    def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.random): Future[\/[ServiceError, UserInfo]]
+    def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.random): Future[\/[Fail, UserInfo]]
 
     /**
      * Update an existing user. Throws exceptions if the e-mail and username aren't unique.
@@ -102,19 +102,19 @@ trait AuthServiceComponent {
      * @param values  A hashmap of the values to be updated
      * @return the updated user
      */
-    def update(id: UUID, version: Long, values: Map[String, String]): Future[\/[ServiceError, UserInfo]]
+    def update(id: UUID, version: Long, values: Map[String, String]): Future[\/[Fail, UserInfo]]
 
     /**
      * Deletes a user. This is a VERY DESTRUCTIVE operation.
      */
-    def delete(id: UUID, version: Long): Future[\/[ServiceError, UserInfo]]
+    def delete(id: UUID, version: Long): Future[\/[Fail, UserInfo]]
 
     /**
      * List all roles.
      *
      * @return an array of Roles
      */
-    def listRoles: Future[\/[ServiceError, Role]]
+    def listRoles: Future[\/[Fail, Role]]
 
     /**
      * List all roles for one user.
@@ -122,7 +122,7 @@ trait AuthServiceComponent {
      * @param user  The user whose roles should be listed.
      * @return an array of this user's Roles
      */
-    def listRoles(userId: UUID): Future[\/[ServiceError, Role]]
+    def listRoles(userId: UUID): Future[\/[Fail, Role]]
 
     /**
      * Find a specific role by its unique id.
@@ -130,7 +130,7 @@ trait AuthServiceComponent {
      * @param id  the UUID of the Role to find
      * @return an optional Role
      */
-    def findRole(id: UUID): Future[\/[ServiceError, Role]]
+    def findRole(id: UUID): Future[\/[Fail, Role]]
 
     /**
      * Find a specific role by name
@@ -138,7 +138,7 @@ trait AuthServiceComponent {
      * @param id  the name of the Role to find
      * @return an optional Role
      */
-    def findRole(name: String): Future[\/[ServiceError, Role]]
+    def findRole(name: String): Future[\/[Fail, Role]]
 
     /**
      * Create a new role.
@@ -146,7 +146,7 @@ trait AuthServiceComponent {
      * @param name  the name of the Role to create
      * @return the newly created Role
      */
-    def createRole(name: String, id: UUID = UUID.random): Future[\/[ServiceError, Role]]
+    def createRole(name: String, id: UUID = UUID.random): Future[\/[Fail, Role]]
 
     /**
      * Update a Role
@@ -156,7 +156,7 @@ trait AuthServiceComponent {
      * @param name  the new name to assign this Role
      * @return the newly updated Role
      */
-    def updateRole(id: UUID, version: Long, name: String): Future[\/[ServiceError, Role]]
+    def updateRole(id: UUID, version: Long, name: String): Future[\/[Fail, Role]]
 
     /**
      *  Delete a role.
@@ -165,7 +165,7 @@ trait AuthServiceComponent {
      *  @param version  the version of the role for optimistic offline lock
      *  @return the deleted role
      */
-    def deleteRole(id: UUID, version: Long): Future[\/[ServiceError, Role]]
+    def deleteRole(id: UUID, version: Long): Future[\/[Fail, Role]]
 
     /**
      * Add a role to a user.
@@ -174,7 +174,7 @@ trait AuthServiceComponent {
      * @param roleName  the name of the role
      * @return a boolean indicator if the role was added
      */
-    def addRole(userId: UUID, roleName: String): Future[\/[ServiceError, UserInfo]]
+    def addRole(userId: UUID, roleName: String): Future[\/[Fail, UserInfo]]
 
     /**
      * Remove a role from a user.
@@ -183,7 +183,7 @@ trait AuthServiceComponent {
      * @param roleName  the name of the role
      * @return a boolean indicator if the role was removed
      */
-    def removeRole(userId: UUID, roleName: String): Future[\/[ServiceError, UserInfo]]
+    def removeRole(userId: UUID, roleName: String): Future[\/[Fail, UserInfo]]
 
     /**
      * Add a role to a given list of users.
@@ -192,7 +192,7 @@ trait AuthServiceComponent {
      * @param userIds an [[IndexedSeq]] of [[UUID]] listing the users to gain the role
      * @return a boolean indicator if the role was added
      */
-    def addUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ServiceError, IndexedSeq[UserInfo]]]
+    def addUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[Fail, IndexedSeq[UserInfo]]]
 
     /**
      * Remove a role from a given list of users.
@@ -201,6 +201,6 @@ trait AuthServiceComponent {
      * @param userIds an [[IndexedSeq]] of [[UUID]] listing the users to lose the role
      * @return a boolean indicator if the role was removed
      */
-    def removeUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ServiceError, IndexedSeq[UserInfo]]]
+    def removeUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[Fail, IndexedSeq[UserInfo]]]
   }
 }

@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.repositories
 
 import java.util.NoSuchElementException
 
-import ca.shiftfocus.krispii.core.repositories.error._
+import ca.shiftfocus.krispii.core.fail._
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
@@ -175,32 +175,32 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
     /**
      * List all roles.
      */
-    override def list: Future[\/[RepositoryError, IndexedSeq[Role]]] = {
+    override def list: Future[\/[Fail, IndexedSeq[Role]]] = {
       db.pool.sendQuery(SelectAll).map {
         result => buildRoleList(result.rows)
       }.recover {
-        case exception: Throwable => -\/(FatalError("An unexpected error occurred.", exception))
+        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
       }
     }
 
     /**
      * List the roles associated with a user.
      */
-    override def list(user: User): Future[\/[RepositoryError, IndexedSeq[Role]]] = {
+    override def list(user: User): Future[\/[Fail, IndexedSeq[Role]]] = {
       db.pool.sendPreparedStatement(ListRoles, Array[Any](user.id.bytes)).map {
         result => buildRoleList(result.rows)
         //Cache.set(cacheString, roleList.map(_.id))
         //val cachedUserRoles = Cache.getAs[Set[UUID]](s"role_ids:user_ids").getOrElse(Set())
         //Cache.set(s"role_ids:user_ids", cachedUserRoles + user.id )
       }.recover {
-        case exception: Throwable => -\/(FatalError("An unexpected error occurred.", exception))
+        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
       }
     }
 
     /**
      * List the roles associated with a users.
      */
-    override def list(users: IndexedSeq[User]): Future[\/[RepositoryError, Map[UUID, IndexedSeq[Role]]]] = {
+    override def list(users: IndexedSeq[User]): Future[\/[Fail, Map[UUID, IndexedSeq[Role]]]] = {
       val arrayString = users.map { user =>
         val cleanUserId = user.id.string filterNot ("-" contains _)
         s"decode('$cleanUserId', 'hex')"
@@ -219,15 +219,15 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
               }
               \/-(tupledWithUsers.toMap)
             }
-            case None => -\/(NoResultsFound("The query was successful but no ResultSet was returned."))
+            case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
           }
         }
         catch {
-          case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build Role(s) from the row returned.", exception))
+          case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build Role(s) from the row returned.", exception))
         }
       }.recover {
         case exception => {
-          case exception: Throwable => -\/(FatalError("An unexpected error occurred.", exception))
+          case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
         }
       }
     }
@@ -238,11 +238,11 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
      * @param id the 128-bit UUID, as a byte array, to search for.
      * @return an optional RowData object containing the results
      */
-    override def find(id: UUID): Future[\/[RepositoryError, Role]] = {
+    override def find(id: UUID): Future[\/[Fail, Role]] = {
       db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
         result => buildRole(result.rows)
       }.recover {
-        case exception: Throwable => -\/(FatalError("An unexpected error occurred.", exception))
+        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
       }
     }
 
@@ -252,11 +252,11 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
      * @param name the 128-bit UUID, as a byte array, to search for.
      * @return an optional RowData object containing the results
      */
-    override def find(name: String): Future[\/[RepositoryError, Role]] = {
+    override def find(name: String): Future[\/[Fail, Role]] = {
       db.pool.sendPreparedStatement(SelectOneByName, Array[Any](name)).map {
         result => buildRole(result.rows)
       }.recover {
-        case exception: Throwable => -\/(FatalError("An unexpected error occurred.", exception))
+        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
       }
     }
 
@@ -267,7 +267,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
      * @param conn
      * @return
      */
-    def addUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError, Role]] = {
+    def addUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[\/[Fail, Role]] = {
       val cleanRoleId = role.id.string filterNot ("-" contains _)
       val query = AddUsers + userList.map { user =>
         val cleanUserId = user.id.string filterNot ("-" contains _)
@@ -278,7 +278,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
         result <- conn.sendQuery(query)
       }
       yield if (result.rowsAffected == 0) {
-        -\/(NonFatalError("No rows were modified"))
+        -\/(GenericFail("No rows were modified"))
       } else {
         \/-(role)
       }
@@ -286,13 +286,13 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       wasAdded.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField)
-            if nField == "users_roles_pkey" => -\/(PrimaryKeyExists(s"User has already this role"))
-            else if nField == "users_roles_user_id_fkey" => -\/(FKViolation(s"User doesn't exist"))
-            else if nField == "users_roles_role_id_fkey" => -\/(FKViolation(s"Role doesn't exist"))
-            else => -\/(FatalError(s"Unknown db error", exception))
-          case _ => -\/(FatalError("Unexpected exception", exception))
+            if nField == "users_roles_pkey" => -\/(EntityAlreadyExists(s"User has already this role"))
+            else if nField == "users_roles_user_id_fkey" => -\/(EntityReferenceFieldError(s"User doesn't exist"))
+            else if nField == "users_roles_role_id_fkey" => -\/(EntityReferenceFieldError(s"Role doesn't exist"))
+            else => -\/(ExceptionalFail(s"Unknown db error", exception))
+          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
         }
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -303,7 +303,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
      * @param conn
      * @return
      */
-    def removeUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError, Role]] = {
+    def removeUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[\/[Fail, Role]] = {
       val cleanRoleId = role.id.string filterNot ("-" contains _)
       val arrayString = userList.map { user =>
         val cleanUserId = user.id.string filterNot ("-" contains _)
@@ -316,13 +316,13 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
         result <- conn.sendQuery(query)
       }
       yield if (result.rowsAffected == 0) {
-          -\/(NonFatalError("No rows were modified"))
+          -\/(GenericFail("No rows were modified"))
         } else {
           \/-(role)
         }
 
       wasRemoved.recover {
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -331,7 +331,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
      *
      * @return id of the saved/new role.
      */
-    override def insert(role: Role)(implicit conn: Connection): Future[\/[RepositoryError, Role]] = {
+    override def insert(role: Role)(implicit conn: Connection): Future[\/[Fail, Role]] = {
       Logger.debug("[RoleTDG.insert] - " + role.name)
       val future = for {
         result <- conn.sendPreparedStatement(Insert, Array(role.id.bytes, new DateTime, new DateTime, role.name))
@@ -340,10 +340,10 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
 
       future.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-          case Some(nField) if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"A row with key ${role.id.string} already exists"))
-          case _ => -\/(FatalError("Unexpected exception", exception))
+          case Some(nField) if nField == "roles_pkey" => -\/(EntityAlreadyExists(s"A row with key ${role.id.string} already exists"))
+          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
         }
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -352,14 +352,14 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
      *
      * @return id of the saved/new role.
      */
-    override def update(role: Role)(implicit conn: Connection): Future[\/[RepositoryError, Role]] = {
+    override def update(role: Role)(implicit conn: Connection): Future[\/[Fail, Role]] = {
       val future = for {
         result <- conn.sendPreparedStatement(Update, Array(role.name, (role.version + 1), new DateTime, role.id.bytes, role.version))
       }
       yield buildRole(result.rows)
 
       future.recover {
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -368,7 +368,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
      * @param role
      * @return
      */
-    def delete(role: Role)(implicit conn: Connection): Future[\/[RepositoryError, Role]] = {
+    def delete(role: Role)(implicit conn: Connection): Future[\/[Fail, Role]] = {
       val future = for {
         queryResult <- conn.sendPreparedStatement(Purge, Array(role.id.bytes, role.version))
       }
@@ -376,81 +376,81 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
 
       future.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-          case Some(nField) if nField == "roles_pkey" => -\/(PrimaryKeyExists(s"Deletion of a role with id ${role.id.string} caused a GenericDatabaseException"))
-          case _ => -\/(FatalError("Unexpected exception", exception))
+          case Some(nField) if nField == "roles_pkey" => -\/(EntityAlreadyExists(s"Deletion of a role with id ${role.id.string} caused a GenericDatabaseException"))
+          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
         }
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
     /**
      * Associate a role to a user by role object.
      */
-    override def addToUser(user: User, role: Role)(implicit conn: Connection): Future[\/[RepositoryError, Role]] = {
+    override def addToUser(user: User, role: Role)(implicit conn: Connection): Future[\/[Fail, Role]] = {
       conn.sendPreparedStatement(AddRole, Array[Any](user.id.bytes, role.id.bytes, new DateTime)).map {
         result => buildRole(result.rows)
         //Cache.remove(s"role_ids:user:${user.id.string}")
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField)
-            if nField == "users_roles_pkey" => -\/(PrimaryKeyExists(s"User has already this role"))
-            else if nField == "users_roles_user_id_fkey" => -\/(FKViolation(s"User doesn't exist"))
-            else if nField == "users_roles_role_id_fkey" => -\/(FKViolation(s"Role doesn't exist"))
-            else => -\/(FatalError(s"Unknown db error", exception))
-          case _ => -\/(FatalError("Unexpected exception", exception))
+            if nField == "users_roles_pkey" => -\/(EntityAlreadyExists(s"User has already this role"))
+            else if nField == "users_roles_user_id_fkey" => -\/(EntityReferenceFieldError(s"User doesn't exist"))
+            else if nField == "users_roles_role_id_fkey" => -\/(EntityReferenceFieldError(s"Role doesn't exist"))
+            else => -\/(ExceptionalFail(s"Unknown db error", exception))
+          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
         }
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
     /**
      * Associate a role to a user by role name.
      */
-    override def addToUser(user: User, name: String)(implicit conn: Connection): Future[\/[RepositoryError, Role]] = {
+    override def addToUser(user: User, name: String)(implicit conn: Connection): Future[\/[Fail, Role]] = {
       conn.sendPreparedStatement(AddRoleByName, Array[Any](user.id.bytes, new DateTime, name)).map {
         result => buildRole(result.rows)
         //Cache.remove(s"role_ids:user:${user.id.string}")
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField)
-            if nField == "users_roles_pkey" => -\/(PrimaryKeyExists(s"User has already this role"))
-            else if nField == "users_roles_user_id_fkey" => -\/(FKViolation(s"User doesn't exist"))
-            else if nField == "users_roles_role_id_fkey" => -\/(FKViolation(s"Role doesn't exist"))
-            else => -\/(FatalError(s"Unknown db error", exception))
-          case _ => -\/(FatalError("Unexpected exception", exception))
+            if nField == "users_roles_pkey" => -\/(EntityAlreadyExists(s"User has already this role"))
+            else if nField == "users_roles_user_id_fkey" => -\/(EntityReferenceFieldError(s"User doesn't exist"))
+            else if nField == "users_roles_role_id_fkey" => -\/(EntityReferenceFieldError(s"Role doesn't exist"))
+            else => -\/(ExceptionalFail(s"Unknown db error", exception))
+          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
         }
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
     /**
      * Remove a role from a user by role object.
      */
-    override def removeFromUser(user: User, role: Role)(implicit conn: Connection): Future[\/[RepositoryError, Role]] = {
+    override def removeFromUser(user: User, role: Role)(implicit conn: Connection): Future[\/[Fail, Role]] = {
       conn.sendPreparedStatement(RemoveRole, Array[Any](user.id.bytes, role.id.bytes)).map {
         //Cache.remove(s"role_ids:user:${user.id.string}")
         result => buildRole(result.rows)
       }.recover {
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
     /**
      * Remove a role from a user by role name.
      */
-    override def removeFromUser(user: User, name: String)(implicit conn: Connection): Future[\/[RepositoryError, Role]] = {
+    override def removeFromUser(user: User, name: String)(implicit conn: Connection): Future[\/[Fail, Role]] = {
       conn.sendPreparedStatement(RemoveRoleByName, Array[Any](user.id.bytes, name)).map {
         //Cache.remove(s"role_ids:user:${user.id.string}")
         result => buildRole(result.rows)
       }.recover {
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
     /**
      * Remove a role from all users by role object.
      */
-    override def removeFromAllUsers(role: Role)(implicit conn: Connection): Future[\/[RepositoryError, Role]] = {
+    override def removeFromAllUsers(role: Role)(implicit conn: Connection): Future[\/[Fail, Role]] = {
       conn.sendPreparedStatement(RemoveFromAllUsers, Array[Any](role.id.bytes)).map {
         // Remove the cached lists of roles for all users
 //        val cachedUserRoles = Cache.getAs[Set[UUID]](s"role_ids:user_ids").getOrElse(Set())
@@ -459,14 +459,14 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
 
         result => buildRole(result.rows)
       }.recover {
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
     /**
      * Remove a role from all users by role name.
      */
-    override def removeFromAllUsers(name: String)(implicit conn: Connection): Future[\/[RepositoryError, Role]] = {
+    override def removeFromAllUsers(name: String)(implicit conn: Connection): Future[\/[Fail, Role]] = {
       conn.sendPreparedStatement(RemoveFromAllUsersByName, Array[Any](name)).map {
         // Remove the cached lists of roles for all users
 //        val cachedUserRoles = Cache.getAs[Set[UUID]](s"role_ids:user_ids").getOrElse(Set())
@@ -475,7 +475,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
 
         result => buildRole(result.rows)
       }.recover {
-        case exception: Throwable => -\/(FatalError("Unexpected exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -486,18 +486,18 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
      * @param maybeResultSet
      * @return
      */
-    private def buildRole(maybeResultSet: Option[ResultSet]): \/[RepositoryError, Role] = {
+    private def buildRole(maybeResultSet: Option[ResultSet]): \/[Fail, Role] = {
       try {
         maybeResultSet match {
           case Some(resultSet) => resultSet.headOption match {
             case Some(firstRow) => \/-(Role(firstRow))
-            case None => -\/(NoResultsFound("The query was successful but ResultSet was empty."))
+            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
           }
-          case None => -\/(NoResultsFound("The query was successful but no ResultSet was returned."))
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
         }
       }
       catch {
-        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a Role from the row returned.", exception))
+        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Role from the row returned.", exception))
       }
     }
 
@@ -507,15 +507,15 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
      * @param maybeResultSet
      * @return
      */
-    private def buildRoleList(maybeResultSet: Option[ResultSet]): \/[RepositoryError, IndexedSeq[Role]] = {
+    private def buildRoleList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[Role]] = {
       try {
         maybeResultSet match {
           case Some(resultSet) => \/-(resultSet.map(Role.apply))
-          case None => -\/(NoResultsFound("The query was successful but no ResultSet was returned."))
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
         }
       }
       catch {
-        case exception: NoSuchElementException => -\/(FatalError(s"Invalid data: could not build a Role List from the rows returned.", exception))
+        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Role List from the rows returned.", exception))
       }
     }
   }

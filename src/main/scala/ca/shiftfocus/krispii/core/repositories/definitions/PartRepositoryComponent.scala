@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.repositories.error.RepositoryError
+import ca.shiftfocus.krispii.core.fail.Fail
 import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.lib._
@@ -9,26 +9,23 @@ import ca.shiftfocus.uuid.UUID
 import scala.concurrent.Future
 import scalaz.{EitherT, \/}
 
-trait PartRepositoryComponent {
+trait PartRepositoryComponent extends FutureMonad {
   self: ProjectRepositoryComponent =>
 
   val partRepository: PartRepository
 
   trait PartRepository {
-    def list: Future[\/[RepositoryError, IndexedSeq[Part]]]
-    def list(project: Project): Future[\/[RepositoryError, IndexedSeq[Part]]]
-    def list(component: Component): Future[\/[RepositoryError, IndexedSeq[Part]]]
+    def list: Future[\/[Fail, IndexedSeq[Part]]]
+    def list(project: Project): Future[\/[Fail, IndexedSeq[Part]]]
+    def list(component: Component): Future[\/[Fail, IndexedSeq[Part]]]
 
-    def find(id: UUID): Future[\/[RepositoryError, Part]]
-    def find(project: Project, position: Int): Future[\/[RepositoryError, Part]]
-    def insert(part: Part)(implicit conn: Connection): Future[\/[RepositoryError, Part]]
-    def update(part: Part)(implicit conn: Connection): Future[\/[RepositoryError, Part]]
-    def delete(part: Part)(implicit conn: Connection): Future[\/[RepositoryError, Part]]
-    def delete(project: Project)(implicit conn: Connection):Future[\/[RepositoryError, Part]]
+    def find(id: UUID): Future[\/[Fail, Part]]
+    def find(project: Project, position: Int): Future[\/[Fail, Part]]
+    def insert(part: Part)(implicit conn: Connection): Future[\/[Fail, Part]]
+    def update(part: Part)(implicit conn: Connection): Future[\/[Fail, Part]]
+    def delete(part: Part)(implicit conn: Connection): Future[\/[Fail, Part]]
+    def delete(project: Project)(implicit conn: Connection):Future[\/[Fail, Part]]
 
-    def reorder(project: Project, parts: IndexedSeq[Part])(implicit conn: Connection): Future[\/[RepositoryError, IndexedSeq[Part]]]
-
-    protected def lift = EitherT.eitherT[Future, RepositoryError, Part] _
-    protected def liftList = EitherT.eitherT[Future, RepositoryError, IndexedSeq[Part]] _
+    def reorder(project: Project, parts: IndexedSeq[Part])(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Part]]]
   }
 }

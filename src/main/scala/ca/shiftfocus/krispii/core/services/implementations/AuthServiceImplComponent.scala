@@ -1,5 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
+import ca.shiftfocus.krispii.core.fail.Fail
 import ca.shiftfocus.krispii.core.repositories.error._
 import ca.shiftfocus.krispii.core.services.error._
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
@@ -412,20 +413,13 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param user  The user whose roles should be listed.
      * @return an array of this user's Roles
      */
-    override def listRoles(userId: UUID): Future[\/[ServiceError, IndexedSeq[Role]]] = {
+    override def listRoles(userId: UUID): Future[\/[Fail, IndexedSeq[Role]]] = {
       val result = for {
-        user <- liftUser(userRepository.find(userId))
-        roles <- liftRoleList(roleRepository.list(user))
+        user <- lift[User](userRepository.find(userId))
+        roles <- lift[IndexedSeq[Role]](roleRepository.list(user))
       } yield roles
 
-      result.run.map {
-        case \/-(roles) => \/-(roles)
-        case -\/(repoError) => repoError match {
-          case error: NoResultsFound => -\/(NotFound(error.message))
-          case error: FatalError => -\/(UncaughtException(error.message))
-          case error: RepositoryError => -\/(GenericError("Unknown error"))
-        }
-      }
+      result.run
     }
 
     /**
@@ -467,7 +461,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param name  the new name to assign this Role
      * @return the newly updated Role
      */
-    override def updateRole(id: UUID, version: Long, name: String): Future[\/[ServiceError, Role]] = {
+    override def updateRole(id: UUID, version: Long, name: String): Future[\/[Fail, Role]] = {
       transactional { implicit conn =>
         val result = for {
           existingRole <- liftRole(roleRepository.find(id))
@@ -483,7 +477,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
           case -\/(repoError) => repoError match {
             case error: NoResultsFound => -\/(NotFound(error.message))
             case error: FatalError => -\/(UncaughtException(error.message))
-            case error: RepositoryError => -\/(GenericError("Unknown error"))
+            case error: Fail => -\/(GenericError("Unknown error"))
           }
         }
       }
@@ -586,9 +580,5 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
     }.recover {
       case exception => throw exception
     }
-
-    private def liftRole = EitherT.eitherT[Future, RepositoryError, Role] _
-    private def liftUser = EitherT.eitherT[Future, RepositoryError, User] _
-    private def liftRoleList = EitherT.eitherT[Future, RepositoryError, IndexedSeq[Role]] _
   }
 }

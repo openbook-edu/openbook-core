@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.repositories.error.RepositoryError
+import ca.shiftfocus.krispii.core.fail.Fail
 import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.lib._
@@ -10,24 +10,21 @@ import org.joda.time.DateTime
 import scala.concurrent.Future
 import scalaz.{\/, EitherT}
 
-trait JournalRepositoryComponent {
+trait JournalRepositoryComponent extends FutureMonad {
   self: UserRepositoryComponent =>
 
   val journalRepository: JournalRepository
 
   trait JournalRepository {
-    def list(implicit conn: Connection): Future[\/[RepositoryError, IndexedSeq[JournalEntry]]]
-    def list(startDateOption: Option[DateTime], endDateOption: Option[DateTime])(implicit conn: Connection): Future[\/[RepositoryError, IndexedSeq[JournalEntry]]]
-    def list(user: User)(implicit conn: Connection): Future[\/[RepositoryError, IndexedSeq[JournalEntry]]]
-    def list(user: User, startDateOption: Option[DateTime], endDateOption: Option[DateTime])(implicit conn: Connection): Future[\/[RepositoryError, IndexedSeq[JournalEntry]]]
+    def list(implicit conn: Connection): Future[\/[Fail, IndexedSeq[JournalEntry]]]
+    def list(startDateOption: Option[DateTime], endDateOption: Option[DateTime])(implicit conn: Connection): Future[\/[Fail, IndexedSeq[JournalEntry]]]
+    def list(user: User)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[JournalEntry]]]
+    def list(user: User, startDateOption: Option[DateTime], endDateOption: Option[DateTime])(implicit conn: Connection): Future[\/[Fail, IndexedSeq[JournalEntry]]]
 
-    def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError, JournalEntry]]
+    def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, JournalEntry]]
 
-    def insert(journalEntry: JournalEntry)(implicit conn: Connection): Future[\/[RepositoryError, JournalEntry]]
-    def update(journalEntry: JournalEntry)(implicit conn: Connection): Future[\/[RepositoryError, JournalEntry]]
-    def delete(task: JournalEntry)(implicit conn: Connection): Future[\/[RepositoryError, JournalEntry]]
-
-    protected def lift = EitherT.eitherT[Future, RepositoryError, JournalEntry] _
-    protected def liftList = EitherT.eitherT[Future, RepositoryError, IndexedSeq[JournalEntry]] _
+    def insert(journalEntry: JournalEntry)(implicit conn: Connection): Future[\/[Fail, JournalEntry]]
+    def update(journalEntry: JournalEntry)(implicit conn: Connection): Future[\/[Fail, JournalEntry]]
+    def delete(task: JournalEntry)(implicit conn: Connection): Future[\/[Fail, JournalEntry]]
   }
 }

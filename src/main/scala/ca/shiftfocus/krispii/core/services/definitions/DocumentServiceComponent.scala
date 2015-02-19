@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.models.document.{Revision, Document}
-import ca.shiftfocus.krispii.core.services.error.ServiceError
+import ca.shiftfocus.krispii.core.services.error.Fail
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import com.github.mauricio.async.db.Connection
@@ -33,19 +33,19 @@ trait DocumentServiceComponent {
     )
 
     // Find a document
-    def find(id: UUID): Future[\/[ServiceError, Document]]
+    def find(id: UUID): Future[\/[Fail, Document]]
 
     // List revisions of a document
-    def listRevisions(documentId: UUID, fromVersion: Long = 0): Future[\/[ServiceError, IndexedSeq[Revision]]]
+    def listRevisions(documentId: UUID, fromVersion: Long = 0): Future[\/[Fail, IndexedSeq[Revision]]]
 
     // Create a new document
-    def create(id: UUID = UUID.random, owner: User, title: String, initialDelta: Delta): Future[\/[ServiceError, Document]]
+    def create(id: UUID = UUID.random, owner: User, title: String, initialDelta: Delta): Future[\/[Fail, Document]]
 
     // Update a document (title only, to update contents, push a new revision)
-    def update(id: UUID, version: Long, owner: User, editors: IndexedSeq[User], title: String): Future[\/[ServiceError, Document]]
+    def update(id: UUID, version: Long, owner: User, editors: IndexedSeq[User], title: String): Future[\/[Fail, Document]]
 
     // Push a new revision of a document
-    def push(id: UUID, version: Long, author: User, delta: Delta): Future[\/[ServiceError, PushResult]]
+    def push(id: UUID, version: Long, author: User, delta: Delta): Future[\/[Fail, PushResult]]
 
   }
 }

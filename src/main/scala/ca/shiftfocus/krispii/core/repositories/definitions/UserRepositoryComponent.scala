@@ -6,10 +6,10 @@ import ca.shiftfocus.krispii.core.lib._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.uuid.UUID
 import scala.concurrent.Future
-import error._
+import ca.shiftfocus.krispii.core.fail.Fail
 import scalaz.{EitherT, \/}
 
-trait UserRepositoryComponent {
+trait UserRepositoryComponent extends FutureMonad {
   val userRepository: UserRepository
 
   /**
@@ -21,22 +21,19 @@ trait UserRepositoryComponent {
    * inside a transactional block.
    */
   trait UserRepository {
-    def list: Future[\/[RepositoryError, IndexedSeq[User]]]
-    def list(userIds: IndexedSeq[UUID]): Future[\/[RepositoryError, IndexedSeq[User]]]
-    def list(course: Course): Future[\/[RepositoryError, IndexedSeq[User]]]
-    def listForCourses(course: IndexedSeq[Course]): Future[\/[RepositoryError, IndexedSeq[User]]]
-    def listForRoles(roles: IndexedSeq[String]): Future[\/[RepositoryError, IndexedSeq[User]]]
-    def listForRolesAndCourses(roles: IndexedSeq[String], classes: IndexedSeq[String]): Future[\/[RepositoryError, IndexedSeq[User]]]
+    def list: Future[\/[Fail, IndexedSeq[User]]]
+    def list(userIds: IndexedSeq[UUID]): Future[\/[Fail, IndexedSeq[User]]]
+    def list(course: Course): Future[\/[Fail, IndexedSeq[User]]]
+    def listForCourses(course: IndexedSeq[Course]): Future[\/[Fail, IndexedSeq[User]]]
+    def listForRoles(roles: IndexedSeq[String]): Future[\/[Fail, IndexedSeq[User]]]
+    def listForRolesAndCourses(roles: IndexedSeq[String], classes: IndexedSeq[String]): Future[\/[Fail, IndexedSeq[User]]]
 
-    def findByEmail(email: String): Future[\/[RepositoryError, User]]
-    def find(userId: UUID): Future[\/[RepositoryError, User]]
-    def find(identifier: String): Future[\/[RepositoryError, User]]
+    def findByEmail(email: String): Future[\/[Fail, User]]
+    def find(userId: UUID): Future[\/[Fail, User]]
+    def find(identifier: String): Future[\/[Fail, User]]
 
-    def insert(user: User)(implicit conn: Connection): Future[\/[RepositoryError, User]]
-    def update(user: User)(implicit conn: Connection): Future[\/[RepositoryError, User]]
-    def delete(user: User)(implicit conn: Connection): Future[\/[RepositoryError, User]]
-
-    protected def lift = EitherT.eitherT[Future, RepositoryError, User] _
-    protected def liftList = EitherT.eitherT[Future, RepositoryError, IndexedSeq[User]] _
+    def insert(user: User)(implicit conn: Connection): Future[\/[Fail, User]]
+    def update(user: User)(implicit conn: Connection): Future[\/[Fail, User]]
+    def delete(user: User)(implicit conn: Connection): Future[\/[Fail, User]]
   }
 }

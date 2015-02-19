@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.repositories.error.RepositoryError
+import ca.shiftfocus.krispii.core.fail.Fail
 import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.lib._
@@ -9,22 +9,19 @@ import ca.shiftfocus.uuid.UUID
 import scala.concurrent.Future
 import scalaz.{EitherT, \/}
 
-trait ProjectRepositoryComponent {
+trait ProjectRepositoryComponent extends FutureMonad {
   val projectRepository: ProjectRepository
 
   trait ProjectRepository {
-    def list: Future[\/[RepositoryError, IndexedSeq[Project]]]
-    def list(course: Course): Future[\/[RepositoryError, IndexedSeq[Project]]]
+    def list: Future[\/[Fail, IndexedSeq[Project]]]
+    def list(course: Course): Future[\/[Fail, IndexedSeq[Project]]]
 
-    def find(id: UUID): Future[\/[RepositoryError, Project]]
-    def find(projectId: UUID, user: User): Future[\/[RepositoryError, Project]]
-    def find(slug: String): Future[\/[RepositoryError, Project]]
+    def find(id: UUID): Future[\/[Fail, Project]]
+    def find(projectId: UUID, user: User): Future[\/[Fail, Project]]
+    def find(slug: String): Future[\/[Fail, Project]]
 
-    def insert(project: Project)(implicit conn: Connection): Future[\/[RepositoryError, Project]]
-    def update(project: Project)(implicit conn: Connection): Future[\/[RepositoryError, Project]]
-    def delete(project: Project)(implicit conn: Connection): Future[\/[RepositoryError, Project]]
-
-    protected def lift = EitherT.eitherT[Future, RepositoryError, Project] _
-    protected def liftList = EitherT.eitherT[Future, RepositoryError, IndexedSeq[Project]] _
+    def insert(project: Project)(implicit conn: Connection): Future[\/[Fail, Project]]
+    def update(project: Project)(implicit conn: Connection): Future[\/[Fail, Project]]
+    def delete(project: Project)(implicit conn: Connection): Future[\/[Fail, Project]]
   }
 }

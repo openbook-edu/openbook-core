@@ -1,5 +1,6 @@
 package ca.shiftfocus.krispii.core.repositories
 
+import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.krispii.core.lib.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.services.datasource.RedisCache
@@ -12,6 +13,7 @@ import org.joda.time.DateTime
 import scala.concurrent.Future
 import collection.concurrent.TrieMap
 import concurrent.duration._
+import scalaz.{-\/, \/-, \/}
 
 trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
   self: SessionRepositoryComponent =>
@@ -29,10 +31,10 @@ trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
      * @param userId the [[UUID]] of the user to load sessions for.
      * @return a list of sessions for this user
      */
-    override def list(userId: UUID): Future[IndexedSeq[Session]] = {
+    override def list(userId: UUID): Future[\/[Fail, IndexedSeq[Session]]] = {
       get[IndexedSeq[Session]](userId.string).map {
-        case Some(sessions: IndexedSeq[Session]) => sessions
-        case _ => IndexedSeq()
+        case Some(sessions: IndexedSeq[Session]) => \/-(sessions)
+        case _ => \/-(IndexedSeq())
       }
     }
 
@@ -42,8 +44,13 @@ trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
      * @param sessionId the [[UUID]] of the session to lookup.
      * @return an [[Option[Session]]] if one was found
      */
-    override def find(sessionId: UUID): Future[Option[Session]] = {
-      get[Session](sessionId.string)
+    override def find(sessionId: UUID): Future[\/[Fail, Session]] = {
+      get[Session](sessionId.string).map {
+        case Some(session) => \/-(session)
+        case None => -\/(NoResults(s"No session with id ${sessionId.string} could be found."))
+      }.recover {
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+      }
     }
 
     /**
@@ -52,14 +59,16 @@ trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
      * @param session the new [[Session]] to create
      * @return the newly created [[Session]]
      */
-    override def create(session: Session): Future[Session] = {
+    override def create(session: Session): Future[\/[Fail, Session]] = {
       val sessionWithDates = session.copy(
         createdAt = Some(new DateTime),
         updatedAt = Some(new DateTime)
       )
 
-      put[Session](session.sessionId.string)(session, ttl).map { result =>
-        session
+      put[Session](session.id.string)(session, ttl).map {
+        result => \/-(session)
+      }.recover {
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 
@@ -69,19 +78,29 @@ trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
      * @param session the [[Session]] to update
      * @return the updated [[Session]]
      */
-    override def update(session: Session): Future[Session] = {
-      val sessionWithDates = session.copy(
-        updatedAt = Some(new DateTime)
-      )
-      val fUpdate = for {
-        _ <- list(session.userId).map { sessions =>
-          val newSessions = sessions.filter(_.sessionId != session.sessionId)
-          put(session.userId.string)(newSessions :+ sessionWithDates)
-        }
-        _ <- put(session.sessionId.string)(sessionWithDates)
-      } yield session
+    override def update(session: Session): Future[\/[Fail, Session]] = {
+      val sessionWithDates = session.copy(updatedAt = Some(new DateTime))
 
-      fUpdate.recover { case exception => throw exception }
+      val fUpdate = for {
+        existing <- lift(list(session.userId))
+        newSessions = existing.filter(_.id != session.id) :+ sessionWithDates
+        updatedList <- lift {
+          put(session.userId.string)(newSessions).map {
+            result => \/-(newSessions)
+          }.recover {
+            case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+          }
+        }
+        updatedSession <- lift {
+          put(session.id.string)(sessionWithDates).map {
+            result => \/-(sessionWithDates)
+          }.recover {
+            case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+          }
+        }
+      } yield updatedSession
+
+      fUpdate.run.recover { case exception => -\/(ExceptionalFail("Uncaught exception", exception)) }
     }
 
     /**
@@ -90,16 +109,27 @@ trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
      * @param session the [[Session]] to be deleted
      * @return the deleted [[Session]]
      */
-    override def delete(session: Session): Future[Session] = {
+    override def delete(session: Session): Future[\/[Fail, Session]] = {
       val fRemove = for {
-        _ <- list(session.userId).map { sessions =>
-            val newSessions = sessions.filter(_.sessionId != session.sessionId)
-            put(session.userId.string)(newSessions)
+        userSessions <- lift(list(session.userId))
+        updatedList = userSessions.filter(_.id != session.id)
+        savedList <- lift {
+          put(session.userId.string)(updatedList).map {
+            result => \/-(updatedList)
+          }.recover {
+            case exception => -\/(ExceptionalFail("Uncaught exception", exception))
           }
-        _ <- remove(session.sessionId.string)
-      } yield session
+        }
+        deletedSession <- lift {
+          remove(session.id.string).map {
+            result => \/-(session)
+          }.recover {
+            case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+          }
+        }
+      } yield deletedSession
 
-      fRemove.recover { case exception => throw exception }
+      fRemove.run.recover { case exception => -\/(ExceptionalFail("Uncaught exception", exception)) }
     }
 
   }

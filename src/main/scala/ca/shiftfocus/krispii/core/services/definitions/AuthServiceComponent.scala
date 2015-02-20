@@ -70,8 +70,7 @@ trait AuthServiceComponent extends FutureMonad {
     /**
      * Find a user by their UUID.
      *
-     * @param id  The user's universally unique identifier.
-     * @return the optionally authenticated user info
+     * @param id the unique id of the user
      */
     def find(id: UUID): Future[\/[Fail, UserInfo]]
 
@@ -91,22 +90,50 @@ trait AuthServiceComponent extends FutureMonad {
      * @param password  The user's password.
      * @param givenname  The user's first name.
      * @param surname  The user's family name.
-     * @return the created user
+     * @return a future disjunction containing the created user, or a failure
      */
     def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.random): Future[\/[Fail, UserInfo]]
 
     /**
-     * Update an existing user.
+     * Update a user's identifiers.
      *
-     * @param id  The unique ID of the user to be updated
-     * @param version  The current version of the user
-     * @param values  A hashmap of the values to be updated
-     * @return the updated user
+     * @param id the unique id of the user
+     * @param version the latest version of the user for O.O.L.
+     * @param email optionally update the e-mail
+     * @param username optionally update the username
+     * @return a future disjunction containing the updated user, or a failure
      */
-    def update(id: UUID, version: Long, values: Map[String, String]): Future[\/[Fail, UserInfo]]
+    def updateIdentifier(id: UUID, version: Long, email: Option[String], username: Option[String]): Future[\/[Fail, UserInfo]]
 
     /**
-     * Deletes a user. This is a VERY DESTRUCTIVE operation.
+     * Update the user's password.
+     *
+     * @param id the unique id of the user to be updated
+     * @param version the latest version of the user for O.O.L.
+     * @param password the new password
+     * @return a future disjunction containing the updated user, or a failure
+     */
+    def updatePassword(id: UUID, version: Long, password: String): Future[\/[Fail, UserInfo]]
+
+    /**
+     * Update a user's "non-identifying" information.
+     *
+     * @param id the unique id of the user to be updated
+     * @param version the latest version of the user for O.O.L.
+     * @param givenname the user's updated given name
+     * @param surname the user's updated family name
+     * @return a future disjunction containing the updated user, or a failure
+     */
+    def updateInfo(id: UUID, version: Long, givenname: Option[String], surname: Option[String]): Future[\/[Fail, UserInfo]]
+
+    /**
+     * Deletes a user.
+     *
+     * TODO: delete the user's work
+     *
+     * @param id the unique id of the user to be updated
+     * @param version the latest version of the user for O.O.L.
+     * @return a future disjunction containing the deleted user, or a failure
      */
     def delete(id: UUID, version: Long): Future[\/[Fail, UserInfo]]
 

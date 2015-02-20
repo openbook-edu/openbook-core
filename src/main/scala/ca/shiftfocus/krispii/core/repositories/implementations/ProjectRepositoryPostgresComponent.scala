@@ -155,7 +155,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
             case -\/(error: Fail) => -\/(error)
           }
         }
-        result: IndexedSeq[Project] <- lift[IndexedSeq[Project]](Future.successful {
+        result: IndexedSeq[Project] <- lift(Future.successful {
           if (intermediate.filter(_.isLeft).nonEmpty) -\/(intermediate.filter(_.isLeft).head.swap.toOption.get)
           else \/-(intermediate.map(_.toOption.get))
         })

@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
-import ca.shiftfocus.krispii.core.services.error.Fail
+import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.work._

@@ -1,6 +1,8 @@
 package ca.shiftfocus.krispii.core.services
 
+import ca.shiftfocus.krispii.core.models.work.Work
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
+import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.repositories._
@@ -8,17 +10,18 @@ import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.uuid.UUID
 import play.api.Logger
 import scala.concurrent.Future
+import scalaz.{EitherT, \/, -\/, \/-}
 
 trait ProjectServiceImplComponent extends ProjectServiceComponent {
   self: ProjectRepositoryComponent with
         PartRepositoryComponent with
         TaskRepositoryComponent with
-        TaskResponseRepositoryComponent with
         TaskScratchpadRepositoryComponent with
         TaskFeedbackRepositoryComponent with
         UserRepositoryComponent with
         ComponentRepositoryComponent with
         CourseRepositoryComponent with
+        WorkServiceComponent with
         DB =>
 
   override val projectService: ProjectService = new ProjectServiceImpl
@@ -28,26 +31,23 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
     /**
      * Lists all projects.
      *
-     * @return a vector of projects
+     * @return a future disjunction containing either a vector of projects, or a failure
      */
-    override def list: Future[IndexedSeq[Project]] = {
+    override def list: Future[\/[Fail, IndexedSeq[Project]]] = {
       projectRepository.list
-    }.recover {
-      case exception => throw exception
     }
 
     /**
-     * Find all Projects belonging to a given class.
-     * @param courseId
-     * @return
+     * Find all projects belonging to a given course
+     *
+     * @param courseId the unique id of the course to filter by
+     * @return a future disjunction containing either a vector of projects, or a failure
      */
-    override def list(courseId: UUID): Future[IndexedSeq[Project]] = {
-      for {
-        theCourse <- courseRepository.find(courseId).map(_.get)
-        projects <- projectRepository.list(theCourse)
-      } yield projects
-    }.recover {
-      case exception => throw exception
+    override def list(courseId: UUID): Future[\/[Fail, IndexedSeq[Project]]] = {
+      (for {
+        course <- lift(courseRepository.find(courseId))
+        projects <- lift(projectRepository.list(course))
+      } yield projects).run
     }
 
     /**
@@ -55,10 +55,8 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      *
      * @return an optional project
      */
-    override def find(projectSlug: String): Future[Option[Project]] = {
+    override def find(projectSlug: String): Future[\/[Fail, Project]] = {
       projectRepository.find(projectSlug)
-    }.recover {
-      case exception => throw exception
     }
 
     /**
@@ -66,25 +64,23 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      *
      * @return an optional project
      */
-    override def find(id: UUID): Future[Option[Project]] = {
+    override def find(id: UUID): Future[\/[Fail, Project]] = {
       projectRepository.find(id)
-    }.recover {
-      case exception => throw exception
     }
 
     /**
-     * Find project by ID and UserID (teacher || student).
+     * Find a project *if and only if* a user has access to that project.
      *
-     * @return an optional project
+     * @param projectId the unique id of the project to find
+     * @param userId the unique id of the user to filter by
+     * @return a future disjunction containing either a project, or a failure
      */
-    override def find(projectId: UUID, userId: UUID): Future[Option[Project]] = {
-      for {
-        user <- userRepository.find(userId).map(_.get)
-        project <- projectRepository.find(projectId, user)
+    override def find(projectId: UUID, userId: UUID): Future[\/[Fail, Project]] = {
+      (for {
+        user <- lift(userRepository.find(userId))
+        project <- lift(projectRepository.find(projectId, user))
       }
-      yield project
-    }.recover {
-      case exception => throw exception
+      yield project).run
     }
 
     /**
@@ -92,18 +88,13 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      *
      * @return an optional project
      */
-    override def find(projectSlug: String, userId: UUID): Future[Option[Project]] = {
-      for {
-        user <- userRepository.find(userId).map(_.get)
-        project <- projectRepository.find(projectSlug).map(_.get)
-        projectOption <- projectRepository.find(project.id, user)
+    override def find(projectSlug: String, userId: UUID): Future[\/[Fail, Project]] = {
+      (for {
+        user <- lift(userRepository.find(userId))
+        project <- lift(projectRepository.find(projectSlug))
+        projectFiltered <- lift(projectRepository.find(project.id, user))
       }
-      yield projectOption match {
-        case Some(project) => Some(project)
-        case None => None
-      }
-    }.recover {
-      case exception => throw exception
+      yield projectFiltered).run
     }
 
     /**
@@ -117,7 +108,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @param description The new description for the project.
      * @return the updated project.
      */
-    override def create(courseId: UUID, name: String, slug: String, description: String, availability: String): Future[Project] = {
+    override def create(courseId: UUID, name: String, slug: String, description: String, availability: String): Future[\/[Fail, Project]] = {
       // First instantiate a new Project, Part and Task.
       val newProject = Project(
         courseId = courseId,
@@ -125,31 +116,26 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
         slug = slug,
         description = description,
         availability = availability,
-        parts = IndexedSeq[Part]()
+        parts = IndexedSeq.empty[Part]
       )
-      val newPart = Part(
-        projectId = newProject.id,
-        name = ""
-      )
-      val newTask = LongAnswerTask(
-        partId = newPart.id,
-        position = 1
-      )
+      val newPart = Part(projectId = newProject.id, name = "")
+      val newTask = LongAnswerTask(partId = newPart.id, position = 1)
 
       // Then insert the new project, part and task into the database, wrapped
       // in a transaction such that either all three are created, or none.
       transactional { implicit connection =>
-        for {
-          createdProject <- projectRepository.insert(newProject)
-          createdPart    <- partRepository.insert(newPart)
-          createdTask    <- taskRepository.insert(newTask)
+        (for {
+          _              <- lift(validateSlug(slug))
+          createdProject <- lift(projectRepository.insert(newProject))
+          createdPart    <- lift(partRepository.insert(newPart))
+          createdTask    <- lift(taskRepository.insert(newTask))
         }
         yield {
           val tasks = IndexedSeq(createdTask)
           val parts = IndexedSeq(createdPart.copy(tasks = tasks))
           val completeProject = createdProject.copy(parts = parts)
           completeProject
-        }
+        }).run
       }
     }
 
@@ -159,24 +145,46 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @param id The unique ID of the project to update.
      * @param version The current version of the project.
      * @param name The new name to give the project.
-     * @param slug The new slug to give the project.
      * @param description The new description for the project.
      * @return the updated project.
      */
-    override def update(id: UUID, version: Long, courseId: UUID, name: String, slug: String, description: String, availability: String): Future[Project] = {
+    override def updateInfo(id: UUID, version: Long,
+                            courseId: Option[UUID],
+                            name: Option[String],
+                            description: Option[String],
+                            availability: Option[String]): Future[\/[Fail, Project]] = {
       transactional { implicit connection =>
-        for {
-          existingProjectOption <- projectRepository.find(id)
-          updatedProject <- projectRepository.update(existingProjectOption.get.copy(
-            version = version,
-            courseId = courseId,
-            name = name,
-            slug = slug,
-            description = description,
-            availability = availability
-          ))
+        (for {
+          existingProject <- lift(projectRepository.find(id))
+          toUpdate = existingProject.copy(
+            version      = version,
+            courseId     = courseId.getOrElse(existingProject.courseId),
+            name         = name.getOrElse(existingProject.name),
+            description  = description.getOrElse(existingProject.description),
+            availability = availability.getOrElse(existingProject.availability)
+          )
+          updatedProject <- lift(projectRepository.update(toUpdate))
         }
-        yield updatedProject
+        yield updatedProject).run
+      }
+    }
+
+    /**
+     * Update a project's slug. This is a URL-friendly unique identifier for the project.
+     *
+     * @param id
+     * @param version
+     * @param slug
+     * @return
+     */
+    override def updateSlug(id: UUID, version: Long, slug: String): Future[\/[Fail, Project]] = {
+      transactional { implicit connection =>
+        (for {
+          existingProject <- lift(projectRepository.find(id))
+          validSlug <- lift(validateSlug(slug))
+          toUpdate = existingProject.copy(version = version, slug = validSlug)
+          updatedProject <- lift(projectRepository.update(toUpdate))
+        } yield updatedProject).run
       }
     }
 
@@ -190,98 +198,52 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @param version the [[version]] of the project to delete
      * @return a boolean indicating success/failure
      */
-    override def delete(id: UUID, version: Long): Future[Boolean] = {
+    override def delete(id: UUID, version: Long): Future[\/[Fail, Project]] = {
       transactional { implicit connection =>
-        for {
-          project <- projectRepository.find(id).map(_.get)
-          parts <- partRepository.list(project)
-          tasks <- Future.sequence(parts.map { part =>
-            taskRepository.list(part)
-          }).map { taskLists => taskLists.flatten }
-          scratchpadsDeleted <- serialized(tasks)(taskScratchpadRepository.delete)
-          responsesDeleted <- serialized(tasks)(taskResponseRepository.delete)
-          feedbacksDeleted <- serialized(tasks)(taskFeedbackRepository.delete)
-          tasksDeleted <- serialized(tasks)(taskRepository.delete)
-          componentsRemoved <- serialized(parts)(componentRepository.removeFromPart)
-          partsDeleted <- partRepository.delete(project)
-          projectDeleted <- projectRepository.delete(project)
+        (for {
+          project <- lift(find(id))
+          componentsRemoved <- lift(serializedT(project.parts)(componentRepository.removeFromPart))
+          partsDeleted <- lift(partRepository.delete(project))
+          projectDeleted <- lift(projectRepository.delete(project))
         }
-        yield projectDeleted
+        yield projectDeleted).run
       }
     }
 
-    // TODO rewrite
     /**
-     * Load the parts, tasks and responses of a project for a user, including
-     * part/task status.
+     * Given a project, get a map of the task IDs under the project and each task's
+     * corresponding student work for that task.
      *
-     * @param projectId  the unique ID for the project
+     * @param project  the unique ID for the project
      * @param user  the user to fetch information for
      * @return a vector of [[TaskGroup]] objects
      */
-    override def taskGroups(project: Project, user: User): Future[IndexedSeq[TaskGroup]] = {
-      val fTaskGroups = for {
-//        projectParts <- project.parts
-//        projectParts <- partRepository.list(project)
-//        enabledParts <- partRepository.listEnabled(project, user)
-        tasks <- taskRepository.list(project)
-        responses <- taskResponseRepository.list(user, project)(db.pool)
-      }
-      yield {
-        project.parts.map { part =>
-          TaskGroup(
-            part = part,
-            status = {
-//              if (enabledParts.filter(_.id.string == part.id.string).nonEmpty) Part.Unlocked
-//              else Part.Locked
-              if (part.enabled == true) Part.Unlocked
-              else Part.Locked
-            },
-            tasks = tasks.filter(_.partId.string == part.id.string).map { task =>
-              val maybeTaskResponse = responses.find(_.taskId.string == task.id.string)
-
-              TaskGroupItem(
-                status = { maybeTaskResponse match {
-                  case None => Task.NotStarted
-                  case Some(response) => {
-                    if (response.isComplete) Task.Complete
-                    else Task.Incomplete
-                  }
-                }},
-                task = task
-              )
-            }
-          )
-        }
-      }
-      fTaskGroups.recover {
-        case exception => throw exception
-      }
-    }
+    override def taskGroups(project: Project, user: User): Future[\/[Fail, IndexedSeq[TaskGroup]]] = ???
 
     /**
      * List the parts that have a component.
      *
      * @param componentId the [[UUID]] of the component to filter by
      */
-    override def listPartsInComponent(componentId: UUID): Future[IndexedSeq[Part]] = {
-      val fPartList = for {
-        component <- componentRepository.find(componentId)(db.pool).map(_.get)
-        partList <- partRepository.list(component)
-      } yield partList
-
-      fPartList.recover {
-        case exception => throw exception
-      }
-    }
+    override def listPartsInComponent(componentId: UUID): Future[IndexedSeq[Part]] = ???
+//    {
+//      val fPartList = for {
+//        component <- componentRepository.find(componentId)(db.pool).map(_.get)
+//        partList <- partRepository.list(component)
+//      } yield partList
+//
+//      fPartList.recover {
+//        case exception => throw exception
+//      }
+//    }
 
     /**
      * Find a single part.
      *
-     * @param projectId the id of the part
+     * @param partId the id of the part
      * @return a vector of this project's parts
      */
-    override def findPart(partId: UUID): Future[Option[Part]] = {
+    override def findPart(partId: UUID): Future[\/[Fail, Part]] = {
       partRepository.find(partId)
     }
 
@@ -299,38 +261,27 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @param position this part's position in the project. If this position has already
      *                 been taken, the existing parts will be shifted down.
      */
-    override def createPart(projectId: UUID, name: String, description: String, position: Int): Future[Part] = {
+    override def createPart(projectId: UUID, name: String, description: String, position: Int): Future[\/[Fail, Part]] = {
       transactional { implicit connection =>
-        val fPart = for {
-          project <- projectRepository.find(projectId).map(_.get)
-          partList <- partRepository.list(project)
-          partListUpdated <- {
+        (for {
+          project <- lift(projectRepository.find(projectId))
+          partList <- lift(partRepository.list(project))
+          partListUpdated <- lift {
             // If there is already a part with this position, shift it (and all following parts)
             // back by one to make room for the new one.
             val positionExists = partList.filter(_.position == position).nonEmpty
             if (positionExists) {
               val filteredPartList = partList.filter(_.position >= position).map(part => part.copy(position = part.position + 1))
-              serialized(filteredPartList)(partRepository.update)
+              serializedT(filteredPartList)(partRepository.update)
             }
             else {
               // Otherwise do nothing, return the existing part list.
-              Future.successful(partList)
+              Future.successful(\/-(partList))
             }
           }
-          // Now we insert the new part
-          newPart <- partRepository.insert(Part(
-            projectId = project.id,
-            name = name,
-//            description = description,
-            position = position
-          ))
-        } yield newPart
-
-        // If any of the futures in our for-comprehension fail, recover from the failure,
-        // pull the exception into this thread and throw it.
-        fPart.recover {
-          case exception => throw exception
-        }
+          newPart = Part(projectId = project.id, name = name, position = position)
+          createdPart <- lift(partRepository.insert(newPart))
+        } yield createdPart).run
       }
     }
 
@@ -342,16 +293,14 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      *     This will necessarily increment their version numbers. The client should be aware
      *     to update its part list after calling update.
      */
-    override def updatePart(partId: UUID, version: Long, name: String, description: String, newPosition: Int): Future[Part] = {
+    override def updatePart(partId: UUID, version: Long, name: String, newPosition: Int): Future[\/[Fail, Part]] = {
       transactional { implicit connection =>
-        val fPart = for {
-          existingPart <- partRepository.find(partId).map(_.get)
-          oldPosition <- Future.successful(existingPart.position)
-          project <- projectRepository.find(existingPart.projectId).map(_.get)
-          partList <- partRepository.list(project)
-          partListUpdated <- {
-            Logger.debug(s"Version from args: $version")
-            Logger.debug(s"Version from current: ${existingPart.version}")
+        (for {
+          existingPart <- lift(partRepository.find(partId))
+          oldPosition = existingPart.position
+          project <- lift(projectRepository.find(existingPart.projectId))
+          partList <- lift(partRepository.list(project))
+          partListUpdated <- lift {
             if (newPosition != oldPosition) {
               val filteredPartList = partList.filter(_.id != partId)
               var temp = IndexedSeq[Part]()
@@ -366,27 +315,21 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
               val filteredOrderedPartList = temp
 
               if (filteredOrderedPartList.nonEmpty) {
-                // Since we're inside a transaction, we need to fold over the list,
-                // rather than map, to ensure the database queries are executed
-                // sequentially. We cannot send parallel queries inside of a
-                // transaction!
-                serialized(filteredOrderedPartList)(partRepository.update)
+                serializedT(filteredOrderedPartList)(partRepository.update)
               }
-              else Future.successful(IndexedSeq())
-            } else Future.successful(partList)
+              else {
+                Future.successful(\/-(IndexedSeq()))
+              }
+            } else Future.successful(\/-(partList))
           }
-          // Now we insert the new part
-          updatedPart <- partRepository.update(existingPart.copy(
+          toUpdate = existingPart.copy(
             version = version,
             name = name,
-//            description = description,
             position = newPosition
-          ))
-        } yield updatedPart
-
-        fPart.recover {
-          case exception => throw exception
-        }
+          )
+          // Now we insert the new part
+          updatedPart <- lift(partRepository.update(toUpdate))
+        } yield updatedPart).run
       }
     }
 
@@ -401,69 +344,63 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @param version the current version of the part to delete
      * @return a boolean indicator whether the operation was successful
      */
-    override def deletePart(partId: UUID, version: Long): Future[Boolean] = {
+    override def deletePart(partId: UUID, version: Long): Future[\/[Fail, Part]] = {
       transactional { implicit connection =>
-        val fDeleted = for {
-          part <- partRepository.find(partId).map(_.get.copy(version = version))
-          project <- projectRepository.find(part.projectId).map(_.get)
-          partList <- partRepository.list(project)
-          partListUpdated <- {
+        (for {
+          part <- lift(partRepository.find(partId))
+          project <- lift(projectRepository.find(part.projectId))
+          partList <- lift(partRepository.list(project))
+          partListUpdated <- lift {
             val filteredPartList = partList.filter({ item => item.id != part.id && item.position > part.position}).map(part => part.copy(position = part.position - 1))
             if (filteredPartList.nonEmpty)
-              serialized(filteredPartList)(partRepository.update)
+              serializedT(filteredPartList)(partRepository.update)
             else
-              Future.successful(IndexedSeq())
+              Future.successful(\/-(IndexedSeq()))
           }
-          tasks <- Future.sequence(partList.map { part =>
-            taskRepository.list(part)
-          }).map { taskLists => taskLists.flatten }
-          scratchpadsDeleted <- serialized(tasks)(taskScratchpadRepository.delete)
-          responsesDeleted <- serialized(tasks)(taskResponseRepository.delete)
-          feedbacksDeleted <- serialized(tasks)(taskFeedbackRepository.delete)
-          tasksDeleted <- taskRepository.delete(part)
-          componentsRemoved <- componentRepository.removeFromPart(part)
-          deletedPart <- partRepository.delete(part)
-        } yield deletedPart
-
-        fDeleted.recover {
-          case exception => throw exception
-        }
+          tasksDeleted <- lift(taskRepository.delete(part))
+          componentsRemoved <- lift(componentRepository.removeFromPart(part))
+          deletedPart <- lift(partRepository.delete(part))
+        } yield deletedPart).run
       }
     }
 
     /**
-     * Helper method for easy enabling/disable of parts.
+     * Enable a disabled part, and disable an enabled part.
+     *
+     * @param partId the unique ID of the part to toggle
+     * @param version the current version of the part to toggle
+     * @return a future disjunction containing either the toggled part, or a failure
      */
-    override def togglePart(partId: UUID): Future[Part] = {
+    override def togglePart(partId: UUID, version: Long): Future[\/[Fail, Part]] = {
       transactional { implicit connection =>
-        val fUpdated = for {
-          part <- partRepository.find(partId).map(_.get)
-          toggled <- partRepository.update(part.copy(enabled = if (part.enabled) false else true))
-        }
-        yield toggled
-
-        fUpdated
+        (for {
+          part <- lift(partRepository.find(partId))
+          toUpdate = part.copy(version = version, enabled = if (part.enabled) false else true)
+          toggled <- lift(partRepository.update(toUpdate))
+        } yield toggled).run
       }
     }
 
     /**
      * Reorder the parts in a project.
+     *
+     * @param projectId the unique id of the project to reorder parts for
+     * @param partIds the unique ids of the project's current parts, in the new
+     *                order the parts should have
+     * @return a future disjunction containing either the updated project, or a failure
      */
-    override def reorderParts(projectId: UUID, partIds: IndexedSeq[UUID]): Future[Project] = {
-      for {
-        project <- projectRepository.find(projectId).map(_.get)
-        parts <- partRepository.list(project)
-        reordered <- {
+    override def reorderParts(projectId: UUID, partIds: IndexedSeq[UUID]): Future[\/[Fail, Project]] = {
+      (for {
+        project <- lift(projectRepository.find(projectId))
+        parts <- lift(partRepository.list(project))
+        reordered <- lift {
           val orderedParts = parts.map { part =>
             part.copy(position = partIds.indexOf(part.id)+1)
           }
-          partRepository.reorder(project, orderedParts)(db.pool).map { reorderedParts =>
-            project.copy(parts = reorderedParts)
-          }
+          partRepository.reorder(project, orderedParts)(db.pool)
         }
-      } yield reordered
-    }.recover {
-      case exception => throw exception
+        project <- lift(projectRepository.find(projectId))
+      } yield project).run
     }
 
     /**
@@ -476,12 +413,20 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @param dependencyId optionally make this task dependent on another
      * @return the newly created task
      */
-    override def createTask(partId: UUID, taskType: Int, name: String, description: String, position: Int, dependencyId: Option[UUID]): Future[Task] = {
+    override def createTask(partId: UUID, taskType: Int, name: String, description: String, position: Int, dependencyId: Option[UUID]): Future[\/[Fail, Task]] = {
       transactional { implicit connection =>
-        for {
-          part <- partRepository.find(partId).map(_.get)
-          taskList <- taskRepository.list(part)
-          taskListUpdated <- {
+        (for {
+          part <- lift(partRepository.find(partId))
+          taskList <- lift(taskRepository.list(part))
+          // If the dependency id is given, ensure the depended-upon task exists
+          dependency <- lift(dependencyId match {
+            case Some(depId) => taskRepository.find(depId).map {
+              case \/-(depTask) => \/-(Some(depTask))
+              case -\/(error) => -\/(error)
+            }
+            case None => Future.successful(\/-(None))
+          })
+          taskListUpdated <- lift {
             // If there is already a task with this position, shift it (and all following tasks)
             // back by one to make room for the new one.
             val positionExists = taskList.filter(_.position == position).nonEmpty
@@ -493,14 +438,14 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
                 case task: OrderingTask       => task.copy(position = task.position + 1)
                 case task: MatchingTask       => task.copy(position = task.position + 1)
               }
-              serialized(filteredTaskList)(taskRepository.update)
+              serializedT(filteredTaskList)(taskRepository.update)
             }
             else {
               // Otherwise do nothing, return the existing task list.
-              Future.successful(taskList)
+              Future.successful(\/-(taskList))
             }
           }
-          newTask <- taskRepository.insert(Task(
+          newTask = Task(
             partId = partId,
             taskType = taskType,
             position = position,
@@ -509,21 +454,18 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
               description = description,
               dependencyId = dependencyId
             )
-          ))
+          )
+          createdTask <- lift(taskRepository.insert(newTask))
         }
-        yield newTask
-      }.recover {
-        case exception => throw exception
+        yield newTask).run
       }
     }
 
     /**
      * Find a task by its ID.
      */
-    override def findTask(taskId: UUID): Future[Option[Task]] = {
+    override def findTask(taskId: UUID): Future[\/[Fail, Task]] = {
       taskRepository.find(taskId)
-    }.recover {
-      case exception => throw exception
     }
 
     /**
@@ -535,34 +477,28 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @param taskNum the number (position) of the task inside the part.
      * @return an [[Option[Task]]] if one was found.
      */
-    override def findTask(projectSlug: String, partNum: Int, taskNum: Int): Future[Option[Task]] = {
-      for {
-        project <- projectRepository.find(projectSlug).map(_.get)
-        taskOption <- taskRepository.find(project, partNum, taskNum)
+    override def findTask(projectSlug: String, partNum: Int, taskNum: Int): Future[\/[Fail, Task]] = {
+      (for {
+        project <- lift(projectRepository.find(projectSlug))
+        taskOption <- lift(taskRepository.find(project, partNum, taskNum))
       }
-      yield taskOption
-    }.recover {
-      case exception => throw exception
+      yield taskOption).run
     }
 
     /**
-     * Find a task by its position in a project.
+     * Find the "now" task for a student in a project
      *
-     * @param projectSlug the text slug of the project this task is in
-     * @param partNum the number (corresponds to 'position' field) of the part
-     *                that this task is in.
-     * @param taskNum the number (position) of the task inside the part.
-     * @return an [[Option[Task]]] if one was found.
+     * @param userId the unique of the id of the student
+     * @param projectId the unique id of the project
+     * @return a future disjunction containing either the now task, or a failure
      */
-    override def findNowTask(userId: UUID, projectId: UUID): Future[Option[Task]] = {
-      for {
-        student <- userRepository.find(userId).map(_.get)
-        project <- projectRepository.find(projectId).map(_.get)
-        taskOption <- taskRepository.findNow(student, project)
+    override def findNowTask(userId: UUID, projectId: UUID): Future[\/[Fail, Task]] = {
+      (for {
+        student <- lift(userRepository.find(userId))
+        project <- lift(projectRepository.find(projectId))
+        taskOption <- lift(taskRepository.findNow(student, project))
       }
-      yield taskOption
-    }.recover {
-      case exception => throw exception
+      yield taskOption).run
     }
 
     /**
@@ -571,48 +507,28 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * The trickiest part of this function is the re-ordering logic. Part of our
      * 'domain logic' is ensuring that the tasks in a part remain in the
      * correct order.
-     *
-     * @param partId the unique ID of the part this task belongs to
-     * @param name the name of this task
-     * @param description a brief description of this task
-     * @param position the position of this task in the part
-     * @param dependencyId optionally make this task dependent on another
-     * @param partId optionally move this task to a new part, and if so, we
-     *                need to be careful with the re-ordering.
-     * @return the newly created task
      */
-    private def updateTask(existingTask: Task, updatedTask: Task): Future[Task] = {
+    private def updateTask(existingTask: Task, updatedTask: Task): Future[\/[Fail, Task]] = {
       transactional { implicit connection =>
-        for {
-          maybeOldPart <-
-            if (existingTask != updatedTask) {
-              partRepository.find(existingTask.partId)
-            } else {
-              Future.successful(None)
+        (for {
+          oldPart <- lift(partRepository.find(existingTask.partId))
+          newPart <- lift(partRepository.find(updatedTask.partId))
+
+          opTasks <- lift(taskRepository.list(oldPart))
+          npTasks <- lift(taskRepository.list(newPart))
+
+          oldPosition = existingTask.position
+          newPosition = updatedTask.position
+
+          oldListUpdated <- lift {
+            if (existingTask.partId == updatedTask.partId) {
+              Future successful \/-(IndexedSeq.empty[Task])
             }
-
-          oldTaskList <- { maybeOldPart match {
-            case Some(oldPart) => taskRepository.list(oldPart).map { oldList =>
-              oldList.filter(_.id != updatedTask.id)
-            }
-            case None => Future successful IndexedSeq.empty[Task]
-          }}
-
-          newPart <- partRepository.find(updatedTask.partId).map(_.get)
-          taskList <- taskRepository.list(newPart)
-
-          oldPosition <- Future successful existingTask.position
-          newPosition <- Future successful updatedTask.position
-
-          oldListUpdated <- {
-            // If the task has changed parts, then the old task list must be updated
-            // in addition to the new one.
-            if (existingTask.partId == updatedTask.partId) { Future successful IndexedSeq.empty[Task] }
-            else if (oldTaskList.nonEmpty) {
+            else if (opTasks.nonEmpty) {
               // Update old task list to remove this task from the ordering.
               var filteredOrderedTaskList = IndexedSeq.empty[Task]
-              for (i <- oldTaskList.indices) {
-                filteredOrderedTaskList = filteredOrderedTaskList :+ {oldTaskList(i) match {
+              for (i <- opTasks.indices) {
+                filteredOrderedTaskList = filteredOrderedTaskList :+ {opTasks(i) match {
                   case task: LongAnswerTask => task.copy(position = i)
                   case task: ShortAnswerTask => task.copy(position = i)
                   case task: MultipleChoiceTask => task.copy(position = i)
@@ -621,11 +537,9 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
                   case _ => throw new Exception("Gold star for epic coding failure.")
                 }}
               }
-              // Cannot send parallel queries from within a transaction. Ensures they
-              // are executed sequentially!
-              serialized(filteredOrderedTaskList)(taskRepository.update)
+              serializedT(filteredOrderedTaskList)(taskRepository.update)
             }
-            else { Future successful IndexedSeq.empty[Task] }
+            else { Future successful \/-(IndexedSeq.empty[Task]) }
           }
 
           newListUpdated <- {
@@ -635,7 +549,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
             // must be updated.
             if (existingTask.partId   != updatedTask.partId ||
                 existingTask.position != updatedTask.position) {
-              val filteredTaskList = taskList.filter(_.id != updatedTask.id)
+              val filteredTaskList = npTasks.filter(_.id != updatedTask.id)
               var filteredOrderedTaskList = IndexedSeq.empty[Task]
               for (i <- filteredTaskList.indices) {
                 if (i >= newPosition) {
@@ -661,25 +575,29 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
               }
 
               if (filteredOrderedTaskList.nonEmpty) {
-                // Cannot send parallel queries from within a transaction. Ensures they
-                // are executed sequentially!
-                serialized(filteredOrderedTaskList)(taskRepository.update)
+                serializedT(filteredOrderedTaskList)(taskRepository.update)
               }
-              else { Future.successful(IndexedSeq()) }
+              else { Future.successful(\/-(IndexedSeq())) }
             }
-            else { Future successful taskList }
+            else { Future successful \/-(npTasks) }
           }
 
           // Now we insert the new part
-          updatedTask <- taskRepository.update(updatedTask)
-        } yield updatedTask
-      }.recover {
-        case exception => throw exception
+          updatedTask <- lift(taskRepository.update(updatedTask))
+        } yield updatedTask).run
+      }
+    }
+
+    private def validateTaskType[A](task: Task): Future[\/[Fail, Unit]] = Future successful {
+      if (!task.isInstanceOf[A]) {
+        -\/(GenericFail(s"You tried to the task with id ${task.id.string}, but called a method for the wrong type of task."))
+      } else {
+        \/-(())
       }
     }
 
     /**
-     * Update a long-answer task.
+     * Update a LongAnswerTask.
      *
      * @param taskId
      * @param version
@@ -698,31 +616,39 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
                                       position: Int,
                                       notesAllowed: Boolean,
                                       dependencyId: Option[UUID] = None,
-                                      partId: Option[UUID] = None): Future[Task] = {
-      for {
-        task <- taskRepository.find(taskId).map(_.get)
-        updatedTask <- {
-          if (!task.isInstanceOf[LongAnswerTask]) {
-            throw new Exception(s"You told me you were updating a LongAnswerTask, but task ${taskId.string} is actually something else.")
-          }
-          val existingTask: LongAnswerTask = task.asInstanceOf[LongAnswerTask]
-          updateTask(existingTask, existingTask.copy(
-            partId = { partId match {
-              case Some(partId) => partId
-              case None => existingTask.partId
-            }},
-            version = version,
-            position = position,
-            settings = existingTask.settings.copy(
-              title = name,
-              description = description,
-              notesAllowed = notesAllowed
-            )
-          ))
-        }
-      } yield updatedTask
+                                      partId: Option[UUID] = None): Future[\/[Fail, Task]] =
+    {
+      (for {
+        task <- lift(taskRepository.find(taskId))
+        _ <- lift(validateTaskType[LongAnswerTask](task))
+        toUpdate = task.asInstanceOf[LongAnswerTask].copy(
+          partId = partId.getOrElse(task.partId),
+          version = version,
+          position = position,
+          settings = task.settings.copy(
+            title = name,
+            description = description,
+            notesAllowed = notesAllowed
+          )
+        )
+        updatedTask <- lift(updateTask(task, toUpdate))
+      } yield updatedTask).run
     }
 
+    /**
+     * Update a ShortAnswerTask
+     *
+     * @param taskId
+     * @param version
+     * @param name
+     * @param description
+     * @param position
+     * @param notesAllowed
+     * @param maxLength
+     * @param dependencyId
+     * @param partId
+     * @return
+     */
     def updateShortAnswerTask(taskId: UUID,
                               version: Long,
                               name: String,
@@ -731,32 +657,43 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
                               notesAllowed: Boolean,
                               maxLength: Int,
                               dependencyId: Option[UUID] = None,
-                              partId: Option[UUID] = None): Future[Task] = {
-      for {
-        task <- taskRepository.find(taskId).map(_.get)
-        updatedTask <- {
-          if (!task.isInstanceOf[ShortAnswerTask]) {
-            throw new Exception(s"You told me you were updating a LongAnswerTask, but task ${taskId.string} is actually something else.")
-          }
-          val existingTask: ShortAnswerTask = task.asInstanceOf[ShortAnswerTask]
-          updateTask(existingTask, existingTask.copy(
-            partId = { partId match {
-              case Some(partId) => partId
-              case None => existingTask.partId
-            }},
-            version = version,
-            position = position,
-            settings = existingTask.settings.copy(
-              title = name,
-              description = description,
-              notesAllowed = notesAllowed
-            ),
-            maxLength = maxLength
-          ))
-        }
-      } yield updatedTask
+                              partId: Option[UUID] = None): Future[\/[Fail, Task]] =
+    {
+      (for {
+        task <- lift(taskRepository.find(taskId))
+        _ <- lift(validateTaskType[ShortAnswerTask](task))
+        toUpdate = task.asInstanceOf[ShortAnswerTask].copy(
+          partId = partId.getOrElse(task.partId),
+          version = version,
+          position = position,
+          settings = task.settings.copy(
+            title = name,
+            description = description,
+            notesAllowed = notesAllowed
+          ),
+          maxLength = maxLength
+        )
+        updatedTask <- lift(updateTask(task, toUpdate))
+      } yield updatedTask).run
     }
 
+    /**
+     * Update a MultipleChoiceTask
+     *
+     * @param taskId
+     * @param version
+     * @param name
+     * @param description
+     * @param position
+     * @param notesAllowed
+     * @param choices
+     * @param answer
+     * @param allowMultiple
+     * @param randomizeChoices
+     * @param dependencyId
+     * @param partId
+     * @return
+     */
     def updateMultipleChoiceTask(taskId: UUID,
                                  version: Long,
                                  name: String,
@@ -768,35 +705,45 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
                                  allowMultiple: Boolean = false,
                                  randomizeChoices: Boolean = true,
                                  dependencyId: Option[UUID] = None,
-                                 partId: Option[UUID] = None): Future[Task] = {
-      for {
-        task <- taskRepository.find(taskId).map(_.get)
-        updatedTask <- {
-          if (!task.isInstanceOf[MultipleChoiceTask]) {
-            throw new Exception(s"You told me you were updating a LongAnswerTask, but task ${taskId.string} is actually something else.")
-          }
-          val existingTask: MultipleChoiceTask = task.asInstanceOf[MultipleChoiceTask]
-          updateTask(existingTask, existingTask.copy(
-            partId = { partId match {
-              case Some(newPartId) => newPartId
-              case None => existingTask.partId
-            }},
-            version = version,
-            position = position,
-            settings = existingTask.settings.copy(
-              title = name,
-              description = description,
-              notesAllowed = notesAllowed
-            ),
-            choices = choices,
-            answer = answer,
-            allowMultiple = allowMultiple,
-            randomizeChoices = randomizeChoices
-          ))
-        }
-      } yield updatedTask
+                                 partId: Option[UUID] = None): Future[\/[Fail, Task]] =
+    {
+      (for {
+        task <- lift(taskRepository.find(taskId))
+        _ <- lift(validateTaskType[MultipleChoiceTask](task))
+        toUpdate = task.asInstanceOf[MultipleChoiceTask].copy(
+          partId = partId.getOrElse(task.partId),
+          version = version,
+          position = position,
+          settings = task.settings.copy(
+            title = name,
+            description = description,
+            notesAllowed = notesAllowed
+          ),
+          choices = choices,
+          answer = answer,
+          allowMultiple = allowMultiple,
+          randomizeChoices = randomizeChoices
+        )
+        updatedTask <- lift(updateTask(task, toUpdate))
+      } yield updatedTask).run
     }
 
+    /**
+     * Update an OrderingTask
+     *
+     * @param taskId
+     * @param version
+     * @param name
+     * @param description
+     * @param position
+     * @param notesAllowed
+     * @param elements
+     * @param answer
+     * @param randomizeChoices
+     * @param dependencyId
+     * @param partId
+     * @return
+     */
     def updateOrderingTask(taskId: UUID,
                            version: Long,
                            name: String,
@@ -807,34 +754,45 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
                            answer: IndexedSeq[Int] = IndexedSeq(),
                            randomizeChoices: Boolean = true,
                            dependencyId: Option[UUID] = None,
-                           partId: Option[UUID] = None): Future[Task] = {
-      for {
-        task <- taskRepository.find(taskId).map(_.get)
-        updatedTask <- {
-          if (!task.isInstanceOf[OrderingTask]) {
-            throw new Exception(s"You told me you were updating a LongAnswerTask, but task ${taskId.string} is actually something else.")
-          }
-          val existingTask: OrderingTask = task.asInstanceOf[OrderingTask]
-          updateTask(existingTask, existingTask.copy(
-            partId = { partId match {
-              case Some(newPartId) => newPartId
-              case None => existingTask.partId
-            }},
-            version = version,
-            position = position,
-            settings = existingTask.settings.copy(
-              title = name,
-              description = description,
-              notesAllowed = notesAllowed
-            ),
-            elements = elements,
-            answer = answer,
-            randomizeChoices = randomizeChoices
-          ))
-        }
-      } yield updatedTask
+                           partId: Option[UUID] = None): Future[\/[Fail, Task]] =
+    {
+      (for {
+        task <- lift(taskRepository.find(taskId))
+        _ <- lift(validateTaskType[OrderingTask](task))
+        toUpdate = task.asInstanceOf[OrderingTask].copy(
+          partId = partId.getOrElse(task.partId),
+          version = version,
+          position = position,
+          settings = task.settings.copy(
+            title = name,
+            description = description,
+            notesAllowed = notesAllowed
+          ),
+          elements = elements,
+          answer = answer,
+          randomizeChoices = randomizeChoices
+        )
+        updatedTask <- lift(updateTask(task, toUpdate))
+      } yield updatedTask).run
     }
 
+    /**
+     * Update a MatchingTask
+     *
+     * @param taskId
+     * @param version
+     * @param name
+     * @param description
+     * @param position
+     * @param notesAllowed
+     * @param elementsLeft
+     * @param elementsRight
+     * @param answer
+     * @param randomizeChoices
+     * @param dependencyId
+     * @param partId
+     * @return
+     */
     def updateMatchingTask(taskId: UUID,
                            version: Long,
                            name: String,
@@ -846,33 +804,27 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
                            answer: IndexedSeq[MatchingTask.Match] = IndexedSeq(),
                            randomizeChoices: Boolean = true,
                            dependencyId: Option[UUID] = None,
-                           partId: Option[UUID] = None): Future[Task] = {
-      for {
-        task <- taskRepository.find(taskId).map(_.get)
-        updatedTask <- {
-          if (!task.isInstanceOf[MatchingTask]) {
-            throw new Exception(s"You told me you were updating a LongAnswerTask, but task ${taskId.string} is actually something else.")
-          }
-          val existingTask: MatchingTask = task.asInstanceOf[MatchingTask]
-          updateTask(existingTask, existingTask.copy(
-            partId = { partId match {
-              case Some(newPartId) => newPartId
-              case None => existingTask.partId
-            }},
-            version = version,
-            position = position,
-            settings = existingTask.settings.copy(
-              title = name,
-              description = description,
-              notesAllowed = notesAllowed
-            ),
-            elementsLeft = elementsLeft,
-            elementsRight = elementsRight,
-            answer = answer,
-            randomizeChoices = randomizeChoices
-          ))
-        }
-      } yield updatedTask
+                           partId: Option[UUID] = None): Future[\/[Fail, Task]] =
+    {
+      (for {
+        task <- lift(taskRepository.find(taskId))
+        _ <- lift(validateTaskType[MatchingTask](task))
+        toUpdate = task.asInstanceOf[MatchingTask].copy(
+          partId = partId.getOrElse(task.partId),
+          version = version,
+          position = position,
+          settings = task.settings.copy(
+            title = name,
+            description = description,
+            notesAllowed = notesAllowed
+          ),
+          elementsLeft = elementsLeft,
+          elementsRight = elementsRight,
+          answer = answer,
+          randomizeChoices = randomizeChoices
+        )
+        updatedTask <- lift(updateTask(task, toUpdate))
+      } yield updatedTask).run
     }
 
 
@@ -887,20 +839,21 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @param version the current version of the task to delete
      * @return a boolean indicator whether the operation was successful
      */
-    override def deleteTask(taskId: UUID, version: Long): Future[Boolean] = {
+    override def deleteTask(taskId: UUID, version: Long): Future[\/[Fail, Task]] = {
       transactional { implicit connection =>
-        val fDeleted = for {
-          task <- taskRepository.find(taskId).map(_.get match {
+        (for {
+          genericTask <- lift(taskRepository.find(taskId))
+          task = genericTask match {
             case task: LongAnswerTask => task.copy(version = version)
             case task: ShortAnswerTask => task.copy(version = version)
             case task: MultipleChoiceTask => task.copy(version = version)
             case task: OrderingTask => task.copy(version = version)
             case task: MatchingTask => task.copy(version = version)
             case _ => throw new Exception("Gold star for epic coding failure.")
-          })
-          part <- partRepository.find(task.partId).map(_.get)
-          taskList <- taskRepository.list(part)
-          taskListUpdated <- {
+          }
+          part <- lift(partRepository.find(task.partId))
+          taskList <- lift(taskRepository.list(part))
+          taskListUpdated <- lift {
             // If there is already a part with this position, shift it (and all following parts)
             // back by one to make room for the new one.
             val filteredTaskList = taskList.filter(_.position > task.position).map {
@@ -911,17 +864,10 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
               case task: MatchingTask => task.copy(position = task.position - 1)
               case _ => throw new Exception("Gold star for epic coding failure.")
             }
-            serialized(filteredTaskList)(taskRepository.update)
+            serializedT(filteredTaskList)(taskRepository.update)
           }
-          scratchpadsDeleted <- taskScratchpadRepository.delete(task)
-          responsesDeleted <- taskResponseRepository.delete(task)
-          feedbacksDeleted <- taskFeedbackRepository.delete(task)
-          deletedTask <- taskRepository.delete(task)
-        } yield deletedTask
-
-        fDeleted.recover {
-          case exception => throw exception
-        }
+          deletedTask <- lift(taskRepository.delete(task))
+        } yield deletedTask).run
       }
     }
 
@@ -930,11 +876,12 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      *
      * @param taskId the unique ID of the task to be moved
      * @param partId the new part that this task should belong to
+     * @param newPosition the new position for this task
      */
-    override def moveTask(partId: UUID, taskId: UUID, newPosition: Int): Future[Task] = {
-      taskRepository.find(taskId).flatMap { taskOption =>
-        val existingTask = taskOption.get
-        val updatedTask = existingTask match {
+    override def moveTask(partId: UUID, taskId: UUID, newPosition: Int): Future[\/[Fail, Task]] = {
+      (for {
+        task <- lift(taskRepository.find(taskId))
+        toUpdate = task match {
           case task: LongAnswerTask =>     task.copy(position = newPosition, partId = partId)
           case task: ShortAnswerTask =>    task.copy(position = newPosition, partId = partId)
           case task: MultipleChoiceTask => task.copy(position = newPosition, partId = partId)
@@ -942,9 +889,40 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
           case task: MatchingTask =>       task.copy(position = newPosition, partId = partId)
           case _ => throw new Exception("Gold star for epic coding failure.")
         }
-        this.updateTask(existingTask, updatedTask)
-      }.recover {
-        case exception => throw exception
+        movedTask <- lift(this.updateTask(task, toUpdate))
+      } yield movedTask).run
+    }
+
+    /**
+     * Check if a slug is of the valid format.
+     *
+     * @param slug the slug to be checked
+     * @return a future disjunction containing either the slug, or a failure
+     */
+    private def isValidSlug(slug: String): Future[\/[Fail, String]] = Future successful {
+      if ("""[A-Za-z0-9\_\-]+""".r.unapplySeq(slug).isDefined) \/-(slug)
+      else -\/(BadInput(s"$slug is not a valid e-mail format."))
+    }
+
+    /**
+     * Validate a slug for use in a project.
+     *
+     * @param slug the slug to be checked
+     * @param existingId an optional unique id for an existing project to exclude
+     * @return a future disjunction containing either the slug, or a failure
+     */
+    private def validateSlug(slug: String, existingId: Option[UUID] = None): Future[\/[Fail, String]] = {
+      val existing = for {
+        validSlug <- lift(isValidSlug(slug))
+        project <- lift(projectRepository.find(validSlug))
+      } yield project
+
+      existing.run.map {
+        case \/-(project) =>
+          if (existingId.isEmpty || (existingId.get != project.id)) -\/(EntityUniqueFieldError(s"The slug $slug is already in use."))
+          else \/-(slug)
+        case -\/(error: NoResults) => \/-(slug)
+        case -\/(otherErrors: Fail) => -\/(otherErrors)
       }
     }
   }

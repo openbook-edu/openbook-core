@@ -1,8 +1,8 @@
 package ca.shiftfocus.krispii.core.services
 
+import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.models.document.{Revision, Document}
-import ca.shiftfocus.krispii.core.services.error.Fail
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import com.github.mauricio.async.db.Connection

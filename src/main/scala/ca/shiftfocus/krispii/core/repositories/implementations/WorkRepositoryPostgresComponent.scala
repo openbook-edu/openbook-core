@@ -53,9 +53,18 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |LEFT JOIN matching_work ON work.id = matching_work.work_id
        """.stripMargin
 
+    val JoinMatchVersion =
+      s"""
+         |LEFT JOIN long_answer_work ON work.id = long_answer_work.work_id AND work.version = long_answer_work.version
+         |LEFT JOIN short_answer_work ON work.id = short_answer_work.work_id AND work.version = short_answer_work.version
+         |LEFT JOIN multiple_choice_work ON work.id = multiple_choice_work.work_id AND work.version = multiple_choice_work.version
+         |LEFT JOIN ordering_work ON work.id = ordering_work.work_id AND work.version = ordering_work.version
+         |LEFT JOIN matching_work ON work.id = matching_work.work_id AND work.version = matching_work.version
+       """.stripMargin
+
     // -- Select queries -----------------------------------------------------------------------------------------------
 
-    val ListLatestByProjectForUser =
+    val SelectAllForUserProject =
       s"""
          |$Select
          |$From, projects, parts, tasks
@@ -67,6 +76,14 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |  AND projects.id = parts.project_id
          |  AND student_responses.task_id = tasks.id
          |  AND version = (SELECT MAX(version) FROM student_responses WHERE user_id= ? AND task_id=tasks.id)
+       """.stripMargin
+
+    val SelectAllForTask =
+      s"""
+         |$Select
+         |$From, tasks
+         |$JoinMatchVersion
+         |WHERE work.task_id = tasks.id
        """.stripMargin
 
     val ListRevisionsById =
@@ -192,7 +209,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |  AND revision = ?
        """.stripMargin
 
-    val DeleteByTask =
+    val DeleteAllForTask =
       s"""
          |DELETE work
          |$From
@@ -205,14 +222,12 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      *
      * @param project
      * @param user
-     * @param course
      * @return
      */
-    override def list(user: User, course: Course, project: Project): Future[\/[Fail, IndexedSeq[Work]]] = {
-      db.pool.sendPreparedStatement(ListLatestByProjectForUser, Array[Any](
+    override def list(user: User, project: Project): Future[\/[Fail, IndexedSeq[Work]]] = {
+      db.pool.sendPreparedStatement(SelectAllForUserProject, Array[Any](
         project.id.bytes,
-        user.id.bytes,
-        course.id.bytes
+        user.id.bytes
       )).map {
         result => buildWorkList(result.rows)
       }.recover {
@@ -225,14 +240,28 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      *
      * @param task
      * @param user
-     * @param course
      * @return
      */
-    override def list(user: User, task: Task, course: Course): Future[\/[Fail, IndexedSeq[Work]]] = {
+    override def list(user: User, task: Task): Future[\/[Fail, IndexedSeq[Work]]] = {
       db.pool.sendPreparedStatement(ListRevisionsById, Array[Any](
         task.id.bytes,
-        user.id.bytes,
-        course.id.bytes
+        user.id.bytes
+      )).map {
+        result => buildWorkList(result.rows)
+      }.recover {
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+      }
+    }
+
+    /**
+     * List all revisions of a specific work.
+     *
+     * @param task
+     * @return
+     */
+    override def list(task: Task): Future[\/[Fail, IndexedSeq[Work]]] = {
+      db.pool.sendPreparedStatement(SelectAllForTask, Array[Any](
+        task.id.bytes
       )).map {
         result => buildWorkList(result.rows)
       }.recover {
@@ -243,9 +272,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
     /**
      * Find the latest revision of a single work.
      *
-     * @param task
-     * @param user
-     * @param course
+     * @param workId
      * @return
      */
     override def find(workId: UUID): Future[\/[Fail, Work]] = {
@@ -267,11 +294,10 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param course
      * @return
      */
-    override def find(user: User, task: Task, course: Course): Future[\/[Fail, Work]] = {
+    override def find(user: User, task: Task): Future[\/[Fail, Work]] = {
       db.pool.sendPreparedStatement(SelectByStudentTaskCourse, Array[Any](
         user.id.bytes,
-        task.id.bytes,
-        course.id.bytes
+        task.id.bytes
       )).map {
         result => buildWork(result.rows)
       }.recover {
@@ -287,12 +313,11 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param course
      * @return
      */
-    override def find(user: User, task: Task, course: Course, revision: Long): Future[\/[Fail, Work]] = {
+    override def find(user: User, task: Task, version: Long): Future[\/[Fail, Work]] = {
       db.pool.sendPreparedStatement(SelectByStudentTaskCourse, Array[Any](
         user.id.bytes,
         task.id.bytes,
-        course.id.bytes,
-        revision
+        version
       )).map {
         result => buildWork(result.rows)
       }.recover {
@@ -325,7 +350,6 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
         work.id.bytes,
         work.studentId.bytes,
         work.taskId.bytes,
-        work.courseId.bytes,
         work.isComplete,
         new DateTime,
         new DateTime
@@ -375,7 +399,6 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
           new DateTime,
           work.studentId.bytes,
           work.taskId.bytes,
-          work.courseId.bytes,
           work.version,
           work.version +1,
           work.answer
@@ -388,7 +411,6 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
           new DateTime,
           work.studentId.bytes,
           work.taskId.bytes,
-          work.courseId.bytes,
           work.version,
           work.answer
         ))
@@ -414,15 +436,13 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
         conn.sendPreparedStatement(DeleteRevision, Array[Any](
           work.studentId.bytes,
           work.taskId.bytes,
-          work.courseId.bytes,
           work.version
         ))
       }
       else {
         conn.sendPreparedStatement(Delete, Array[Any](
           work.studentId.bytes,
-          work.taskId.bytes,
-          work.courseId.bytes
+          work.taskId.bytes
         ))
       }
 
@@ -450,6 +470,15 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @return
      */
     override def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, Work]] = {
+      for {
+        tasks <- lift(list(task))
+        deletedWorks <- lift(conn.sendPreparedStatement(DeleteAllForTask, Array[Any](task.id.bytes)).map({
+          result =>
+            if (result.rowsAffected == tasks.length) \/-(tasks)
+            else -\/(GenericFail("Failed to delete all tasks"))
+        }))
+      } yield deletedWorks
+
       conn.sendPreparedStatement(DeleteRevision, Array[Any](task.id.bytes)).map {
         result => {
           if (result.rowsAffected == 0) {

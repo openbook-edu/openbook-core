@@ -1,5 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
+import ca.shiftfocus.krispii.core.fail.Fail
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
@@ -7,15 +8,13 @@ import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.uuid.UUID
 import play.api.Logger
 import scala.concurrent.Future
+import scalaz.{-\/, \/-, \/}
 
 trait ComponentServiceImplComponent extends ComponentServiceComponent {
   self: AuthServiceComponent with
         ProjectServiceComponent with
         SchoolServiceComponent with
         ComponentRepositoryComponent with
-        UserRepositoryComponent with
-        ProjectRepositoryComponent with
-        PartRepositoryComponent with
         DB =>
 
   override val componentService: ComponentService = new ComponentServiceImpl
@@ -27,7 +26,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
      *
      * @return an array of components
      */
-    override def list: Future[IndexedSeq[Component]] = {
+    override def list: Future[\/[Fail, IndexedSeq[Component]]] = {
       componentRepository.list(db.pool)
     }
 
@@ -37,14 +36,28 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
      * @param partId the unique ID of the part to filter by
      * @return an array of components
      */
-    override def listByPart(partId: UUID): Future[IndexedSeq[Component]] = {
-      for {
-        part <- partRepository.find(partId).map(_.get)
-        componentList <- componentRepository.list(part)(db.pool)
+    override def listByPart(partId: UUID): Future[\/[Fail, IndexedSeq[Component]]] = {
+      (for {
+        part <- lift(projectService.findPart(partId))
+        componentList <- lift(componentRepository.list(part)(db.pool))
       }
-      yield componentList
-    }.recover {
-      case exception => throw exception
+      yield componentList).run
+    }
+
+    /**
+     * List components by project and user, thus listing "enabled" components.
+     *
+     * A user can view components that are enabled in any of their courses.
+     *
+     * @param projectId the unique ID of the part to filter by
+     * @return an array of components
+     */
+    override def listByProject(projectId: UUID): Future[\/[Fail, IndexedSeq[Component]]] = {
+      (for {
+        project <- lift(projectService.find(projectId))
+        componentList <- lift(componentRepository.list(project)(db.pool))
+      }
+      yield componentList).run
     }
 
     /**
@@ -56,37 +69,16 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
      * @param userId the user to check for
      * @return an array of components
      */
-    override def listByProject(projectId: UUID): Future[IndexedSeq[Component]] = {
-      for {
-        project <- projectRepository.find(projectId).map(_.get)
-        componentList <- componentRepository.list(project)(db.pool)
-      }
-      yield componentList
-    }.recover {
-      case exception => throw exception
-    }
+    override def listByProject(projectId: UUID, userId: UUID): Future[\/[Fail, IndexedSeq[Component]]] = {
+      val fProject = projectService.find(projectId)
+      val fUser = authService.find(userId)
 
-    /**
-     * List components by project and user, thus listing "enabled" components.
-     *
-     * A user can view components that are enabled in any of their courses.
-     *
-     * @param projectId the unique ID of the part to filter by
-     * @param userId the user to check for
-     * @return an array of components
-     */
-    override def listByProject(projectId: UUID, userId: UUID): Future[IndexedSeq[Component]] = {
-      val fProject = projectRepository.find(projectId).map(_.get)
-      val fUser = userRepository.find(userId).map(_.get)
-
-      for {
-        project <- fProject
-        user <- fUser
-        componentList <- componentRepository.list(project, user)(db.pool)
+      (for {
+        project <- lift(fProject)
+        user <- lift(fUser)
+        componentList <- lift(componentRepository.list(project, user.user)(db.pool))
       }
-      yield componentList
-    }.recover {
-      case exception => throw exception
+      yield componentList).run
     }
 
     /**
@@ -95,11 +87,11 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
      * @param id the unique ID of the component to load.
      * @return an optional component
      */
-    override def find(id: UUID): Future[Option[Component]] = {
+    override def find(id: UUID): Future[\/[Fail, Component]] = {
       componentRepository.find(id)(db.pool)
     }
 
-    override def createAudio(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, soundcloudId: String): Future[Component] = {
+    override def createAudio(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, soundcloudId: String): Future[\/[Fail, Component]] = {
       val newComponent = AudioComponent(
         ownerId = ownerId,
         title = title,
@@ -110,11 +102,9 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
       transactional { implicit connection =>
         componentRepository.insert(newComponent)
       }
-    }.recover {
-      case exception => throw exception
     }
 
-    override def createText(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, content: String): Future[Component] = {
+    override def createText(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, content: String): Future[\/[Fail, Component]] = {
       val newComponent = TextComponent(
         ownerId = ownerId,
         title = title,
@@ -125,11 +115,9 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
       transactional { implicit connection =>
         componentRepository.insert(newComponent)
       }
-    }.recover {
-      case exception => throw exception
     }
 
-    override def createVideo(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, vimeoId: String, height: Int, width: Int): Future[Component] = {
+    override def createVideo(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, vimeoId: String, height: Int, width: Int): Future[\/[Fail, Component]] = {
       val newComponent = VideoComponent(
         ownerId = ownerId,
         title = title,
@@ -142,116 +130,91 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
       transactional { implicit connection =>
         componentRepository.insert(newComponent)
       }
-    }.recover {
-      case exception => throw exception
     }
 
-    override def updateAudio(id: UUID, version: Long, ownerId: UUID, values: Map[String, Any]): Future[Component] = {
+    override def updateAudio(id: UUID, version: Long, ownerId: UUID,
+                             title: Option[String],
+                             questions: Option[String],
+                             thingsToThinkAbout: Option[String],
+                             soundcloudId: Option[String]): Future[\/[Fail, Component]] = {
       transactional { implicit connection =>
-        for {
-          existingComponent <- componentRepository.find(id).map(_.get.asInstanceOf[AudioComponent])
-          componentToUpdate <- Future.successful(existingComponent.copy(
+        (for {
+          existingComponent <- lift(componentRepository.find(id))
+          existingAudio = existingComponent.asInstanceOf[AudioComponent]
+          componentToUpdate = existingAudio.copy(
             version = version,
             ownerId = ownerId,
-            title = values.get("title") match {
-              case Some(title: String) => title
-              case _ => existingComponent.title
-            },
-            questions = values.get("questions") match {
-              case Some(questions: String) => questions
-              case _ => existingComponent.questions
-            },
-            thingsToThinkAbout = values.get("thingsToThinkAbout") match {
-              case Some(thingsToThinkAbout: String) => thingsToThinkAbout
-              case _ => existingComponent.thingsToThinkAbout
-            },
-            soundcloudId = values.get("soundcloudId") match {
-              case Some(soundcloudId: String) => soundcloudId
-              case _ => existingComponent.soundcloudId
-            }
-          ))
-          updatedComponent <- componentRepository.update(componentToUpdate)
+            title = title.getOrElse(existingAudio.title),
+            questions = questions.getOrElse(existingAudio.questions),
+            thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingAudio.thingsToThinkAbout),
+            soundcloudId = soundcloudId.getOrElse(existingAudio.soundcloudId)
+          )
+          updatedComponent <- lift(componentRepository.update(componentToUpdate))
         }
-        yield updatedComponent
-      }.recover {
-        case exception => throw exception
+        yield updatedComponent).run
       }
     }
 
-    override def updateText(id: UUID, version: Long, ownerId: UUID, values: Map[String, Any]): Future[Component] = {
+    override def updateText(id: UUID, version: Long, ownerId: UUID,
+                            title: Option[String],
+                            questions: Option[String],
+                            thingsToThinkAbout: Option[String],
+                            content: Option[String]): Future[\/[Fail, Component]] = {
       transactional { implicit connection =>
-        for {
-          existingComponent <- componentRepository.find(id).map(_.get.asInstanceOf[TextComponent])
-          componentToUpdate <- Future.successful(existingComponent.copy(
+        (for {
+          existingComponent <- lift(componentRepository.find(id))
+          existingText = existingComponent.asInstanceOf[TextComponent]
+          componentToUpdate = existingText.copy(
             version = version,
             ownerId = ownerId,
-            title = values.get("title") match {
-              case Some(title: String) => title
-              case _ => existingComponent.title
-            },
-            questions = values.get("questions") match {
-              case Some(questions: String) => questions
-              case _ => existingComponent.questions
-            },
-            thingsToThinkAbout = values.get("thingsToThinkAbout") match {
-              case Some(thingsToThinkAbout: String) => thingsToThinkAbout
-              case _ => existingComponent.thingsToThinkAbout
-            },
-            content = values.get("content") match {
-              case Some(content: String) => content
-              case _ => existingComponent.content
-            }
-          ))
-          updatedComponent <- componentRepository.update(componentToUpdate)
+            title = title.getOrElse(existingText.title),
+            questions = questions.getOrElse(existingText.questions),
+            thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingText.thingsToThinkAbout),
+            content = content.getOrElse(existingText.content)
+          )
+          updatedComponent <- lift(componentRepository.update(componentToUpdate))
         }
-        yield updatedComponent
-      }.recover {
-        case exception => throw exception
+        yield updatedComponent).run
       }
     }
 
-    override def updateVideo(id: UUID, version: Long, ownerId: UUID, values: Map[String, Any]): Future[Component] = {
+    override def updateVideo(id: UUID, version: Long, ownerId: UUID,
+                             title: Option[String],
+                             questions: Option[String],
+                             thingsToThinkAbout: Option[String],
+                             vimeoId: Option[String],
+                             width: Option[Int],
+                             height: Option[Int]): Future[\/[Fail, Component]] = {
       transactional { implicit connection =>
-        for {
-          existingComponent <- componentRepository.find(id).map(_.get.asInstanceOf[VideoComponent])
-          componentToUpdate <- Future.successful(existingComponent.copy(
+        (for {
+          existingComponent <- lift(componentRepository.find(id))
+          existingVideo = existingComponent.asInstanceOf[VideoComponent]
+          componentToUpdate = existingVideo.copy(
             version = version,
             ownerId = ownerId,
-            title = values.get("title") match {
-              case Some(title: String) => title
-              case _ => existingComponent.title
-            },
-            questions = values.get("questions") match {
-              case Some(questions: String) => questions
-              case _ => existingComponent.questions
-            },
-            thingsToThinkAbout = values.get("thingsToThinkAbout") match {
-              case Some(thingsToThinkAbout: String) => thingsToThinkAbout
-              case _ => existingComponent.thingsToThinkAbout
-            },
-            vimeoId = values.get("vimeoId") match {
-              case Some(vimeoId: String) => vimeoId
-              case _ => existingComponent.vimeoId
-            },
-            width = values.get("width") match {
-              case Some(width: Int) => width.toInt
-              case _ => existingComponent.width
-            },
-            height = values.get("height") match {
-              case Some(height: Int) => height.toInt
-              case _ => existingComponent.height
-            }
-          ))
-          updatedComponent <- componentRepository.update(componentToUpdate)
+            title = title.getOrElse(existingVideo.title),
+            questions = questions.getOrElse(existingVideo.questions),
+            thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingVideo.thingsToThinkAbout),
+            vimeoId = vimeoId.getOrElse(existingVideo.vimeoId),
+            width = width.getOrElse(existingVideo.width),
+            height = height.getOrElse(existingVideo.height)
+          )
+          updatedComponent <- lift(componentRepository.update(componentToUpdate))
         }
-        yield updatedComponent
-      }.recover {
-        case exception => throw exception
+        yield updatedComponent).run
       }
     }
 
-    override def delete(id: UUID, version: Long): Future[Boolean] = {
-      Future.successful(false)
+    override def delete(id: UUID, version: Long): Future[\/[Fail, Component]] = {
+      (for {
+        component <- lift(componentRepository.find(id))
+        toDelete = component match {
+          case comp: AudioComponent => comp.copy(version = version)
+          case comp: TextComponent => comp.copy(version = version)
+          case comp: VideoComponent => comp.copy(version = version)
+        }
+        deleted <- lift(componentRepository.delete(toDelete))
+      } yield deleted).run
     }
 
     /**
@@ -263,21 +226,18 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
      *
      * @param componentId the unique ID of the component to add
      * @param partId the unique ID of the part to add the component to
-     * @param whether the operation was successful
      */
-    override def addToPart(componentId: UUID, partId: UUID): Future[Boolean] = {
+    override def addToPart(componentId: UUID, partId: UUID): Future[\/[Fail, Component]] = {
       transactional { implicit connection =>
-        val fComponent = componentRepository.find(componentId).map(_.get)
-        val fPart = partRepository.find(partId).map(_.get)
+        val fComponent = componentRepository.find(componentId)
+        val fPart = projectService.findPart(partId)
 
-        for {
-          component <- fComponent
-          part <- fPart
-          wasAdded <- componentRepository.addToPart(component, part)
+        (for {
+          component <- lift(fComponent)
+          part <- lift(fPart)
+          addedComp <- lift(componentRepository.addToPart(component, part))
         }
-        yield wasAdded
-      }.recover {
-        case exception => throw exception
+        yield addedComp).run
       }
     }
 
@@ -290,21 +250,19 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
      *
      * @param componentId the unique ID of the component to remove
      * @param partId the unique ID of the part to remove the component from
-     * @param whether the operation was successful
+     * @return the operation was successful
      */
-    override def removeFromPart(componentId: UUID, partId: UUID): Future[Boolean] = {
+    override def removeFromPart(componentId: UUID, partId: UUID): Future[\/[Fail, Component]] = {
       transactional { implicit connection =>
-        val fComponent = componentRepository.find(componentId).map(_.get)
-        val fPart = partRepository.find(partId).map(_.get)
+        val fComponent = componentRepository.find(componentId)
+        val fPart = projectService.findPart(partId)
 
-        for {
-          component <- fComponent
-          part <- fPart
-          wasRemoved <- componentRepository.removeFromPart(component, part)
+        (for {
+          component <- lift(fComponent)
+          part <- lift(fPart)
+          wasRemoved <- lift(componentRepository.removeFromPart(component, part))
         }
-        yield wasRemoved
-      }.recover {
-        case exception => throw exception
+        yield wasRemoved).run
       }
     }
 
@@ -329,78 +287,102 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
      * @param role the role under which the user is requesting the component
      * @return
      */
-    override def userCanAccess(component: Component, userInfo: UserInfo): Future[Boolean] = {
+    override def userCanAccess(component: Component, userInfo: UserInfo): Future[\/[Fail, Boolean]] = {
       // Admins can view everything
       if (userInfo.roles.map(_.name).contains("administrator")) {
-        Future successful true
+        Future successful \/-(true)
       }
       // Owners can view anything they create
       else if (component.ownerId == userInfo.user.id) {
-        Future successful true
+        Future successful \/-(true)
       }
       else {
         // Teachers can view the component if it's in one of their projects
         if (userInfo.roles.map(_.name).contains("teacher")) {
 
-          val fAsTeacher: Future[Boolean] = for {
-            courses <- schoolService.listCoursesByTeacher(userInfo.user.id)
-
-            projects <-
+          val fAsTeacher: Future[\/[Fail, Boolean]] = (for {
+            courses <- lift(schoolService.listCoursesByTeacher(userInfo.user.id))
+            projects_inter <-
               Future.sequence(courses.map {
                 course => schoolService.listProjects(course)
-              }).map(_.flatten)
-
-            components <-
+              })
+            projects <- lift(Future.successful {
+              if (projects_inter.filter(_.isLeft).nonEmpty) -\/(projects_inter.filter(_.isLeft).head.swap.toOption.get)
+              else \/-(projects_inter.map(_.toOption.get).flatten)
+            })
+            components_inter <-
               Future.sequence(projects.map {
                 project => componentService.listByProject(project.id)
-              }).map(_.flatten)
+              })
+            components <- lift(Future.successful {
+              if (components_inter.filter(_.isLeft).nonEmpty) -\/(components_inter.filter(_.isLeft).head.swap.toOption.get)
+              else \/-(components_inter.map(_.toOption.get).flatten)
+            })
           }
-          yield components.contains(component)
+          yield components.contains(component)).run
 
-          fAsTeacher.flatMap { asTeacher =>
-            if (asTeacher) {
-              Future successful true
-            }
-            else {
-              // Teachers are also students:
-              // - list their courses
-              // - then list their projects for those courses
-              // - then list the components for the enabled parts in those projects
-              for {
-                courses <- schoolService.listCoursesByUser(userInfo.user.id)
-                projects <-
+          fAsTeacher.flatMap {
+            case -\/(error) => Future successful -\/(error)
+            case \/-(asTeacher) =>
+              if (asTeacher) {
+                Future successful \/-(true)
+              }
+              else {
+                // Teachers are also students:
+                // - list their courses
+                // - then list their projects for those courses
+                // - then list the components for the enabled parts in those projects
+                val fAsStudent: Future[\/[Fail, Boolean]] = (for {
+                  courses <- lift(schoolService.listCoursesByTeacher(userInfo.user.id))
+                  projects_inter <-
                   Future.sequence(courses.map {
                     course => schoolService.listProjects(course)
-                  }).map(_.flatten)
-                parts = projects.map(_.parts.filter(_.enabled == true)).flatten
-                components <-
-                  Future.sequence(parts.map {
-                    part => componentService.listByPart(part.id)
-                  }).map(_.flatten)
+                  })
+                  projects <- lift(Future.successful {
+                    if (projects_inter.filter(_.isLeft).nonEmpty) -\/(projects_inter.filter(_.isLeft).head.swap.toOption.get)
+                    else \/-(projects_inter.map(_.toOption.get).flatten)
+                  })
+                  components_inter <-
+                    Future.sequence(projects.map {
+                      project => componentService.listByProject(project.id)
+                    })
+                  components <- lift(Future.successful {
+                    if (components_inter.filter(_.isLeft).nonEmpty) -\/(components_inter.filter(_.isLeft).head.swap.toOption.get)
+                    else \/-(components_inter.map(_.toOption.get).flatten)
+                  })
+                }
+                yield components.contains(component)).run
+                fAsStudent
               }
-              yield components.contains(component)
-            }
           }
         }
 
         // Students can view the component if it's in one of their projects and attached to an active part
         else if (userInfo.roles.map(_.name).contains("student")) {
-          for {
-            courses <- schoolService.listCoursesByUser(userInfo.user.id)
-            projects <-
+          (for {
+            courses <- lift(schoolService.listCoursesByUser(userInfo.user.id))
+            projects_inter <-
               Future.sequence(courses.map {
                 course => schoolService.listProjects(course)
-              }).map(_.flatten)
+              })
+            projects <- lift(Future.successful {
+              if (projects_inter.filter(_.isLeft).nonEmpty) -\/(projects_inter.filter(_.isLeft).head.swap.toOption.get)
+              else \/-(projects_inter.map(_.toOption.get).flatten)
+            })
             parts = projects.map(_.parts.filter(_.enabled == true)).flatten
-            components <-
+            components_inter <-
               Future.sequence(parts.map {
                 part => componentService.listByPart(part.id)
-              }).map(_.flatten)
+              })
+            components <- lift(Future.successful {
+              if (components_inter.filter(_.isLeft).nonEmpty) -\/(components_inter.filter(_.isLeft).head.swap.toOption.get)
+              else \/-(components_inter.map(_.toOption.get).flatten)
+            })
           }
-          yield components.contains(component)
+          yield components.contains(component)).run
         }
         else {
-          Future successful false
+          Future successful \/-(false)
         }
       }
     }

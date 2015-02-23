@@ -1,12 +1,13 @@
 package ca.shiftfocus.krispii.core.services
 
-import ca.shiftfocus.krispii.core.services.error.Fail
+import ca.shiftfocus.krispii.core.fail._
+import ca.shiftfocus.krispii.core.lib.FutureMonad
 import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models._
 import scala.concurrent.Future
 import scalaz.\/
 
-trait ComponentServiceComponent {
+trait ComponentServiceComponent extends FutureMonad {
   val componentService: ComponentService
 
   trait ComponentService {
@@ -20,9 +21,9 @@ trait ComponentServiceComponent {
     def createText(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, content: String): Future[\/[Fail, Component]]
     def createVideo(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, vimeoId: String, height: Int, width: Int): Future[\/[Fail, Component]]
 
-    def updateAudio(id: UUID, version: Long, ownerId: UUID, values: Map[String, Any]): Future[\/[Fail, Component]]
-    def updateText(id: UUID, version: Long, ownerId: UUID, values: Map[String, Any]): Future[\/[Fail, Component]]
-    def updateVideo(id: UUID, version: Long, ownerId: UUID, values: Map[String, Any]): Future[\/[Fail, Component]]
+    def updateAudio(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String], soundCloudId: Option[String]): Future[\/[Fail, Component]]
+    def updateText(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String], content: Option[String]): Future[\/[Fail, Component]]
+    def updateVideo(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String], vimeoId: Option[String], height: Option[Int], width: Option[Int]): Future[\/[Fail, Component]]
 
     def delete(id: UUID, version: Long): Future[\/[Fail, Component]]
 

@@ -1,5 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
+import ca.shiftfocus.krispii.core.fail.Fail
 import ca.shiftfocus.krispii.core.services.error.Fail
 import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models._
@@ -13,12 +14,11 @@ trait ScheduleServiceComponent {
   val scheduleService: ScheduleService
 
   trait ScheduleService {
-    def list: Future[\/[Fail, IndexedSeq[CourseSchedule]]]
     def listByCourse(courseId: UUID): Future[\/[Fail, IndexedSeq[CourseSchedule]]]
     def find(id: UUID): Future[\/[Fail, CourseSchedule]]
 
     def create(courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String): Future[\/[Fail, CourseSchedule]]
-    def update(id: UUID, version: Long, values: Map[String, Any]): Future[\/[Fail, CourseSchedule]]
+    def update(id: UUID, version: Long, courseId: Option[UUID], day: Option[LocalDate], startTime: Option[LocalTime], endTime: Option[LocalTime], description: Option[String]): Future[\/[Fail, CourseSchedule]]
     def delete(id: UUID, version: Long): Future[\/[Fail, CourseSchedule]]
 
     def isAnythingScheduledForUser(userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[Fail, Boolean]]

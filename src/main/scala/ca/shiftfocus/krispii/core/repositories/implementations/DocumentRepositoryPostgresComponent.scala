@@ -103,23 +103,22 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
      * @return
      */
     override def find(id: UUID): Future[\/[Fail, Document]] = {
-      for {
-        result <- db.pool.sendPreparedStatement(FindDocument, Seq[Any](id.bytes))
-        maybeRowData = result.rows match {
+      db.pool.sendPreparedStatement(FindDocument, Seq[Any](id.bytes)).flatMap { result =>
+        val maybeRowData = result.rows match {
           case Some(rows) => rows.headOption
           case None => None
         }
-        owner <- lift[User] {
-          maybeRowData match {
+        (for {
+          owner <- lift(maybeRowData match {
             case Some(rowData) => userRepository.find(UUID(rowData("owner_id").asInstanceOf[Array[Byte]]))
             case None => Future successful -\/(GenericFail("Invalid data returned from db."))
-          }
-        }
+          })
+          document <- lift(Future.successful(buildDocument(result.rows)(owner, IndexedSeq.empty[User])))
+        } yield document).run
+      }.recover {
+        case exception: NoSuchElementException => -\/(GenericFail("Invalid data returned from db."))
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
-      yield buildDocument(result.rows)(owner, IndexedSeq.empty[User])
-    }.recover {
-      case exception: NoSuchElementException => -\/(GenericFail("Invalid data returned from db."))
-      case exception => -\/(ExceptionalFail("Uncaught exception", exception))
     }
 
     /**

@@ -119,16 +119,12 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
 
       val fResult = for {
         projectList <- lift(fProjectList)
-        intermediate <- Future sequence projectList.map{ project =>
-          partRepository.list(project).map {
-            case \/-(partList) => \/-(project.copy(parts = partList))
-            case -\/(error: Fail) => -\/(error)
-          }
-        }
-        result: IndexedSeq[Project] <- lift[IndexedSeq[Project]](Future.successful {
-          if (intermediate.filter(_.isLeft).nonEmpty) -\/(intermediate.filter(_.isLeft).head.swap.toOption.get)
-          else \/-(intermediate.map(_.toOption.get))
-        })
+        result <- liftSeq { projectList.map{ project =>
+          (for {
+            partList <- lift(partRepository.list(project))
+            result = project.copy(parts = partList)
+          } yield result).run
+        }}
       } yield result
 
       fResult.run.recover {
@@ -144,28 +140,21 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      * @return a vector of the returned Projects
      */
     override def list(course: Course): Future[\/[Fail, IndexedSeq[Project]]] = {
-      val projectList = for {
-        queryResult <- db.pool.sendPreparedStatement(ListByCourse, Array[Any](course.id.bytes))
-        projectList <- Future successful {
-          queryResult.rows.get.map { item => Project(item) }
-        }
-        intermediate <- Future sequence projectList.map{ project =>
-          partRepository.list(project).map {
-            case \/-(partList) => \/-(project.copy(parts = partList))
-            case -\/(error: Fail) => -\/(error)
-          }
-        }
-        result: IndexedSeq[Project] <- lift(Future.successful {
-          if (intermediate.filter(_.isLeft).nonEmpty) -\/(intermediate.filter(_.isLeft).head.swap.toOption.get)
-          else \/-(intermediate.map(_.toOption.get))
-        })
-      } yield result
-
-      projectList.recover {
-        case exception => {
-          throw exception
-        }
+      val fProjectList = db.pool.sendPreparedStatement(ListByCourse, Array[Any](course.id.bytes)).map {
+        result => buildProjectList(result.rows)
+      }.recover {
+        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
       }
+
+      (for {
+        projects <- lift(fProjectList)
+        result <- liftSeq(projects.map{ project =>
+          (for {
+            partList <- lift(partRepository.list(project))
+            result = project.copy(parts = partList)
+          } yield result).run
+        })
+      } yield result).run
     }
 
     /**
@@ -180,8 +169,8 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
       }
 
       val result = for {
-        project <- lift[Project](projectQuery)
-        parts <- lift[IndexedSeq[Part]](partRepository.list(project))
+        project <- lift(projectQuery)
+        parts <- lift(partRepository.list(project))
       } yield project.copy(parts = parts)
 
       result.run.recover {
@@ -202,8 +191,8 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
       }
 
       val result = for {
-        project <- lift[Project](projectQuery)
-        parts <- lift[IndexedSeq[Part]](partRepository.list(project))
+        project <- lift(projectQuery)
+        parts <- lift(partRepository.list(project))
       } yield project.copy(parts = parts)
 
       result.run.recover {
@@ -224,8 +213,8 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
       }
 
       val result = for {
-        project <- lift[Project](projectQuery)
-        parts <- lift[IndexedSeq[Part]](partRepository.list(project))
+        project <- lift(projectQuery)
+        parts <- lift(partRepository.list(project))
       } yield project.copy(parts = parts)
 
       result.run.recover {

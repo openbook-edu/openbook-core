@@ -38,20 +38,33 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * course.
      *
      * @param userId the unique id of the user to filter by
-     * @param courseId the unique id of the course to filter by
      * @param projectId the unique id of the project to filter by
      * @return a future disjunction containing either a list of work, or a failure
      */
-    override def listWork(userId: UUID, courseId: UUID, projectId: UUID): Future[\/[Fail, IndexedSeq[Work]]] = {
+    override def listWork(userId: UUID, projectId: UUID): Future[\/[Fail, IndexedSeq[Work]]] = {
       val fUser = authService.find(userId)
-      val fCourse = schoolService.findCourse(courseId)
       val fProject = projectService.find(projectId)
 
       (for {
         userInfo <- lift(fUser)
-        course <- lift(fCourse)
         project <- lift(fProject)
-        workList <- lift(workRepository.list(userInfo.user, course, project))
+        workList <- lift(workRepository.list(userInfo.user, project))
+      }
+      yield workList).run
+    }
+
+    /**
+     * List the latest revision of all of a user's work in a project for a specific
+     * course.
+     *
+     * @param userId the unique id of the user to filter by
+     * @param projectId the unique id of the project to filter by
+     * @return a future disjunction containing either a list of work, or a failure
+     */
+    override def listWork(taskId: UUID): Future[\/[Fail, IndexedSeq[Work]]] = {
+      (for {
+        task <- lift(projectService.findTask(taskId))
+        workList <- lift(workRepository.list(task))
       }
       yield workList).run
     }
@@ -60,20 +73,17 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * List all of a user's work revisions for a specific task in a specific course.
      *
      * @param userId the unique id of the user to filter by
-     * @param courseId the unique id of the course to filter by
      * @param taskId the unique id of the task to filter by
      * @return a future disjunction containing either a list of work, or a failure
      */
-    override def listWorkRevisions(userId: UUID, courseId: UUID, taskId: UUID): Future[\/[Fail, IndexedSeq[Work]]] = {
+    override def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[Fail, IndexedSeq[Work]]] = {
       val fUser = authService.find(userId)
-      val fCourse = schoolService.findCourse(courseId)
       val fTask = projectService.findTask(taskId)
 
       (for {
         userInfo <- lift(fUser)
-        course <- lift(fCourse)
         task <- lift(fTask)
-        workList <- lift(workRepository.list(userInfo.user, task, course))
+        workList <- lift(workRepository.list(userInfo.user, task))
       }
       yield workList).run
     }
@@ -92,20 +102,17 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * Find the latest revision of a user's work, for a task, in a course.
      *
      * @param userId the unique id of the user to filter by
-     * @param courseId the unique id of the course to filter by
      * @param taskId the unique id of the task to filter by
      * @return a future disjunction containing either a work, or a failure
      */
-    override def findWork(userId: UUID, taskId: UUID, courseId: UUID): Future[\/[Fail, Work]] = {
+    override def findWork(userId: UUID, taskId: UUID): Future[\/[Fail, Work]] = {
       val fUser = authService.find(userId)
-      val fCourse = schoolService.findCourse(courseId)
       val fTask = projectService.findTask(taskId)
 
       (for {
         userInfo <- lift(fUser)
-        course <- lift(fCourse)
         task <- lift(fTask)
-        work <- lift(workRepository.find(userInfo.user, task, course))
+        work <- lift(workRepository.find(userInfo.user, task))
       }
       yield work).run
     }
@@ -115,20 +122,17 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      *
      * @param userId the unique id of the user to filter by
      * @param taskId the unique id of the task to filter by
-     * @param courseId the unique id of the course to filter by
      * @param version the version of the work to find
      * @return a future disjunction containing either a work, or a failure
      */
-    override def findWork(userId: UUID, taskId: UUID, courseId: UUID, version: Long): Future[\/[Fail, Work]] = {
+    override def findWork(userId: UUID, taskId: UUID, version: Long): Future[\/[Fail, Work]] = {
       val fUser = authService.find(userId)
-      val fCourse = schoolService.findCourse(courseId)
       val fTask = projectService.findTask(taskId)
 
       (for {
         userInfo <- lift(fUser)
-        course <- lift(fCourse)
         task <- lift(fTask)
-        work <- lift(workRepository.find(userInfo.user, task, course, version))
+        work <- lift(workRepository.find(userInfo.user, task, version))
       }
       yield work).run
     }
@@ -154,19 +158,16 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      *
      * @param userId the unique id of the user the work belongs to
      * @param taskId the unique id of the task the work is for
-     * @param courseId the unique id of the course
      * @param isComplete whether the student is finished with the task
      * @return a future disjunction containing either a work, or a failure
      */
     override def createLongAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[Fail, LongAnswerWork]] = {
       transactional { implicit connection =>
         val fUser = authService.find(userId)
-        val fCourse = schoolService.findCourse(courseId)
         val fTask = projectService.findTask(taskId)
         
         (for {
           userInfo <- lift(fUser)
-          course <- lift(fCourse)
           task <- lift(fTask)
           document <- lift(documentService.create(UUID.random, userInfo.user, "", Delta(IndexedSeq())))
           newWork = LongAnswerWork(
@@ -187,20 +188,16 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      *
      * @param userId the id of the student whose work is being entered
      * @param taskId the task for which the work was done
-     * @param courseId the course to which the task's project belongs
-     * @param answer the student's answer to the task (this is the actual "work")
      * @param isComplete whether the student is finished with the task
      * @return the newly created work
      */
     override def createShortAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[Fail, ShortAnswerWork]] = {
       transactional { implicit connection =>
         val fUser = authService.find(userId)
-        val fCourse = schoolService.findCourse(courseId)
         val fTask = projectService.findTask(taskId)
 
         (for {
           userInfo <- lift(fUser)
-          course <- lift(fCourse)
           task <- lift(fTask)
           document <- lift(documentService.create(UUID.random, userInfo.user, "", Delta(IndexedSeq())))
           newWork = ShortAnswerWork(
@@ -221,7 +218,6 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      *
      * @param userId the id of the student whose work is being entered
      * @param taskId the task for which the work was done
-     * @param courseId the course to which the task's project belongs
      * @param answer the student's answer to the task (this is the actual "work")
      * @param isComplete whether the student is finished with the task
      * @return the newly created work
@@ -229,12 +225,10 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     override def createMultipleChoiceWork(userId: UUID, taskId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[Fail, MultipleChoiceWork]] = {
       transactional { implicit connection =>
         val fUser = authService.find(userId)
-        val fCourse = schoolService.findCourse(courseId)
         val fTask = projectService.findTask(taskId)
 
         (for {
           userInfo <- lift(fUser)
-          course <- lift(fCourse)
           task <- lift(fTask)
           document <- lift(documentService.create(UUID.random, userInfo.user, "", Delta(IndexedSeq())))
           newWork = MultipleChoiceWork(
@@ -256,7 +250,6 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      *
      * @param userId the id of the student whose work is being entered
      * @param taskId the task for which the work was done
-     * @param courseId the course to which the task's project belongs
      * @param answer the student's answer to the task (this is the actual "work")
      * @param isComplete whether the student is finished with the task
      * @return the newly created work
@@ -264,12 +257,10 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     override def createOrderingWork(userId: UUID, taskId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[Fail, OrderingWork]] = {
       transactional { implicit connection =>
         val fUser = authService.find(userId)
-        val fCourse = schoolService.findCourse(courseId)
         val fTask = projectService.findTask(taskId)
 
         (for {
           userInfo <- lift(fUser)
-          course <- lift(fCourse)
           task <- lift(fTask)
           document <- lift(documentService.create(UUID.random, userInfo.user, "", Delta(IndexedSeq())))
           newWork = OrderingWork(
@@ -291,7 +282,6 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      *
      * @param userId the id of the student whose work is being entered
      * @param taskId the task for which the work was done
-     * @param courseId the course to which the task's project belongs
      * @param answer the student's answer to the task (this is the actual "work")
      * @param isComplete whether the student is finished with the task
      * @return the newly created work
@@ -299,12 +289,10 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     override def createMatchingWork(userId: UUID, taskId: UUID, answer: IndexedSeq[Match], isComplete: Boolean): Future[\/[Fail, MatchingWork]] = {
       transactional { implicit connection =>
         val fUser = authService.find(userId)
-        val fCourse = schoolService.findCourse(courseId)
         val fTask = projectService.findTask(taskId)
 
         (for {
           userInfo <- lift(fUser)
-          course <- lift(fCourse)
           task <- lift(fTask)
           document <- lift(documentService.create(UUID.random, userInfo.user, "", Delta(IndexedSeq())))
           newWork = MatchingWork(
@@ -359,7 +347,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
         (for {
           userInfo <- lift(fUser)
           task <- lift(fTask)
-          existingWork <- lift(workRepository.find(user, task))
+          existingWork <- lift(workRepository.find(userInfo.user, task))
           existingLAWork = existingWork.asInstanceOf[LongAnswerWork]
           workToUpdate = existingLAWork.copy(isComplete = isComplete)
           updatedWork <- lift(workRepository.update(workToUpdate))
@@ -391,7 +379,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
       }
     }
 
-    def updateMultipleChoiceWork(userId: UUID, taskId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[Fail, MultipleChoiceWork]] = {
+    override def updateMultipleChoiceWork(userId: UUID, taskId: UUID, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[Fail, MultipleChoiceWork]] = {
       transactional { implicit connection =>
         val fUser = authService.find(userId)
         val fTask = projectService.findTask(taskId)
@@ -408,7 +396,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
       }
     }
 
-    def updateOrderingWork(userId: UUID, taskId: UUID, revision: Long, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[Fail, OrderingWork]] = {
+    override def updateOrderingWork(userId: UUID, taskId: UUID, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[Fail, OrderingWork]] = {
       transactional { implicit connection =>
         val fUser = authService.find(userId)
         val fTask = projectService.findTask(taskId)
@@ -425,7 +413,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
       }
     }
 
-    def updateMatchingWork(userId: UUID, taskId: UUID, revision: Long, version: Long, answer: IndexedSeq[Match], isComplete: Boolean): Future[\/[Fail, MatchingWork]] = {
+    override def updateMatchingWork(userId: UUID, taskId: UUID, version: Long, answer: IndexedSeq[Match], isComplete: Boolean): Future[\/[Fail, MatchingWork]] = {
       transactional { implicit connection =>
         val fUser = authService.find(userId)
         val fTask = projectService.findTask(taskId)
@@ -455,7 +443,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
               case work: OrderingWork => work.copy(isComplete = true)
               case work: MatchingWork => work.copy(isComplete = true)
             }
-            updatedWorks <- serializedT(worksToUpdate.map(workRepository.update))
+            updatedWorks <- lift(serializedT(worksToUpdate)(workRepository.update))
           } yield ()).run
         }
         else {
@@ -474,7 +462,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
               case work: OrderingWork => work.copy(isComplete = true)
               case work: MatchingWork => work.copy(isComplete = true)
             }
-            updatedWorks <- serializedT(worksToUpdate.map(workRepository.update))
+            updatedWorks <- lift(serializedT(worksToUpdate)(workRepository.update))
           } yield ()).run
         }
       }
@@ -505,10 +493,9 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     }
 
     /**
+     * Find a teacher's feedback for a student's work on a task.
      *
-     * @param teacherId
-     * @param studentId
-     * @param projectId
+     * @param taskId
      * @return
      */
     def listFeedbacks(taskId: UUID): Future[\/[Fail, IndexedSeq[TaskFeedback]]] = {
@@ -522,8 +509,8 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     }
 
     /**
+     * Find a teacher's feedback for a student's work on a task.
      *
-     * @param teacherId
      * @param studentId
      * @param taskId
      * @return
@@ -541,6 +528,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     }
 
     /**
+     * Create a teacher's feedback for a student's work on a task.
      *
      * @param studentId
      * @param taskId

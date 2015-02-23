@@ -494,10 +494,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
     def insert(course: Course)(implicit conn: Connection): Future[\/[Fail, Course]] = {
       conn.sendPreparedStatement(Insert, Array(
         course.id.bytes,
-        course.teacherId match {
-          case Some(id) => Some(id.bytes)
-          case _ => None
-        },
+        course.teacherId.bytes,
         course.name,
         course.color.getRGB,
         new DateTime,
@@ -525,11 +522,8 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
      */
     def update(course: Course)(implicit conn: Connection): Future[\/[Fail, Course]] = {
       conn.sendPreparedStatement(Update, Array(
-        (course.version + 1),
-        course.teacherId match {
-          case Some(id) => Some(id.bytes)
-          case _ => None
-        },
+        course.version + 1,
+        course.teacherId.bytes,
         course.name,
         course.color.getRGB,
         new DateTime,

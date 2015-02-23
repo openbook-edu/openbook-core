@@ -103,7 +103,7 @@ trait AuthServiceComponent extends FutureMonad {
      * @param username optionally update the username
      * @return a future disjunction containing the updated user, or a failure
      */
-    def updateIdentifier(id: UUID, version: Long, email: Option[String], username: Option[String]): Future[\/[Fail, UserInfo]]
+    def updateIdentifier(id: UUID, version: Long, email: Option[String], username: Option[String]): Future[\/[Fail, User]]
 
     /**
      * Update the user's password.
@@ -113,7 +113,7 @@ trait AuthServiceComponent extends FutureMonad {
      * @param password the new password
      * @return a future disjunction containing the updated user, or a failure
      */
-    def updatePassword(id: UUID, version: Long, password: String): Future[\/[Fail, UserInfo]]
+    def updatePassword(id: UUID, version: Long, password: String): Future[\/[Fail, User]]
 
     /**
      * Update a user's "non-identifying" information.
@@ -124,7 +124,7 @@ trait AuthServiceComponent extends FutureMonad {
      * @param surname the user's updated family name
      * @return a future disjunction containing the updated user, or a failure
      */
-    def updateInfo(id: UUID, version: Long, givenname: Option[String], surname: Option[String]): Future[\/[Fail, UserInfo]]
+    def updateInfo(id: UUID, version: Long, givenname: Option[String], surname: Option[String]): Future[\/[Fail, User]]
 
     /**
      * Deletes a user.
@@ -135,14 +135,14 @@ trait AuthServiceComponent extends FutureMonad {
      * @param version the latest version of the user for O.O.L.
      * @return a future disjunction containing the deleted user, or a failure
      */
-    def delete(id: UUID, version: Long): Future[\/[Fail, UserInfo]]
+    def delete(id: UUID, version: Long): Future[\/[Fail, User]]
 
     /**
      * List all roles.
      *
      * @return an array of Roles
      */
-    def listRoles: Future[\/[Fail, Role]]
+    def listRoles: Future[\/[Fail, IndexedSeq[Role]]]
 
     /**
      * List all roles for one user.
@@ -150,7 +150,7 @@ trait AuthServiceComponent extends FutureMonad {
      * @param user  The user whose roles should be listed.
      * @return an array of this user's Roles
      */
-    def listRoles(userId: UUID): Future[\/[Fail, Role]]
+    def listRoles(userId: UUID): Future[\/[Fail, IndexedSeq[Role]]]
 
     /**
      * Find a specific role by its unique id.
@@ -220,7 +220,7 @@ trait AuthServiceComponent extends FutureMonad {
      * @param userIds an [[IndexedSeq]] of [[UUID]] listing the users to gain the role
      * @return a boolean indicator if the role was added
      */
-    def addUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[Fail, IndexedSeq[UserInfo]]]
+    def addUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[Fail, Role]]
 
     /**
      * Remove a role from a given list of users.
@@ -229,6 +229,6 @@ trait AuthServiceComponent extends FutureMonad {
      * @param userIds an [[IndexedSeq]] of [[UUID]] listing the users to lose the role
      * @return a boolean indicator if the role was removed
      */
-    def removeUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[Fail, IndexedSeq[UserInfo]]]
+    def removeUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[Fail, Role]]
   }
 }

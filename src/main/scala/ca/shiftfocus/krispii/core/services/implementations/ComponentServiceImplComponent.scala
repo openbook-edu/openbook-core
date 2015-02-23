@@ -206,15 +206,17 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
     }
 
     override def delete(id: UUID, version: Long): Future[\/[Fail, Component]] = {
-      (for {
-        component <- lift(componentRepository.find(id))
-        toDelete = component match {
-          case comp: AudioComponent => comp.copy(version = version)
-          case comp: TextComponent => comp.copy(version = version)
-          case comp: VideoComponent => comp.copy(version = version)
-        }
-        deleted <- lift(componentRepository.delete(toDelete))
-      } yield deleted).run
+      transactional { implicit connection =>
+        (for {
+          component <- lift(componentRepository.find(id)(db.pool))
+          toDelete = component match {
+            case comp: AudioComponent => comp.copy(version = version)
+            case comp: TextComponent => comp.copy(version = version)
+            case comp: VideoComponent => comp.copy(version = version)
+          }
+          deleted <- lift(componentRepository.delete(toDelete))
+        } yield deleted).run
+      }
     }
 
     /**
@@ -229,7 +231,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
      */
     override def addToPart(componentId: UUID, partId: UUID): Future[\/[Fail, Component]] = {
       transactional { implicit connection =>
-        val fComponent = componentRepository.find(componentId)
+        val fComponent = componentRepository.find(componentId)(db.pool)
         val fPart = projectService.findPart(partId)
 
         (for {
@@ -254,7 +256,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
      */
     override def removeFromPart(componentId: UUID, partId: UUID): Future[\/[Fail, Component]] = {
       transactional { implicit connection =>
-        val fComponent = componentRepository.find(componentId)
+        val fComponent = componentRepository.find(componentId)(db.pool)
         val fPart = projectService.findPart(partId)
 
         (for {
@@ -302,24 +304,10 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
 
           val fAsTeacher: Future[\/[Fail, Boolean]] = (for {
             courses <- lift(schoolService.listCoursesByTeacher(userInfo.user.id))
-            projects_inter <-
-              Future.sequence(courses.map {
-                course => schoolService.listProjects(course)
-              })
-            projects <- lift(Future.successful {
-              if (projects_inter.filter(_.isLeft).nonEmpty) -\/(projects_inter.filter(_.isLeft).head.swap.toOption.get)
-              else \/-(projects_inter.map(_.toOption.get).flatten)
-            })
-            components_inter <-
-              Future.sequence(projects.map {
-                project => componentService.listByProject(project.id)
-              })
-            components <- lift(Future.successful {
-              if (components_inter.filter(_.isLeft).nonEmpty) -\/(components_inter.filter(_.isLeft).head.swap.toOption.get)
-              else \/-(components_inter.map(_.toOption.get).flatten)
-            })
+            projects <- liftSeq(courses.map { course => schoolService.listProjects(course) })
+            components <- liftSeq(projects.flatten.map { project => componentService.listByProject(project.id) })
           }
-          yield components.contains(component)).run
+          yield components.flatten.contains(component)).run
 
           fAsTeacher.flatMap {
             case -\/(error) => Future successful -\/(error)
@@ -334,24 +322,10 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
                 // - then list the components for the enabled parts in those projects
                 val fAsStudent: Future[\/[Fail, Boolean]] = (for {
                   courses <- lift(schoolService.listCoursesByTeacher(userInfo.user.id))
-                  projects_inter <-
-                  Future.sequence(courses.map {
-                    course => schoolService.listProjects(course)
-                  })
-                  projects <- lift(Future.successful {
-                    if (projects_inter.filter(_.isLeft).nonEmpty) -\/(projects_inter.filter(_.isLeft).head.swap.toOption.get)
-                    else \/-(projects_inter.map(_.toOption.get).flatten)
-                  })
-                  components_inter <-
-                    Future.sequence(projects.map {
-                      project => componentService.listByProject(project.id)
-                    })
-                  components <- lift(Future.successful {
-                    if (components_inter.filter(_.isLeft).nonEmpty) -\/(components_inter.filter(_.isLeft).head.swap.toOption.get)
-                    else \/-(components_inter.map(_.toOption.get).flatten)
-                  })
+                  projects <- liftSeq(courses.map { course => schoolService.listProjects(course) })
+                  components <- liftSeq(projects.flatten.map { project => componentService.listByProject(project.id) })
                 }
-                yield components.contains(component)).run
+                yield components.flatten.contains(component)).run
                 fAsStudent
               }
           }
@@ -361,23 +335,9 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
         else if (userInfo.roles.map(_.name).contains("student")) {
           (for {
             courses <- lift(schoolService.listCoursesByUser(userInfo.user.id))
-            projects_inter <-
-              Future.sequence(courses.map {
-                course => schoolService.listProjects(course)
-              })
-            projects <- lift(Future.successful {
-              if (projects_inter.filter(_.isLeft).nonEmpty) -\/(projects_inter.filter(_.isLeft).head.swap.toOption.get)
-              else \/-(projects_inter.map(_.toOption.get).flatten)
-            })
-            parts = projects.map(_.parts.filter(_.enabled == true)).flatten
-            components_inter <-
-              Future.sequence(parts.map {
-                part => componentService.listByPart(part.id)
-              })
-            components <- lift(Future.successful {
-              if (components_inter.filter(_.isLeft).nonEmpty) -\/(components_inter.filter(_.isLeft).head.swap.toOption.get)
-              else \/-(components_inter.map(_.toOption.get).flatten)
-            })
+            projects <- liftSeq(courses.map { course => schoolService.listProjects(course) })
+            parts = projects.flatten.map(_.parts.filter(_.enabled == true)).flatten
+            components <- liftSeq(parts.map { part => componentService.listByPart(part.id) })
           }
           yield components.contains(component)).run
         }

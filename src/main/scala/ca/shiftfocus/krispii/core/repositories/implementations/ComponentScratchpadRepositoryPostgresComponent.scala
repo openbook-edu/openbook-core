@@ -115,7 +115,7 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
      * @return an optional RowData object containing the results
      */
     override def find(user: User, component: Component)(implicit conn: Connection): Future[\/[Fail, ComponentScratchpad]] = {
-      conn.sendPreparedStatement(SelectOne, Array[Any](user.id.bytes, component.id.bytes, revision)).map {
+      conn.sendPreparedStatement(SelectOne, Array[Any](user.id.bytes, component.id.bytes)).map {
         result => buildComponentScratchpad(result.rows)
       }.recover {
         case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))

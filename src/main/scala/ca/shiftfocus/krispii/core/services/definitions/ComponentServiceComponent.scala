@@ -30,7 +30,7 @@ trait ComponentServiceComponent extends FutureMonad {
     def addToPart(componentId: UUID, partId: UUID): Future[\/[Fail, Component]]
     def removeFromPart(componentId: UUID, partId: UUID): Future[\/[Fail, Component]]
 
-    def userCanAccess(component: Component, userInfo: UserInfo): Future[\/[Fail, Component]]
+    def userCanAccess(component: Component, userInfo: UserInfo): Future[\/[Fail, Boolean]]
 
     def detaggify(text: String): String
   }

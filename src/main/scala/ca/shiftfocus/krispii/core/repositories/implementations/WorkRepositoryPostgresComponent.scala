@@ -470,25 +470,15 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param conn
      * @return
      */
-    override def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, Work]] = {
-      for {
+    override def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Work]]] = {
+      (for {
         tasks <- lift(list(task))
         deletedWorks <- lift(conn.sendPreparedStatement(DeleteAllForTask, Array[Any](task.id.bytes)).map({
           result =>
             if (result.rowsAffected == tasks.length) \/-(tasks)
             else -\/(GenericFail("Failed to delete all tasks"))
         }))
-      } yield deletedWorks
-
-      conn.sendPreparedStatement(DeleteRevision, Array[Any](task.id.bytes)).map {
-        result => {
-          if (result.rowsAffected == 0) {
-            -\/(GenericFail("No rows were modified"))
-          } else {
-            \/-(work)
-          }
-        }
-      }.recover {
+      } yield deletedWorks).run.recover {
         case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }

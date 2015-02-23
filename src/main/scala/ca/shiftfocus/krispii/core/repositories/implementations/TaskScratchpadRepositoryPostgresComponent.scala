@@ -296,7 +296,7 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
         }
       }
       catch {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 

@@ -167,6 +167,10 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
       }
     }
 
+    def listForCourses(course: IndexedSeq[Course]): Future[\/[Fail, IndexedSeq[User]]] = ???
+    def listForRoles(roles: IndexedSeq[String]): Future[\/[Fail, IndexedSeq[User]]] = ???
+    def listForRolesAndCourses(roles: IndexedSeq[String], classes: IndexedSeq[String]): Future[\/[Fail, IndexedSeq[User]]] = ???
+
     /**
      * List the users belonging to a set of classes.
      *
@@ -266,7 +270,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * @param user the [[User]] to update in the database
      * @return the updated [[User]]
      */
-    def update(user: User)(implicit conn: Connection): Future[\/[Fail, User]] = {
+    override def update(user: User)(implicit conn: Connection): Future[\/[Fail, User]] = {
       conn.sendPreparedStatement(Update, Array[Any](
         user.username,
         user.email,
@@ -302,7 +306,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * @param user the [[User]] to insert into the database
      * @return the newly created [[User]]
      */
-    def insert(user: User)(implicit conn: Connection): Future[\/[Fail, User]] = {
+    override def insert(user: User)(implicit conn: Connection): Future[\/[Fail, User]] = {
       val future = for {
         result <- conn.sendPreparedStatement(Insert, Array(
           user.id.bytes,
@@ -337,7 +341,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      * @param user the [[User]] to be deleted
      * @return a [[Boolean]] indicating success or failure
      */
-    def delete(user: User)(implicit conn: Connection): Future[\/[Fail, User]] = {
+    override def delete(user: User)(implicit conn: Connection): Future[\/[Fail, User]] = {
       conn.sendPreparedStatement(Purge, Array(user.id.bytes, user.version)).map { result =>
         if (result.rowsAffected == 1) \/-(user)
         else -\/(NoResults("Could not find a user row to delete."))

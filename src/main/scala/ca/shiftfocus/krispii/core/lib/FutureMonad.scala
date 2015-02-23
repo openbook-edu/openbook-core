@@ -8,11 +8,11 @@ import scalaz._
 trait FutureMonad {
   def lift[A] = EitherT.eitherT[Future, Fail, A] _
 
-  def liftSeq[A](interList: IndexedSeq[Future[\/[Fail, A]]]) = {
+  def liftSeq[A](interList: IndexedSeq[Future[\/[Fail, A]]]): EitherT[Future, Fail, IndexedSeq[A]] = {
     liftSeq(Future.sequence(interList))
   }
 
-  def liftSeq[A](fIntermediate: Future[IndexedSeq[\/[Fail, A]]]) = {
+  def liftSeq[A](fIntermediate: Future[IndexedSeq[\/[Fail, A]]]): EitherT[Future, Fail, IndexedSeq[A]] = {
     val result = fIntermediate.map { intermediate =>
       if (intermediate.filter(_.isLeft).nonEmpty) -\/(intermediate.filter(_.isLeft).head.swap.toOption.get)
       else \/-(intermediate.map(_.toOption.get))

@@ -237,7 +237,7 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
         }
       }
       catch {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 

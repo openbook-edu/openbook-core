@@ -27,6 +27,6 @@ trait WorkRepositoryComponent {
     def update(work: Work, newRevision: Boolean)(implicit conn: Connection): Future[\/[Fail, Work]]
 
     def delete(work: Work, thisRevisionOnly: Boolean = false)(implicit conn: Connection): Future[\/[Fail, Work]]
-    def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, Work]]
+    def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Work]]]
   }
 }

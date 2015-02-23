@@ -1,7 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.fail.Fail
-import ca.shiftfocus.krispii.core.services.error.Fail
 import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models._
 import org.joda.time.LocalTime

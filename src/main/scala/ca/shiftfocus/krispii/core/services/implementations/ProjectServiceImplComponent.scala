@@ -226,7 +226,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      *
      * @param componentId the [[UUID]] of the component to filter by
      */
-    override def listPartsInComponent(componentId: UUID): Future[IndexedSeq[Part]] = ???
+    override def listPartsInComponent(componentId: UUID): Future[\/[Fail, IndexedSeq[Part]]] = ???
 //    {
 //      val fPartList = for {
 //        component <- componentRepository.find(componentId)(db.pool).map(_.get)
@@ -543,7 +543,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
             else { Future successful \/-(IndexedSeq.empty[Task]) }
           }
 
-          newListUpdated <- {
+          newListUpdated <- lift {
             // The "new" list is the list that the task ends up in, whether it has
             // moved or not. If the task has changed parts, or if it hasn't changed
             // parts but its position number has changed, then the "new" list's ordering

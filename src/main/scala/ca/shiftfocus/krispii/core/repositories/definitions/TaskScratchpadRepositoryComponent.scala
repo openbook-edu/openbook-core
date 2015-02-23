@@ -31,6 +31,6 @@ trait TaskScratchpadRepositoryComponent extends FutureMonad {
     def insert(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[Fail, TaskScratchpad]]
     def update(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[Fail, TaskScratchpad]]
     def delete(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[Fail, TaskScratchpad]]
-    def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, TaskScratchpad]]
+    def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskScratchpad]]]
   }
 }

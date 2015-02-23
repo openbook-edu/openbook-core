@@ -189,6 +189,13 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     /**
      * List all students registered to a course.
      */
+    override def listStudents(courseId: UUID): Future[\/[Fail, IndexedSeq[UserInfo]]] = {
+      (for {
+        course <- lift(courseRepository.find(courseId))
+        students <- lift(listStudents(course))
+      } yield students).run
+    }
+
     override def listStudents(course: Course): Future[\/[Fail, IndexedSeq[UserInfo]]] = {
       authService.list(None, Some(IndexedSeq(course.id)))
     }
@@ -196,6 +203,13 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     /**
      * List all projects belonging to a course.
      */
+    override def listProjects(courseId: UUID): Future[\/[Fail, IndexedSeq[Project]]] = {
+      (for {
+        course <- lift(courseRepository.find(courseId))
+        projects <- lift(listProjects(course))
+      } yield projects).run
+    }
+
     override def listProjects(course: Course): Future[\/[Fail, IndexedSeq[Project]]] = {
       projectService.list(course.id)
     }
@@ -248,25 +262,6 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
         maybeStudent <- lift(courseRepository.findUserForTeacher(user.user, teacher.user))
         student <- lift(authService.find(maybeStudent.id))
       } yield student).run
-    }
-
-    /**
-     * Force complete all responses for a given task in a given course.
-     *
-     * @param taskId the [[UUID]] of the task to be force-completed
-     * @param courseId the [[UUID]] of the course whose users will
-     *                  have their responses force-completed
-     * @return a boolean indicating success or failure
-     */
-    override def forceComplete(taskId: UUID, courseId: UUID): Future[\/[Fail, Unit]] = {
-      transactional { implicit connection =>
-        (for {
-          task <- lift(projectService.findTask(taskId))
-          course <- lift(schoolService.findCourse(courseId))
-          _ <- lift(workRepository.forceComplete(task, course))
-        }
-        yield ()).run
-      }
     }
 
     /**

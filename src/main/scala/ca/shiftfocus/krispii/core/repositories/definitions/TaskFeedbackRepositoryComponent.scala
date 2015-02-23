@@ -80,7 +80,7 @@ trait TaskFeedbackRepositoryComponent extends FutureMonad {
      * @param conn
      * @return
      */
-    def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, TaskFeedback]]
+    def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskFeedback]]]
   }
 
 }

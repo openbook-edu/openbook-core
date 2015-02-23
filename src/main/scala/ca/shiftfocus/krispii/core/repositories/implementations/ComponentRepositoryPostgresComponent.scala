@@ -4,6 +4,7 @@ import java.util.NoSuchElementException
 
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import ca.shiftfocus.krispii.core.fail._
+import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.lib.ExceptionWriter
@@ -204,6 +205,32 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       RETURNING component.version
     """
 
+    val DeleteAudio =
+      s"""
+         |DELETE FROM components, audio_components
+         |WHERE components.id = ?
+         |  AND components.version = ?
+         |  AND components.id = audio_components.component_id
+       """.stripMargin
+
+    val DeleteText =
+      s"""
+         |DELETE FROM components, text_components
+         |WHERE components.id = ?
+         |  AND components.version = ?
+         |  AND components.id = text_components.component_id
+       """.stripMargin
+
+    val DeleteVideo =
+      s"""
+         |DELETE FROM components, video_components
+         |WHERE components.id = ?
+         |  AND components.version = ?
+         |  AND components.id = video_components.component_id
+       """.stripMargin
+
+
+
     /**
      * Find all components.
      *
@@ -361,6 +388,28 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
         case asText: TextComponent => updateText(asText)
         case asVideo: VideoComponent => updateVideo(asVideo)
       }}.recover {
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+      }
+    }
+
+    /**
+     * Delete a component.
+     *
+     * @param component
+     * @param conn
+     * @return
+     */
+    override def delete(component: Component)(implicit conn: Connection): Future[\/[Fail, Component]] = {
+      val query = component match {
+        case asAudio: AudioComponent => DeleteAudio
+        case asText: TextComponent => DeleteText
+        case asVideo: VideoComponent => DeleteVideo
+      }
+
+      conn.sendPreparedStatement(query, Seq[Any](component.id.bytes, component.version)).map { result =>
+        if (result.rowsAffected == 1) \/-(component)
+        else -\/(NoResults("Could not find a component to delete."))
+      }.recover {
         case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }

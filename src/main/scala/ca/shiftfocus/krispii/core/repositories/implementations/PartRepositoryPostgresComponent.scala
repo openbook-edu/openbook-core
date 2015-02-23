@@ -17,8 +17,9 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import scalaz.{-\/, \/-, \/}
 
 trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
-  self: TaskRepositoryComponent with
-    PostgresDB =>
+  self: ProjectRepositoryComponent with
+        TaskRepositoryComponent with
+        PostgresDB =>
 
   /**
    * Override with this trait's version of the ProjectRepository.
@@ -126,18 +127,14 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     override def list: Future[\/[Fail, IndexedSeq[Part]]] = {
       val fPartList = db.pool.sendQuery(SelectAll).map(res => buildPartList(res.rows))
       val fResult = for {
-        partList <- lift[IndexedSeq[Part]](fPartList)
-        intermediate <- Future sequence partList.map{ part =>
-          taskRepository.list(part).map {
-            case \/-(taskList) => \/-(part.copy(tasks = taskList))
-            case -\/(error: Fail) => -\/(error)
-          }
-        }
-        result <- lift[IndexedSeq[Part]](Future.successful {
-          if (intermediate.filter(_.isLeft).nonEmpty) -\/(intermediate.filter(_.isLeft).head.swap.toOption.get)
-          else \/-(intermediate.map(_.toOption.get))
+        partList <- lift(fPartList)
+        partsWithTasks <- liftSeq(partList.map{ part =>
+          (for {
+            tasks <- lift(taskRepository.list(part))
+            result = part.copy(tasks = tasks)
+          } yield result).run
         })
-      } yield result
+      } yield partsWithTasks
 
       fResult.run.recover {
         case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
@@ -153,18 +150,14 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     override def list(project: Project): Future[\/[Fail, IndexedSeq[Part]]] = {
       val fPartList = db.pool.sendPreparedStatement(SelectByProjectId, Array[Any](project.id.bytes)).map(res => buildPartList(res.rows))
       val fResult = for {
-        partList <- lift[IndexedSeq[Part]](fPartList)
-        intermediate <- Future sequence partList.map{ part =>
-          taskRepository.list(part).map {
-            case \/-(taskList) => \/-(part.copy(tasks = taskList))
-            case -\/(error: Fail) => -\/(error)
-          }
-        }
-        result <- lift[IndexedSeq[Part]](Future.successful {
-          if (intermediate.filter(_.isLeft).nonEmpty) -\/(intermediate.filter(_.isLeft).head.swap.toOption.get)
-          else \/-(intermediate.map(_.toOption.get))
+        partList <- lift(fPartList)
+        partsWithTasks <- liftSeq(partList.map{ part =>
+          (for {
+            tasks <- lift(taskRepository.list(part))
+            result = part.copy(tasks = tasks)
+          } yield result).run
         })
-      } yield result
+      } yield partsWithTasks
 
       fResult.run.recover {
         case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
@@ -177,18 +170,14 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     override def list(component: Component): Future[\/[Fail, IndexedSeq[Part]]] = {
       val fPartList = db.pool.sendPreparedStatement(SelectByComponentId, Array[Any](component.id.bytes)).map(res => buildPartList(res.rows))
       val fResult = for {
-        partList <- lift[IndexedSeq[Part]](fPartList)
-        intermediate <- Future sequence partList.map{ part =>
-          taskRepository.list(part).map {
-            case \/-(taskList) => \/-(part.copy(tasks = taskList))
-            case -\/(error: Fail) => -\/(error)
-          }
-        }
-        result <- lift[IndexedSeq[Part]](Future.successful {
-          if (intermediate.filter(_.isLeft).nonEmpty) -\/(intermediate.filter(_.isLeft).head.swap.toOption.get)
-          else \/-(intermediate.map(_.toOption.get))
+        partList <- lift(fPartList)
+        partsWithTasks <- liftSeq(partList.map{ part =>
+          (for {
+            tasks <- lift(taskRepository.list(part))
+            result = part.copy(tasks = tasks)
+          } yield result).run
         })
-      } yield result
+      } yield partsWithTasks
 
       fResult.run.recover {
         case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
@@ -208,8 +197,8 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       }
 
       val result = for {
-        part <- lift[Part](partQuery)
-        taskList <- lift[IndexedSeq[tasks.Task]](taskRepository.list(part))
+        part <- lift(partQuery)
+        taskList <- lift(taskRepository.list(part))
       } yield part.copy(tasks = taskList)
 
       result.run.recover {
@@ -232,8 +221,8 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       }
 
       val result = for {
-        part <- lift[Part](partQuery)
-        taskList <- lift[IndexedSeq[tasks.Task]](taskRepository.list(part))
+        part <- lift(partQuery)
+        taskList <- lift(taskRepository.list(part))
       } yield part.copy(tasks = taskList)
 
       result.run.recover {
@@ -325,10 +314,10 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
      */
     def delete(project: Project)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Part]]] = {
       val result = for {
-        partList <- lift[IndexedSeq[Part]](list(project))
-        deletedParts <- lift[IndexedSeq[Part]](conn.sendPreparedStatement(DeleteByProject, Array(project.id.bytes)).map {
+        partList <- lift(list(project))
+        deletedParts <- lift(conn.sendPreparedStatement(DeleteByProject, Array(project.id.bytes)).map {
           result =>
-            if (result.rowsAffected == 1) \/-(part)
+            if (result.rowsAffected == 1) \/-(partList)
             else -\/(GenericFail("Query ran without errors but a part was not deleted."))
         })
       } yield deletedParts

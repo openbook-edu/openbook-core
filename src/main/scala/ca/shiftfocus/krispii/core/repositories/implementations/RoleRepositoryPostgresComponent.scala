@@ -20,7 +20,8 @@ import scalaz.{\/, -\/, \/-}
 import scalaz.syntax.either._
 
 trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
-  self: PostgresDB =>
+  self: UserRepositoryComponent with
+        PostgresDB =>
 
   /**
    * Override with this trait's version of the RoleRepository.
@@ -226,9 +227,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
           case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build Role(s) from the row returned.", exception))
         }
       }.recover {
-        case exception => {
-          case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
-        }
+        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
       }
     }
 
@@ -372,7 +371,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       val future = for {
         queryResult <- conn.sendPreparedStatement(Purge, Array(role.id.bytes, role.version))
       }
-      yield buildRole(result.rows)
+      yield buildRole(queryResult.rows)
 
       future.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {

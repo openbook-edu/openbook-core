@@ -20,6 +20,7 @@ trait WorkServiceComponent {
 
     // Finder methods for work
     def listWork(userId: UUID, courseId: UUID, projectId: UUID): Future[\/[Fail, IndexedSeq[Work]]]
+    def listWork(taskId: UUID): Future[\/[Fail, IndexedSeq[Work]]]
     def listWorkRevisions(userId: UUID, courseId: UUID, taskId: UUID): Future[\/[Fail, IndexedSeq[Work]]]
     def findWork(workId: UUID): Future[\/[Fail, Work]]
     def findWork(userId: UUID, taskId: UUID, courseId: UUID): Future[\/[Fail, Work]]
@@ -44,6 +45,8 @@ trait WorkServiceComponent {
     def updateMultipleChoiceWork(userId: UUID, taskId: UUID, courseId: UUID, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[Fail, MultipleChoiceWork]]
     def updateOrderingWork(userId: UUID, taskId: UUID, courseId: UUID, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[Fail, OrderingWork]]
     def updateMatchingWork(userId: UUID, taskId: UUID, courseId: UUID, version: Long, answer: IndexedSeq[Match], isComplete: Boolean): Future[\/[Fail, MatchingWork]]
+
+    def forceComplete(taskId: UUID, includingPrevious: Boolean = false): Future[\/[Fail, Unit]]
 
 
     // Task feedbacks

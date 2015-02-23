@@ -442,6 +442,44 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
       }
     }
 
+    override def forceComplete(taskId: UUID, justThis: Boolean = true): Future[\/[Fail, Unit]] = {
+      transactional { implicit connection =>
+        if (justThis) {
+          (for {
+            task <- lift(projectService.findTask(taskId))
+            works <- lift(workService.listWork(task.id))
+            worksToUpdate = works.map {
+              case work: LongAnswerWork => work.copy(isComplete = true)
+              case work: ShortAnswerWork => work.copy(isComplete = true)
+              case work: MultipleChoiceWork => work.copy(isComplete = true)
+              case work: OrderingWork => work.copy(isComplete = true)
+              case work: MatchingWork => work.copy(isComplete = true)
+            }
+            updatedWorks <- serializedT(worksToUpdate.map(workRepository.update))
+          } yield ()).run
+        }
+        else {
+          (for {
+            task <- lift(projectService.findTask(taskId))
+            part <- lift(projectService.findPart(task.partId))
+            project <- lift(projectService.find(part.projectId))
+            tasks = project.parts.filter(_.position <= part.position)
+                                 .map(_.tasks).flatten
+                                 .filter { task => task.partId != part.id || task.position <= task.position }
+            worksLists <- liftSeq(tasks.map { task => workRepository.list(task) })
+            worksToUpdate = worksLists.flatten.map {
+              case work: LongAnswerWork => work.copy(isComplete = true)
+              case work: ShortAnswerWork => work.copy(isComplete = true)
+              case work: MultipleChoiceWork => work.copy(isComplete = true)
+              case work: OrderingWork => work.copy(isComplete = true)
+              case work: MatchingWork => work.copy(isComplete = true)
+            }
+            updatedWorks <- serializedT(worksToUpdate.map(workRepository.update))
+          } yield ()).run
+        }
+      }
+    }
+
     /*
      * -----------------------------------------------------------
      * TaskFeedback methods

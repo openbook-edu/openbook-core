@@ -28,6 +28,5 @@ trait WorkRepositoryComponent {
 
     def delete(work: Work, thisRevisionOnly: Boolean = false)(implicit conn: Connection): Future[\/[Fail, Work]]
     def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, Work]]
-    //def forceComplete(task: Task, course: Course)(implicit conn: Connection): Future[Boolean]
   }
 }

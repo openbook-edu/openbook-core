@@ -2,6 +2,8 @@ package ca.shiftfocus.krispii.core.services
 
 import java.awt.Color
 
+import ca.shiftfocus.krispii.core.fail.{BadInput, NoResults, GenericFail, Fail}
+import ca.shiftfocus.krispii.core.lib.FutureMonad
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
@@ -9,16 +11,15 @@ import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.uuid.UUID
 import play.api.Logger
 import scala.concurrent.Future
+import scalaz.{\/-, -\/, \/}
 
 trait SchoolServiceImplComponent extends SchoolServiceComponent {
-  self: CourseRepositoryComponent with
+  self: AuthServiceComponent with
+        ProjectServiceComponent with
+        CourseRepositoryComponent with
         CourseRepositoryComponent with
         UserRepositoryComponent with
-        RoleRepositoryComponent with
-        ProjectRepositoryComponent with
-        PartRepositoryComponent with
-        TaskRepositoryComponent with
-        TaskResponseRepositoryComponent with
+        WorkRepositoryComponent with
         DB =>
 
   override val schoolService: SchoolService = new SchoolServiceImpl
@@ -34,10 +35,10 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      *
      * @return an [[IndexedSeq]] of [[Course]]
      */
-    override def listCourses: Future[IndexedSeq[Course]] = {
+    override def listCourses: Future[\/[Fail, IndexedSeq[Course]]] = {
       courseRepository.list
     }
-
+    
     /**
      * List all courses associated with a specific user.
      *
@@ -45,21 +46,20 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * student of the course via an association table.
      *
      * @param userId the [[UUID]] of the [[User]] to search for.
-     * @param an [[IndexedSeq]] of [[Course]]
+     * @return an [[IndexedSeq]] of [[Course]]
      */
-    override def listCoursesByUser(userId: UUID): Future[IndexedSeq[Course]] = {
-      for {
-        user <- userRepository.find(userId).map(_.get)
-        coursesInt <- courseRepository.list(user, false)
-        courses <- Future sequence coursesInt.map { course =>
-          projectRepository.list(course).map { courseProjects =>
-            course.copy(projects = Some(courseProjects))
-          }
-        }
+    override def listCoursesByUser(userId: UUID): Future[\/[Fail, IndexedSeq[Course]]] = {
+      (for {
+        userInfo <- lift(authService.find(userId))
+        courses <- lift(courseRepository.list(userInfo.user, false))
+        coursesWithProjects <- liftSeq { courses.map { course =>
+          (for {
+            projects <- lift(projectService.list(course.id))
+            courseWithProjects = course.copy(projects = Some(projects))
+          } yield courseWithProjects).run
+        }}
       }
-      yield courses
-    }.recover {
-      case exception => throw exception
+      yield coursesWithProjects).run
     }
 
     /**
@@ -71,19 +71,17 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @param userId the [[UUID]] of the [[User]] to search for.
      * @param an [[IndexedSeq]] of [[Course]]
      */
-    override def listCoursesByTeacher(userId: UUID): Future[IndexedSeq[Course]] = {
-      for {
-        user <- userRepository.find(userId).map(_.get)
-        coursesInt <- courseRepository.list(user, true)
-        courses <- Future sequence coursesInt.map { course =>
-          projectRepository.list(course).map { courseProjects =>
-            course.copy(projects = Some(courseProjects))
-          }
-        }
-      }
-      yield courses
-    }.recover {
-      case exception => throw exception
+    override def listCoursesByTeacher(userId: UUID): Future[\/[Fail, IndexedSeq[Course]]] = {
+      (for {
+        userInfo <- lift(authService.find(userId))
+        coursesInt <- lift(courseRepository.list(userInfo.user, true))
+        courses <- liftSeq { coursesInt.map { course =>
+          (for {
+            projects <- lift(projectService.list(course.id))
+            courseWithProjects = course.copy(projects = Some(projects))
+          } yield courseWithProjects).run
+        }}
+      } yield courses).run
     }
 
     /**
@@ -92,19 +90,18 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @param projectId the [[UUID]] of the [[Project]] to filter by
      * @return an [[IndexedSeq]] of [[Course]]
      */
-    override def listCoursesByProject(projectId: UUID): Future[IndexedSeq[Course]] = {
-      for {
-        project <- projectRepository.find(projectId).map(_.get)
-        coursesInt <- courseRepository.list(project)
-        courses <- Future sequence coursesInt.map { course =>
-          projectRepository.list(course).map { courseProjects =>
-            course.copy(projects = Some(courseProjects))
-          }
-        }
+    override def listCoursesByProject(projectId: UUID): Future[\/[Fail, IndexedSeq[Course]]] = {
+      (for {
+        project <- lift(projectService.find(projectId))
+        coursesInt <- lift(courseRepository.list(project))
+        courses <- liftSeq { coursesInt.map { course =>
+          (for {
+            projects <- lift(projectService.list(course.id))
+            courseWithProjects = course.copy(projects = Some(projects))
+          } yield courseWithProjects).run
+        }}
       }
-      yield courses
-    }.recover {
-      case exception => throw exception
+      yield courses).run
     }
 
     /**
@@ -113,8 +110,11 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @param id the [[UUID]] of the [[Course]] to find.
      * @return an optional [[Course]]
      */
-    override def findCourse(id: UUID): Future[Option[Course]] = {
-      courseRepository.find(id)
+    override def findCourse(id: UUID): Future[\/[Fail, Course]] = {
+      (for {
+        course <- lift(courseRepository.find(id))
+        projects <- lift(projectService.list(course.id))
+      } yield course.copy(projects = Some(projects))).run
     }
 
     /**
@@ -125,61 +125,45 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @param name the name of this course
      * @return the newly created [[Course]]
      */
-    override def createCourse(teacherId: Option[UUID], name: String, color: Color): Future[Course] = {
+    override def createCourse(teacherId: UUID, name: String, color: Color): Future[\/[Fail, Course]] = {
       transactional { implicit connection =>
-        val foTeacher = teacherId match {
-          case Some(id) => userRepository.find(id)
-          case None => Future.successful(None)
-        }
-
-        for {
-          oTeacher <- foTeacher
-          newCourse <- courseRepository.insert(Course(
-            teacherId = oTeacher match {
-              case Some(teacher) => Some(teacher.id)
-              case None => None
-            },
+        (for {
+          teacher <- lift(authService.find(teacherId))
+          _ <- predicate (teacher.roles.map(_.name).contains("teacher")) (GenericFail("Tried to create a course for a user who isn't a teacher."))
+          newCourse = Course(
+            teacherId = teacher.user.id,
             name = name,
             color = color
-          ))
+          )
+          createdCourse <- lift(courseRepository.insert(newCourse))
         }
-        yield newCourse
-      }.recover {
-        case exception => throw exception
+        yield newCourse).run
       }
     }
 
     /**
      * Create a new course.
      *
-     * @param courseId the [[UUID]] of the [[Course]] this course belongs to
+     * @param id the [[UUID]] of the [[Course]] this course belongs to
      * @param teacherId the optional [[UUID]] of the [[User]] teaching this course
      * @param name the name of this course
      * @return the newly created [[Course]]
      */
-    override def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: String, color: Color): Future[Course] = {
+    override def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: Option[String], color: Option[Color]): Future[\/[Fail, Course]] = {
       transactional { implicit connection =>
-        val fExistingCourse = courseRepository.find(id).map(_.get.copy(version = version))
-        val foTeacher = teacherId match {
-          case Some(id) => userRepository.find(id)
-          case None => Future.successful(None)
+        (for {
+          existingCourse <- lift(courseRepository.find(id))
+          tId = teacherId.getOrElse(existingCourse.teacherId)
+          teacher <- lift(authService.find(tId))
+          _ <- predicate (teacher.roles.map(_.name).contains("teacher")) (GenericFail("Tried to update a course for a user who isn't a teacher."))
+          toUpdate = existingCourse.copy(
+            teacherId = teacherId.getOrElse(existingCourse.teacherId),
+            name = name.getOrElse(existingCourse.name),
+            color = color.getOrElse(existingCourse.color)
+          )
+          updatedCourse <- lift(courseRepository.update(toUpdate))
         }
-
-        for {
-          existingCourse <- fExistingCourse
-          oTeacher <- foTeacher
-          updatedCourse <- courseRepository.update(existingCourse.copy(
-            teacherId = oTeacher match {
-              case Some(teacher) => Some(teacher.id)
-              case None => None
-            },
-            name = name,
-            color = color
-          ))
-        }
-        yield updatedCourse
-      }.recover {
-        case exception => throw exception
+        yield updatedCourse).run
       }
     }
 
@@ -190,12 +174,13 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @param version the latest version of the [[Course]] for O.O.L.
      * @return a boolean indicating success or failure
      */
-    override def deleteCourse(id: UUID, version: Long): Future[Boolean] = {
+    override def deleteCourse(id: UUID, version: Long): Future[\/[Fail, Course]] = {
       transactional { implicit connection =>
-        for {
-          existingCourse <- courseRepository.find(id).map(_.get)
-          wasDeleted <- courseRepository.delete(existingCourse)
-        } yield wasDeleted
+        (for {
+          existingCourse <- lift(courseRepository.find(id))
+          toDelete = existingCourse.copy(version = version)
+          wasDeleted <- lift(courseRepository.delete(toDelete))
+        } yield wasDeleted).run
       }
     }
 
@@ -204,77 +189,15 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     /**
      * List all students registered to a course.
      */
-    override def listStudents(course: Course): Future[IndexedSeq[User]] = {
-      userRepository.list(course)
+    override def listStudents(course: Course): Future[\/[Fail, IndexedSeq[UserInfo]]] = {
+      authService.list(None, Some(IndexedSeq(course.id)))
     }
 
     /**
      * List all projects belonging to a course.
      */
-    override def listProjects(course: Course): Future[IndexedSeq[Project]] = {
-      projectRepository.list(course)
-    }
-
-    // TODO rewrite
-    /**
-     * List all project parts that have been enabled for a course.
-     *
-     * @param projectId the [[UUID]] of the [[Project]] to list parts from
-     * @param courseId the [[UUID]] of the [[Course]] to list parts for
-     * @return an [[IndexedSeq]] of [[Part]].
-     */
-//    override def listEnabledParts(projectId: UUID, classId: UUID): Future[IndexedSeq[Part]] = {
-//      val fProject = projectRepository.find(projectId).map(_.get)
-//      val fSection = classRepository.find(classId).map(_.get)
-//      for {
-//        project <- fProject
-//        section <- fSection
-//        enabledParts <- partRepository.listEnabled(project, section)
-//      }
-//      yield enabledParts
-//    }.recover {
-//      case exception => throw exception
-//    }
-
-    override def listEnabledParts(projectId: UUID): Future[IndexedSeq[Part]] = {
-      val fProject = projectRepository.find(projectId).map(_.get)
-      for {
-        project <- fProject
-        enabledParts <- {
-          Future successful project.parts.filter(_.enabled)
-        }
-
-      } yield enabledParts
-    }.recover {
-      case exception => throw exception
-    }
-
-    /**
-     * List all students registered to a course.
-     */
-    override def listStudents(courseId: UUID): Future[IndexedSeq[User]] = {
-      val studentList = for {
-        course <- courseRepository.find(courseId).map(_.get)
-        students <- userRepository.listForCourses(IndexedSeq(course))
-      }
-      yield students
-
-      studentList.recover {
-        case exception => throw exception
-      }
-    }
-
-    /**
-     * List all projects belonging to a course.
-     */
-    override def listProjects(courseId: UUID): Future[IndexedSeq[Project]] = {
-      for {
-        course <- courseRepository.find(courseId).map(_.get)
-        projects <- projectRepository.list(course)
-      }
-      yield projects
-    }.recover {
-      case exception => throw exception
+    override def listProjects(course: Course): Future[\/[Fail, IndexedSeq[Project]]] = {
+      projectService.list(course.id)
     }
 
     /**
@@ -284,13 +207,13 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @param userIds an [[IndexedSeq]] of [[UUID]] representing the [[User]]s to be added.
      * @param a [[Boolean]] indicating success or failure.
      */
-    override def addUsers(course: Course, userIds: IndexedSeq[UUID]): Future[Boolean] = {
+    override def addUsers(course: Course, userIds: IndexedSeq[UUID]): Future[\/[Fail, IndexedSeq[User]]] = {
       transactional { implicit connection =>
-        for {
-          users <- Future.sequence(userIds.map(userRepository.find)).map(_.map(_.get))
-          wereAdded <- courseRepository.addUsers(course, users)
-        }
-        yield wereAdded
+        (for {
+          users <- lift(userRepository.list(userIds))
+          wereAdded <- lift(courseRepository.addUsers(course, users))
+          usersInCourse <- lift(userRepository.list(course))
+        } yield usersInCourse).run
       }
     }
 
@@ -301,13 +224,13 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @param userIds an [[IndexedSeq]] of [[UUID]] representing the [[User]]s to be removed.
      * @param a [[Boolean]] indicating success or failure.
      */
-    override def removeUsers(course: Course, userIds: IndexedSeq[UUID]): Future[Boolean] = {
+    override def removeUsers(course: Course, userIds: IndexedSeq[UUID]): Future[\/[Fail, IndexedSeq[User]]] = {
       transactional { implicit connection =>
-        for {
-          users <- Future.sequence(userIds.map(userRepository.find)).map(_.map(_.get))
-          wereRemoved <- courseRepository.removeUsers(course, users)
-        }
-        yield wereRemoved
+        (for {
+          users <- lift(userRepository.list(userIds))
+          wereRemoved <- lift(courseRepository.removeUsers(course, users))
+          usersInCourse <- lift(userRepository.list(course))
+        } yield usersInCourse).run
       }
     }
 
@@ -318,22 +241,13 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @param teacherId
      * @return
      */
-    override def findUserForTeacher(userId: UUID, teacherId: UUID): Future[Option[UserInfo]] = {
-      for {
-        user <- userRepository.find(userId).map(_.get)
-        teacher <- userRepository.find(teacherId).map(_.get)
-        maybeStudent <- courseRepository.findUserForTeacher(user, teacher).flatMap {
-          case Some(student) => {
-            for {
-              roles <- roleRepository.list(student)
-              courses <- courseRepository.list(student)
-            } yield Some(UserInfo(student, roles, courses))
-          }
-          case _ => Future successful None
-        }
-      } yield maybeStudent
-    }.recover {
-      case exception => throw exception
+    override def findUserForTeacher(userId: UUID, teacherId: UUID): Future[\/[Fail, UserInfo]] = {
+      (for {
+        user <- lift(authService.find(userId))
+        teacher <- lift(authService.find(teacherId))
+        maybeStudent <- lift(courseRepository.findUserForTeacher(user.user, teacher.user))
+        student <- lift(authService.find(maybeStudent.id))
+      } yield student).run
     }
 
     /**
@@ -344,14 +258,14 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      *                  have their responses force-completed
      * @return a boolean indicating success or failure
      */
-    override def forceComplete(taskId: UUID, courseId: UUID): Future[Boolean] = {
+    override def forceComplete(taskId: UUID, courseId: UUID): Future[\/[Fail, Unit]] = {
       transactional { implicit connection =>
-        for {
-          task <- taskRepository.find(taskId).map(_.get)
-          course <- courseRepository.find(courseId).map(_.get)
-          forcedComplete <- taskResponseRepository.forceComplete(task, course)
+        (for {
+          task <- lift(projectService.findTask(taskId))
+          course <- lift(schoolService.findCourse(courseId))
+          _ <- lift(workRepository.forceComplete(task, course))
         }
-        yield forcedComplete
+        yield ()).run
       }
     }
 
@@ -362,63 +276,13 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @param projectSlug the slug of the project to look for
      * @return a boolean indicating success or failure
      */
-    override def userHasProject(userId: UUID, projectSlug: String): Future[Boolean] = {
-      for {
-        user <- userRepository.find(userId).map(_.get)
-        project <- projectRepository.find(projectSlug).map(_.get)
-        hasProject <- courseRepository.hasProject(user, project)(db.pool)
+    override def userHasProject(userId: UUID, projectSlug: String): Future[\/[Fail, Boolean]] = {
+      (for {
+        user <- lift(authService.find(userId))
+        project <- lift(projectService.find(projectSlug))
+        hasProject <- lift(courseRepository.hasProject(user.user, project)(db.pool))
       }
-      yield hasProject
-    }.recover {
-      case exception => throw exception
-    }
-
-    /**
-     * List a user's enabled parts.
-     *
-     * @param projectSlug the project's slug
-     * @param userId the [[UUID]] of the [[User]] to list parts for
-     * @return an [[IndexedSeq[Part]]]
-     */
-    override def listEnabledParts(projectSlug: String, userId: UUID): Future[IndexedSeq[Part]] = {
-      for {
-        projectOption <- projectRepository.find(projectSlug)
-        user <- userRepository.find(userId).map(_.get)
-        partsList <- { projectOption match {
-          case Some(project) => Future successful project.parts.filter(_.enabled)
-          case None => Future.successful(IndexedSeq[Part]())
-        }}
-      } yield partsList
-    }.recover {
-      case exception => throw exception
-    }
-
-    // TODO remove
-//    override def isPartEnabledForUser(partId: UUID, userId: UUID): Future[Boolean] = {
-//      for {
-//        part <- partRepository.find(partId).map(_.get)
-//        user <- userRepository.find(userId).map(_.get)
-//        isEnabled <- partRepository.isEnabled(part, user)
-//      }
-//      yield isEnabled
-//    }
-//
-//    override def isPartEnabledForSection(partId: UUID, classId: UUID): Future[Boolean] = {
-//      for {
-//        part <- partRepository.find(partId).map(_.get)
-//        section <- classRepository.find(classId).map(_.get)
-//        isEnabled <- partRepository.isEnabled(part, section)
-//      }
-//      yield isEnabled
-//    }
-
-    override def isPartEnabledForCourse(partId: UUID, courseId: UUID): Future[Boolean] = {
-      for {
-        part <- partRepository.find(partId).map(_.get)
-        course <- courseRepository.find(courseId).map(_.get)
-        isEnabled <- partRepository.isEnabled(part, course)
-      }
-      yield isEnabled
+      yield hasProject).run
     }
   }
 }

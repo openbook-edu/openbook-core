@@ -11,7 +11,10 @@ import scala.concurrent.Future
 import scalaz.{-\/, \/-, \/}
 
 trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleExceptionRepositoryComponent {
-  self: PostgresDB =>
+  self: CourseScheduleRepositoryComponent with
+        UserRepositoryComponent with
+        CourseRepositoryComponent with
+        PostgresDB =>
 
   override val courseScheduleExceptionRepository: CourseScheduleExceptionRepository = new CourseScheduleExceptionRepositoryPSQL
 

@@ -18,7 +18,8 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import scalaz.{\/, -\/, \/-}
 
 trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent {
-  self: PostgresDB =>
+  self: PartRepositoryComponent with
+        PostgresDB =>
 
   override val componentRepository: ComponentRepository = new ComponentRepositoryPSQL
 

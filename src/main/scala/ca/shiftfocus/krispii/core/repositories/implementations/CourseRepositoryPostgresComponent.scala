@@ -20,7 +20,9 @@ import scalaz.{\/, -\/, \/-}
 import scalaz.syntax.either._
 
 trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
-  self: UserRepositoryComponent with PostgresDB =>
+  self: UserRepositoryComponent with
+        ProjectRepositoryComponent with
+        PostgresDB =>
 
   override val courseRepository: CourseRepository = new CourseRepositoryPSQL
 

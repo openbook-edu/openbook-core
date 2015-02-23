@@ -1,10 +1,10 @@
 package ca.shiftfocus.krispii.core.services
 
-import ca.shiftfocus.krispii.core.models.work.Work
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks._
+import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.uuid.UUID
@@ -22,6 +22,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
         ComponentRepositoryComponent with
         CourseRepositoryComponent with
         WorkServiceComponent with
+        WorkRepositoryComponent with
         DB =>
 
   override val projectService: ProjectService = new ProjectServiceImpl

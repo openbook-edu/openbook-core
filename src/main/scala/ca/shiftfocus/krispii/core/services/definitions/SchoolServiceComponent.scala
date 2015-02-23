@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.fail._
+import ca.shiftfocus.krispii.core.lib.FutureMonad
 import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models._
 import scala.concurrent.Future
@@ -8,7 +9,7 @@ import java.awt.Color
 
 import scalaz.\/
 
-trait SchoolServiceComponent {
+trait SchoolServiceComponent extends FutureMonad {
 
   val schoolService: SchoolService
 
@@ -21,8 +22,8 @@ trait SchoolServiceComponent {
 
     def findCourse(id: UUID): Future[\/[Fail, Course]]
 
-    def createCourse(teacherId: Option[UUID], name: String, color: Color): Future[\/[Fail, Course]]
-    def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: String, color: Color): Future[\/[Fail, Course]]
+    def createCourse(teacherId: UUID, name: String, color: Color): Future[\/[Fail, Course]]
+    def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: Option[String], color: Option[Color]): Future[\/[Fail, Course]]
     def deleteCourse(id: UUID, version: Long): Future[\/[Fail, Course]]
 
     def userHasProject(userId: UUID, projectSlug: String): Future[\/[Fail, (User, Project)]]
@@ -37,7 +38,5 @@ trait SchoolServiceComponent {
 
     def addUsers(course: Course, userIds: IndexedSeq[UUID]): Future[\/[Fail, Course]]
     def removeUsers(course: Course, userIds: IndexedSeq[UUID]): Future[\/[Fail, Course]]
-
-    def forceComplete(taskId: UUID): Future[\/[Fail, Course]]
   }
 }

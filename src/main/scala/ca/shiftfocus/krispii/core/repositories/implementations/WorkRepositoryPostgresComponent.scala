@@ -217,6 +217,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |WHERE task.id = ?
        """.stripMargin
 
+
     /**
      * List the latest revision of work for each task in a project.
      *

@@ -2,12 +2,13 @@ package ca.shiftfocus.krispii.core.repositories
 
 import java.util.NoSuchElementException
 
+import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.krispii.core.models.document.Revision
 import ca.shiftfocus.krispii.core.models.document.Document
 import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
-import com.github.mauricio.async.db.Connection
+import com.github.mauricio.async.db.{ResultSet, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import org.joda.time.DateTime
 import play.api.Logger
@@ -15,6 +16,7 @@ import ws.kahn.ot.Delta
 
 import scala.collection.immutable.HashMap
 import scala.concurrent.Future
+import scalaz.{\/, -\/, \/-}
 
 
 trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
@@ -100,22 +102,22 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
      * @param id
      * @return
      */
-    override def find(id: UUID): Future[Option[Document]] = {
-      for {
-        result <- db.pool.sendPreparedStatement(FindDocument, Seq[Any](id.bytes)).map(_.rows.get.headOption.get).map({ result =>
-          Logger.debug("got document")
-          result
-        })
-        owner <- userRepository.find(UUID(result("owner_id").asInstanceOf[Array[Byte]])).map(_.get)
-        editors <- Future successful IndexedSeq.empty[User]
-      }
-      yield Some(Document(result)(owner, editors))
-    }.recover {
-      case exception: NoSuchElementException => None
-      case exception: NullPointerException => None
-      case exception => {
-        Logger.error("Database error while finding document.")
-        throw exception
+    override def find(id: UUID): Future[\/[Fail, Document]] = {
+      db.pool.sendPreparedStatement(FindDocument, Seq[Any](id.bytes)).flatMap { result =>
+        val maybeRowData = result.rows match {
+          case Some(rows) => rows.headOption
+          case None => None
+        }
+        (for {
+          owner <- lift(maybeRowData match {
+            case Some(rowData) => userRepository.find(UUID(rowData("owner_id").asInstanceOf[Array[Byte]]))
+            case None => Future successful -\/(GenericFail("Invalid data returned from db."))
+          })
+          document <- lift(Future.successful(buildDocument(result.rows)(owner, IndexedSeq.empty[User])))
+        } yield document).run
+      }.recover {
+        case exception: NoSuchElementException => -\/(GenericFail("Invalid data returned from db."))
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 
@@ -123,17 +125,13 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
      * Create a new empty document.
      *
      */
-    override def insert(document: Document)(implicit conn: Connection): Future[Document] = {
+    override def insert(document: Document)(implicit conn: Connection): Future[\/[Fail, Document]] = {
       conn.sendPreparedStatement(CreateDocument, Seq[Any](
         document.id.bytes, document.title, document.plaintext, document.delta, document.owner.id.bytes, new DateTime, new DateTime
       )).map { result =>
-        Document(result.rows.get.head)(document.owner, document.editors)
+        buildDocument(result.rows)(document.owner, document.editors)
       }.recover {
-        case exception => {
-          Logger.error(exception.getMessage())
-          Logger.error("Error inserting document.")
-          throw exception
-        }
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 
@@ -144,14 +142,14 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
      * field stores exactly that... a snapshot of the latest document text. That snapshot should be constructed
      * from the revision history stored in the revisions table.
      */
-    override def update(document: Document)(implicit conn: Connection): Future[Document] = {
+    override def update(document: Document)(implicit conn: Connection): Future[\/[Fail, Document]] = {
       conn.sendPreparedStatement(UpdateDocument, Seq[Any](
         document.version + 1, document.title, document.plaintext, document.delta, document.owner.id.bytes, document.editors.map(_.id.bytes),
         new DateTime, document.id.bytes, document.version
       )).map { result =>
-        Document(result.rows.get.head)(document.owner, document.editors)
+        buildDocument(result.rows)(document.owner, document.editors)
       }.recover {
-        case exception => throw exception
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 
@@ -164,21 +162,40 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
      * @param version
      * @return
      */
-    override def list(document: Document, version: Long = 0): Future[IndexedSeq[Revision]] = {
-      for {
-        rows <- db.pool.sendPreparedStatement(ListRecentRevisions, Seq[Any](document.id.bytes, version)).map(_.rows.get)
-        authorIds <- Future successful rows.map { row =>
-          UUID(row("author_ID").asInstanceOf[Array[Byte]])
-        }.distinct
-        users <- userRepository.list(authorIds).map({ users => HashMap(users.map({ user => (user.id, user) }): _*) })
-        revisions <- Future successful rows.map { row =>
-          val authorId = UUID(row("author_ID").asInstanceOf[Array[Byte]])
-          Revision(row)(users(authorId))
-        }
+    override def list(document: Document, version: Long = 0): Future[\/[Fail, IndexedSeq[Revision]]] = {
+      (for {
+        rows <- lift(db.pool.sendPreparedStatement(ListRecentRevisions, Seq[Any](document.id.bytes, version)).map(_.rows match {
+          case Some(rows) => \/-(rows)
+          case None => -\/(GenericFail("No rows returned from db"))
+        }))
+        authorIds <- lift(Future successful {
+          try {
+            \/-(rows.map { row =>
+              UUID(row("author_id").asInstanceOf[Array[Byte]])
+            }.distinct)
+          }
+          catch {
+            case exception: Throwable => -\/(GenericFail("Received invalid data from the db. Could not instantiate UUID from author_id field."))
+          }
+        })
+        users <- lift(userRepository.list(authorIds))
+        userMap = HashMap(users.map({ user => (user.id, user) }): _*)
+        revisions <- lift(Future successful {
+          try {
+            \/-(rows.map { row =>
+              val authorId = UUID(row("author_ID").asInstanceOf[Array[Byte]])
+              Revision(row)(userMap(authorId))
+            })
+          }
+          catch {
+            case exception: Throwable => -\/(GenericFail("Received invalid data from the db. Could not instantiate UUID from author_id field."))
+          }
+        })
       }
-      yield revisions
-    }.recover {
-      case exception => throw exception
+      yield revisions).run.recover {
+        case exception: NoSuchElementException => -\/(GenericFail("Invalid data returned from db."))
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+      }
     }
 
     /**
@@ -188,7 +205,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
      * @param conn
      * @return
      */
-    override def insert(revision: Revision)(implicit conn: Connection): Future[Revision] = {
+    override def insert(revision: Revision)(implicit conn: Connection): Future[\/[Fail, Revision]] = {
       conn.sendPreparedStatement(PushRevision, Seq[Any](
         revision.documentId.bytes,
         revision.version,
@@ -196,14 +213,41 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
         Delta.writes.writes(revision.delta).toString(),
         new DateTime
       )).map { result =>
-        revision
+        \/-(revision)
       }.recover {
-        case exception => {
-          Logger.error("Error inserting revision")
-          throw exception
-        }
+        case exception: NoSuchElementException => -\/(GenericFail("Invalid data returned from db."))
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
     }
 
+    private def buildDocument(maybeResultSet: Option[ResultSet])(user: User, owners: IndexedSeq[User]): \/[Fail, Document] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => resultSet.headOption match {
+            case Some(firstRow) => \/-(Document(firstRow)(user, owners))
+            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
+          }
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
+        }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a user from the row returned.", exception))
+      }
+    }
+
+    private def buildRevision(maybeResultSet: Option[ResultSet])(author: User): \/[Fail, Revision] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => resultSet.headOption match {
+            case Some(firstRow) => \/-(Revision(firstRow)(author))
+            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
+          }
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
+        }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a revision from the row returned.", exception))
+      }
+    }
   }
 }

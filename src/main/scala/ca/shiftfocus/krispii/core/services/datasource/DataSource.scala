@@ -1,5 +1,6 @@
 package ca.shiftfocus.krispii.core.services.datasource
 
+import ca.shiftfocus.krispii.core.lib.FutureMonad
 import com.github.mauricio.async.db.Configuration
 import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.postgresql.pool.PostgreSQLConnectionFactory
@@ -7,12 +8,13 @@ import com.github.mauricio.async.db.pool.{PoolConfiguration, ConnectionPool}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 
 import com.typesafe.config._
-
+import ca.shiftfocus.krispii.core.fail._
 import scala.concurrent.Future
+import scalaz.{\/, -\/, \/-}
 
 case class OutOfDateException(msg: String) extends Exception
 
-trait DB {
+trait DB extends FutureMonad {
   /**
    * Takes a function that returns a future, and runs it inside a database
    * transaction.
@@ -58,6 +60,18 @@ trait DB {
         nextResult <- fn(nextItem)
       }
       yield accumulated :+ nextResult
+    }
+  }
+
+  def serializedT[E, R, L[E] <: IndexedSeq[E]](collection: L[E])(fn: E => Future[\/[Fail, R]]): Future[\/[Fail, IndexedSeq[R]]] = {
+    val empty: Future[\/[Fail, IndexedSeq[R]]] = Future.successful(\/-(IndexedSeq.empty[R]))
+    collection.foldLeft(empty) { (fAccumulated, nextItem) =>
+      val iteration = for {
+        accumulated <- lift(fAccumulated)
+        nextResult <- lift(fn(nextItem))
+      }
+      yield accumulated :+ nextResult
+      iteration.run
     }
   }
 

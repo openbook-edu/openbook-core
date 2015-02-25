@@ -1,171 +1,108 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import com.github.mauricio.async.db.{RowData, Connection}
-import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
-import ca.shiftfocus.krispii.core.lib.ExceptionWriter
+import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.Task
-import ca.shiftfocus.uuid.UUID
-import play.api.Play.current
-
-import play.api.Logger
-import scala.concurrent.Future
-import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
+import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
+import org.joda.time.DateTime
+import scala.concurrent.Future
+import scalaz.{\/, \/-, -\/}
 
 trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepositoryComponent {
-  self: PostgresDB =>
+  self: UserRepositoryComponent with
+        ProjectRepositoryComponent with
+        TaskRepositoryComponent with
+        PostgresDB =>
 
   override val taskScratchpadRepository: TaskScratchpadRepository = new TaskScratchpadRepositoryPSQL
 
   private class TaskScratchpadRepositoryPSQL extends TaskScratchpadRepository {
-    def fields = Seq("notes")
-    def table = "task_notes"
-    def orderBy = "surname ASC, givenname ASC"
-    val fieldsText = fields.mkString(", ")
-    val questions = fields.map(_ => "?").mkString(", ")
+    val Table = "task_feedbacks"
+    val Fields = "user_id, task_id, version, document_id, created_at, updated_at"
+    val QMarks = "?, ?, ?, ?, ?, ?"
 
     val Insert = {
-      val extraFields = fields.mkString(",")
-      val questions = fields.map(_ => "?").mkString(",")
       s"""
-        INSERT INTO $table (user_id, task_id, revision, version, created_at, updated_at, $extraFields)
-        VALUES (?, ?, ?, 1, ?, ?, $questions)
-        RETURNING user_id, task_id, revision, version, created_at, updated_at, $extraFields
-      """
+         |INSERT INTO $Table ($Fields)
+         |VALUES ($QMarks)
+         |RETURNING $Fields
+       """.stripMargin
     }
 
     val Update = {
-      val extraFields = fields.map(" " + _ + " = ? ").mkString(",")
       s"""
-        UPDATE $table
-        SET $extraFields , version = ?, updated_at = ?
-        WHERE user_id = ?
-          AND task_id = ?
-          AND revision = ?
-          AND version = ?
-        RETURNING user_id, task_id, revision, version,  created_at, updated_at, $extraFields
-      """
+         |UPDATE $Table
+         |SET document_id = ?, version = ?, updated_at = ?
+         |WHERE user_id = ?
+         |  AND task_id = ?
+         |  AND version = ?
+         |RETURNING $Fields
+       """.stripMargin
     }
 
-    val SelectAll = s"""
-      SELECT user_id, task_id, revision, version, created_at, updated_at, $fieldsText
-      FROM $table
-      ORDER BY id asc
-    """
+    val SelectAll =
+      s"""
+         |SELECT $Fields
+         |FROM $Table
+       """.stripMargin
 
-    val SelectOne = s"""
-      SELECT user_id, task_id, revision, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE user_id = ?
-        AND task_id = ?
-        AND revision = ?
-      LIMIT 1
-    """
+    val SelectOne =
+      s"""
+         |SELECT $Fields
+         |FROM $Table
+         |WHERE user_id = ?
+         |  AND task_id = ?
+         |  AND revision = ?
+         |LIMIT 1
+       """.stripMargin
 
-    val SelectRevisionsById = s"""
-      SELECT user_id, task_id, revision, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE user_id = ?
-        AND task_id = ?
-      ORDER BY revision DESC
-    """
+    val SelectAllForUserAndTask =
+      s"""
+         |SELECT $Fields
+         |FROM $Table
+         |WHERE user_id = ?
+         |  AND task_id = ?
+       """.stripMargin
 
-    val SelectLatest = s"""
-      SELECT user_id, task_id, revision, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE user_id = ?
-        AND task_id = ?
-      ORDER BY revision DESC
-      LIMIT 1
-    """
+    val SelectAllForProject = s"""
+      |SELECT $Fields
+      |FROM $Table, parts, projects, tasks
+      |WHERE user_id = ?
+      |  AND projects.id = ?
+      |  AND parts.id = tasks.part_id
+      |  AND projects.id = parts.project_id
+      |  AND task_notes.task_id = tasks.id
+    """.stripMargin
 
-    val SelectLatestByProject = s"""
-      SELECT user_id, task_id, revision, task_notes.version, task_notes.created_at, task_notes.updated_at, $fieldsText
-      FROM $table, parts, projects, tasks
-      WHERE user_id = ?
-        AND projects.id = ?
-        AND parts.id = tasks.part_id
-        AND projects.id = parts.project_id
-        AND task_notes.task_id = tasks.id
-        AND revision = (SELECT MAX(revision) FROM task_notes WHERE user_id= ? AND task_id=tasks.id)
-    """
+    val SelectAllForUser =
+      s"""
+         |SELECT $Fields
+         |FROM $Table
+         |WHERE user_id = ?
+       """.stripMargin
 
-    val SelectByUserId = s"""
-      SELECT sr1.user_id, sr1.task_id, sr1.revision, sr1.version, sr1.created_at, sr1.updated_at, sr1.notes
-      FROM task_notes sr1 LEFT JOIN task_notes sr2
-        ON (sr1.user_id = sr2.user_id AND sr1.task_id < sr2.task_id)
-      WHERE user_id = ?
-        AND sr1.task_id IS NULL
-      ORDER BY revision DESC
-    """
+    val SelectAllForTask =
+      s"""
+         |SELECT $Fields
+         |FROM $Table
+         |WHERE task_id = ?
+       """.stripMargin
 
-    val SelectByTaskId = s"""
-      SELECT sr1.user_id, sr1.task_id, sr1.revision, sr1.version, sr1.created_at, sr1.updated_at, sr1.notes
-      FROM task_notes sr1 LEFT JOIN task_notes sr2
-        ON (sr1.task_id = sr2.task_id AND sr1.user_id < sr2.user_id)
-      WHERE task_id = ?
-        AND sr1.user_id IS NULL
-      ORDER BY revision DESC
-    """
+    val DeleteOne =
+      s"""
+         |DELETE FROM $Table
+         |WHERE user_id = ?
+         |  AND task_id = ?
+         |  AND version = ?
+       """.stripMargin
 
-    val Delete = s"""
-      DELETE FROM $table
-      WHERE user_id = ?
-        AND task_id = ?
-        AND version = ?
-    """
-
-    val DeleteByTask = s"""
-      DELETE FROM $table
-      WHERE task_id = ?
-    """
-
-    val Purge = s"""
-      DELETE FROM $table
-      WHERE user_id = ?
-        AND task_id = ?
-        AND version = ?
-    """
-
-    /**
-     * Find a specific revision of a task scratchpad.
-     *
-     * @param user the [[User]] whose scratchpad it is
-     * @param task the [[Task]] this scratchpad is for
-     * @param revision the revision of the scratchpad to fetch
-     * @return an optional [[TaskScratchpad]] object
-     */
-    override def find(user: User, task: Task, revision: Long)(implicit conn: Connection): Future[Option[TaskScratchpad]] = {
-      for {
-        result <- conn.sendPreparedStatement(SelectOne, Array[Any](user.id.bytes, task.id.bytes, revision))
-      }
-      yield result.rows.get.headOption match {
-        case Some(rowData) => Some(TaskScratchpad(rowData))
-        case None => None
-      }
-    }.recover {
-      case exception => throw exception
-    }
-
-    /**
-     * Find the latest revision of a task scratchpad.
-     *
-     * @param user the [[User]] whose scratchpad it is
-     * @param task the [[Task]] this scratchpad is for
-     * @return an optional [[TaskScratchpad]] object
-     */
-    override def find(user: User, task: Task)(implicit conn: Connection): Future[Option[TaskScratchpad]] = {
-      for {
-        result <- conn.sendPreparedStatement(SelectLatest, Array[Any](user.id.bytes, task.id.bytes))
-      }
-      yield result.rows.get.headOption match {
-        case Some(rowData) => Some(TaskScratchpad(rowData))
-        case None => None
-      }
-    }.recover {
-      case exception => throw exception
-    }
+    val DeleteAllForTask =
+      s"""
+         |DELETE FROM $Table
+         |WHERE task_id = ?
+       """.stripMargin
 
     /**
      * List all revisions of a task scratchpad.
@@ -174,15 +111,15 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
      * @param task the [[Task]] this scratchpad is for
      * @return an array of [[TaskScratchpad]] objects representing each revision
      */
-    override def list(user: User, task: Task)(implicit conn: Connection): Future[IndexedSeq[TaskScratchpad]] = {
-      for {
-        queryResult <- conn.sendPreparedStatement(SelectRevisionsById, Array[Any](user.id.bytes, task.id.bytes))
+    override def list(user: User, task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskScratchpad]]] = {
+      conn.sendPreparedStatement(
+        SelectAllForUserAndTask,
+        Array[Any](user.id.bytes, task.id.bytes)
+      ).map {
+        result => buildTaskScratchpadList(result.rows)
+      }.recover {
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
-      yield queryResult.rows.get.map {
-        item: RowData => TaskScratchpad(item)
-      }
-    }.recover {
-      case exception => throw exception
     }
 
     /**
@@ -192,15 +129,15 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
      * @param project the [[Project]] this scratchpad is for
      * @return an array of [[TaskScratchpad]] objects representing each scratchpad
      */
-    override def list(user: User, project: Project)(implicit conn: Connection): Future[IndexedSeq[TaskScratchpad]] = {
-      for {
-        queryResult <- conn.sendPreparedStatement(SelectLatestByProject, Array[Any](user.id.bytes, project.id.bytes, user.id.bytes))
+    override def list(user: User, project: Project)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskScratchpad]]] = {
+      conn.sendPreparedStatement(
+        SelectAllForProject,
+        Array[Any](user.id.bytes, project.id.bytes)
+      ).map {
+        result => buildTaskScratchpadList(result.rows)
+      }.recover {
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
-      yield queryResult.rows.get.map {
-        item: RowData => TaskScratchpad(item)
-      }
-    }.recover {
-      case exception => throw exception
     }
 
     /**
@@ -209,14 +146,15 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
      * @param user the [[User]] whose scratchpad it is
      * @return an array of [[TaskScratchpad]] objects representing each scratchpad
      */
-    override def list(user: User)(implicit conn: Connection): Future[IndexedSeq[TaskScratchpad]] = {
-      for {
-        queryResult <- conn.sendPreparedStatement(SelectByUserId, Array[Any](user.id.bytes))
-      } yield queryResult.rows.get.map {
-        item: RowData => TaskScratchpad(item)
+    override def list(user: User)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskScratchpad]]] = {
+      conn.sendPreparedStatement(
+        SelectAllForUser,
+        Array[Any](user.id.bytes)
+      ).map {
+        result => buildTaskScratchpadList(result.rows)
+      }.recover {
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
-    }.recover {
-      case exception => throw exception
     }
 
     /**
@@ -225,15 +163,30 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
      * @param task the [[Task]] to list scratchpads for
      * @return an array of [[TaskScratchpad]] objects representing each scratchpad
      */
-    override def list(task: Task)(implicit conn: Connection): Future[IndexedSeq[TaskScratchpad]] = {
-      for {
-        queryResult <- conn.sendPreparedStatement(SelectByTaskId, Array[Any](task.id.bytes))
+    override def list(task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskScratchpad]]] = {
+      conn.sendPreparedStatement(
+        SelectAllForTask,
+        Array[Any](task.id.bytes)
+      ).map {
+        result => buildTaskScratchpadList(result.rows)
+      }.recover {
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
-      yield queryResult.rows.get.map {
-        item: RowData => TaskScratchpad(item)
+    }
+
+    /**
+     * Find the latest revision of a task scratchpad.
+     *
+     * @param user the [[User]] whose scratchpad it is
+     * @param task the [[Task]] this scratchpad is for
+     * @return an optional [[TaskScratchpad]] object
+     */
+    override def find(user: User, task: Task)(implicit conn: Connection): Future[\/[Fail, TaskScratchpad]] = {
+      conn.sendPreparedStatement(SelectOne, Array[Any](user.id.bytes, task.id.bytes)).map {
+        result => buildTaskScratchpad(result.rows)
+      }.recover {
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
-    }.recover {
-      case exception => throw exception
     }
 
     /**
@@ -245,20 +198,19 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
      * @param taskScratchpad the [[TaskScratchpad]] object to be inserted.
      * @return the newly created [[TaskScratchpad]]
      */
-    override def insert(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[TaskScratchpad] = {
-      for {
-        result <- conn.sendPreparedStatement(Insert, Array(
-          taskScratchpad.userId.bytes,
-          taskScratchpad.taskId.bytes,
-          taskScratchpad.revision,
-          new DateTime,
-          new DateTime,
-          taskScratchpad.content
-        ))
+    override def insert(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[Fail, TaskScratchpad]] = {
+      conn.sendPreparedStatement(Insert, Array(
+        taskScratchpad.userId.bytes,
+        taskScratchpad.taskId.bytes,
+        1L,
+        new DateTime,
+        new DateTime,
+        taskScratchpad.documentId
+      )).map {
+        result => buildTaskScratchpad(result.rows)
+      }.recover {
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
-      yield TaskScratchpad(result.rows.get.head)
-    }.recover {
-      case exception => throw exception
     }
 
     /**
@@ -269,54 +221,101 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
      * @param taskScratchpad the [[TaskScratchpad]] object to be inserted.
      * @return the newly created [[TaskScratchpad]]
      */
-    override def update(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[TaskScratchpad] = {
-      for {
-        result <- conn.sendPreparedStatement(Update, Array(
-          taskScratchpad.content,
-          (taskScratchpad.version + 1),
+    override def update(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[Fail, TaskScratchpad]] = {
+      conn.sendPreparedStatement(Update, Array(
+          taskScratchpad.documentId,
+          taskScratchpad.version + 1,
           new DateTime,
           taskScratchpad.userId.bytes,
           taskScratchpad.taskId.bytes,
-          taskScratchpad.revision,
           taskScratchpad.version
-        ))
+        )).map {
+        result => buildTaskScratchpad(result.rows)
+      }.recover {
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
-      yield TaskScratchpad(result.rows.get.head)
-    }.recover {
-      case exception => throw exception
+
     }
 
     /**
      * Deletes a task scratchpad.
      *
-     * @param id
+     * @param taskScratchpad
      * @return
      */
-    override def delete(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[Boolean] = {
-      for {
-        queryResult <- conn.sendPreparedStatement(Purge, Array(
-          taskScratchpad.userId.bytes,
-          taskScratchpad.taskId.bytes,
-          taskScratchpad.version
-        ))
+    override def delete(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[Fail, TaskScratchpad]] = {
+      conn.sendPreparedStatement(DeleteOne, Array(
+        taskScratchpad.userId.bytes,
+        taskScratchpad.taskId.bytes,
+        taskScratchpad.version
+      )).map {
+        result =>
+          if (result.rowsAffected == 1) \/-(taskScratchpad)
+          else -\/(GenericFail("The query returned no errors, but the TaskFeedback was not deleted."))
+      }.recover {
+        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
       }
-      yield { queryResult.rowsAffected > 0 }
+
     }
 
     /**
      * Deletes all revisions of a task response for a particular task.
      *
-     * @param user the user whose task response will be deleted
      * @param task the task to delete the response for
      * @return
      */
-    override def delete(task: Task)(implicit conn: Connection): Future[Boolean] = {
-      for {
-        queryResult <- conn.sendPreparedStatement(DeleteByTask, Array[Any](task.id.bytes))
+    override def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskScratchpad]]] = {
+      val result = for {
+        currentList <- lift(list(task))
+        deletedList <- lift(conn.sendPreparedStatement(DeleteAllForTask, Array[Any](task.id.bytes)).map {
+          result =>
+            if (result.rowsAffected == 1) \/-(currentList)
+            else -\/(GenericFail("The query returned no errors, but the TaskFeedback was not deleted."))
+        })
+      } yield deletedList
+
+      result.run.recover {
+        case exception => throw exception
       }
-      yield { queryResult.rowsAffected > 0 }
-    }.recover {
-      case exception => throw exception
+    }
+
+    /**
+     * Build a TaskFeedback object from a database result.
+     *
+     * @param maybeResultSet the [[ResultSet]] from the database to use
+     * @return
+     */
+    private def buildTaskScratchpad(maybeResultSet: Option[ResultSet]): \/[Fail, TaskScratchpad] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => resultSet.headOption match {
+            case Some(firstRow) => \/-(TaskScratchpad(firstRow))
+            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
+          }
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
+        }
+      }
+      catch {
+        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
+      }
+    }
+
+    /**
+     * Converts an optional result set into works list
+     *
+     * @param maybeResultSet the [[ResultSet]] from the database to use
+     * @return
+     */
+    private def buildTaskScratchpadList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[TaskScratchpad]] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => \/-(resultSet.map(TaskScratchpad.apply))
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
+        }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a TaskScratchpad List from the rows returned.", exception))
+      }
     }
   }
 }

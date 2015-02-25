@@ -176,22 +176,39 @@ object TestValues {
   )
 
 
+<<<<<<< HEAD
   /* COURSES */
   val testCourseA = Course(
     id = UUID("217c5622-ff9e-4372-8e6a-95fb3bae300b"),
     version = 1L,
     teacherId = Option(testUserA.id),
     name = "test course A",
+=======
+  /* CLASSES */
+  val testClassA = Course(
+    id = UUID("217c5622-ff9e-4372-8e6a-95fb3bae300b"),
+    version = 1L,
+    teacherId = testUserA.id,
+    name = "test class A",
+>>>>>>> feature-error_handling
     color = new Color(24, 6, 8),
     createdAt = Option(new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
 
+<<<<<<< HEAD
   val testCourseB = Course(
     id = UUID("404c800a-5385-4e6b-867e-365a1e6b00de"),
     version = 2L,
     teacherId = Option(testUserB.id),
     name = "test course B",
+=======
+  val testClassB = Course(
+    id = UUID("404c800a-5385-4e6b-867e-365a1e6b00de"),
+    version = 2L,
+    teacherId = testUserB.id,
+    name = "test class B",
+>>>>>>> feature-error_handling
     color = new Color(34, 8, 16),
     createdAt = Option(new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")))
@@ -200,6 +217,7 @@ object TestValues {
   /**
    * No data in DB
    */
+<<<<<<< HEAD
   val testCourseC = Course(
     id = UUID("7cf524fa-aa7f-4bfe-93d7-8cd7787fd030"),
     teacherId = Option(testUserA.id),
@@ -212,6 +230,20 @@ object TestValues {
     version = 3L,
     teacherId = Option(testUserF.id),
     name = "test course D",
+=======
+  val testClassC = Course(
+    id = UUID("7cf524fa-aa7f-4bfe-93d7-8cd7787fd030"),
+    teacherId = testUserA.id,
+    name = "unexisting class C",
+    color = new Color(24, 6, 8)
+  )
+
+  val testClassD = Course(
+    id = UUID("94cc65bb-4542-4f62-8e08-d58522e7b5f1"),
+    version = 3L,
+    teacherId = testUserF.id,
+    name = "test class D",
+>>>>>>> feature-error_handling
     color = new Color(4, 28, 56),
     createdAt = Option(new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04")))
@@ -220,6 +252,7 @@ object TestValues {
   /**
    * No data in DB for insert
    */
+<<<<<<< HEAD
   val testCourseE = Course(
     id = UUID("d0b05b14-4a5f-4727-ac43-bd8671aab53c"),
     teacherId = Option(testUserA.id),
@@ -232,6 +265,20 @@ object TestValues {
     version = 4L,
     teacherId = Option(testUserF.id),
     name = "test course F",
+=======
+  val testClassE = Course(
+    id = UUID("d0b05b14-4a5f-4727-ac43-bd8671aab53c"),
+    teacherId = testUserA.id,
+    name = "unexisting class E",
+    color = new Color(45, 10, 15)
+  )
+
+  val testClassF = Course(
+    id = UUID("287b61f5-da6b-4de7-8535-3bc500cffac7"),
+    version = 4L,
+    teacherId = testUserF.id,
+    name = "test class F",
+>>>>>>> feature-error_handling
     color = new Color(4, 28, 56),
     createdAt = Option(new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04")))
@@ -482,6 +529,7 @@ object TestValues {
   )
 
 
+<<<<<<< HEAD
   /* PROJECTS */
   val testProjectA = Project(
     id = UUID("c9b4cfce-aed4-48fd-94f5-c980763dfddc"),
@@ -547,6 +595,73 @@ object TestValues {
     availability = "course",
     parts = Vector()
   )
+=======
+//  /* PROJECTS */
+//  val testProjectA = Project(
+//    id = UUID("c9b4cfce-aed4-48fd-94f5-c980763dfddc"),
+//    courseId = testClassA.id,
+//    version = 1L,
+//    name = "test project A",
+//    slug = "test project slug A",
+//    description = "test project A description",
+//    availability = "any",
+//    parts = Vector(testPartA, testPartB),
+//    createdAt = Option(new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+//    updatedAt = Option(new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+//  )
+//
+//  val testProjectB = Project(
+//    id = UUID("e4ae3b90-9871-4339-b05c-8d39e3aaf65d"),
+//    courseId = testClassB.id,
+//    version = 2L,
+//    name = "test project B",
+//    slug = "test project slug B",
+//    description = "test project B description",
+//    availability = "free",
+//    parts = Vector(testPartC),
+//    createdAt = Option(new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+//    updatedAt = Option(new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+//  )
+//
+//  val testProjectC = Project(
+//    id = UUID("4ac4d872-451b-4092-b13f-643d6d5fa930"),
+//    courseId = testClassB.id,
+//    version = 3L,
+//    name = "test project C",
+//    slug = "test project slug C",
+//    description = "test project C description",
+//    availability = "class",
+//    parts = Vector(),
+//    createdAt = Option(new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+//    updatedAt = Option(new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+//  )
+//
+//  /**
+//   * No data in DB for insert
+//   */
+//  val testProjectD = Project(
+//    id = UUID("00743ada-1d3a-4912-adc8-fb8a0b1b7443"),
+//    courseId = testClassA.id,
+//    name = "test project D",
+//    slug = "test project slug D",
+//    description = "test project D description",
+//    availability = "class",
+//    parts = Vector()
+//  )
+//
+//  /**
+//   * No data in DB
+//   */
+//  val testProjectE = Project(
+//    id = UUID("b36919cb-2df0-43b7-bb7f-36cae797deaa"),
+//    courseId = testClassA.id,
+//    name = "test project E",
+//    slug = "test project slug E",
+//    description = "test project E description",
+//    availability = "class",
+//    parts = Vector()
+//  )
+>>>>>>> feature-error_handling
 
 
   //  /* SCHEDULES */

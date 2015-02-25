@@ -1,14 +1,16 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import com.github.mauricio.async.db.{RowData, Connection}
-import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
+import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.{MatchingTask, Task}
 import ca.shiftfocus.krispii.core.models.work._
+import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
+import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
+import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import org.joda.time.DateTime
 import scala.concurrent.Future
+import scalaz.{\/, -\/, \/-}
 
 trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
   self: PostgresDB =>
@@ -51,9 +53,18 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |LEFT JOIN matching_work ON work.id = matching_work.work_id
        """.stripMargin
 
+    val JoinMatchVersion =
+      s"""
+         |LEFT JOIN long_answer_work ON work.id = long_answer_work.work_id AND work.version = long_answer_work.version
+         |LEFT JOIN short_answer_work ON work.id = short_answer_work.work_id AND work.version = short_answer_work.version
+         |LEFT JOIN multiple_choice_work ON work.id = multiple_choice_work.work_id AND work.version = multiple_choice_work.version
+         |LEFT JOIN ordering_work ON work.id = ordering_work.work_id AND work.version = ordering_work.version
+         |LEFT JOIN matching_work ON work.id = matching_work.work_id AND work.version = matching_work.version
+       """.stripMargin
+
     // -- Select queries -----------------------------------------------------------------------------------------------
 
-    val ListLatestByProjectForUser =
+    val SelectAllForUserProject =
       s"""
          |$Select
          |$From, projects, parts, tasks
@@ -65,6 +76,14 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |  AND projects.id = parts.project_id
          |  AND student_responses.task_id = tasks.id
          |  AND version = (SELECT MAX(version) FROM student_responses WHERE user_id= ? AND task_id=tasks.id)
+       """.stripMargin
+
+    val SelectAllForTask =
+      s"""
+         |$Select
+         |$From, tasks
+         |$JoinMatchVersion
+         |WHERE work.task_id = tasks.id
        """.stripMargin
 
     val ListRevisionsById =
@@ -106,6 +125,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |RETURNING id, user_id, task_id, course_id, is_complete, created_at, updated_at
        """.stripMargin
 
+    // TODO - We need RETURNING for every Work type
     def InsertIntoDocumentWork(table: String): String =
       s"""
          |WITH w AS (
@@ -189,7 +209,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |  AND revision = ?
        """.stripMargin
 
-    val DeleteByTask =
+    val DeleteAllForTask =
       s"""
          |DELETE work
          |$From
@@ -197,67 +217,76 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
          |WHERE task.id = ?
        """.stripMargin
 
+
     /**
      * List the latest revision of work for each task in a project.
      *
      * @param project
      * @param user
-     * @param course
      * @return
      */
-    override def list(user: User, course: Course, project: Project): Future[IndexedSeq[Work]] = {
-      db.pool.sendPreparedStatement(ListLatestByProjectForUser, Array[Any](
+    override def list(user: User, project: Project): Future[\/[Fail, IndexedSeq[Work]]] = {
+      db.pool.sendPreparedStatement(SelectAllForUserProject, Array[Any](
         project.id.bytes,
-        user.id.bytes,
-        course.id.bytes
-      )).map { result =>
-        result.rows.get.map { item: RowData => Work(item) }
+        user.id.bytes
+      )).map {
+        result => buildWorkList(result.rows)
       }.recover {
-        case exception => throw exception
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
     /**
-     * List all reivisons of a specific work.
+     * List all revisions of a specific work.
      *
      * @param task
      * @param user
-     * @param course
      * @return
      */
-    override def list(user: User, task: Task, course: Course): Future[IndexedSeq[Work]] = {
+    override def list(user: User, task: Task): Future[\/[Fail, IndexedSeq[Work]]] = {
       db.pool.sendPreparedStatement(ListRevisionsById, Array[Any](
         task.id.bytes,
-        user.id.bytes,
-        course.id.bytes
-      )).map { result =>
-        result.rows.get.map { item: RowData => Work(item) }
+        user.id.bytes
+      )).map {
+        result => buildWorkList(result.rows)
       }.recover {
-        case exception => throw exception
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+      }
+    }
+
+    /**
+     * List all revisions of a specific work.
+     *
+     * @param task
+     * @return
+     */
+    override def list(task: Task): Future[\/[Fail, IndexedSeq[Work]]] = {
+      db.pool.sendPreparedStatement(SelectAllForTask, Array[Any](
+        task.id.bytes
+      )).map {
+        result => buildWorkList(result.rows)
+      }.recover {
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
     /**
      * Find the latest revision of a single work.
      *
-     * @param task
-     * @param user
-     * @param course
+     * @param workId
      * @return
      */
-    override def find(workId: UUID): Future[Option[Work]] = {
+    override def find(workId: UUID): Future[\/[Fail, Work]] = {
       db.pool.sendPreparedStatement(SelectById, Array[Any](
         workId.bytes
-      )).map { result =>
-        result.rows.get.headOption match {
-          case Some(rowData) => Some(Work(rowData))
-          case None => None
-        }
+      )).map {
+        result => buildWork(result.rows)
       }.recover {
-        case exception => throw exception
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
+    // TODO - update ScalaDoc.
     /**
      * Find the latest revision of a single work.
      *
@@ -266,18 +295,14 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param course
      * @return
      */
-    override def find(user: User, task: Task, course: Course): Future[Option[Work]] = {
+    override def find(user: User, task: Task): Future[\/[Fail, Work]] = {
       db.pool.sendPreparedStatement(SelectByStudentTaskCourse, Array[Any](
         user.id.bytes,
-        task.id.bytes,
-        course.id.bytes
-      )).map { result =>
-        result.rows.get.headOption match {
-          case Some(rowData) => Some(Work(rowData))
-          case None => None
-        }
+        task.id.bytes
+      )).map {
+        result => buildWork(result.rows)
       }.recover {
-        case exception => throw exception
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -289,19 +314,15 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param course
      * @return
      */
-    override def find(user: User, task: Task, course: Course, revision: Long): Future[Option[Work]] = {
+    override def find(user: User, task: Task, version: Long): Future[\/[Fail, Work]] = {
       db.pool.sendPreparedStatement(SelectByStudentTaskCourse, Array[Any](
         user.id.bytes,
         task.id.bytes,
-        course.id.bytes,
-        revision
-      )).map { result =>
-        result.rows.get.headOption match {
-          case Some(rowData) => Some(Work(rowData))
-          case None => None
-        }
+        version
+      )).map {
+        result => buildWork(result.rows)
       }.recover {
-        case exception => throw exception
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -317,7 +338,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param conn
      * @return
      */
-    override def insert(work: Work)(implicit conn: Connection): Future[Work] = {
+    override def insert(work: Work)(implicit conn: Connection): Future[\/[Fail, Work]] = {
       val query = work match {
         case specific: LongAnswerWork => InsertIntoDocumentWork("long_answer_work")
         case specific: ShortAnswerWork => InsertIntoDocumentWork("short_answer_work")
@@ -330,7 +351,6 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
         work.id.bytes,
         work.studentId.bytes,
         work.taskId.bytes,
-        work.courseId.bytes,
         work.isComplete,
         new DateTime,
         new DateTime
@@ -344,10 +364,10 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
         case specific: MatchingWork => baseParams ++ Array[Any](Task.Matching, specific.answer.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => s"${item.left}:${item.right}"})
       }
 
-      conn.sendPreparedStatement(query, params).map { result =>
-        work
+      conn.sendPreparedStatement(query, params).map {
+        result => buildWork(result.rows)
       }.recover {
-        case exception => throw exception
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -363,8 +383,8 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param conn
      * @return
      */
-    override def update(work: Work)(implicit conn: Connection): Future[Work] = update(work, false)
-    override def update(work: Work, newRevision: Boolean)(implicit conn: Connection): Future[Work] = {
+    override def update(work: Work)(implicit conn: Connection): Future[\/[Fail, Work]] = update(work, false)
+    override def update(work: Work, newRevision: Boolean)(implicit conn: Connection): Future[\/[Fail, Work]] = {
       val tableName = work match {
         case specific: LongAnswerWork => "long_answer_work"
         case specific: ShortAnswerWork => "short_answer_work"
@@ -380,7 +400,6 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
           new DateTime,
           work.studentId.bytes,
           work.taskId.bytes,
-          work.courseId.bytes,
           work.version,
           work.version +1,
           work.answer
@@ -393,19 +412,19 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
           new DateTime,
           work.studentId.bytes,
           work.taskId.bytes,
-          work.courseId.bytes,
           work.version,
           work.answer
         ))
       }
 
-      future.map { result =>
-        Work(result.rows.get.head)
+      future.map {
+        result => buildWork(result.rows)
       }.recover {
-        case exception => throw exception
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
+    // TODO - as in Work table ID field is primary (unique constraint and a not-null constraint), how we can have two works with the same id but different versions?
     /**
      * Delete a specific revision of a work.
      *
@@ -413,25 +432,31 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param conn
      * @return
      */
-    override def delete(work: Work, thisRevisionOnly: Boolean = false)(implicit conn: Connection): Future[Boolean] = {
+    override def delete(work: Work, thisRevisionOnly: Boolean = false)(implicit conn: Connection): Future[\/[Fail, Work]] = {
       val fDelete = if (thisRevisionOnly) {
         conn.sendPreparedStatement(DeleteRevision, Array[Any](
           work.studentId.bytes,
           work.taskId.bytes,
-          work.courseId.bytes,
           work.version
         ))
       }
       else {
         conn.sendPreparedStatement(Delete, Array[Any](
           work.studentId.bytes,
-          work.taskId.bytes,
-          work.courseId.bytes
+          work.taskId.bytes
         ))
       }
 
-      fDelete.map { result => result.rowsAffected > 0 }.recover {
-        case exception => throw exception
+      fDelete.map {
+        result => {
+          if (result.rowsAffected == 0) {
+            -\/(GenericFail("No rows were modified"))
+          } else {
+            \/-(work)
+          }
+        }
+      }.recover {
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -445,12 +470,57 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      * @param conn
      * @return
      */
-    override def delete(task: Task)(implicit conn: Connection): Future[Boolean] = {
-      conn.sendPreparedStatement(DeleteRevision, Array[Any](task.id.bytes)).map {
-        result => result.rowsAffected > 0
-      }.recover {
-        case exception => throw exception
+    override def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Work]]] = {
+      (for {
+        tasks <- lift(list(task))
+        deletedWorks <- lift(conn.sendPreparedStatement(DeleteAllForTask, Array[Any](task.id.bytes)).map({
+          result =>
+            if (result.rowsAffected == tasks.length) \/-(tasks)
+            else -\/(GenericFail("Failed to delete all tasks"))
+        }))
+      } yield deletedWorks).run.recover {
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
+
+    /**
+     * Transform result rows into a single work.
+     *
+     * @param maybeResultSet
+     * @return
+     */
+    private def buildWork(maybeResultSet: Option[ResultSet]): \/[Fail, Work] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => resultSet.headOption match {
+            case Some(firstRow) => \/-(Work(firstRow))
+            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
+          }
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
+        }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Work from the row returned.", exception))
+      }
+    }
+
+    /**
+     * Converts an optional result set into works list
+     *
+     * @param maybeResultSet
+     * @return
+     */
+    private def buildWorkList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[Work]] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => \/-(resultSet.map(Work.apply))
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
+        }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Work List from the rows returned.", exception))
+      }
+    }
+
   }
 }

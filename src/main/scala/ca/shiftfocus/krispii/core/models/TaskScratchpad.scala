@@ -14,9 +14,8 @@ case class TaskScratchpadDisabledException(msg: String) extends Exception
 case class TaskScratchpad(
   userId: UUID,
   taskId: UUID,
-  revision: Long = 0,
   version: Long = 0,
-  content: String,
+  documentId: UUID,
   createdAt: Option[DateTime] = None,
   updatedAt: Option[DateTime] = None
 )
@@ -33,9 +32,8 @@ object TaskScratchpad {
     TaskScratchpad(
       UUID(row("user_id").asInstanceOf[Array[Byte]]),
       UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      row("revision").asInstanceOf[Long],
       row("version").asInstanceOf[Long],
-      row("notes").asInstanceOf[String],
+      UUID(row("document_id").asInstanceOf[Array[Byte]]),
       Some(row("created_at").asInstanceOf[DateTime]),
       Some(row("updated_at").asInstanceOf[DateTime])
     )
@@ -44,19 +42,17 @@ object TaskScratchpad {
   implicit val taskReads: Reads[TaskScratchpad] = (
     (__ \ "userId").read[UUID] and
     (__ \ "taskId").read[UUID] and
-    (__ \ "revision").read[Long] and
     (__ \ "version").read[Long] and
-    (__ \ "content").read[String] and
+    (__ \ "documentId").read[UUID] and
     (__ \ "createdAt").readNullable[DateTime] and
     (__ \ "updatedAt").readNullable[DateTime]
-  )(TaskScratchpad.apply(_: UUID, _: UUID, _: Long, _: Long, _: String, _: Option[DateTime], _: Option[DateTime]))
+  )(TaskScratchpad.apply(_: UUID, _: UUID, _: Long, _: UUID, _: Option[DateTime], _: Option[DateTime]))
 
   implicit val taskWrites: Writes[TaskScratchpad] = (
     (__ \ "userId").write[UUID] and
     (__ \ "taskId").write[UUID] and
-    (__ \ "revision").write[Long] and
     (__ \ "version").write[Long] and
-    (__ \ "content").write[String] and
+    (__ \ "documentId").write[UUID] and
     (__ \ "createdAt").writeNullable[DateTime] and
     (__ \ "updatedAt").writeNullable[DateTime]
    )(unlift(TaskScratchpad.unapply _))

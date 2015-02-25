@@ -4,7 +4,7 @@ import ca.shiftfocus.uuid.UUID
 import org.joda.time.DateTime
 
 case class Session(
-  sessionId: UUID = UUID.random,
+  id: UUID = UUID.random,
   userId: UUID,
   ipAddress: String = "",
   location: String = "",

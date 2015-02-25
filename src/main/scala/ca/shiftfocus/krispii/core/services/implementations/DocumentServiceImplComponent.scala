@@ -1,5 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
+import ca.shiftfocus.krispii.core.fail.Fail
 import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.models.document._
 import ca.shiftfocus.krispii.core.repositories.DocumentRepositoryComponent
@@ -9,6 +10,8 @@ import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionCon
 import org.joda.time.DateTime
 import scala.concurrent.Future
 import ws.kahn.ot.Delta
+
+import scalaz.\/
 
 trait DocumentServiceImplComponent extends DocumentServiceComponent {
   self: DocumentRepositoryComponent with
@@ -24,8 +27,8 @@ trait DocumentServiceImplComponent extends DocumentServiceComponent {
      * @param id
      * @return
      */
-    override def find(id: UUID): Future[Option[Document]] = {
-      documentRepository.find(id).recover { case exception => throw exception }
+    override def find(id: UUID): Future[\/[Fail, Document]] = {
+      documentRepository.find(id)
     }
 
     /**
@@ -35,11 +38,11 @@ trait DocumentServiceImplComponent extends DocumentServiceComponent {
      * @param fromVersion
      * @return
      */
-    override def listRevisions(documentId: UUID, fromVersion: Long = 0): Future[IndexedSeq[Revision]] = {
-      for {
-        document <- documentRepository.find(documentId).map(_.get)
-        revisions <- documentRepository.list(document, fromVersion).recover { case exception => throw exception }
-      } yield revisions
+    override def listRevisions(documentId: UUID, fromVersion: Long = 0): Future[\/[Fail, IndexedSeq[Revision]]] = {
+      (for {
+        document <- lift(documentRepository.find(documentId))
+        revisions <- lift(documentRepository.list(document, fromVersion))
+      } yield revisions).run
     }
 
     /**
@@ -50,7 +53,7 @@ trait DocumentServiceImplComponent extends DocumentServiceComponent {
      * @param initialContent
      * @return
      */
-    override def create(id: UUID = UUID.random, owner: User, title: String, initialDelta: Delta): Future[Document] = {
+    override def create(id: UUID = UUID.random, owner: User, title: String, initialDelta: Delta): Future[\/[Fail, Document]] = {
       transactional { implicit connection =>
         documentRepository.insert(
           Document(
@@ -73,12 +76,12 @@ trait DocumentServiceImplComponent extends DocumentServiceComponent {
      * @param title
      * @return
      */
-    override def update(id: UUID, version: Long, owner: User, editors: IndexedSeq[User], title: String): Future[Document] = {
+    override def update(id: UUID, version: Long, owner: User, editors: IndexedSeq[User], title: String): Future[\/[Fail, Document]] = {
       transactional { implicit connection =>
-        for {
-          document <- documentRepository.find(id).map(_.get)
-          updated <- documentRepository.update(document.copy(title = title, owner = owner, editors = editors))
-        } yield updated
+        (for {
+          document <- lift(documentRepository.find(id))
+          updated <- lift(documentRepository.update(document.copy(title = title, owner = owner, editors = editors)))
+        } yield updated).run
       }
     }
 
@@ -102,63 +105,61 @@ trait DocumentServiceImplComponent extends DocumentServiceComponent {
      *                      the client's document. The client may need to transform them further
      *                      against any additional edits they have in the clientside operation buffer.
      */
-    override def push(documentId: UUID, version: Long, author: User, delta: Delta): Future[PushResult] = {
+    override def push(documentId: UUID, version: Long, author: User, delta: Delta): Future[\/[Fail, PushResult]] = {
       transactional { implicit connection =>
-        for {
+        (for {
           // 1. Get the document
-          document <- documentRepository.find(documentId).map(_.get)
+          document <- lift(documentRepository.find(documentId))
 
           // 2. Look for the more recent server operations
-          recentRevisions <- documentRepository.list(document, version)
+          recentRevisions <- lift(documentRepository.list(document, version))
 
           pushResult <- {
             // If there were more recent revisions
             if (recentRevisions.nonEmpty) {
+              val recentDeltas = recentRevisions.map(_.delta)
+              val recentServerDelta = recentDeltas.foldLeft(recentDeltas.head) {
+                (left: Delta, right: Delta) => left o right
+              }
+              val transformedDelta = recentServerDelta x delta
+
               for {
-                recentDeltas <- Future successful recentRevisions.map(_.delta)
-                recentServerDelta   <- Future successful recentDeltas.foldLeft(recentDeltas.head) {
-                  (left: Delta, right: Delta) => left o right
-                }
-
-                // 3. Transform the client's operation and the server's operations against each other
-                transformedDelta <- Future successful { recentServerDelta x delta }
-
                 // 4. Update the document with the latest text
-                updatedDocument <- documentRepository.update(document.copy(
+                updatedDocument <- lift(documentRepository.update(document.copy(
                   plaintext = transformedDelta.applyTo(document.plaintext),
                   delta = document.delta o transformedDelta
-                ))
+                )))
 
                 // 5. Insert the new revision into the history
-                pushedRevision <- documentRepository.insert(
+                pushedRevision <- lift(documentRepository.insert(
                   Revision(documentId = document.id,
                     version = document.version + 1,
                     author = author,
                     delta = transformedDelta,
                     createdAt = Some(new DateTime))
-                )
+                ))
               } yield PushResult(document = updatedDocument, revision = pushedRevision, serverOps = recentRevisions)
             }
             // If there were no more recent revisions
             else {
               for {
-                updatedDocument <- documentRepository.update(document.copy(
+                updatedDocument <- lift(documentRepository.update(document.copy(
                   plaintext = delta.applyTo(document.plaintext),
                   delta = document.delta o delta
-                ))
+                )))
 
                 // 5. Insert the new revision into the history
-                pushedRevision <- documentRepository.insert(
+                pushedRevision <- lift(documentRepository.insert(
                   Revision(documentId = document.id,
                     version = document.version + 1,
                     author = author,
                     delta = delta,
                     createdAt = Some(new DateTime))
-                )
+                ))
               } yield PushResult(document = updatedDocument, revision = pushedRevision, serverOps = recentRevisions)
             }
           }
-        } yield pushResult
+        } yield pushResult).run
       }
     }
   }

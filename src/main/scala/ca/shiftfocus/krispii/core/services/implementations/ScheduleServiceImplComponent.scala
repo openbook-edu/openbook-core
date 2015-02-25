@@ -1,5 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
+import ca.shiftfocus.krispii.core.fail.Fail
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
@@ -9,6 +10,7 @@ import play.api.Logger
 import org.joda.time.LocalTime
 import org.joda.time.LocalDate
 import scala.concurrent.Future
+import scalaz.\/
 
 trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
   self: UserRepositoryComponent with
@@ -22,32 +24,27 @@ trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
   private class ScheduleServiceImpl extends ScheduleService {
 
     /**
-     * List all course schedules.
-     */
-    override def list: Future[IndexedSeq[CourseSchedule]] = {
-      courseScheduleRepository.list(db.pool)
-    }
-
-    /**
      * List all schedules for a specific course.
      *
      * @param id the UUID of the course to list for.
      * @return a vector of the given course's schedules
      */
-    override def listByCourse(id: UUID): Future[IndexedSeq[CourseSchedule]] = {
-      for {
-        course <- courseRepository.find(id).map(_.get)
-        schedules <- courseScheduleRepository.list(course)(db.pool)
+    override def listByCourse(id: UUID): Future[\/[Fail, IndexedSeq[CourseSchedule]]] = {
+      (for {
+        course <- lift(courseRepository.find(id))
+        schedules <- lift(courseScheduleRepository.list(course)(db.pool))
       }
-      yield schedules
-    }.recover {
-      case exception => throw exception
+      yield schedules).run
     }
 
-    override def find(id: UUID): Future[Option[CourseSchedule]] = {
-      courseScheduleRepository.find(id)(db.pool).recover {
-        case exception => throw exception
-      }
+    /**
+     * Find a schedule by its id.
+     *
+     * @param id
+     * @return
+     */
+    override def find(id: UUID): Future[\/[Fail, CourseSchedule]] = {
+      courseScheduleRepository.find(id)(db.pool)
     }
 
     /**
@@ -60,21 +57,20 @@ trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
      * @param description a brief description may be entered
      * @return the newly created course schedule
      */
-    override def create(courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String): Future[CourseSchedule] = {
+    override def create(courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String): Future[\/[Fail, CourseSchedule]] = {
       transactional { implicit connection =>
-        for {
-          course <- courseRepository.find(courseId).map(_.get)
-          newSchedule <- courseScheduleRepository.insert(CourseSchedule(
-            courseId = course.id,
-            day = day,
-            startTime = startTime,
-            endTime = endTime,
-            description = description
-          ))
+        (for {
+          course <- lift(courseRepository.find(courseId))
+          newSchedule = CourseSchedule(
+              courseId = course.id,
+              day = day,
+              startTime = startTime,
+              endTime = endTime,
+              description = description
+            )
+          createdSchedule <- lift(courseScheduleRepository.insert(newSchedule))
         }
-        yield newSchedule
-      }.recover {
-        case exception => throw exception
+        yield createdSchedule).run
       }
     }
 
@@ -88,39 +84,26 @@ trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
      * @param description a brief description may be entered
      * @return the newly created course schedule
      */
-    override def update(id: UUID, version: Long, values: Map[String, Any]): Future[CourseSchedule] = {
+    override def update(id: UUID, version: Long,
+                        courseId: Option[UUID],
+                        day: Option[LocalDate],
+                        startTime: Option[LocalTime],
+                        endTime: Option[LocalTime],
+                        description: Option[String]): Future[\/[Fail, CourseSchedule]] = {
       transactional { implicit connection =>
-        for {
-          courseSchedule <- courseScheduleRepository.find(id).map(_.get)
-          updatedSchedule <- courseScheduleRepository.update(// Create the user object that will be updated into the database, copying
-            // data fields if they were provided.
-            courseSchedule.copy(
-              version = version,
-              courseId = values.get("courseId") match {
-                case Some(courseId: UUID) => courseId
-                case _ => courseSchedule.courseId
-              },
-              day = values.get("day") match {
-                case Some(day: LocalDate) => day
-                case _ => courseSchedule.day
-              },
-              startTime = values.get("startTime") match {
-                case Some(startTime: LocalTime) => startTime
-                case _ => courseSchedule.startTime
-              },
-              endTime = values.get("endTime") match {
-                case Some(endTime: LocalTime) => endTime
-                case _ => courseSchedule.endTime
-              },
-              description = values.get("description") match {
-                case Some(description: String) => description
-                case _ => courseSchedule.description
-              }
-            ))
+        (for {
+          courseSchedule <- lift(courseScheduleRepository.find(id))
+          toUpdate = courseSchedule.copy(
+            version = version,
+            courseId = courseId.getOrElse(courseSchedule.courseId),
+            day = day.getOrElse(courseSchedule.day),
+            startTime = startTime.getOrElse(courseSchedule.startTime),
+            endTime = endTime.getOrElse(courseSchedule.endTime),
+            description = description.getOrElse(courseSchedule.description)
+          )
+          updatedSchedule <- lift(courseScheduleRepository.update(toUpdate))
         }
-        yield updatedSchedule
-      }.recover {
-        case exception => throw exception
+        yield updatedSchedule).run
       }
     }
 
@@ -131,15 +114,14 @@ trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
      * @param version the current version of the schedule for optimistic offline lock
      * @return a boolean indicating success or failure
      */
-    override def delete(id: UUID, version: Long): Future[Boolean] = {
+    override def delete(id: UUID, version: Long): Future[\/[Fail, CourseSchedule]] = {
       transactional { implicit connection =>
-        for {
-          courseSchedule <- courseScheduleRepository.find(id).map(_.get.copy(version = version))
-          isDeleted <- courseScheduleRepository.delete(courseSchedule)
+        (for {
+          courseSchedule <- lift(courseScheduleRepository.find(id))
+          toDelete = courseSchedule.copy(version = version)
+          isDeleted <- lift(courseScheduleRepository.delete(toDelete))
         }
-        yield isDeleted
-      }.recover {
-        case exception => throw exception
+        yield isDeleted).run
       }
     }
 
@@ -147,30 +129,27 @@ trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
      * Checks if any projects in any courses are scheduled for a particular user.
      *
      */
-    override def isAnythingScheduledForUser(userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[Boolean] = {
-      for {
-        user <- userRepository.find(userId).map(_.get)
-        somethingScheduled <- courseScheduleRepository.isAnythingScheduledForUser(user, currentDay, currentTime)(db.pool)
+    override def isAnythingScheduledForUser(userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[Fail, Boolean]] = {
+      (for {
+        user <- lift(userRepository.find(userId))
+        somethingScheduled <- lift(courseScheduleRepository.isAnythingScheduledForUser(user, currentDay, currentTime)(db.pool))
       }
-      yield somethingScheduled
-    }.recover {
-      case exception => throw exception
+      yield somethingScheduled).run
     }
 
     /**
      * Check if a project is scheduled in any of a user's courses.
      */
-    override def isProjectScheduledForUser(projectSlug: String, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[Boolean] = {
-      val fProject = projectRepository.find(projectSlug).map(_.get)
-      val fUser = userRepository.find(userId).map(_.get)
-      for {
-        project <- fProject
-        user <- fUser
-        projectScheduled <- courseScheduleRepository.isProjectScheduledForUser(project, user, currentDay, currentTime)(db.pool)
+    override def isProjectScheduledForUser(projectSlug: String, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[Fail, Boolean]] = {
+      val fProject = projectRepository.find(projectSlug)
+      val fUser = userRepository.find(userId)
+
+      (for {
+        project <- lift(fProject)
+        user <- lift(fUser)
+        projectScheduled <- lift(courseScheduleRepository.isProjectScheduledForUser(project, user, currentDay, currentTime)(db.pool))
       }
-      yield projectScheduled
-    }.recover {
-      case exception => throw exception
+      yield projectScheduled).run
     }
   }
 }

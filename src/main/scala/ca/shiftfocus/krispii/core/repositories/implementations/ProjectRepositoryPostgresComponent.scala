@@ -1,6 +1,8 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import com.github.mauricio.async.db.{RowData, Connection}
+import ca.shiftfocus.krispii.core.fail._
+import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
+import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.lib.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
@@ -11,6 +13,10 @@ import play.api.Logger
 import scala.concurrent.Future
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+
+import scalaz.syntax.traverse._
+import scalaz._
+import Scalaz._
 
 trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
   self: PartRepositoryComponent with
@@ -75,14 +81,6 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
          |WHERE slug = ?
        """.stripMargin
 
-    // TODO - not used
-//    val SelectIdBySlug =
-//      s"""
-//         |SELECT projects.id
-//         |$From
-//         |WHERE slug = ?
-//       """.stripMargin
-
     val ListByCourse =
       s"""
          |$Select
@@ -116,23 +114,21 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      *
      * @return a vector of the returned Projects
      */
-    override def list: Future[IndexedSeq[Project]] = {
-      val projectList = for {
-        queryResult <- db.pool.sendQuery(SelectAll)
-        projects <- Future successful {
-          queryResult.rows.get.map { item => Project(item) }
-        }
-        result <- Future sequence { projects.map { project =>
-          partRepository.list(project).map { partList =>
-            project.copy(parts = partList)
-          }
+    override def list: Future[\/[Fail, IndexedSeq[Project]]] = {
+      val fProjectList = db.pool.sendQuery(SelectAll).map(res => buildProjectList(res.rows))
+
+      val fResult = for {
+        projectList <- lift(fProjectList)
+        result <- liftSeq { projectList.map{ project =>
+          (for {
+            partList <- lift(partRepository.list(project))
+            result = project.copy(parts = partList)
+          } yield result).run
         }}
       } yield result
 
-      projectList.recover {
-        case exception => {
-          throw exception
-        }
+      fResult.run.recover {
+        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
       }
     }
 
@@ -140,27 +136,25 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
     /**
      * Find all Projects belonging to a given course.
      *
-     * @param section The section to return projects from.
+     * @param course The section to return projects from.
      * @return a vector of the returned Projects
      */
-    override def list(course: Course): Future[IndexedSeq[Project]] = {
-      val projectList = for {
-        queryResult <- db.pool.sendPreparedStatement(ListByCourse, Array[Any](course.id.bytes))
-        projects <- Future successful {
-          queryResult.rows.get.map { item => Project(item) }
-        }
-        result <- Future sequence { projects.map { project =>
-          partRepository.list(project).map { partList =>
-            project.copy(parts = partList)
-          }
-        }}
-      } yield result
-
-      projectList.recover {
-        case exception => {
-          throw exception
-        }
+    override def list(course: Course): Future[\/[Fail, IndexedSeq[Project]]] = {
+      val fProjectList = db.pool.sendPreparedStatement(ListByCourse, Array[Any](course.id.bytes)).map {
+        result => buildProjectList(result.rows)
+      }.recover {
+        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
       }
+
+      (for {
+        projects <- lift(fProjectList)
+        result <- liftSeq(projects.map{ project =>
+          (for {
+            partList <- lift(partRepository.list(project))
+            result = project.copy(parts = partList)
+          } yield result).run
+        })
+      } yield result).run
     }
 
     /**
@@ -169,59 +163,41 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      * @param id the 128-bit UUID, as a byte array, to search for.
      * @return an optional Project if one was found
      */
-    override def find(id: UUID): Future[Option[Project]] = {
-      val project = for {
-        queryResult <- db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes))
-        projectOption <- Future successful {
-          queryResult.rows.get.headOption match {
-            case Some(rowData) => Some(Project(rowData))
-            case None => None
-          }
-        }
-        parts <- { projectOption match {
-          case Some(project) => partRepository.list(project)
-          case None => Future.successful(IndexedSeq())
-        }}
-      } yield projectOption match {
-        case Some(project) => Some(project.copy(parts = parts))
-        case None => None
+    override def find(id: UUID): Future[\/[Fail, Project]] = {
+      val projectQuery = db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
+        result => buildProject(result.rows)
       }
 
-      project.recover {
-        case exception => {
-          throw exception
-        }
+      val result = for {
+        project <- lift(projectQuery)
+        parts <- lift(partRepository.list(project))
+      } yield project.copy(parts = parts)
+
+      result.run.recover {
+        case exception: NoSuchElementException => -\/(GenericFail("Invalid data returned from db."))
+        case exception: Throwable => -\/(ExceptionalFail("An lunexpected error occurred.", exception))
       }
     }
 
     /**
      * Find project by ID and User (teacher || student).
      *
-     * @param id the 128-bit UUID, as a byte array, to search for.
+     * @param projectId the 128-bit UUID, as a byte array, to search for.
      * @return an optional Project if one was found
      */
-    override def find(projectId: UUID, user: User): Future[Option[Project]] = {
-      val project = for {
-        queryResult <- db.pool.sendPreparedStatement(SelectOneForUser, Array[Any](projectId.bytes, user.id.bytes, user.id.bytes))
-        projectOption <- Future successful {
-          queryResult.rows.get.headOption match {
-            case Some(rowData) => Some(Project(rowData))
-            case None => None
-          }
-        }
-        parts <- { projectOption match {
-          case Some(project) => partRepository.list(project)
-          case None => Future.successful(IndexedSeq())
-        }}
-      } yield projectOption match {
-          case Some(project) => Some(project.copy(parts = parts))
-          case None => None
-        }
+    override def find(projectId: UUID, user: User): Future[\/[Fail, Project]] = {
+      val projectQuery = db.pool.sendPreparedStatement(SelectOneForUser, Array[Any](projectId.bytes, user.id.bytes, user.id.bytes)).map {
+        result => buildProject(result.rows)
+      }
 
-      project.recover {
-        case exception => {
-          throw exception
-        }
+      val result = for {
+        project <- lift(projectQuery)
+        parts <- lift(partRepository.list(project))
+      } yield project.copy(parts = parts)
+
+      result.run.recover {
+        case exception: NoSuchElementException => -\/(GenericFail("Invalid data returned from db."))
+        case exception: Throwable => -\/(ExceptionalFail("An lunexpected error occurred.", exception))
       }
     }
 
@@ -231,28 +207,19 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      * @param slug The project slug to search by.
      * @return an optional RowData object containing the results
      */
-    def find(slug: String): Future[Option[Project]] = {
-      val project = for {
-        queryResult <- db.pool.sendPreparedStatement(SelectOneBySlug, Array[Any](slug))
-        projectOption <- Future successful {
-          queryResult.rows.get.headOption match {
-            case Some(rowData) => Some(Project(rowData))
-            case None => None
-          }
-        }
-        parts <- { projectOption match {
-          case Some(project) => partRepository.list(project)
-          case None => Future.successful(IndexedSeq())
-        }}
-      } yield projectOption match {
-          case Some(project) => Some(project.copy(parts = parts))
-          case None => None
-        }
+    def find(slug: String): Future[\/[Fail, Project]] = {
+      val projectQuery = db.pool.sendPreparedStatement(SelectOneBySlug, Array[Any](slug)).map {
+        result => buildProject(result.rows)
+      }
 
-      project.recover {
-        case exception => {
-          throw exception
-        }
+      val result = for {
+        project <- lift(projectQuery)
+        parts <- lift(partRepository.list(project))
+      } yield project.copy(parts = parts)
+
+      result.run.recover {
+        case exception: NoSuchElementException => -\/(GenericFail("Invalid data returned from db."))
+        case exception: Throwable => -\/(ExceptionalFail("An lunexpected error occurred.", exception))
       }
     }
 
@@ -263,7 +230,7 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return the new project
      */
-    override def insert(project: Project)(implicit conn: Connection): Future[Project] = {
+    override def insert(project: Project)(implicit conn: Connection): Future[\/[Fail, Project]] = {
       conn.sendPreparedStatement(Insert, Array(
         project.id.bytes,
         project.courseId.bytes,
@@ -274,13 +241,16 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
         new DateTime,
         new DateTime
       )).map {
-        result => {
-          Project(result.rows.get.head)
-        }
+        result => buildProject(result.rows)
       }.recover {
-        case exception => {
-          throw exception
+        case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
+          case Some(nField) =>
+            if (nField == "projects_pkey") -\/(EntityAlreadyExists(s"A project with key ${project.id.string} already exists"))
+            else if (nField == "projects_slug_key") -\/(EntityUniqueFieldError(s"A project with slug ${project.slug} already exists"))
+            else -\/(ExceptionalFail(s"Unknown db error", exception))
+          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
         }
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -291,25 +261,28 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return the updated project.
      */
-    override def update(project: Project)(implicit conn: Connection): Future[Project] = {
+    override def update(project: Project)(implicit conn: Connection): Future[\/[Fail, Project]] = {
       conn.sendPreparedStatement(Update, Array(
         project.courseId.bytes,
         project.name,
         project.slug,
         project.description,
         project.availability,
-        (project.version + 1),
+        project.version + 1,
         new DateTime,
         project.id.bytes,
         project.version
       )).map {
-        result => {
-          Project(result.rows.get.head)
-        }
+        result => buildProject(result.rows)
       }.recover {
-        case exception => {
-          throw exception
+        case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
+          case Some(nField) =>
+            if (nField == "projects_pkey") -\/(EntityAlreadyExists(s"A project with key ${project.id.string} already exists"))
+            else if (nField == "projects_slug_key") -\/(EntityUniqueFieldError(s"A project with slug ${project.slug} already exists"))
+            else -\/(ExceptionalFail(s"Unknown db error", exception))
+          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
         }
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
     }
 
@@ -320,18 +293,52 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
      * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return a boolean indicator whether the deletion was successful.
      */
-    override def delete(project: Project)(implicit conn: Connection): Future[Boolean] = {
-      val future = for {
-        queryResult <- conn.sendPreparedStatement(Delete, Array(project.id.bytes, project.version))
+    override def delete(project: Project)(implicit conn: Connection): Future[\/[Fail, Project]] = {
+      conn.sendPreparedStatement(Delete, Array(project.id.bytes, project.version)).map {
+        result =>
+          if (result.rowsAffected == 1) \/-(project)
+          else -\/(GenericFail("Query succeeded but a project was not deleted."))
+      }.recover {
+        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
       }
-      yield {
-        queryResult.rowsAffected > 0
-      }
+    }
 
-      future.recover {
-        case exception => {
-          throw exception
+    /**
+     * Transform a result set into a Project.
+     *
+     * @param maybeResultSet
+     * @return
+     */
+    private def buildProject(maybeResultSet: Option[ResultSet]): \/[Fail, Project] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => resultSet.headOption match {
+            case Some(firstRow) => \/-(Project(firstRow))
+            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
+          }
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
         }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a project from the row returned.", exception))
+      }
+    }
+
+    /**
+     * Transform a result set into a Project.
+     *
+     * @param maybeResultSet
+     * @return
+     */
+    private def buildProjectList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[Project]] = {
+      try {
+        maybeResultSet match {
+          case Some(resultSet) => \/-(resultSet.map(Project.apply))
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
+        }
+      }
+      catch {
+        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a project from the row returned.", exception))
       }
     }
   }

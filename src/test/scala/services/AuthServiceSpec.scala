@@ -1,6 +1,6 @@
 //package services //Need to be commented to run the tests
 
-import ca.shiftfocus.krispii.core.fail.{BadInput, EntityUniqueFieldError, NoResults, AuthFail}
+import ca.shiftfocus.krispii.core.fail.{BadInput, UniqueFieldConflict, NoResults, NotAuthorized}
 import ca.shiftfocus.uuid.UUID
 import java.awt.Color
 import ca.shiftfocus.krispii.core.models._
@@ -91,7 +91,7 @@ class AuthServiceSpec
         (userRepository.find(_: String)) when(testUserA.username) returns(Future.successful(\/-(testUserA)))
 
         val fSomeUser = authService.authenticate(testUserA.username, "bad password!")
-        Await.result(fSomeUser, Duration.Inf) should be (-\/(AuthFail("The password was invalid.")))
+        Await.result(fSomeUser, Duration.Inf) should be (-\/(NotAuthorized("The password was invalid.")))
       }
       "return NoResults if the user doesn't exist" in {
         (userRepository.find(_: String)) when(testUserA.username) returns(Future.successful(-\/(NoResults("Could not find a user."))))
@@ -138,14 +138,14 @@ class AuthServiceSpec
         (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(\/-(testUserA)))
 
         val fNewUser = authService.create(testUserA.username, testUserA.email, password, testUserA.givenname, testUserA.surname)
-        Await.result(fNewUser, Duration.Inf) should be (-\/(EntityUniqueFieldError(s"The e-mail address ${testUserA.email} is already in use.")))
+        Await.result(fNewUser, Duration.Inf) should be (-\/(UniqueFieldConflict(s"The e-mail address ${testUserA.email} is already in use.")))
       }
       "return EntityUniqueFieldError if username is not unique" in {
         (userRepository.find(_: String)) when(testUserA.username) returns(Future.successful(\/-(testUserA)))
         (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(-\/(NoResults(""))))
 
         val fNewUser = authService.create(testUserA.username, testUserA.email, password, testUserA.givenname, testUserA.surname)
-        Await.result(fNewUser, Duration.Inf) should be (-\/(EntityUniqueFieldError(s"The username ${testUserA.username} is already in use.")))
+        Await.result(fNewUser, Duration.Inf) should be (-\/(UniqueFieldConflict(s"The username ${testUserA.username} is already in use.")))
       }
     }
   }

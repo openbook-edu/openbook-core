@@ -94,7 +94,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
               \/-(user)
             }
             else {
-              -\/(AuthFail("The password was invalid."))
+              -\/(NotAuthorized("The password was invalid."))
             }
           })
         } yield authUser).run
@@ -253,6 +253,35 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param username optionally update the username
      * @return a future disjunction containing the updated user, or a failure
      */
+    override def update(id: UUID, version: Long, email: Option[String], username: Option[String], givenname: Option[String], surname: Option[String]): Future[\/[Fail, User]] = {
+      transactional { implicit conn =>
+        val updated = for {
+          existingUser <- lift(userRepository.find(id))
+          _ <- predicate (existingUser.version == version) (LockFail(Messages("services.AuthService.userUpdate.lockFail", version, existingUser.version)))
+          u_email <- lift(email.map { someEmail => validateEmail(someEmail, Some(id))}.getOrElse(Future.successful(\/-(existingUser.email))))
+          u_username <- lift(username.map { someUsername => validateUsername(someUsername, Some(id))}.getOrElse(Future.successful(\/-(existingUser.username))))
+          userToUpdate = existingUser.copy(
+            email = u_email,
+            username = u_username,
+            givenname = givenname.getOrElse(existingUser.givenname),
+            surname = surname.getOrElse(existingUser.surname)
+          )
+          updatedUser <- lift(userRepository.update(userToUpdate))
+        } yield existingUser
+        updated.run
+      }
+    }
+
+
+    /**
+     * Update a user's identifiers.
+     *
+     * @param id the unique id of the user
+     * @param version the latest version of the user for O.O.L.
+     * @param email optionally update the e-mail
+     * @param username optionally update the username
+     * @return a future disjunction containing the updated user, or a failure
+     */
     override def updateIdentifier(id: UUID, version: Long, email: Option[String] = None, username: Option[String] = None): Future[\/[Fail, User]] = {
       transactional { implicit conn =>
         val updated = for {
@@ -283,8 +312,8 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
       transactional { implicit conn =>
         val updated = for {
           existingUser <- lift(userRepository.find(id))
+          _ <- predicate (existingUser.version == version) (LockFail(Messages("services.AuthService.userUpdate.lockFail", version, existingUser.version)))
           userToUpdate = existingUser.copy(
-            version = version,
             givenname = givenname.getOrElse(existingUser.givenname),
             surname = surname.getOrElse(existingUser.surname)
           )
@@ -307,12 +336,10 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
         val wc = Passwords.scrypt()
         val updated = for {
           existingUser <- lift(userRepository.find(id))
+          _ <- predicate (existingUser.version == version) (LockFail(Messages("services.AuthService.userUpdate.lockFail", version, existingUser.version)))
           u_password <- lift(isValidPassword(password))
           u_hash = wc.crypt(u_password)
-          userToUpdate = existingUser.copy(
-            version = version,
-            passwordHash = Some(u_hash)
-          )
+          userToUpdate = existingUser.copy(passwordHash = Some(u_hash))
           updatedUser <- lift(userRepository.update(userToUpdate))
         } yield existingUser
         updated.run
@@ -331,8 +358,9 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
     override def delete(id: UUID, version: Long): Future[\/[Fail, User]] = {
       transactional { implicit connection =>
         (for {
-          user <- lift(userRepository.find(id))
-          toDelete = user.copy(version = version)
+          existingUser <- lift(userRepository.find(id))
+          _ <- predicate (existingUser.version == version) (LockFail(Messages("services.AuthService.userUpdate.lockFail", version, existingUser.version)))
+          toDelete = existingUser.copy(version = version)
           deleted <- lift(userRepository.delete(toDelete))
         } yield deleted).run
       }
@@ -355,8 +383,8 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      */
     override def listRoles(userId: UUID): Future[\/[Fail, IndexedSeq[Role]]] = {
       val result = for {
-        user <- lift[User](userRepository.find(userId))
-        roles <- lift[IndexedSeq[Role]](roleRepository.list(user))
+        user <- lift(userRepository.find(userId))
+        roles <- lift(roleRepository.list(user))
       } yield roles
 
       result.run
@@ -405,10 +433,8 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
       transactional { implicit conn =>
         val result = for {
           existingRole <- lift(roleRepository.find(id))
-          updatedRole <- lift(roleRepository.update(existingRole.copy(
-            version = version,
-            name = name
-          )))
+          _ <- predicate (existingRole.version == version) (LockFail(Messages("services.AuthService.roleUpdate.lockFail", version, existingRole.version)))
+          updatedRole <- lift(roleRepository.update(existingRole.copy(name = name)))
         }
         yield updatedRole
         result.run
@@ -433,6 +459,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
                 \/-(role)
             case -\/(error) => -\/(error)
           })
+          _ <- predicate (role.version == version) (LockFail(Messages("services.AuthService.roleUpdate.lockFail", version, role.version)))
           wasRemovedFromUsers <- lift(roleRepository.removeFromAllUsers(role))
           wasDeleted <- lift(roleRepository.delete(role))
         }
@@ -577,7 +604,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
 
       existing.run.map {
         case \/-(user) =>
-          if (existingId.isEmpty || (existingId.get != user.id)) -\/(EntityUniqueFieldError(s"The e-mail address $email is already in use."))
+          if (existingId.isEmpty || (existingId.get != user.id)) -\/(UniqueFieldConflict(s"The e-mail address $email is already in use."))
           else \/-(email)
         case -\/(error: NoResults) => \/-(email)
         case -\/(otherErrors: Fail) => -\/(otherErrors)
@@ -601,7 +628,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
 
       existing.run.map {
         case \/-(user) =>
-          if (existingId.isEmpty || (existingId.get != user.id)) -\/(EntityUniqueFieldError(s"The username $username is already in use."))
+          if (existingId.isEmpty || (existingId.get != user.id)) -\/(UniqueFieldConflict(s"The username $username is already in use."))
           else \/-(username)
         case -\/(error: NoResults) => \/-(username)
         case -\/(otherErrors: Fail) => -\/(otherErrors)

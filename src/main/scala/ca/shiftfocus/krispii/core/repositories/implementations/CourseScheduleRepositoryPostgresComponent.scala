@@ -12,7 +12,7 @@ import org.joda.time.LocalDate
 import scala.concurrent.Future
 import scalaz.{\/-, \/, -\/}
 
-trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepositoryComponent {
+trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepositoryComponent with PostgresRepository {
   self: PostgresDB =>
 
   override val courseScheduleRepository: CourseScheduleRepository = new CourseScheduleRepositoryPSQL
@@ -105,7 +105,7 @@ trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepository
           if (result.rows.get.length > 0) \/-(true)
           else \/-(false)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -121,7 +121,7 @@ trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepository
           if (result.rows.get.length > 0) \/-(true)
           else \/-(false)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -130,9 +130,9 @@ trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepository
      */
     override def list(course: Course)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[CourseSchedule]]] = {
       db.pool.sendPreparedStatement(SelectByCourseId, Array[Any](course.id.bytes)).map { queryResult =>
-        buildCourseScheduleList(queryResult.rows)
+        buildEntityList(queryResult.rows, CourseSchedule.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -145,9 +145,9 @@ trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepository
      */
     override def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, CourseSchedule]] = {
       db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
-        result => buildCourseSchedule(result.rows)
+        result => buildEntity(result.rows, CourseSchedule.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -172,9 +172,9 @@ trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepository
         endTimeDT,
         courseSchedule.description
       )).map {
-        result => buildCourseSchedule(result.rows)
+        result => buildEntity(result.rows, CourseSchedule.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -200,9 +200,9 @@ trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepository
         courseSchedule.id.bytes,
         courseSchedule.version
       )).map {
-        result => buildCourseSchedule(result.rows)
+        result => buildEntity(result.rows, CourseSchedule.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -218,46 +218,7 @@ trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepository
           if (result.rowsAffected == 1) \/-(courseSchedule)
           else -\/(GenericFail("The query completed without error, but nothing was deleted."))
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
-      }
-    }
-
-    /**
-     * Build a TaskFeedback object from a database result.
-     *
-     * @param maybeResultSet the [[ResultSet]] from the database to use
-     * @return
-     */
-    private def buildCourseSchedule(maybeResultSet: Option[ResultSet]): \/[Fail, CourseSchedule] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => resultSet.headOption match {
-            case Some(firstRow) => \/-(CourseSchedule(firstRow))
-            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
-          }
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail("Uncaught exception", exception))
-      }
-    }
-
-    /**
-     * Converts an optional result set into works list
-     *
-     * @param maybeResultSet the [[ResultSet]] from the database to use
-     * @return
-     */
-    private def buildCourseScheduleList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[CourseSchedule]] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => \/-(resultSet.map(CourseSchedule.apply))
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a CourseSchedule List from the rows returned.", exception))
+        case exception: Throwable => throw exception
       }
     }
   }

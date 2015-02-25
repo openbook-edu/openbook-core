@@ -10,7 +10,7 @@ import org.joda.time.DateTime
 import scala.concurrent.Future
 import scalaz.{\/, \/-, -\/}
 
-trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepositoryComponent {
+trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepositoryComponent with PostgresRepository {
   self: UserRepositoryComponent with
         ProjectRepositoryComponent with
         TaskRepositoryComponent with
@@ -116,9 +116,9 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
         SelectAllForUserAndTask,
         Array[Any](user.id.bytes, task.id.bytes)
       ).map {
-        result => buildTaskScratchpadList(result.rows)
+        result => buildEntityList(result.rows, TaskScratchpad.apply)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -134,9 +134,9 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
         SelectAllForProject,
         Array[Any](user.id.bytes, project.id.bytes)
       ).map {
-        result => buildTaskScratchpadList(result.rows)
+        result => buildEntityList(result.rows, TaskScratchpad.apply)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -151,9 +151,9 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
         SelectAllForUser,
         Array[Any](user.id.bytes)
       ).map {
-        result => buildTaskScratchpadList(result.rows)
+        result => buildEntityList(result.rows, TaskScratchpad.apply)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -168,9 +168,9 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
         SelectAllForTask,
         Array[Any](task.id.bytes)
       ).map {
-        result => buildTaskScratchpadList(result.rows)
+        result => buildEntityList(result.rows, TaskScratchpad.apply)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -183,9 +183,9 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
      */
     override def find(user: User, task: Task)(implicit conn: Connection): Future[\/[Fail, TaskScratchpad]] = {
       conn.sendPreparedStatement(SelectOne, Array[Any](user.id.bytes, task.id.bytes)).map {
-        result => buildTaskScratchpad(result.rows)
+        result => buildEntity(result.rows, TaskScratchpad.apply)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -207,9 +207,9 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
         new DateTime,
         taskScratchpad.documentId
       )).map {
-        result => buildTaskScratchpad(result.rows)
+        result => buildEntity(result.rows, TaskScratchpad.apply)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -230,9 +230,9 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
           taskScratchpad.taskId.bytes,
           taskScratchpad.version
         )).map {
-        result => buildTaskScratchpad(result.rows)
+        result => buildEntity(result.rows, TaskScratchpad.apply)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
 
     }
@@ -253,7 +253,7 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
           if (result.rowsAffected == 1) \/-(taskScratchpad)
           else -\/(GenericFail("The query returned no errors, but the TaskFeedback was not deleted."))
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
 
     }
@@ -276,45 +276,6 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
 
       result.run.recover {
         case exception => throw exception
-      }
-    }
-
-    /**
-     * Build a TaskFeedback object from a database result.
-     *
-     * @param maybeResultSet the [[ResultSet]] from the database to use
-     * @return
-     */
-    private def buildTaskScratchpad(maybeResultSet: Option[ResultSet]): \/[Fail, TaskScratchpad] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => resultSet.headOption match {
-            case Some(firstRow) => \/-(TaskScratchpad(firstRow))
-            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
-          }
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
-      }
-    }
-
-    /**
-     * Converts an optional result set into works list
-     *
-     * @param maybeResultSet the [[ResultSet]] from the database to use
-     * @return
-     */
-    private def buildTaskScratchpadList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[TaskScratchpad]] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => \/-(resultSet.map(TaskScratchpad.apply))
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a TaskScratchpad List from the rows returned.", exception))
       }
     }
   }

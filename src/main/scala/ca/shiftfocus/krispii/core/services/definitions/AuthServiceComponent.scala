@@ -95,6 +95,19 @@ trait AuthServiceComponent extends FutureMonad {
     def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.random): Future[\/[Fail, UserInfo]]
 
     /**
+     * Update a user
+     *
+     * @param id the unique id of the user
+     * @param version the latest version of the user for O.O.L.
+     * @param email optionally update the e-mail
+     * @param username optionally update the username
+     * @param givenname the user's updated given name
+     * @param surname the user's updated family name
+     * @return a future disjunction containing the updated user, or a failure
+     */
+    def update(id: UUID, version: Long, email: Option[String], username: Option[String], givenname: Option[String], surname: Option[String]): Future[\/[Fail, User]]
+
+    /**
      * Update a user's identifiers.
      *
      * @param id the unique id of the user

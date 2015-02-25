@@ -90,7 +90,7 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
       conn.sendPreparedStatement(SelectAllForUser, Array[Any](user.id.bytes)).map {
         result => buildComponentScratchpadList(result.rows)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -104,7 +104,7 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
       conn.sendPreparedStatement(SelectAllForComponent, Array[Any](component.id.bytes)).map {
         result => buildComponentScratchpadList(result.rows)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -118,7 +118,7 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
       conn.sendPreparedStatement(SelectOne, Array[Any](user.id.bytes, component.id.bytes)).map {
         result => buildComponentScratchpad(result.rows)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -142,7 +142,7 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
       )).map {
         result => buildComponentScratchpad(result.rows)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -165,7 +165,7 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
       )).map {
         result => buildComponentScratchpad(result.rows)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -185,7 +185,7 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
           if (result.rowsAffected == 1) \/-(componentScratchpad)
           else -\/(GenericFail("The query returned no errors, but the TaskFeedback was not deleted."))
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -196,17 +196,22 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
      * @return
      */
     private def buildComponentScratchpad(maybeResultSet: Option[ResultSet]): \/[Fail, ComponentScratchpad] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => resultSet.headOption match {
-            case Some(firstRow) => \/-(ComponentScratchpad(firstRow))
-            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
-          }
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
+      maybeResultSet match {
+        case Some(resultSet) => resultSet.headOption match {
+          case Some(firstRow) => \/-(ComponentScratchpad(firstRow))
+          case None => -\/(NoResults("The query was successful but ResultSet was empty."))
         }
+        case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
       }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail("Invalid data returned from the database.", exception))
+    }
+
+    private def buildEntity[A](maybeResultSet: Option[ResultSet], build: RowData => A): \/[Fail, A] = {
+      maybeResultSet match {
+        case Some(resultSet) => resultSet.headOption match {
+          case Some(firstRow) => \/-(build(firstRow))
+          case None => -\/(NoResults("The query was successful but ResultSet was empty."))
+        }
+        case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
       }
     }
 
@@ -217,14 +222,9 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
      * @return
      */
     private def buildComponentScratchpadList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[ComponentScratchpad]] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => \/-(resultSet.map(ComponentScratchpad.apply))
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a TaskScratchpad List from the rows returned.", exception))
+      maybeResultSet match {
+        case Some(resultSet) => \/-(resultSet.map(ComponentScratchpad.apply))
+        case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
       }
     }
   }

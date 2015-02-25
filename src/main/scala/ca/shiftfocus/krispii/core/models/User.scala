@@ -66,22 +66,7 @@ case class EmailAndUsernameAlreadyExistException(msg: String) extends Exception
 case class EmailAlreadyExistsException(msg: String) extends Exception
 case class UsernameAlreadyExistsException(msg: String) extends Exception
 
-case class UserPost(
-  username: String,
-  email: String,
-  password: String,
-  givenname: String,
-  surname: String
-)
-object UserPost {
-  implicit val userPostReads = (
-    (__ \ "username").read[String] and
-    (__ \ "email").read[String] and
-    (__ \ "password").read[String].filter(_.nonEmpty) and
-    (__ \ "givenname").read[String] and
-    (__ \ "surname").read[String]
-  )(UserPost.apply _)
-}
+
 
 case class UserPostTest(
   username: Option[String],

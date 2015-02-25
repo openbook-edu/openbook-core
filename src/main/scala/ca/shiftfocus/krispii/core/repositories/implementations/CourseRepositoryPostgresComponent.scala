@@ -19,7 +19,7 @@ import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
 import scalaz.syntax.either._
 
-trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
+trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with PostgresRepository {
   self: UserRepositoryComponent with
         ProjectRepositoryComponent with
         PostgresDB =>
@@ -214,10 +214,10 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
      */
     def list: Future[\/[Fail, IndexedSeq[Course]]] = {
       db.pool.sendQuery(SelectAll).map {
-        result => buildCourseList(result.rows)
+        result => buildEntityList(result.rows, Course.apply)
       }
     }.recover {
-      case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+      case exception: Throwable => throw exception
     }
 
     /**
@@ -229,9 +229,9 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
      */
     def list(project: Project): Future[\/[Fail, IndexedSeq[Course]]] = {
       db.pool.sendPreparedStatement(ListCourseForProject, Seq[Any](project.id.bytes)).map {
-        result => buildCourseList(result.rows)
+        result => buildEntityList(result.rows, Course.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -246,9 +246,9 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
      */
     def list(user: User, asTeacher: Boolean = false): Future[\/[Fail, IndexedSeq[Course]]] = {
       db.pool.sendPreparedStatement((if (asTeacher) ListByTeacherId else ListCourses), Seq[Any](user.id.bytes)).map {
-        result => buildCourseList(result.rows)
+        result => buildEntityList(result.rows, Course.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -285,10 +285,10 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
           }
         }
         catch {
-          case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build Role(s) from the row returned.", exception))
+          case exception: NoSuchElementException => throw exception
         }
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -300,9 +300,9 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
      */
     override def find(id: UUID): Future[\/[Fail, Course]] = {
       db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
-        result => buildCourse(result.rows)
+        result => buildEntity(result.rows, Course.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -315,20 +315,15 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
      */
     override def findUserForTeacher(student: User, teacher: User): Future[\/[Fail, User]] = {
       db.pool.sendPreparedStatement(FindUserForTeacher, Array[Any](teacher.id.bytes, student.id.bytes)).map { result =>
-        try {
-          result.rows match {
-            case Some(resultSet) => resultSet.headOption match {
-              case Some(firstRow) => \/-(User(firstRow))
-              case None => -\/(NoResults("The query was successful but ResultSet was empty."))
-            }
-            case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
+        result.rows match {
+          case Some(resultSet) => resultSet.headOption match {
+            case Some(firstRow) => \/-(User(firstRow))
+            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
           }
-        }
-        catch {
-          case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a user from the row returned.", exception))
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
         }
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -346,7 +341,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
           \/-(course)
         }
       future.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -364,7 +359,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
           \/-(course)
         }
       future.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -387,7 +382,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
           \/-(false)
         }
       future.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -418,13 +413,13 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
       wasAdded.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
-            if (nField == "users_courses_pkey") -\/(EntityAlreadyExists(s"User is already in the class"))
-            else if (nField == "users_courses_user_id_fkey") -\/(EntityReferenceFieldError(s"User doesn't exist"))
-            else if (nField == "users_courses_course_id_fkey") -\/(EntityReferenceFieldError(s"Class doesn't exist"))
-            else -\/(ExceptionalFail(s"Unknown db error", exception))
-          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
+            if (nField == "users_courses_pkey") -\/(UniqueFieldConflict(s"User is already in the class"))
+            else if (nField == "users_courses_user_id_fkey") -\/(ReferenceConflict(s"User doesn't exist"))
+            else if (nField == "users_courses_course_id_fkey") -\/(ReferenceConflict(s"Class doesn't exist"))
+            else throw exception
+          case _ => throw exception
         }
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -455,7 +450,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
         }
 
       wasRemoved.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -479,7 +474,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
         }
 
       wasRemoved.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -499,16 +494,16 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
         new DateTime,
         new DateTime
       )).map {
-        result => buildCourse(result.rows)
+        result => buildEntity(result.rows, Course.apply)
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
-            if (nField == "course_pkey") -\/(EntityAlreadyExists(s"Class already exists"))
-            else if (nField == "courses_teacher_id_fkey") -\/(EntityReferenceFieldError(s"Teacher doesn't exist"))
-            else -\/(ExceptionalFail(s"Unknown db error", exception))
-          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
+            if (nField == "course_pkey") -\/(UniqueFieldConflict(s"Class already exists"))
+            else if (nField == "courses_teacher_id_fkey") -\/(ReferenceConflict(s"Teacher doesn't exist"))
+            else throw exception
+          case _ => throw exception
         }
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -529,9 +524,9 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
         course.id.bytes,
         course.version
       )).map {
-        result => buildCourse(result.rows)
+        result => buildEntity(result.rows, Course.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -557,50 +552,11 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
             // TODO check nField name
-            if (nField == "projects_course_id_fkey") -\/(EntityAlreadyExists(s"Class has referece in projects table"))
-            else -\/(ExceptionalFail(s"Unknown db error", exception))
-          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
+            if (nField == "projects_course_id_fkey") -\/(UniqueFieldConflict(s"Class has referece in projects table"))
+            else throw exception
+          case _ => throw exception
         }
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
-      }
-    }
-
-    /**
-     * Transform result rows into a single course.
-     *
-     * @param maybeResultSet
-     * @return
-     */
-    private def buildCourse(maybeResultSet: Option[ResultSet]): \/[Fail, Course] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => resultSet.headOption match {
-            case Some(firstRow) => \/-(Course(firstRow))
-            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
-          }
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Course from the row returned.", exception))
-      }
-    }
-
-    /**
-     * Converts an optional result set into courses list
-     *
-     * @param maybeResultSet
-     * @return
-     */
-    private def buildCourseList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[Course]] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => \/-(resultSet.map(Course.apply))
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Course List from the rows returned.", exception))
+        case exception: Throwable => throw exception
       }
     }
   }

@@ -18,7 +18,7 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
 import scalaz.{\/, -\/, \/-}
 
-trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent {
+trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent with PostgresRepository {
   self: PartRepositoryComponent with
         PostgresDB =>
 
@@ -229,8 +229,6 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
          |  AND components.id = video_components.component_id
        """.stripMargin
 
-
-
     /**
      * Find all components.
      *
@@ -238,9 +236,9 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      */
     override def list(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Component]]] = {
       conn.sendQuery(SelectAll).map {
-        result => buildComponentList(result.rows)
+        result => buildEntityList(result.rows, Component.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -252,9 +250,9 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      */
     override def list(part: Part)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Component]]] = {
       conn.sendPreparedStatement(SelectByPartId, Array[Any](part.id.bytes)).map {
-        result => buildComponentList(result.rows)
+        result => buildEntityList(result.rows, Component.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -266,9 +264,9 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      */
     override def list(project: Project)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Component]]] = {
       conn.sendPreparedStatement(SelectByProjectId, Array[Any](project.id.bytes)).map {
-        result => buildComponentList(result.rows)
+        result => buildEntityList(result.rows, Component.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -281,9 +279,9 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      */
     override def list(project: Project, user: User)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Component]]] = {
       conn.sendPreparedStatement(SelectEnabledByProjectId, Array[Any](user.id.bytes, project.id.bytes)).map {
-        result => buildComponentList(result.rows)
+        result => buildEntityList(result.rows, Component.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -295,9 +293,9 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
      */
     override def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, Component]] = {
       conn.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
-        result => buildComponent(result.rows)
+        result => buildEntity(result.rows, Component.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -318,12 +316,12 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
           }
         }
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
     /**
-     * Frmove this component from a Part.
+     * Remove this component from a Part.
      *
      * @param component the component to be removed
      * @param part the part to remove this component from
@@ -339,14 +337,14 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
           }
         }
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
     override def removeFromPart(part: Part)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Component]]] = {
       val result = for {
-        componentsInPart <- lift[IndexedSeq[Component]](list(part))
-        deletedComponents <- lift[IndexedSeq[Component]] {
+        componentsInPart <- lift(list(part))
+        deletedComponents <- lift {
           conn.sendPreparedStatement(RemoveAllFromParts, Array[Any](part.id.bytes)).map {
             result =>
               if (result.rowsAffected == componentsInPart.length) -\/(GenericFail("No rows were modified"))
@@ -356,7 +354,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
       } yield deletedComponents
       
       result.run.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -372,7 +370,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
         case asText: TextComponent => insertText(asText)
         case asVideo: VideoComponent => insertVideo(asVideo)
       }}.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -388,7 +386,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
         case asText: TextComponent => updateText(asText)
         case asVideo: VideoComponent => updateVideo(asVideo)
       }}.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -410,7 +408,7 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
         if (result.rowsAffected == 1) \/-(component)
         else -\/(NoResults("Could not find a component to delete."))
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -438,9 +436,9 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
         new DateTime,
         component.soundcloudId)
       ).map {
-        result => buildComponent(result.rows).map(_.asInstanceOf[AudioComponent])
+        result => buildEntity(result.rows, AudioComponent.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -463,9 +461,9 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
         component.version,
         component.soundcloudId)
       ).map {
-        result => buildComponent(result.rows).map(_.asInstanceOf[AudioComponent])
+        result => buildEntity(result.rows, AudioComponent.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -487,9 +485,9 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
         new DateTime,
         component.content)
       ).map {
-        result => buildComponent(result.rows).map(_.asInstanceOf[TextComponent])
+        result => buildEntity(result.rows, TextComponent.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -512,9 +510,9 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
         component.version,
         component.content)
       ).map {
-        result => buildComponent(result.rows).map(_.asInstanceOf[TextComponent])
+        result => buildEntity(result.rows, TextComponent.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -538,9 +536,9 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
         component.width,
         component.height)
       ).map {
-        result => buildComponent(result.rows).map(_.asInstanceOf[VideoComponent])
+        result => buildEntity(result.rows, VideoComponent.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -565,48 +563,9 @@ trait ComponentRepositoryPostgresComponent extends ComponentRepositoryComponent 
         component.width,
         component.height)
       ).map {
-        result => buildComponent(result.rows).map(_.asInstanceOf[VideoComponent])
+        result => buildEntity(result.rows, VideoComponent.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
-      }
-    }
-
-    /**
-     * Transform result rows into a single component.
-     *
-     * @param maybeResultSet the results from the database
-     * @return
-     */
-    private def buildComponent(maybeResultSet: Option[ResultSet]): \/[Fail, Component] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => resultSet.headOption match {
-            case Some(firstRow) => \/-(Component(firstRow))
-            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
-          }
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Component from the row returned.", exception))
-      }
-    }
-
-    /**
-     * Converts an optional result set into components list
-     *
-     * @param maybeResultSet the results from the database
-     * @return
-     */
-    private def buildComponentList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[Component]] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => \/-(resultSet.map(Component.apply))
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Component List from the rows returned.", exception))
+        case exception: Throwable => throw exception
       }
     }
   }

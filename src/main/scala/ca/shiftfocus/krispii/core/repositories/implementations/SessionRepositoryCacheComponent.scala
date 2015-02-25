@@ -49,7 +49,7 @@ trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
         case Some(session) => \/-(session)
         case None => -\/(NoResults(s"No session with id ${sessionId.string} could be found."))
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -68,7 +68,7 @@ trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
       put[Session](session.id.string)(session, ttl).map {
         result => \/-(session)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -88,19 +88,19 @@ trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
           put(session.userId.string)(newSessions).map {
             result => \/-(newSessions)
           }.recover {
-            case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+            case exception => throw exception
           }
         }
         updatedSession <- lift {
           put(session.id.string)(sessionWithDates).map {
             result => \/-(sessionWithDates)
           }.recover {
-            case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+            case exception => throw exception
           }
         }
       } yield updatedSession
 
-      fUpdate.run.recover { case exception => -\/(ExceptionalFail("Uncaught exception", exception)) }
+      fUpdate.run.recover { case exception => throw exception }
     }
 
     /**
@@ -117,19 +117,19 @@ trait SessionRepositoryCacheComponent extends SessionRepositoryComponent {
           put(session.userId.string)(updatedList).map {
             result => \/-(updatedList)
           }.recover {
-            case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+            case exception => throw exception
           }
         }
         deletedSession <- lift {
           remove(session.id.string).map {
             result => \/-(session)
           }.recover {
-            case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+            case exception => throw exception
           }
         }
       } yield deletedSession
 
-      fRemove.run.recover { case exception => -\/(ExceptionalFail("Uncaught exception", exception)) }
+      fRemove.run.recover { case exception => throw exception }
     }
 
   }

@@ -17,7 +17,7 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
 import scalaz.{\/-, -\/, \/}
 
-trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
+trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with PostgresRepository {
   self: ProjectRepositoryComponent with
         PartRepositoryComponent with
         PostgresDB =>
@@ -308,9 +308,9 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      */
     override def list:Future[\/[Fail, IndexedSeq[Task]]] = {
       db.pool.sendQuery(SelectAll).map {
-        result => buildTaskList(result.rows)
+        result => buildEntityList(result.rows, Task.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -322,9 +322,9 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      */
     override def list(part: Part): Future[\/[Fail, IndexedSeq[Task]]] = {
       db.pool.sendPreparedStatement(SelectByPartId, Array[Any](part.id.bytes)).map {
-        result => buildTaskList(result.rows).map(_.sortBy(_.position))
+        result => buildEntityList(result.rows, Task.apply).map(_.sortBy(_.position))
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -336,9 +336,9 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      */
     override def list(project: Project): Future[\/[Fail, IndexedSeq[Task]]] = {
       db.pool.sendPreparedStatement(SelectByProjectId, Array[Any](project.id.bytes)).map {
-        result => buildTaskList(result.rows)
+        result => buildEntityList(result.rows, Task.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -355,7 +355,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
       } yield tasks
 
       efTasks.run.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -367,9 +367,9 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      */
     override def find(id: UUID): Future[\/[Fail, Task]] = {
       db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
-        result => buildTask(result.rows)
+        result => buildEntity(result.rows, Task.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -383,9 +383,9 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      */
     override def findNow(user: User, project: Project): Future[\/[Fail, Task]] = {
       db.pool.sendPreparedStatement(SelectNowByUserId, Array[Any](user.id.bytes, project.id.bytes)).map {
-        result => buildTask(result.rows)
+        result => buildEntity(result.rows, Task.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -401,9 +401,9 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
     override def find(project: Project, partNum: Int, taskNum: Int): Future[\/[Fail, Task]] = {
       partRepository.find(project, partNum).flatMap { partOption =>
         db.pool.sendPreparedStatement(SelectByPosition, Array[Any](partNum, project.id.bytes, taskNum)).map {
-          result => buildTask(result.rows)
+          result => buildEntity(result.rows, Task.apply)
         }.recover {
-          case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+          case exception: Throwable => throw exception
         }
       }
     }
@@ -474,9 +474,9 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
 
       // Send the query
       conn.sendPreparedStatement(query, dataArray).map {
-        result => buildTask(result.rows)
+        result => buildEntity(result.rows, Task.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -530,9 +530,9 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
 
       // Execute the query
       conn.sendPreparedStatement(Update, dataArray).map {
-        result => buildTask(result.rows)
+        result => buildEntity(result.rows, Task.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -552,7 +552,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
           }
         }
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -574,46 +574,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
       yield deletedTasks
 
       result.run.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
-      }
-    }
-
-    /**
-     * Transform result rows into a single task.
-     *
-     * @param maybeResultSet
-     * @return
-     */
-    private def buildTask(maybeResultSet: Option[ResultSet]): \/[Fail, Task] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => resultSet.headOption match {
-            case Some(firstRow) => \/-(Task(firstRow))
-            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
-          }
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Task from the row returned.", exception))
-      }
-    }
-
-    /**
-     * Converts an optional result set into tasks list
-     *
-     * @param maybeResultSet
-     * @return
-     */
-    private def buildTaskList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[Task]] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => \/-(resultSet.map(Task.apply))
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Task List from the rows returned.", exception))
+        case exception: Throwable => throw exception
       }
     }
   }

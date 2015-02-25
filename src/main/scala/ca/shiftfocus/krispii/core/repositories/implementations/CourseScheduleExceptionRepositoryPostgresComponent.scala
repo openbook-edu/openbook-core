@@ -86,7 +86,7 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
       db.pool.sendPreparedStatement(SelectForUserAndCourse, Array[Any](user.id.bytes, course.id.bytes)).map { 
         result => buildCourseScheduleExceptionList(result.rows)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -97,7 +97,7 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
       db.pool.sendPreparedStatement(SelectForCourse, Array[Any](course.id.bytes)).map {
         result => buildCourseScheduleExceptionList(result.rows)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -112,7 +112,7 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
       db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
         result => buildCourseScheduleException(result.rows)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -139,7 +139,7 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
       )).map {
         result => buildCourseScheduleException(result.rows)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -167,7 +167,7 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
       )).map {
         result => buildCourseScheduleException(result.rows)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -183,7 +183,7 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
           if (result.rowsAffected == 1) \/-(courseScheduleException)
           else -\/(NoResults("The query completed successfully, but nothing was deleted."))
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -204,7 +204,7 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
         }
       }
       catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception: NoSuchElementException => throw exception
       }
     }
 
@@ -222,7 +222,7 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
         }
       }
       catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a CourseScheduleException List from the rows returned.", exception))
+        case exception: NoSuchElementException => throw exception
       }
     }
   }

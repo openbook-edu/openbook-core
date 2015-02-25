@@ -12,7 +12,7 @@ import org.joda.time.DateTime
 import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
 
-trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
+trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent with PostgresRepository {
   self: PostgresDB =>
 
   val workRepository: WorkRepository = new WorkRepositoryPostgres
@@ -230,9 +230,9 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
         project.id.bytes,
         user.id.bytes
       )).map {
-        result => buildWorkList(result.rows)
+        result => buildEntityList(result.rows, Work.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -248,9 +248,9 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
         task.id.bytes,
         user.id.bytes
       )).map {
-        result => buildWorkList(result.rows)
+        result => buildEntityList(result.rows, Work.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -264,9 +264,9 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
       db.pool.sendPreparedStatement(SelectAllForTask, Array[Any](
         task.id.bytes
       )).map {
-        result => buildWorkList(result.rows)
+        result => buildEntityList(result.rows, Work.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -280,9 +280,9 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
       db.pool.sendPreparedStatement(SelectById, Array[Any](
         workId.bytes
       )).map {
-        result => buildWork(result.rows)
+        result => buildEntity(result.rows, Work.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -292,7 +292,6 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      *
      * @param task
      * @param user
-     * @param course
      * @return
      */
     override def find(user: User, task: Task): Future[\/[Fail, Work]] = {
@@ -300,9 +299,9 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
         user.id.bytes,
         task.id.bytes
       )).map {
-        result => buildWork(result.rows)
+        result => buildEntity(result.rows, Work.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -311,7 +310,6 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
      *
      * @param task
      * @param user
-     * @param course
      * @return
      */
     override def find(user: User, task: Task, version: Long): Future[\/[Fail, Work]] = {
@@ -320,9 +318,9 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
         task.id.bytes,
         version
       )).map {
-        result => buildWork(result.rows)
+        result => buildEntity(result.rows, Work.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -365,9 +363,9 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
       }
 
       conn.sendPreparedStatement(query, params).map {
-        result => buildWork(result.rows)
+        result => buildEntity(result.rows, Work.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -418,9 +416,9 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
       }
 
       future.map {
-        result => buildWork(result.rows)
+        result => buildEntity(result.rows, Work.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -456,7 +454,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
           }
         }
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -479,48 +477,8 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
             else -\/(GenericFail("Failed to delete all tasks"))
         }))
       } yield deletedWorks).run.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
-
-    /**
-     * Transform result rows into a single work.
-     *
-     * @param maybeResultSet
-     * @return
-     */
-    private def buildWork(maybeResultSet: Option[ResultSet]): \/[Fail, Work] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => resultSet.headOption match {
-            case Some(firstRow) => \/-(Work(firstRow))
-            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
-          }
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Work from the row returned.", exception))
-      }
-    }
-
-    /**
-     * Converts an optional result set into works list
-     *
-     * @param maybeResultSet
-     * @return
-     */
-    private def buildWorkList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[Work]] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => \/-(resultSet.map(Work.apply))
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Work List from the rows returned.", exception))
-      }
-    }
-
   }
 }

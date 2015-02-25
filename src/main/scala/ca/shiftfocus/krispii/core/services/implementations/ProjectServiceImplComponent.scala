@@ -9,6 +9,7 @@ import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.uuid.UUID
 import play.api.Logger
+import play.api.i18n.Messages
 import scala.concurrent.Future
 import scalaz.{EitherT, \/, -\/, \/-}
 
@@ -157,8 +158,8 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
       transactional { implicit connection =>
         (for {
           existingProject <- lift(projectRepository.find(id))
+          _ <- predicate (existingProject.version == version) (LockFail(Messages("services.ProjectService.updateInfo.lockFail", version, existingProject.version)))
           toUpdate = existingProject.copy(
-            version      = version,
             courseId     = courseId.getOrElse(existingProject.courseId),
             name         = name.getOrElse(existingProject.name),
             description  = description.getOrElse(existingProject.description),
@@ -182,8 +183,9 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
       transactional { implicit connection =>
         (for {
           existingProject <- lift(projectRepository.find(id))
+          _ <- predicate (existingProject.version == version) (LockFail(Messages("services.ProjectService.updateSlug.lockFail", version, existingProject.version)))
           validSlug <- lift(validateSlug(slug))
-          toUpdate = existingProject.copy(version = version, slug = validSlug)
+          toUpdate = existingProject.copy(slug = validSlug)
           updatedProject <- lift(projectRepository.update(toUpdate))
         } yield updatedProject).run
       }
@@ -203,6 +205,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
       transactional { implicit connection =>
         (for {
           project <- lift(find(id))
+          _ <- predicate (project.version == version) (LockFail(Messages("services.ProjectService.delete.lockFail", version, project.version)))
           componentsRemoved <- lift(serializedT(project.parts)(componentRepository.removeFromPart))
           partsDeleted <- lift(partRepository.delete(project))
           projectDeleted <- lift(projectRepository.delete(project))
@@ -298,6 +301,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
       transactional { implicit connection =>
         (for {
           existingPart <- lift(partRepository.find(partId))
+          _ <- predicate (existingPart.version == version) (LockFail(Messages("services.ProjectService.updatePart.lockFail", version, existingPart.version)))
           oldPosition = existingPart.position
           project <- lift(projectRepository.find(existingPart.projectId))
           partList <- lift(partRepository.list(project))
@@ -324,7 +328,6 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
             } else Future.successful(\/-(partList))
           }
           toUpdate = existingPart.copy(
-            version = version,
             name = name,
             position = newPosition
           )
@@ -589,14 +592,6 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
       }
     }
 
-    private def validateTaskType[A](task: Task): Future[\/[Fail, Unit]] = Future successful {
-      if (!task.isInstanceOf[A]) {
-        -\/(GenericFail(s"You tried to the task with id ${task.id.string}, but called a method for the wrong type of task."))
-      } else {
-        \/-(())
-      }
-    }
-
     /**
      * Update a LongAnswerTask.
      *
@@ -621,10 +616,10 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
     {
       (for {
         task <- lift(taskRepository.find(taskId))
-        _ <- lift(validateTaskType[LongAnswerTask](task))
+        _ <- predicate (task.version == version) (LockFail(Messages("services.ProjectService.updateTask.lockFail", version, task.version)))
+        _ <- predicate (task.isInstanceOf[LongAnswerTask]) (BadInput(Messages("services.ProjectService.updateLongAnswerTask.wrongTaskType")))
         toUpdate = task.asInstanceOf[LongAnswerTask].copy(
           partId = partId.getOrElse(task.partId),
-          version = version,
           position = position,
           settings = task.settings.copy(
             title = name,
@@ -662,10 +657,10 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
     {
       (for {
         task <- lift(taskRepository.find(taskId))
-        _ <- lift(validateTaskType[ShortAnswerTask](task))
+        _ <- predicate (task.version == version) (LockFail(Messages("services.ProjectService.updatePart.lockFail", version, task.version)))
+        _ <- predicate (task.isInstanceOf[ShortAnswerTask]) (BadInput(Messages("services.ProjectService.updateShortAnswerTask.wrongTaskType")))
         toUpdate = task.asInstanceOf[ShortAnswerTask].copy(
           partId = partId.getOrElse(task.partId),
-          version = version,
           position = position,
           settings = task.settings.copy(
             title = name,
@@ -710,10 +705,10 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
     {
       (for {
         task <- lift(taskRepository.find(taskId))
-        _ <- lift(validateTaskType[MultipleChoiceTask](task))
+        _ <- predicate (task.version == version) (LockFail(Messages("services.ProjectService.updateTask.lockFail", version, task.version)))
+        _ <- predicate (task.isInstanceOf[MultipleChoiceTask]) (BadInput(Messages("services.ProjectService.updateMultipleChoiceTask.wrongTaskType")))
         toUpdate = task.asInstanceOf[MultipleChoiceTask].copy(
           partId = partId.getOrElse(task.partId),
-          version = version,
           position = position,
           settings = task.settings.copy(
             title = name,
@@ -759,10 +754,10 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
     {
       (for {
         task <- lift(taskRepository.find(taskId))
-        _ <- lift(validateTaskType[OrderingTask](task))
+        _ <- predicate (task.version == version) (LockFail(Messages("services.ProjectService.updateTask.lockFail", version, task.version)))
+        _ <- predicate (task.isInstanceOf[OrderingTask]) (BadInput(Messages("services.ProjectService.updateOrderingTask.wrongTaskType")))
         toUpdate = task.asInstanceOf[OrderingTask].copy(
           partId = partId.getOrElse(task.partId),
-          version = version,
           position = position,
           settings = task.settings.copy(
             title = name,
@@ -809,10 +804,10 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
     {
       (for {
         task <- lift(taskRepository.find(taskId))
-        _ <- lift(validateTaskType[MatchingTask](task))
+        _ <- predicate (task.version == version) (LockFail(Messages("services.ProjectService.updateTask.lockFail", version, task.version)))
+        _ <- predicate (task.isInstanceOf[MatchingTask]) (BadInput(Messages("services.ProjectService.updateMatchingTask.wrongTaskType")))
         toUpdate = task.asInstanceOf[MatchingTask].copy(
           partId = partId.getOrElse(task.partId),
-          version = version,
           position = position,
           settings = task.settings.copy(
             title = name,
@@ -844,6 +839,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
       transactional { implicit connection =>
         (for {
           genericTask <- lift(taskRepository.find(taskId))
+          _ <- predicate (genericTask.version == version) (LockFail(Messages("services.ProjectService.deleteTask.lockFail", version, genericTask.version)))
           task = genericTask match {
             case task: LongAnswerTask => task.copy(version = version)
             case task: ShortAnswerTask => task.copy(version = version)
@@ -920,7 +916,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
 
       existing.run.map {
         case \/-(project) =>
-          if (existingId.isEmpty || (existingId.get != project.id)) -\/(EntityUniqueFieldError(s"The slug $slug is already in use."))
+          if (existingId.isEmpty || (existingId.get != project.id)) -\/(UniqueFieldConflict(s"The slug $slug is already in use."))
           else \/-(slug)
         case -\/(error: NoResults) => \/-(slug)
         case -\/(otherErrors: Fail) => -\/(otherErrors)

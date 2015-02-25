@@ -16,7 +16,7 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
 import scalaz.{-\/, \/-, \/}
 
-trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
+trait PartRepositoryPostgresComponent extends PartRepositoryComponent with PostgresRepository {
   self: ProjectRepositoryComponent with
         TaskRepositoryComponent with
         PostgresDB =>
@@ -127,7 +127,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
      * @return a vector of the returned Projects
      */
     override def list: Future[\/[Fail, IndexedSeq[Part]]] = {
-      val fPartList = db.pool.sendQuery(SelectAll).map(res => buildPartList(res.rows))
+      val fPartList = db.pool.sendQuery(SelectAll).map(res => buildEntityList(res.rows, Part.apply))
       val fResult = for {
         partList <- lift(fPartList)
         partsWithTasks <- liftSeq(partList.map{ part =>
@@ -139,7 +139,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       } yield partsWithTasks
 
       fResult.run.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -150,7 +150,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
      * @return a vector of the returned Projects
      */
     override def list(project: Project): Future[\/[Fail, IndexedSeq[Part]]] = {
-      val fPartList = db.pool.sendPreparedStatement(SelectByProjectId, Array[Any](project.id.bytes)).map(res => buildPartList(res.rows))
+      val fPartList = db.pool.sendPreparedStatement(SelectByProjectId, Array[Any](project.id.bytes)).map(res => buildEntityList(res.rows, Part.apply))
       val fResult = for {
         partList <- lift(fPartList)
         partsWithTasks <- liftSeq(partList.map{ part =>
@@ -162,7 +162,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       } yield partsWithTasks
 
       fResult.run.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -170,7 +170,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
      * Find all Parts belonging to a given Component.
      */
     override def list(component: Component): Future[\/[Fail, IndexedSeq[Part]]] = {
-      val fPartList = db.pool.sendPreparedStatement(SelectByComponentId, Array[Any](component.id.bytes)).map(res => buildPartList(res.rows))
+      val fPartList = db.pool.sendPreparedStatement(SelectByComponentId, Array[Any](component.id.bytes)).map(res => buildEntityList(res.rows, Part.apply))
       val fResult = for {
         partList <- lift(fPartList)
         partsWithTasks <- liftSeq(partList.map{ part =>
@@ -182,7 +182,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       } yield partsWithTasks
 
       fResult.run.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -194,7 +194,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
      */
     override def find(id: UUID): Future[\/[Fail, Part]] = {
       val partQuery = db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
-        result => buildPart(result.rows)
+        result => buildEntity(result.rows, Part.apply)
       }
 
       val result = for {
@@ -204,7 +204,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
 
       result.run.recover {
         case exception: NoSuchElementException => -\/(GenericFail("Invalid data returned from db."))
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -217,7 +217,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
      */
     override def find(project: Project, position: Int): Future[\/[Fail, Part]] = {
       val partQuery = db.pool.sendPreparedStatement(FindByProjectPosition, Array[Any](project.id.bytes, position)).map {
-        result => buildPart(result.rows)
+        result => buildEntity(result.rows, Part.apply)
       }
 
       val result = for {
@@ -227,7 +227,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
 
       result.run.recover {
         case exception: NoSuchElementException => -\/(GenericFail("Invalid data returned from db."))
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -248,15 +248,15 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
         part.position,
         part.enabled
       )).map {
-        result => buildPart(result.rows)
+        result => buildEntity(result.rows, Part.apply)
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
-            if (nField == "parts_pkey") -\/(EntityAlreadyExists(s"A part with key ${part.id.string} already exists"))
-            else -\/(ExceptionalFail(s"Unknown db error", exception))
-          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
+            if (nField == "parts_pkey") -\/(UniqueFieldConflict(s"A part with key ${part.id.string} already exists"))
+            else throw exception
+          case _ => throw exception
         }
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -274,20 +274,20 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
         //        part.description,
         part.position,
         part.enabled,
-        (part.version + 1),
+        part.version + 1,
         new DateTime,
         part.id.bytes,
         part.version
       )).map {
-        result => buildPart(result.rows)
+        result => buildEntity(result.rows, Part.apply)
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
-            if (nField == "parts_pkey") -\/(EntityAlreadyExists(s"A part with key ${part.id.string} already exists"))
-            else -\/(ExceptionalFail(s"Unknown db error", exception))
-          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
+            if (nField == "parts_pkey") -\/(UniqueFieldConflict(s"A part with key ${part.id.string} already exists"))
+            else throw exception
+          case _ => throw exception
         }
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -303,7 +303,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
           if (result.rowsAffected == 1) \/-(part)
           else -\/(GenericFail("Query ran without errors but a part was not deleted."))
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -324,7 +324,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
       } yield deletedParts
 
       result.run.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -345,45 +345,6 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
         case exception => {
           throw exception
         }
-      }
-    }
-
-    /**
-     * Transform a result set into a Part.
-     *
-     * @param maybeResultSet
-     * @return
-     */
-    private def buildPart(maybeResultSet: Option[ResultSet]): \/[Fail, Part] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => resultSet.headOption match {
-            case Some(firstRow) => \/-(Part(firstRow))
-            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
-          }
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a part from the row returned.", exception))
-      }
-    }
-
-    /**
-     * Transform a result set into a Part.
-     *
-     * @param maybeResultSet
-     * @return
-     */
-    private def buildPartList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[Part]] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => \/-(resultSet.map(Part.apply))
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a part from the row returned.", exception))
       }
     }
   }

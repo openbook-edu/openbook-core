@@ -117,7 +117,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
         } yield document).run
       }.recover {
         case exception: NoSuchElementException => -\/(GenericFail("Invalid data returned from db."))
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -131,7 +131,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
       )).map { result =>
         buildDocument(result.rows)(document.owner, document.editors)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -149,7 +149,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
       )).map { result =>
         buildDocument(result.rows)(document.owner, document.editors)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -194,7 +194,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
       }
       yield revisions).run.recover {
         case exception: NoSuchElementException => -\/(GenericFail("Invalid data returned from db."))
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -216,7 +216,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
         \/-(revision)
       }.recover {
         case exception: NoSuchElementException => -\/(GenericFail("Invalid data returned from db."))
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -231,7 +231,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
         }
       }
       catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a user from the row returned.", exception))
+        case exception: NoSuchElementException => throw exception
       }
     }
 
@@ -246,7 +246,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
         }
       }
       catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a revision from the row returned.", exception))
+        case exception: NoSuchElementException => throw exception
       }
     }
   }

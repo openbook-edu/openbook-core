@@ -180,7 +180,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       db.pool.sendQuery(SelectAll).map {
         result => buildRoleList(result.rows)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -194,7 +194,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
         //val cachedUserRoles = Cache.getAs[Set[UUID]](s"role_ids:user_ids").getOrElse(Set())
         //Cache.set(s"role_ids:user_ids", cachedUserRoles + user.id )
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -209,25 +209,20 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       val query = s"""${ListRolesForUserList} AND ARRAY[users_roles.user_id] <@ $arrayString"""
 
       db.pool.sendQuery(query).map { queryResult =>
-        try {
-          queryResult.rows match {
-            case Some(resultSet) => {
-              val tuples = resultSet.map { item: RowData =>
-                (UUID(item("user_id").asInstanceOf[Array[Byte]]), Role(item))
-              }
-              val tupledWithUsers = users.map { user =>
-                (user.id, tuples.filter(_._1 == user.id).map(_._2))
-              }
-              \/-(tupledWithUsers.toMap)
+        queryResult.rows match {
+          case Some(resultSet) => {
+            val tuples = resultSet.map { item: RowData =>
+              (UUID(item("user_id").asInstanceOf[Array[Byte]]), Role(item))
             }
-            case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
+            val tupledWithUsers = users.map { user =>
+              (user.id, tuples.filter(_._1 == user.id).map(_._2))
+            }
+            \/-(tupledWithUsers.toMap)
           }
-        }
-        catch {
-          case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build Role(s) from the row returned.", exception))
+          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
         }
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -241,7 +236,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
         result => buildRole(result.rows)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -255,7 +250,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       db.pool.sendPreparedStatement(SelectOneByName, Array[Any](name)).map {
         result => buildRole(result.rows)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -285,13 +280,13 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       wasAdded.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
-            if (nField == "users_roles_pkey") -\/(EntityAlreadyExists(s"User has already this role"))
-            else if (nField == "users_roles_user_id_fkey") -\/(EntityReferenceFieldError(s"User doesn't exist"))
-            else if (nField == "users_roles_role_id_fkey") -\/(EntityReferenceFieldError(s"Role doesn't exist"))
-            else -\/(ExceptionalFail(s"Unknown db error", exception))
-          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
+            if (nField == "users_roles_pkey") -\/(UniqueFieldConflict(s"User has already this role"))
+            else if (nField == "users_roles_user_id_fkey") -\/(ReferenceConflict(s"User doesn't exist"))
+            else if (nField == "users_roles_role_id_fkey") -\/(ReferenceConflict(s"Role doesn't exist"))
+            else throw exception
+          case _ => throw exception
         }
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -321,7 +316,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
         }
 
       wasRemoved.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -339,10 +334,10 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
 
       future.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-          case Some(nField) if nField == "roles_pkey" => -\/(EntityAlreadyExists(s"A row with key ${role.id.string} already exists"))
-          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
+          case Some(nField) if nField == "roles_pkey" => -\/(UniqueFieldConflict(s"A row with key ${role.id.string} already exists"))
+          case _ => throw exception
         }
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -358,7 +353,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       yield buildRole(result.rows)
 
       future.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -375,10 +370,10 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
 
       future.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-          case Some(nField) if nField == "roles_pkey" => -\/(EntityAlreadyExists(s"Deletion of a role with id ${role.id.string} caused a GenericDatabaseException"))
-          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
+          case Some(nField) if nField == "roles_pkey" => -\/(UniqueFieldConflict(s"Deletion of a role with id ${role.id.string} caused a GenericDatabaseException"))
+          case _ => throw exception
         }
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -392,13 +387,13 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
-            if (nField == "users_roles_pkey") -\/(EntityAlreadyExists(s"User has already this role"))
-            else if (nField == "users_roles_user_id_fkey") -\/(EntityReferenceFieldError(s"User doesn't exist"))
-            else if (nField == "users_roles_role_id_fkey") -\/(EntityReferenceFieldError(s"Role doesn't exist"))
-            else  -\/(ExceptionalFail(s"Unknown db error", exception))
-          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
+            if (nField == "users_roles_pkey") -\/(UniqueFieldConflict(s"User has already this role"))
+            else if (nField == "users_roles_user_id_fkey") -\/(ReferenceConflict(s"User doesn't exist"))
+            else if (nField == "users_roles_role_id_fkey") -\/(ReferenceConflict(s"Role doesn't exist"))
+            else  throw exception
+          case _ => throw exception
         }
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -412,13 +407,13 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
-            if (nField == "users_roles_pkey") -\/(EntityAlreadyExists(s"User has already this role"))
-            else if (nField == "users_roles_user_id_fkey") -\/(EntityReferenceFieldError(s"User doesn't exist"))
-            else if (nField == "users_roles_role_id_fkey") -\/(EntityReferenceFieldError(s"Role doesn't exist"))
-            else -\/(ExceptionalFail(s"Unknown db error", exception))
-          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
+            if (nField == "users_roles_pkey") -\/(UniqueFieldConflict(s"User has already this role"))
+            else if (nField == "users_roles_user_id_fkey") -\/(ReferenceConflict(s"User doesn't exist"))
+            else if (nField == "users_roles_role_id_fkey") -\/(ReferenceConflict(s"Role doesn't exist"))
+            else throw exception
+          case _ => throw exception
         }
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -430,7 +425,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
         //Cache.remove(s"role_ids:user:${user.id.string}")
         result => buildRole(result.rows)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -442,7 +437,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
         //Cache.remove(s"role_ids:user:${user.id.string}")
         result => buildRole(result.rows)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -458,7 +453,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
 
         result => buildRole(result.rows)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -474,7 +469,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
 
         result => buildRole(result.rows)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -496,7 +491,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
         }
       }
       catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Role from the row returned.", exception))
+        case exception: NoSuchElementException => throw exception
       }
     }
 
@@ -514,7 +509,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
         }
       }
       catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Role List from the rows returned.", exception))
+        case exception: NoSuchElementException => throw exception
       }
     }
   }

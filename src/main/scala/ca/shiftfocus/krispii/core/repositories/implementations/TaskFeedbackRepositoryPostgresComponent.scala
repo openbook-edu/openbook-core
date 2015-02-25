@@ -10,7 +10,7 @@ import org.joda.time.DateTime
 import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
 
-trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComponent {
+trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComponent with PostgresRepository {
   self: UserRepositoryComponent with
         ProjectRepositoryComponent with
         TaskRepositoryComponent with
@@ -90,9 +90,9 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
         SelectAllForStudentAndProject,
         Array[Any](student.id.bytes, project.id.bytes, student.id.bytes)
       ).map {
-        result => buildTaskFeedbackList(result.rows)
+        result => buildEntityList(result.rows, TaskFeedback.apply)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -107,25 +107,24 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
         SelectAllForTask,
         Array[Any](task.id.bytes)
       ).map {
-        result => buildTaskFeedbackList(result.rows)
+        result => buildEntityList(result.rows, TaskFeedback.apply)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
     /**
      * Find a single feedback for one task, teacher and student.
      *
-     * @param teacher
      * @param student
      * @param task
      * @return
      */
     def find(student: User, task: Task): Future[\/[Fail, TaskFeedback]] = {
       db.pool.sendPreparedStatement(SelectOneById, Array[Any](student.id.bytes, task.id.bytes)).map {
-        result => buildTaskFeedback(result.rows)
+        result => buildEntity(result.rows, TaskFeedback.apply)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -145,9 +144,9 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
         new DateTime,
         new DateTime
       )).map {
-        result => buildTaskFeedback(result.rows)
+        result => buildEntity(result.rows, TaskFeedback.apply)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -168,9 +167,9 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
         feedback.taskId.bytes,
         feedback.version
       )).map {
-        result => buildTaskFeedback(result.rows)
+        result => buildEntity(result.rows, TaskFeedback.apply)
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -192,7 +191,7 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
           if (result.rowsAffected == 1) \/-(feedback)
           else -\/(GenericFail("The query returned no errors, but the TaskFeedback was not deleted."))
       }.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
 
@@ -215,49 +214,8 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
       } yield deletedList
 
       result.run.recover {
-        case exception => -\/(ExceptionalFail("Uncaught exception", exception))
+        case exception => throw exception
       }
     }
-
-
-    /**
-     * Build a TaskFeedback object from a database result.
-     *
-     * @param maybeResultSet the [[ResultSet]] from the database to use
-     * @return
-     */
-    private def buildTaskFeedback(maybeResultSet: Option[ResultSet]): \/[Fail, TaskFeedback] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => resultSet.headOption match {
-            case Some(firstRow) => \/-(TaskFeedback(firstRow))
-            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
-          }
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: Throwable => -\/(ExceptionalFail("Uncaught exception", exception))
-      }
-    }
-
-    /**
-     * Converts an optional result set into works list
-     *
-     * @param maybeResultSet the [[ResultSet]] from the database to use
-     * @return
-     */
-    private def buildTaskFeedbackList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[TaskFeedback]] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => \/-(resultSet.map(TaskFeedback.apply))
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a TaskFeedback List from the rows returned.", exception))
-      }
-    }
-
   }
 }

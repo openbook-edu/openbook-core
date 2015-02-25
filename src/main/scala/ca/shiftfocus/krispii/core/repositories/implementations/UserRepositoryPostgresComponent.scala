@@ -14,7 +14,7 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import scalaz.{\/, -\/, \/-}
 import scalaz.syntax.either._
 
-trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
+trait UserRepositoryPostgresComponent extends UserRepositoryComponent with PostgresRepository {
   // Because this concrete implementation is postgres specific, we will specifically
   // depend on the PostgresDB trait.
   self: PostgresDB =>
@@ -131,9 +131,9 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      */
     override def list: Future[\/[Fail, IndexedSeq[User]]] = {
       db.pool.sendQuery(SelectAll).map {
-        result => buildUserList(result.rows)
+        result => buildEntityList(result.rows, User.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -152,7 +152,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
         users => \/-(users)
       }.recover {
         case exception: NoSuchElementException => -\/(NoResults("One or more users could not be loaded."))
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -161,9 +161,9 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      */
     override def list(course: Course): Future[\/[Fail, IndexedSeq[User]]] = {
       db.pool.sendPreparedStatement(ListUsers, Seq[Any](course.id.bytes)).map {
-        result => buildUserList(result.rows)
+        result => buildEntityList(result.rows, User.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("An unexpected error occurred.", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -216,7 +216,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
 //      db.pool.sendPreparedStatement(ListUsersFilterByRolesAndCourses, Array[Any](roles, classes)).map { result =>
 //        rowsToUsers(result.rows)
 //      }.recover {
-//        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+//        case exception: Throwable => throw exception
 //      }
 //    }
 
@@ -228,9 +228,9 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      */
     override def find(id: UUID): Future[\/[Fail, User]] = {
       db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
-        result => buildUser(result.rows)
+        result => buildEntity(result.rows, User.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -242,9 +242,9 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      */
     override def find(identifier: String): Future[\/[Fail, User]] = {
       db.pool.sendPreparedStatement(SelectOneByIdentifier, Array[Any](identifier, identifier)).map {
-        result => buildUser(result.rows)
+        result => buildEntity(result.rows, User.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -256,9 +256,9 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
      */
     override def findByEmail(email: String): Future[\/[Fail, User]] = {
       db.pool.sendPreparedStatement(SelectOneEmail, Array[Any](email)).map {
-        result => buildUser(result.rows)
+        result => buildEntity(result.rows, User.apply)
       }.recover {
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -284,18 +284,18 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
         user.id.bytes,
         user.version)
       ).map {
-        result => buildUser(result.rows)
+        result => buildEntity(result.rows, User.apply)
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
-            if (nField == "users_pkey") -\/(EntityAlreadyExists(s"A row with key ${user.id.string} already exists"))
+            if (nField == "users_pkey") -\/(UniqueFieldConflict(s"A row with key ${user.id.string} already exists"))
             // TODO - check nField name
-            else if (nField == "users_username_ukey") -\/(EntityUniqueFieldError(s"User with username ${user.username} already exists"))
-            else if (nField == "users_email_ukey") -\/(EntityUniqueFieldError(s"User with email ${user.username} already exists"))
-            else -\/(ExceptionalFail(s"Unknown db error", exception))
-          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
+            else if (nField == "users_username_ukey") -\/(UniqueFieldConflict(s"User with username ${user.username} already exists"))
+            else if (nField == "users_email_ukey") -\/(UniqueFieldConflict(s"User with email ${user.username} already exists"))
+            else throw exception
+          case _ => throw exception
         }
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -321,19 +321,19 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
           user.surname
         ))
       }
-      yield buildUser(result.rows)
+      yield buildEntity(result.rows, User.apply)
 
       future.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
-            if (nField == "users_pkey") -\/(EntityAlreadyExists(s"A row with key ${user.id.string} already exists"))
+            if (nField == "users_pkey") -\/(UniqueFieldConflict(s"A row with key ${user.id.string} already exists"))
             // TODO - check nField name
-            else if (nField == "users_username_ukey") -\/(EntityUniqueFieldError(s"User with username ${user.username} already exists"))
-            else if (nField == "users_email_ukey") -\/(EntityUniqueFieldError(s"User with email ${user.username} already exists"))
-            else -\/(ExceptionalFail(s"Unknown db error", exception))
-          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
+            else if (nField == "users_username_ukey") -\/(UniqueFieldConflict(s"User with username ${user.username} already exists"))
+            else if (nField == "users_email_ukey") -\/(UniqueFieldConflict(s"User with email ${user.username} already exists"))
+            else throw exception
+          case _ => throw exception
         }
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
+        case exception: Throwable => throw exception
       }
     }
 
@@ -351,52 +351,11 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
             // TODO - check nField name
-            if (nField == "courses_teacher_id_fkey") -\/(EntityReferenceFieldError(s"User is teacher and has references in courses table, that has project"))
-            else -\/(ExceptionalFail(s"Unknown db error", exception))
-          case _ => -\/(ExceptionalFail("Unexpected exception", exception))
+            if (nField == "courses_teacher_id_fkey") -\/(ReferenceConflict(s"User is teacher and has references in courses table, that has project"))
+            else throw exception
+          case _ => throw exception
         }
-        case exception: Throwable => -\/(ExceptionalFail("Unexpected exception", exception))
-      }
-    }
-
-
-
-    /**
-     * Transform result rows into a single user.
-     *
-     * @param maybeRows
-     * @return
-     */
-    private def buildUser(maybeResultSet: Option[ResultSet]): \/[Fail, User] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => resultSet.headOption match {
-            case Some(firstRow) => \/-(User(firstRow))
-            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
-          }
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a user from the row returned.", exception))
-      }
-    }
-
-    /**
-     * Converts an optional result set into
-     *
-     * @param maybeRows
-     * @return
-     */
-    private def buildUserList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[User]] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => \/-(resultSet.map(User.apply))
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => -\/(ExceptionalFail(s"Invalid data: could not build a Users List from the rows returned.", exception))
+        case exception: Throwable => throw exception
       }
     }
   }

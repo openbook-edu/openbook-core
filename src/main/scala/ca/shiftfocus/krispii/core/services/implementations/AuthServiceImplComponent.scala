@@ -6,6 +6,7 @@ import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
+import play.api.i18n.Messages
 import scala.concurrent.Future
 import scalaz.{-\/, \/-, \/, EitherT}
 import webcrank.password._
@@ -256,10 +257,10 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
       transactional { implicit conn =>
         val updated = for {
           existingUser <- lift(userRepository.find(id))
+          _ <- predicate (existingUser.version == version) (LockFail(Messages("services.AuthService.userUpdate.lockFail", version, existingUser.version)))
           u_email <- lift(email.map { someEmail => validateEmail(someEmail, Some(id))}.getOrElse(Future.successful(\/-(existingUser.email))))
           u_username <- lift(username.map { someUsername => validateUsername(someUsername, Some(id))}.getOrElse(Future.successful(\/-(existingUser.username))))
           userToUpdate = existingUser.copy(
-            version = version,
             email = u_email,
             username = u_username
           )
@@ -555,7 +556,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @return
      */
     private def isValidPassword(password: String): Future[\/[Fail, String]] = Future.successful {
-      if (password.length > 8) \/-(password)
+      if (password.length >= 8) \/-(password)
       else -\/(BadInput(s"The password provided must be at least 8 characters."))
     }
 

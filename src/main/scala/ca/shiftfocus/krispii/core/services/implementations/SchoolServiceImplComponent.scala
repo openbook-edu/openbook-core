@@ -120,7 +120,6 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
     /**
      * Create a new course.
      *
-     * @param courseId the [[UUID]] of the [[Course]] this course belongs to
      * @param teacherId the optional [[UUID]] of the [[User]] teaching this course
      * @param name the name of this course
      * @return the newly created [[Course]]

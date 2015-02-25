@@ -10,6 +10,7 @@ case class EntityUniqueFieldError(message: String) extends Fail
 
 case class NoResults(message: String) extends Fail
 case class BadInput(message: String) extends Fail
+case class LockFail(message: String) extends Fail
 
 case class GenericFail(message: String) extends Fail
 case class ExceptionalFail(message: String, exception: Throwable) extends Fail

@@ -28,6 +28,15 @@ trait FutureMonad {
     lift(result)
   }
 
+  def predicate(fCondition: Future[Boolean])(fail: Fail): EitherT[Future, Fail, Unit] = {
+    lift {
+      fCondition.map { condition =>
+        if (condition) \/-(())
+        else -\/(fail)
+      }
+    }
+  }
+
   implicit val futureMonad = new Monad[Future] {
     override def point[A](a: ⇒ A): Future[A] = Future(a)
     override def bind[A, B](fa: Future[A])(f: A ⇒ Future[B]): Future[B] = fa.flatMap(f)

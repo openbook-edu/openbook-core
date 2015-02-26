@@ -13,12 +13,12 @@ trait ProjectRepositoryComponent extends FutureMonad {
   val projectRepository: ProjectRepository
 
   trait ProjectRepository {
-    def list: Future[\/[Fail, IndexedSeq[Project]]]
-    def list(course: Course): Future[\/[Fail, IndexedSeq[Project]]]
+    def list(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Project]]]
+    def list(course: Course)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Project]]]
 
-    def find(id: UUID): Future[\/[Fail, Project]]
-    def find(projectId: UUID, user: User): Future[\/[Fail, Project]]
-    def find(slug: String): Future[\/[Fail, Project]]
+    def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, Project]]
+    def find(projectId: UUID, user: User)(implicit conn: Connection): Future[\/[Fail, Project]]
+    def find(slug: String)(implicit conn: Connection): Future[\/[Fail, Project]]
 
     def insert(project: Project)(implicit conn: Connection): Future[\/[Fail, Project]]
     def update(project: Project)(implicit conn: Connection): Future[\/[Fail, Project]]

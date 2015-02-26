@@ -503,7 +503,7 @@ class UserRepositorySpec
         val result = userRepository.insert(User(
           email = "unexistinguser@example.com",
           username = TestValues.testUserB.username,
-          passwordHash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3W1234="),
+          hash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3W1234="),
           givenname = "unexisting",
           surname = "user"
         ))
@@ -514,7 +514,7 @@ class UserRepositorySpec
         val result = userRepository.insert(User(
           email = TestValues.testUserB.email,
           username = "unexisting user",
-          passwordHash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3W1234="),
+          hash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3W1234="),
           givenname = "unexisting",
           surname = "user"
         ))

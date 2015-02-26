@@ -55,7 +55,7 @@ class AuthServiceSpec
   val testUserA = User(
     email = "testUserA@example.org",
     username = "testUserA",
-    passwordHash = Some(passwordHash),
+    hash = Some(passwordHash),
     givenname = "Test",
     surname = "UserA"
   )
@@ -63,7 +63,7 @@ class AuthServiceSpec
   val testUserB = User(
     email = "testUserA@example.org",
     username = "testUserA",
-    passwordHash = Some(passwordHash),
+    hash = Some(passwordHash),
     givenname = "Test",
     surname = "UserA"
   )

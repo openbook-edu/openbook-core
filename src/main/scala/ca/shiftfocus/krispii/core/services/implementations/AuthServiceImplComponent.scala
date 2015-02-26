@@ -88,7 +88,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
       transactional { implicit conn =>
         (for {
           user <- lift(userRepository.find(identifier.trim))
-          userHash = user.passwordHash.getOrElse("")
+          userHash = user.hash.getOrElse("")
           authUser <- lift(Future.successful {
             if (Passwords.scrypt().verify(password.trim(), userHash)) {
               \/-(user)
@@ -233,7 +233,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
               id = id,
               username = username,
               email = email,
-              passwordHash = passwordHash,
+              hash = passwordHash,
               givenname = givenname,
               surname = surname
             )
@@ -339,7 +339,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
           _ <- predicate (existingUser.version == version) (LockFail(Messages("services.AuthService.userUpdate.lockFail", version, existingUser.version)))
           u_password <- lift(isValidPassword(password))
           u_hash = wc.crypt(u_password)
-          userToUpdate = existingUser.copy(passwordHash = Some(u_hash))
+          userToUpdate = existingUser.copy(hash = Some(u_hash))
           updatedUser <- lift(userRepository.update(userToUpdate))
         } yield existingUser
         updated.run

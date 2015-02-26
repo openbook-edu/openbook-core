@@ -2,6 +2,7 @@ package ca.shiftfocus.krispii.core.repositories
 
 import java.util.NoSuchElementException
 
+import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import ca.shiftfocus.krispii.core.fail._
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
@@ -17,7 +18,7 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
 import scalaz.{\/-, -\/, \/}
 
-trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with PostgresRepository {
+trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
   self: ProjectRepositoryComponent with
         PartRepositoryComponent with
         PostgresDB =>
@@ -30,7 +31,19 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
   /**
    * A concrete implementation of the ProjectRepository class.
    */
-  private class TaskRepositoryPSQL extends TaskRepository {
+  private class TaskRepositoryPSQL extends TaskRepository with PostgresRepository[Task] with SpecificTaskConstructors {
+
+    override def constructor(row: RowData): Task = {
+      row("task_type").asInstanceOf[Int] match {
+        case Task.LongAnswer => constructLongAnswerTask(row)
+        case Task.ShortAnswer => constructShortAnswerTask(row)
+        case Task.MultipleChoice => constructMultipleChoiceTask(row)
+        case Task.Ordering => constructOrderingTask(row)
+        case Task.Matching => constructMatchingTask(row)
+        case _ => throw new Exception("Invalid task type.")
+      }
+    }
+
     def fields = Seq("part_id", "dependency_id", "name", "description", "position",
                      "notes_allowed", "max_length", "choices", "answers", "allow_multiple",
                      "choices_left", "choices_right", "randomize")
@@ -45,6 +58,24 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
     val Select =
       s"""
          |SELECT tasks.id, tasks.version, tasks.created_at, tasks.updated_at, tasks.part_id, tasks.dependency_id, tasks.name,
+         |  tasks.description, tasks.position, tasks.notes_allowed, tasks.task_type,
+         |  short_answer_tasks.max_length,
+         |  multiple_choice_tasks.choices,
+         |  multiple_choice_tasks.answers,
+         |  multiple_choice_tasks.allow_multiple,
+         |  multiple_choice_tasks.randomize,
+         |  ordering_tasks.choices,
+         |  ordering_tasks.answers,
+         |  ordering_tasks.randomize,
+         |  matching_tasks.choices_left,
+         |  matching_tasks.choices_right,
+         |  matching_Tasks.answers,
+         |  matching_Tasks.randomize
+       """.stripMargin
+
+    val Fields =
+      s"""
+         |tasks.id, tasks.version, tasks.created_at, tasks.updated_at, tasks.part_id, tasks.dependency_id, tasks.name,
          |  tasks.description, tasks.position, tasks.notes_allowed, tasks.task_type,
          |  short_answer_tasks.max_length,
          |  multiple_choice_tasks.choices,
@@ -174,9 +205,9 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
          |INSERT INTO long_answer_tasks (task_id)
          |  SELECT task.id as task_id
          |  FROM task
+         |  RETURNING $Fields
        """.stripMargin
 
-    // TODO - We need RETURNING for every Task type, except LongAnswer
     val InsertShortAnswer =
       s"""
          |WITH task AS (
@@ -185,6 +216,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
          |INSERT INTO short_answer_tasks (task_id, max_length)
          |  SELECT task.id as task_id, ? as max_length
          |  FROM task
+         |  RETURNING $Fields
        """.stripMargin
 
     val InsertMultipleChoice =
@@ -195,6 +227,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
          |INSERT INTO multiple_choice_tasks (task_id, choices, answers, allow_multiple, randomize)
          |  SELECT task.id as task_id, ? as choices, ? as answers, ? as allow_multiple, ? as randomize
          |  FROM task
+         |  RETURNING $Fields
        """.stripMargin
 
     val InsertOrdering =
@@ -205,6 +238,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
          |INSERT INTO ordering_tasks (task_id, choices, answers, randomize)
          |  SELECT task.id as task_id, ? as choices, ? as answers, ? as randomize
          |  FROM task
+         |  RETURNING $Fields
        """.stripMargin
 
     val InsertMatching =
@@ -215,6 +249,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
          |INSERT INTO matching_tasks (task_id, choices_left, choices_right, answers, randomize)
          |  SELECT task.id as task_id, ? as choices_left, ? as choices_right, ? as answers, ? as randomize
          |  FROM task
+         |  RETURNING $Fields
        """.stripMargin
 
     // -- Update queries -----------------------------------------------------------------------------------------------
@@ -244,7 +279,6 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
          |          name, description, position, notes_allowed, task_type
        """.stripMargin
 
-    // TODO - We need to add specific fields in RETURNING for every type, here for ex. max_length and etc.
     val UpdateShortAnswer =
       s"""
          |WITH task AS (
@@ -307,11 +341,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
      * @return a vector of the returned tasks
      */
     override def list:Future[\/[Fail, IndexedSeq[Task]]] = {
-      db.pool.sendQuery(SelectAll).map {
-        result => buildEntityList(result.rows, Task.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryList(SelectAll)
     }
 
     /**
@@ -321,11 +351,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
      * @return a vector of the returned tasks
      */
     override def list(part: Part): Future[\/[Fail, IndexedSeq[Task]]] = {
-      db.pool.sendPreparedStatement(SelectByPartId, Array[Any](part.id.bytes)).map {
-        result => buildEntityList(result.rows, Task.apply).map(_.sortBy(_.position))
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryList(SelectByPartId, Array[Any](part.id.bytes))
     }
 
     /**
@@ -335,11 +361,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
      * @return a vector of the returned tasks
      */
     override def list(project: Project): Future[\/[Fail, IndexedSeq[Task]]] = {
-      db.pool.sendPreparedStatement(SelectByProjectId, Array[Any](project.id.bytes)).map {
-        result => buildEntityList(result.rows, Task.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryList(SelectByProjectId, Array[Any](project.id.bytes))
     }
 
     /**
@@ -349,14 +371,10 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
      * @param partNum the position of the part to list tasks from.
      */
     override def list(project: Project, partNum: Int): Future[\/[Fail, IndexedSeq[Task]]] = {
-      val efTasks = for {
-        part <- lift[Part](partRepository.find(project, partNum))
-        tasks <- lift[IndexedSeq[Task]](list(part))
-      } yield tasks
-
-      efTasks.run.recover {
-        case exception: Throwable => throw exception
-      }
+      (for {
+        part <- lift(partRepository.find(project, partNum))
+        tasks <- lift(list(part))
+      } yield tasks).run
     }
 
     /**
@@ -366,27 +384,18 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
      * @return an optional task if one was found
      */
     override def find(id: UUID): Future[\/[Fail, Task]] = {
-      db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
-        result => buildEntity(result.rows, Task.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryOne(SelectOne, Seq[Any](id.bytes))
     }
 
     /**
-     * // TODO - check ScalaDoc.
-     * Find a task on which user is working now
+     * Find a task on which user is working on now.
      *
      * @param user
      * @param project
      * @return
      */
     override def findNow(user: User, project: Project): Future[\/[Fail, Task]] = {
-      db.pool.sendPreparedStatement(SelectNowByUserId, Array[Any](user.id.bytes, project.id.bytes)).map {
-        result => buildEntity(result.rows, Task.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryOne(SelectNowByUserId, Seq[Any](user.id.bytes, project.id.bytes))
     }
 
     /**
@@ -399,13 +408,10 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
      * @return an optional task if one was found
      */
     override def find(project: Project, partNum: Int, taskNum: Int): Future[\/[Fail, Task]] = {
-      partRepository.find(project, partNum).flatMap { partOption =>
-        db.pool.sendPreparedStatement(SelectByPosition, Array[Any](partNum, project.id.bytes, taskNum)).map {
-          result => buildEntity(result.rows, Task.apply)
-        }.recover {
-          case exception: Throwable => throw exception
-        }
-      }
+      (for {
+        part <- lift(partRepository.find(project, partNum))
+        task <- lift(queryOne(SelectByPosition, Seq[Any](partNum, project.id.bytes, taskNum)))
+      } yield task).run
     }
 
     /**
@@ -418,7 +424,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
      */
     override def insert(task: Task)(implicit conn: Connection): Future[\/[Fail, Task]] = {
       // All tasks have these properties.
-      val commonData =  Array[Any](
+      val commonData = Seq[Any](
         task.id.bytes,
         new DateTime,
         new DateTime,
@@ -473,11 +479,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
       }
 
       // Send the query
-      conn.sendPreparedStatement(query, dataArray).map {
-        result => buildEntity(result.rows, Task.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryOne(query, dataArray)
     }
 
     /**
@@ -488,7 +490,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
      */
     override def update(task: Task)(implicit conn: Connection): Future[\/[Fail, Task]] = {
       // Start with the data common to all task types.
-      val commonData = Array[Any](
+      val commonData = Seq[Any](
         task.partId.bytes,
         task.settings.dependencyId match {
           case Some(id) => Some(id.bytes)
@@ -498,7 +500,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
         task.settings.description,
         task.position,
         task.settings.notesAllowed,
-        (task.version +1),
+        task.version +1,
         task.id.bytes, task.version
       )
 
@@ -529,11 +531,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
       }
 
       // Execute the query
-      conn.sendPreparedStatement(Update, dataArray).map {
-        result => buildEntity(result.rows, Task.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryOne(Update, dataArray)
     }
 
     /**
@@ -543,17 +541,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
      * @return A boolean indicating whether the operation was successful.
      */
     override def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, Task]] = {
-      conn.sendPreparedStatement(Delete, Array(task.id.bytes, task.version)).map {
-        result => {
-          if (result.rowsAffected == 0) {
-            -\/(GenericFail("No rows were modified"))
-          } else {
-            \/-(task)
-          }
-        }
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryOne(Delete, Seq(task.id.bytes, task.version))
     }
 
     /**
@@ -563,19 +551,118 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent with Postg
      * @return A boolean indicating whether the operation was successful.
      */
     override def delete(part: Part)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Task]]] = {
-      val result = for {
-        tasks <- lift[IndexedSeq[Task]](list(part))
-        deletedTasks <- lift[IndexedSeq[Task]](conn.sendPreparedStatement(DeleteByPart, Array[Any](part.id.bytes)).map({
-          result =>
-            if (result.rowsAffected == tasks.length) \/-(tasks)
-            else -\/(GenericFail("Failed to delete all tasks"))
-        }))
+      (for {
+        tasks <- lift(list(part))
+        deletedTasks <- lift(queryList(DeleteByPart, Array[Any](part.id.bytes)))
       }
-      yield deletedTasks
+      yield deletedTasks).run
+    }
+  }
 
-      result.run.recover {
-        case exception: Throwable => throw exception
-      }
+  trait SpecificTaskConstructors {
+    /**
+     * Create a LongAnswerTask from a row returned by the database.
+     *
+     * @param row a [[RowData]] object returned from the db.
+     * @return a [[LongAnswerTask]] object
+     */
+    protected def constructLongAnswerTask(row: RowData): LongAnswerTask = {
+      LongAnswerTask(
+        id = UUID(row("id").asInstanceOf[Array[Byte]]),
+        partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
+        position = row("position").asInstanceOf[Int],
+        version = row("version").asInstanceOf[Long],
+        settings = CommonTaskSettings(row),
+        createdAt = Some(row("created_at").asInstanceOf[DateTime]),
+        updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
+      )
+    }
+
+    /**
+     * Create a ShortAnswerTask from a row returned by the database.
+     *
+     * @param row a [[RowData]] object returned from the db.
+     * @return a [[ShortAnswerTask]] object
+     */
+    protected def constructShortAnswerTask(row: RowData): ShortAnswerTask = {
+      ShortAnswerTask(
+        id = UUID(row("id").asInstanceOf[Array[Byte]]),
+        partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
+        position = row("position").asInstanceOf[Int],
+        version = row("version").asInstanceOf[Long],
+        settings = CommonTaskSettings(row),
+        maxLength = row("max_length").asInstanceOf[Int],
+        createdAt = Some(row("created_at").asInstanceOf[DateTime]),
+        updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
+      )
+    }
+
+    /**
+     * Create a MultipleChoiceTask from a row returned by the database.
+     *
+     * @param row a [[RowData]] object returned from the db.
+     * @return a [[MultipleChoiceTask]] object
+     */
+    protected def constructMultipleChoiceTask(row: RowData): MultipleChoiceTask = {
+      MultipleChoiceTask(
+        id = UUID(row("id").asInstanceOf[Array[Byte]]),
+        partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
+        position = row("position").asInstanceOf[Int],
+        version = row("version").asInstanceOf[Long],
+        settings = CommonTaskSettings(row),
+        choices = Option(row("choices").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
+        answer  = Option(row("answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
+        allowMultiple = row("allow_multiple").asInstanceOf[Boolean],
+        randomizeChoices = row("randomize").asInstanceOf[Boolean],
+        createdAt = Some(row("created_at").asInstanceOf[DateTime]),
+        updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
+      )
+    }
+
+    /**
+     * Create a OrderingTask from a row returned by the database.
+     *
+     * @param row a [[RowData]] object returned from the db.
+     * @return a [[OrderingTask]] object
+     */
+    protected def constructOrderingTask(row: RowData): OrderingTask = {
+      OrderingTask(
+        id = UUID(row("id").asInstanceOf[Array[Byte]]),
+        partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
+        position = row("position").asInstanceOf[Int],
+        version = row("version").asInstanceOf[Long],
+        settings = CommonTaskSettings(row),
+        elements = Option(row("choices").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
+        answer  = Option(row("answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
+        randomizeChoices = row("randomize").asInstanceOf[Boolean],
+        createdAt = Some(row("created_at").asInstanceOf[DateTime]),
+        updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
+      )
+    }
+
+    /**
+     * Create a MatchingTask from a row returned by the database.
+     *
+     * @param row a [[RowData]] object returned from the db.
+     * @return a [[MatchingTask]] object
+     */
+    protected def constructMatchingTask(row: RowData): MatchingTask = {
+      MatchingTask(
+        id = UUID(row("id").asInstanceOf[Array[Byte]]),
+        partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
+        position = row("position").asInstanceOf[Int],
+        version = row("version").asInstanceOf[Long],
+        settings = CommonTaskSettings(row),
+        elementsLeft = Option(row("elements_left").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
+        elementsRight = Option(row("elements_right").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
+        answer = Option(row("answers").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]).map { element =>
+          val split = element.split(":")
+          Match(split(0).toInt, split(1).toInt)
+        },
+        randomizeChoices = row("randomize").asInstanceOf[Boolean],
+        createdAt = Some(row("created_at").asInstanceOf[DateTime]),
+        updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
+      )
     }
   }
 }

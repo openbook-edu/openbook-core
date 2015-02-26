@@ -17,8 +17,8 @@ case class Project(
   description: String,
   availability: String = Project.Availability.AnyTime,
   parts: IndexedSeq[Part],
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 ) {
   override def equals(other: Any): Boolean = {
     other match {
@@ -31,14 +31,6 @@ case class Project(
         this.description == otherProject.description &&
         this.availability == otherProject.availability &&
         this.parts == otherProject.parts
-//          {(this.createdAt, otherProject.createdAt) match {
-//          case (Some(thisDate), Some(thatDate)) => thisDate.equals(thatDate)
-//          case _ => false
-//        }} &&
-//        {(this.updatedAt, otherProject.updatedAt) match {
-//          case (Some(thisDate), Some(thatDate)) => thisDate.equals(thatDate)
-//          case _ => false
-//        }}
       }
       case _ => false
     }
@@ -53,21 +45,6 @@ object Project {
     val CourseTime = "course"
   }
 
-  def apply(row: RowData): Project = {
-    Project(
-      UUID(row("id").asInstanceOf[Array[Byte]]),
-      UUID(row("course_id").asInstanceOf[Array[Byte]]),
-      row("version").asInstanceOf[Long],
-      row("name").asInstanceOf[String],
-      row("slug").asInstanceOf[String],
-      row("description").asInstanceOf[String],
-      row("availability").asInstanceOf[String],
-      IndexedSeq[Part](),
-      Some(row("created_at").asInstanceOf[DateTime]),
-      Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
-
   implicit val projectReads: Reads[Project] = (
     (__ \ "id").read[UUID] and
     (__ \ "courseId").read[UUID] and
@@ -77,9 +54,9 @@ object Project {
     (__ \ "description").read[String] and
     (__ \ "availability").read[String] and
     (__ \ "parts").read[IndexedSeq[Part]] and
-    (__ \ "createdAt").readNullable[DateTime] and
-    (__ \ "updatedAt").readNullable[DateTime]
-  )(Project.apply(_: UUID, _: UUID, _: Long, _: String, _: String, _: String, _: String, _: IndexedSeq[Part], _: Option[DateTime], _: Option[DateTime]))
+    (__ \ "createdAt").read[DateTime] and
+    (__ \ "updatedAt").read[DateTime]
+  )(Project.apply _)
 
   implicit val projectWrites: Writes[Project] = (
     (__ \ "id").write[UUID] and
@@ -90,8 +67,8 @@ object Project {
     (__ \ "description").write[String] and
     (__ \ "availability").write[String] and
     (__ \ "parts").write[IndexedSeq[Part]] and
-    (__ \ "createdAt").writeNullable[DateTime] and
-    (__ \ "updatedAt").writeNullable[DateTime]
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
   )(unlift(Project.unapply))
 
 }

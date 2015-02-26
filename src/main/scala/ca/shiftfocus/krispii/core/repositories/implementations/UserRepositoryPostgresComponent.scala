@@ -7,6 +7,7 @@ import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionCon
 import ca.shiftfocus.krispii.core.lib.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.uuid.UUID
+import play.api.i18n.Messages
 import scala.concurrent.Future
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
@@ -14,7 +15,7 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import scalaz.{\/, -\/, \/-}
 import scalaz.syntax.either._
 
-trait UserRepositoryPostgresComponent extends UserRepositoryComponent with PostgresRepository {
+trait UserRepositoryPostgresComponent extends UserRepositoryComponent {
   // Because this concrete implementation is postgres specific, we will specifically
   // depend on the PostgresDB trait.
   self: PostgresDB =>
@@ -29,68 +30,101 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent with Postg
   /**
    * The implementation class of the UserRepository.
    */
-  private class UserRepositoryPSQL extends UserRepository {
-    def fields = Seq("username", "email", "password_hash", "givenname", "surname")
-    def table = "users"
-    def orderBy = "surname ASC, givenname ASC"
-    val fieldsText = fields.mkString(", ")
-    val questions = fields.map(_ => "?").mkString(", ")
+  private class UserRepositoryPSQL extends UserRepository with PostgresRepository[User] {
+
+    override def constructor(row: RowData): User = {
+      User(
+        id           = UUID(row("id").asInstanceOf[Array[Byte]]),
+        version      = row("version").asInstanceOf[Long],
+        email        = row("email").asInstanceOf[String],
+        username     = row("username").asInstanceOf[String],
+        hash = Option(row("password_hash")) match {
+          case Some(cell) => Some(cell.asInstanceOf[String])
+          case None => None
+        },
+        givenname    = row("givenname").asInstanceOf[String],
+        surname      = row("surname").asInstanceOf[String],
+        createdAt    = row("created_at").asInstanceOf[DateTime],
+        updatedAt    = row("updated_at").asInstanceOf[DateTime]
+      )
+    }
+
+    val Fields = "id, version, created_at, updated_at, username, email, password_hash, givenname, surname"
+    val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
+    val Table = "users"
+    val OrderBy = "surname ASC, givenname ASC"
 
     // User CRUD operations
-    val SelectAll = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-      ORDER BY $orderBy
-    """
+    val SelectAll =
+      s"""
+         |SELECT $Fields
+         |FROM $Table
+         |ORDER BY $OrderBy
+       """.stripMargin
 
-    val SelectOne = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE id = ?
-    """
+    val SelectOne =
+      s"""
+         |SELECT $Fields
+         |FROM $Table
+         |WHERE id = ?
+         |LIMIT 1
+       """.stripMargin
+
+    val SelectAllWithRole =
+      s"""
+         |SELECT $Fields
+         |FROM $Table, users_roles
+         |WHERE users.id = users_roles.id
+         |  AND users_roles.role_id = ?
+       """.stripMargin
 
     val Insert = {
       s"""
-        INSERT INTO $table (id, version, created_at, updated_at, $fieldsText)
-        VALUES (?, 1, ?, ?, $questions)
-        RETURNING id, version, created_at, updated_at, $fieldsText
-      """
+         |INSERT INTO $Table ($Fields)
+         |VALUES ($QMarks)
+         |RETURNING $Fields
+      """.stripMargin
     }
 
     val Update = {
-      val extraFields = fields.map(" " + _ + " = ? ").mkString(",")
       s"""
-        UPDATE $table
-        SET $extraFields , version = ?, updated_at = ?
-        WHERE id = ?
-          AND version = ?
-        RETURNING id, version, created_at, updated_at, $fieldsText
-      """
+         |UPDATE $Table
+         |SET username = ?, email = ?, password_hash = ?, givenname = ?, surname = ?, version = ?, updated_at = ?
+         |WHERE id = ?
+         |  AND version = ?
+         |RETURNING $Fields
+      """.stripMargin
     }
 
-    val Purge = s"""
-      DELETE FROM $table WHERE id = ? AND version = ?
-    """
+    val Delete =
+      s"""
+         |DELETE FROM $Table
+         |WHERE id = ?
+         |  AND version = ?
+         |RETURNING $Fields
+       """.stripMargin
 
-    val SelectOneEmail = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM users
-      WHERE email = ?
-    """
+    val SelectOneEmail =
+      s"""
+         |SELECT $Fields
+         |FROM $Table
+         |WHERE email = ?
+       """.stripMargin
 
-    val SelectOneByIdentifier = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM users
-      WHERE (email = ? OR username = ?)
-      LIMIT 1
-    """
+    val SelectOneByIdentifier =
+      s"""
+         |SELECT $Fields
+         |FROM $Table
+         |WHERE (email = ? OR username = ?)
+         |LIMIT 1
+       """.stripMargin
 
-    val ListUsers = s"""
+    val SelectAllWithCourse = s"""
       SELECT id, version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
       FROM users, users_courses
       WHERE users.id = users_courses.user_id
         AND users_courses.course_id = ?
-      ORDER BY $orderBy
+      ORDER BY $OrderBy
     """
 
     val ListUsersFilterByRoles = s"""
@@ -100,7 +134,7 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent with Postg
         AND roles.id = users_roles.role_id
         AND roles.name = ANY (?::text[])
       GROUP BY users.id
-      ORDER BY $orderBy
+      ORDER BY $OrderBy
     """
 
     // TODO - not used
@@ -121,143 +155,109 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent with Postg
         AND courses.id = users_courses.course_id
         AND courses.name = ANY (?::text[])
       GROUP BY users.id
-      ORDER BY $orderBy
+      ORDER BY $OrderBy
     """
 
     /**
      * List all users.
      *
-     * @return an [[IndexedSeq]] of [[User]]
+     * @return a future disjunction containing either the users, or a failure
      */
-    override def list: Future[\/[Fail, IndexedSeq[User]]] = {
-      db.pool.sendQuery(SelectAll).map {
-        result => buildEntityList(result.rows, User.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+    override def list(implicit conn: Connection): Future[\/[Fail, IndexedSeq[User]]] = {
+      queryList(SelectAll)
     }
 
     /**
      * List users with a specified set of user Ids.
      *
      * @param userIds an [[IndexedSeq]] of [[UUID]] of the users to list.
-     * @return an [[IndexedSeq]] of [[User]]
+     * @return a future disjunction containing either the users, or a failure
      */
-    override def list(userIds: IndexedSeq[UUID]): Future[\/[Fail, IndexedSeq[User]]] = {
+    override def list(userIds: IndexedSeq[UUID])(implicit conn: Connection): Future[\/[Fail, IndexedSeq[User]]] = {
       Future.sequence {
         userIds.map { userId =>
           find(userId).map(_.toOption.get)
         }
       }.map {
         users => \/-(users)
-      }.recover {
-        case exception: NoSuchElementException => -\/(NoResults("One or more users could not be loaded."))
-        case exception: Throwable => throw exception
       }
+    }
+
+    /**
+     * List all users who have a role.
+     *
+     * @param role
+     * @param conn
+     * @return
+     */
+    override def list(role: Role)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[User]]] = {
+      queryList(SelectAllWithRole, role.id.bytes)
     }
 
     /**
      * List users in a given course.
+     *
+     * @return a future disjunction containing either the users, or a failure
      */
-    override def list(course: Course): Future[\/[Fail, IndexedSeq[User]]] = {
-      db.pool.sendPreparedStatement(ListUsers, Seq[Any](course.id.bytes)).map {
-        result => buildEntityList(result.rows, User.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+    override def list(course: Course)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[User]]] = {
+      queryList(SelectAllWithCourse, Seq[Any](course.id.bytes))
     }
-
-    def listForCourses(course: IndexedSeq[Course]): Future[\/[Fail, IndexedSeq[User]]] = ???
-    def listForRoles(roles: IndexedSeq[String]): Future[\/[Fail, IndexedSeq[User]]] = ???
-    def listForRolesAndCourses(roles: IndexedSeq[String], classes: IndexedSeq[String]): Future[\/[Fail, IndexedSeq[User]]] = ???
-
-    /**
-     * TODO - take a look at ListUsersFilterByCourses
-     * List the users belonging to a set of courses.
-     *
-     * @param courses an [[IndexedSeq]] of [[Course]] to filter by.
-     * @return an [[IndexedSeq]] of [[User]]
-     */
-
-//    override def listForCourses(classes: IndexedSeq[Course]): Future[\/[Fail, IndexedSeq[User]]] = {
-//      Future.sequence(classes.map(list)).map(_.flatten).recover {
-//        case exception => {
-//          throw exception
-//        }
-//      }
-//    }
-
-    /**
-     * List the users one of a set of roles.
-     *
-     * @param roles an [[IndexedSeq]] of [[String]] naming the roles to filter by.
-     * @return an [[IndexedSeq]] of [[User]]
-     */
-//    override def listForRoles(roles: IndexedSeq[String]): Future[\/[Fail, IndexedSeq[User]]] = {
-//      db.pool.sendPreparedStatement(ListUsersFilterByRoles, Array[Any](roles)).map { queryResult =>
-//        queryResult.rows.get.map {
-//          item: RowData => User(item)
-//        }
-//      }.recover {
-//        case exception => {
-//          throw exception
-//        }
-//      }
-//    }
-
-    /**
-     * List users filtering by both roles and courses.
-     *
-     * @param roles an [[IndexedSeq]] of [[String]] naming the roles to filter by.
-     * @param courses an [[IndexedSeq]] of [[Course]] to filter by.
-     * @return an [[IndexedSeq]] of [[User]]
-     */
-//    override def listForRolesAndCourses(roles: IndexedSeq[String], classes: IndexedSeq[String]): Future[\/[Fail, IndexedSeq[User]]] = {
-//      db.pool.sendPreparedStatement(ListUsersFilterByRolesAndCourses, Array[Any](roles, classes)).map { result =>
-//        rowsToUsers(result.rows)
-//      }.recover {
-//        case exception: Throwable => throw exception
-//      }
-//    }
 
     /**
      * Find a user by ID.
      *
      * @param id the [[UUID]] of the user to search for.
-     * @return an [[Option[User]]]
+     * @return a future disjunction containing either the user, or a failure
      */
-    override def find(id: UUID): Future[\/[Fail, User]] = {
-      db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
-        result => buildEntity(result.rows, User.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+    override def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, User]] = {
+      queryOne(SelectOne, Seq[Any](id.bytes))
     }
 
     /**
      * Find a user by their identifiers.
      *
      * @param identifier a [[String]] representing their e-mail or username.
-     * @return an [[Option[User]]]
+     * @return a future disjunction containing either the user, or a failure
      */
-    override def find(identifier: String): Future[\/[Fail, User]] = {
-      db.pool.sendPreparedStatement(SelectOneByIdentifier, Array[Any](identifier, identifier)).map {
-        result => buildEntity(result.rows, User.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+    override def find(identifier: String)(implicit conn: Connection): Future[\/[Fail, User]] = {
+      queryOne(SelectOneByIdentifier, Seq[Any](identifier, identifier))
     }
 
     /**
      * Find a user by e-mail address.
      *
      * @param email the e-mail address of the user to find
-     * @return an [[Option[User]]]
+     * @return a future disjunction containing either the user, or a failure
      */
-    override def findByEmail(email: String): Future[\/[Fail, User]] = {
-      db.pool.sendPreparedStatement(SelectOneEmail, Array[Any](email)).map {
-        result => buildEntity(result.rows, User.apply)
-      }.recover {
+    override def findByEmail(email: String)(implicit conn: Connection): Future[\/[Fail, User]] = {
+      queryOne(SelectOneEmail, Seq[Any](email))
+    }
+
+    /**
+     * Save a new User.
+     *
+     * Because we're using UUID, we assume we can always successfully create
+     * a user. The failure conditions will be things that result in an exception.
+     *
+     * @param user the [[User]] to insert into the database
+     * @return a future disjunction containing either the inserted user, or a failure
+     */
+    override def insert(user: User)(implicit conn: Connection): Future[\/[Fail, User]] = {
+      val params = Seq[Any](
+        user.id.bytes, 1, new DateTime, new DateTime, user.username, user.email,
+        user.hash, user.givenname, user.surname
+      )
+
+      queryOne(Insert, params).recover {
+        case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
+          case Some(nField) =>
+            if (nField == "users_pkey") -\/(UniqueFieldConflict(s"A row with key ${user.id.string} already exists"))
+            // TODO - check nField name
+            else if (nField == "users_username_key") -\/(UniqueFieldConflict(s"User with username ${user.username} already exists"))
+            else if (nField == "users_email_key") -\/(UniqueFieldConflict(s"User with email ${user.username} already exists"))
+            else throw exception
+          case _ => throw exception
+        }
         case exception: Throwable => throw exception
       }
     }
@@ -270,66 +270,21 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent with Postg
      * or it's no longer found, an exception should be thrown.
      *
      * @param user the [[User]] to update in the database
-     * @return the updated [[User]]
+     * @return a future disjunction containing either the updated user, or a failure
      */
     override def update(user: User)(implicit conn: Connection): Future[\/[Fail, User]] = {
-      conn.sendPreparedStatement(Update, Array[Any](
-        user.username,
-        user.email,
-        user.passwordHash.get,
-        user.givenname,
-        user.surname,
-        user.version + 1,
-        new DateTime,
-        user.id.bytes,
-        user.version)
-      ).map {
-        result => buildEntity(result.rows, User.apply)
-      }.recover {
+      val params = Seq[Any](
+        user.username, user.email, user.hash.get, user.givenname, user.surname,
+        user.version + 1, new DateTime, user.id.bytes, user.version
+      )
+
+      queryOne(Update, params).recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
             if (nField == "users_pkey") -\/(UniqueFieldConflict(s"A row with key ${user.id.string} already exists"))
             // TODO - check nField name
-            else if (nField == "users_username_ukey") -\/(UniqueFieldConflict(s"User with username ${user.username} already exists"))
-            else if (nField == "users_email_ukey") -\/(UniqueFieldConflict(s"User with email ${user.username} already exists"))
-            else throw exception
-          case _ => throw exception
-        }
-        case exception: Throwable => throw exception
-      }
-    }
-
-    /**
-     * Save a new User.
-     *
-     * Because we're using UUID, we assume we can always successfully create
-     * a user. The failure conditions will be things that result in an exception.
-     *
-     * @param user the [[User]] to insert into the database
-     * @return the newly created [[User]]
-     */
-    override def insert(user: User)(implicit conn: Connection): Future[\/[Fail, User]] = {
-      val future = for {
-        result <- conn.sendPreparedStatement(Insert, Array(
-          user.id.bytes,
-          new DateTime,
-          new DateTime,
-          user.username,
-          user.email,
-          user.passwordHash,
-          user.givenname,
-          user.surname
-        ))
-      }
-      yield buildEntity(result.rows, User.apply)
-
-      future.recover {
-        case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-          case Some(nField) =>
-            if (nField == "users_pkey") -\/(UniqueFieldConflict(s"A row with key ${user.id.string} already exists"))
-            // TODO - check nField name
-            else if (nField == "users_username_ukey") -\/(UniqueFieldConflict(s"User with username ${user.username} already exists"))
-            else if (nField == "users_email_ukey") -\/(UniqueFieldConflict(s"User with email ${user.username} already exists"))
+            else if (nField == "users_username_key") -\/(UniqueFieldConflict(s"User with username ${user.username} already exists"))
+            else if (nField == "users_email_key") -\/(UniqueFieldConflict(s"User with email ${user.email} already exists"))
             else throw exception
           case _ => throw exception
         }
@@ -341,17 +296,14 @@ trait UserRepositoryPostgresComponent extends UserRepositoryComponent with Postg
      * Delete a user from the database.
      *
      * @param user the [[User]] to be deleted
-     * @return a [[Boolean]] indicating success or failure
+     * @return a future disjunction containing either the deleted user, or a failure
      */
     override def delete(user: User)(implicit conn: Connection): Future[\/[Fail, User]] = {
-      conn.sendPreparedStatement(Purge, Array(user.id.bytes, user.version)).map { result =>
-        if (result.rowsAffected == 1) \/-(user)
-        else -\/(NoResults("Could not find a user row to delete."))
-      }.recover {
+      queryOne(Delete, Seq[Any](user.id.bytes, user.version)).recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
             // TODO - check nField name
-            if (nField == "courses_teacher_id_fkey") -\/(ReferenceConflict(s"User is teacher and has references in courses table, that has project"))
+            if (nField == "courses_teacher_id_fkey") -\/(ReferenceConflict(Messages("repositories.UserRepository.delete.refCourseError")))
             else throw exception
           case _ => throw exception
         }

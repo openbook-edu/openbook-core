@@ -1,5 +1,6 @@
 package ca.shiftfocus.krispii.core.repositories
 
+import java.awt.Color
 import java.util.NoSuchElementException
 
 import ca.shiftfocus.krispii.core.fail._
@@ -19,14 +20,27 @@ import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
 import scalaz.syntax.either._
 
-trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with PostgresRepository {
+trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
   self: UserRepositoryComponent with
         ProjectRepositoryComponent with
         PostgresDB =>
 
   override val courseRepository: CourseRepository = new CourseRepositoryPSQL
 
-  private class CourseRepositoryPSQL extends CourseRepository {
+  private class CourseRepositoryPSQL extends CourseRepository with PostgresRepository[Course] {
+
+    def constructor(row: RowData): Course = {
+      Course(
+        UUID(row("id").asInstanceOf[Array[Byte]]),
+        row("version").asInstanceOf[Long],
+        UUID(row("teacher_id").asInstanceOf[Array[Byte]]),
+        row("name").asInstanceOf[String],
+        new Color(Option(row("color").asInstanceOf[Int]).getOrElse(0)),
+        None,
+        row("created_at").asInstanceOf[DateTime],
+        row("updated_at").asInstanceOf[DateTime]
+      )
+    }
 
     val Select =
       s"""
@@ -202,8 +216,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
          |       users.created_at as created_at, users.updated_at as updated_at
          |FROM users, courses, users_courses
          |WHERE courses.teacher_id = ?
-         |  AND users.id = ?
-         |  AND users.id = users_courses.user_id
+         |  AND users_courses.user_id = ?
          |  AND courses.id = users_courses.course_id
        """.stripMargin
 
@@ -212,12 +225,8 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
      *
      * @return an  array of Courses
      */
-    def list: Future[\/[Fail, IndexedSeq[Course]]] = {
-      db.pool.sendQuery(SelectAll).map {
-        result => buildEntityList(result.rows, Course.apply)
-      }
-    }.recover {
-      case exception: Throwable => throw exception
+    def list(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Course]]] = {
+      queryList(SelectAll)
     }
 
     /**
@@ -227,12 +236,8 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
      *
      * @return a result set
      */
-    def list(project: Project): Future[\/[Fail, IndexedSeq[Course]]] = {
-      db.pool.sendPreparedStatement(ListCourseForProject, Seq[Any](project.id.bytes)).map {
-        result => buildEntityList(result.rows, Course.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+    def list(project: Project)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Course]]] = {
+      queryList(ListCourseForProject, Seq[Any](project.id.bytes))
     }
 
     /**
@@ -244,18 +249,14 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
      *
      * @return the found courses
      */
-    def list(user: User, asTeacher: Boolean = false): Future[\/[Fail, IndexedSeq[Course]]] = {
-      db.pool.sendPreparedStatement((if (asTeacher) ListByTeacherId else ListCourses), Seq[Any](user.id.bytes)).map {
-        result => buildEntityList(result.rows, Course.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+    def list(user: User, asTeacher: Boolean = false)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Course]]] = {
+      queryList(if (asTeacher) ListByTeacherId else ListCourses, Seq[Any](user.id.bytes))
     }
 
     /**
      * List the courses associated with a user.
      */
-    override def list(users: IndexedSeq[User]): Future[\/[Fail, Map[UUID, IndexedSeq[Course]]]] = {
+    override def list(users: IndexedSeq[User])(implicit conn: Connection): Future[\/[Fail, Map[UUID, IndexedSeq[Course]]]] = {
       val arrayString = users.map { user =>
         val userId = user.id.string
         val cleanUserId =
@@ -274,7 +275,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
             case Some(resultSet) => {
               val startTimeUsC = System.nanoTime() / 1000
               val tuples = queryResult.rows.get.map { item: RowData =>
-                (UUID(item("user_id").asInstanceOf[Array[Byte]]), Course(item))
+                (UUID(item("user_id").asInstanceOf[Array[Byte]]), constructor(item))
               }
               val tupledWithUsers = users.map { user =>
                 (user.id, tuples.filter(_._1 == user.id).map(_._2))
@@ -298,12 +299,8 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
      * @param id the 128-bit UUID, as a byte array, to search for.
      * @return an optional RowData object containing the results
      */
-    override def find(id: UUID): Future[\/[Fail, Course]] = {
-      db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
-        result => buildEntity(result.rows, Course.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+    override def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, Course]] = {
+      queryOne(SelectOne, Array[Any](id.bytes))
     }
 
     /**
@@ -313,14 +310,14 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
      * @param teacher
      * @return
      */
-    override def findUserForTeacher(student: User, teacher: User): Future[\/[Fail, User]] = {
-      db.pool.sendPreparedStatement(FindUserForTeacher, Array[Any](teacher.id.bytes, student.id.bytes)).map { result =>
+    override def findUserForTeacher(student: User, teacher: User)(implicit conn: Connection): Future[\/[Fail, User]] = {
+      conn.sendPreparedStatement(FindUserForTeacher, Array[Any](teacher.id.bytes, student.id.bytes)).flatMap { result =>
         result.rows match {
           case Some(resultSet) => resultSet.headOption match {
-            case Some(firstRow) => \/-(User(firstRow))
-            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
+            case Some(firstRow) => userRepository.find(UUID(firstRow("user_id").asInstanceOf[Array[Byte]]))
+            case None => Future successful -\/(NoResults("The query was successful but ResultSet was empty."))
           }
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
+          case None => Future successful -\/(NoResults("The query was successful but no ResultSet was returned."))
         }
       }.recover {
         case exception: Throwable => throw exception
@@ -330,17 +327,20 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
     /**
      * Add a user to a course
      */
-    override def addUser(user: User, course: Course)(implicit conn: Connection): Future[\/[Fail, Course]] = {
-      val future = for {
-        result <- conn.sendPreparedStatement(AddUser, Array(user.id.bytes, course.id.bytes, new DateTime))
-      }
-      yield
-        if (result.rowsAffected == 0) {
-          -\/(GenericFail("No rows were modified"))
-        } else {
-          \/-(course)
+    override def addUser(user: User, course: Course)(implicit conn: Connection): Future[\/[Fail, Unit]] = {
+      queryNumRows(AddUser, Array(user.id.bytes, course.id.bytes, new DateTime))(1 == _).map {
+        case \/-(true) => \/-( () )
+        case -\/(false) => -\/(NoResults("The query succeeded but the course could not be added."))
+        case -\/(error) => -\/(error)
+      }.recover {
+        case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
+          case Some(nField) =>
+            if (nField == "users_courses_pkey") -\/(UniqueFieldConflict(s"User has already this course"))
+            else if (nField == "users_courses_user_id_fkey") -\/(ReferenceConflict(s"Referenced user with id ${user.id.string} doesn't exist"))
+            else if (nField == "users_courses_course_id_fkey") -\/(ReferenceConflict(s"Referenced course with id ${course.id.string} doesn't exist"))
+            else  throw exception
+          case _ => throw exception
         }
-      future.recover {
         case exception: Throwable => throw exception
       }
     }
@@ -348,17 +348,20 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
     /**
      * Remove a user from a course.
      */
-    override def removeUser(user: User, course: Course)(implicit conn: Connection): Future[\/[Fail, Course]] = {
-      val future = for {
-        result <- conn.sendPreparedStatement(RemoveUser, Array(user.id.bytes, course.id.bytes))
-      }
-      yield
-        if (result.rowsAffected == 0) {
-          -\/(GenericFail("No rows were modified"))
-        } else {
-          \/-(course)
+    override def removeUser(user: User, course: Course)(implicit conn: Connection): Future[\/[Fail, Unit]] = {
+      queryNumRows(RemoveUser, Array(user.id.bytes, course.id.bytes))(1 == _).map {
+        case \/-(true) => \/-( () )
+        case -\/(false) => -\/(NoResults("The query succeeded but the course could not be added."))
+        case -\/(error) => -\/(error)
+      }.recover {
+        case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
+          case Some(nField) =>
+            if (nField == "users_courses_pkey") -\/(UniqueFieldConflict(s"User has already this course"))
+            else if (nField == "users_courses_user_id_fkey") -\/(ReferenceConflict(s"Referenced user with id ${user.id.string} doesn't exist"))
+            else if (nField == "users_courses_course_id_fkey") -\/(ReferenceConflict(s"Referenced course with id ${course.id.string} doesn't exist"))
+            else  throw exception
+          case _ => throw exception
         }
-      future.recover {
         case exception: Throwable => throw exception
       }
     }
@@ -372,16 +375,13 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
      * @return
      */
     override def hasProject(user: User, project: Project)(implicit conn: Connection): Future[\/[Fail, Boolean]] = {
-      val future = for {
-        result <- conn.sendPreparedStatement(HasProject, Array[Any](project.id.bytes, user.id.bytes))
-      }
-      yield
+      conn.sendPreparedStatement(HasProject, Array[Any](project.id.bytes, user.id.bytes)).map { result =>
         if (result.rows.get.length > 0) {
           \/-(true)
         } else {
           \/-(false)
         }
-      future.recover {
+      }.recover {
         case exception: Throwable => throw exception
       }
     }
@@ -394,7 +394,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
      * @param conn  an implicit database Connection.
      * @return a boolean indicating if the action was successful.
      */
-    def addUsers(course: Course, users: IndexedSeq[User])(implicit conn: Connection): Future[\/[Fail, Course]] = {
+    def addUsers(course: Course, users: IndexedSeq[User])(implicit conn: Connection): Future[\/[Fail, Unit]] = {
       val cleanCourseId = course.id.string filterNot ("-" contains _)
       val query = AddUsers + users.map { user =>
         val cleanUserId = user.id.string filterNot ("-" contains _)
@@ -408,7 +408,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
         if (result.rowsAffected == 0) {
           -\/(GenericFail("No rows were modified"))
         } else {
-          \/-(course)
+          \/-( () )
         }
       wasAdded.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
@@ -431,7 +431,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
      * @param conn  an implicit database Connection.
      * @return a boolean indicating if the action was successful.
      */
-    def removeUsers(course: Course, users: IndexedSeq[User])(implicit conn: Connection): Future[\/[Fail, Course]] = {
+    def removeUsers(course: Course, users: IndexedSeq[User])(implicit conn: Connection): Future[\/[Fail, Unit]] = {
       val cleanCourseId = course.id.string filterNot ("-" contains _)
       val arrayString = users.map { user =>
         val cleanUserId = user.id.string filterNot ("-" contains _)
@@ -446,7 +446,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
         if (result.rowsAffected == 0) {
           -\/(GenericFail("No rows were modified"))
         } else {
-          \/-(course)
+          \/-( () )
         }
 
       wasRemoved.recover {
@@ -462,7 +462,13 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
      * @param conn  an implicit database Connection.
      * @return a boolean indicating if the action was successful.
      */
-    def removeAllUsers(course: Course)(implicit conn: Connection): Future[\/[Fail, Course]] = {
+    def removeAllUsers(course: Course)(implicit conn: Connection): Future[\/[Fail, Unit]] = {
+      queryNumRows(RemoveAllUsers, Seq[Any](course.id.bytes))(1 <= _).map {
+        case \/-(true) => \/-( () )
+        case \/-(false) => -\/(GenericFail("No rows were affected"))
+        case -\/(error) => -\/(error)
+      }
+
       val wasRemoved = for {
         result <- conn.sendPreparedStatement(RemoveAllUsers, Array[Any](course.id.bytes))
       }
@@ -470,7 +476,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
         if (result.rowsAffected == 0) {
           -\/(GenericFail("No rows were modified"))
         } else {
-          \/-(course)
+          \/-( () )
         }
 
       wasRemoved.recover {
@@ -486,16 +492,12 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
      * @return
      */
     def insert(course: Course)(implicit conn: Connection): Future[\/[Fail, Course]] = {
-      conn.sendPreparedStatement(Insert, Array(
-        course.id.bytes,
-        course.teacherId.bytes,
-        course.name,
-        course.color.getRGB,
-        new DateTime,
-        new DateTime
-      )).map {
-        result => buildEntity(result.rows, Course.apply)
-      }.recover {
+      val params = Seq(
+        course.id.bytes, course.teacherId.bytes, course.name,
+        course.color.getRGB, new DateTime, new DateTime
+      )
+
+      queryOne(Insert, params).recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
             if (nField == "course_pkey") -\/(UniqueFieldConflict(s"Class already exists"))
@@ -515,17 +517,17 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
      * @return
      */
     def update(course: Course)(implicit conn: Connection): Future[\/[Fail, Course]] = {
-      conn.sendPreparedStatement(Update, Array(
-        course.version + 1,
-        course.teacherId.bytes,
-        course.name,
-        course.color.getRGB,
-        new DateTime,
-        course.id.bytes,
-        course.version
-      )).map {
-        result => buildEntity(result.rows, Course.apply)
-      }.recover {
+      val params = Seq(
+        course.version + 1, course.teacherId.bytes, course.name,
+        course.color.getRGB, new DateTime, course.id.bytes, course.version
+      )
+      queryOne(Update, params).recover {
+        case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
+          case Some(nField) =>
+            if (nField == "courses_teacher_id_fkey") -\/(ReferenceConflict(s"Tried to reference a teacher that doesn't exist"))
+            else throw exception
+          case _ => throw exception
+        }
         case exception: Throwable => throw exception
       }
     }
@@ -538,21 +540,11 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent with P
      * @return
      */
     def delete(course: Course)(implicit conn: Connection): Future[\/[Fail, Course]] = {
-      val future = for {
-        queryResult <- conn.sendPreparedStatement(Delete, Array(course.id.bytes, course.version))
-      }
-      yield
-        if (queryResult.rowsAffected == 0) {
-          -\/(GenericFail("No rows were modified"))
-        } else {
-          \/-(course)
-        }
-
-      future.recover {
+      queryOne(Delete, Array(course.id.bytes, course.version)).recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
             // TODO check nField name
-            if (nField == "projects_course_id_fkey") -\/(UniqueFieldConflict(s"Class has referece in projects table"))
+            if (nField == "projects_courses_course_id_fkey") -\/(UniqueFieldConflict(s"Can't delete a course when it still has projects."))
             else throw exception
           case _ => throw exception
         }

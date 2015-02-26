@@ -2,11 +2,84 @@ package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.fail.{NoResults, Fail}
 import ca.shiftfocus.krispii.core.models.ComponentScratchpad
-import com.github.mauricio.async.db.{RowData, ResultSet}
+import com.github.mauricio.async.db.{Connection, RowData, ResultSet}
 
+import scala.concurrent.Future
 import scalaz.{-\/, \/-, \/}
 
-trait PostgresRepository {
+trait PostgresRepository[A] {
+
+  def constructor(row: RowData): A
+
+  /**
+   * Send query to the database and retrieve a single entity.
+   *
+   * @param queryText
+   * @param parameters
+   * @param conn
+   * @return
+   */
+  protected def queryOne(queryText: String, parameters: Seq[Any] = Seq.empty[Any])(implicit conn: Connection): Future[\/[Fail, A]] = {
+    val fRes = if (parameters.nonEmpty) {
+      conn.sendPreparedStatement(queryText, parameters)
+    } else {
+      conn.sendQuery(queryText)
+    }
+
+    fRes.map {
+      res => buildEntity(res.rows, constructor)
+    }.recover {
+      case exception => throw exception
+    }
+  }
+
+  /**
+   * Send a query to the database and retrieve a list of entities.
+   *
+   * @param queryText
+   * @param parameters
+   * @param conn
+   * @return
+   */
+  protected def queryList(queryText: String, parameters: Seq[Any] = Seq.empty[Any])(implicit conn: Connection): Future[\/[Fail, IndexedSeq[A]]] = {
+    val fRes = if (parameters.nonEmpty) {
+      conn.sendPreparedStatement(queryText, parameters)
+    } else {
+      conn.sendQuery(queryText)
+    }
+
+    fRes.map {
+      res => buildEntityList(res.rows, constructor)
+    }.recover {
+      case exception => throw exception
+    }
+  }
+
+  /**
+   * Send query to the database and compare the number
+   * of rows affected.
+   *
+   * @param queryText
+   * @param parameters
+   * @param conn
+   * @return
+   */
+  protected def queryNumRows(queryText: String, parameters: Seq[Any] = Seq.empty[Any])
+                            (compare: Long => Boolean)
+                            (implicit conn: Connection): Future[\/[Fail, Boolean]] =
+  {
+    val fRes = if (parameters.nonEmpty) {
+      conn.sendPreparedStatement(queryText, parameters)
+    } else {
+      conn.sendQuery(queryText)
+    }
+
+    fRes.map {
+      res => \/-(compare(res.rowsAffected))
+    }.recover {
+      case exception => throw exception
+    }
+  }
 
   /**
    * Generic method to build an entity from postgresql database results, since
@@ -17,7 +90,7 @@ trait PostgresRepository {
    * @tparam A the type of entity to be built
    * @return a disjunction containing either a Fail, or an object of type A
    */
-  protected def buildEntity[A](maybeResultSet: Option[ResultSet], build: RowData => A): \/[Fail, A] = {
+  protected def buildEntity[B](maybeResultSet: Option[ResultSet], build: RowData => B): \/[Fail, B] = {
     maybeResultSet match {
       case Some(resultSet) => resultSet.headOption match {
         case Some(firstRow) => \/-(build(firstRow))
@@ -36,7 +109,7 @@ trait PostgresRepository {
    * @tparam A the type of entity to be built
    * @return a disjunction containing either a Fail, or an object of type A
    */
-  protected def buildEntityList[A](maybeResultSet: Option[ResultSet], build: RowData => A): \/[Fail, IndexedSeq[A]] = {
+  protected def buildEntityList[B](maybeResultSet: Option[ResultSet], build: RowData => B): \/[Fail, IndexedSeq[B]] = {
     maybeResultSet match {
       case Some(resultSet) => \/-(resultSet.map(build))
       case None => -\/(NoResults("The query was successful but no ResultSet was returned."))

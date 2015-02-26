@@ -74,40 +74,6 @@ object MatchingTask {
   }
 
   /**
-   * Create a MatchingTask from a row returned by the database.
-   *
-   * @param row a [[RowData]] object returned from the db.
-   * @return a [[MatchingTask]] object
-   */
-  def apply(row: RowData): MatchingTask = {
-    MatchingTask(
-      // Primary Key
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-
-      // Unique combination
-      partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
-      position = row("position").asInstanceOf[Int],
-
-      // Additional data
-      version = row("version").asInstanceOf[Long],
-      settings = CommonTaskSettings(row),
-
-      // Specific to this type
-      elementsLeft = Option(row("elements_left").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      elementsRight = Option(row("elements_right").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      answer = Option(row("answers").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]).map { element =>
-        val split = element.split(":")
-        Match(split(0).toInt, split(1).toInt)
-      },
-      randomizeChoices = row("randomize").asInstanceOf[Boolean],
-
-      // All entities have these
-      createdAt = Some(row("created_at").asInstanceOf[DateTime]),
-      updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
-
-  /**
    * Unserialize a [[LongAnswerTask]] from JSON.
    */
   implicit val jsonReads = new Reads[MatchingTask] {

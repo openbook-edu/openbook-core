@@ -54,37 +54,6 @@ case class OrderingTask(
 }
 
 object OrderingTask {
-
-  /**
-   * Create a OrderingTask from a row returned by the database.
-   *
-   * @param row a [[RowData]] object returned from the db.
-   * @return a [[OrderingTask]] object
-   */
-  def apply(row: RowData): OrderingTask = {
-    OrderingTask(
-      // Primary Key
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-
-      // Unique combination RowData
-      partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
-      position = row("position").asInstanceOf[Int],
-
-      // Additional data
-      version = row("version").asInstanceOf[Long],
-      settings = CommonTaskSettings(row),
-
-      // Specific to this type
-      elements = Option(row("choices").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      answer  = Option(row("answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
-      randomizeChoices = row("randomize").asInstanceOf[Boolean],
-
-      // All entities have these
-      createdAt = Some(row("created_at").asInstanceOf[DateTime]),
-      updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
-
   /**
    * Unserialize a [[LongAnswerTask]] from JSON.
    */

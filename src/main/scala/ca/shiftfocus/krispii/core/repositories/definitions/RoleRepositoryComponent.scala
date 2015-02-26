@@ -38,11 +38,11 @@ trait RoleRepositoryComponent extends FutureMonad {
      */
     def addUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[\/[Fail, Role]]
     def removeUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[\/[Fail, Role]]
-    def addToUser(user: User, role: Role)(implicit conn: Connection): Future[\/[Fail, Role]]
-    def addToUser(user: User, name: String)(implicit conn: Connection): Future[\/[Fail, Role]]
-    def removeFromUser(user: User, role: Role)(implicit conn: Connection): Future[\/[Fail, Role]]
-    def removeFromUser(user: User, name: String)(implicit conn: Connection): Future[\/[Fail, Role]]
-    def removeFromAllUsers(role: Role)(implicit conn: Connection): Future[\/[Fail, Role]]
-    def removeFromAllUsers(name: String)(implicit conn: Connection): Future[\/[Fail, Role]]
+    def addToUser(user: User, role: Role)(implicit conn: Connection): Future[\/[Fail, Unit]]
+    def addToUser(user: User, name: String)(implicit conn: Connection): Future[\/[Fail, Unit]]
+    def removeFromUser(user: User, role: Role)(implicit conn: Connection): Future[\/[Fail, Unit]]
+    def removeFromUser(user: User, name: String)(implicit conn: Connection): Future[\/[Fail, Unit]]
+    def removeFromAllUsers(role: Role)(implicit conn: Connection): Future[\/[Fail, Unit]]
+    def removeFromAllUsers(name: String)(implicit conn: Connection): Future[\/[Fail, Unit]]
   }
 }

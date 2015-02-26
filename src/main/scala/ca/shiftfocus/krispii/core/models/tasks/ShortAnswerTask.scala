@@ -53,28 +53,6 @@ case class ShortAnswerTask(
 object ShortAnswerTask {
 
   /**
-   * Create a ShortAnswerTask from a row returned by the database.
-   *
-   * @param row a [[RowData]] object returned from the db.
-   * @return a [[ShortAnswerTask]] object
-   */
-  def apply(row: RowData): ShortAnswerTask = {
-    ShortAnswerTask(
-      // Primary Key
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-      partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
-      position = row("position").asInstanceOf[Int],
-
-      // Additional data
-      version = row("version").asInstanceOf[Long],
-      settings = CommonTaskSettings(row),
-      maxLength = row("max_length").asInstanceOf[Int],
-      createdAt = Some(row("created_at").asInstanceOf[DateTime]),
-      updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
-
-  /**
    * Unserialize a [[LongAnswerTask]] from JSON.
    */
   implicit val jsonReads = new Reads[ShortAnswerTask] {

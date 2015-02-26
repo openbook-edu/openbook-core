@@ -1,7 +1,5 @@
 package ca.shiftfocus.krispii.core.models
 
-import collection.immutable.StringOps
-import com.github.mauricio.async.db.RowData
 import ca.shiftfocus.uuid.UUID
 import java.awt.Color
 import org.joda.time.DateTime
@@ -16,24 +14,11 @@ case class Course(
   name: String,
   color: Color,
   projects: Option[IndexedSeq[Project]] = None,
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 )
 
 object Course {
-
-  def apply(row: RowData): Course = {
-    Course(
-      UUID(row("id").asInstanceOf[Array[Byte]]),
-      row("version").asInstanceOf[Long],
-      UUID(row("teacher_id").asInstanceOf[Array[Byte]]),
-      row("name").asInstanceOf[String],
-      new Color(Option(row("color").asInstanceOf[Int]).getOrElse(0)),
-      None,
-      Some(row("created_at").asInstanceOf[DateTime]),
-      Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
 
   implicit val colorReads = new Reads[Color] {
     def reads(json: JsValue) = {
@@ -67,7 +52,7 @@ object Course {
     (__ \ "projects").readNullable[IndexedSeq[Project]] and
     (__ \ "createdAt").readNullable[DateTime] and
     (__ \ "updatedAt").readNullable[DateTime]
-  )(Course.apply(_: UUID, _: Long, _: UUID, _: String, _: Color, _: Option[IndexedSeq[Project]], _: Option[DateTime], _: Option[DateTime]))
+  )(Course.apply _)
 
   implicit val sectionWrites: Writes[Course] = (
     (__ \ "id").write[UUID] and
@@ -76,8 +61,8 @@ object Course {
     (__ \ "name").write[String] and
     (__ \ "color").write[Color] and
     (__ \ "projects").writeNullable[IndexedSeq[Project]] and
-    (__ \ "createdAt").writeNullable[DateTime] and
-    (__ \ "updatedAt").writeNullable[DateTime]
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
   )(unlift(Course.unapply))
 
 }

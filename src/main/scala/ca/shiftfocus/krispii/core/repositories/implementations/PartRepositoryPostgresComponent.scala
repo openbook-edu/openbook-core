@@ -16,7 +16,7 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
 import scalaz.{-\/, \/-, \/}
 
-trait PartRepositoryPostgresComponent extends PartRepositoryComponent with PostgresRepository {
+trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
   self: ProjectRepositoryComponent with
         TaskRepositoryComponent with
         PostgresDB =>
@@ -29,74 +29,80 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent with Postg
   /**
    * A concrete implementation of the ProjectRepository class.
    */
-  private class PartRepositoryPSQL extends PartRepository {
-    def fields = Seq("project_id", "name", "position", "enabled")
-    def table = "parts"
+  private class PartRepositoryPSQL extends PartRepository with PostgresRepository[Part] {
 
-    val fieldsText = fields.mkString(", ")
-    val questions = fields.map(_ => "?").mkString(", ")
+    override def constructor(row: RowData): Part = {
+      Part(
+        id          = UUID(row("id").asInstanceOf[Array[Byte]]),
+        version     = row("version").asInstanceOf[Long],
+        projectId   = UUID(row("project_id").asInstanceOf[Array[Byte]]),
+        name        = row("name").asInstanceOf[String],
+        position    = row("position").asInstanceOf[Int],
+        enabled     = row("enabled").asInstanceOf[Boolean],
+        createdAt   = row("created_at").asInstanceOf[DateTime],
+        updatedAt   = row("updated_at").asInstanceOf[DateTime]
+      )
+    }
+
+    val Fields = "id, version, created_at, updated_at, project_id, name, position, enabled"
+    val QMarks = "?, ?, ?, ?, ?, ?, ?, ?"
+    val Table = "parts"
 
     // CRUD operations
-    val SelectAll = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-    """
-
-    val SelectOne = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
-      WHERE id = ?
-    """
-
-    val Insert = {
-      val extraFields = fields.mkString(",")
-      val questions = fields.map(_ => "?").mkString(",")
+    val SelectAll =
       s"""
-        INSERT INTO $table (id, version, created_at, updated_at, $extraFields)
-        VALUES (?, 1, ?, ?, $questions)
-        RETURNING id, version, created_at, updated_at, $fieldsText
-      """
-    }
+         |SELECT $Fields
+         |FROM $Table
+       """.stripMargin
 
-    val Update = {
-      val extraFields = fields.map(" " + _ + " = ? ").mkString(",")
+    val SelectOne =
       s"""
-        UPDATE $table
-        SET $extraFields , version = ?, updated_at = ?
-        WHERE id = ?
-          AND version = ?
-        RETURNING id, version, created_at, updated_at, $fieldsText
-      """
-    }
+         |SELECT $Fields
+         |FROM $Table
+         |WHERE id = ?
+       """.stripMargin
 
-    // TODO - not used
-//    val Delete = s"""
-//      DELETE FROM $table WHERE id = ? AND version = ?
-//    """
+    val Insert =
+      s"""
+         |INSERT INTO $Table ($Fields)
+         |VALUES ($QMarks)
+         |RETURNING $Fields
+       """.stripMargin
 
-    val DeleteByProject = s"""
-      DELETE FROM $table WHERE project_id = ?
-    """
+    val Update =
+      s"""
+         |UPDATE $Table
+         |SET project_id = ?, name = ?, position = ?, enabled = ?, version = ?, updated_at = ?
+         |WHERE id = ?
+         |  AND version = ?
+         |RETURNING $Fields
+       """.stripMargin
 
-    // TODO - not used
-//    val Restore = s"""
-//      UPDATE $table SET status = 1 WHERE id = ? AND version = ? AND status = 0
-//    """
+    val DeleteByProject =
+      s"""
+         |DELETE FROM $Table
+         |WHERE project_id = ?
+         |RETURNING $Fields
+       """.stripMargin
 
-    val Purge = s"""
-      DELETE FROM $table WHERE id = ? AND version = ?
-    """
+    val Delete =
+      s"""
+         |DELETE FROM $Table
+         |WHERE id = ?
+         |  AND version = ?
+         |RETURNING $Fields
+       """.stripMargin
 
     val SelectByProjectId = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
+      SELECT $Fields
+      FROM $Table
       WHERE project_id = ?
       ORDER BY position ASC
     """
 
     val FindByProjectPosition = s"""
-      SELECT id, version, created_at, updated_at, $fieldsText
-      FROM $table
+      SELECT $Fields
+      FROM $Table
       WHERE project_id = ?
         AND position = ?
       LIMIT 1
@@ -105,7 +111,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent with Postg
     val SelectByComponentId = s"""
       SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
              project_id, parts.name as name, parts.position as position, parts.enabled as enabled
-      FROM $table
+      FROM $Table
       INNER JOIN parts_components ON parts.id = parts_components.part_id
       WHERE parts_components.component_id = ?
     """
@@ -126,21 +132,16 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent with Postg
      *
      * @return a vector of the returned Projects
      */
-    override def list: Future[\/[Fail, IndexedSeq[Part]]] = {
-      val fPartList = db.pool.sendQuery(SelectAll).map(res => buildEntityList(res.rows, Part.apply))
-      val fResult = for {
-        partList <- lift(fPartList)
+    override def list(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Part]]] = {
+      (for {
+        partList <- lift(queryList(SelectAll))
         partsWithTasks <- liftSeq(partList.map{ part =>
           (for {
             tasks <- lift(taskRepository.list(part))
             result = part.copy(tasks = tasks)
           } yield result).run
         })
-      } yield partsWithTasks
-
-      fResult.run.recover {
-        case exception: Throwable => throw exception
-      }
+      } yield partsWithTasks).run
     }
 
     /**
@@ -149,41 +150,31 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent with Postg
      * @param project The project to return parts from.
      * @return a vector of the returned Projects
      */
-    override def list(project: Project): Future[\/[Fail, IndexedSeq[Part]]] = {
-      val fPartList = db.pool.sendPreparedStatement(SelectByProjectId, Array[Any](project.id.bytes)).map(res => buildEntityList(res.rows, Part.apply))
-      val fResult = for {
-        partList <- lift(fPartList)
+    override def list(project: Project)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Part]]] = {
+      (for {
+        partList <- lift(queryList(SelectByProjectId, Seq[Any](project.id.bytes)))
         partsWithTasks <- liftSeq(partList.map{ part =>
           (for {
             tasks <- lift(taskRepository.list(part))
             result = part.copy(tasks = tasks)
           } yield result).run
         })
-      } yield partsWithTasks
-
-      fResult.run.recover {
-        case exception: Throwable => throw exception
-      }
+      } yield partsWithTasks).run
     }
 
     /**
      * Find all Parts belonging to a given Component.
      */
-    override def list(component: Component): Future[\/[Fail, IndexedSeq[Part]]] = {
-      val fPartList = db.pool.sendPreparedStatement(SelectByComponentId, Array[Any](component.id.bytes)).map(res => buildEntityList(res.rows, Part.apply))
-      val fResult = for {
-        partList <- lift(fPartList)
+    override def list(component: Component)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Part]]] = {
+      (for {
+        partList <- lift(queryList(SelectByComponentId, Seq[Any](component.id.bytes)))
         partsWithTasks <- liftSeq(partList.map{ part =>
           (for {
             tasks <- lift(taskRepository.list(part))
             result = part.copy(tasks = tasks)
           } yield result).run
         })
-      } yield partsWithTasks
-
-      fResult.run.recover {
-        case exception: Throwable => throw exception
-      }
+      } yield partsWithTasks).run
     }
 
     /**
@@ -192,20 +183,11 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent with Postg
      * @param id the 128-bit UUID, as a byte array, to search for.
      * @return an optional Project if one was found
      */
-    override def find(id: UUID): Future[\/[Fail, Part]] = {
-      val partQuery = db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
-        result => buildEntity(result.rows, Part.apply)
-      }
-
-      val result = for {
-        part <- lift(partQuery)
+    override def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, Part]] = {
+      (for {
+        part <- lift(queryOne(SelectOne, Array[Any](id.bytes)))
         taskList <- lift(taskRepository.list(part))
-      } yield part.copy(tasks = taskList)
-
-      result.run.recover {
-        case exception: NoSuchElementException => -\/(GenericFail("Invalid data returned from db."))
-        case exception: Throwable => throw exception
-      }
+      } yield part.copy(tasks = taskList)).run
     }
 
     /**
@@ -215,20 +197,11 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent with Postg
      * @param position The part's position within the project.
      * @return an optional RowData object containing the results
      */
-    override def find(project: Project, position: Int): Future[\/[Fail, Part]] = {
-      val partQuery = db.pool.sendPreparedStatement(FindByProjectPosition, Array[Any](project.id.bytes, position)).map {
-        result => buildEntity(result.rows, Part.apply)
-      }
-
-      val result = for {
-        part <- lift(partQuery)
+    override def find(project: Project, position: Int)(implicit conn: Connection): Future[\/[Fail, Part]] = {
+      (for {
+        part <- lift(queryOne(FindByProjectPosition, Seq[Any](project.id.bytes, position)))
         taskList <- lift(taskRepository.list(part))
-      } yield part.copy(tasks = taskList)
-
-      result.run.recover {
-        case exception: NoSuchElementException => -\/(GenericFail("Invalid data returned from db."))
-        case exception: Throwable => throw exception
-      }
+      } yield part.copy(tasks = taskList)).run
     }
 
     /**
@@ -238,21 +211,16 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent with Postg
      * @return the new part
      */
     def insert(part: Part)(implicit conn: Connection): Future[\/[Fail, Part]] = {
-      conn.sendPreparedStatement(Insert, Array(
-        part.id.bytes,
-        new DateTime,
-        new DateTime,
-        part.projectId.bytes,
-        part.name,
-        //        part.description,
-        part.position,
-        part.enabled
-      )).map {
-        result => buildEntity(result.rows, Part.apply)
-      }.recover {
+      val params = Seq(
+        part.id.bytes, 1, new DateTime, new DateTime,
+        part.projectId.bytes, part.name, part.position, part.enabled
+      )
+
+      queryOne(Insert, params).recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
             if (nField == "parts_pkey") -\/(UniqueFieldConflict(s"A part with key ${part.id.string} already exists"))
+            else if (nField == "parts_project_id_fkey") -\/(ReferenceConflict(s"Tried to create a part for a project that doesn't exist."))
             else throw exception
           case _ => throw exception
         }
@@ -267,23 +235,16 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent with Postg
      * @return id of the saved/new Part.
      */
     def update(part: Part)(implicit conn: Connection): Future[\/[Fail, Part]] = {
-      conn.sendPreparedStatement(Update, Array(
-        part.projectId.bytes,
-        part.name,
-      // TODO remove description
-        //        part.description,
-        part.position,
-        part.enabled,
-        part.version + 1,
-        new DateTime,
-        part.id.bytes,
-        part.version
-      )).map {
-        result => buildEntity(result.rows, Part.apply)
-      }.recover {
+      val params = Seq(
+        part.projectId.bytes, part.name, part.position, part.enabled,
+        part.version + 1, new DateTime, part.id.bytes, part.version
+      )
+
+      queryOne(Update, params).recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
             if (nField == "parts_pkey") -\/(UniqueFieldConflict(s"A part with key ${part.id.string} already exists"))
+            else if (nField == "parts_project_id_fkey") -\/(ReferenceConflict(s"Tried to move this part to a project that doesn't exist."))
             else throw exception
           case _ => throw exception
         }
@@ -298,13 +259,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent with Postg
      * @return A boolean indicating whether the operation was successful.
      */
     def delete(part: Part)(implicit conn: Connection): Future[\/[Fail, Part]] = {
-      conn.sendPreparedStatement(Purge, Array(part.id.bytes, part.version)).map {
-        result =>
-          if (result.rowsAffected == 1) \/-(part)
-          else -\/(GenericFail("Query ran without errors but a part was not deleted."))
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryOne(Delete, Seq(part.id.bytes, part.version))
     }
 
     /**
@@ -314,38 +269,10 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent with Postg
      * @return A boolean indicating whether the operation was successful.
      */
     def delete(project: Project)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Part]]] = {
-      val result = for {
+      (for {
         partList <- lift(list(project))
-        deletedParts <- lift(conn.sendPreparedStatement(DeleteByProject, Array(project.id.bytes)).map {
-          result =>
-            if (result.rowsAffected == 1) \/-(partList)
-            else -\/(GenericFail("Query ran without errors but a part was not deleted."))
-        })
-      } yield deletedParts
-
-      result.run.recover {
-        case exception: Throwable => throw exception
-      }
-    }
-
-    // TODO - what is difference between this method and update?
-    /**
-     * Re-order parts.
-     */
-    override def reorder(project: Project, parts: IndexedSeq[Part])(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Part]]] = {
-      val query = parts.map { part =>
-        s"(decode('${part.id.cleanString}', 'hex'), ${part.position})"
-      }.mkString(ReorderParts1, ",", ReorderParts2)
-
-      conn.sendQuery(query).flatMap {
-        queryResult => {
-          list(project)
-        }
-      }.recover {
-        case exception => {
-          throw exception
-        }
-      }
+        deletedParts <- lift(queryList(DeleteByProject, Array(project.id.bytes)))
+      } yield deletedParts).run
     }
   }
 }

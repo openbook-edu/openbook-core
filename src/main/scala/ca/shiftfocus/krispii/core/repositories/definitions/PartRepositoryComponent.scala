@@ -16,17 +16,14 @@ trait PartRepositoryComponent extends FutureMonad {
   val partRepository: PartRepository
 
   trait PartRepository {
-    def list: Future[\/[Fail, IndexedSeq[Part]]]
-    def list(project: Project): Future[\/[Fail, IndexedSeq[Part]]]
-    def list(component: Component): Future[\/[Fail, IndexedSeq[Part]]]
-
-    def find(id: UUID): Future[\/[Fail, Part]]
-    def find(project: Project, position: Int): Future[\/[Fail, Part]]
+    def list(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Part]]]
+    def list(project: Project)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Part]]]
+    def list(component: Component)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Part]]]
+    def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, Part]]
+    def find(project: Project, position: Int)(implicit conn: Connection): Future[\/[Fail, Part]]
     def insert(part: Part)(implicit conn: Connection): Future[\/[Fail, Part]]
     def update(part: Part)(implicit conn: Connection): Future[\/[Fail, Part]]
     def delete(part: Part)(implicit conn: Connection): Future[\/[Fail, Part]]
     def delete(project: Project)(implicit conn: Connection):Future[\/[Fail, IndexedSeq[Part]]]
-
-    def reorder(project: Project, parts: IndexedSeq[Part])(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Part]]]
   }
 }

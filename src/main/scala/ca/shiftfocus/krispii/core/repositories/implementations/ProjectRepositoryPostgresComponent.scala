@@ -18,7 +18,7 @@ import scalaz.syntax.traverse._
 import scalaz._
 import Scalaz._
 
-trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent with PostgresRepository {
+trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent {
   self: PartRepositoryComponent with
         PostgresDB =>
 
@@ -30,7 +30,22 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent with
   /**
    * A concrete implementation of the ProjectRepository class.
    */
-  private class ProjectRepositoryPSQL extends ProjectRepository {
+  private class ProjectRepositoryPSQL extends ProjectRepository with PostgresRepository[Project] {
+
+    def constructor(row: RowData): Project = {
+      Project(
+        UUID(row("id").asInstanceOf[Array[Byte]]),
+        UUID(row("course_id").asInstanceOf[Array[Byte]]),
+        row("version").asInstanceOf[Long],
+        row("name").asInstanceOf[String],
+        row("slug").asInstanceOf[String],
+        row("description").asInstanceOf[String],
+        row("availability").asInstanceOf[String],
+        IndexedSeq[Part](),
+        row("created_at").asInstanceOf[DateTime],
+        row("updated_at").asInstanceOf[DateTime]
+      )
+    }
 
     val Select =
       """
@@ -114,22 +129,16 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent with
      *
      * @return a vector of the returned Projects
      */
-    override def list: Future[\/[Fail, IndexedSeq[Project]]] = {
-      val fProjectList = db.pool.sendQuery(SelectAll).map(res => buildEntityList(res.rows, Project.apply))
-
-      val fResult = for {
-        projectList <- lift(fProjectList)
+    override def list(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Project]]] = {
+      (for {
+        projectList <- lift(queryList(SelectAll))
         result <- liftSeq { projectList.map{ project =>
           (for {
             partList <- lift(partRepository.list(project))
             result = project.copy(parts = partList)
           } yield result).run
         }}
-      } yield result
-
-      fResult.run.recover {
-        case exception: Throwable => throw exception
-      }
+      } yield result).run
     }
 
 
@@ -139,15 +148,9 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent with
      * @param course The section to return projects from.
      * @return a vector of the returned Projects
      */
-    override def list(course: Course): Future[\/[Fail, IndexedSeq[Project]]] = {
-      val fProjectList = db.pool.sendPreparedStatement(ListByCourse, Array[Any](course.id.bytes)).map {
-        result => buildEntityList(result.rows, Project.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
-
+    override def list(course: Course)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Project]]] = {
       (for {
-        projects <- lift(fProjectList)
+        projects <- lift(queryList(ListByCourse, Seq[Any](course.id.bytes)))
         result <- liftSeq(projects.map{ project =>
           (for {
             partList <- lift(partRepository.list(project))
@@ -163,19 +166,11 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent with
      * @param id the 128-bit UUID, as a byte array, to search for.
      * @return an optional Project if one was found
      */
-    override def find(id: UUID): Future[\/[Fail, Project]] = {
-      val projectQuery = db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
-        result => buildEntity(result.rows, Project.apply)
-      }
-
-      val result = for {
-        project <- lift(projectQuery)
+    override def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, Project]] = {
+      (for {
+        project <- lift(queryOne(SelectOne, Array[Any](id.bytes)))
         parts <- lift(partRepository.list(project))
-      } yield project.copy(parts = parts)
-
-      result.run.recover {
-        case exception: Throwable => throw exception
-      }
+      } yield project.copy(parts = parts)).run
     }
 
     /**
@@ -184,19 +179,11 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent with
      * @param projectId the 128-bit UUID, as a byte array, to search for.
      * @return an optional Project if one was found
      */
-    override def find(projectId: UUID, user: User): Future[\/[Fail, Project]] = {
-      val projectQuery = db.pool.sendPreparedStatement(SelectOneForUser, Array[Any](projectId.bytes, user.id.bytes, user.id.bytes)).map {
-        result => buildEntity(result.rows, Project.apply)
-      }
-
-      val result = for {
-        project <- lift(projectQuery)
+    override def find(projectId: UUID, user: User)(implicit conn: Connection): Future[\/[Fail, Project]] = {
+      (for {
+        project <- lift(queryOne(SelectOneForUser, Array[Any](projectId.bytes, user.id.bytes, user.id.bytes)))
         parts <- lift(partRepository.list(project))
-      } yield project.copy(parts = parts)
-
-      result.run.recover {
-        case exception: Throwable => throw exception
-      }
+      } yield project.copy(parts = parts)).run
     }
 
     /**
@@ -205,19 +192,11 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent with
      * @param slug The project slug to search by.
      * @return an optional RowData object containing the results
      */
-    def find(slug: String): Future[\/[Fail, Project]] = {
-      val projectQuery = db.pool.sendPreparedStatement(SelectOneBySlug, Array[Any](slug)).map {
-        result => buildEntity(result.rows, Project.apply)
-      }
-
-      val result = for {
-        project <- lift(projectQuery)
+    def find(slug: String)(implicit conn: Connection): Future[\/[Fail, Project]] = {
+      (for {
+        project <- lift(queryOne(SelectOneBySlug, Seq[Any](slug)))
         parts <- lift(partRepository.list(project))
-      } yield project.copy(parts = parts)
-
-      result.run.recover {
-        case exception: Throwable => throw exception
-      }
+      } yield project.copy(parts = parts)).run
     }
 
     /**
@@ -228,18 +207,12 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent with
      * @return the new project
      */
     override def insert(project: Project)(implicit conn: Connection): Future[\/[Fail, Project]] = {
-      conn.sendPreparedStatement(Insert, Array(
-        project.id.bytes,
-        project.courseId.bytes,
-        project.name,
-        project.slug,
-        project.description,
-        project.availability,
-        new DateTime,
-        new DateTime
-      )).map {
-        result => buildEntity(result.rows, Project.apply)
-      }.recover {
+      val params = Seq(
+        project.id.bytes, project.courseId.bytes, project.name, project.slug,
+        project.description, project.availability, new DateTime, new DateTime
+      )
+
+      queryOne(Insert, params).recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
             if (nField == "projects_pkey") -\/(UniqueFieldConflict(s"A project with key ${project.id.string} already exists"))
@@ -259,19 +232,12 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent with
      * @return the updated project.
      */
     override def update(project: Project)(implicit conn: Connection): Future[\/[Fail, Project]] = {
-      conn.sendPreparedStatement(Update, Array(
-        project.courseId.bytes,
-        project.name,
-        project.slug,
-        project.description,
-        project.availability,
-        project.version + 1,
-        new DateTime,
-        project.id.bytes,
-        project.version
-      )).map {
-        result => buildEntity(result.rows, Project.apply)
-      }.recover {
+      val params = Seq(
+        project.courseId.bytes, project.name, project.slug, project.description,
+        project.availability, project.version + 1, new DateTime, project.id.bytes, project.version
+      )
+
+      queryOne(Update, params).recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
           case Some(nField) =>
             if (nField == "projects_pkey") -\/(UniqueFieldConflict(s"A project with key ${project.id.string} already exists"))
@@ -291,11 +257,13 @@ trait ProjectRepositoryPostgresComponent extends ProjectRepositoryComponent with
      * @return a boolean indicator whether the deletion was successful.
      */
     override def delete(project: Project)(implicit conn: Connection): Future[\/[Fail, Project]] = {
-      conn.sendPreparedStatement(Delete, Array(project.id.bytes, project.version)).map {
-        result =>
-          if (result.rowsAffected == 1) \/-(project)
-          else -\/(GenericFail("Query succeeded but a project was not deleted."))
-      }.recover {
+      queryOne(Delete, Array(project.id.bytes, project.version)).recover {
+        case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
+          case Some(nField) =>
+            if (nField.endsWith("fkey")) -\/(ReferenceConflict(s"We cannot delete this project while it's still being referenced by other entities."))
+            else throw exception
+          case _ => throw exception
+        }
         case exception: Throwable => throw exception
       }
     }

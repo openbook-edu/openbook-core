@@ -60,37 +60,6 @@ case class MultipleChoiceTask(
 object MultipleChoiceTask {
 
   /**
-   * Create a MultipleChoiceTask from a row returned by the database.
-   *
-   * @param row a [[RowData]] object returned from the db.
-   * @return a [[MultipleChoiceTask]] object
-   */
-  def apply(row: RowData): MultipleChoiceTask = {
-    MultipleChoiceTask(
-      // Primary Key
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-
-      // Unique combination
-      partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
-      position = row("position").asInstanceOf[Int],
-
-      // Additional data
-      version = row("version").asInstanceOf[Long],
-      settings = CommonTaskSettings(row),
-
-      // Specific to this type
-      choices = Option(row("choices").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      answer  = Option(row("answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
-      allowMultiple = row("allow_multiple").asInstanceOf[Boolean],
-      randomizeChoices = row("randomize").asInstanceOf[Boolean],
-
-      // All entities have these
-      createdAt = Some(row("created_at").asInstanceOf[DateTime]),
-      updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
-
-  /**
    * Unserialize a [[LongAnswerTask]] from JSON.
    */
   implicit val jsonReads = new Reads[MultipleChoiceTask] {

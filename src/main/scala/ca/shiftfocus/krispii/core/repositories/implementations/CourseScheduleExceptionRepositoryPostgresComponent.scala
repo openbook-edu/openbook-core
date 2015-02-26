@@ -18,7 +18,26 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
 
   override val courseScheduleExceptionRepository: CourseScheduleExceptionRepository = new CourseScheduleExceptionRepositoryPSQL
 
-  private class CourseScheduleExceptionRepositoryPSQL extends CourseScheduleExceptionRepository {
+  private class CourseScheduleExceptionRepositoryPSQL extends CourseScheduleExceptionRepository with PostgresRepository[CourseScheduleException] {
+
+    def constructor(row: RowData): CourseScheduleException = {
+      val day = row("day").asInstanceOf[DateTime]
+      val startTime = row("start_time").asInstanceOf[DateTime]
+      val endTime = row("end_time").asInstanceOf[DateTime]
+
+      CourseScheduleException(
+        UUID(row("id").asInstanceOf[Array[Byte]]),
+        UUID(row("user_id").asInstanceOf[Array[Byte]]),
+        UUID(row("course_id").asInstanceOf[Array[Byte]]),
+        row("version").asInstanceOf[Long],
+        day.toLocalDate(),
+        new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), startTime.getHourOfDay(), startTime.getMinuteOfHour, startTime.getSecondOfMinute()).toLocalTime(),
+        new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), endTime.getHourOfDay(), endTime.getMinuteOfHour, endTime.getSecondOfMinute()).toLocalTime(),
+        Some(row("created_at").asInstanceOf[DateTime]),
+        Some(row("updated_at").asInstanceOf[DateTime])
+      )
+    }
+
     val Fields = "id, version, created_at, updated_at, user_id, course_id, day, start_time, end_time"
     val Table = "course_schedule_exceptions"
     val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
@@ -83,22 +102,14 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
      * @return a vector of the returned courses
      */
     override def list(user: User, course: Course): Future[\/[Fail, IndexedSeq[CourseScheduleException]]] = {
-      db.pool.sendPreparedStatement(SelectForUserAndCourse, Array[Any](user.id.bytes, course.id.bytes)).map { 
-        result => buildCourseScheduleExceptionList(result.rows)
-      }.recover {
-        case exception => throw exception
-      }
+      queryList(SelectForUserAndCourse, Array[Any](user.id.bytes, course.id.bytes))
     }
 
     /**
      * Find all schedule exceptions for a given course.
      */
     override def list(course: Course): Future[\/[Fail, IndexedSeq[CourseScheduleException]]] = {
-      db.pool.sendPreparedStatement(SelectForCourse, Array[Any](course.id.bytes)).map {
-        result => buildCourseScheduleExceptionList(result.rows)
-      }.recover {
-        case exception => throw exception
-      }
+      queryList(SelectForCourse, Array[Any](course.id.bytes))
     }
 
     /**
@@ -109,11 +120,7 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
      * @return an optional task if one was found
      */
     override def find(id: UUID): Future[\/[Fail, CourseScheduleException]] = {
-      db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
-        result => buildCourseScheduleException(result.rows)
-      }.recover {
-        case exception => throw exception
-      }
+      queryOne(SelectOne, Array[Any](id.bytes))
     }
 
     /**
@@ -127,7 +134,7 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
       val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.startTime.getHourOfDay(), courseScheduleException.startTime.getMinuteOfHour, courseScheduleException.startTime.getSecondOfMinute())
       val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.endTime.getHourOfDay(), courseScheduleException.endTime.getMinuteOfHour, courseScheduleException.endTime.getSecondOfMinute())
 
-      conn.sendPreparedStatement(Insert, Array(
+      queryOne(Insert, Array(
         courseScheduleException.id.bytes,
         new DateTime,
         new DateTime,
@@ -136,11 +143,7 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
         dayDT,
         startTimeDT,
         endTimeDT
-      )).map {
-        result => buildCourseScheduleException(result.rows)
-      }.recover {
-        case exception => throw exception
-      }
+      ))
     }
 
     /**
@@ -154,21 +157,17 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
       val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.startTime.getHourOfDay(), courseScheduleException.startTime.getMinuteOfHour, courseScheduleException.startTime.getSecondOfMinute())
       val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.endTime.getHourOfDay(), courseScheduleException.endTime.getMinuteOfHour, courseScheduleException.endTime.getSecondOfMinute())
 
-      conn.sendPreparedStatement(Update, Array(
+      queryOne(Update, Array(
         courseScheduleException.userId.bytes,
         courseScheduleException.courseId.bytes,
         dayDT,
         startTimeDT,
         endTimeDT,
-        (courseScheduleException.version + 1),
+        courseScheduleException.version + 1,
         new DateTime,
         courseScheduleException.id.bytes,
         courseScheduleException.version
-      )).map {
-        result => buildCourseScheduleException(result.rows)
-      }.recover {
-        case exception => throw exception
-      }
+      ))
     }
 
     /**
@@ -178,52 +177,7 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
      * @return A boolean indicating whether the operation was successful.
      */
     override def delete(courseScheduleException: CourseScheduleException)(implicit conn: Connection): Future[\/[Fail, CourseScheduleException]] = {
-      conn.sendPreparedStatement(Delete, Array(courseScheduleException.id.bytes, courseScheduleException.version)).map {
-        result =>
-          if (result.rowsAffected == 1) \/-(courseScheduleException)
-          else -\/(NoResults("The query completed successfully, but nothing was deleted."))
-      }.recover {
-        case exception => throw exception
-      }
-    }
-
-    /**
-     * Build a TaskFeedback object from a database result.
-     *
-     * @param maybeResultSet the [[ResultSet]] from the database to use
-     * @return
-     */
-    private def buildCourseScheduleException(maybeResultSet: Option[ResultSet]): \/[Fail, CourseScheduleException] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => resultSet.headOption match {
-            case Some(firstRow) => \/-(CourseScheduleException(firstRow))
-            case None => -\/(NoResults("The query was successful but ResultSet was empty."))
-          }
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => throw exception
-      }
-    }
-
-    /**
-     * Converts an optional result set into works list
-     *
-     * @param maybeResultSet the [[ResultSet]] from the database to use
-     * @return
-     */
-    private def buildCourseScheduleExceptionList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[CourseScheduleException]] = {
-      try {
-        maybeResultSet match {
-          case Some(resultSet) => \/-(resultSet.map(CourseScheduleException.apply))
-          case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-        }
-      }
-      catch {
-        case exception: NoSuchElementException => throw exception
-      }
+      queryOne(Delete, Array(courseScheduleException.id.bytes, courseScheduleException.version))
     }
   }
 }

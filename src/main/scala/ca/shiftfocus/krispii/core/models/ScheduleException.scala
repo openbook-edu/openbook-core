@@ -25,24 +25,6 @@ case class CourseScheduleException(
 
 object CourseScheduleException extends LocalDateTimeJson {
 
-  def apply(row: RowData): CourseScheduleException = {
-    val day = row("day").asInstanceOf[DateTime]
-    val startTime = row("start_time").asInstanceOf[DateTime]
-    val endTime = row("end_time").asInstanceOf[DateTime]
-
-    CourseScheduleException(
-      UUID(row("id").asInstanceOf[Array[Byte]]),
-      UUID(row("user_id").asInstanceOf[Array[Byte]]),
-      UUID(row("course_id").asInstanceOf[Array[Byte]]),
-      row("version").asInstanceOf[Long],
-      day.toLocalDate(),
-      new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), startTime.getHourOfDay(), startTime.getMinuteOfHour, startTime.getSecondOfMinute()).toLocalTime(),
-      new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), endTime.getHourOfDay(), endTime.getMinuteOfHour, endTime.getSecondOfMinute()).toLocalTime(),
-      Some(row("created_at").asInstanceOf[DateTime]),
-      Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
-
   implicit val courseScheduleReads: Reads[CourseScheduleException] = (
     (__ \ "id").read[UUID] and
       (__ \ "userId").read[UUID] and

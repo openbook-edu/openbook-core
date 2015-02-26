@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import org.joda.time.DateTime
@@ -16,7 +17,19 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
 
   override val componentScratchpadRepository: ComponentScratchpadRepository = new ComponentScratchpadRepositoryPSQL
 
-  private class ComponentScratchpadRepositoryPSQL extends ComponentScratchpadRepository {
+  private class ComponentScratchpadRepositoryPSQL extends ComponentScratchpadRepository with PostgresRepository[ComponentScratchpad] {
+
+    override def constructor(row: RowData): ComponentScratchpad = {
+      ComponentScratchpad(
+        UUID(row("user_id").asInstanceOf[Array[Byte]]),
+        UUID(row("component_id").asInstanceOf[Array[Byte]]),
+        row("version").asInstanceOf[Long],
+        row("document_id").asInstanceOf[UUID],
+        row("created_at").asInstanceOf[DateTime],
+        row("updated_at").asInstanceOf[DateTime]
+      )
+    }
+
     val Table = "component_scratchpads"
     val Fields = "user_id, component_id, version, created_at, updated_at, document_id"
     val QMarks = "?, ?, ?, ?, ?, ?"
@@ -78,6 +91,7 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
       WHERE user_id = ?
         AND component_id = ?
         AND version = ?
+      RETURNING $Fields
     """
     
     /**
@@ -87,11 +101,7 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
      * @return an optional RowData object containing the results
      */
     override def list(user: User)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[ComponentScratchpad]]] = {
-      conn.sendPreparedStatement(SelectAllForUser, Array[Any](user.id.bytes)).map {
-        result => buildComponentScratchpadList(result.rows)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryList(SelectAllForUser, Array[Any](user.id.bytes))
     }
 
     /**
@@ -101,11 +111,7 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
      * @return an optional RowData object containing the results
      */
     override def list(component: Component)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[ComponentScratchpad]]] = {
-      conn.sendPreparedStatement(SelectAllForComponent, Array[Any](component.id.bytes)).map {
-        result => buildComponentScratchpadList(result.rows)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryList(SelectAllForComponent, Array[Any](component.id.bytes))
     }
 
     /**
@@ -115,11 +121,7 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
      * @return an optional RowData object containing the results
      */
     override def find(user: User, component: Component)(implicit conn: Connection): Future[\/[Fail, ComponentScratchpad]] = {
-      conn.sendPreparedStatement(SelectOne, Array[Any](user.id.bytes, component.id.bytes)).map {
-        result => buildComponentScratchpad(result.rows)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryOne(SelectOne, Array[Any](user.id.bytes, component.id.bytes))
     }
 
     /**
@@ -132,18 +134,14 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
      * @return the newly created [[ComponentScratchpad]]
      */
     override def insert(componentScratchpad: ComponentScratchpad)(implicit conn: Connection): Future[\/[Fail, ComponentScratchpad]] = {
-      conn.sendPreparedStatement(Insert, Array(
+      queryOne(Insert, Seq(
         componentScratchpad.userId.bytes,
         componentScratchpad.componentId.bytes,
         1L,
         new DateTime,
         new DateTime,
         componentScratchpad.documentId
-      )).map {
-        result => buildComponentScratchpad(result.rows)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      ))
     }
 
     /**
@@ -155,18 +153,14 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
      * @return the newly created [[ComponentScratchpad]]
      */
     override def update(componentScratchpad: ComponentScratchpad)(implicit conn: Connection): Future[\/[Fail, ComponentScratchpad]] = {
-      conn.sendPreparedStatement(Update, Array(
+      queryOne(Update, Seq(
         componentScratchpad.documentId,
         componentScratchpad.version + 1,
         new DateTime,
         componentScratchpad.userId.bytes,
         componentScratchpad.componentId.bytes,
         componentScratchpad.version
-      )).map {
-        result => buildComponentScratchpad(result.rows)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      ))
     }
 
     /**
@@ -176,56 +170,11 @@ trait ComponentScratchpadRepositoryPostgresComponent extends ComponentScratchpad
      * @return
      */
     override def delete(componentScratchpad: ComponentScratchpad)(implicit conn: Connection): Future[\/[Fail, ComponentScratchpad]] = {
-      conn.sendPreparedStatement(Delete, Array(
+      queryOne(Delete, Seq(
         componentScratchpad.userId.bytes,
         componentScratchpad.componentId.bytes,
         componentScratchpad.version)
-      ).map {
-        result =>
-          if (result.rowsAffected == 1) \/-(componentScratchpad)
-          else -\/(GenericFail("The query returned no errors, but the TaskFeedback was not deleted."))
-      }.recover {
-        case exception: Throwable => throw exception
-      }
-    }
-
-    /**
-     * Build a TaskFeedback object from a database result.
-     *
-     * @param maybeResultSet the [[ResultSet]] from the database to use
-     * @return
-     */
-    private def buildComponentScratchpad(maybeResultSet: Option[ResultSet]): \/[Fail, ComponentScratchpad] = {
-      maybeResultSet match {
-        case Some(resultSet) => resultSet.headOption match {
-          case Some(firstRow) => \/-(ComponentScratchpad(firstRow))
-          case None => -\/(NoResults("The query was successful but ResultSet was empty."))
-        }
-        case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-      }
-    }
-
-    private def buildEntity[A](maybeResultSet: Option[ResultSet], build: RowData => A): \/[Fail, A] = {
-      maybeResultSet match {
-        case Some(resultSet) => resultSet.headOption match {
-          case Some(firstRow) => \/-(build(firstRow))
-          case None => -\/(NoResults("The query was successful but ResultSet was empty."))
-        }
-        case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-      }
-    }
-
-    /**
-     * Converts an optional result set into works list
-     *
-     * @param maybeResultSet the [[ResultSet]] from the database to use
-     * @return
-     */
-    private def buildComponentScratchpadList(maybeResultSet: Option[ResultSet]): \/[Fail, IndexedSeq[ComponentScratchpad]] = {
-      maybeResultSet match {
-        case Some(resultSet) => \/-(resultSet.map(ComponentScratchpad.apply))
-        case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
-      }
+      )
     }
   }
 }

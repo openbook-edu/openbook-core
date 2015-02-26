@@ -12,12 +12,31 @@ import org.joda.time.LocalDate
 import scala.concurrent.Future
 import scalaz.{\/-, \/, -\/}
 
-trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepositoryComponent with PostgresRepository {
+trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepositoryComponent {
   self: PostgresDB =>
 
   override val courseScheduleRepository: CourseScheduleRepository = new CourseScheduleRepositoryPSQL
 
-  private class CourseScheduleRepositoryPSQL extends CourseScheduleRepository {
+  private class CourseScheduleRepositoryPSQL extends CourseScheduleRepository with PostgresRepository[CourseSchedule] {
+
+    def constructor(row: RowData): CourseSchedule = {
+      val day = row("day").asInstanceOf[DateTime]
+      val startTime = row("start_time").asInstanceOf[DateTime]
+      val endTime = row("end_time").asInstanceOf[DateTime]
+
+      CourseSchedule(
+        UUID(row("id").asInstanceOf[Array[Byte]]),
+        row("version").asInstanceOf[Long],
+        UUID(row("course_id").asInstanceOf[Array[Byte]]),
+        day.toLocalDate(),
+        new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), startTime.getHourOfDay(), startTime.getMinuteOfHour, startTime.getSecondOfMinute()).toLocalTime(),
+        new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), endTime.getHourOfDay(), endTime.getMinuteOfHour, endTime.getSecondOfMinute()).toLocalTime(),
+        row("description").asInstanceOf[String],
+        row("created_at").asInstanceOf[DateTime],
+        row("updated_at").asInstanceOf[DateTime]
+      )
+    }
+
     val Fields = "id, version, created_at, updated_at, course_id, day, start_time, end_time, description"
     val Table = "course_schedules"
     val QMarks = "?, ?, ?, ?, ?"
@@ -100,13 +119,7 @@ trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepository
       val dayDT = currentDay.toDateTimeAtStartOfDay()
       val TimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), currentTime.getHourOfDay(), currentTime.getMinuteOfHour, currentTime.getSecondOfMinute())
 
-      conn.sendPreparedStatement(IsAnythingScheduledForUser, Array(user.id.bytes, dayDT, TimeDT, TimeDT)).map {
-        result =>
-          if (result.rows.get.length > 0) \/-(true)
-          else \/-(false)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryNumRows(IsAnythingScheduledForUser, Seq[Any](user.id.bytes, dayDT, TimeDT, TimeDT))(0 < _)
     }
 
     /**
@@ -116,24 +129,14 @@ trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepository
       val dayDT = currentDay.toDateTimeAtStartOfDay()
       val TimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), currentTime.getHourOfDay(), currentTime.getMinuteOfHour, currentTime.getSecondOfMinute())
 
-      conn.sendPreparedStatement(IsProjectScheduledForUser, Array(user.id.bytes, project.id.bytes, dayDT, TimeDT, TimeDT)).map {
-        result =>
-          if (result.rows.get.length > 0) \/-(true)
-          else \/-(false)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryNumRows(IsProjectScheduledForUser, Seq[Any](user.id.bytes, project.id.bytes, dayDT, TimeDT, TimeDT))(0 < _)
     }
 
     /**
      * List all schedules for a given class
      */
     override def list(course: Course)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[CourseSchedule]]] = {
-      db.pool.sendPreparedStatement(SelectByCourseId, Array[Any](course.id.bytes)).map { queryResult =>
-        buildEntityList(queryResult.rows, CourseSchedule.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryList(SelectByCourseId, Seq[Any](course.id.bytes))
     }
 
     /**
@@ -144,11 +147,7 @@ trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepository
      * @return an optional task if one was found
      */
     override def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, CourseSchedule]] = {
-      db.pool.sendPreparedStatement(SelectOne, Array[Any](id.bytes)).map {
-        result => buildEntity(result.rows, CourseSchedule.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryOne(SelectOne, Seq[Any](id.bytes))
     }
 
     /**
@@ -162,7 +161,7 @@ trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepository
       val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.startTime.getHourOfDay(), courseSchedule.startTime.getMinuteOfHour, courseSchedule.startTime.getSecondOfMinute())
       val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.endTime.getHourOfDay(), courseSchedule.endTime.getMinuteOfHour, courseSchedule.endTime.getSecondOfMinute())
 
-      conn.sendPreparedStatement(Insert, Array(
+      queryOne(Insert, Seq[Any](
         courseSchedule.id.bytes,
         new DateTime,
         new DateTime,
@@ -171,11 +170,7 @@ trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepository
         startTimeDT,
         endTimeDT,
         courseSchedule.description
-      )).map {
-        result => buildEntity(result.rows, CourseSchedule.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      ))
     }
 
     /**
@@ -189,7 +184,7 @@ trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepository
       val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.startTime.getHourOfDay(), courseSchedule.startTime.getMinuteOfHour, courseSchedule.startTime.getSecondOfMinute())
       val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.endTime.getHourOfDay(), courseSchedule.endTime.getMinuteOfHour, courseSchedule.endTime.getSecondOfMinute())
 
-      conn.sendPreparedStatement(Update, Array(
+      queryOne(Update, Seq[Any](
         courseSchedule.courseId.bytes,
         dayDT,
         startTimeDT,
@@ -199,11 +194,7 @@ trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepository
         new DateTime,
         courseSchedule.id.bytes,
         courseSchedule.version
-      )).map {
-        result => buildEntity(result.rows, CourseSchedule.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      ))
     }
 
     /**
@@ -213,13 +204,7 @@ trait CourseScheduleRepositoryPostgresComponent extends CourseScheduleRepository
      * @return A boolean indicating whether the operation was successful.
      */
     override def delete(courseSchedule: CourseSchedule)(implicit conn: Connection): Future[\/[Fail, CourseSchedule]] = {
-      conn.sendPreparedStatement(Delete, Array(courseSchedule.id.bytes, courseSchedule.version)).map {
-        result =>
-          if (result.rowsAffected == 1) \/-(courseSchedule)
-          else -\/(GenericFail("The query completed without error, but nothing was deleted."))
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryOne(Delete, Seq[Any](courseSchedule.id.bytes, courseSchedule.version))
     }
   }
 }

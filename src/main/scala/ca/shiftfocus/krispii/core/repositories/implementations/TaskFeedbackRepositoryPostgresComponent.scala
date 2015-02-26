@@ -4,6 +4,7 @@ import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import org.joda.time.DateTime
@@ -18,7 +19,19 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
 
   val taskFeedbackRepository: TaskFeedbackRepository = new TaskFeedbackRepositoryPSQL
 
-  private class TaskFeedbackRepositoryPSQL extends TaskFeedbackRepository {
+  private class TaskFeedbackRepositoryPSQL extends TaskFeedbackRepository with PostgresRepository[TaskFeedback] {
+
+    def constructor(row: RowData): TaskFeedback = {
+      TaskFeedback(
+        studentId  = UUID(row("student_id").asInstanceOf[Array[Byte]]),
+        taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
+        version    = row("version").asInstanceOf[Long],
+        documentId = UUID(row("document_id").asInstanceOf[Array[Byte]]),
+        createdAt  = row("created_at").asInstanceOf[DateTime],
+        updatedAt  = row("updated_at").asInstanceOf[DateTime]
+      )
+    }
+
     val Fields = "student_id, task_id, version, document_id, created_at, updated_at"
     val QMarks = "?, ?, ?, ?, ?, ?"
     val Table = "task_feedbacks"
@@ -86,14 +99,7 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
      * @return
      */
     def list(student: User, project: Project): Future[\/[Fail, IndexedSeq[TaskFeedback]]] = {
-      db.pool.sendPreparedStatement(
-        SelectAllForStudentAndProject,
-        Array[Any](student.id.bytes, project.id.bytes, student.id.bytes)
-      ).map {
-        result => buildEntityList(result.rows, TaskFeedback.apply)
-      }.recover {
-        case exception => throw exception
-      }
+      queryList(SelectAllForStudentAndProject, Seq[Any](student.id.bytes, project.id.bytes, student.id.bytes))
     }
 
     /**
@@ -103,14 +109,7 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
      * @return
      */
     def list(task: Task): Future[\/[Fail, IndexedSeq[TaskFeedback]]] = {
-      db.pool.sendPreparedStatement(
-        SelectAllForTask,
-        Array[Any](task.id.bytes)
-      ).map {
-        result => buildEntityList(result.rows, TaskFeedback.apply)
-      }.recover {
-        case exception => throw exception
-      }
+      queryList(SelectAllForTask, Seq[Any](task.id.bytes))
     }
 
     /**
@@ -121,11 +120,7 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
      * @return
      */
     def find(student: User, task: Task): Future[\/[Fail, TaskFeedback]] = {
-      db.pool.sendPreparedStatement(SelectOneById, Array[Any](student.id.bytes, task.id.bytes)).map {
-        result => buildEntity(result.rows, TaskFeedback.apply)
-      }.recover {
-        case exception => throw exception
-      }
+      queryOne(SelectOneById, Array[Any](student.id.bytes, task.id.bytes))
     }
 
     /**
@@ -137,17 +132,13 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
      * @return
      */
     def insert(feedback: TaskFeedback)(implicit conn: Connection): Future[\/[Fail, TaskFeedback]] = {
-      conn.sendPreparedStatement(Insert, Array[Any](
+      queryOne(Insert, Array[Any](
         feedback.studentId.bytes,
         feedback.taskId.bytes,
         feedback.documentId.bytes,
         new DateTime,
         new DateTime
-      )).map {
-        result => buildEntity(result.rows, TaskFeedback.apply)
-      }.recover {
-        case exception => throw exception
-      }
+      ))
     }
 
     /**
@@ -159,18 +150,14 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
      * @return
      */
     def update(feedback: TaskFeedback)(implicit conn: Connection): Future[\/[Fail, TaskFeedback]] = {
-      conn.sendPreparedStatement(Insert, Array[Any](
+      queryOne(Insert, Array[Any](
         feedback.version + 1,
         feedback.documentId,
         new DateTime,
         feedback.studentId.bytes,
         feedback.taskId.bytes,
         feedback.version
-      )).map {
-        result => buildEntity(result.rows, TaskFeedback.apply)
-      }.recover {
-        case exception => throw exception
-      }
+      ))
     }
 
     /**
@@ -182,17 +169,11 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
      * @return
      */
     def delete(feedback: TaskFeedback)(implicit conn: Connection): Future[\/[Fail, TaskFeedback]] = {
-      conn.sendPreparedStatement(Delete, Array[Any](
+      queryOne(Delete, Array[Any](
         feedback.studentId,
         feedback.taskId,
         feedback.version
-      )).map {
-        result =>
-          if (result.rowsAffected == 1) \/-(feedback)
-          else -\/(GenericFail("The query returned no errors, but the TaskFeedback was not deleted."))
-      }.recover {
-        case exception => throw exception
-      }
+      ))
     }
 
     /**
@@ -204,18 +185,10 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
      * @return
      */
     def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskFeedback]]] = {
-      val result = for {
+      (for {
         feedbackList <- lift(list(task))
-        deletedList <- lift(conn.sendPreparedStatement(DeleteAllForTask, Array[Any](task.id.bytes)).map {
-          result =>
-            if (result.rowsAffected == feedbackList.length) \/-(feedbackList)
-            else -\/(GenericFail("The query returned no errors, but the TaskFeedback was not deleted."))
-        })
-      } yield deletedList
-
-      result.run.recover {
-        case exception => throw exception
-      }
+        deletedList <- lift(queryList(DeleteAllForTask, Array[Any](task.id.bytes)))
+      } yield deletedList).run
     }
   }
 }

@@ -4,13 +4,14 @@ import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import org.joda.time.DateTime
 import scala.concurrent.Future
 import scalaz.{\/, \/-, -\/}
 
-trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepositoryComponent with PostgresRepository {
+trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepositoryComponent {
   self: UserRepositoryComponent with
         ProjectRepositoryComponent with
         TaskRepositoryComponent with
@@ -18,7 +19,19 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
 
   override val taskScratchpadRepository: TaskScratchpadRepository = new TaskScratchpadRepositoryPSQL
 
-  private class TaskScratchpadRepositoryPSQL extends TaskScratchpadRepository {
+  private class TaskScratchpadRepositoryPSQL extends TaskScratchpadRepository with PostgresRepository[TaskScratchpad] {
+
+    override def constructor(row: RowData): TaskScratchpad = {
+      TaskScratchpad(
+        UUID(row("user_id").asInstanceOf[Array[Byte]]),
+        UUID(row("task_id").asInstanceOf[Array[Byte]]),
+        row("version").asInstanceOf[Long],
+        UUID(row("document_id").asInstanceOf[Array[Byte]]),
+        row("created_at").asInstanceOf[DateTime],
+        row("updated_at").asInstanceOf[DateTime]
+      )
+    }
+
     val Table = "task_feedbacks"
     val Fields = "user_id, task_id, version, document_id, created_at, updated_at"
     val QMarks = "?, ?, ?, ?, ?, ?"
@@ -112,14 +125,7 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
      * @return an array of [[TaskScratchpad]] objects representing each revision
      */
     override def list(user: User, task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskScratchpad]]] = {
-      conn.sendPreparedStatement(
-        SelectAllForUserAndTask,
-        Array[Any](user.id.bytes, task.id.bytes)
-      ).map {
-        result => buildEntityList(result.rows, TaskScratchpad.apply)
-      }.recover {
-        case exception => throw exception
-      }
+      queryList(SelectAllForUserAndTask, Seq[Any](user.id.bytes, task.id.bytes))
     }
 
     /**
@@ -130,14 +136,7 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
      * @return an array of [[TaskScratchpad]] objects representing each scratchpad
      */
     override def list(user: User, project: Project)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskScratchpad]]] = {
-      conn.sendPreparedStatement(
-        SelectAllForProject,
-        Array[Any](user.id.bytes, project.id.bytes)
-      ).map {
-        result => buildEntityList(result.rows, TaskScratchpad.apply)
-      }.recover {
-        case exception => throw exception
-      }
+      queryList(SelectAllForProject, Seq[Any](user.id.bytes, project.id.bytes))
     }
 
     /**
@@ -147,14 +146,7 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
      * @return an array of [[TaskScratchpad]] objects representing each scratchpad
      */
     override def list(user: User)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskScratchpad]]] = {
-      conn.sendPreparedStatement(
-        SelectAllForUser,
-        Array[Any](user.id.bytes)
-      ).map {
-        result => buildEntityList(result.rows, TaskScratchpad.apply)
-      }.recover {
-        case exception => throw exception
-      }
+      queryList(SelectAllForUser, Seq[Any](user.id.bytes))
     }
 
     /**
@@ -164,14 +156,7 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
      * @return an array of [[TaskScratchpad]] objects representing each scratchpad
      */
     override def list(task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskScratchpad]]] = {
-      conn.sendPreparedStatement(
-        SelectAllForTask,
-        Array[Any](task.id.bytes)
-      ).map {
-        result => buildEntityList(result.rows, TaskScratchpad.apply)
-      }.recover {
-        case exception => throw exception
-      }
+      queryList(SelectAllForTask, Seq[Any](task.id.bytes))
     }
 
     /**
@@ -182,11 +167,7 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
      * @return an optional [[TaskScratchpad]] object
      */
     override def find(user: User, task: Task)(implicit conn: Connection): Future[\/[Fail, TaskScratchpad]] = {
-      conn.sendPreparedStatement(SelectOne, Array[Any](user.id.bytes, task.id.bytes)).map {
-        result => buildEntity(result.rows, TaskScratchpad.apply)
-      }.recover {
-        case exception => throw exception
-      }
+      queryOne(SelectOne, Seq[Any](user.id.bytes, task.id.bytes))
     }
 
     /**
@@ -199,18 +180,14 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
      * @return the newly created [[TaskScratchpad]]
      */
     override def insert(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[Fail, TaskScratchpad]] = {
-      conn.sendPreparedStatement(Insert, Array(
+      queryOne(Insert, Seq(
         taskScratchpad.userId.bytes,
         taskScratchpad.taskId.bytes,
         1L,
         new DateTime,
         new DateTime,
         taskScratchpad.documentId
-      )).map {
-        result => buildEntity(result.rows, TaskScratchpad.apply)
-      }.recover {
-        case exception => throw exception
-      }
+      ))
     }
 
     /**
@@ -222,18 +199,14 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
      * @return the newly created [[TaskScratchpad]]
      */
     override def update(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[Fail, TaskScratchpad]] = {
-      conn.sendPreparedStatement(Update, Array(
-          taskScratchpad.documentId,
-          taskScratchpad.version + 1,
-          new DateTime,
-          taskScratchpad.userId.bytes,
-          taskScratchpad.taskId.bytes,
-          taskScratchpad.version
-        )).map {
-        result => buildEntity(result.rows, TaskScratchpad.apply)
-      }.recover {
-        case exception => throw exception
-      }
+      queryOne(Update, Seq[Any](
+        taskScratchpad.documentId,
+        taskScratchpad.version + 1,
+        new DateTime,
+        taskScratchpad.userId.bytes,
+        taskScratchpad.taskId.bytes,
+        taskScratchpad.version
+      ))
 
     }
 
@@ -244,18 +217,11 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
      * @return
      */
     override def delete(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[Fail, TaskScratchpad]] = {
-      conn.sendPreparedStatement(DeleteOne, Array(
+      queryOne(DeleteOne, Seq(
         taskScratchpad.userId.bytes,
         taskScratchpad.taskId.bytes,
         taskScratchpad.version
-      )).map {
-        result =>
-          if (result.rowsAffected == 1) \/-(taskScratchpad)
-          else -\/(GenericFail("The query returned no errors, but the TaskFeedback was not deleted."))
-      }.recover {
-        case exception => throw exception
-      }
-
+      ))
     }
 
     /**
@@ -265,18 +231,10 @@ trait TaskScratchpadRepositoryPostgresComponent extends TaskScratchpadRepository
      * @return
      */
     override def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskScratchpad]]] = {
-      val result = for {
+      (for {
         currentList <- lift(list(task))
-        deletedList <- lift(conn.sendPreparedStatement(DeleteAllForTask, Array[Any](task.id.bytes)).map {
-          result =>
-            if (result.rowsAffected == 1) \/-(currentList)
-            else -\/(GenericFail("The query returned no errors, but the TaskFeedback was not deleted."))
-        })
-      } yield deletedList
-
-      result.run.recover {
-        case exception => throw exception
-      }
+        deletedList <- lift(queryList(DeleteAllForTask, Seq[Any](task.id.bytes)))
+      } yield deletedList).run
     }
   }
 }

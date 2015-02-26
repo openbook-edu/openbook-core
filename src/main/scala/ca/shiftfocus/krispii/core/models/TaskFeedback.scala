@@ -13,22 +13,11 @@ case class TaskFeedback(
   taskId: UUID,
   version: Long = 1,
   documentId: UUID,
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 )
 
 object TaskFeedback {
-
-  def apply(row: RowData): TaskFeedback = {
-    TaskFeedback(
-      studentId  = UUID(row("student_id").asInstanceOf[Array[Byte]]),
-      taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      version    = row("version").asInstanceOf[Long],
-      documentId = UUID(row("document_id").asInstanceOf[Array[Byte]]),
-      createdAt  = Some(row("created_at").asInstanceOf[DateTime]),
-      updatedAt  = Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
 
   implicit val taskFeedbackReads: Reads[TaskFeedback] = (
     (__ \ "studentId").read[UUID] and
@@ -37,7 +26,7 @@ object TaskFeedback {
       (__ \ "documentId").read[UUID] and
       (__ \ "createdAt").readNullable[DateTime] and
       (__ \ "updatedAt").readNullable[DateTime]
-  )(TaskFeedback.apply(_: UUID, _: UUID, _: Long, _: UUID, _: Option[DateTime], _: Option[DateTime]))
+  )(TaskFeedback.apply _)
 
   implicit val taskFeedbackWrites: Writes[TaskFeedback] = (
     (__ \ "studentId").write[UUID] and

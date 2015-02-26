@@ -14,36 +14,11 @@ case class AudioComponent(
   questions: String,
   thingsToThinkAbout: String,
   soundcloudId: String,
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 ) extends Component
 
 object AudioComponent {
-
-  def apply(row: RowData): AudioComponent = {
-    AudioComponent(
-      UUID(row("id").asInstanceOf[Array[Byte]]),
-      row("version").asInstanceOf[Long],
-      UUID(row("ownerId").asInstanceOf[Array[Byte]]),
-      row("title").asInstanceOf[String],
-      row("questions").asInstanceOf[String],
-      row("things_to_think_about").asInstanceOf[String],
-      row("soundcloud_id").asInstanceOf[String],
-      Some(row("created_at").asInstanceOf[DateTime]),
-      Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
-
-  // implicit val audioComponentReads: Reads[AudioComponent] = (
-  //   (__ \ "id").read[UUID] and
-  //   (__ \ "version").read[Long] and
-  //   (__ \ "projectId").read[UUID] and
-  //   (__ \ "name").read[String] and
-  //   (__ \ "description").read[String] and
-  //   (__ \ "position").read[Int] and
-  //   (__ \ "createdAt").readNullable[DateTime] and
-  //   (__ \ "updatedAt").readNullable[DateTime]
-  // )(AudioComponent.apply _)
 
   implicit val audioComponentWrites: Writes[AudioComponent] = (
     (__ \ "id").write[UUID] and
@@ -53,8 +28,8 @@ object AudioComponent {
     (__ \ "questions").write[String] and
     (__ \ "thingsToThinkAbout").write[String] and
     (__ \ "soundcloudId").write[String] and
-    (__ \ "createdAt").writeNullable[DateTime] and
-    (__ \ "updatedAt").writeNullable[DateTime]
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
   )(unlift(AudioComponent.unapply))
 
 }

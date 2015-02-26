@@ -20,29 +20,11 @@ case class CourseSchedule(
   startTime: LocalTime,
   endTime: LocalTime,
   description: String,
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 )
 
 object CourseSchedule extends LocalDateTimeJson {
-
-  def apply(row: RowData): CourseSchedule = {
-    val day = row("day").asInstanceOf[DateTime]
-    val startTime = row("start_time").asInstanceOf[DateTime]
-    val endTime = row("end_time").asInstanceOf[DateTime]
-
-    CourseSchedule(
-      UUID(row("id").asInstanceOf[Array[Byte]]),
-      row("version").asInstanceOf[Long],
-      UUID(row("course_id").asInstanceOf[Array[Byte]]),
-      day.toLocalDate(),
-      new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), startTime.getHourOfDay(), startTime.getMinuteOfHour, startTime.getSecondOfMinute()).toLocalTime(),
-      new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), endTime.getHourOfDay(), endTime.getMinuteOfHour, endTime.getSecondOfMinute()).toLocalTime(),
-      row("description").asInstanceOf[String],
-      Some(row("created_at").asInstanceOf[DateTime]),
-      Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
 
   implicit val sectionScheduleReads: Reads[CourseSchedule] = (
     (__ \ "id").read[UUID] and
@@ -54,7 +36,7 @@ object CourseSchedule extends LocalDateTimeJson {
     (__ \ "description").read[String] and
     (__ \ "createdAt").readNullable[DateTime] and
     (__ \ "updatedAt").readNullable[DateTime]
-  )(CourseSchedule.apply(_: UUID, _: Long, _: UUID, _: LocalDate, _: LocalTime, _: LocalTime, _: String, _: Option[DateTime], _: Option[DateTime]))
+  )(CourseSchedule.apply _)
 
   implicit val sectionScheduleWrites: Writes[CourseSchedule] = (
     (__ \ "id").write[UUID] and
@@ -64,8 +46,8 @@ object CourseSchedule extends LocalDateTimeJson {
     (__ \ "startTime").write[LocalTime] and
     (__ \ "endTime").write[LocalTime] and
     (__ \ "description").write[String] and
-    (__ \ "createdAt").writeNullable[DateTime] and
-    (__ \ "updatedAt").writeNullable[DateTime]
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
   )(unlift(CourseSchedule.unapply))
 }
 

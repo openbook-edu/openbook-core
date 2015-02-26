@@ -17,14 +17,6 @@ abstract class Component {
 
 object Component {
 
-  def apply(row: RowData): Component = {
-    row("type").asInstanceOf[String] match {
-      case "audio" => AudioComponent(row)
-      case "text" => TextComponent(row)
-      case "video" => VideoComponent(row)
-    }
-  }
-
   implicit val componentReads = new Reads[Component] {
     def reads(js: JsValue) = {
       JsSuccess((js \ "type").as[String] match {

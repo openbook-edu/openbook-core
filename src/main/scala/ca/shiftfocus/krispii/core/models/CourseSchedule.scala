@@ -34,8 +34,8 @@ object CourseSchedule extends LocalDateTimeJson {
     (__ \ "startTime").read[LocalTime] and
     (__ \ "endTime").read[LocalTime] and
     (__ \ "description").read[String] and
-    (__ \ "createdAt").readNullable[DateTime] and
-    (__ \ "updatedAt").readNullable[DateTime]
+    (__ \ "createdAt").read[DateTime] and
+    (__ \ "updatedAt").read[DateTime]
   )(CourseSchedule.apply _)
 
   implicit val sectionScheduleWrites: Writes[CourseSchedule] = (

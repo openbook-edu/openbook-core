@@ -19,12 +19,12 @@ trait RoleRepositoryComponent extends FutureMonad {
     /**
      * The usual CRUD functions for the roles table.
      */
-    def list: Future[\/[Fail, IndexedSeq[Role]]]
-    def list(user: User): Future[\/[Fail, IndexedSeq[Role]]]
-    def list(users: IndexedSeq[User]): Future[\/[Fail, Map[UUID, IndexedSeq[Role]]]]
+    def list(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Role]]]
+    def list(user: User)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Role]]]
+    def list(users: IndexedSeq[User])(implicit conn: Connection): Future[\/[Fail, Map[UUID, IndexedSeq[Role]]]]
 
-    def find(id: UUID): Future[\/[Fail, Role]]
-    def find(name: String): Future[\/[Fail, Role]]
+    def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, Role]]
+    def find(name: String)(implicit conn: Connection): Future[\/[Fail, Role]]
 
     def insert(role: Role)(implicit conn: Connection): Future[\/[Fail, Role]]
     def update(role: Role)(implicit conn: Connection): Future[\/[Fail, Role]]

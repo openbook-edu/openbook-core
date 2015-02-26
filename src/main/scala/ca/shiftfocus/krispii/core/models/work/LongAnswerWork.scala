@@ -13,29 +13,11 @@ case class LongAnswerWork(
   override val version: Long = 0,
   override val answer: String = "",
   isComplete: Boolean = false,
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 ) extends DocumentWork
 
 object LongAnswerWork {
 
-  /**
-   * Build a long-answer work item from a database result row.
-   * @param row
-   * @return
-   */
-  def apply(row: RowData): LongAnswerWork = {
-    LongAnswerWork(
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-      studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
-      taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      documentId = UUID(row("long_answer_document_id").asInstanceOf[Array[Byte]]),
-      version = row("version").asInstanceOf[Long],
-      answer = "",
-      isComplete = row("is_complete").asInstanceOf[Boolean],
-      createdAt = Some(row("created_at").asInstanceOf[DateTime]),
-      updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
 
 }

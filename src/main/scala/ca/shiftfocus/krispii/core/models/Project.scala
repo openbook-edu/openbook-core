@@ -45,19 +45,6 @@ object Project {
     val CourseTime = "course"
   }
 
-  implicit val projectReads: Reads[Project] = (
-    (__ \ "id").read[UUID] and
-    (__ \ "courseId").read[UUID] and
-    (__ \ "version").read[Long] and
-    (__ \ "name").read[String] and
-    (__ \ "slug").read[String] and
-    (__ \ "description").read[String] and
-    (__ \ "availability").read[String] and
-    (__ \ "parts").read[IndexedSeq[Part]] and
-    (__ \ "createdAt").read[DateTime] and
-    (__ \ "updatedAt").read[DateTime]
-  )(Project.apply _)
-
   implicit val projectWrites: Writes[Project] = (
     (__ \ "id").write[UUID] and
     (__ \ "courseId").write[UUID] and

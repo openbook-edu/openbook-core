@@ -25,14 +25,14 @@ trait TaskFeedbackRepositoryComponent extends FutureMonad {
      * @param project
      * @return
      */
-    def list(student: User, project: Project): Future[\/[Fail, IndexedSeq[TaskFeedback]]]
+    def list(student: User, project: Project)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskFeedback]]]
 
     /**
      * List all feedbacks in a project for one student.
      * @param task
      * @return
      */
-    def list(task: Task): Future[\/[Fail, IndexedSeq[TaskFeedback]]]
+    def list(task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskFeedback]]]
 
     /**
      * Find a single feedback for one task, teacher and student.
@@ -41,7 +41,7 @@ trait TaskFeedbackRepositoryComponent extends FutureMonad {
      * @param task
      * @return
      */
-    def find(student: User, task: Task): Future[\/[Fail, TaskFeedback]]
+    def find(student: User, task: Task)(implicit conn: Connection): Future[\/[Fail, TaskFeedback]]
 
     /**
      * Create a new feedback for a task.

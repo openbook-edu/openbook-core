@@ -28,8 +28,8 @@ object Component {
           questions = (js \ "questions").as[String],
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
           soundcloudId = (js \ "soundcloudId").as[String],
-          createdAt = (js \ "createdAt").asOpt[DateTime],
-          updatedAt = (js \ "updatedAt").asOpt[DateTime]
+          createdAt = (js \ "createdAt").as[DateTime],
+          updatedAt = (js \ "updatedAt").as[DateTime]
         )
         case "text" => TextComponent(
           id = (js \ "id").as[UUID],
@@ -39,8 +39,8 @@ object Component {
           questions = (js \ "questions").as[String],
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
           content = (js \ "content").as[String],
-          createdAt = (js \ "createdAt").asOpt[DateTime],
-          updatedAt = (js \ "updatedAt").asOpt[DateTime]
+          createdAt = (js \ "createdAt").as[DateTime],
+          updatedAt = (js \ "updatedAt").as[DateTime]
         )
         case "video" => VideoComponent(
           id = (js \ "id").as[UUID],
@@ -52,8 +52,8 @@ object Component {
           vimeoId = (js \ "vimeoId").as[String],
           width = (js \ "width").as[Int],
           height = (js \ "height").as[Int],
-          createdAt = (js \ "createdAt").asOpt[DateTime],
-          updatedAt = (js \ "updatedAt").asOpt[DateTime]
+          createdAt = (js \ "createdAt").as[DateTime],
+          updatedAt = (js \ "updatedAt").as[DateTime]
         )
       })
     }

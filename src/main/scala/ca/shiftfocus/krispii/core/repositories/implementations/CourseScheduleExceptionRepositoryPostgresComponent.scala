@@ -33,8 +33,8 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
         day.toLocalDate(),
         new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), startTime.getHourOfDay(), startTime.getMinuteOfHour, startTime.getSecondOfMinute()).toLocalTime(),
         new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), endTime.getHourOfDay(), endTime.getMinuteOfHour, endTime.getSecondOfMinute()).toLocalTime(),
-        Some(row("created_at").asInstanceOf[DateTime]),
-        Some(row("updated_at").asInstanceOf[DateTime])
+        row("created_at").asInstanceOf[DateTime],
+        row("updated_at").asInstanceOf[DateTime]
       )
     }
 
@@ -101,14 +101,14 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
      * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return a vector of the returned courses
      */
-    override def list(user: User, course: Course): Future[\/[Fail, IndexedSeq[CourseScheduleException]]] = {
+    override def list(user: User, course: Course)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[CourseScheduleException]]] = {
       queryList(SelectForUserAndCourse, Array[Any](user.id.bytes, course.id.bytes))
     }
 
     /**
      * Find all schedule exceptions for a given course.
      */
-    override def list(course: Course): Future[\/[Fail, IndexedSeq[CourseScheduleException]]] = {
+    override def list(course: Course)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[CourseScheduleException]]] = {
       queryList(SelectForCourse, Array[Any](course.id.bytes))
     }
 
@@ -119,7 +119,7 @@ trait CourseScheduleExceptionRepositoryPostgresComponent extends CourseScheduleE
      * @param conn An implicit connection object. Can be used in a transactional chain.
      * @return an optional task if one was found
      */
-    override def find(id: UUID): Future[\/[Fail, CourseScheduleException]] = {
+    override def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, CourseScheduleException]] = {
       queryOne(SelectOne, Array[Any](id.bytes))
     }
 

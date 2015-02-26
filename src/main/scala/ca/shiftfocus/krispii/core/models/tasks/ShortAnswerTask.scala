@@ -31,8 +31,8 @@ case class ShortAnswerTask(
   version: Long = 0,
   settings: CommonTaskSettings = CommonTaskSettings(),
   maxLength: Int = 50,
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 ) extends Task {
 
   /**
@@ -53,23 +53,6 @@ case class ShortAnswerTask(
 object ShortAnswerTask {
 
   /**
-   * Unserialize a [[LongAnswerTask]] from JSON.
-   */
-  implicit val jsonReads = new Reads[ShortAnswerTask] {
-    def reads(js: JsValue) = {
-      JsSuccess(ShortAnswerTask(
-        id = (js \ "id").as[UUID],
-        partId = (js \ "partId").as[UUID],
-        position = (js \ "position").as[Int],
-        version = (js \ "version").as[Long],
-        settings = (js \ "settings").as[CommonTaskSettings],
-        createdAt = (js \ "createdAt").as[Option[DateTime]],
-        updatedAt = (js \ "updatedAt").as[Option[DateTime]]
-      ))
-    }
-  }
-
-  /**
    * Serialize a [[ShortAnswerTask]] to JSON.
    */
   implicit val taskWrites: Writes[ShortAnswerTask] = (
@@ -79,8 +62,8 @@ object ShortAnswerTask {
       (__ \ "version").write[Long] and
       (__ \ "settings").write[CommonTaskSettings] and
       (__ \ "maxLength").write[Int] and
-      (__ \ "createdAt").writeNullable[DateTime] and
-      (__ \ "updatedAt").writeNullable[DateTime]
+      (__ \ "createdAt").write[DateTime] and
+      (__ \ "updatedAt").write[DateTime]
     )(unlift(ShortAnswerTask.unapply))
 
 }

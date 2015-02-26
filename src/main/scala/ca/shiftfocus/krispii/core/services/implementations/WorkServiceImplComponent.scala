@@ -33,6 +33,8 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
 
   private class WorkServiceImpl extends WorkService {
 
+    implicit def conn: Connection = db.pool
+
     /**
      * List the latest revision of all of a user's work in a project for a specific
      * course.
@@ -162,7 +164,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * @return a future disjunction containing either a work, or a failure
      */
     override def createLongAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[Fail, LongAnswerWork]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fUser = authService.find(userId)
         val fTask = projectService.findTask(taskId)
         
@@ -192,7 +194,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * @return the newly created work
      */
     override def createShortAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[Fail, ShortAnswerWork]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fUser = authService.find(userId)
         val fTask = projectService.findTask(taskId)
 
@@ -223,7 +225,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * @return the newly created work
      */
     override def createMultipleChoiceWork(userId: UUID, taskId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[Fail, MultipleChoiceWork]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fUser = authService.find(userId)
         val fTask = projectService.findTask(taskId)
 
@@ -255,7 +257,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * @return the newly created work
      */
     override def createOrderingWork(userId: UUID, taskId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[Fail, OrderingWork]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fUser = authService.find(userId)
         val fTask = projectService.findTask(taskId)
 
@@ -287,7 +289,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * @return the newly created work
      */
     override def createMatchingWork(userId: UUID, taskId: UUID, answer: IndexedSeq[Match], isComplete: Boolean): Future[\/[Fail, MatchingWork]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fUser = authService.find(userId)
         val fTask = projectService.findTask(taskId)
 
@@ -340,7 +342,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * serves to update the work's completed status.
      */
     def updateLongAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[Fail, LongAnswerWork]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fUser = authService.find(userId)
         val fTask = projectService.findTask(taskId)
 
@@ -363,7 +365,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * serves to update the work's completed status.
      */
     def updateShortAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[Fail, ShortAnswerWork]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fUser = authService.find(userId)
         val fTask = projectService.findTask(taskId)
 
@@ -380,7 +382,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     }
 
     override def updateMultipleChoiceWork(userId: UUID, taskId: UUID, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[Fail, MultipleChoiceWork]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fUser = authService.find(userId)
         val fTask = projectService.findTask(taskId)
 
@@ -397,7 +399,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     }
 
     override def updateOrderingWork(userId: UUID, taskId: UUID, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[Fail, OrderingWork]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fUser = authService.find(userId)
         val fTask = projectService.findTask(taskId)
 
@@ -414,7 +416,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     }
 
     override def updateMatchingWork(userId: UUID, taskId: UUID, version: Long, answer: IndexedSeq[Match], isComplete: Boolean): Future[\/[Fail, MatchingWork]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fUser = authService.find(userId)
         val fTask = projectService.findTask(taskId)
 
@@ -431,7 +433,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
     }
 
     override def forceComplete(taskId: UUID, justThis: Boolean = true): Future[\/[Fail, Unit]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         if (justThis) {
           (for {
             task <- lift(projectService.findTask(taskId))
@@ -536,7 +538,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * @return
      */
     def createFeedback(studentId: UUID, taskId: UUID): Future[\/[Fail, TaskFeedback]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         // First load up the teacher, student and task
         val fStudent = authService.find(studentId)
         val fTask = projectService.findTask(taskId)
@@ -570,7 +572,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * @return
      */
     override def updateFeedback(studentId: UUID, taskId: UUID, version: Long, documentId: UUID): Future[\/[Fail, TaskFeedback]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fStudent = authService.find(studentId)
         val fTask = projectService.findTask(taskId)
 
@@ -638,7 +640,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * @return the updated task scratchpad
      */
     override def createTaskScratchpad(userId: UUID, taskId: UUID): Future[\/[Fail, TaskScratchpad]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fStudent = authService.find(userId)
         val fTask = projectService.findTask(taskId)
 
@@ -670,7 +672,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * @return the updated task scratchpad
      */
     override def updateTaskScratchpad(userId: UUID, taskId: UUID, version: Long, documentId: UUID): Future[\/[Fail, TaskScratchpad]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fStudent = authService.find(userId)
         val fTask = projectService.findTask(taskId)
 
@@ -758,7 +760,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * @return the updated component scratchpad
      */
     override def createComponentScratchpad(userId: UUID, componentId: UUID): Future[\/[Fail, ComponentScratchpad]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fStudent = authService.find(userId)
         val fComponent = componentService.find(componentId)
 
@@ -787,7 +789,7 @@ trait WorkServiceImplComponent extends WorkServiceComponent {
      * @return the updated component scratchpad
      */
     override def updateComponentScratchpad(userId: UUID, componentId: UUID, version: Long, documentId: UUID): Future[\/[Fail, ComponentScratchpad]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fStudent = authService.find(userId)
         val fComponent = componentService.find(componentId)
 

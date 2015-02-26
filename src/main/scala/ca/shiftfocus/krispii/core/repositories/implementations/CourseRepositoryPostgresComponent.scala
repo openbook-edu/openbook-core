@@ -330,7 +330,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
     override def addUser(user: User, course: Course)(implicit conn: Connection): Future[\/[Fail, Unit]] = {
       queryNumRows(AddUser, Array(user.id.bytes, course.id.bytes, new DateTime))(1 == _).map {
         case \/-(true) => \/-( () )
-        case -\/(false) => -\/(NoResults("The query succeeded but the course could not be added."))
+        case \/-(false) => -\/(NoResults("The query succeeded but the course could not be added."))
         case -\/(error) => -\/(error)
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
@@ -351,7 +351,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
     override def removeUser(user: User, course: Course)(implicit conn: Connection): Future[\/[Fail, Unit]] = {
       queryNumRows(RemoveUser, Array(user.id.bytes, course.id.bytes))(1 == _).map {
         case \/-(true) => \/-( () )
-        case -\/(false) => -\/(NoResults("The query succeeded but the course could not be added."))
+        case \/-(false) => -\/(NoResults("The query succeeded but the course could not be added."))
         case -\/(error) => -\/(error)
       }.recover {
         case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
@@ -492,7 +492,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
      * @return
      */
     def insert(course: Course)(implicit conn: Connection): Future[\/[Fail, Course]] = {
-      val params = Seq(
+      val params = Seq[Any](
         course.id.bytes, course.teacherId.bytes, course.name,
         course.color.getRGB, new DateTime, new DateTime
       )
@@ -517,7 +517,7 @@ trait CourseRepositoryPostgresComponent extends CourseRepositoryComponent {
      * @return
      */
     def update(course: Course)(implicit conn: Connection): Future[\/[Fail, Course]] = {
-      val params = Seq(
+      val params = Seq[Any](
         course.version + 1, course.teacherId.bytes, course.name,
         course.color.getRGB, new DateTime, course.id.bytes, course.version
       )

@@ -39,8 +39,8 @@ case class MatchingTask(
   elementsRight: IndexedSeq[String] = IndexedSeq(),
   answer: IndexedSeq[MatchingTask.Match] = IndexedSeq(),
   randomizeChoices: Boolean = true,
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 ) extends Task {
 
   /**
@@ -74,27 +74,6 @@ object MatchingTask {
   }
 
   /**
-   * Unserialize a [[LongAnswerTask]] from JSON.
-   */
-  implicit val jsonReads = new Reads[MatchingTask] {
-    def reads(js: JsValue) = {
-      JsSuccess(MatchingTask(
-        id       = (js \ "id").as[UUID],
-        partId   = (js \ "partId").as[UUID],
-        position = (js \ "position").as[Int],
-        version  = (js \ "version").as[Long],
-        settings = (js \ "settings").as[CommonTaskSettings],
-        elementsLeft = (js \ "elementsLeft").as[IndexedSeq[String]],
-        elementsRight = (js \ "elementsRight").as[IndexedSeq[String]],
-        answer   = (js \ "answer").as[IndexedSeq[Match]],
-        randomizeChoices = (js \ "randomizeChoices").as[Boolean],
-        createdAt = (js \ "createdAt").as[Option[DateTime]],
-        updatedAt = (js \ "updatedAt").as[Option[DateTime]]
-      ))
-    }
-  }
-
-  /**
    * Serialize a [[MatchingTask]] to JSON.
    */
   implicit val jsonWrites: Writes[MatchingTask] = (
@@ -107,8 +86,8 @@ object MatchingTask {
       (__ \ "elements_right").write[IndexedSeq[String]] and
       (__ \ "answer").write[IndexedSeq[Match]] and
       (__ \ "randomizeChoices").write[Boolean] and
-      (__ \ "createdAt").writeNullable[DateTime] and
-      (__ \ "updatedAt").writeNullable[DateTime]
+      (__ \ "createdAt").write[DateTime] and
+      (__ \ "updatedAt").write[DateTime]
     )(unlift(MatchingTask.unapply))
   
 }

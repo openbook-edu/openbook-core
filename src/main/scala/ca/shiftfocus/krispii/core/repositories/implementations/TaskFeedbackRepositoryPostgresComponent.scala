@@ -11,7 +11,7 @@ import org.joda.time.DateTime
 import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
 
-trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComponent with PostgresRepository {
+trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComponent {
   self: UserRepositoryComponent with
         ProjectRepositoryComponent with
         TaskRepositoryComponent with
@@ -98,7 +98,7 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
      * @param project
      * @return
      */
-    def list(student: User, project: Project): Future[\/[Fail, IndexedSeq[TaskFeedback]]] = {
+    def list(student: User, project: Project)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskFeedback]]] = {
       queryList(SelectAllForStudentAndProject, Seq[Any](student.id.bytes, project.id.bytes, student.id.bytes))
     }
 
@@ -108,7 +108,7 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
      * @param task the task to list feedbacks for
      * @return
      */
-    def list(task: Task): Future[\/[Fail, IndexedSeq[TaskFeedback]]] = {
+    def list(task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[TaskFeedback]]] = {
       queryList(SelectAllForTask, Seq[Any](task.id.bytes))
     }
 
@@ -119,7 +119,7 @@ trait TaskFeedbackRepositoryPostgresComponent extends TaskFeedbackRepositoryComp
      * @param task
      * @return
      */
-    def find(student: User, task: Task): Future[\/[Fail, TaskFeedback]] = {
+    def find(student: User, task: Task)(implicit conn: Connection): Future[\/[Fail, TaskFeedback]] = {
       queryOne(SelectOneById, Array[Any](student.id.bytes, task.id.bytes))
     }
 

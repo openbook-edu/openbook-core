@@ -155,28 +155,28 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
     /**
      * List all roles.
      */
-    override def list: Future[\/[Fail, IndexedSeq[Role]]] = {
+    override def list(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Role]]] = {
       queryList(SelectAll)
     }
 
     /**
      * List the roles associated with a user.
      */
-    override def list(user: User): Future[\/[Fail, IndexedSeq[Role]]] = {
+    override def list(user: User)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Role]]] = {
       queryList(ListRoles, Array[Any](user.id.bytes))
     }
 
     /**
      * List the roles associated with users.
      */
-    override def list(users: IndexedSeq[User]): Future[\/[Fail, Map[UUID, IndexedSeq[Role]]]] = {
+    override def list(users: IndexedSeq[User])(implicit conn: Connection): Future[\/[Fail, Map[UUID, IndexedSeq[Role]]]] = {
       val arrayString = users.map { user =>
         val cleanUserId = user.id.string filterNot ("-" contains _)
         s"decode('$cleanUserId', 'hex')"
       }.mkString("ARRAY[", ",", "]")
       val query = s"""${ListRolesForUserList} AND ARRAY[users_roles.user_id] <@ $arrayString"""
 
-      db.pool.sendQuery(query).map { queryResult =>
+      conn.sendQuery(query).map { queryResult =>
         queryResult.rows match {
           case Some(resultSet) => {
             val tuples = resultSet.map { item: RowData =>
@@ -200,7 +200,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
      * @param id the 128-bit UUID, as a byte array, to search for.
      * @return an optional RowData object containing the results
      */
-    override def find(id: UUID): Future[\/[Fail, Role]] = {
+    override def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, Role]] = {
       queryOne(SelectOne, Array[Any](id.bytes))
     }
 
@@ -210,7 +210,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
      * @param name the 128-bit UUID, as a byte array, to search for.
      * @return an optional RowData object containing the results
      */
-    override def find(name: String): Future[\/[Fail, Role]] = {
+    override def find(name: String)(implicit conn: Connection): Future[\/[Fail, Role]] = {
       queryOne(SelectOneByName, Array[Any](name))
     }
 
@@ -356,7 +356,7 @@ trait RoleRepositoryPostgresComponent extends RoleRepositoryComponent {
           case Some(nField) =>
             if (nField == "users_roles_pkey") -\/(UniqueFieldConflict(s"User has already this role"))
             else if (nField == "users_roles_user_id_fkey") -\/(ReferenceConflict(s"Referenced user with id ${user.id.string} doesn't exist"))
-            else if (nField == "users_roles_role_id_fkey") -\/(ReferenceConflict(s"Referenced role with id ${role.id.string} doesn't exist"))
+            else if (nField == "users_roles_role_id_fkey") -\/(ReferenceConflict(s"Referenced role with name ${name} doesn't exist"))
             else  throw exception
           case _ => throw exception
         }

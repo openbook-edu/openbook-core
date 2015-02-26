@@ -4,6 +4,7 @@ import java.awt.Color
 
 import ca.shiftfocus.krispii.core.fail.{BadInput, NoResults, GenericFail, Fail}
 import ca.shiftfocus.krispii.core.lib.FutureMonad
+import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
@@ -26,6 +27,8 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
 
   private class SchoolServiceImpl extends SchoolService {
 
+    implicit def conn: Connection = db.pool
+
     /*
      * Methods for Courses
      */
@@ -36,7 +39,7 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @return an [[IndexedSeq]] of [[Course]]
      */
     override def listCourses: Future[\/[Fail, IndexedSeq[Course]]] = {
-      courseRepository.list
+      courseRepository.list(db.pool)
     }
     
     /**
@@ -125,7 +128,7 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @return the newly created [[Course]]
      */
     override def createCourse(teacherId: UUID, name: String, color: Color): Future[\/[Fail, Course]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         (for {
           teacher <- lift(authService.find(teacherId))
           _ <- predicate (teacher.roles.map(_.name).contains("teacher")) (GenericFail("Tried to create a course for a user who isn't a teacher."))
@@ -149,7 +152,7 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @return the newly created [[Course]]
      */
     override def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: Option[String], color: Option[Color]): Future[\/[Fail, Course]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         (for {
           existingCourse <- lift(courseRepository.find(id))
           tId = teacherId.getOrElse(existingCourse.teacherId)
@@ -174,7 +177,7 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @return a boolean indicating success or failure
      */
     override def deleteCourse(id: UUID, version: Long): Future[\/[Fail, Course]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         (for {
           existingCourse <- lift(courseRepository.find(id))
           toDelete = existingCourse.copy(version = version)
@@ -221,7 +224,7 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @param a [[Boolean]] indicating success or failure.
      */
     override def addUsers(course: Course, userIds: IndexedSeq[UUID]): Future[\/[Fail, IndexedSeq[User]]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         (for {
           users <- lift(userRepository.list(userIds))
           wereAdded <- lift(courseRepository.addUsers(course, users))
@@ -238,7 +241,7 @@ trait SchoolServiceImplComponent extends SchoolServiceComponent {
      * @param a [[Boolean]] indicating success or failure.
      */
     override def removeUsers(course: Course, userIds: IndexedSeq[UUID]): Future[\/[Fail, IndexedSeq[User]]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         (for {
           users <- lift(userRepository.list(userIds))
           wereRemoved <- lift(courseRepository.removeUsers(course, users))

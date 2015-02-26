@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.fail.{NoResults, Fail}
 import ca.shiftfocus.krispii.core.models.ComponentScratchpad
 import com.github.mauricio.async.db.{Connection, RowData, ResultSet}
+import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 
 import scala.concurrent.Future
 import scalaz.{-\/, \/-, \/}

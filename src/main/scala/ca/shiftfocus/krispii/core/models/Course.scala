@@ -43,17 +43,6 @@ object Course {
     }
   }
 
-  implicit val sectionReads: Reads[Course] = (
-    (__ \ "id").read[UUID] and
-    (__ \ "version").read[Long] and
-    (__ \ "teacherId").read[UUID] and
-    (__ \ "name").read[String] and
-    (__ \ "color").read[Color] and
-    (__ \ "projects").readNullable[IndexedSeq[Project]] and
-    (__ \ "createdAt").readNullable[DateTime] and
-    (__ \ "updatedAt").readNullable[DateTime]
-  )(Course.apply _)
-
   implicit val sectionWrites: Writes[Course] = (
     (__ \ "id").write[UUID] and
     (__ \ "version").write[Long] and

@@ -15,8 +15,8 @@ case class Part(
   position: Int = 0,
   enabled: Boolean = true,
   tasks: IndexedSeq[Task] = IndexedSeq(),
-  createdAt: DateTime = None,
-  updatedAt: DateTime = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 ) {
   override def toString = {
     s"Part(id: '${id.string}', position: '${position.toString}', name: '$name')"

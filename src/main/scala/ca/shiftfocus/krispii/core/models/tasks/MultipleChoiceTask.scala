@@ -38,8 +38,8 @@ case class MultipleChoiceTask(
   answer: IndexedSeq[Int] = IndexedSeq(),
   allowMultiple: Boolean = false,
   randomizeChoices: Boolean = true,
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 ) extends Task {
 
   /**
@@ -60,44 +60,6 @@ case class MultipleChoiceTask(
 object MultipleChoiceTask {
 
   /**
-   * Unserialize a [[LongAnswerTask]] from JSON.
-   */
-  implicit val jsonReads = new Reads[MultipleChoiceTask] {
-    def reads(js: JsValue) = {
-      JsSuccess(MultipleChoiceTask(
-        id       = (js \ "id").as[UUID],
-        partId   = (js \ "partId").as[UUID],
-        position = (js \ "position").as[Int],
-        version  = (js \ "version").as[Long],
-        settings = (js \ "settings").as[CommonTaskSettings],
-        choices  = (js \ "elements").as[IndexedSeq[String]],
-        answer   = (js \ "answer").as[IndexedSeq[Int]],
-        allowMultiple = (js \ "allowMultiple").as[Boolean],
-        randomizeChoices = (js \ "randomizeChoices").as[Boolean],
-        createdAt = (js \ "createdAt").as[Option[DateTime]],
-        updatedAt = (js \ "updatedAt").as[Option[DateTime]]
-      ))
-    }
-  }
-
-  /**
-   * Unserialize a [[MultipleChoiceTask]] from JSON.
-   */
-//  implicit val taskReads: Reads[MultipleChoiceTask] = (
-//    (__ \ "id").read[UUID] and
-//      (__ \ "partId").read[UUID] and
-//      (__ \ "position").read[Int] and
-//      (__ \ "version").read[Long] and
-//      (__ \ "settings").read[CommonTaskSettings] and
-//      (__ \ "choices").read[IndexedSeq[String]] and
-//      (__ \ "answer").read[IndexedSeq[Int]] and
-//      (__ \ "allowMultiple").read[Boolean] and
-//      (__ \ "randomizeChoices").read[Boolean] and
-//      (__ \ "createdAt").readNullable[DateTime] and
-//      (__ \ "updatedAt").readNullable[DateTime]
-//    )(MultipleChoiceTask.apply(_: UUID, _: UUID, _: Int, _: Long, _: CommonTaskSettings, _: IndexedSeq[String], _: IndexedSeq[Int], _: Boolean, _: Boolean, _: Option[DateTime], _: Option[DateTime]))
-
-  /**
    * Serialize a [[MultipleChoiceTask]] to JSON.
    */
   implicit val taskWrites: Writes[MultipleChoiceTask] = (
@@ -110,8 +72,8 @@ object MultipleChoiceTask {
       (__ \ "answer").write[IndexedSeq[Int]] and
       (__ \ "allowMultiple").write[Boolean] and
       (__ \ "randomizeChoices").write[Boolean] and
-      (__ \ "createdAt").writeNullable[DateTime] and
-      (__ \ "updatedAt").writeNullable[DateTime]
+      (__ \ "createdAt").write[DateTime] and
+      (__ \ "updatedAt").write[DateTime]
     )(unlift(MultipleChoiceTask.unapply))
   
 }

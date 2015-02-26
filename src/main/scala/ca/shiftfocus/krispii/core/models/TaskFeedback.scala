@@ -24,8 +24,8 @@ object TaskFeedback {
       (__ \ "taskId").read[UUID] and
       (__ \ "version").read[Long] and
       (__ \ "documentId").read[UUID] and
-      (__ \ "createdAt").readNullable[DateTime] and
-      (__ \ "updatedAt").readNullable[DateTime]
+      (__ \ "createdAt").read[DateTime] and
+      (__ \ "updatedAt").read[DateTime]
   )(TaskFeedback.apply _)
 
   implicit val taskFeedbackWrites: Writes[TaskFeedback] = (
@@ -33,8 +33,8 @@ object TaskFeedback {
       (__ \ "taskId").write[UUID] and
       (__ \ "version").write[Long] and
       (__ \ "documentId").write[UUID] and
-      (__ \ "createdAt").writeNullable[DateTime] and
-      (__ \ "updatedAt").writeNullable[DateTime]
+      (__ \ "createdAt").write[DateTime] and
+      (__ \ "updatedAt").write[DateTime]
   )(unlift(TaskFeedback.unapply))
 
 }

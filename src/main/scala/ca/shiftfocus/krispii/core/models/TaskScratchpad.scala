@@ -22,15 +22,6 @@ case class TaskScratchpad(
 
 object TaskScratchpad {
 
-  implicit val taskReads: Reads[TaskScratchpad] = (
-    (__ \ "userId").read[UUID] and
-    (__ \ "taskId").read[UUID] and
-    (__ \ "version").read[Long] and
-    (__ \ "documentId").read[UUID] and
-    (__ \ "createdAt").read[DateTime] and
-    (__ \ "updatedAt").read[DateTime]
-  )(TaskScratchpad.apply _)
-
   implicit val taskWrites: Writes[TaskScratchpad] = (
     (__ \ "userId").write[UUID] and
     (__ \ "taskId").write[UUID] and

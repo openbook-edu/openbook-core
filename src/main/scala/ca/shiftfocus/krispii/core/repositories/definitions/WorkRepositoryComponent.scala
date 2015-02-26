@@ -14,13 +14,13 @@ trait WorkRepositoryComponent {
   val workRepository: WorkRepository
 
   trait WorkRepository {
-    def list(user: User, project: Project): Future[\/[Fail, IndexedSeq[Work]]]
-    def list(user: User, task: Task): Future[\/[Fail, IndexedSeq[Work]]]
-    def list(task: Task): Future[\/[Fail, IndexedSeq[Work]]]
+    def list(user: User, project: Project)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Work]]]
+    def list(user: User, task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Work]]]
+    def list(task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Work]]]
 
-    def find(workId: UUID): Future[\/[Fail, Work]]
-    def find(user: User, task: Task): Future[\/[Fail, Work]]
-    def find(user: User, task: Task, version: Long): Future[\/[Fail, Work]]
+    def find(workId: UUID)(implicit conn: Connection): Future[\/[Fail, Work]]
+    def find(user: User, task: Task)(implicit conn: Connection): Future[\/[Fail, Work]]
+    def find(user: User, task: Task, version: Long)(implicit conn: Connection): Future[\/[Fail, Work]]
 
     def insert(work: Work)(implicit conn: Connection): Future[\/[Fail, Work]]
     def update(work: Work)(implicit conn: Connection): Future[\/[Fail, Work]]

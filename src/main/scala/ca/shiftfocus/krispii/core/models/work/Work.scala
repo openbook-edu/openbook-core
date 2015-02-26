@@ -18,87 +18,11 @@ trait Work {
   val version: Long = 0
   val answer: AnyRef
   val isComplete: Boolean
-  val createdAt: Option[DateTime]
-  val updatedAt: Option[DateTime]
+  val createdAt: DateTime
+  val updatedAt: DateTime
 }
 
 object Work {
-
-  def apply(row: RowData): Work = {
-    row("work_type").asInstanceOf[Int] match {
-      case LongAnswer => LongAnswerWork(row)
-      case ShortAnswer => ShortAnswerWork(row)
-      case MultipleChoice => MultipleChoiceWork(row)
-      case Ordering => OrderingWork(row)
-      case Matching => MatchingWork(row)
-      case _ => throw new Exception("Retrieved an unknown task type from the database. You dun messed up now!")
-    }
-  }
-
-  implicit val jsonReads = new Reads[Work] {
-    def reads(js: JsValue) = JsSuccess({
-      val id         = (js \ "id").as[UUID]
-      val studentId  = (js \ "studentId").as[UUID]
-      val taskId     = (js \ "taskId"   ).as[UUID]
-      val version   = (js \ "version" ).as[Long]
-      val documentId = (js \ "documentId").asOpt[UUID]
-      val answer     = (js \ "answer")
-      val isComplete = (js \ "isComplete").as[Boolean]
-      val createdAt  = (js \ "createdAt").as[Option[DateTime]]
-      val updatedAt  = (js \ "updatedAt").as[Option[DateTime]]
-
-      (js \ "workType").as[Int] match {
-        case LongAnswer => LongAnswerWork(id = id,
-                                          studentId = studentId,
-                                          taskId = taskId,
-                                          documentId = documentId.get,
-                                          version = version,
-                                          answer = answer.as[String],
-                                          isComplete = isComplete,
-                                          createdAt = createdAt,
-                                          updatedAt = updatedAt)
-
-        case ShortAnswer => ShortAnswerWork(id = id,
-                                            studentId = studentId,
-                                            taskId = taskId,
-                                            documentId = documentId.get,
-                                            version = version,
-                                            answer = answer.as[String],
-                                            isComplete = isComplete,
-                                            createdAt = createdAt,
-                                            updatedAt = updatedAt)
-
-        case MultipleChoice => MultipleChoiceWork(id = id,
-                                                  studentId = studentId,
-                                                  taskId = taskId,
-                                                  version = version,
-                                                  answer = answer.as[IndexedSeq[Int]],
-                                                  isComplete = isComplete,
-                                                  createdAt = createdAt,
-                                                  updatedAt = updatedAt)
-
-        case Ordering => OrderingWork(id = id,
-                                      studentId = studentId,
-                                      taskId = taskId,
-                                      version = version,
-                                      answer = answer.as[IndexedSeq[Int]],
-                                      isComplete = isComplete,
-                                      createdAt = createdAt,
-                                      updatedAt = updatedAt)
-
-        case Matching => MatchingWork(id = id,
-                                      studentId = studentId,
-                                      taskId = taskId,
-                                      version = version,
-                                      answer = answer.as[IndexedSeq[Match]],
-                                      isComplete = isComplete,
-                                      createdAt = createdAt,
-                                      updatedAt = updatedAt)
-
-        case _ => throw new Exception("Tried to unserialize a type of work that doesn't exist.")
-      }
-    })
-  }
 
   implicit val jsonWrites = new Writes[Work] {
     def writes(work: Work): JsValue = {

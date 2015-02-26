@@ -2,6 +2,8 @@ package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
+import ca.shiftfocus.krispii.core.models.tasks.Task._
 import ca.shiftfocus.krispii.core.models.tasks.{MatchingTask, Task}
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
@@ -12,12 +14,91 @@ import org.joda.time.DateTime
 import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
 
-trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent with PostgresRepository {
+trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent {
   self: PostgresDB =>
 
   val workRepository: WorkRepository = new WorkRepositoryPostgres
 
-  private class WorkRepositoryPostgres extends WorkRepository {
+  private class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work] {
+
+    override def constructor(row: RowData): Work = {
+      row("work_type").asInstanceOf[Int] match {
+        case LongAnswer => constructLongAnswerWork(row)
+        case ShortAnswer => constructShortAnswerWork(row)
+        case MultipleChoice => constructMultipleChoiceWork(row)
+        case Ordering => constructOrderingWork(row)
+        case Matching => constructMatchingWork(row)
+        case _ => throw new Exception("Retrieved an unknown task type from the database. You dun messed up now!")
+      }
+    }
+
+    private def constructLongAnswerWork(row: RowData): LongAnswerWork = {
+      LongAnswerWork(
+        id = UUID(row("id").asInstanceOf[Array[Byte]]),
+        studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
+        taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
+        documentId = UUID(row("long_answer_document_id").asInstanceOf[Array[Byte]]),
+        version = row("version").asInstanceOf[Long],
+        answer = "",
+        isComplete = row("is_complete").asInstanceOf[Boolean],
+        createdAt = row("created_at").asInstanceOf[DateTime],
+        updatedAt = row("updated_at").asInstanceOf[DateTime]
+      )
+    }
+
+    private def constructShortAnswerWork(row: RowData): ShortAnswerWork = {
+      ShortAnswerWork(
+        studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
+        taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
+        documentId = UUID(row("document_id").asInstanceOf[Array[Byte]]),
+        version  = row("version").asInstanceOf[Long],
+        answer    = "",
+        isComplete = row("is_complete").asInstanceOf[Boolean],
+        createdAt = row("created_at").asInstanceOf[DateTime],
+        updatedAt = row("updated_at").asInstanceOf[DateTime]
+      )
+    }
+
+    private def constructMultipleChoiceWork(row: RowData): MultipleChoiceWork = {
+      MultipleChoiceWork(
+        id = UUID(row("id").asInstanceOf[Array[Byte]]),
+        studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
+        taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
+        version  = row("version").asInstanceOf[Long],
+        answer    = row("answer").asInstanceOf[IndexedSeq[Int]],
+        isComplete = row("is_complete").asInstanceOf[Boolean],
+        createdAt = row("created_at").asInstanceOf[DateTime],
+        updatedAt = row("updated_at").asInstanceOf[DateTime]
+      )
+    }
+
+    private def constructOrderingWork(row: RowData): OrderingWork = {
+      OrderingWork(
+        id = UUID(row("id").asInstanceOf[Array[Byte]]),
+        studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
+        taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
+        version  = row("version").asInstanceOf[Long],
+        answer    = row("answer").asInstanceOf[IndexedSeq[Int]],
+        isComplete = row("is_complete").asInstanceOf[Boolean],
+        createdAt = row("created_at").asInstanceOf[DateTime],
+        updatedAt = row("updated_at").asInstanceOf[DateTime]
+      )
+    }
+
+    private def constructMatchingWork(row: RowData): MatchingWork = {
+      MatchingWork(
+        id = UUID(row("id").asInstanceOf[Array[Byte]]),
+        studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
+        taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
+        version  = row("version").asInstanceOf[Long],
+        answer    = row("answer").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element =>
+          Match(element(0), element(1))
+        },
+        isComplete = row("is_complete").asInstanceOf[Boolean],
+        createdAt = row("created_at").asInstanceOf[DateTime],
+        updatedAt = row("updated_at").asInstanceOf[DateTime]
+      )
+    }
 
     // -- Common query components --------------------------------------------------------------------------------------
 
@@ -225,15 +306,8 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent with Postg
      * @param user
      * @return
      */
-    override def list(user: User, project: Project): Future[\/[Fail, IndexedSeq[Work]]] = {
-      db.pool.sendPreparedStatement(SelectAllForUserProject, Array[Any](
-        project.id.bytes,
-        user.id.bytes
-      )).map {
-        result => buildEntityList(result.rows, Work.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+    override def list(user: User, project: Project)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Work]]] = {
+      queryList(SelectAllForUserProject, Seq[Any](project.id.bytes, user.id.bytes))
     }
 
     /**
@@ -243,15 +317,8 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent with Postg
      * @param user
      * @return
      */
-    override def list(user: User, task: Task): Future[\/[Fail, IndexedSeq[Work]]] = {
-      db.pool.sendPreparedStatement(ListRevisionsById, Array[Any](
-        task.id.bytes,
-        user.id.bytes
-      )).map {
-        result => buildEntityList(result.rows, Work.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+    override def list(user: User, task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Work]]] = {
+      queryList(ListRevisionsById, Seq[Any](task.id.bytes, user.id.bytes))
     }
 
     /**
@@ -260,14 +327,8 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent with Postg
      * @param task
      * @return
      */
-    override def list(task: Task): Future[\/[Fail, IndexedSeq[Work]]] = {
-      db.pool.sendPreparedStatement(SelectAllForTask, Array[Any](
-        task.id.bytes
-      )).map {
-        result => buildEntityList(result.rows, Work.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+    override def list(task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Work]]] = {
+      queryList(SelectAllForTask, Seq[Any](task.id.bytes))
     }
 
     /**
@@ -276,17 +337,10 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent with Postg
      * @param workId
      * @return
      */
-    override def find(workId: UUID): Future[\/[Fail, Work]] = {
-      db.pool.sendPreparedStatement(SelectById, Array[Any](
-        workId.bytes
-      )).map {
-        result => buildEntity(result.rows, Work.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+    override def find(workId: UUID)(implicit conn: Connection): Future[\/[Fail, Work]] = {
+      queryOne(SelectById, Seq[Any](workId.bytes))
     }
 
-    // TODO - update ScalaDoc.
     /**
      * Find the latest revision of a single work.
      *
@@ -294,15 +348,8 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent with Postg
      * @param user
      * @return
      */
-    override def find(user: User, task: Task): Future[\/[Fail, Work]] = {
-      db.pool.sendPreparedStatement(SelectByStudentTaskCourse, Array[Any](
-        user.id.bytes,
-        task.id.bytes
-      )).map {
-        result => buildEntity(result.rows, Work.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+    override def find(user: User, task: Task)(implicit conn: Connection): Future[\/[Fail, Work]] = {
+      queryOne(SelectByStudentTaskCourse, Seq[Any](user.id.bytes, task.id.bytes))
     }
 
     /**
@@ -312,16 +359,8 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent with Postg
      * @param user
      * @return
      */
-    override def find(user: User, task: Task, version: Long): Future[\/[Fail, Work]] = {
-      db.pool.sendPreparedStatement(SelectByStudentTaskCourse, Array[Any](
-        user.id.bytes,
-        task.id.bytes,
-        version
-      )).map {
-        result => buildEntity(result.rows, Work.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+    override def find(user: User, task: Task, version: Long)(implicit conn: Connection): Future[\/[Fail, Work]] = {
+      queryOne(SelectByStudentTaskCourse, Seq[Any](user.id.bytes, task.id.bytes, version))
     }
 
     /**
@@ -362,11 +401,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent with Postg
         case specific: MatchingWork => baseParams ++ Array[Any](Task.Matching, specific.answer.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => s"${item.left}:${item.right}"})
       }
 
-      conn.sendPreparedStatement(query, params).map {
-        result => buildEntity(result.rows, Work.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
+      queryOne(query, params)
     }
 
     /**
@@ -391,8 +426,8 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent with Postg
         case specific: MatchingWork => "matching_work"
       }
 
-      val future = if (newRevision) {
-        conn.sendPreparedStatement(UpdateWithNewRevision(tableName), Array[Any](
+     if (newRevision) {
+        queryOne(UpdateWithNewRevision(tableName), Seq[Any](
           work.version +1,
           work.isComplete,
           new DateTime,
@@ -404,7 +439,7 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent with Postg
         ))
       }
       else {
-        conn.sendPreparedStatement(UpdateKeepLatestRevision(tableName), Array[Any](
+        queryOne(UpdateKeepLatestRevision(tableName), Seq[Any](
           work.version,
           work.isComplete,
           new DateTime,
@@ -414,15 +449,8 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent with Postg
           work.answer
         ))
       }
-
-      future.map {
-        result => buildEntity(result.rows, Work.apply)
-      }.recover {
-        case exception: Throwable => throw exception
-      }
     }
 
-    // TODO - as in Work table ID field is primary (unique constraint and a not-null constraint), how we can have two works with the same id but different versions?
     /**
      * Delete a specific revision of a work.
      *
@@ -431,30 +459,18 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent with Postg
      * @return
      */
     override def delete(work: Work, thisRevisionOnly: Boolean = false)(implicit conn: Connection): Future[\/[Fail, Work]] = {
-      val fDelete = if (thisRevisionOnly) {
-        conn.sendPreparedStatement(DeleteRevision, Array[Any](
+      if (thisRevisionOnly) {
+        queryOne(DeleteRevision, Seq[Any](
           work.studentId.bytes,
           work.taskId.bytes,
           work.version
         ))
       }
       else {
-        conn.sendPreparedStatement(Delete, Array[Any](
+        queryOne(Delete, Seq[Any](
           work.studentId.bytes,
           work.taskId.bytes
         ))
-      }
-
-      fDelete.map {
-        result => {
-          if (result.rowsAffected == 0) {
-            -\/(GenericFail("No rows were modified"))
-          } else {
-            \/-(work)
-          }
-        }
-      }.recover {
-        case exception: Throwable => throw exception
       }
     }
 
@@ -470,15 +486,9 @@ trait WorkRepositoryPostgresComponent extends WorkRepositoryComponent with Postg
      */
     override def delete(task: Task)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Work]]] = {
       (for {
-        tasks <- lift(list(task))
-        deletedWorks <- lift(conn.sendPreparedStatement(DeleteAllForTask, Array[Any](task.id.bytes)).map({
-          result =>
-            if (result.rowsAffected == tasks.length) \/-(tasks)
-            else -\/(GenericFail("Failed to delete all tasks"))
-        }))
-      } yield deletedWorks).run.recover {
-        case exception: Throwable => throw exception
-      }
+        works <- lift(list(task))
+        deletedWorks <- lift(queryNumRows(DeleteAllForTask, Seq[Any](task.id.bytes))(0 < _))
+      } yield works).run
     }
   }
 }

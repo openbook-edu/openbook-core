@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.fail.Fail
+import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
@@ -20,6 +21,8 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
   override val componentService: ComponentService = new ComponentServiceImpl
 
   private class ComponentServiceImpl extends ComponentService {
+
+    implicit def conn: Connection = db.pool
 
     /**
      * List all components.
@@ -99,7 +102,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
         thingsToThinkAbout = thingsToThinkAbout,
         soundcloudId = soundcloudId
       )
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         componentRepository.insert(newComponent)
       }
     }
@@ -112,7 +115,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
         thingsToThinkAbout = thingsToThinkAbout,
         content = content
       )
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         componentRepository.insert(newComponent)
       }
     }
@@ -127,7 +130,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
         width = width,
         height = height
       )
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         componentRepository.insert(newComponent)
       }
     }
@@ -137,7 +140,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
                              questions: Option[String],
                              thingsToThinkAbout: Option[String],
                              soundcloudId: Option[String]): Future[\/[Fail, Component]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         (for {
           existingComponent <- lift(componentRepository.find(id))
           existingAudio = existingComponent.asInstanceOf[AudioComponent]
@@ -160,7 +163,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
                             questions: Option[String],
                             thingsToThinkAbout: Option[String],
                             content: Option[String]): Future[\/[Fail, Component]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         (for {
           existingComponent <- lift(componentRepository.find(id))
           existingText = existingComponent.asInstanceOf[TextComponent]
@@ -185,7 +188,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
                              vimeoId: Option[String],
                              width: Option[Int],
                              height: Option[Int]): Future[\/[Fail, Component]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         (for {
           existingComponent <- lift(componentRepository.find(id))
           existingVideo = existingComponent.asInstanceOf[VideoComponent]
@@ -206,7 +209,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
     }
 
     override def delete(id: UUID, version: Long): Future[\/[Fail, Component]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         (for {
           component <- lift(componentRepository.find(id)(db.pool))
           toDelete = component match {
@@ -230,7 +233,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
      * @param partId the unique ID of the part to add the component to
      */
     override def addToPart(componentId: UUID, partId: UUID): Future[\/[Fail, Component]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fComponent = componentRepository.find(componentId)(db.pool)
         val fPart = projectService.findPart(partId)
 
@@ -239,7 +242,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
           part <- lift(fPart)
           addedComp <- lift(componentRepository.addToPart(component, part))
         }
-        yield addedComp).run
+        yield component).run
       }
     }
 
@@ -255,7 +258,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
      * @return the operation was successful
      */
     override def removeFromPart(componentId: UUID, partId: UUID): Future[\/[Fail, Component]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         val fComponent = componentRepository.find(componentId)(db.pool)
         val fPart = projectService.findPart(partId)
 
@@ -264,7 +267,7 @@ trait ComponentServiceImplComponent extends ComponentServiceComponent {
           part <- lift(fPart)
           wasRemoved <- lift(componentRepository.removeFromPart(component, part))
         }
-        yield wasRemoved).run
+        yield component).run
       }
     }
 

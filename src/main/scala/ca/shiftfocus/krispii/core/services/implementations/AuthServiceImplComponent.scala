@@ -5,6 +5,7 @@ import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.uuid.UUID
+import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import play.api.i18n.Messages
 import scala.concurrent.Future
@@ -47,9 +48,9 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      */
     override def list: Future[\/[Fail, IndexedSeq[UserInfo]]] = {
       (for {
-        users <- lift(userRepository.list)
+        users <- lift(userRepository.list(db.pool))
         result <- liftSeq { users.map { user =>
-          val fRoles = roleRepository.list(user)
+          val fRoles = roleRepository.list(user)(db.pool)
           val fCourses = schoolService.listCoursesByUser(user.id)
           (for {
             roles <- lift(fRoles)
@@ -87,7 +88,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
     override def authenticate(identifier: String, password: String): Future[\/[Fail, User]] = {
       transactional { implicit conn =>
         (for {
-          user <- lift(userRepository.find(identifier.trim))
+          user <- lift(userRepository.find(identifier.trim)(db.pool))
           userHash = user.hash.getOrElse("")
           authUser <- lift(Future.successful {
             if (Passwords.scrypt().verify(password.trim(), userHash)) {
@@ -180,8 +181,8 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      */
     override def find(id: UUID): Future[\/[Fail, UserInfo]] = {
       (for {
-        user <- lift(userRepository.find(id))
-        fRoles = roleRepository.list(user)
+        user <- lift(userRepository.find(id)(db.pool))
+        fRoles = roleRepository.list(user)(db.pool)
         fCourses = schoolService.listCoursesByUser(user.id)
         roles <- lift(fRoles)
         courses <- lift(fCourses)
@@ -196,8 +197,8 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      */
     override def find(identifier: String): Future[\/[Fail, UserInfo]] = {
       (for {
-        user <- lift(userRepository.find(identifier))
-        fRoles = roleRepository.list(user)
+        user <- lift(userRepository.find(identifier)(db.pool))
+        fRoles = roleRepository.list(user)(db.pool)
         fCourses = schoolService.listCoursesByUser(user.id)
         roles <- lift(fRoles)
         courses <- lift(fCourses)
@@ -217,15 +218,11 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      */
     override def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.random): Future[\/[Fail, UserInfo]] = {
       transactional { implicit conn =>
-        // Before we do anything, we need to verify that the username and email are
-        // unique. Throw a temper tantrum if they aren't.
-        val fValidEmail = validateEmail(email)
-        val fValidUsername = validateUsername(username)
         val webcrank = Passwords.scrypt()
 
         (for {
-          validEmail <- lift(fValidEmail)
-          validUsername <- lift(fValidUsername)
+          validEmail <- lift(validateEmail(email))
+          validUsername <- lift(validateUsername(username))
           validPassword <- lift(isValidPassword(password))
           passwordHash = Some(webcrank.crypt(password))
           newUser <- lift {
@@ -356,7 +353,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @return a future disjunction containing the deleted user, or a failure
      */
     override def delete(id: UUID, version: Long): Future[\/[Fail, User]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         (for {
           existingUser <- lift(userRepository.find(id))
           _ <- predicate (existingUser.version == version) (LockFail(Messages("services.AuthService.userUpdate.lockFail", version, existingUser.version)))
@@ -372,7 +369,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @return an array of Roles
      */
     override def listRoles: Future[\/[Fail, IndexedSeq[Role]]] = {
-      roleRepository.list
+      roleRepository.list(db.pool)
     }
 
     /**
@@ -383,8 +380,8 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      */
     override def listRoles(userId: UUID): Future[\/[Fail, IndexedSeq[Role]]] = {
       val result = for {
-        user <- lift(userRepository.find(userId))
-        roles <- lift(roleRepository.list(user))
+        user <- lift(userRepository.find(userId)(db.pool))
+        roles <- lift(roleRepository.list(user)(db.pool))
       } yield roles
 
       result.run
@@ -397,7 +394,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @return an optional Role
      */
     override def findRole(id: UUID): Future[\/[Fail, Role]] = {
-      roleRepository.find(id)
+      roleRepository.find(id)(db.pool)
     }
 
     /**
@@ -407,7 +404,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @return an optional Role
      */
     override def findRole(name: String): Future[\/[Fail, Role]] = {
-      roleRepository.find(name)
+      roleRepository.find(name)(db.pool)
     }
 
     /**
@@ -476,8 +473,8 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      */
     override def addRole(userId: UUID, roleName: String): Future[\/[Fail, UserInfo]] = {
       transactional { implicit conn =>
-        val fUser = userRepository.find(userId)
-        val fRole = roleRepository.find(roleName)
+        val fUser = userRepository.find(userId)(db.pool)
+        val fRole = roleRepository.find(roleName)(db.pool)
         (for {
           user <- lift(fUser)
           role <- lift(fRole)
@@ -498,8 +495,8 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      */
     override def removeRole(userId: UUID, roleName: String): Future[\/[Fail, UserInfo]] = {
       transactional { implicit conn =>
-        val fUser = userRepository.find(userId)
-        val fRole = roleRepository.find(roleName)
+        val fUser = userRepository.find(userId)(db.pool)
+        val fRole = roleRepository.find(roleName)(db.pool)
         (for {
           user <- lift(fUser)
           role <- lift(fRole)
@@ -519,8 +516,8 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      */
     override def addUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[Fail, Role]] = {
       transactional { implicit conn =>
-        val fRole = roleRepository.find(roleId)
-        val fUsers = userRepository.list(userIds)
+        val fRole = roleRepository.find(roleId)(db.pool)
+        val fUsers = userRepository.list(userIds)(db.pool)
 
         (for {
           role <- lift(fRole)
@@ -540,8 +537,8 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      */
     override def removeUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[Fail, Role]] = {
       transactional { implicit conn =>
-        val fRole = roleRepository.find(roleId)
-        val fUsers = userRepository.list(userIds)
+        val fRole = roleRepository.find(roleId)(db.pool)
+        val fUsers = userRepository.list(userIds)(db.pool)
 
         (for {
           role <- lift(fRole)
@@ -596,7 +593,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param existingId
      * @return
      */
-    private def validateEmail(email: String, existingId: Option[UUID] = None): Future[\/[Fail, String]] = {
+    private def validateEmail(email: String, existingId: Option[UUID] = None)(implicit conn: Connection): Future[\/[Fail, String]] = {
       val existing = for {
         validEmail <- lift(isValidEmail(email))
         existingUser <- lift(userRepository.find(validEmail))
@@ -620,7 +617,7 @@ trait AuthServiceImplComponent extends AuthServiceComponent {
      * @param existingId
      * @return
      */
-    private def validateUsername(username: String, existingId: Option[UUID] = None): Future[\/[Fail, String]] = {
+    private def validateUsername(username: String, existingId: Option[UUID] = None)(implicit conn: Connection): Future[\/[Fail, String]] = {
       val existing = for {
         validUsername <- lift(isValidUsername(username))
         existingUser <- lift(userRepository.find(validUsername))

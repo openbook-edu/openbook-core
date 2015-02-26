@@ -17,10 +17,10 @@ trait CourseScheduleExceptionRepositoryComponent extends FutureMonad {
   val courseScheduleExceptionRepository: CourseScheduleExceptionRepository
 
   trait CourseScheduleExceptionRepository {
-    def list(course: Course): Future[\/[Fail, IndexedSeq[CourseScheduleException]]]
-    def list(user: User, course: Course): Future[\/[Fail, IndexedSeq[CourseScheduleException]]]
+    def list(course: Course)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[CourseScheduleException]]]
+    def list(user: User, course: Course)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[CourseScheduleException]]]
 
-    def find(id: UUID): Future[\/[Fail, CourseScheduleException]]
+    def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, CourseScheduleException]]
 
     def insert(courseSchedule: CourseScheduleException)(implicit conn: Connection): Future[\/[Fail, CourseScheduleException]]
     def update(courseSchedule: CourseScheduleException)(implicit conn: Connection): Future[\/[Fail, CourseScheduleException]]

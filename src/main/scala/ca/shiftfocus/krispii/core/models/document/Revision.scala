@@ -19,14 +19,6 @@ case class Revision(
 
 object Revision {
 
-  implicit val reads: Reads[Revision] = (
-    (__ \ "documentId").read[UUID] and
-      (__ \ "version").read[Long] and
-      (__ \ "author").read[User] and
-      (__ \ "delta").read[Delta] and
-      (__ \ "createdAt").readNullable[DateTime]
-    )(Revision.apply(_: UUID, _: Long, _: User, _: Delta, _: Option[DateTime]))
-
   implicit val writes: Writes[Revision] = (
     (__ \ "documentId").write[UUID] and
       (__ \ "version").write[Long] and

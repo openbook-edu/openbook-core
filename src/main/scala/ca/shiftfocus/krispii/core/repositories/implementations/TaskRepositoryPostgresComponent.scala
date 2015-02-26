@@ -340,7 +340,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      *
      * @return a vector of the returned tasks
      */
-    override def list:Future[\/[Fail, IndexedSeq[Task]]] = {
+    override def list(implicit conn: Connection):Future[\/[Fail, IndexedSeq[Task]]] = {
       queryList(SelectAll)
     }
 
@@ -350,7 +350,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * @param part The part to return tasks from.
      * @return a vector of the returned tasks
      */
-    override def list(part: Part): Future[\/[Fail, IndexedSeq[Task]]] = {
+    override def list(part: Part)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Task]]] = {
       queryList(SelectByPartId, Array[Any](part.id.bytes))
     }
 
@@ -360,7 +360,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * @param project The project to return parts from.
      * @return a vector of the returned tasks
      */
-    override def list(project: Project): Future[\/[Fail, IndexedSeq[Task]]] = {
+    override def list(project: Project)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Task]]] = {
       queryList(SelectByProjectId, Array[Any](project.id.bytes))
     }
 
@@ -370,7 +370,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * @param project the [[Project]] to list tasks from.
      * @param partNum the position of the part to list tasks from.
      */
-    override def list(project: Project, partNum: Int): Future[\/[Fail, IndexedSeq[Task]]] = {
+    override def list(project: Project, partNum: Int)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Task]]] = {
       (for {
         part <- lift(partRepository.find(project, partNum))
         tasks <- lift(list(part))
@@ -383,7 +383,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * @param id the UUID to search for
      * @return an optional task if one was found
      */
-    override def find(id: UUID): Future[\/[Fail, Task]] = {
+    override def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, Task]] = {
       queryOne(SelectOne, Seq[Any](id.bytes))
     }
 
@@ -394,7 +394,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * @param project
      * @return
      */
-    override def findNow(user: User, project: Project): Future[\/[Fail, Task]] = {
+    override def findNow(user: User, project: Project)(implicit conn: Connection): Future[\/[Fail, Task]] = {
       queryOne(SelectNowByUserId, Seq[Any](user.id.bytes, project.id.bytes))
     }
 
@@ -407,7 +407,7 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
      * @param taskNum the number of the task within its part
      * @return an optional task if one was found
      */
-    override def find(project: Project, partNum: Int, taskNum: Int): Future[\/[Fail, Task]] = {
+    override def find(project: Project, partNum: Int, taskNum: Int)(implicit conn: Connection): Future[\/[Fail, Task]] = {
       (for {
         part <- lift(partRepository.find(project, partNum))
         task <- lift(queryOne(SelectByPosition, Seq[Any](partNum, project.id.bytes, taskNum)))
@@ -573,8 +573,8 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
         position = row("position").asInstanceOf[Int],
         version = row("version").asInstanceOf[Long],
         settings = CommonTaskSettings(row),
-        createdAt = Some(row("created_at").asInstanceOf[DateTime]),
-        updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
+        createdAt = row("created_at").asInstanceOf[DateTime],
+        updatedAt = row("updated_at").asInstanceOf[DateTime]
       )
     }
 
@@ -592,8 +592,8 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
         version = row("version").asInstanceOf[Long],
         settings = CommonTaskSettings(row),
         maxLength = row("max_length").asInstanceOf[Int],
-        createdAt = Some(row("created_at").asInstanceOf[DateTime]),
-        updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
+        createdAt = row("created_at").asInstanceOf[DateTime],
+        updatedAt = row("updated_at").asInstanceOf[DateTime]
       )
     }
 
@@ -614,8 +614,8 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
         answer  = Option(row("answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
         allowMultiple = row("allow_multiple").asInstanceOf[Boolean],
         randomizeChoices = row("randomize").asInstanceOf[Boolean],
-        createdAt = Some(row("created_at").asInstanceOf[DateTime]),
-        updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
+        createdAt = row("created_at").asInstanceOf[DateTime],
+        updatedAt = row("updated_at").asInstanceOf[DateTime]
       )
     }
 
@@ -635,8 +635,8 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
         elements = Option(row("choices").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
         answer  = Option(row("answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
         randomizeChoices = row("randomize").asInstanceOf[Boolean],
-        createdAt = Some(row("created_at").asInstanceOf[DateTime]),
-        updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
+        createdAt = row("created_at").asInstanceOf[DateTime],
+        updatedAt = row("updated_at").asInstanceOf[DateTime]
       )
     }
 
@@ -660,8 +660,8 @@ trait TaskRepositoryPostgresComponent extends TaskRepositoryComponent {
           Match(split(0).toInt, split(1).toInt)
         },
         randomizeChoices = row("randomize").asInstanceOf[Boolean],
-        createdAt = Some(row("created_at").asInstanceOf[DateTime]),
-        updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
+        createdAt = row("created_at").asInstanceOf[DateTime],
+        updatedAt = row("updated_at").asInstanceOf[DateTime]
       )
     }
   }

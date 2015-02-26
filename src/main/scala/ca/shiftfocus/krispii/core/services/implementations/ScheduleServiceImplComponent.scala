@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.fail.Fail
+import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
@@ -22,6 +23,8 @@ trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
   override val scheduleService: ScheduleService = new ScheduleServiceImpl
 
   private class ScheduleServiceImpl extends ScheduleService {
+
+    implicit def conn: Connection = db.pool
 
     /**
      * List all schedules for a specific course.
@@ -58,7 +61,7 @@ trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
      * @return the newly created course schedule
      */
     override def create(courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String): Future[\/[Fail, CourseSchedule]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         (for {
           course <- lift(courseRepository.find(courseId))
           newSchedule = CourseSchedule(
@@ -90,7 +93,7 @@ trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
                         startTime: Option[LocalTime],
                         endTime: Option[LocalTime],
                         description: Option[String]): Future[\/[Fail, CourseSchedule]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         (for {
           courseSchedule <- lift(courseScheduleRepository.find(id))
           toUpdate = courseSchedule.copy(
@@ -115,7 +118,7 @@ trait ScheduleServiceImplComponent extends ScheduleServiceComponent {
      * @return a boolean indicating success or failure
      */
     override def delete(id: UUID, version: Long): Future[\/[Fail, CourseSchedule]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         (for {
           courseSchedule <- lift(courseScheduleRepository.find(id))
           toDelete = courseSchedule.copy(version = version)

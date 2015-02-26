@@ -25,8 +25,6 @@ trait ProjectServiceComponent {
     def updateSlug(id: UUID, version: Long, slug: String): Future[\/[Fail, Project]]
     def delete(id: UUID, version: Long): Future[\/[Fail, Project]]
 
-    def taskGroups(project: Project, user: User): Future[\/[Fail, IndexedSeq[TaskGroup]]]
-
     // Parts
     def listPartsInComponent(componentId: UUID): Future[\/[Fail, IndexedSeq[Part]]]
     def findPart(partId: UUID): Future[\/[Fail, Part]]

@@ -1,5 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
+import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import ca.shiftfocus.krispii.core.fail._
 import ca.shiftfocus.krispii.core.models._
@@ -30,13 +31,15 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
 
   private class ProjectServiceImpl extends ProjectService {
 
+    implicit def conn: Connection = db.pool
+    
     /**
      * Lists all projects.
      *
      * @return a future disjunction containing either a vector of projects, or a failure
      */
     override def list: Future[\/[Fail, IndexedSeq[Project]]] = {
-      projectRepository.list
+      projectRepository.list(db.pool)
     }
 
     /**
@@ -47,8 +50,8 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      */
     override def list(courseId: UUID): Future[\/[Fail, IndexedSeq[Project]]] = {
       (for {
-        course <- lift(courseRepository.find(courseId))
-        projects <- lift(projectRepository.list(course))
+        course <- lift(courseRepository.find(courseId)(db.pool))
+        projects <- lift(projectRepository.list(course)(db.pool))
       } yield projects).run
     }
 
@@ -58,7 +61,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @return an optional project
      */
     override def find(projectSlug: String): Future[\/[Fail, Project]] = {
-      projectRepository.find(projectSlug)
+      projectRepository.find(projectSlug)(db.pool)
     }
 
     /**
@@ -67,7 +70,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @return an optional project
      */
     override def find(id: UUID): Future[\/[Fail, Project]] = {
-      projectRepository.find(id)
+      projectRepository.find(id)(db.pool)
     }
 
     /**
@@ -79,8 +82,8 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      */
     override def find(projectId: UUID, userId: UUID): Future[\/[Fail, Project]] = {
       (for {
-        user <- lift(userRepository.find(userId))
-        project <- lift(projectRepository.find(projectId, user))
+        user <- lift(userRepository.find(userId)(db.pool))
+        project <- lift(projectRepository.find(projectId, user)(db.pool))
       }
       yield project).run
     }
@@ -92,9 +95,9 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      */
     override def find(projectSlug: String, userId: UUID): Future[\/[Fail, Project]] = {
       (for {
-        user <- lift(userRepository.find(userId))
-        project <- lift(projectRepository.find(projectSlug))
-        projectFiltered <- lift(projectRepository.find(project.id, user))
+        user <- lift(userRepository.find(userId)(db.pool))
+        project <- lift(projectRepository.find(projectSlug)(db.pool))
+        projectFiltered <- lift(projectRepository.find(project.id, user)(db.pool))
       }
       yield projectFiltered).run
     }
@@ -125,7 +128,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
 
       // Then insert the new project, part and task into the database, wrapped
       // in a transaction such that either all three are created, or none.
-      transactional { implicit connection =>
+      transactional { implicit conn: Connection =>
         (for {
           _              <- lift(validateSlug(slug))
           createdProject <- lift(projectRepository.insert(newProject))
@@ -155,7 +158,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
                             name: Option[String],
                             description: Option[String],
                             availability: Option[String]): Future[\/[Fail, Project]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn: Connection =>
         (for {
           existingProject <- lift(projectRepository.find(id))
           _ <- predicate (existingProject.version == version) (LockFail(Messages("services.ProjectService.updateInfo.lockFail", version, existingProject.version)))
@@ -180,7 +183,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @return
      */
     override def updateSlug(id: UUID, version: Long, slug: String): Future[\/[Fail, Project]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn: Connection =>
         (for {
           existingProject <- lift(projectRepository.find(id))
           _ <- predicate (existingProject.version == version) (LockFail(Messages("services.ProjectService.updateSlug.lockFail", version, existingProject.version)))
@@ -202,7 +205,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @return a boolean indicating success/failure
      */
     override def delete(id: UUID, version: Long): Future[\/[Fail, Project]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn: Connection =>
         (for {
           project <- lift(find(id))
           _ <- predicate (project.version == version) (LockFail(Messages("services.ProjectService.delete.lockFail", version, project.version)))
@@ -213,16 +216,6 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
         yield projectDeleted).run
       }
     }
-
-    /**
-     * Given a project, get a map of the task IDs under the project and each task's
-     * corresponding student work for that task.
-     *
-     * @param project  the unique ID for the project
-     * @param user  the user to fetch information for
-     * @return a vector of [[TaskGroup]] objects
-     */
-    override def taskGroups(project: Project, user: User): Future[\/[Fail, IndexedSeq[TaskGroup]]] = ???
 
     /**
      * List the parts that have a component.
@@ -248,7 +241,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @return a vector of this project's parts
      */
     override def findPart(partId: UUID): Future[\/[Fail, Part]] = {
-      partRepository.find(partId)
+      partRepository.find(partId)(db.pool)
     }
 
     /**
@@ -266,7 +259,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      *                 been taken, the existing parts will be shifted down.
      */
     override def createPart(projectId: UUID, name: String, description: String, position: Int): Future[\/[Fail, Part]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn: Connection =>
         (for {
           project <- lift(projectRepository.find(projectId))
           partList <- lift(partRepository.list(project))
@@ -298,7 +291,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      *     to update its part list after calling update.
      */
     override def updatePart(partId: UUID, version: Long, name: String, newPosition: Int): Future[\/[Fail, Part]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn: Connection =>
         (for {
           existingPart <- lift(partRepository.find(partId))
           _ <- predicate (existingPart.version == version) (LockFail(Messages("services.ProjectService.updatePart.lockFail", version, existingPart.version)))
@@ -349,7 +342,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @return a boolean indicator whether the operation was successful
      */
     override def deletePart(partId: UUID, version: Long): Future[\/[Fail, Part]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn: Connection =>
         (for {
           part <- lift(partRepository.find(partId))
           project <- lift(projectRepository.find(part.projectId))
@@ -376,7 +369,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @return a future disjunction containing either the toggled part, or a failure
      */
     override def togglePart(partId: UUID, version: Long): Future[\/[Fail, Part]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn: Connection =>
         (for {
           part <- lift(partRepository.find(partId))
           toUpdate = part.copy(version = version, enabled = if (part.enabled) false else true)
@@ -394,17 +387,19 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @return a future disjunction containing either the updated project, or a failure
      */
     override def reorderParts(projectId: UUID, partIds: IndexedSeq[UUID]): Future[\/[Fail, Project]] = {
-      (for {
-        project <- lift(projectRepository.find(projectId))
-        parts <- lift(partRepository.list(project))
-        reordered <- lift {
-          val orderedParts = parts.map { part =>
-            part.copy(position = partIds.indexOf(part.id)+1)
+      transactional { implicit conn: Connection =>
+        (for {
+          project <- lift(projectRepository.find(projectId))
+          parts <- lift(partRepository.list(project))
+          reordered <- lift {
+            val orderedParts = parts.map { part =>
+              part.copy(position = partIds.indexOf(part.id)+1)
+            }
+            serializedT(orderedParts)(partRepository.update)
           }
-          partRepository.reorder(project, orderedParts)(db.pool)
-        }
-        project <- lift(projectRepository.find(projectId))
-      } yield project).run
+          project <- lift(projectRepository.find(projectId))
+        } yield project).run
+      }
     }
 
     /**
@@ -418,7 +413,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @return the newly created task
      */
     override def createTask(partId: UUID, taskType: Int, name: String, description: String, position: Int, dependencyId: Option[UUID]): Future[\/[Fail, Task]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn: Connection =>
         (for {
           part <- lift(partRepository.find(partId))
           taskList <- lift(taskRepository.list(part))
@@ -469,7 +464,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * Find a task by its ID.
      */
     override def findTask(taskId: UUID): Future[\/[Fail, Task]] = {
-      taskRepository.find(taskId)
+      taskRepository.find(taskId)(db.pool)
     }
 
     /**
@@ -483,8 +478,8 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      */
     override def findTask(projectSlug: String, partNum: Int, taskNum: Int): Future[\/[Fail, Task]] = {
       (for {
-        project <- lift(projectRepository.find(projectSlug))
-        taskOption <- lift(taskRepository.find(project, partNum, taskNum))
+        project <- lift(projectRepository.find(projectSlug)(db.pool))
+        taskOption <- lift(taskRepository.find(project, partNum, taskNum)(db.pool))
       }
       yield taskOption).run
     }
@@ -498,9 +493,9 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      */
     override def findNowTask(userId: UUID, projectId: UUID): Future[\/[Fail, Task]] = {
       (for {
-        student <- lift(userRepository.find(userId))
-        project <- lift(projectRepository.find(projectId))
-        taskOption <- lift(taskRepository.findNow(student, project))
+        student <- lift(userRepository.find(userId)(db.pool))
+        project <- lift(projectRepository.find(projectId)(db.pool))
+        taskOption <- lift(taskRepository.findNow(student, project)(db.pool))
       }
       yield taskOption).run
     }
@@ -513,7 +508,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * correct order.
      */
     private def updateTask(existingTask: Task, updatedTask: Task): Future[\/[Fail, Task]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn: Connection =>
         (for {
           oldPart <- lift(partRepository.find(existingTask.partId))
           newPart <- lift(partRepository.find(updatedTask.partId))
@@ -836,7 +831,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @return a boolean indicator whether the operation was successful
      */
     override def deleteTask(taskId: UUID, version: Long): Future[\/[Fail, Task]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn: Connection =>
         (for {
           genericTask <- lift(taskRepository.find(taskId))
           _ <- predicate (genericTask.version == version) (LockFail(Messages("services.ProjectService.deleteTask.lockFail", version, genericTask.version)))
@@ -876,18 +871,20 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @param newPosition the new position for this task
      */
     override def moveTask(partId: UUID, taskId: UUID, newPosition: Int): Future[\/[Fail, Task]] = {
-      (for {
-        task <- lift(taskRepository.find(taskId))
-        toUpdate = task match {
-          case task: LongAnswerTask =>     task.copy(position = newPosition, partId = partId)
-          case task: ShortAnswerTask =>    task.copy(position = newPosition, partId = partId)
-          case task: MultipleChoiceTask => task.copy(position = newPosition, partId = partId)
-          case task: OrderingTask =>       task.copy(position = newPosition, partId = partId)
-          case task: MatchingTask =>       task.copy(position = newPosition, partId = partId)
-          case _ => throw new Exception("Gold star for epic coding failure.")
-        }
-        movedTask <- lift(this.updateTask(task, toUpdate))
-      } yield movedTask).run
+      transactional { implicit conn: Connection =>
+        (for {
+          task <- lift(taskRepository.find(taskId))
+          toUpdate = task match {
+            case task: LongAnswerTask =>     task.copy(position = newPosition, partId = partId)
+            case task: ShortAnswerTask =>    task.copy(position = newPosition, partId = partId)
+            case task: MultipleChoiceTask => task.copy(position = newPosition, partId = partId)
+            case task: OrderingTask =>       task.copy(position = newPosition, partId = partId)
+            case task: MatchingTask =>       task.copy(position = newPosition, partId = partId)
+            case _ => throw new Exception("Gold star for epic coding failure.")
+          }
+          movedTask <- lift(this.updateTask(task, toUpdate))
+        } yield movedTask).run
+      }
     }
 
     /**
@@ -908,7 +905,7 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      * @param existingId an optional unique id for an existing project to exclude
      * @return a future disjunction containing either the slug, or a failure
      */
-    private def validateSlug(slug: String, existingId: Option[UUID] = None): Future[\/[Fail, String]] = {
+    private def validateSlug(slug: String, existingId: Option[UUID] = None)(implicit conn: Connection): Future[\/[Fail, String]] = {
       val existing = for {
         validSlug <- lift(isValidSlug(slug))
         project <- lift(projectRepository.find(validSlug))

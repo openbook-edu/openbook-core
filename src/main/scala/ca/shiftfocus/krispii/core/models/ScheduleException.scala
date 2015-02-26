@@ -10,7 +10,6 @@ import play.api.libs.json._
 import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
-
 case class CourseScheduleException(
   id: UUID = UUID.random,
   userId: UUID,
@@ -19,24 +18,11 @@ case class CourseScheduleException(
   day: LocalDate,
   startTime: LocalTime,
   endTime: LocalTime,
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 )
 
 object CourseScheduleException extends LocalDateTimeJson {
-
-  implicit val courseScheduleReads: Reads[CourseScheduleException] = (
-    (__ \ "id").read[UUID] and
-      (__ \ "userId").read[UUID] and
-      (__ \ "courseId").read[UUID] and
-      (__ \ "version").read[Long] and
-      (__ \ "day").read[LocalDate] and
-      (__ \ "startTime").read[LocalTime] and
-      (__ \ "endTime").read[LocalTime] and
-      (__ \ "createdAt").readNullable[DateTime] and
-      (__ \ "updatedAt").readNullable[DateTime]
-    )(CourseScheduleException.apply(_: UUID, _: UUID, _: UUID, _: Long, _: LocalDate, _: LocalTime, _: LocalTime, _: Option[DateTime], _: Option[DateTime]))
-
   implicit val courseScheduleWrites: Writes[CourseScheduleException] = (
     (__ \ "id").write[UUID] and
       (__ \ "userId").write[UUID] and
@@ -45,7 +31,7 @@ object CourseScheduleException extends LocalDateTimeJson {
       (__ \ "day").write[LocalDate] and
       (__ \ "startTime").write[LocalTime] and
       (__ \ "endTime").write[LocalTime] and
-      (__ \ "createdAt").writeNullable[DateTime] and
-      (__ \ "updatedAt").writeNullable[DateTime]
+      (__ \ "createdAt").write[DateTime] and
+      (__ \ "updatedAt").write[DateTime]
     )(unlift(CourseScheduleException.unapply))
 }

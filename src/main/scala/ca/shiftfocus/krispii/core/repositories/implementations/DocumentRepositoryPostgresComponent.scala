@@ -110,7 +110,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
         }
         (for {
           owner <- lift(maybeRowData match {
-            case Some(rowData) => userRepository.find(UUID(rowData("owner_id").asInstanceOf[Array[Byte]]))
+            case Some(rowData) => userRepository.find(UUID(rowData("owner_id").asInstanceOf[Array[Byte]]))(db.pool)
             case None => Future successful -\/(GenericFail("Invalid data returned from db."))
           })
           document <- lift(Future.successful(buildDocument(result.rows)(owner, IndexedSeq.empty[User])))
@@ -178,7 +178,7 @@ trait DocumentRepositoryPostgresComponent extends DocumentRepositoryComponent {
             case exception: Throwable => -\/(GenericFail("Received invalid data from the db. Could not instantiate UUID from author_id field."))
           }
         })
-        users <- lift(userRepository.list(authorIds))
+        users <- lift(userRepository.list(authorIds)(db.pool))
         userMap = HashMap(users.map({ user => (user.id, user) }): _*)
         revisions <- lift(Future successful {
           try {

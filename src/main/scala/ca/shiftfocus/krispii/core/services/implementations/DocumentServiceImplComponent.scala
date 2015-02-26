@@ -6,6 +6,7 @@ import ca.shiftfocus.krispii.core.models.document._
 import ca.shiftfocus.krispii.core.repositories.DocumentRepositoryComponent
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
+import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
 import org.joda.time.DateTime
 import scala.concurrent.Future
@@ -20,6 +21,8 @@ trait DocumentServiceImplComponent extends DocumentServiceComponent {
   override val documentService: DocumentService = new DocumentServiceImpl
 
   private class DocumentServiceImpl extends DocumentService {
+
+    implicit def conn: Connection = db.pool
 
     /**
      * Find a document.
@@ -54,7 +57,7 @@ trait DocumentServiceImplComponent extends DocumentServiceComponent {
      * @return
      */
     override def create(id: UUID = UUID.random, owner: User, title: String, initialDelta: Delta): Future[\/[Fail, Document]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         documentRepository.insert(
           Document(
             id = id,
@@ -77,7 +80,7 @@ trait DocumentServiceImplComponent extends DocumentServiceComponent {
      * @return
      */
     override def update(id: UUID, version: Long, owner: User, editors: IndexedSeq[User], title: String): Future[\/[Fail, Document]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         (for {
           document <- lift(documentRepository.find(id))
           updated <- lift(documentRepository.update(document.copy(title = title, owner = owner, editors = editors)))
@@ -106,7 +109,7 @@ trait DocumentServiceImplComponent extends DocumentServiceComponent {
      *                      against any additional edits they have in the clientside operation buffer.
      */
     override def push(documentId: UUID, version: Long, author: User, delta: Delta): Future[\/[Fail, PushResult]] = {
-      transactional { implicit connection =>
+      transactional { implicit conn =>
         (for {
           // 1. Get the document
           document <- lift(documentRepository.find(documentId))

@@ -185,7 +185,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
      */
     override def find(id: UUID)(implicit conn: Connection): Future[\/[Fail, Part]] = {
       (for {
-        part <- lift(queryOne(SelectOne, Array[Any](id.bytes)))
+        part <- lift(queryOne(SelectOne, Seq[Any](id.bytes)))
         taskList <- lift(taskRepository.list(part))
       } yield part.copy(tasks = taskList)).run
     }
@@ -211,7 +211,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
      * @return the new part
      */
     def insert(part: Part)(implicit conn: Connection): Future[\/[Fail, Part]] = {
-      val params = Seq(
+      val params = Seq[Any](
         part.id.bytes, 1, new DateTime, new DateTime,
         part.projectId.bytes, part.name, part.position, part.enabled
       )
@@ -235,7 +235,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
      * @return id of the saved/new Part.
      */
     def update(part: Part)(implicit conn: Connection): Future[\/[Fail, Part]] = {
-      val params = Seq(
+      val params = Seq[Any](
         part.projectId.bytes, part.name, part.position, part.enabled,
         part.version + 1, new DateTime, part.id.bytes, part.version
       )
@@ -259,7 +259,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
      * @return A boolean indicating whether the operation was successful.
      */
     def delete(part: Part)(implicit conn: Connection): Future[\/[Fail, Part]] = {
-      queryOne(Delete, Seq(part.id.bytes, part.version))
+      queryOne(Delete, Seq[Any](part.id.bytes, part.version))
     }
 
     /**
@@ -271,7 +271,7 @@ trait PartRepositoryPostgresComponent extends PartRepositoryComponent {
     def delete(project: Project)(implicit conn: Connection): Future[\/[Fail, IndexedSeq[Part]]] = {
       (for {
         partList <- lift(list(project))
-        deletedParts <- lift(queryList(DeleteByProject, Array(project.id.bytes)))
+        deletedParts <- lift(queryList(DeleteByProject, Seq[Any](project.id.bytes)))
       } yield deletedParts).run
     }
   }

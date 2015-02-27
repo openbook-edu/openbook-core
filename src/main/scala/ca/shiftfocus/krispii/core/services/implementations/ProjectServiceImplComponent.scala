@@ -602,10 +602,10 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      */
     override def updateLongAnswerTask(taskId: UUID,
                                       version: Long,
-                                      name: String,
-                                      description: String,
-                                      position: Int,
-                                      notesAllowed: Boolean,
+                                      name: Option[String],
+                                      description: Option[String],
+                                      position: Option[Int],
+                                      notesAllowed: Option[Boolean],
                                       dependencyId: Option[UUID] = None,
                                       partId: Option[UUID] = None): Future[\/[Fail, Task]] =
     {
@@ -615,11 +615,15 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
         _ <- predicate (task.isInstanceOf[LongAnswerTask]) (BadInput(Messages("services.ProjectService.updateLongAnswerTask.wrongTaskType")))
         toUpdate = task.asInstanceOf[LongAnswerTask].copy(
           partId = partId.getOrElse(task.partId),
-          position = position,
+          position = position.getOrElse(task.position),
           settings = task.settings.copy(
-            title = name,
-            description = description,
-            notesAllowed = notesAllowed
+            title = name.getOrElse(task.settings.title),
+            description = description.getOrElse(task.settings.description),
+            notesAllowed = notesAllowed.getOrElse(task.settings.notesAllowed),
+            dependencyId = dependencyId match {
+              case Some(newDepId) => Some(newDepId)
+              case None => task.settings.dependencyId
+            }
           )
         )
         updatedTask <- lift(updateTask(task, toUpdate))
@@ -642,11 +646,11 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      */
     def updateShortAnswerTask(taskId: UUID,
                               version: Long,
-                              name: String,
-                              description: String,
-                              position: Int,
-                              notesAllowed: Boolean,
-                              maxLength: Int,
+                              name: Option[String],
+                              description: Option[String],
+                              position: Option[Int],
+                              notesAllowed: Option[Boolean],
+                              maxLength: Option[Int],
                               dependencyId: Option[UUID] = None,
                               partId: Option[UUID] = None): Future[\/[Fail, Task]] =
     {
@@ -654,15 +658,20 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
         task <- lift(taskRepository.find(taskId))
         _ <- predicate (task.version == version) (LockFail(Messages("services.ProjectService.updatePart.lockFail", version, task.version)))
         _ <- predicate (task.isInstanceOf[ShortAnswerTask]) (BadInput(Messages("services.ProjectService.updateShortAnswerTask.wrongTaskType")))
-        toUpdate = task.asInstanceOf[ShortAnswerTask].copy(
+        shortAnswerTask = task.asInstanceOf[ShortAnswerTask]
+        toUpdate = shortAnswerTask.copy(
           partId = partId.getOrElse(task.partId),
-          position = position,
+          position = position.getOrElse(task.position),
           settings = task.settings.copy(
-            title = name,
-            description = description,
-            notesAllowed = notesAllowed
+            title = name.getOrElse(task.settings.title),
+            description = description.getOrElse(task.settings.description),
+            notesAllowed = notesAllowed.getOrElse(task.settings.notesAllowed),
+            dependencyId = dependencyId match {
+              case Some(newDepId) => Some(newDepId)
+              case None => task.settings.dependencyId
+            }
           ),
-          maxLength = maxLength
+          maxLength = maxLength.getOrElse(shortAnswerTask.maxLength)
         )
         updatedTask <- lift(updateTask(task, toUpdate))
       } yield updatedTask).run
@@ -687,14 +696,14 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      */
     def updateMultipleChoiceTask(taskId: UUID,
                                  version: Long,
-                                 name: String,
-                                 description: String,
-                                 position: Int,
-                                 notesAllowed: Boolean,
-                                 choices: IndexedSeq[String] = IndexedSeq(),
-                                 answer: IndexedSeq[Int] = IndexedSeq(),
-                                 allowMultiple: Boolean = false,
-                                 randomizeChoices: Boolean = true,
+                                 name: Option[String],
+                                 description: Option[String],
+                                 position: Option[Int],
+                                 notesAllowed: Option[Boolean],
+                                 choices: Option[IndexedSeq[String]] = Some(IndexedSeq()),
+                                 answer: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
+                                 allowMultiple: Option[Boolean] = Some(false),
+                                 randomizeChoices: Option[Boolean] = Some(true),
                                  dependencyId: Option[UUID] = None,
                                  partId: Option[UUID] = None): Future[\/[Fail, Task]] =
     {
@@ -702,18 +711,23 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
         task <- lift(taskRepository.find(taskId))
         _ <- predicate (task.version == version) (LockFail(Messages("services.ProjectService.updateTask.lockFail", version, task.version)))
         _ <- predicate (task.isInstanceOf[MultipleChoiceTask]) (BadInput(Messages("services.ProjectService.updateMultipleChoiceTask.wrongTaskType")))
-        toUpdate = task.asInstanceOf[MultipleChoiceTask].copy(
+        mcTask = task.asInstanceOf[MultipleChoiceTask]
+        toUpdate = mcTask.copy(
           partId = partId.getOrElse(task.partId),
-          position = position,
+          position = position.getOrElse(task.position),
           settings = task.settings.copy(
-            title = name,
-            description = description,
-            notesAllowed = notesAllowed
+            title = name.getOrElse(task.settings.title),
+            description = description.getOrElse(task.settings.description),
+            notesAllowed = notesAllowed.getOrElse(task.settings.notesAllowed),
+            dependencyId = dependencyId match {
+              case Some(newDepId) => Some(newDepId)
+              case None => mcTask.settings.dependencyId
+            }
           ),
-          choices = choices,
-          answer = answer,
-          allowMultiple = allowMultiple,
-          randomizeChoices = randomizeChoices
+          choices = choices.getOrElse(mcTask.choices),
+          answer = answer.getOrElse(mcTask.answer),
+          allowMultiple = allowMultiple.getOrElse(mcTask.allowMultiple),
+          randomizeChoices = randomizeChoices.getOrElse(mcTask.randomizeChoices)
         )
         updatedTask <- lift(updateTask(task, toUpdate))
       } yield updatedTask).run
@@ -737,13 +751,13 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      */
     def updateOrderingTask(taskId: UUID,
                            version: Long,
-                           name: String,
-                           description: String,
-                           position: Int,
-                           notesAllowed: Boolean,
-                           elements: IndexedSeq[String] = IndexedSeq(),
-                           answer: IndexedSeq[Int] = IndexedSeq(),
-                           randomizeChoices: Boolean = true,
+                           name: Option[String],
+                           description: Option[String],
+                           position: Option[Int],
+                           notesAllowed: Option[Boolean],
+                           elements: Option[IndexedSeq[String]] = Some(IndexedSeq()),
+                           answer: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
+                           randomizeChoices: Option[Boolean] = Some(true),
                            dependencyId: Option[UUID] = None,
                            partId: Option[UUID] = None): Future[\/[Fail, Task]] =
     {
@@ -751,17 +765,22 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
         task <- lift(taskRepository.find(taskId))
         _ <- predicate (task.version == version) (LockFail(Messages("services.ProjectService.updateTask.lockFail", version, task.version)))
         _ <- predicate (task.isInstanceOf[OrderingTask]) (BadInput(Messages("services.ProjectService.updateOrderingTask.wrongTaskType")))
-        toUpdate = task.asInstanceOf[OrderingTask].copy(
+        orderingTask = task.asInstanceOf[OrderingTask]
+        toUpdate = orderingTask.copy(
           partId = partId.getOrElse(task.partId),
-          position = position,
+          position = position.getOrElse(task.position),
           settings = task.settings.copy(
-            title = name,
-            description = description,
-            notesAllowed = notesAllowed
+            title = name.getOrElse(task.settings.title),
+            description = description.getOrElse(task.settings.description),
+            notesAllowed = notesAllowed.getOrElse(task.settings.notesAllowed),
+            dependencyId = dependencyId match {
+              case Some(newDepId) => Some(newDepId)
+              case None => task.settings.dependencyId
+            }
           ),
-          elements = elements,
-          answer = answer,
-          randomizeChoices = randomizeChoices
+          elements = elements.getOrElse(orderingTask.elements),
+          answer = answer.getOrElse(orderingTask.answer),
+          randomizeChoices = randomizeChoices.getOrElse(orderingTask.randomizeChoices)
         )
         updatedTask <- lift(updateTask(task, toUpdate))
       } yield updatedTask).run
@@ -786,14 +805,14 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
      */
     def updateMatchingTask(taskId: UUID,
                            version: Long,
-                           name: String,
-                           description: String,
-                           position: Int,
-                           notesAllowed: Boolean,
-                           elementsLeft: IndexedSeq[String] = IndexedSeq(),
-                           elementsRight: IndexedSeq[String] = IndexedSeq(),
-                           answer: IndexedSeq[MatchingTask.Match] = IndexedSeq(),
-                           randomizeChoices: Boolean = true,
+                           name: Option[String],
+                           description: Option[String],
+                           position: Option[Int],
+                           notesAllowed: Option[Boolean],
+                           elementsLeft: Option[IndexedSeq[String]] = Some(IndexedSeq()),
+                           elementsRight: Option[IndexedSeq[String]] = Some(IndexedSeq()),
+                           answer: Option[IndexedSeq[MatchingTask.Match]] = Some(IndexedSeq()),
+                           randomizeChoices: Option[Boolean] = Some(true),
                            dependencyId: Option[UUID] = None,
                            partId: Option[UUID] = None): Future[\/[Fail, Task]] =
     {
@@ -801,18 +820,23 @@ trait ProjectServiceImplComponent extends ProjectServiceComponent {
         task <- lift(taskRepository.find(taskId))
         _ <- predicate (task.version == version) (LockFail(Messages("services.ProjectService.updateTask.lockFail", version, task.version)))
         _ <- predicate (task.isInstanceOf[MatchingTask]) (BadInput(Messages("services.ProjectService.updateMatchingTask.wrongTaskType")))
-        toUpdate = task.asInstanceOf[MatchingTask].copy(
+        matchingTask = task.asInstanceOf[MatchingTask]
+        toUpdate = matchingTask.copy(
           partId = partId.getOrElse(task.partId),
-          position = position,
+          position = position.getOrElse(task.position),
           settings = task.settings.copy(
-            title = name,
-            description = description,
-            notesAllowed = notesAllowed
+            title = name.getOrElse(task.settings.title),
+            description = description.getOrElse(task.settings.description),
+            notesAllowed = notesAllowed.getOrElse(task.settings.notesAllowed),
+            dependencyId = dependencyId match {
+              case Some(newDepId) => Some(newDepId)
+              case None => task.settings.dependencyId
+            }
           ),
-          elementsLeft = elementsLeft,
-          elementsRight = elementsRight,
-          answer = answer,
-          randomizeChoices = randomizeChoices
+          elementsLeft = elementsLeft.getOrElse(matchingTask.elementsLeft),
+          elementsRight = elementsRight.getOrElse(matchingTask.elementsRight),
+          answer = answer.getOrElse(matchingTask.answer),
+          randomizeChoices = randomizeChoices.getOrElse(matchingTask.randomizeChoices)
         )
         updatedTask <- lift(updateTask(task, toUpdate))
       } yield updatedTask).run

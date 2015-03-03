@@ -18,7 +18,7 @@ import scala.collection.immutable.HashMap
 import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
 
-private class DocumentRepositoryPostgres(val userRepository: UserRepository) extends DocumentRepository {
+class DocumentRepositoryPostgres(val userRepository: UserRepository) extends DocumentRepository {
 
   val SelectDocument =
     s"""

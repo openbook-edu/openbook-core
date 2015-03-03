@@ -18,7 +18,7 @@ import scalaz.syntax.traverse._
 import scalaz._
 import Scalaz._
 
-private class ProjectRepositoryPostgres(val partRepository: PartRepository)
+class ProjectRepositoryPostgres(val partRepository: PartRepository)
   extends ProjectRepository with PostgresRepository[Project] {
 
   def constructor(row: RowData): Project = {

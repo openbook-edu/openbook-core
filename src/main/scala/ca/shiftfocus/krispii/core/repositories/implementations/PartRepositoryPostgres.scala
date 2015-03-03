@@ -16,7 +16,7 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
 import scalaz.{-\/, \/-, \/}
 
-private class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRepository with PostgresRepository[Part] {
+class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRepository with PostgresRepository[Part] {
 
   override def constructor(row: RowData): Part = {
     Part(

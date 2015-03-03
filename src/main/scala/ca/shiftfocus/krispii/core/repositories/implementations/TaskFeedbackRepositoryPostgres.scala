@@ -12,7 +12,7 @@ import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
 
 
-private class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with PostgresRepository[TaskFeedback] {
+class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with PostgresRepository[TaskFeedback] {
 
   def constructor(row: RowData): TaskFeedback = {
     TaskFeedback(

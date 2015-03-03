@@ -10,7 +10,7 @@ import org.joda.time.DateTime
 import scala.concurrent.Future
 import scalaz.{-\/, \/-, \/}
 
-private class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserRepository,
+class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserRepository,
                                                         val courseScheduleRepository: CourseScheduleRepository)
   extends CourseScheduleExceptionRepository with PostgresRepository[CourseScheduleException] {
 

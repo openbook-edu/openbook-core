@@ -1,10 +1,9 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.fail.{NoResults, Fail}
+import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models.ComponentScratchpad
 import com.github.mauricio.async.db.{Connection, RowData, ResultSet}
 import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
-
 import scala.concurrent.Future
 import scalaz.{-\/, \/-, \/}
 
@@ -20,7 +19,7 @@ trait PostgresRepository[A] {
    * @param conn
    * @return
    */
-  protected def queryOne(queryText: String, parameters: Seq[Any] = Seq.empty[Any])(implicit conn: Connection): Future[\/[Fail, A]] = {
+  protected def queryOne(queryText: String, parameters: Seq[Any] = Seq.empty[Any])(implicit conn: Connection): Future[\/[RepositoryError.Fail, A]] = {
     val fRes = if (parameters.nonEmpty) {
       conn.sendPreparedStatement(queryText, parameters)
     } else {
@@ -42,7 +41,7 @@ trait PostgresRepository[A] {
    * @param conn
    * @return
    */
-  protected def queryList(queryText: String, parameters: Seq[Any] = Seq.empty[Any])(implicit conn: Connection): Future[\/[Fail, IndexedSeq[A]]] = {
+  protected def queryList(queryText: String, parameters: Seq[Any] = Seq.empty[Any])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[A]]] = {
     val fRes = if (parameters.nonEmpty) {
       conn.sendPreparedStatement(queryText, parameters)
     } else {
@@ -67,7 +66,7 @@ trait PostgresRepository[A] {
    */
   protected def queryNumRows(queryText: String, parameters: Seq[Any] = Seq.empty[Any])
                             (compare: Long => Boolean)
-                            (implicit conn: Connection): Future[\/[Fail, Boolean]] =
+                            (implicit conn: Connection): Future[\/[RepositoryError.Fail, Boolean]] =
   {
     val fRes = if (parameters.nonEmpty) {
       conn.sendPreparedStatement(queryText, parameters)
@@ -89,15 +88,15 @@ trait PostgresRepository[A] {
    * @param maybeResultSet an optional [[ResultSet]] returned from the database
    * @param build a function that can build entities of type A from a [[RowData]] object
    * @tparam A the type of entity to be built
-   * @return a disjunction containing either a Fail, or an object of type A
+   * @return a disjunction containing either a RepositoryError.Fail, or an object of type A
    */
-  protected def buildEntity[B](maybeResultSet: Option[ResultSet], build: RowData => B): \/[Fail, B] = {
+  protected def buildEntity[B](maybeResultSet: Option[ResultSet], build: RowData => B): \/[RepositoryError.Fail, B] = {
     maybeResultSet match {
       case Some(resultSet) => resultSet.headOption match {
         case Some(firstRow) => \/-(build(firstRow))
-        case None => -\/(NoResults("The query was successful but ResultSet was empty."))
+        case None => -\/(RepositoryError.NoResults("The query was successful but ResultSet was empty."))
       }
-      case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
+      case None => -\/(RepositoryError.NoResults("The query was successful but no ResultSet was returned."))
     }
   }
 
@@ -108,12 +107,12 @@ trait PostgresRepository[A] {
    * @param maybeResultSet an optional [[ResultSet]] returned from the database
    * @param build a function that can build entities of type A from a [[RowData]] object
    * @tparam A the type of entity to be built
-   * @return a disjunction containing either a Fail, or an object of type A
+   * @return a disjunction containing either a RepositoryError.Fail, or an object of type A
    */
-  protected def buildEntityList[B](maybeResultSet: Option[ResultSet], build: RowData => B): \/[Fail, IndexedSeq[B]] = {
+  protected def buildEntityList[B](maybeResultSet: Option[ResultSet], build: RowData => B): \/[RepositoryError.Fail, IndexedSeq[B]] = {
     maybeResultSet match {
       case Some(resultSet) => \/-(resultSet.map(build))
-      case None => -\/(NoResults("The query was successful but no ResultSet was returned."))
+      case None => -\/(RepositoryError.NoResults("The query was successful but no ResultSet was returned."))
     }
   }
 

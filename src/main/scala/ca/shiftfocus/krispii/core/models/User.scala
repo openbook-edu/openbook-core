@@ -16,6 +16,7 @@ case class User(
   hash: Option[String] = None,
   givenname: String,
   surname: String,
+  roles: IndexedSeq[Role] = IndexedSeq.empty[Role],
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) {
@@ -49,6 +50,7 @@ object User {
         "email" -> user.email,
         "givenname" -> user.givenname,
         "surname" -> user.surname,
+        "roles" -> user.roles,
         "createdAt" -> user.createdAt,
         "updatedAt" -> user.updatedAt
       )

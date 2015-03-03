@@ -33,7 +33,7 @@ trait ComponentService extends Service[ErrorUnion#Fail] {
   def addToPart(componentId: UUID, partId: UUID): Future[\/[ErrorUnion#Fail, Component]]
   def removeFromPart(componentId: UUID, partId: UUID): Future[\/[ErrorUnion#Fail, Component]]
 
-  def userCanAccess(component: Component, userInfo: UserInfo): Future[\/[ErrorUnion#Fail, Boolean]]
+  def userCanAccess(component: Component, userInfo: User): Future[\/[ErrorUnion#Fail, Boolean]]
 
   def detaggify(text: String): String
 }

@@ -285,21 +285,21 @@ class ComponentServiceDefault(val db: Connection,
    *
    * @return
    */
-  override def userCanAccess(component: Component, userInfo: UserInfo): Future[\/[ErrorUnion#Fail, Boolean]] = {
+  override def userCanAccess(component: Component, user: User): Future[\/[ErrorUnion#Fail, Boolean]] = {
     // Admins can view everything
-    if (userInfo.roles.map(_.name).contains("administrator")) {
+    if (user.roles.map(_.name).contains("administrator")) {
       Future successful \/-(true)
     }
     // Owners can view anything they create
-    else if (component.ownerId == userInfo.user.id) {
+    else if (component.ownerId == user.id) {
       Future successful \/-(true)
     }
     else {
       // Teachers can view the component if it's in one of their projects
-      if (userInfo.roles.map(_.name).contains("teacher")) {
+      if (user.roles.map(_.name).contains("teacher")) {
 
         val fAsTeacher: Future[\/[ErrorUnion#Fail, Boolean]] = (for {
-          courses <- lift(schoolService.listCoursesByTeacher(userInfo.user.id))
+          courses <- lift(schoolService.listCoursesByTeacher(user.id))
           projects <- liftSeq(courses.map { course => projectService.list(course.id) })
           components <- liftSeq(projects.flatten.map { project => listByProject(project.id) })
         }
@@ -317,7 +317,7 @@ class ComponentServiceDefault(val db: Connection,
               // - then list their projects for those courses
               // - then list the components for the enabled parts in those projects
               val fAsStudent: Future[\/[ErrorUnion#Fail, Boolean]] = (for {
-                courses <- lift(schoolService.listCoursesByTeacher(userInfo.user.id))
+                courses <- lift(schoolService.listCoursesByTeacher(user.id))
                 projects <- liftSeq(courses.map { course => projectService.list(course.id) })
                 components <- liftSeq(projects.flatten.map { project => listByProject(project.id) })
               }
@@ -328,9 +328,9 @@ class ComponentServiceDefault(val db: Connection,
       }
 
       // Students can view the component if it's in one of their projects and attached to an active part
-      else if (userInfo.roles.map(_.name).contains("student")) {
+      else if (user.roles.map(_.name).contains("student")) {
         (for {
-          courses <- lift(schoolService.listCoursesByUser(userInfo.user.id))
+          courses <- lift(schoolService.listCoursesByUser(user.id))
           projects <- liftSeq(courses.map { course => projectService.list(course.id) })
           parts = projects.flatten.map(_.parts.filter(_.enabled == true)).flatten
           components <- liftSeq(parts.map { part => listByPart(part.id) })

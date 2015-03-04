@@ -8,7 +8,7 @@ import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.Connection
-import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
 import ws.kahn.ot.Delta

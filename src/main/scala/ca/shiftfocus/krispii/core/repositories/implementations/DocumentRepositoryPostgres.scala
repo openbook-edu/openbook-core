@@ -9,7 +9,7 @@ import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.{ResultSet, Connection}
-import com.github.mauricio.async.db.util.ExecutorServiceUtils.CachedExecutionContext
+import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
 import play.api.Logger
 import ws.kahn.ot.Delta

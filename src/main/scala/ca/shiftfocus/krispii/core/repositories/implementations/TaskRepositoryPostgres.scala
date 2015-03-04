@@ -5,6 +5,7 @@ import java.util.NoSuchElementException
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import ca.shiftfocus.krispii.core.error._
+import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.lib.ExceptionWriter
@@ -184,59 +185,72 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     """.stripMargin
   }
 
+
+//  short_answer_tasks.max_length,
+//  multiple_choice_tasks.choices,
+//  multiple_choice_tasks.answers,
+//  multiple_choice_tasks.allow_multiple,
+//  multiple_choice_tasks.randomize,
+//  ordering_tasks.choices,
+//  ordering_tasks.answers,
+//  ordering_tasks.randomize,
+//  matching_tasks.choices_left,
+//  matching_tasks.choices_right,
+//  matching_Tasks.answers,
+//  matching_Tasks.randomize
+
   val InsertLongAnswer =
     s"""
-       |WITH task AS (
-       |  ${Insert}
-       |)
-       |INSERT INTO long_answer_tasks (task_id)
-       |  SELECT task.id as task_id
-       |  FROM task
-       |  RETURNING $Fields
+       |WITH task AS (${Insert}),
+       |     la_task AS (INSERT INTO long_answer_tasks (task_id) SELECT task.id as task_id FROM task RETURNING task_id)
+       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
+       |       task.description, task.position, task.notes_allowed, task.task_type
+       |FROM task, la_task
      """.stripMargin
 
   val InsertShortAnswer =
     s"""
-       |WITH task AS (
-       |  ${Insert}
-       |)
-       |INSERT INTO short_answer_tasks (task_id, max_length)
-       |  SELECT task.id as task_id, ? as max_length
-       |  FROM task
-       |  RETURNING $Fields
+       |WITH task AS (${Insert}),
+       |     sa_task AS (INSERT INTO short_answer_tasks (task_id, max_length) SELECT task.id as task_id, ? as max_length FROM task RETURNING max_length)
+       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
+       |       task.description, task.position, task.notes_allowed, task.task_type, sa_task.max_length
+       |FROM task, sa_task
      """.stripMargin
 
   val InsertMultipleChoice =
     s"""
-       |WITH task AS (
-       |  ${Insert}
-       |)
-       |INSERT INTO multiple_choice_tasks (task_id, choices, answers, allow_multiple, randomize)
-       |  SELECT task.id as task_id, ? as choices, ? as answers, ? as allow_multiple, ? as randomize
-       |  FROM task
-       |  RETURNING $Fields
+       |WITH task AS (${Insert}),
+       |     mc_task AS (INSERT INTO multiple_choice_tasks (task_id, choices, answers, allow_multiple, randomize)
+       |                 SELECT task.id as task_id, ? as choices, ? as answers, ? as allow_multiple, ? as randomize
+       |                 FROM task
+       |                 RETURNING *)
+       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
+       |       task.description, task.position, task.notes_allowed, task.task_type, mc_task.choices, mc_task.answers, mc_task.allow_multiple, mc_task.randomize
+       |FROM task, mc_task
      """.stripMargin
 
   val InsertOrdering =
     s"""
-       |WITH task AS (
-       |  ${Insert}
-       |)
-       |INSERT INTO ordering_tasks (task_id, choices, answers, randomize)
-       |  SELECT task.id as task_id, ? as choices, ? as answers, ? as randomize
-       |  FROM task
-       |  RETURNING $Fields
+       |WITH task AS (${Insert}),
+       |     ord_task AS (INSERT INTO ordering_tasks (task_id, choices, answers, randomize)
+       |                  SELECT task.id as task_id, ? as choices, ? as answers, ? as randomize
+       |                  FROM task
+       |                  RETURNING *)
+       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
+       |       task.description, task.position, task.notes_allowed, task.task_type, ord_task.choices, ord_task.answers, ord_task.randomize
+       |FROM task, ord_task
      """.stripMargin
 
   val InsertMatching =
     s"""
-       |WITH task AS (
-       |  ${Insert}
-       |)
-       |INSERT INTO matching_tasks (task_id, choices_left, choices_right, answers, randomize)
-       |  SELECT task.id as task_id, ? as choices_left, ? as choices_right, ? as answers, ? as randomize
-       |  FROM task
-       |  RETURNING $Fields
+       |WITH task AS (${Insert}),
+       |     mat_task (INSERT INTO matching_tasks (task_id, choices_left, choices_right, answers, randomize)
+       |               SELECT task.id as task_id, ? as choices_left, ? as choices_right, ? as answers, ? as randomize
+       |               FROM task
+       |               RETURNING *)
+       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
+       |       task.description, task.position, task.notes_allowed, task.task_type, mat_task.choices_left, mat_task.choices_right, mat_task.answers, mat_task.randomize
+       |FROM task, mat_task
      """.stripMargin
 
   // -- Update queries -----------------------------------------------------------------------------------------------
@@ -452,7 +466,16 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     }
 
     // Send the query
-    queryOne(query, dataArray)
+    queryOne(query, dataArray).recover {
+      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
+        case Some(nField) =>
+          if (nField == "tasks_pkey") -\/(RepositoryError.UniqueKeyConflict(s"A task with id ${task.id.string} already exists"))
+          else if (nField == "tasks_part_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Referenced part with id ${task.partId.string} doesn't exist"))
+          else -\/(RepositoryError.DatabaseError(s"Unknown value in 'n' field.", Some(exception)))
+        case _ => -\/(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
+      }
+      case exception: Throwable => -\/(RepositoryError.DatabaseError("Unhandled exception from database", Some(exception)))
+    }
   }
 
   /**
@@ -504,7 +527,15 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     }
 
     // Execute the query
-    queryOne(Update, dataArray)
+    queryOne(Update, dataArray).recover {
+      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
+        case Some(nField) =>
+          if (nField == "tasks_part_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Referenced part with id ${task.partId.string} doesn't exist"))
+          else -\/(RepositoryError.DatabaseError(s"Unknown value in 'n' field.", Some(exception)))
+        case _ => -\/(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
+      }
+      case exception: Throwable => -\/(RepositoryError.DatabaseError("Unhandled exception from database", Some(exception)))
+    }
   }
 
   /**

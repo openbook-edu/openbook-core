@@ -264,7 +264,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * @return id of the saved/new role.
    */
   override def insert(role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Role]] = {
-    val params = Seq[Any](role.id.bytes, new DateTime, new DateTime, role.name)
+    val params = Seq[Any](role.id.bytes, 1, new DateTime, new DateTime, role.name)
 
     queryOne(Insert, params).recover {
       case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
@@ -316,13 +316,13 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
     }.recover {
       case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
         case Some(nField) =>
-          if (nField == "users_roles_pkey") -\/(RepositoryError.UniqueKeyConflict(s"User has already this role"))
+          if (nField == "users_roles_pkey") -\/(RepositoryError.UniqueKeyConflict(s"User ${user.username} already has the ${role.name} role"))
           else if (nField == "users_roles_user_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Referenced user with id ${user.id.string} doesn't exist"))
           else if (nField == "users_roles_role_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Referenced role with id ${role.id.string} doesn't exist"))
           else  throw exception
-        case _ => throw exception
+        case _ => -\/(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
       }
-      case exception: Throwable => throw exception
+      case exception: Throwable => -\/(RepositoryError.DatabaseError("Unhandled exception from database", Some(exception)))
     }
   }
 
@@ -330,8 +330,6 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * Associate a role to a user by role name.
    */
   override def addToUser(user: User, name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
-    conn.sendPreparedStatement(AddRoleByName, Array[Any](user.id.bytes, new DateTime, name))
-
     val params = Seq[Any](user.id.bytes, new DateTime, name)
     val fResult = queryNumRows(AddRoleByName, params)(1 == _)
 
@@ -342,13 +340,13 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
     }.recover {
       case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
         case Some(nField) =>
-          if (nField == "users_roles_pkey") -\/(RepositoryError.UniqueKeyConflict(s"User has already this role"))
+          if (nField == "users_roles_pkey") -\/(RepositoryError.UniqueKeyConflict(s"User ${user.username} already has the ${name} role"))
           else if (nField == "users_roles_user_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Referenced user with id ${user.id.string} doesn't exist"))
           else if (nField == "users_roles_role_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Referenced role with name ${name} doesn't exist"))
           else  throw exception
-        case _ => throw exception
+        case _ => -\/(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
       }
-      case exception: Throwable => throw exception
+      case exception: Throwable => -\/(RepositoryError.DatabaseError("Unhandled exception from database", Some(exception)))
     }
   }
 

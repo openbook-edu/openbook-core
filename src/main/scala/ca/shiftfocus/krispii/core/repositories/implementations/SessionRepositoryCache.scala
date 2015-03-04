@@ -5,6 +5,7 @@ import ca.shiftfocus.krispii.core.lib.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.services.datasource.RedisCache
 import ca.shiftfocus.uuid.UUID
+import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
 import scalacache._
 import redis._
@@ -30,6 +31,11 @@ class SessionRepositoryCache extends SessionRepository {
     get[IndexedSeq[Session]](userId.string).map {
       case Some(sessions: IndexedSeq[Session]) => \/-(sessions)
       case _ => \/-(IndexedSeq())
+    }.recover {
+      case exception => {
+        Logger.error("Could not create session")
+        \/.left(RepositoryError.DatabaseError("Internal error: could not list sessions", Some(exception)))
+      }
     }
   }
 
@@ -44,7 +50,10 @@ class SessionRepositoryCache extends SessionRepository {
       case Some(session) => \/-(session)
       case None => -\/(RepositoryError.NoResults(s"No session with id ${sessionId.string} could be found."))
     }.recover {
-      case exception => throw exception
+      case exception => {
+        Logger.error("Could not create session")
+        \/.left(RepositoryError.DatabaseError("Internal error: could not find session", Some(exception)))
+      }
     }
   }
 
@@ -63,7 +72,10 @@ class SessionRepositoryCache extends SessionRepository {
     put[Session](session.id.string)(session, ttl).map {
       result => \/-(session)
     }.recover {
-      case exception => throw exception
+      case exception => {
+        Logger.error("Could not create session")
+        \/.left(RepositoryError.DatabaseError("Internal error: could not create session", Some(exception)))
+      }
     }
   }
 
@@ -95,7 +107,12 @@ class SessionRepositoryCache extends SessionRepository {
       }
     } yield updatedSession
 
-    fUpdate.run.recover { case exception => throw exception }
+    fUpdate.run.recover {
+      case exception => {
+        Logger.error("Could not create session")
+        \/.left(RepositoryError.DatabaseError("Internal error: could not update session", Some(exception)))
+      }
+    }
   }
 
   /**
@@ -124,7 +141,12 @@ class SessionRepositoryCache extends SessionRepository {
       }
     } yield deletedSession
 
-    fRemove.run.recover { case exception => throw exception }
+    fRemove.run.recover {
+      case exception => {
+        Logger.error("Could not create session")
+        \/.left(RepositoryError.DatabaseError("Internal error: could not delete session", Some(exception)))
+      }
+    }
   }
 
 }

@@ -1,8 +1,11 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.lib.ExceptionWriter
 import ca.shiftfocus.krispii.core.models.ComponentScratchpad
+import com.github.mauricio.async.db.exceptions.ConnectionStillRunningQueryException
 import com.github.mauricio.async.db.{Connection, RowData, ResultSet}
+import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scalaz.{-\/, \/-, \/}
@@ -29,6 +32,8 @@ trait PostgresRepository[A] {
     fRes.map {
       res => buildEntity(res.rows, constructor)
     }.recover {
+      case exception: ConnectionStillRunningQueryException =>
+        -\/(RepositoryError.DatabaseError("Attempted to send concurrent queries in the same transaction.", Some(exception)))
       case exception => throw exception
     }
   }
@@ -51,6 +56,8 @@ trait PostgresRepository[A] {
     fRes.map {
       res => buildEntityList(res.rows, constructor)
     }.recover {
+      case exception: ConnectionStillRunningQueryException =>
+        -\/(RepositoryError.DatabaseError("Attempted to send concurrent queries in the same transaction.", Some(exception)))
       case exception => throw exception
     }
   }
@@ -77,6 +84,8 @@ trait PostgresRepository[A] {
     fRes.map {
       res => \/-(compare(res.rowsAffected))
     }.recover {
+      case exception: ConnectionStillRunningQueryException =>
+        -\/(RepositoryError.DatabaseError("Attempted to send concurrent queries in the same transaction.", Some(exception)))
       case exception => throw exception
     }
   }

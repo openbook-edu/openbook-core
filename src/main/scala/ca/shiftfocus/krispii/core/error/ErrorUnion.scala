@@ -7,7 +7,7 @@ sealed trait ErrorUnion {
 
 // Repository errors
 sealed trait DatabaseErrorT extends ErrorUnion {
-  case class DatabaseError(message: String) extends Fail
+  case class DatabaseError(message: String, exception: Option[Throwable] = None) extends Fail
 }
 sealed trait NoResultsT extends ErrorUnion {
   case class NoResults(message: String) extends Fail

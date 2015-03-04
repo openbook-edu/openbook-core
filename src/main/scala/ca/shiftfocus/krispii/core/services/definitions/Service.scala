@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
+import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.lib.FutureMonad
 import com.github.mauricio.async.db.Connection

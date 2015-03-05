@@ -18,16 +18,11 @@ trait DB {
  * All concrete repositories that depend on the postgresql database should
  * mixin this implementation trait.
  */
-class PostgresDB(val dbconfig: Configuration) extends DB {
+class PostgresDB(val dbconfig: Configuration, val poolConfig: PoolConfiguration) extends DB {
   val config = ConfigFactory.load()
   //val cacheExpiry = Option(config.getInt("app.cache.expires")).getOrElse(5)
   lazy val factory = new PostgreSQLConnectionFactory(dbconfig)
   override def pool = connectionPool
 
-  private val connectionPool = new ConnectionPool(factory, new PoolConfiguration(
-    maxObjects = 30,
-    maxIdle = 25,
-    maxQueueSize = 1000,
-    validationInterval = 50)
-  )
+  private val connectionPool = new ConnectionPool(factory, poolConfig)
 }

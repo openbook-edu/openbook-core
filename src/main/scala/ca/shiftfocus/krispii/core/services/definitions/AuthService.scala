@@ -12,7 +12,6 @@ import scalaz.\/
 trait AuthService extends Service[ErrorUnion#Fail] {
   val userRepository: UserRepository
   val roleRepository: RoleRepository
-  val courseRepository: CourseRepository
   val sessionRepository: SessionRepository
 
   /**

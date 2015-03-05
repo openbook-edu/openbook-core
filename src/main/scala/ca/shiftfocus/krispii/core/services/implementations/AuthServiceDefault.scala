@@ -15,12 +15,11 @@ import webcrank.password._
 class AuthServiceDefault(val db: Connection,
                          val userRepository: UserRepository,
                          val roleRepository: RoleRepository,
-                         val courseRepository: CourseRepository,
                          val sessionRepository: SessionRepository)
   extends AuthService {
 
   implicit def conn: Connection = db
-  
+
   /**
    * List all users.
    *

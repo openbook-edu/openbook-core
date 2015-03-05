@@ -48,6 +48,19 @@ class ProjectServiceDefault(val db: Connection,
   }
 
   /**
+   * Find all projects a user has access to.
+   *
+   * @param userId the unique id of the user to filter by
+   * @return a future disjunction containing either a vector of projects, or a failure
+   */
+  override def listProjectsByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
+    (for {
+      courses <- lift(schoolService.listCoursesByUser(userId))
+      projects <- lift(serializedT(courses)((course: Course) => list(course.id)))
+    } yield projects.flatten).run
+  }
+
+  /**
    * Find a single project by slug.
    *
    * @return an optional project

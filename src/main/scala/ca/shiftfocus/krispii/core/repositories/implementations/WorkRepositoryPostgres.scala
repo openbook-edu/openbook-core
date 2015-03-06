@@ -150,8 +150,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
        |  AND course_id = ?
        |  AND parts.id = tasks.part_id
        |  AND projects.id = parts.project_id
-       |  AND student_responses.task_id = tasks.id
-       |  AND version = (SELECT MAX(version) FROM student_responses WHERE user_id= ? AND task_id=tasks.id)
+       |  AND work.task_id = tasks.id
      """.stripMargin
 
   val SelectAllForTask =

@@ -126,9 +126,9 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   // TODO - not used
 //    val ListUsersFilterByCourses = s"""
 //      SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
-//      FROM users, classes, users_classes
-//      WHERE users.id = users_classes.user_id
-//        AND classes.id = users_classes.class_id
+//      FROM users, classes, users_courses
+//      WHERE users.id = users_courses.user_id
+//        AND classes.id = users_courses.course_id
 //    """
 
   val ListUsersFilterByRolesAndCourses = s"""

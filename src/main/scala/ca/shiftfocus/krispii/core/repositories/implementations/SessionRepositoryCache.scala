@@ -1,5 +1,6 @@
 package ca.shiftfocus.krispii.core.repositories
 
+import _root_.redis.clients.jedis.Jedis
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
@@ -18,7 +19,6 @@ import scalaz.{-\/, \/-, \/}
 
 class SessionRepositoryCache extends SessionRepository {
 
-  implicit val scalaCache = ScalaCache(RedisCache("127.0.0.1", 6379))
   val ttl = Some(2.days)
 
   /**
@@ -27,7 +27,7 @@ class SessionRepositoryCache extends SessionRepository {
    * @param userId the [[UUID]] of the user to load sessions for.
    * @return a list of sessions for this user
    */
-  override def list(userId: UUID): Future[\/[RepositoryError.Fail, IndexedSeq[Session]]] = {
+  override def list(userId: UUID)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[Session]]] = {
     get[IndexedSeq[Session]](userId.string).map {
       case Some(sessions: IndexedSeq[Session]) => \/-(sessions)
       case _ => \/-(IndexedSeq())
@@ -45,7 +45,7 @@ class SessionRepositoryCache extends SessionRepository {
    * @param sessionId the [[UUID]] of the session to lookup.
    * @return an [[Option[Session]]] if one was found
    */
-  override def find(sessionId: UUID): Future[\/[RepositoryError.Fail, Session]] = {
+  override def find(sessionId: UUID)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Session]] = {
     get[Session](sessionId.string).map {
       case Some(session) => \/-(session)
       case None => -\/(RepositoryError.NoResults(s"No session with id ${sessionId.string} could be found."))
@@ -63,7 +63,7 @@ class SessionRepositoryCache extends SessionRepository {
    * @param session the new [[Session]] to create
    * @return the newly created [[Session]]
    */
-  override def create(session: Session): Future[\/[RepositoryError.Fail, Session]] = {
+  override def create(session: Session)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Session]] = {
     val sessionWithDates = session.copy(
       createdAt = Some(new DateTime),
       updatedAt = Some(new DateTime)
@@ -85,7 +85,7 @@ class SessionRepositoryCache extends SessionRepository {
    * @param session the [[Session]] to update
    * @return the updated [[Session]]
    */
-  override def update(session: Session): Future[\/[RepositoryError.Fail, Session]] = {
+  override def update(session: Session)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Session]] = {
     val sessionWithDates = session.copy(updatedAt = Some(new DateTime))
 
     val fUpdate = for {
@@ -121,7 +121,7 @@ class SessionRepositoryCache extends SessionRepository {
    * @param session the [[Session]] to be deleted
    * @return the deleted [[Session]]
    */
-  override def delete(session: Session): Future[\/[RepositoryError.Fail, Session]] = {
+  override def delete(session: Session)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Session]] = {
     val fRemove = for {
       userSessions <- lift(list(session.userId))
       updatedList = userSessions.filter(_.id != session.id)

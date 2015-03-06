@@ -138,13 +138,13 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   val SelectActiveByProjectId = s"""
     $Select
-    $From, parts, projects, classes, classes_projects, users_classes
+    $From, parts, projects, classes, courses_projects, users_courses
     WHERE projects.id = ?
       AND projects.id = parts.project_id
       AND parts.id = tasks.part_id
-      AND users_classes.user_id = ?
-      AND users_classes.class_id = classes_projects.class_id
-      AND classes_projects.project_id = projects.id
+      AND users_courses.user_id = ?
+      AND users_courses.course_id = courses_projects.course_id
+      AND courses_projects.project_id = projects.id
     ORDER BY parts.position ASC, tasks.position ASC
   """
 
@@ -158,15 +158,15 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   """
 
   val SelectNowByUserId = s"""
-    $Select, COALESCE(sr.is_complete, FALSE) AS is_complete
+    $Select, COALESCE(work.is_complete, FALSE) AS is_complete
     $From
     $Join
     INNER JOIN users ON users.id = ?
     INNER JOIN projects ON projects.id = ?
     INNER JOIN parts ON parts.project_id = projects.id AND parts.enabled = 't'
-    INNER JOIN users_classes ON users_classes.class_id = projects.class_id AND users_classes.user_id = users.id
-    LEFT JOIN (SELECT user_id, task_id, revision, is_complete FROM student_responses ORDER BY revision DESC) as sr ON users.id = sr.user_id AND tasks.id = sr.task_id
-    WHERE COALESCE(sr.is_complete, FALSE) = FALSE
+    INNER JOIN users_courses ON users_courses.course_id = projects.course_id AND users_courses.user_id = users.id
+    LEFT JOIN work ON users.id = work.user_id AND tasks.id = work.task_id
+    WHERE COALESCE(work.is_complete, FALSE) = FALSE
     ORDER BY parts.position ASC, tasks.position ASC
     LIMIT 1
   """

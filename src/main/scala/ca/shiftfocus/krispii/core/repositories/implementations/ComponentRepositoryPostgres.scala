@@ -28,7 +28,7 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
     AudioComponent(
       UUID(row("id").asInstanceOf[Array[Byte]]),
       row("version").asInstanceOf[Long],
-      UUID(row("ownerId").asInstanceOf[Array[Byte]]),
+      UUID(row("owner_id").asInstanceOf[Array[Byte]]),
       row("title").asInstanceOf[String],
       row("questions").asInstanceOf[String],
       row("things_to_think_about").asInstanceOf[String],
@@ -42,7 +42,7 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
     TextComponent(
       UUID(row("id").asInstanceOf[Array[Byte]]),
       row("version").asInstanceOf[Long],
-      UUID(row("ownerId").asInstanceOf[Array[Byte]]),
+      UUID(row("owner_id").asInstanceOf[Array[Byte]]),
       row("title").asInstanceOf[String],
       row("questions").asInstanceOf[String],
       row("things_to_think_about").asInstanceOf[String],
@@ -56,7 +56,7 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
     VideoComponent(
       UUID(row("id").asInstanceOf[Array[Byte]]),
       row("version").asInstanceOf[Long],
-      UUID(row("ownerId").asInstanceOf[Array[Byte]]),
+      UUID(row("owner_id").asInstanceOf[Array[Byte]]),
       row("title").asInstanceOf[String],
       row("questions").asInstanceOf[String],
       row("things_to_think_about").asInstanceOf[String],
@@ -170,14 +170,12 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
   """
 
   val InsertAudio = """
-    WITH component AS (
-      INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
-      VALUES (?, 1, ?, ?, ?, ?, 'audio', ?, ?)
-      RETURNING id, version
-    )
-    INSERT INTO audio_components (component_id, soundcloud_id)
-      SELECT id, ? as soundcloud_id
-      FROM component
+    WITH c AS (INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
+               VALUES (?, 1, ?, ?, ?, ?, 'audio', ?, ?)
+               RETURNING *),
+         a AS (INSERT INTO audio_components (component_id, soundcloud_id) SELECT id, ? as soundcloud_id FROM c RETURNING *)
+    SELECT c.id, c.version, c.owner_id, c.title, c.questions, c.things_to_think_about, c.type, a.soundcloud_id, c.created_at, c.updated_at
+    FROM c,a
   """
 
   val UpdateAudio = """
@@ -196,14 +194,12 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
   """
 
   val InsertText = """
-    WITH component AS (
-      INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
-      VALUES (?, 1, ?, ?, ?, ?, 'text', ?, ?)
-      RETURNING id, version
-    )
-    INSERT INTO text_components (component_id, content)
-      SELECT id, ? as content
-      FROM component
+    WITH c AS (INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
+               VALUES (?, 1, ?, ?, ?, ?, 'text', ?, ?)
+               RETURNING *)
+         t AS (INSERT INTO text_components (component_id, content) SELECT id, ? as content FROM c RETURNING *)
+    SELECT c.id, c.version, c.owner_id, c.title, c.questions, c.things_to_think_about, c.type, t.content, c.created_at, c.updated_at
+    FROM c,a
   """
 
   val UpdateText = """
@@ -222,14 +218,11 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
   """
 
   val InsertVideo = """
-    WITH component AS (
-      INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
-      VALUES (?, 1, ?, ?, ?, ?, 'video', ?, ?)
-      RETURNING id, version
-    )
-    INSERT INTO video_components (component_id, vimeo_id, width, height)
-      SELECT id, ? as vimeo_id, ? as width, ? as height
-      FROM component
+    WITH c AS (INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
+               VALUES (?, 1, ?, ?, ?, ?, 'video', ?, ?)
+               RETURNING *)
+         v AS (INSERT INTO video_components (component_id, vimeo_id, width, height) SELECT id, ? as vimeo_id, ? as width, ? as height FROM c RETURNING *)
+    SELECT c.id, c.version, c.owner_id, c.title, c.questions, c.things_to_think_about, c.type, v.vimeo_id, v.width, v.height, c.created_at, c.updated_at
   """
 
   val UpdateVideo = """

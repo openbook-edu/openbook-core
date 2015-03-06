@@ -104,11 +104,11 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
            soundcloud_id, content, vimeo_id, width, height,
            created_at, updated_at
     FROM components
-    INNER JOIN components_parts ON components.id = components_parts.component_id
+    INNER JOIN parts_components ON components.id = parts_components.component_id
     LEFT JOIN audio_components ON components.id = audio_components.component_id
     LEFT JOIN text_components ON components.id = text_components.component_id
     LEFT JOIN video_components ON components.id = video_components.component_id
-    WHERE components_parts.part_id = ?
+    WHERE parts_components.part_id = ?
     GROUP BY components.id
     ORDER BY components.title ASC
   """
@@ -121,12 +121,12 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
            soundcloud_id, content, vimeo_id, width, height,
            created_at, updated_at
     FROM components
-    INNER JOIN components_parts ON components.id = components_parts.component_id
+    INNER JOIN parts_components ON components.id = parts_components.component_id
     INNER JOIN parts
     LEFT JOIN audio_components ON components.id = audio_components.component_id
     LEFT JOIN text_components ON components.id = text_components.component_id
     LEFT JOIN video_components ON components.id = video_components.component_id
-    WHERE components_parts.part_id = parts.id
+    WHERE parts_components.part_id = parts.id
       AND parts.project_id = ?
     GROUP BY components.id
     ORDER BY components.title ASC
@@ -146,8 +146,8 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
     INNER JOIN users_courses ON users.id = users_courses.user_id
     INNER JOIN courses ON courses.id = users_courses.course_id
     INNER JOIN projects ON projects.course_id = courses.id
-    INNER JOIN components_parts ON components.id = components_parts.component_id
-    INNER JOIN parts ON projects.id = parts.project_id AND parts.id = components_parts.part_id
+    INNER JOIN parts_components ON components.id = parts_components.component_id
+    INNER JOIN parts ON projects.id = parts.project_id AND parts.id = parts_components.part_id
     LEFT JOIN audio_components ON components.id = audio_components.component_id
     LEFT JOIN text_components ON components.id = text_components.component_id
     LEFT JOIN video_components ON components.id = video_components.component_id
@@ -158,15 +158,15 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
   """
 
   val AddToPart = """
-    INSERT INTO components_parts (component_id, part_id, created_at) VALUES (?, ?, ?)
+    INSERT INTO parts_components (component_id, part_id, created_at) VALUES (?, ?, ?)
   """
 
   val RemoveFromPart = """
-    DELETE FROM components_parts WHERE component_id = ? AND part_id = ?
+    DELETE FROM parts_components WHERE component_id = ? AND part_id = ?
   """
 
   val RemoveAllFromParts = """
-    DELETE FROM components_parts WHERE part_id = ?
+    DELETE FROM parts_components WHERE part_id = ?
   """
 
   val InsertAudio = """

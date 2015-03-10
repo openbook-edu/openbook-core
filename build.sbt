@@ -8,8 +8,6 @@ scalaVersion := "2.11.5"
 
 crossScalaVersions := Seq("2.10.4", "2.11.5")
 
-// trivial change to trigger a build
-
 resolvers ++= Seq(
   "Typesafe" at "http://repo.typesafe.com/typesafe/releases",
   "ShiftFocus" at "https://maven.shiftfocus.ca/repositories/releases",

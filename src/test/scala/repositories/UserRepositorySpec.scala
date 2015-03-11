@@ -1,116 +1,73 @@
-// <<<<<<< HEAD
-// import java.io.File
+import java.io.File
 
-// import ca.shiftfocus.krispii.core.models.User
-// import ca.shiftfocus.uuid.UUID
-// import com.github.mauricio.async.db.RowData
-// import scala.concurrent.ExecutionContext.Implicits.global
-// import scala.concurrent.Await
-// import scala.concurrent.duration._
-// import ca.shiftfocus.krispii.core.repositories.UserRepositoryPostgresComponent
-// import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-// import grizzled.slf4j.Logger
-// import org.scalamock.scalatest.MockFactory
-// import org.scalatest._
-// import Matchers._
+import ca.shiftfocus.krispii.core.models.User
+import ca.shiftfocus.uuid.UUID
+import com.github.mauricio.async.db.pool.PoolConfiguration
+import com.github.mauricio.async.db.{Connection, Configuration, RowData}
+import com.typesafe.config.ConfigFactory
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Await
+import scala.concurrent.duration._
+import ca.shiftfocus.krispii.core.repositories.UserRepositoryPostgres
+import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+import grizzled.slf4j.Logger
+import org.scalamock.scalatest.MockFactory
+import org.scalatest._
+import Matchers._
 
-// trait UserRepoTestEnvironment
-// extends UserRepositoryPostgresComponent
-// with Suite
-// with BeforeAndAfterAll
-// with PostgresDB {
-//   val logger = Logger[this.type]
+import scalaz.\/-
 
-//   implicit val connection = db.pool
 
-//   val project_path = new File(".").getAbsolutePath()
-//   val create_schema_path = s"${project_path}/src/test/resources/schemas/create_schema.sql"
-//   val drop_schema_path = s"${project_path}/src/test/resources/schemas/drop_schema.sql"
-//   val data_schema_path = s"${project_path}/src/test/resources/schemas/data_schema.sql"
+class UserRepositorySpec
+  extends TestEnvironment
+{
+  val userRepository = new UserRepositoryPostgres
 
-//   /**
-//    * Implements query from schema file
-//    * @param path Path to schema file
-//    */
-//   def load_schema(path: String): Unit = {
-//     val sql_schema_file = scala.io.Source.fromFile(path)
-//     val query = sql_schema_file.getLines().mkString
-//     sql_schema_file.close()
-//     val result = db.pool.sendQuery(query)
-//     Await.result(result, Duration.Inf)
-//   }
+  "UserRepository.list" should {
+    inSequence {
+      "list all users" in {
+        val result = userRepository.list(conn)
 
-//   // Before test
-//   override def beforeAll(): Unit = {
-//     // DROP tables
-//     load_schema(drop_schema_path)
-//     // CREATE tables
-//     load_schema(create_schema_path)
-//     // Insert data into tables
-//     load_schema(data_schema_path)
-//   }
+        val users = Await.result(result, Duration.Inf)
 
-//   // After test
-//   override def afterAll(): Unit = {
-//     // DROP tables
-//     load_schema(drop_schema_path)
-//   }
+        users should be(\/-(Vector(
+          TestValues.testUserA,
+          TestValues.testUserB,
+          TestValues.testUserC,
+          TestValues.testUserE,
+          TestValues.testUserF,
+          TestValues.testUserG,
+          TestValues.testUserH
+        )))
 
-//   val SelectOneByIdentifier = """
-//       SELECT *
-//       FROM users
-//       WHERE (email = ? OR username = ?)
-//       LIMIT 1
-//     """
-// }
-
-// class UserRepositorySpec
-//   extends WordSpec
-//   with MustMatchers
-//   with MockFactory
-//   with UserRepoTestEnvironment {
-
-//   "UserRepository.list" should {
-//     inSequence {
-//       "list all users" in {
-//         val result = userRepository.list
-
-//         val users = Await.result(result, Duration.Inf)
-
-//         users should be(Vector(
-//           TestValues.testUserA,
-//           TestValues.testUserB,
-//           TestValues.testUserC,
-//           TestValues.testUserE,
-//           TestValues.testUserF,
-//           TestValues.testUserG,
-//           TestValues.testUserH
-//         ))
-//         Map[Int, User](
-//           0 -> TestValues.testUserA,
-//           1 -> TestValues.testUserB,
-//           2 -> TestValues.testUserC,
-//           3 -> TestValues.testUserE,
-//           4 -> TestValues.testUserF,
-//           5 -> TestValues.testUserG,
-//           6 -> TestValues.testUserH).foreach {
-//           case (key, user: User) => {
-//             users(key).id should be(user.id)
-//             users(key).version should be(user.version)
-//             users(key).email should be(user.email)
-//             users(key).username should be(user.username)
-//             users(key).givenname should be(user.givenname)
-//             users(key).surname should be(user.surname)
-//             users(key).createdAt.toString should be(user.createdAt.toString)
-//             users(key).updatedAt.toString should be(user.updatedAt.toString)
-//           }
+//       Map[Int, User](
+//         0 -> TestValues.testUserA,
+//         1 -> TestValues.testUserB,
+//         2 -> TestValues.testUserC,
+//         3 -> TestValues.testUserE,
+//         4 -> TestValues.testUserF,
+//         5 -> TestValues.testUserG,
+//         6 -> TestValues.testUserH).foreach {
+//         case (key, user: User) => {
+//           users(key).id should be(user.id)
+//           users(key).version should be(user.version)
+//           users(key).email should be(user.email)
+//           users(key).username should be(user.username)
+//           users(key).givenname should be(user.givenname)
+//           users(key).surname should be(user.surname)
+//           users(key).createdAt.toString should be(user.createdAt.toString)
+//           users(key).updatedAt.toString should be(user.updatedAt.toString)
 //         }
 //       }
+      }
+    }
+  }
+}
 //       "list users with a specified set of user Ids" in {
 //         val result = userRepository.list(Vector(TestValues.testUserC.id, TestValues.testUserA.id))
-
+//
 //         val users = Await.result(result, Duration.Inf)
-
+//
 //         users should be(Vector(TestValues.testUserC, TestValues.testUserA))
 //         Map[Int, User](0 -> TestValues.testUserC, 1 -> TestValues.testUserA).foreach {
 //           case (key, user: User) => {
@@ -127,19 +84,19 @@
 //       }
 //       "throw an NoSuchElementException if set contains unexisting user ID" in {
 //         val result = userRepository.list(Vector(TestValues.testUserD.id))
-
+//
 //         an [java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
 //       }
 //       "list users in a given course" in {
 //         val result = userRepository.list(TestValues.testCourseA)
 //         val result2 = userRepository.list(TestValues.testCourseB)
-
+//
 //         val users = Await.result(result, Duration.Inf)
 //         val users2 = Await.result(result2, Duration.Inf)
-
+//
 //         users should be(Vector(TestValues.testUserA))
 //         users2 should be(Vector(TestValues.testUserB, TestValues.testUserE,TestValues.testUserG, TestValues.testUserH))
-
+//
 //         Map[Int, User](0 -> TestValues.testUserA).foreach {
 //           case (key, user: User) => {
 //             users(key).id should be(user.id)
@@ -152,7 +109,7 @@
 //             users(key).updatedAt.toString should be(user.updatedAt.toString)
 //           }
 //         }
-
+//
 //         Map[Int, User](0 -> TestValues.testUserB).foreach {
 //           case (key, user: User) => {
 //             users2(key).id should be(user.id)
@@ -168,7 +125,7 @@
 //       }
 //       "return empty Vector() if course unexists" in {
 //         val result = userRepository.list(TestValues.testCourseC)
-
+//
 //         Await.result(result, Duration.Inf) should be (Vector())
 //       }
 //     }
@@ -1125,8 +1082,4 @@
 // //      }
 // //    }
 // //  }
-// //}
-// //
-// //
-// //
-// >>>>>>> feature-error_handling
+//}

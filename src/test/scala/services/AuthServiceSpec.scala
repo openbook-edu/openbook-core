@@ -97,53 +97,6 @@ class AuthServiceSpec
     }
   }
 }
-//  "AuthService.create" should {
-//    inSequence {
-//      "return a new user if the email and password are unique and the user was created" in {
-//        (userRepository.find(_: String)) when(testUserA.username) returns(Future.successful(-\/(RepositoryError.NoResults(""))))
-//        (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(-\/(RepositoryError.NoResults(""))))
-//        (userRepository.insert(_: User)(_: Connection)) when(testUserA, mockConnection) returns(Future.successful(\/-(testUserA)))
-//
-//        val fNewUser = authService.create(testUserA.username, testUserA.email, password, testUserA.givenname, testUserA.surname,testUserA.id)
-//        val \/-(newUser) = Await.result(fNewUser, Duration.Inf)
-//        newUser should be (UserInfo(testUserA, Vector(), Vector()))
-//      }
-//      "return BadInput if the email is of an invalid format" in {
-//        val badEmail = "not@an@email.com"
-//        val fNewUser = authService.create(testUserA.username, badEmail, password, testUserA.givenname, testUserA.surname,testUserA.id)
-//        Await.result(fNewUser, Duration.Inf) should be(-\/(ServiceError.BadInput(s"$badEmail is not a valid e-mail format.")))
-//      }
-//      "return BadInput if the username is of an invalid format" in {
-//        (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(-\/(RepositoryError.NoResults(""))))
-//
-//        val badUsername = "al"
-//        val fNewUser = authService.create(badUsername, testUserA.email, password, testUserA.givenname, testUserA.surname,testUserA.id)
-//        Await.result(fNewUser, Duration.Inf) should be(-\/(ServiceError.BadInput(s"$badUsername is not a valid format.")))
-//      }
-//      "return BadInput if the password is shorter than 8 characters" in {
-//        (userRepository.find(_: String)) when(testUserA.username) returns(Future.successful(-\/(RepositoryError.NoResults(""))))
-//        (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(-\/(RepositoryError.NoResults(""))))
-//        (userRepository.insert(_: User)(_: Connection)) when(testUserA, mockConnection) returns(Future.successful(\/-(testUserA)))
-//
-//        val fNewUser = authService.create(testUserA.username, testUserA.email, "2short", testUserA.givenname, testUserA.surname,testUserA.id)
-//        Await.result(fNewUser, Duration.Inf) should be (-\/(ServiceError.BadInput("The password provided must be at least 8 characters.")))
-//      }
-//      "return EntityUniqueFieldError if email is not unique" in {
-//        (userRepository.find(_: String)) when(testUserA.username) returns(Future.successful(-\/(RepositoryError.NoResults(""))))
-//        (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(\/-(testUserA)))
-//
-//        val fNewUser = authService.create(testUserA.username, testUserA.email, password, testUserA.givenname, testUserA.surname)
-//        Await.result(fNewUser, Duration.Inf) should be (-\/(RepositoryError.UniqueKeyConflict(s"The e-mail address ${testUserA.email} is already in use.")))
-//      }
-//      "return EntityUniqueFieldError if username is not unique" in {
-//        (userRepository.find(_: String)) when(testUserA.username) returns(Future.successful(\/-(testUserA)))
-//        (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(-\/(RepositoryError.NoResults(""))))
-//
-//        val fNewUser = authService.create(testUserA.username, testUserA.email, password, testUserA.givenname, testUserA.surname)
-//        Await.result(fNewUser, Duration.Inf) should be (-\/(RepositoryError.UniqueKeyConflict(s"The username ${testUserA.username} is already in use.")))
-//      }
-//    }
-//  }
 ////
 ////  "AuthService.update" should {
 ////    val indexedRole = Vector(testRoleA)

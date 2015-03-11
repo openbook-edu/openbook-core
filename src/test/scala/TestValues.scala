@@ -1,10 +1,24 @@
 import java.awt.Color
+import java.io.File
 
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import ca.shiftfocus.krispii.core.models.tasks._
+import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
+import com.github.mauricio.async.db.{Connection, Configuration}
+import com.github.mauricio.async.db.pool.PoolConfiguration
+import com.typesafe.config.ConfigFactory
+import grizzled.slf4j.Logger
 import org.joda.time.{DateTime, DateTimeZone}
+import org.scalamock.scalatest.MockFactory
+import org.scalatest.{BeforeAndAfter, Suite, MustMatchers, WordSpec}
+
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+
+
+
 
 object TestValues {
   // Make text red, bold in console for debuging

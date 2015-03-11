@@ -237,10 +237,10 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
     queryOne(Insert, params).recover {
       case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
         case Some(nField) =>
-          if (nField == "users_pkey") -\/(RepositoryError.UniqueKeyConflict(s"A row with key ${user.id.string} already exists"))
+          if (nField == "users_pkey") \/.left(RepositoryError.UniqueKeyConflict(s"A row with key ${user.id.string} already exists"))
           // TODO - check nField name
-          else if (nField == "users_username_key") -\/(RepositoryError.UniqueKeyConflict(s"User with username ${user.username} already exists"))
-          else if (nField == "users_email_key") -\/(RepositoryError.UniqueKeyConflict(s"User with email ${user.username} already exists"))
+          else if (nField == "users_username_key") \/.left(RepositoryError.UniqueKeyConflict(s"User with username ${user.username} already exists"))
+          else if (nField == "users_email_key") \/.left(RepositoryError.UniqueKeyConflict(s"User with email ${user.username} already exists"))
           else throw exception
         case _ => throw exception
       }

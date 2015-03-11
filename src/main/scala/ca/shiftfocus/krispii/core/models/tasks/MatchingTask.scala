@@ -39,8 +39,8 @@ case class MatchingTask(
   elementsRight: IndexedSeq[String] = IndexedSeq(),
   answer: IndexedSeq[MatchingTask.Match] = IndexedSeq(),
   randomizeChoices: Boolean = true,
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 ) extends Task {
 
   /**
@@ -74,61 +74,6 @@ object MatchingTask {
   }
 
   /**
-   * Create a MatchingTask from a row returned by the database.
-   *
-   * @param row a [[RowData]] object returned from the db.
-   * @return a [[MatchingTask]] object
-   */
-  def apply(row: RowData): MatchingTask = {
-    MatchingTask(
-      // Primary Key
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-
-      // Unique combination
-      partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
-      position = row("position").asInstanceOf[Int],
-
-      // Additional data
-      version = row("version").asInstanceOf[Long],
-      settings = CommonTaskSettings(row),
-
-      // Specific to this type
-      elementsLeft = Option(row("elements_left").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      elementsRight = Option(row("elements_right").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      answer = Option(row("answers").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]).map { element =>
-        val split = element.split(":")
-        Match(split(0).toInt, split(1).toInt)
-      },
-      randomizeChoices = row("randomize").asInstanceOf[Boolean],
-
-      // All entities have these
-      createdAt = Some(row("created_at").asInstanceOf[DateTime]),
-      updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
-
-  /**
-   * Unserialize a [[LongAnswerTask]] from JSON.
-   */
-  implicit val jsonReads = new Reads[MatchingTask] {
-    def reads(js: JsValue) = {
-      JsSuccess(MatchingTask(
-        id       = (js \ "id").as[UUID],
-        partId   = (js \ "partId").as[UUID],
-        position = (js \ "position").as[Int],
-        version  = (js \ "version").as[Long],
-        settings = (js \ "settings").as[CommonTaskSettings],
-        elementsLeft = (js \ "elementsLeft").as[IndexedSeq[String]],
-        elementsRight = (js \ "elementsRight").as[IndexedSeq[String]],
-        answer   = (js \ "answer").as[IndexedSeq[Match]],
-        randomizeChoices = (js \ "randomizeChoices").as[Boolean],
-        createdAt = (js \ "createdAt").as[Option[DateTime]],
-        updatedAt = (js \ "updatedAt").as[Option[DateTime]]
-      ))
-    }
-  }
-
-  /**
    * Serialize a [[MatchingTask]] to JSON.
    */
   implicit val jsonWrites: Writes[MatchingTask] = (
@@ -141,8 +86,8 @@ object MatchingTask {
       (__ \ "elements_right").write[IndexedSeq[String]] and
       (__ \ "answer").write[IndexedSeq[Match]] and
       (__ \ "randomizeChoices").write[Boolean] and
-      (__ \ "createdAt").writeNullable[DateTime] and
-      (__ \ "updatedAt").writeNullable[DateTime]
+      (__ \ "createdAt").write[DateTime] and
+      (__ \ "updatedAt").write[DateTime]
     )(unlift(MatchingTask.unapply))
   
 }

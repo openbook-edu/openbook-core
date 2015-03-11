@@ -11,28 +11,11 @@ case class OrderingWork(
   override val version: Long,
   override val answer: IndexedSeq[Int],
   isComplete: Boolean = false,
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 ) extends Work
 
 object OrderingWork {
 
-  /**
-   * Build a long-answer work item from a database result row.
-   * @param row
-   * @return
-   */
-  def apply(row: RowData): OrderingWork = {
-    OrderingWork(
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-      studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
-      taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      version  = row("version").asInstanceOf[Long],
-      answer    = row("answer").asInstanceOf[IndexedSeq[Int]],
-      isComplete = row("is_complete").asInstanceOf[Boolean],
-      createdAt = Some(row("created_at").asInstanceOf[DateTime]),
-      updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
 
 }

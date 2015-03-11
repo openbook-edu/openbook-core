@@ -34,8 +34,8 @@ case class OrderingTask(
   elements: IndexedSeq[String] = IndexedSeq(),
   answer: IndexedSeq[Int] = IndexedSeq(),
   randomizeChoices: Boolean = true,
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 ) extends Task {
 
   /**
@@ -56,56 +56,6 @@ case class OrderingTask(
 object OrderingTask {
 
   /**
-   * Create a OrderingTask from a row returned by the database.
-   *
-   * @param row a [[RowData]] object returned from the db.
-   * @return a [[OrderingTask]] object
-   */
-  def apply(row: RowData): OrderingTask = {
-    OrderingTask(
-      // Primary Key
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-
-      // Unique combination RowData
-      partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
-      position = row("position").asInstanceOf[Int],
-
-      // Additional data
-      version = row("version").asInstanceOf[Long],
-      settings = CommonTaskSettings(row),
-
-      // Specific to this type
-      elements = Option(row("choices").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      answer  = Option(row("answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
-      randomizeChoices = row("randomize").asInstanceOf[Boolean],
-
-      // All entities have these
-      createdAt = Some(row("created_at").asInstanceOf[DateTime]),
-      updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
-
-  /**
-   * Unserialize a [[LongAnswerTask]] from JSON.
-   */
-  implicit val jsonReads = new Reads[OrderingTask] {
-    def reads(js: JsValue) = {
-      JsSuccess(OrderingTask(
-        id       = (js \ "id").as[UUID],
-        partId   = (js \ "partId").as[UUID],
-        position = (js \ "position").as[Int],
-        version  = (js \ "version").as[Long], // CommonTaskSettings
-        settings = (js \ "settings").as[CommonTaskSettings],
-        elements = (js \ "elements").as[IndexedSeq[String]],
-        answer   = (js \ "answers").as[IndexedSeq[Int]],
-        randomizeChoices = (js \ "randomizeChoices").as[Boolean],
-        createdAt = (js \ "createdAt").as[Option[DateTime]],
-        updatedAt = (js \ "updatedAt").as[Option[DateTime]]
-      ))
-    }
-  }
-
-  /**
    * Serialize a [[OrderingTask]] to JSON.
    */
   implicit val taskWrites: Writes[OrderingTask] = (
@@ -117,8 +67,8 @@ object OrderingTask {
       (__ \ "elements").write[IndexedSeq[String]] and
       (__ \ "answer").write[IndexedSeq[Int]] and
       (__ \ "randomizeChoices").write[Boolean] and
-      (__ \ "createdAt").writeNullable[DateTime] and
-      (__ \ "updatedAt").writeNullable[DateTime]
+      (__ \ "createdAt").write[DateTime] and
+      (__ \ "updatedAt").write[DateTime]
     )(unlift(OrderingTask.unapply))
 
 }

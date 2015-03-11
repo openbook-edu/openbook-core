@@ -8,6 +8,7 @@
 package ca.shiftfocus.krispii.core.models
 
 case class Context(
-  userInfo: UserInfo,
-  session: Session
+  user: User,
+  session: Session,
+  courses: IndexedSeq[Course] = IndexedSeq.empty[Course]
 )

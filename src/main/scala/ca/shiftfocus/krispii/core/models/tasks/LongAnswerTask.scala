@@ -30,8 +30,8 @@ case class LongAnswerTask(
   // Additional data
   version: Long = 0,
   settings: CommonTaskSettings = CommonTaskSettings(),
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 ) extends Task {
 
   /**
@@ -50,45 +50,6 @@ case class LongAnswerTask(
 }
 
 object LongAnswerTask {
-
-  /**
-   * Create a LongAnswerTask from a row returned by the database.
-   *
-   * @param row a [[RowData]] object returned from the db.
-   * @return a [[LongAnswerTask]] object
-   */
-  def apply(row: RowData): LongAnswerTask = {
-    LongAnswerTask(
-      // Primary Key
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-      partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
-      position = row("position").asInstanceOf[Int],
-
-      // Additional data
-      version = row("version").asInstanceOf[Long],
-      settings = CommonTaskSettings(row),
-      createdAt = Some(row("created_at").asInstanceOf[DateTime]),
-      updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
-
-  /**
-   * Unserialize a [[LongAnswerTask]] from JSON.
-   */
-  implicit val jsonReads = new Reads[LongAnswerTask] {
-    def reads(js: JsValue) = {
-      JsSuccess(LongAnswerTask(
-        id = (js \ "id").as[UUID],
-        partId = (js \ "partId").as[UUID],
-        position = (js \ "position").as[Int],
-        version = (js \ "version").as[Long],
-        settings = (js \ "settings").as[CommonTaskSettings],
-        createdAt = (js \ "createdAt").as[Option[DateTime]],
-        updatedAt = (js \ "updatedAt").as[Option[DateTime]]
-      ))
-    }
-  }
-
   /**
    * Serialize a [[LongAnswerTask]] to JSON.
    */
@@ -98,7 +59,7 @@ object LongAnswerTask {
       (__ \ "position").write[Int] and
       (__ \ "version").write[Long] and
       (__ \ "settings").write[CommonTaskSettings] and
-      (__ \ "createdAt").writeNullable[DateTime] and
-      (__ \ "updatedAt").writeNullable[DateTime]
+      (__ \ "createdAt").write[DateTime] and
+      (__ \ "updatedAt").write[DateTime]
   )(unlift(LongAnswerTask.unapply))
 }

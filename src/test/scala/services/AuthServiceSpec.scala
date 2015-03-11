@@ -76,20 +76,20 @@ class AuthServiceSpec
   "AuthService.authenticate" should {
     inSequence {
       "return a user if the identifier and password combination are valid" in {
-        (userRepository.find(_: String)) when (testUserA.username) returns (Future.successful(\/-(testUserA)))
+        (userRepository.find(_: String)) when testUserA.username returns Future.successful(\/.right(testUserA))
 
         val fSomeUser = authService.authenticate(testUserA.username, password)
         val \/-(user) = Await.result(fSomeUser, Duration.Inf)
         user should be(testUserA)
       }
       "return AuthFail if the password was wrong" in {
-        (userRepository.find(_: String)) when (testUserA.username) returns (Future.successful(\/-(testUserA)))
+        (userRepository.find(_: String)) when testUserA.username returns Future.successful(\/.right(testUserA))
 
         val fSomeUser = authService.authenticate(testUserA.username, "bad password!")
         Await.result(fSomeUser, Duration.Inf) should be(-\/(ServiceError.BadPermissions("The password was invalid.")))
       }
       "return RepositoryError.NoResults if the user doesn't exist" in {
-        (userRepository.find(_: String)) when (testUserA.username) returns (Future.successful(-\/(RepositoryError.NoResults("Could not find a user."))))
+        (userRepository.find(_: String)) when testUserA.username returns Future.successful(\/.left(RepositoryError.NoResults("Could not find a user.")))
 
         val fSomeUser = authService.authenticate(testUserA.username, password)
         Await.result(fSomeUser, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find a user.")))

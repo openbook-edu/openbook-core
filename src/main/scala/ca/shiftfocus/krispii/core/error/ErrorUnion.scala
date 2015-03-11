@@ -10,16 +10,19 @@ sealed trait DatabaseErrorT extends ErrorUnion {
   case class DatabaseError(message: String, exception: Option[Throwable] = None) extends Fail
 }
 sealed trait NoResultsT extends ErrorUnion {
-  case class NoResults(message: String) extends Fail
+  object NoResults extends Fail
+}
+sealed trait PrimaryKeyConflictT extends ErrorUnion {
+  object PrimaryKeyConflict extends Fail
 }
 sealed trait UniqueKeyConflictT extends ErrorUnion {
-  case class UniqueKeyConflict(message: String) extends Fail
+  case class UniqueKeyConflict(column: String, constraint: String) extends Fail
 }
 sealed trait ForeignKeyConflictT extends ErrorUnion {
-  case class ForeignKeyConflict(message: String) extends Fail
+  case class ForeignKeyConflict(column: String, constraint: String) extends Fail
 }
 sealed trait OfflineLockFailT extends ErrorUnion {
-  case class OfflineLockFail(message: String) extends Fail
+  object OfflineLockFail extends Fail
 }
 
 // Service errors
@@ -37,6 +40,7 @@ sealed trait BusinessLogicFailT extends ErrorUnion {
 object RepositoryError
   extends DatabaseErrorT
   with NoResultsT
+  with PrimaryKeyConflictT
   with UniqueKeyConflictT
   with ForeignKeyConflictT
   with OfflineLockFailT

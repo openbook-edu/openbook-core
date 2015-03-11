@@ -225,7 +225,7 @@ class AuthServiceDefault(val db: Connection,
     transactional { implicit conn =>
       val updated = for {
         existingUser <- lift(userRepository.find(id))
-        _ <- predicate (existingUser.version == version) (RepositoryError.OfflineLockFail(Messages("services.AuthService.userUpdate.lockErrorUnion#Fail", version, existingUser.version)))
+        _ <- predicate (existingUser.version == version) (RepositoryError.OfflineLockFail)
         u_email <- lift(email.map { someEmail => validateEmail(someEmail, Some(id))}.getOrElse(Future.successful(\/-(existingUser.email))))
         u_username <- lift(username.map { someUsername => validateUsername(someUsername, Some(id))}.getOrElse(Future.successful(\/-(existingUser.username))))
         userToUpdate = existingUser.copy(
@@ -254,7 +254,7 @@ class AuthServiceDefault(val db: Connection,
     transactional { implicit conn =>
       val updated = for {
         existingUser <- lift(userRepository.find(id))
-        _ <- predicate (existingUser.version == version) (RepositoryError.OfflineLockFail(Messages("services.AuthService.userUpdate.lockErrorUnion#Fail", version, existingUser.version)))
+        _ <- predicate (existingUser.version == version) (RepositoryError.OfflineLockFail)
         u_email <- lift(email.map { someEmail => validateEmail(someEmail, Some(id))}.getOrElse(Future.successful(\/-(existingUser.email))))
         u_username <- lift(username.map { someUsername => validateUsername(someUsername, Some(id))}.getOrElse(Future.successful(\/-(existingUser.username))))
         userToUpdate = existingUser.copy(
@@ -280,7 +280,7 @@ class AuthServiceDefault(val db: Connection,
     transactional { implicit conn =>
       val updated = for {
         existingUser <- lift(userRepository.find(id))
-        _ <- predicate (existingUser.version == version) (RepositoryError.OfflineLockFail(Messages("services.AuthService.userUpdate.lockErrorUnion#Fail", version, existingUser.version)))
+        _ <- predicate (existingUser.version == version) (RepositoryError.OfflineLockFail)
         userToUpdate = existingUser.copy(
           givenname = givenname.getOrElse(existingUser.givenname),
           surname = surname.getOrElse(existingUser.surname)
@@ -304,7 +304,7 @@ class AuthServiceDefault(val db: Connection,
       val wc = Passwords.scrypt()
       val updated = for {
         existingUser <- lift(userRepository.find(id))
-        _ <- predicate (existingUser.version == version) (RepositoryError.OfflineLockFail(Messages("services.AuthService.userUpdate.lockErrorUnion#Fail", version, existingUser.version)))
+        _ <- predicate (existingUser.version == version) (RepositoryError.OfflineLockFail)
         u_password <- lift(isValidPassword(password))
         u_hash = wc.crypt(u_password)
         userToUpdate = existingUser.copy(hash = Some(u_hash))
@@ -327,7 +327,7 @@ class AuthServiceDefault(val db: Connection,
     transactional { implicit conn =>
       (for {
         existingUser <- lift(userRepository.find(id))
-        _ <- predicate (existingUser.version == version) (RepositoryError.OfflineLockFail(Messages("services.AuthService.userUpdate.lockErrorUnion#Fail", version, existingUser.version)))
+        _ <- predicate (existingUser.version == version) (RepositoryError.OfflineLockFail)
         toDelete = existingUser.copy(version = version)
         deleted <- lift(userRepository.delete(toDelete))
       } yield deleted).run
@@ -401,7 +401,7 @@ class AuthServiceDefault(val db: Connection,
     transactional { implicit conn =>
       val result = for {
         existingRole <- lift(roleRepository.find(id))
-        _ <- predicate (existingRole.version == version) (RepositoryError.OfflineLockFail(Messages("services.AuthService.roleUpdate.lockErrorUnion#Fail", version, existingRole.version)))
+        _ <- predicate (existingRole.version == version) (RepositoryError.OfflineLockFail)
         updatedRole <- lift(roleRepository.update(existingRole.copy(name = name)))
       }
       yield updatedRole
@@ -427,7 +427,7 @@ class AuthServiceDefault(val db: Connection,
               \/-(role)
           case -\/(error) => -\/(error)
         })
-        _ <- predicate (role.version == version) (RepositoryError.OfflineLockFail(Messages("services.AuthService.roleUpdate.lockErrorUnion#Fail", version, role.version)))
+        _ <- predicate (role.version == version) (RepositoryError.OfflineLockFail)
         wasRemovedFromUsers <- lift(roleRepository.removeFromAllUsers(role))
         wasDeleted <- lift(roleRepository.delete(role))
       }
@@ -572,9 +572,9 @@ class AuthServiceDefault(val db: Connection,
 
     existing.run.map {
       case \/-(user) =>
-        if (existingId.isEmpty || (existingId.get != user.id)) -\/(RepositoryError.UniqueKeyConflict(s"The e-mail address $email is already in use."))
+        if (existingId.isEmpty || (existingId.get != user.id)) -\/(RepositoryError.UniqueKeyConflict("email", "The e-mail address $email is already in use."))
         else \/-(email)
-      case -\/(error: RepositoryError.NoResults) => \/-(email)
+      case -\/(RepositoryError.NoResults) => \/-(email)
       case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)
     }
   }
@@ -596,9 +596,9 @@ class AuthServiceDefault(val db: Connection,
 
     existing.run.map {
       case \/-(user) =>
-        if (existingId.isEmpty || (existingId.get != user.id)) -\/(RepositoryError.UniqueKeyConflict(s"The username $username is already in use."))
+        if (existingId.isEmpty || (existingId.get != user.id)) -\/(RepositoryError.UniqueKeyConflict("username", s"The username $username is already in use."))
         else \/-(username)
-      case -\/(error: RepositoryError.NoResults) => \/-(username)
+      case -\/(RepositoryError.NoResults) => \/-(username)
       case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)
     }
   }

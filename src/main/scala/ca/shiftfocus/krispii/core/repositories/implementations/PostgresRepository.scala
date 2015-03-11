@@ -4,6 +4,7 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ExceptionWriter
 import ca.shiftfocus.krispii.core.models.ComponentScratchpad
 import com.github.mauricio.async.db.exceptions.ConnectionStillRunningQueryException
+import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{Connection, RowData, ResultSet}
 import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -34,6 +35,16 @@ trait PostgresRepository[A] {
     }.recover {
       case exception: ConnectionStillRunningQueryException =>
         -\/(RepositoryError.DatabaseError("Attempted to send concurrent queries in the same transaction.", Some(exception)))
+
+      case exception: GenericDatabaseException =>
+        val fields = exception.errorMessage.fields
+        fields.get('n') match {
+          case Some(nField) if nField endsWith "_pkey" => \/.left(RepositoryError.PrimaryKeyConflict)
+          case Some(nField) if nField endsWith "_key" => \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', "unknown"), nField))
+          case Some(nField) if nField endsWith "_fkey" => \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', "unknown"), nField))
+          case _ => throw exception
+        }
+
       case exception => throw exception
     }
   }
@@ -58,6 +69,16 @@ trait PostgresRepository[A] {
     }.recover {
       case exception: ConnectionStillRunningQueryException =>
         -\/(RepositoryError.DatabaseError("Attempted to send concurrent queries in the same transaction.", Some(exception)))
+
+      case exception: GenericDatabaseException =>
+        val fields = exception.errorMessage.fields
+        fields.get('n') match {
+          case Some(nField) if nField endsWith "_pkey" => \/.left(RepositoryError.PrimaryKeyConflict)
+          case Some(nField) if nField endsWith "_key" => \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', "unknown"), nField))
+          case Some(nField) if nField endsWith "_fkey" => \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', "unknown"), nField))
+          case _ => throw exception
+        }
+
       case exception => throw exception
     }
   }
@@ -86,6 +107,16 @@ trait PostgresRepository[A] {
     }.recover {
       case exception: ConnectionStillRunningQueryException =>
         -\/(RepositoryError.DatabaseError("Attempted to send concurrent queries in the same transaction.", Some(exception)))
+
+      case exception: GenericDatabaseException =>
+        val fields = exception.errorMessage.fields
+        fields.get('n') match {
+          case Some(nField) if nField endsWith "_pkey" => \/.left(RepositoryError.PrimaryKeyConflict)
+          case Some(nField) if nField endsWith "_key" => \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', "unknown"), nField))
+          case Some(nField) if nField endsWith "_fkey" => \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', "unknown"), nField))
+          case _ => throw exception
+        }
+
       case exception => throw exception
     }
   }
@@ -103,9 +134,9 @@ trait PostgresRepository[A] {
     maybeResultSet match {
       case Some(resultSet) => resultSet.headOption match {
         case Some(firstRow) => \/-(build(firstRow))
-        case None => -\/(RepositoryError.NoResults("The query was successful but ResultSet was empty."))
+        case None => -\/(RepositoryError.NoResults)
       }
-      case None => -\/(RepositoryError.NoResults("The query was successful but no ResultSet was returned."))
+      case None => -\/(RepositoryError.NoResults)
     }
   }
 
@@ -121,7 +152,7 @@ trait PostgresRepository[A] {
   protected def buildEntityList[B](maybeResultSet: Option[ResultSet], build: RowData => B): \/[RepositoryError.Fail, IndexedSeq[B]] = {
     maybeResultSet match {
       case Some(resultSet) => \/-(resultSet.map(build))
-      case None => -\/(RepositoryError.NoResults("The query was successful but no ResultSet was returned."))
+      case None => -\/(RepositoryError.NoResults)
     }
   }
 

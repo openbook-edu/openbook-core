@@ -466,16 +466,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     }
 
     // Send the query
-    queryOne(query, dataArray).recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField == "tasks_pkey") -\/(RepositoryError.UniqueKeyConflict(s"A task with id ${task.id.string} already exists"))
-          else if (nField == "tasks_part_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Referenced part with id ${task.partId.string} doesn't exist"))
-          else -\/(RepositoryError.DatabaseError(s"Unknown value in 'n' field.", Some(exception)))
-        case _ => -\/(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
-      }
-      case exception: Throwable => -\/(RepositoryError.DatabaseError("Unhandled exception from database", Some(exception)))
-    }
+    queryOne(query, dataArray)
   }
 
   /**
@@ -527,15 +518,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     }
 
     // Execute the query
-    queryOne(Update, dataArray).recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField == "tasks_part_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Referenced part with id ${task.partId.string} doesn't exist"))
-          else -\/(RepositoryError.DatabaseError(s"Unknown value in 'n' field.", Some(exception)))
-        case _ => -\/(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
-      }
-      case exception: Throwable => -\/(RepositoryError.DatabaseError("Unhandled exception from database", Some(exception)))
-    }
+    queryOne(Update, dataArray)
   }
 
   /**

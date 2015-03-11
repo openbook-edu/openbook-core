@@ -166,7 +166,7 @@ class ProjectServiceDefault(val db: Connection,
     transactional { implicit conn: Connection =>
       (for {
         existingProject <- lift(projectRepository.find(id))
-        _ <- predicate (existingProject.version == version) (RepositoryError.OfflineLockFail(Messages("services.ProjectService.updateInfo.lockErrorUnion#Fail", version, existingProject.version)))
+        _ <- predicate (existingProject.version == version) (RepositoryError.OfflineLockFail)
         toUpdate = existingProject.copy(
           courseId     = courseId.getOrElse(existingProject.courseId),
           name         = name.getOrElse(existingProject.name),
@@ -191,7 +191,7 @@ class ProjectServiceDefault(val db: Connection,
     transactional { implicit conn: Connection =>
       (for {
         existingProject <- lift(projectRepository.find(id))
-        _ <- predicate (existingProject.version == version) (RepositoryError.OfflineLockFail(Messages("services.ProjectService.updateSlug.lockErrorUnion#Fail", version, existingProject.version)))
+        _ <- predicate (existingProject.version == version) (RepositoryError.OfflineLockFail)
         validSlug <- lift(validateSlug(slug))
         toUpdate = existingProject.copy(slug = validSlug)
         updatedProject <- lift(projectRepository.update(toUpdate))
@@ -213,7 +213,7 @@ class ProjectServiceDefault(val db: Connection,
     transactional { implicit conn: Connection =>
       (for {
         project <- lift(find(id))
-        _ <- predicate (project.version == version) (RepositoryError.OfflineLockFail(Messages("services.ProjectService.delete.lockErrorUnion#Fail", version, project.version)))
+        _ <- predicate (project.version == version) (RepositoryError.OfflineLockFail)
         partsDeleted <- lift(partRepository.delete(project))
         projectDeleted <- lift(projectRepository.delete(project))
       }
@@ -298,7 +298,7 @@ class ProjectServiceDefault(val db: Connection,
     transactional { implicit conn: Connection =>
       (for {
         existingPart <- lift(partRepository.find(partId))
-        _ <- predicate (existingPart.version == version) (RepositoryError.OfflineLockFail(Messages("services.ProjectService.updatePart.lockErrorUnion#Fail", version, existingPart.version)))
+        _ <- predicate (existingPart.version == version) (RepositoryError.OfflineLockFail)
         oldPosition = existingPart.position
         project <- lift(projectRepository.find(existingPart.projectId))
         partList <- lift(partRepository.list(project))
@@ -485,9 +485,9 @@ class ProjectServiceDefault(val db: Connection,
       task <- lift { Future successful { project.parts.find(_.position == partNum) match {
         case Some(part) => part.tasks.find(_.position == taskNum) match {
           case Some(task) => \/.right(task)
-          case None => \/.left(RepositoryError.NoResults(""))
+          case None => \/.left(RepositoryError.NoResults)
         }
-        case None => \/.left(RepositoryError.NoResults(""))
+        case None => \/.left(RepositoryError.NoResults)
       }
     }}}
     yield task).run
@@ -620,7 +620,7 @@ class ProjectServiceDefault(val db: Connection,
   {
     (for {
       task <- lift(taskRepository.find(taskId))
-      _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail(Messages("services.ProjectService.updateTask.lockErrorUnion#Fail", version, task.version)))
+      _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail)
       _ <- predicate (task.isInstanceOf[LongAnswerTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateLongAnswerTask.wrongTaskType")))
       toUpdate = task.asInstanceOf[LongAnswerTask].copy(
         partId = partId.getOrElse(task.partId),
@@ -665,7 +665,7 @@ class ProjectServiceDefault(val db: Connection,
   {
     (for {
       task <- lift(taskRepository.find(taskId))
-      _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail(Messages("services.ProjectService.updatePart.lockErrorUnion#Fail", version, task.version)))
+      _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail)
       _ <- predicate (task.isInstanceOf[ShortAnswerTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateShortAnswerTask.wrongTaskType")))
       shortAnswerTask = task.asInstanceOf[ShortAnswerTask]
       toUpdate = shortAnswerTask.copy(
@@ -718,7 +718,7 @@ class ProjectServiceDefault(val db: Connection,
   {
     (for {
       task <- lift(taskRepository.find(taskId))
-      _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail(Messages("services.ProjectService.updateTask.lockErrorUnion#Fail", version, task.version)))
+      _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail)
       _ <- predicate (task.isInstanceOf[MultipleChoiceTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateMultipleChoiceTask.wrongTaskType")))
       mcTask = task.asInstanceOf[MultipleChoiceTask]
       toUpdate = mcTask.copy(
@@ -772,7 +772,7 @@ class ProjectServiceDefault(val db: Connection,
   {
     (for {
       task <- lift(taskRepository.find(taskId))
-      _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail(Messages("services.ProjectService.updateTask.lockErrorUnion#Fail", version, task.version)))
+      _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail)
       _ <- predicate (task.isInstanceOf[OrderingTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateOrderingTask.wrongTaskType")))
       orderingTask = task.asInstanceOf[OrderingTask]
       toUpdate = orderingTask.copy(
@@ -827,7 +827,7 @@ class ProjectServiceDefault(val db: Connection,
   {
     (for {
       task <- lift(taskRepository.find(taskId))
-      _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail(Messages("services.ProjectService.updateTask.lockErrorUnion#Fail", version, task.version)))
+      _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail)
       _ <- predicate (task.isInstanceOf[MatchingTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateMatchingTask.wrongTaskType")))
       matchingTask = task.asInstanceOf[MatchingTask]
       toUpdate = matchingTask.copy(
@@ -867,7 +867,7 @@ class ProjectServiceDefault(val db: Connection,
     transactional { implicit conn: Connection =>
       (for {
         genericTask <- lift(taskRepository.find(taskId))
-        _ <- predicate (genericTask.version == version) (RepositoryError.OfflineLockFail(Messages("services.ProjectService.deleteTask.lockErrorUnion#Fail", version, genericTask.version)))
+        _ <- predicate (genericTask.version == version) (RepositoryError.OfflineLockFail)
         task = genericTask match {
           case task: LongAnswerTask => task.copy(version = version)
           case task: ShortAnswerTask => task.copy(version = version)
@@ -962,9 +962,9 @@ class ProjectServiceDefault(val db: Connection,
 
     existing.run.map {
       case \/-(project) =>
-        if (existingId.isEmpty || (existingId.get != project.id)) -\/(RepositoryError.UniqueKeyConflict(s"The slug $slug is already in use."))
+        if (existingId.isEmpty || (existingId.get != project.id)) -\/(RepositoryError.UniqueKeyConflict("slug", s"The slug $slug is already in use."))
         else \/-(slug)
-      case -\/(error: RepositoryError.NoResults) => \/-(slug)
+      case -\/(RepositoryError.NoResults) => \/-(slug)
       case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)
     }
   }

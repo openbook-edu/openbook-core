@@ -234,18 +234,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
       user.hash, user.givenname, user.surname
     )
 
-    queryOne(Insert, params).recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField == "users_pkey") -\/(RepositoryError.UniqueKeyConflict(s"A row with key ${user.id.string} already exists"))
-          // TODO - check nField name
-          else if (nField == "users_username_key") -\/(RepositoryError.UniqueKeyConflict(s"User with username ${user.username} already exists"))
-          else if (nField == "users_email_key") -\/(RepositoryError.UniqueKeyConflict(s"User with email ${user.username} already exists"))
-          else throw exception
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
-    }
+    queryOne(Insert, params)
   }
 
   /**
@@ -264,18 +253,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
       user.version + 1, new DateTime, user.id.bytes, user.version
     )
 
-    queryOne(Update, params).recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField == "users_pkey") -\/(RepositoryError.UniqueKeyConflict(s"A row with key ${user.id.string} already exists"))
-          // TODO - check nField name
-          else if (nField == "users_username_key") -\/(RepositoryError.UniqueKeyConflict(s"User with username ${user.username} already exists"))
-          else if (nField == "users_email_key") -\/(RepositoryError.UniqueKeyConflict(s"User with email ${user.email} already exists"))
-          else throw exception
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
-    }
+    queryOne(Update, params)
   }
 
   /**
@@ -285,15 +263,6 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @return a future disjunction containing either the deleted user, or a failure
    */
   override def delete(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
-    queryOne(Delete, Seq[Any](user.id.bytes, user.version)).recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          // TODO - check nField name
-          if (nField == "courses_teacher_id_fkey") -\/(RepositoryError.ForeignKeyConflict(Messages("repositories.UserRepository.delete.refCourseError")))
-          else throw exception
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
-    }
+    queryOne(Delete, Seq[Any](user.id.bytes, user.version))
   }
 }

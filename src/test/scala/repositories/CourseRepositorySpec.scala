@@ -627,6 +627,7 @@ class CourseRepositorySpec
   }
 
   // TODO - delete
+  // TODO - check connected tables after delete in all tests
   "CourseRepository.enablePart"  + Console.RED + Console.BOLD + " (NOTE: Method is deprecated, talbe COURSES_PROJECTS will be deleted) " + Console.RESET should {
     inSequence {
       "enable a particular project part for this Section's users" in {

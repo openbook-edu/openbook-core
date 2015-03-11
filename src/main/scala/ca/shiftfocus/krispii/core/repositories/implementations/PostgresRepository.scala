@@ -127,7 +127,7 @@ trait PostgresRepository[A] {
    *
    * @param maybeResultSet an optional [[ResultSet]] returned from the database
    * @param build a function that can build entities of type A from a [[RowData]] object
-   * @tparam A the type of entity to be built
+   * @tparam B the type of entity to be built
    * @return a disjunction containing either a RepositoryError.Fail, or an object of type A
    */
   protected def buildEntity[B](maybeResultSet: Option[ResultSet], build: RowData => B): \/[RepositoryError.Fail, B] = {
@@ -146,7 +146,7 @@ trait PostgresRepository[A] {
    *
    * @param maybeResultSet an optional [[ResultSet]] returned from the database
    * @param build a function that can build entities of type A from a [[RowData]] object
-   * @tparam A the type of entity to be built
+   * @tparam B the type of entity to be built
    * @return a disjunction containing either a RepositoryError.Fail, or an object of type A
    */
   protected def buildEntityList[B](maybeResultSet: Option[ResultSet], build: RowData => B): \/[RepositoryError.Fail, IndexedSeq[B]] = {

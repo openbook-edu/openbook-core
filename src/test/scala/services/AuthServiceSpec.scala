@@ -1,102 +1,102 @@
 //package services //Need to be commented to run the tests
-
-import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.uuid.UUID
-import java.awt.Color
-import ca.shiftfocus.krispii.core.models._
-import com.github.mauricio.async.db.Connection
-import scala.concurrent.{Future,ExecutionContext,Await}
-import ExecutionContext.Implicits.global
-import scala.concurrent.duration._
-import scala.concurrent.duration.Duration._
-import ca.shiftfocus.krispii.core.services._
-import ca.shiftfocus.krispii.core.services.datasource._
-import ca.shiftfocus.krispii.core.repositories._
-import grizzled.slf4j.Logger
-import webcrank.password._
-
-import org.scalatest._
-import Matchers._ // Is used for "should be and etc."
-import org.scalamock.scalatest.MockFactory
-import scalaz.{\/, \/-, -\/}
-
-class AuthServiceSpec
-  extends WordSpec
-  with MockFactory {
-
-  val logger = Logger[this.type]
-  val mockConnection = stub[Connection]
-
-  // Create stubs of AuthService's dependencies
-  val userRepository = stub[UserRepository]
-  val roleRepository = stub[RoleRepository]
-  val sessionRepository = stub[SessionRepository]
-
-  // Create a real instance of AuthService for testing
-  val authService = new AuthServiceDefault(mockConnection, userRepository, roleRepository, sessionRepository) {
-    override implicit def conn: Connection = mockConnection
-
-    override def transactional[A](f: Connection => Future[A]): Future[A] = {
-      f(mockConnection)
-    }
-  }
-
-  implicit def conn: Connection = mockConnection
-
-  val webcrank = Passwords.scrypt()
-  val password = "userpass"
-  val passwordHash = webcrank.crypt(password)
-
-  val testUserA = User(
-    email = "testUserA@example.org",
-    username = "testUserA",
-    hash = Some(passwordHash),
-    givenname = "Test",
-    surname = "UserA"
-  )
-
-  val testUserB = User(
-    email = "testUserA@example.org",
-    username = "testUserA",
-    hash = Some(passwordHash),
-    givenname = "Test",
-    surname = "UserA"
-  )
-
-  val testRoleA = Role(
-    name = "Role name A"
-  )
-
-  val testClassA = Course(
-    teacherId = testUserA.id,
-    name = "Class name A",
-    color = new Color(24, 6, 8)
-  )
-
-  "AuthService.authenticate" should {
-    inSequence {
-      "return a user if the identifier and password combination are valid" in {
-        (userRepository.find(_: String)) when testUserA.username returns Future.successful(\/.right(testUserA))
-
-        val fSomeUser = authService.authenticate(testUserA.username, password)
-        val \/-(user) = Await.result(fSomeUser, Duration.Inf)
-        user should be(testUserA)
-      }
-      "return AuthFail if the password was wrong" in {
-        (userRepository.find(_: String)) when testUserA.username returns Future.successful(\/.right(testUserA))
-
-        val fSomeUser = authService.authenticate(testUserA.username, "bad password!")
-        Await.result(fSomeUser, Duration.Inf) should be(-\/(ServiceError.BadPermissions("The password was invalid.")))
-      }
-      "return RepositoryError.NoResults if the user doesn't exist" in {
-        (userRepository.find(_: String)) when testUserA.username returns Future.successful(\/.left(RepositoryError.NoResults("Could not find a user.")))
-
-        val fSomeUser = authService.authenticate(testUserA.username, password)
-        Await.result(fSomeUser, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find a user.")))
-      }
-    }
-  }
-}
+//
+//import ca.shiftfocus.krispii.core.error._
+//import ca.shiftfocus.uuid.UUID
+//import java.awt.Color
+//import ca.shiftfocus.krispii.core.models._
+//import com.github.mauricio.async.db.Connection
+//import scala.concurrent.{Future,ExecutionContext,Await}
+//import ExecutionContext.Implicits.global
+//import scala.concurrent.duration._
+//import scala.concurrent.duration.Duration._
+//import ca.shiftfocus.krispii.core.services._
+//import ca.shiftfocus.krispii.core.services.datasource._
+//import ca.shiftfocus.krispii.core.repositories._
+//import grizzled.slf4j.Logger
+//import webcrank.password._
+//
+//import org.scalatest._
+//import Matchers._ // Is used for "should be and etc."
+//import org.scalamock.scalatest.MockFactory
+//import scalaz.{\/, \/-, -\/}
+//
+//class AuthServiceSpec
+//  extends WordSpec
+//  with MockFactory {
+//
+//  val logger = Logger[this.type]
+//  val mockConnection = stub[Connection]
+//
+//  // Create stubs of AuthService's dependencies
+//  val userRepository = stub[UserRepository]
+//  val roleRepository = stub[RoleRepository]
+//  val sessionRepository = stub[SessionRepository]
+//
+//  // Create a real instance of AuthService for testing
+//  val authService = new AuthServiceDefault(mockConnection, userRepository, roleRepository, sessionRepository) {
+//    override implicit def conn: Connection = mockConnection
+//
+//    override def transactional[A](f: Connection => Future[A]): Future[A] = {
+//      f(mockConnection)
+//    }
+//  }
+//
+//  implicit def conn: Connection = mockConnection
+//
+//  val webcrank = Passwords.scrypt()
+//  val password = "userpass"
+//  val passwordHash = webcrank.crypt(password)
+//
+//  val testUserA = User(
+//    email = "testUserA@example.org",
+//    username = "testUserA",
+//    hash = Some(passwordHash),
+//    givenname = "Test",
+//    surname = "UserA"
+//  )
+//
+//  val testUserB = User(
+//    email = "testUserA@example.org",
+//    username = "testUserA",
+//    hash = Some(passwordHash),
+//    givenname = "Test",
+//    surname = "UserA"
+//  )
+//
+//  val testRoleA = Role(
+//    name = "Role name A"
+//  )
+//
+//  val testClassA = Course(
+//    teacherId = testUserA.id,
+//    name = "Class name A",
+//    color = new Color(24, 6, 8)
+//  )
+//
+//  "AuthService.authenticate" should {
+//    inSequence {
+//      "return a user if the identifier and password combination are valid" in {
+//        (userRepository.find(_: String)) when testUserA.username returns Future.successful(\/.right(testUserA))
+//
+//        val fSomeUser = authService.authenticate(testUserA.username, password)
+//        val \/-(user) = Await.result(fSomeUser, Duration.Inf)
+//        user should be(testUserA)
+//      }
+//      "return AuthFail if the password was wrong" in {
+//        (userRepository.find(_: String)) when testUserA.username returns Future.successful(\/.right(testUserA))
+//
+//        val fSomeUser = authService.authenticate(testUserA.username, "bad password!")
+//        Await.result(fSomeUser, Duration.Inf) should be(-\/(ServiceError.BadPermissions("The password was invalid.")))
+//      }
+//      "return RepositoryError.NoResults if the user doesn't exist" in {
+//        (userRepository.find(_: String)) when testUserA.username returns Future.successful(\/.left(RepositoryError.NoResults("Could not find a user.")))
+//
+//        val fSomeUser = authService.authenticate(testUserA.username, password)
+//        Await.result(fSomeUser, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find a user.")))
+//      }
+//    }
+//  }
+//}
 ////
 ////  "AuthService.update" should {
 ////    val indexedRole = Vector(testRoleA)

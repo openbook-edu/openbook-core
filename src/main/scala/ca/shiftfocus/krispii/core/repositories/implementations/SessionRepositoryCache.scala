@@ -48,7 +48,7 @@ class SessionRepositoryCache extends SessionRepository {
   override def find(sessionId: UUID)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Session]] = {
     get[Session](sessionId.string).map {
       case Some(session) => \/-(session)
-      case None => -\/(RepositoryError.NoResults(s"No session with id ${sessionId.string} could be found."))
+      case None => -\/(RepositoryError.NoResults)
     }.recover {
       case exception => {
         Logger.error("Could not create session")

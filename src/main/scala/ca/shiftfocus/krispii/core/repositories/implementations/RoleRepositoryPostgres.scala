@@ -175,7 +175,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
           }
           \/-(tupledWithUsers.toMap)
         }
-        case None => -\/(RepositoryError.NoResults("The query was successful but no ResultSet was returned."))
+        case None => -\/(RepositoryError.NoResults)
       }
     }.recover {
       case exception: Throwable => throw exception
@@ -218,18 +218,8 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
 
     queryNumRows(query)(userList.length == _).map {
       case \/-(wasSuccessful) => if (wasSuccessful) \/-(role)
-                                 else -\/(RepositoryError.NoResults("Role couldn't be added to all users."))
+                                 else -\/(RepositoryError.DatabaseError("Role couldn't be added to all users."))
       case -\/(error) => -\/(error)
-    }.recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField == "users_roles_pkey") -\/(RepositoryError.UniqueKeyConflict(s"User has already this role"))
-          else if (nField == "users_roles_user_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"User doesn't exist"))
-          else if (nField == "users_roles_role_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Role doesn't exist"))
-          else throw exception
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
     }
   }
 
@@ -251,7 +241,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
 
    queryNumRows(query)(userList.length == _).map {
      case \/-(wasSuccessful) => if (wasSuccessful) \/-(role)
-                                else -\/(RepositoryError.NoResults("Role couldn't be added to all users."))
+                                else -\/(RepositoryError.DatabaseError("Role couldn't be added to all users."))
      case -\/(error) => -\/(error)
     }.recover {
       case exception: Throwable => throw exception
@@ -266,13 +256,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
   override def insert(role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Role]] = {
     val params = Seq[Any](role.id.bytes, 1, new DateTime, new DateTime, role.name)
 
-    queryOne(Insert, params).recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) if nField == "roles_pkey" => -\/(RepositoryError.UniqueKeyConflict(s"A row with key ${role.id.string} already exists"))
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
-    }
+    queryOne(Insert, params)
   }
 
   /**
@@ -293,13 +277,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * @return
    */
   def delete(role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Role]] = {
-    queryOne(Delete, Array(role.id.bytes, role.version)).recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) if nField == "roles_pkey" => -\/(RepositoryError.UniqueKeyConflict(s"Deletion of a role with id ${role.id.string} caused a GenericDatabaseException"))
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
-    }
+    queryOne(Delete, Array(role.id.bytes, role.version))
   }
 
   /**
@@ -313,16 +291,6 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
       case \/-(true) => \/-( () )
       case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
       case -\/(error) => -\/(error)
-    }.recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField == "users_roles_pkey") -\/(RepositoryError.UniqueKeyConflict(s"User ${user.username} already has the ${role.name} role"))
-          else if (nField == "users_roles_user_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Referenced user with id ${user.id.string} doesn't exist"))
-          else if (nField == "users_roles_role_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Referenced role with id ${role.id.string} doesn't exist"))
-          else  throw exception
-        case _ => -\/(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
-      }
-      case exception: Throwable => -\/(RepositoryError.DatabaseError("Unhandled exception from database", Some(exception)))
     }
   }
 
@@ -337,16 +305,6 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
       case \/-(true) => \/-( () )
       case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
       case -\/(error) => -\/(error)
-    }.recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField == "users_roles_pkey") -\/(RepositoryError.UniqueKeyConflict(s"User ${user.username} already has the ${name} role"))
-          else if (nField == "users_roles_user_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Referenced user with id ${user.id.string} doesn't exist"))
-          else if (nField == "users_roles_role_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Referenced role with name ${name} doesn't exist"))
-          else  throw exception
-        case _ => -\/(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
-      }
-      case exception: Throwable => -\/(RepositoryError.DatabaseError("Unhandled exception from database", Some(exception)))
     }
   }
 
@@ -378,7 +336,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
   override def removeFromAllUsers(role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     queryNumRows(RemoveFromAllUsers, Seq[Any](role.id.bytes))(1 <= _).map {
       case \/-(true) => \/-( () )
-      case \/-(false) => -\/(RepositoryError.NoResults("It appears that no users had this role, so it has been removed from no one. But the query was successful, so there's that."))
+      case \/-(false) => -\/(RepositoryError.DatabaseError("It appears that no users had this role, so it has been removed from no one. But the query was successful, so there's that."))
       case -\/(error) => -\/(error)
     }
   }
@@ -389,7 +347,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
   override def removeFromAllUsers(name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     queryNumRows(RemoveFromAllUsers, Seq[Any](name))(1 <= _).map {
       case \/-(true) => \/-( () )
-      case \/-(false) => -\/(RepositoryError.NoResults("It appears that no users had this role, so it has been removed from no one. But the query was successful, so there's that."))
+      case \/-(false) => -\/(RepositoryError.DatabaseError("It appears that no users had this role, so it has been removed from no one. But the query was successful, so there's that."))
       case -\/(error) => -\/(error)
     }
   }

@@ -219,9 +219,9 @@ class DocumentRepositoryPostgres(val userRepository: UserRepository) extends Doc
       maybeResultSet match {
         case Some(resultSet) => resultSet.headOption match {
           case Some(firstRow) => \/-(Document(firstRow)(user, owners))
-          case None => -\/(RepositoryError.NoResults("The query was successful but ResultSet was empty."))
+          case None => -\/(RepositoryError.NoResults)
         }
-        case None => -\/(RepositoryError.NoResults("The query was successful but no ResultSet was returned."))
+        case None => -\/(RepositoryError.NoResults)
       }
     }
     catch {
@@ -234,9 +234,9 @@ class DocumentRepositoryPostgres(val userRepository: UserRepository) extends Doc
       maybeResultSet match {
         case Some(resultSet) => resultSet.headOption match {
           case Some(firstRow) => \/-(Revision(firstRow)(author))
-          case None => -\/(RepositoryError.NoResults("The query was successful but ResultSet was empty."))
+          case None => -\/(RepositoryError.NoResults)
         }
-        case None => -\/(RepositoryError.NoResults("The query was successful but no ResultSet was returned."))
+        case None => -\/(RepositoryError.NoResults)
       }
     }
     catch {

@@ -203,16 +203,7 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
       part.projectId.bytes, part.name, part.position, part.enabled
     )
 
-    queryOne(Insert, params).recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField == "parts_pkey") -\/(RepositoryError.UniqueKeyConflict(s"A part with key ${part.id.string} already exists"))
-          else if (nField == "parts_project_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Tried to create a part for a project that doesn't exist."))
-          else throw exception
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
-    }
+    queryOne(Insert, params)
   }
 
   /**
@@ -227,16 +218,7 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
       part.version + 1, new DateTime, part.id.bytes, part.version
     )
 
-    queryOne(Update, params).recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField == "parts_pkey") -\/(RepositoryError.UniqueKeyConflict(s"A part with key ${part.id.string} already exists"))
-          else if (nField == "parts_project_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Tried to move this part to a project that doesn't exist."))
-          else throw exception
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
-    }
+    queryOne(Update, params)
   }
 
   /**

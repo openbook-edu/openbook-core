@@ -201,16 +201,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
       project.description, project.availability, new DateTime, new DateTime
     )
 
-    queryOne(Insert, params).recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField == "projects_pkey") -\/(RepositoryError.UniqueKeyConflict(s"A project with key ${project.id.string} already exists"))
-          else if (nField == "projects_slug_key") -\/(RepositoryError.UniqueKeyConflict(s"A project with slug ${project.slug} already exists"))
-          else throw exception
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
-    }
+    queryOne(Insert, params)
   }
 
   /**
@@ -226,16 +217,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
       project.availability, project.version + 1, new DateTime, project.id.bytes, project.version
     )
 
-    queryOne(Update, params).recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField == "projects_pkey") -\/(RepositoryError.UniqueKeyConflict(s"A project with key ${project.id.string} already exists"))
-          else if (nField == "projects_slug_key") -\/(RepositoryError.UniqueKeyConflict(s"A project with slug ${project.slug} already exists"))
-          else throw exception
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
-    }
+    queryOne(Update, params)
   }
 
   /**
@@ -246,14 +228,6 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @return a boolean indicator whether the deletion was successful.
    */
   override def delete(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
-    queryOne(Delete, Array(project.id.bytes, project.version)).recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField.endsWith("fkey")) -\/(RepositoryError.ForeignKeyConflict(s"We cannot delete this project while it's still being referenced by other entities."))
-          else throw exception
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
-    }
+    queryOne(Delete, Array(project.id.bytes, project.version))
   }
 }

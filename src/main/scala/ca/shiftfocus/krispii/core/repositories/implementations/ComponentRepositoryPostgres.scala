@@ -319,7 +319,7 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
   override def addToPart(component: Component, part: Part)(implicit conn: Connection):Future[\/[RepositoryError.Fail, Unit]] = {
     queryNumRows(AddToPart, Array[Any](component.id.bytes, part.id.bytes, new DateTime))(1 == _).map {
       case \/-(true) => \/-( () )
-      case \/-(false) => -\/(RepositoryError.NoResults("No rows were modified"))
+      case \/-(false) => -\/(RepositoryError.NoResults)
       case -\/(error) => -\/(error)
     }
   }
@@ -334,7 +334,7 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
   override def removeFromPart(component: Component, part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     queryNumRows(RemoveFromPart, Array[Any](component.id.bytes, part.id.bytes))(1 == _).map {
       case \/-(true) => \/-( () )
-      case \/-(false) => -\/(RepositoryError.NoResults("No rows were modified"))
+      case \/-(false) => -\/(RepositoryError.NoResults)
       case -\/(error) => -\/(error)
     }
   }
@@ -352,7 +352,7 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
       deletedComponents <- lift {
         queryNumRows(RemoveAllFromParts, Array[Any](part.id.bytes))(componentsInPart.length == _).map {
           case \/-(true) => \/-( componentsInPart )
-          case \/-(false) => -\/(RepositoryError.NoResults("No rows were modified"))
+          case \/-(false) => -\/(RepositoryError.NoResults)
           case -\/(error) => -\/(error)
         }
       }

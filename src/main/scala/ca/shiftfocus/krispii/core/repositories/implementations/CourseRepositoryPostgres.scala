@@ -275,7 +275,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
             }
             \/-(tupledWithUsers.toMap)
           }
-          case None => -\/(RepositoryError.NoResults("The query was successful but no ResultSet was returned."))
+          case None => -\/(RepositoryError.NoResults)
         }
       }
       catch {
@@ -308,9 +308,9 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
       result.rows match {
         case Some(resultSet) => resultSet.headOption match {
           case Some(firstRow) => userRepository.find(UUID(firstRow("user_id").asInstanceOf[Array[Byte]]))
-          case None => Future successful -\/(RepositoryError.NoResults("The query was successful but ResultSet was empty."))
+          case None => Future successful -\/(RepositoryError.NoResults)
         }
-        case None => Future successful -\/(RepositoryError.NoResults("The query was successful but no ResultSet was returned."))
+        case None => Future successful -\/(RepositoryError.NoResults)
       }
     }.recover {
       case exception: Throwable => throw exception
@@ -323,18 +323,8 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   override def addUser(user: User, course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     queryNumRows(AddUser, Array(user.id.bytes, course.id.bytes, new DateTime))(1 == _).map {
       case \/-(true) => \/-( () )
-      case \/-(false) => -\/(RepositoryError.NoResults("The query succeeded but the course could not be added."))
+      case \/-(false) => -\/(RepositoryError.NoResults)
       case -\/(error) => -\/(error)
-    }.recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField == "users_courses_pkey") -\/(RepositoryError.UniqueKeyConflict(s"User has already this course"))
-          else if (nField == "users_courses_user_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Referenced user with id ${user.id.string} doesn't exist"))
-          else if (nField == "users_courses_course_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Referenced course with id ${course.id.string} doesn't exist"))
-          else  throw exception
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
     }
   }
 
@@ -344,18 +334,8 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   override def removeUser(user: User, course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     queryNumRows(RemoveUser, Array(user.id.bytes, course.id.bytes))(1 == _).map {
       case \/-(true) => \/-( () )
-      case \/-(false) => -\/(RepositoryError.NoResults("The query succeeded but the course could not be added."))
+      case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the course could not be added."))
       case -\/(error) => -\/(error)
-    }.recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField == "users_courses_pkey") -\/(RepositoryError.UniqueKeyConflict(s"User has already this course"))
-          else if (nField == "users_courses_user_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Referenced user with id ${user.id.string} doesn't exist"))
-          else if (nField == "users_courses_course_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Referenced course with id ${course.id.string} doesn't exist"))
-          else  throw exception
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
     }
   }
 
@@ -403,17 +383,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
       } else {
         \/-( () )
       }
-    wasAdded.recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField == "users_courses_pkey") -\/(RepositoryError.UniqueKeyConflict(s"User is already in the class"))
-          else if (nField == "users_courses_user_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"User doesn't exist"))
-          else if (nField == "users_courses_course_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Class doesn't exist"))
-          else throw exception
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
-    }
+    wasAdded
   }
 
   /**
@@ -490,16 +460,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
       course.color.getRGB, new DateTime, new DateTime
     )
 
-    queryOne(Insert, params).recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField == "course_pkey") -\/(RepositoryError.UniqueKeyConflict(s"Class already exists"))
-          else if (nField == "courses_teacher_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Teacher doesn't exist"))
-          else throw exception
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
-    }
+    queryOne(Insert, params)
   }
 
   /**
@@ -514,15 +475,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
       course.version + 1, course.teacherId.bytes, course.name,
       course.color.getRGB, new DateTime, course.id.bytes, course.version
     )
-    queryOne(Update, params).recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          if (nField == "courses_teacher_id_fkey") -\/(RepositoryError.ForeignKeyConflict(s"Tried to reference a teacher that doesn't exist"))
-          else throw exception
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
-    }
+    queryOne(Update, params)
   }
 
   /**
@@ -533,15 +486,6 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
    * @return
    */
   def delete(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = {
-    queryOne(Delete, Array(course.id.bytes, course.version)).recover {
-      case exception: GenericDatabaseException => exception.errorMessage.fields.get('n') match {
-        case Some(nField) =>
-          // TODO check nField name
-          if (nField == "projects_courses_course_id_fkey") -\/(RepositoryError.UniqueKeyConflict(s"Can't delete a course when it still has projects."))
-          else throw exception
-        case _ => throw exception
-      }
-      case exception: Throwable => throw exception
-    }
+    queryOne(Delete, Array(course.id.bytes, course.version))
   }
 }

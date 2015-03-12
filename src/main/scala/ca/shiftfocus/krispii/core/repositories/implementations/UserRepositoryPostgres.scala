@@ -35,10 +35,10 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
     )
   }
 
-  val Fields = "users.id, users.version, users.created_at, users.updated_at, users.username, users.email, users.password_hash, users.givenname, users.surname"
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
   val Table = "users"
-  val OrderBy = "surname ASC, givenname ASC"
+  val Fields = s"${Table}.id, ${Table}.version, ${Table}.created_at, ${Table}.updated_at, ${Table}.username, ${Table}.email, ${Table}.password_hash, ${Table}.givenname, ${Table}.surname"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val OrderBy = s"${Table}.surname ASC, ${Table}.givenname ASC"
 
   // User CRUD operations
   val SelectAll =
@@ -105,25 +105,27 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |LIMIT 1
      """.stripMargin
 
-  val SelectAllWithCourse = s"""
-    SELECT id, version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
-    FROM users, users_courses
-    WHERE users.id = users_courses.user_id
-      AND users_courses.course_id = ?
-    ORDER BY $OrderBy
-  """.stripMargin
+  val SelectAllWithCourse =
+    s"""
+       |SELECT id, version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
+       |FROM users, users_courses
+       |WHERE users.id = users_courses.user_id
+       |  AND users_courses.course_id = ?
+       |ORDER BY $OrderBy
+    """.stripMargin
 
-  val ListUsersFilterByRolesAndCourses = s"""
-    SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
-    FROM users, roles, users_roles, courses, users_courses
-    WHERE users.id = users_roles.user_id
-      AND roles.id = users_roles.role_id
-      AND roles.name = ANY (?::text[])
-      AND users.id = users_courses.user_id
-      AND courses.id = users_courses.course_id
-      AND courses.name = ANY (?::text[])
-    GROUP BY users.id
-    ORDER BY $OrderBy
+  val ListUsersFilterByRolesAndCourses =
+    s"""
+       |SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
+       |FROM users, roles, users_roles, courses, users_courses
+       |WHERE users.id = users_roles.user_id
+       |  AND roles.id = users_roles.role_id
+       |  AND roles.name = ANY (?::text[])
+       |  AND users.id = users_courses.user_id
+       |  AND courses.id = users_courses.course_id
+       |  AND courses.name = ANY (?::text[])
+       |GROUP BY users.id
+       |ORDER BY $OrderBy
   """.stripMargin
 
   /**

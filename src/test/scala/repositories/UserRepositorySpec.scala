@@ -1,5 +1,6 @@
 import java.io.File
 
+import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.pool.PoolConfiguration
@@ -16,13 +17,15 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest._
 import Matchers._
 import collection.breakOut
-import scalaz.\/-
+import scalaz.{-\/, \/-}
 
 
 class UserRepositorySpec
   extends TestEnvironment
 {
   val userRepository = new UserRepositoryPostgres
+  val users_table = userRepository.Table
+  val users_fields = userRepository.Fields
 
   "UserRepository.list" should {
     inSequence {
@@ -81,12 +84,12 @@ class UserRepositorySpec
           }
         }
       }
-      // TODO add this Exception to the class of Exceptions
-      "throw an NoSuchElementException if set contains unexisting user ID" in {
+      "return RepositoryError.NoResults if set contains unexisting user ID" in {
         val result = userRepository.list(Vector(UUID("a5caac60-8fd7-4ecc-8fd3-f84dc11355f1")))
 
-        an [java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
+        an [java.util.NoSuchElementException] should be(-\/(RepositoryError.NoResults))
       }
+      // TODO check if role/course doesn't have users
       "List all users who have a role" in {
         val testUserList = TreeMap[Int, User](
           0 -> TestValues.testUserA,
@@ -111,6 +114,11 @@ class UserRepositorySpec
             users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
+      }
+      "return empty Vector() if role doesn't exist" in {
+        val result = userRepository.list(TestValues.testRoleD)
+
+        Await.result(result, Duration.Inf) should be (\/- (Vector()))
       }
       "list users in a given course" in {
         val testUserList = TreeMap[Int, User](
@@ -139,10 +147,10 @@ class UserRepositorySpec
           }
         }
       }
-      "return empty Vector() if course unexists" in {
+      "return RepositoryError.NoResults if course doesn't exist" in {
         val result = userRepository.list(TestValues.testCourseC)
 
-        Await.result(result, Duration.Inf) should be (\/- (Vector()))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
     }
   }
@@ -150,71 +158,74 @@ class UserRepositorySpec
 
 
 
-//
-//  "UserRepository.find" should {
-//    inSequence {
-//      "find a user by ID" in {
-//        val result = userRepository.find(TestValues.testUserA.id).map(_.get)
-//
-//        val user = Await.result(result, Duration.Inf)
-//        user.id should be(TestValues.testUserA.id)
-//        user.version should be(TestValues.testUserA.version)
-//        user.email should be(TestValues.testUserA.email)
-//        user.username should be(TestValues.testUserA.username)
-//        user.givenname should be(TestValues.testUserA.givenname)
-//        user.surname should be(TestValues.testUserA.surname)
-//        user.createdAt.toString() should be (TestValues.testUserA.createdAt.toString())
-//        user.updatedAt.toString() should be (TestValues.testUserA.updatedAt.toString())
-//      }
-//      "be None if user wasn't found by ID" in {
-//        val result = userRepository.find(UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477"))
-//
-//        Await.result(result, Duration.Inf) should be (None)
-//      }
-//      "find a user by their identifiers - email" in {
-//        val result = userRepository.find(TestValues.testUserA.email).map(_.get)
-//
-//        val user = Await.result(result, Duration.Inf)
-//
-//        user.id should be(TestValues.testUserA.id)
-//        user.version should be(TestValues.testUserA.version)
-//        user.email should be(TestValues.testUserA.email)
-//        user.username should be(TestValues.testUserA.username)
-//        user.givenname should be(TestValues.testUserA.givenname)
-//        user.surname should be(TestValues.testUserA.surname)
-//        user.createdAt.toString should be(TestValues.testUserA.createdAt.toString)
-//        user.updatedAt.toString should be(TestValues.testUserA.updatedAt.toString)
-//      }
-//      "find a user by their identifiers - username" in {
-//        val result = userRepository.find(TestValues.testUserB.username).map(_.get)
-//
-//        val user = Await.result(result, Duration.Inf)
-//
-//        user.id should be(TestValues.testUserB.id)
-//        user.version should be(TestValues.testUserB.version)
-//        user.email should be(TestValues.testUserB.email)
-//        user.username should be(TestValues.testUserB.username)
-//        user.givenname should be(TestValues.testUserB.givenname)
-//        user.surname should be(TestValues.testUserB.surname)
-//        user.createdAt.toString should be(TestValues.testUserB.createdAt.toString)
-//        user.updatedAt.toString should be(TestValues.testUserB.updatedAt.toString)
-//      }
-//      "not find a user by their identifiers - email (unexisting email)" in {
-//        val result = userRepository.find("unexisting_email@example.com")
-//
-//        val user = Await.result(result, Duration.Inf)
-//
-//        user should be (None)
-//      }
-//      "not find a user by their identifiers - username (unexisting username)" in {
-//        val result = userRepository.find("unexisting_username")
-//
-//        val user = Await.result(result, Duration.Inf)
-//
-//        user should be (None)
-//      }
-//    }
-//  }
+
+  "UserRepository.find" should {
+    inSequence {
+      "find a user by ID" in {
+        val testUser = TestValues.testUserA
+
+        val result = userRepository.find(testUser.id)
+        val eitherUser = Await.result(result, Duration.Inf)
+        val \/-(user) = eitherUser
+
+        user.id should be(testUser.id)
+        user.version should be(testUser.version)
+        user.email should be(testUser.email)
+        user.username should be(testUser.username)
+        user.givenname should be(testUser.givenname)
+        user.surname should be(testUser.surname)
+        user.createdAt.toString() should be (testUser.createdAt.toString())
+        user.updatedAt.toString() should be (testUser.updatedAt.toString())
+      }
+      "return RepositoryError.NoResults if user wasn't found by ID" in {
+        val result = userRepository.find(UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477"))
+
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+      "find a user by their identifiers - email" in {
+        val testUser = TestValues.testUserA
+
+        val result = userRepository.find(testUser.email)
+        val eitherUser = Await.result(result, Duration.Inf)
+        val \/-(user) = eitherUser
+
+        user.id should be(testUser.id)
+        user.version should be(testUser.version)
+        user.email should be(testUser.email)
+        user.username should be(testUser.username)
+        user.givenname should be(testUser.givenname)
+        user.surname should be(testUser.surname)
+        user.createdAt.toString() should be (testUser.createdAt.toString())
+        user.updatedAt.toString() should be (testUser.updatedAt.toString())
+      }
+      "find a user by their identifiers - username" in {
+        val testUser = TestValues.testUserB
+
+        val result = userRepository.find(testUser.username)
+        val eitherUser = Await.result(result, Duration.Inf)
+        val \/-(user) = eitherUser
+
+        user.id should be(testUser.id)
+        user.version should be(testUser.version)
+        user.email should be(testUser.email)
+        user.username should be(testUser.username)
+        user.givenname should be(testUser.givenname)
+        user.surname should be(testUser.surname)
+        user.createdAt.toString() should be (testUser.createdAt.toString())
+        user.updatedAt.toString() should be (testUser.updatedAt.toString())
+      }
+      "reutrn RepositoryError.NoResults identifier - email that doesn't exist" in {
+        val result = userRepository.find("unexisting_email@example.com")
+
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+      "reutrn RepositoryError.NoResults identifier - username that doesn't exist" in {
+        val result = userRepository.find("unexisting_username")
+
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+    }
+  }
 //
 //  "UserRepository.findByEmail" should {
 //    inSequence {
@@ -242,30 +253,34 @@ class UserRepositorySpec
 //    }
 //  }
 //
-//  "UserRepository.update" should {
-//    inSequence {
-//      "update an existing user" in {
-//
-//        val result = userRepository.update(TestValues.testUserA.copy(
-//          email = "newtestUserA@example.com",
-//          username = "newtestUserA",
-//          givenname = "newTestA",
-//          surname = "newUserA"
-//        ))
-//
-//        val user = Await.result(result, Duration.Inf)
-//
-//        user.id should be (TestValues.testUserA.id)
-//        user.version should be (TestValues.testUserA.version + 1)
-//        user.email should be ("newtestUserA@example.com")
-//        user.username should be ("newtestUserA")
-//        user.givenname should be ("newTestA")
-//        user.surname should be ("newUserA")
-//        user.createdAt.toString should be(TestValues.testUserA.createdAt.toString)
-//        user.updatedAt.toString should not be(TestValues.testUserA.updatedAt.toString)
-//
-//        // Find updated user and check
-//        val queryResult = db.pool.sendPreparedStatement(SelectOneByIdentifier, Array[Any]("newtestUserA@example.com", "newtestUserA@example.com")).map { queryResult =>
+  "UserRepository.update" should {
+    inSequence {
+      "update an existing user" in {
+        val testUser        = TestValues.testUserA
+        val updatedTestUser = testUser.copy(
+          email     = "updated_user@example.com",
+          username  = "updated_username",
+          givenname = "updated_givenname",
+          surname   = "updated_surname"
+        )
+
+        val result = userRepository.update(updatedTestUser)
+        val eitherUser = Await.result(result, Duration.Inf)
+        val \/-(user) = eitherUser
+
+        user.id should be(updatedTestUser.id)
+        user.version should be(updatedTestUser.version + 1)
+        user.email should be(updatedTestUser.email)
+        user.username should be(updatedTestUser.username)
+        user.givenname should be(updatedTestUser.givenname)
+        user.surname should be(updatedTestUser.surname)
+        user.createdAt.toString() should be (updatedTestUser.createdAt.toString())
+        user.updatedAt.toString() should not be (updatedTestUser.updatedAt.toString())
+
+        // Find updated user and check
+        val queryResult = conn.sendPreparedStatement(selectOneById(users_table, users_fields), Array[Any](updatedTestUser.id))
+println(Console.RED + Console.BOLD + queryResult + Console.RESET)
+//        val queryResult = conn.sendPreparedStatement(selectOneById(users_table, users_fields), Array[Any](updatedTestUser.id)).map { queryResult =>
 //          val userList = queryResult.rows.get.map {
 //            item: RowData => User(item)
 //          }
@@ -283,7 +298,7 @@ class UserRepositorySpec
 //        updated_user.surname should be ("newUserA")
 //        user.createdAt.toString should be(TestValues.testUserA.createdAt.toString)
 //        updated_user.updatedAt.toString() should not be (TestValues.testUserA.updatedAt.toString())
-//      }
+      }
 //      "throw a NoSuchElementException when update an existing user with wrong version" in {
 //        val result = userRepository.update(TestValues.testUserB.copy(
 //          version = 99L,
@@ -316,8 +331,8 @@ class UserRepositorySpec
 //          surname = "unexisting_surname"
 //        ))
 //      }
-//    }
-//  }
+    }
+  }
 //
 //  "UserRepository.insert" should {
 //    inSequence {

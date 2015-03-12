@@ -80,10 +80,10 @@ class TestEnvironment
     load_schema(drop_schema_path, conn)
   }
 
-  def selectOneById(from: String) =
+  def selectOneById(from: String, fields: String) =
     s"""
-       SELECT *
-       FROM ${from}
-       WHERE id = ?
-     """
+       |SELECT ${fields}
+       |FROM ${from}
+       |WHERE id = ?
+     """.stripMargin
 }

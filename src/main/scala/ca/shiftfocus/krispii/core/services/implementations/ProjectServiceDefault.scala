@@ -307,12 +307,13 @@ class ProjectServiceDefault(val db: Connection,
    *     This will necessarily increment their version numbers. The client should be aware
    *     to update its part list after calling update.
    */
-  override def updatePart(partId: UUID, version: Long, name: String, newPosition: Int): Future[\/[ErrorUnion#Fail, Part]] = {
+  override def updatePart(partId: UUID, version: Long, name: Option[String], maybePosition: Option[Int], enabled: Option[Boolean]): Future[\/[ErrorUnion#Fail, Part]] = {
     transactional { implicit conn: Connection =>
       for {
         existingPart <- lift(partRepository.find(partId))
         _ <- predicate (existingPart.version == version) (RepositoryError.OfflineLockFail)
         oldPosition = existingPart.position
+        newPosition = maybePosition.getOrElse(oldPosition)
         project <- lift(projectRepository.find(existingPart.projectId))
         partList <- lift(partRepository.list(project))
         partListUpdated <- lift {
@@ -338,7 +339,7 @@ class ProjectServiceDefault(val db: Connection,
           } else Future.successful(\/-(partList))
         }
         toUpdate = existingPart.copy(
-          name = name,
+          name = name.getOrElse(existingPart.name),
           position = newPosition
         )
         // Now we insert the new part

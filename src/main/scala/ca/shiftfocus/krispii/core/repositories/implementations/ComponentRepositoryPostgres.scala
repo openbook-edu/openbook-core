@@ -175,7 +175,7 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
     SELECT c.id, c.version, c.owner_id, c.title, c.questions, c.things_to_think_about, c.type, a.soundcloud_id, c.created_at, c.updated_at
     FROM c,a
   """
-
+ // TODO - update
   val UpdateAudio = """
     WITH component AS (
       UPDATE components

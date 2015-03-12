@@ -188,6 +188,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
     queryOne(SelectOneByIdentifier, Seq[Any](identifier, identifier))
   }
 
+  // TODO delete
   /**
    * Find a user by e-mail address.
    *

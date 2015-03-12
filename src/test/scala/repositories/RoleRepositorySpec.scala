@@ -16,7 +16,7 @@
 
 // import scala.concurrent.Await
 // import scala.concurrent.duration.Duration
-
+// TODO check fields in users_roles if user already has this role, file PostgresRepository method queryOne println(val fields)
 // trait RoleRepoTestEnvironment
 //   extends RoleRepositoryPostgresComponent
 //   with Suite

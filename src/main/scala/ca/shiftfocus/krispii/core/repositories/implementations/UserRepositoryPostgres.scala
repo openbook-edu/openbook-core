@@ -101,13 +101,6 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |RETURNING $Fields
      """.stripMargin
 
-  val SelectOneEmail =
-    s"""
-       |SELECT $Fields
-       |FROM $Table
-       |WHERE email = ?
-     """.stripMargin
-
   val SelectOneByIdentifier =
     s"""
        |SELECT $Fields
@@ -197,17 +190,6 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    */
   override def find(identifier: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
     queryOne(SelectOneByIdentifier, Seq[Any](identifier, identifier))
-  }
-
-  // TODO delete
-  /**
-   * Find a user by e-mail address.
-   *
-   * @param email the e-mail address of the user to find
-   * @return a future disjunction containing either the user, or a failure
-   */
-  override def findByEmail(email: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
-    queryOne(SelectOneEmail, Seq[Any](email))
   }
 
   /**

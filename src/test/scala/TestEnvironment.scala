@@ -34,9 +34,9 @@ class TestEnvironment
 
   private val poolConfig = new PoolConfiguration(
     maxObjects = 12,
-    maxIdle = 25,
+    maxIdle = 1000,
     maxQueueSize = 1000,
-    validationInterval = 50
+    validationInterval = 100
   )
 
   val database: PostgresDB = new PostgresDB(dbConfig, poolConfig)

@@ -58,7 +58,7 @@ libraryDependencies ++= Seq(
 
 publishMavenStyle := true
 
-publishArtifact in (Compile, packageDoc) := false
+//publishArtifact in (Compile, packageDoc) := false
 
 publishTo := {
   val privateKeyFile = new java.io.File(sys.env("HOME") + "/.ssh/id_rsa")

@@ -91,10 +91,6 @@ VALUES ('\x6c0e29bdd05b4b2981156be93e936c59', '\x45cc7cc8987645f58efeccd4dba7ea6
 INSERT INTO users_roles (user_id, role_id, created_at)
 VALUES ('\x4d01347ec5924e5fb09fdd281b3d9b87', '\x31a4c2e6762a4303bbb8e64c24048920', '2014-08-19 14:01:19.545-04');
 
-/* UserF -> RoleH */
-INSERT INTO users_roles (user_id, role_id, created_at)
-VALUES ('\x4d01347ec5924e5fb09fdd281b3d9b87', '\x2a3edf38750a46aa84289fb08e648ee8', '2014-08-20 14:01:19.545-04');
-
 
 /* COURSES */
 /* course A -> user A (teacher) */

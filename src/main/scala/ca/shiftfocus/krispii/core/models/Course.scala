@@ -9,7 +9,7 @@ import play.api.libs.functional.syntax._
 
 case class Course(
   id: UUID = UUID.random,
-  version: Long = 0,
+  version: Long = 1L,
   teacherId: UUID,
   name: String,
   color: Color,

@@ -14,7 +14,7 @@ import org.joda.time.LocalTime
 
 case class CourseSchedule(
   id: UUID = UUID.random,
-  version: Long = 0,
+  version: Long = 1L,
   courseId: UUID,
   day: LocalDate,
   startTime: LocalTime,

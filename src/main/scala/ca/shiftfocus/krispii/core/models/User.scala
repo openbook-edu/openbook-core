@@ -10,7 +10,7 @@ import play.api.libs.functional.syntax._
 
 case class User(
   id: UUID = UUID.random,
-  version: Long = 0,
+  version: Long = 1L,
   username: String,
   email: String,
   hash: Option[String] = None,

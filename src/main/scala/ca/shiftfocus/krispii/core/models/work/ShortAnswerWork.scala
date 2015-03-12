@@ -9,7 +9,7 @@ case class ShortAnswerWork(
   studentId: UUID,
   taskId: UUID,
   override val documentId: UUID,
-  override val version: Long = 0,
+  override val version: Long = 1L,
   override val answer: String = "",
   isComplete: Boolean = false,
   createdAt: DateTime = new DateTime,

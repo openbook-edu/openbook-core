@@ -16,7 +16,6 @@ trait UserRepository extends Repository {
   def list(role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]
   def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]
 
-  def findByEmail(email: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]]
   def find(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]]
   def find(identifier: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]]
 

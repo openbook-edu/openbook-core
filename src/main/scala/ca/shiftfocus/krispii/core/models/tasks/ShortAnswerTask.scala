@@ -28,7 +28,7 @@ case class ShortAnswerTask(
   partId: UUID,
   position: Int,
   // Additional data
-  version: Long = 0,
+  version: Long = 1L,
   settings: CommonTaskSettings = CommonTaskSettings(),
   maxLength: Int = 50,
   createdAt: DateTime = new DateTime,

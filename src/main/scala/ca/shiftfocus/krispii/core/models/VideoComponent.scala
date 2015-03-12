@@ -10,7 +10,7 @@ import play.api.libs.functional.syntax._
 
 case class VideoComponent(
   id: UUID = UUID.random,
-  version: Long = 0,
+  version: Long = 1L,
   ownerId: UUID,
   title: String,
   questions: String,

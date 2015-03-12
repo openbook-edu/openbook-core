@@ -33,7 +33,7 @@ case class MatchingTask(
   partId: UUID,
   position: Int,
   // Additional data
-  version: Long = 0,
+  version: Long = 1L,
   settings: CommonTaskSettings = CommonTaskSettings(),
   elementsLeft: IndexedSeq[String] = IndexedSeq(),
   elementsRight: IndexedSeq[String] = IndexedSeq(),

@@ -57,7 +57,7 @@ object Task {
   def apply(id: UUID = UUID.random,
              partId: UUID,
              position: Int,
-             version: Long = 0,
+             version: Long = 1L,
              settings: CommonTaskSettings = CommonTaskSettings(),
              taskType: Int,
              createdAt: DateTime = new DateTime,

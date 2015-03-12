@@ -12,7 +12,7 @@ import ws.kahn.ot._
 
 case class Document(
   id: UUID = UUID.random,
-  version: Long = 0,
+  version: Long = 1L,
   title: String,
   plaintext: String,
   delta: Delta,

@@ -38,11 +38,11 @@ trait PostgresRepository[A] {
 
       case exception: GenericDatabaseException =>
         val fields = exception.errorMessage.fields
-        fields.get('n') match {
-          case Some(nField) if nField endsWith "_pkey" => \/.left(RepositoryError.PrimaryKeyConflict)
-          case Some(nField) if nField endsWith "_key" => \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', "unknown"), nField))
-          case Some(nField) if nField endsWith "_fkey" => \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', "unknown"), nField))
-          case _ => throw exception
+        (fields.get('t'), fields.get('n')) match {
+          case (Some(table), Some(nField)) if nField endsWith "_pkey" => \/.left(RepositoryError.PrimaryKeyConflict)
+          case (Some(table), Some(nField)) if nField endsWith "_key" => \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-4).toString), nField))
+          case (Some(table), Some(nField)) if nField endsWith "_fkey" => \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-5).toString), nField))
+          case _ => \/.left(RepositoryError.DatabaseError("Unhandled GenericDataabaseException", Some(exception)))
         }
 
       case exception => throw exception
@@ -72,11 +72,11 @@ trait PostgresRepository[A] {
 
       case exception: GenericDatabaseException =>
         val fields = exception.errorMessage.fields
-        fields.get('n') match {
-          case Some(nField) if nField endsWith "_pkey" => \/.left(RepositoryError.PrimaryKeyConflict)
-          case Some(nField) if nField endsWith "_key" => \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', "unknown"), nField))
-          case Some(nField) if nField endsWith "_fkey" => \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', "unknown"), nField))
-          case _ => throw exception
+        (fields.get('t'), fields.get('n')) match {
+          case (Some(table), Some(nField)) if nField endsWith "_pkey" => \/.left(RepositoryError.PrimaryKeyConflict)
+          case (Some(table), Some(nField)) if nField endsWith "_key" => \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-4).toString), nField))
+          case (Some(table), Some(nField)) if nField endsWith "_fkey" => \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-5).toString), nField))
+          case _ => \/.left(RepositoryError.DatabaseError("Unhandled GenericDataabaseException", Some(exception)))
         }
 
       case exception => throw exception
@@ -110,11 +110,11 @@ trait PostgresRepository[A] {
 
       case exception: GenericDatabaseException =>
         val fields = exception.errorMessage.fields
-        fields.get('n') match {
-          case Some(nField) if nField endsWith "_pkey" => \/.left(RepositoryError.PrimaryKeyConflict)
-          case Some(nField) if nField endsWith "_key" => \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', "unknown"), nField))
-          case Some(nField) if nField endsWith "_fkey" => \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', "unknown"), nField))
-          case _ => throw exception
+        (fields.get('t'), fields.get('n')) match {
+          case (Some(table), Some(nField)) if nField endsWith "_pkey" => \/.left(RepositoryError.PrimaryKeyConflict)
+          case (Some(table), Some(nField)) if nField endsWith "_key" => \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-4).toString), nField))
+          case (Some(table), Some(nField)) if nField endsWith "_fkey" => \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-5).toString), nField))
+          case _ => \/.left(RepositoryError.DatabaseError("Unhandled GenericDataabaseException", Some(exception)))
         }
 
       case exception => throw exception

@@ -41,10 +41,10 @@ class ProjectServiceDefault(val db: Connection,
    * @return a future disjunction containing either a vector of projects, or a failure
    */
   override def list(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
-    (for {
+    for {
       course <- lift(schoolService.findCourse(courseId))
       projects <- lift(projectRepository.list(course))
-    } yield projects).run
+    } yield projects
   }
 
   /**
@@ -54,10 +54,23 @@ class ProjectServiceDefault(val db: Connection,
    * @return a future disjunction containing either a vector of projects, or a failure
    */
   override def listProjectsByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
-    (for {
+    for {
       courses <- lift(schoolService.listCoursesByUser(userId))
       projects <- lift(serializedT(courses)((course: Course) => list(course.id)))
-    } yield projects.flatten).run
+    } yield projects.flatten
+  }
+
+  /**
+   * Find all projects a user has access to.
+   *
+   * @param userId the unique id of the user to filter by
+   * @return a future disjunction containing either a vector of projects, or a failure
+   */
+  override def listProjectsByTeacher(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
+    for {
+      courses <- lift(schoolService.listCoursesByTeacher(userId))
+      projects <- lift(serializedT(courses)((course: Course) => list(course.id)))
+    } yield projects.flatten
   }
 
   /**
@@ -86,11 +99,11 @@ class ProjectServiceDefault(val db: Connection,
    * @return a future disjunction containing either a project, or a failure
    */
   override def find(projectId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]] = {
-    (for {
+    for {
       user <- lift(authService.find(userId))
       project <- lift(projectRepository.find(projectId, user))
     }
-    yield project).run
+    yield project
   }
 
   /**
@@ -99,12 +112,12 @@ class ProjectServiceDefault(val db: Connection,
    * @return an optional project
    */
   override def find(projectSlug: String, userId: UUID): Future[\/[ErrorUnion#Fail, Project]] = {
-    (for {
+    for {
       user <- lift(authService.find(userId))
       project <- lift(projectRepository.find(projectSlug))
       projectFiltered <- lift(projectRepository.find(project.id, user))
     }
-    yield projectFiltered).run
+    yield projectFiltered
   }
 
   /**
@@ -134,7 +147,7 @@ class ProjectServiceDefault(val db: Connection,
     // Then insert the new project, part and task into the database, wrapped
     // in a transaction such that either all three are created, or none.
     transactional { implicit conn: Connection =>
-      (for {
+      for {
         _              <- lift(validateSlug(slug))
         createdProject <- lift(projectRepository.insert(newProject))
         createdPart    <- lift(partRepository.insert(newPart))
@@ -145,7 +158,7 @@ class ProjectServiceDefault(val db: Connection,
         val parts = IndexedSeq(createdPart.copy(tasks = tasks))
         val completeProject = createdProject.copy(parts = parts)
         completeProject
-      }).run
+      }
     }
   }
 
@@ -164,7 +177,7 @@ class ProjectServiceDefault(val db: Connection,
                           description: Option[String],
                           availability: Option[String]): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
-      (for {
+      for {
         existingProject <- lift(projectRepository.find(id))
         _ <- predicate (existingProject.version == version) (RepositoryError.OfflineLockFail)
         toUpdate = existingProject.copy(
@@ -175,7 +188,7 @@ class ProjectServiceDefault(val db: Connection,
         )
         updatedProject <- lift(projectRepository.update(toUpdate))
       }
-      yield updatedProject).run
+      yield updatedProject
     }
   }
 
@@ -189,13 +202,13 @@ class ProjectServiceDefault(val db: Connection,
    */
   override def updateSlug(id: UUID, version: Long, slug: String): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
-      (for {
+      for {
         existingProject <- lift(projectRepository.find(id))
         _ <- predicate (existingProject.version == version) (RepositoryError.OfflineLockFail)
         validSlug <- lift(validateSlug(slug))
         toUpdate = existingProject.copy(slug = validSlug)
         updatedProject <- lift(projectRepository.update(toUpdate))
-      } yield updatedProject).run
+      } yield updatedProject
     }
   }
 
@@ -211,13 +224,13 @@ class ProjectServiceDefault(val db: Connection,
    */
   override def delete(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
-      (for {
+      for {
         project <- lift(find(id))
         _ <- predicate (project.version == version) (RepositoryError.OfflineLockFail)
         partsDeleted <- lift(partRepository.delete(project))
         projectDeleted <- lift(projectRepository.delete(project))
       }
-      yield projectDeleted).run
+      yield projectDeleted
     }
   }
 
@@ -264,7 +277,7 @@ class ProjectServiceDefault(val db: Connection,
    */
   override def createPart(projectId: UUID, name: String, position: Int): Future[\/[ErrorUnion#Fail, Part]] = {
     transactional { implicit conn: Connection =>
-      (for {
+      for {
         project <- lift(projectRepository.find(projectId))
         partList <- lift(partRepository.list(project))
         partListUpdated <- lift {
@@ -282,7 +295,7 @@ class ProjectServiceDefault(val db: Connection,
         }
         newPart = Part(projectId = project.id, name = name, position = position)
         createdPart <- lift(partRepository.insert(newPart))
-      } yield createdPart).run
+      } yield createdPart
     }
   }
 
@@ -296,7 +309,7 @@ class ProjectServiceDefault(val db: Connection,
    */
   override def updatePart(partId: UUID, version: Long, name: String, newPosition: Int): Future[\/[ErrorUnion#Fail, Part]] = {
     transactional { implicit conn: Connection =>
-      (for {
+      for {
         existingPart <- lift(partRepository.find(partId))
         _ <- predicate (existingPart.version == version) (RepositoryError.OfflineLockFail)
         oldPosition = existingPart.position
@@ -330,7 +343,7 @@ class ProjectServiceDefault(val db: Connection,
         )
         // Now we insert the new part
         updatedPart <- lift(partRepository.update(toUpdate))
-      } yield updatedPart).run
+      } yield updatedPart
     }
   }
 
@@ -347,7 +360,7 @@ class ProjectServiceDefault(val db: Connection,
    */
   override def deletePart(partId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Part]] = {
     transactional { implicit conn: Connection =>
-      (for {
+      for {
         part <- lift(partRepository.find(partId))
         project <- lift(projectRepository.find(part.projectId))
         partList <- lift(partRepository.list(project))
@@ -360,7 +373,7 @@ class ProjectServiceDefault(val db: Connection,
         }
         tasksDeleted <- lift(taskRepository.delete(part))
         deletedPart <- lift(partRepository.delete(part))
-      } yield deletedPart).run
+      } yield deletedPart
     }
   }
 
@@ -373,11 +386,11 @@ class ProjectServiceDefault(val db: Connection,
    */
   override def togglePart(partId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Part]] = {
     transactional { implicit conn: Connection =>
-      (for {
+      for {
         part <- lift(partRepository.find(partId))
         toUpdate = part.copy(version = version, enabled = if (part.enabled) false else true)
         toggled <- lift(partRepository.update(toUpdate))
-      } yield toggled).run
+      } yield toggled
     }
   }
 
@@ -391,7 +404,7 @@ class ProjectServiceDefault(val db: Connection,
    */
   override def reorderParts(projectId: UUID, partIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
-      (for {
+      for {
         project <- lift(projectRepository.find(projectId))
         parts <- lift(partRepository.list(project))
         reordered <- lift {
@@ -401,7 +414,7 @@ class ProjectServiceDefault(val db: Connection,
           serializedT(orderedParts)(partRepository.update)
         }
         project <- lift(projectRepository.find(projectId))
-      } yield project).run
+      } yield project
     }
   }
 
@@ -417,7 +430,7 @@ class ProjectServiceDefault(val db: Connection,
    */
   override def createTask(partId: UUID, taskType: Int, name: String, description: String, position: Int, dependencyId: Option[UUID]): Future[\/[ErrorUnion#Fail, Task]] = {
     transactional { implicit conn: Connection =>
-      (for {
+      for {
         part <- lift(partRepository.find(partId))
         taskList <- lift(taskRepository.list(part))
         // If the dependency id is given, ensure the depended-upon task exists
@@ -459,7 +472,7 @@ class ProjectServiceDefault(val db: Connection,
         )
         createdTask <- lift(taskRepository.insert(newTask))
       }
-      yield newTask).run
+      yield newTask
     }
   }
 
@@ -480,7 +493,7 @@ class ProjectServiceDefault(val db: Connection,
    * @return an [[Option[Task]]] if one was found.
    */
   override def findTask(projectSlug: String, partNum: Int, taskNum: Int): Future[\/[ErrorUnion#Fail, Task]] = {
-    (for {
+    for {
       project <- lift(projectRepository.find(projectSlug))
       task <- lift { Future successful { project.parts.find(_.position == partNum) match {
         case Some(part) => part.tasks.find(_.position == taskNum) match {
@@ -490,7 +503,7 @@ class ProjectServiceDefault(val db: Connection,
         case None => \/.left(RepositoryError.NoResults)
       }
     }}}
-    yield task).run
+    yield task
   }
 
   /**
@@ -501,12 +514,12 @@ class ProjectServiceDefault(val db: Connection,
    * @return a future disjunction containing either the now task, or a failure
    */
   override def findNowTask(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, Task]] = {
-    (for {
+    for {
       student <- lift(authService.find(userId))
       project <- lift(projectRepository.find(projectId))
       taskOption <- lift(taskRepository.findNow(student, project))
     }
-    yield taskOption).run
+    yield taskOption
   }
 
   /**
@@ -518,7 +531,7 @@ class ProjectServiceDefault(val db: Connection,
    */
   private def updateTask(existingTask: Task, updatedTask: Task): Future[\/[ErrorUnion#Fail, Task]] = {
     transactional { implicit conn: Connection =>
-      (for {
+      for {
         oldPart <- lift(partRepository.find(existingTask.partId))
         newPart <- lift(partRepository.find(updatedTask.partId))
 
@@ -592,7 +605,7 @@ class ProjectServiceDefault(val db: Connection,
 
         // Now we insert the new part
         updatedTask <- lift(taskRepository.update(updatedTask))
-      } yield updatedTask).run
+      } yield updatedTask
     }
   }
 
@@ -618,7 +631,7 @@ class ProjectServiceDefault(val db: Connection,
                                     dependencyId: Option[UUID] = None,
                                     partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]] =
   {
-    (for {
+    for {
       task <- lift(taskRepository.find(taskId))
       _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail)
       _ <- predicate (task.isInstanceOf[LongAnswerTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateLongAnswerTask.wrongTaskType")))
@@ -636,7 +649,7 @@ class ProjectServiceDefault(val db: Connection,
         )
       )
       updatedTask <- lift(updateTask(task, toUpdate))
-    } yield updatedTask).run
+    } yield updatedTask
   }
 
   /**
@@ -663,7 +676,7 @@ class ProjectServiceDefault(val db: Connection,
                             dependencyId: Option[UUID] = None,
                             partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]] =
   {
-    (for {
+    for {
       task <- lift(taskRepository.find(taskId))
       _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail)
       _ <- predicate (task.isInstanceOf[ShortAnswerTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateShortAnswerTask.wrongTaskType")))
@@ -683,7 +696,7 @@ class ProjectServiceDefault(val db: Connection,
         maxLength = maxLength.getOrElse(shortAnswerTask.maxLength)
       )
       updatedTask <- lift(updateTask(task, toUpdate))
-    } yield updatedTask).run
+    } yield updatedTask
   }
 
   /**
@@ -716,7 +729,7 @@ class ProjectServiceDefault(val db: Connection,
                                dependencyId: Option[UUID] = None,
                                partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]] =
   {
-    (for {
+    for {
       task <- lift(taskRepository.find(taskId))
       _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail)
       _ <- predicate (task.isInstanceOf[MultipleChoiceTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateMultipleChoiceTask.wrongTaskType")))
@@ -739,7 +752,7 @@ class ProjectServiceDefault(val db: Connection,
         randomizeChoices = randomizeChoices.getOrElse(mcTask.randomizeChoices)
       )
       updatedTask <- lift(updateTask(task, toUpdate))
-    } yield updatedTask).run
+    } yield updatedTask
   }
 
   /**
@@ -770,7 +783,7 @@ class ProjectServiceDefault(val db: Connection,
                          dependencyId: Option[UUID] = None,
                          partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]] =
   {
-    (for {
+    for {
       task <- lift(taskRepository.find(taskId))
       _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail)
       _ <- predicate (task.isInstanceOf[OrderingTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateOrderingTask.wrongTaskType")))
@@ -792,7 +805,7 @@ class ProjectServiceDefault(val db: Connection,
         randomizeChoices = randomizeChoices.getOrElse(orderingTask.randomizeChoices)
       )
       updatedTask <- lift(updateTask(task, toUpdate))
-    } yield updatedTask).run
+    } yield updatedTask
   }
 
   /**
@@ -825,7 +838,7 @@ class ProjectServiceDefault(val db: Connection,
                          dependencyId: Option[UUID] = None,
                          partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]] =
   {
-    (for {
+    for {
       task <- lift(taskRepository.find(taskId))
       _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail)
       _ <- predicate (task.isInstanceOf[MatchingTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateMatchingTask.wrongTaskType")))
@@ -848,7 +861,7 @@ class ProjectServiceDefault(val db: Connection,
         randomizeChoices = randomizeChoices.getOrElse(matchingTask.randomizeChoices)
       )
       updatedTask <- lift(updateTask(task, toUpdate))
-    } yield updatedTask).run
+    } yield updatedTask
   }
 
 
@@ -865,7 +878,7 @@ class ProjectServiceDefault(val db: Connection,
    */
   override def deleteTask(taskId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Task]] = {
     transactional { implicit conn: Connection =>
-      (for {
+      for {
         genericTask <- lift(taskRepository.find(taskId))
         _ <- predicate (genericTask.version == version) (RepositoryError.OfflineLockFail)
         task = genericTask match {
@@ -892,7 +905,7 @@ class ProjectServiceDefault(val db: Connection,
           serializedT(filteredTaskList)(taskRepository.update)
         }
         deletedTask <- lift(taskRepository.delete(task))
-      } yield deletedTask).run
+      } yield deletedTask
     }
   }
 
@@ -905,7 +918,7 @@ class ProjectServiceDefault(val db: Connection,
    */
   override def moveTask(partId: UUID, taskId: UUID, newPosition: Int): Future[\/[ErrorUnion#Fail, Task]] = {
     transactional { implicit conn: Connection =>
-      (for {
+      for {
         task <- lift(taskRepository.find(taskId))
         toUpdate = task match {
           case task: LongAnswerTask =>     task.copy(position = newPosition, partId = partId)
@@ -916,7 +929,7 @@ class ProjectServiceDefault(val db: Connection,
           case _ => throw new Exception("Gold star for epic coding failure.")
         }
         movedTask <- lift(this.updateTask(task, toUpdate))
-      } yield movedTask).run
+      } yield movedTask
     }
   }
 
@@ -928,12 +941,12 @@ class ProjectServiceDefault(val db: Connection,
    * @return a boolean indicating success or failure
    */
   override def userHasProject(userId: UUID, projectSlug: String): Future[\/[ErrorUnion#Fail, Boolean]] = {
-    (for {
+    for {
       user <- lift(authService.find(userId))
       project <- lift(find(projectSlug))
       hasProject <- lift(courseRepository.hasProject(user, project))
     }
-    yield hasProject).run
+    yield hasProject
   }
 
   /**

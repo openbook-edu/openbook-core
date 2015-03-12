@@ -27,7 +27,7 @@ class AuthServiceDefault(val db: Connection,
    * @return an [[IndexedSeq]] of [[User]]
    */
   override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
-    (for {
+    for {
       users <- lift(userRepository.list(db))
       result <- liftSeq { users.map { user =>
         val fRoles = roleRepository.list(user)(db)
@@ -35,7 +35,7 @@ class AuthServiceDefault(val db: Connection,
           roles <- lift(fRoles)
         } yield user.copy(roles = roles)).run
       }}
-    } yield result).run
+    } yield result
   }
 
   /**
@@ -45,12 +45,12 @@ class AuthServiceDefault(val db: Connection,
    * @return an [[IndexedSeq]] of [[User]]
    */
   override def list(roles: IndexedSeq[String]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
-    (for {
+    for {
       users <- lift(list)
       result = users.filter { user =>
         user.roles.map(_.name).intersect(roles).nonEmpty
       }
-    } yield result).run
+    } yield result
   }
 
   /**
@@ -62,7 +62,7 @@ class AuthServiceDefault(val db: Connection,
    */
   override def authenticate(identifier: String, password: String): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         user <- lift(userRepository.find(identifier.trim))
         userHash = user.hash.getOrElse("")
         authUser <- lift(Future.successful {
@@ -73,7 +73,7 @@ class AuthServiceDefault(val db: Connection,
             -\/(ServiceError.BadPermissions("The password was invalid."))
           }
         })
-      } yield authUser).run
+      } yield authUser
     }
   }
 
@@ -155,11 +155,11 @@ class AuthServiceDefault(val db: Connection,
    * @return a future disjunction containing the user and their information, or a failure
    */
   override def find(id: UUID): Future[\/[ErrorUnion#Fail, User]] = {
-    (for {
+    for {
       user <- lift(userRepository.find(id))
       fRoles = roleRepository.list(user)
       roles <- lift(fRoles)
-    } yield user.copy(roles = roles)).run
+    } yield user.copy(roles = roles)
   }
 
   /**
@@ -169,11 +169,11 @@ class AuthServiceDefault(val db: Connection,
    * @return a future disjunction containing the user and their information, or a failure
    */
   override def find(identifier: String): Future[\/[ErrorUnion#Fail, User]] = {
-    (for {
+    for {
       user <- lift(userRepository.find(identifier))
       fRoles = roleRepository.list(user)
       roles <- lift(fRoles)
-    } yield user.copy(roles = roles)).run
+    } yield user.copy(roles = roles)
   }
 
   /**
@@ -191,7 +191,7 @@ class AuthServiceDefault(val db: Connection,
     transactional { implicit conn =>
       val webcrank = Passwords.scrypt()
 
-      (for {
+      for {
         validEmail <- lift(validateEmail(email))
         validUsername <- lift(validateUsername(username))
         validPassword <- lift(isValidPassword(password))
@@ -208,7 +208,7 @@ class AuthServiceDefault(val db: Connection,
           userRepository.insert(newUser)
         }
       }
-      yield newUser).run
+      yield newUser
     }
   }
 
@@ -325,12 +325,12 @@ class AuthServiceDefault(val db: Connection,
    */
   override def delete(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         existingUser <- lift(userRepository.find(id))
         _ <- predicate (existingUser.version == version) (RepositoryError.OfflineLockFail)
         toDelete = existingUser.copy(version = version)
         deleted <- lift(userRepository.delete(toDelete))
-      } yield deleted).run
+      } yield deleted
     }
   }
 
@@ -418,7 +418,7 @@ class AuthServiceDefault(val db: Connection,
    */
   override def deleteRole(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Role]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         role <- lift(roleRepository.find(id).map {
           case \/-(role) =>
             if (role.version != version)
@@ -431,7 +431,7 @@ class AuthServiceDefault(val db: Connection,
         wasRemovedFromUsers <- lift(roleRepository.removeFromAllUsers(role))
         wasDeleted <- lift(roleRepository.delete(role))
       }
-      yield role).run
+      yield role
     }
   }
 
@@ -446,13 +446,13 @@ class AuthServiceDefault(val db: Connection,
     transactional { implicit conn =>
       val fUser = userRepository.find(userId)
       val fRole = roleRepository.find(roleName)
-      (for {
+      for {
         user <- lift(fUser)
         role <- lift(fRole)
         roleAdded <- lift(roleRepository.addToUser(user, role))
         userInfo <- lift(find(userId))
       }
-      yield userInfo).run
+      yield userInfo
     }
   }
 
@@ -468,13 +468,13 @@ class AuthServiceDefault(val db: Connection,
     transactional { implicit conn =>
       val fUser = userRepository.find(userId)
       val fRole = roleRepository.find(roleName)
-      (for {
+      for {
         user <- lift(fUser)
         role <- lift(fRole)
         roleRemoved <- lift(roleRepository.removeFromUser(user, role))
         userInfo <- lift(find(userId))
       }
-      yield userInfo).run
+      yield userInfo
     }
   }
 
@@ -490,12 +490,12 @@ class AuthServiceDefault(val db: Connection,
       val fRole = roleRepository.find(roleId)
       val fUsers = userRepository.list(userIds)
 
-      (for {
+      for {
         role <- lift(fRole)
         userList <- lift(fUsers)
         addedUsers <- lift(roleRepository.addUsers(role, userList))
       }
-      yield addedUsers).run
+      yield addedUsers
     }
   }
 
@@ -511,12 +511,12 @@ class AuthServiceDefault(val db: Connection,
       val fRole = roleRepository.find(roleId)
       val fUsers = userRepository.list(userIds)
 
-      (for {
+      for {
         role <- lift(fRole)
         userList <- lift(fUsers)
         addedUsers <- lift(roleRepository.removeUsers(role, userList))
       }
-      yield addedUsers).run
+      yield addedUsers
     }
   }
 
@@ -572,7 +572,7 @@ class AuthServiceDefault(val db: Connection,
 
     existing.run.map {
       case \/-(user) =>
-        if (existingId.isEmpty || (existingId.get != user.id)) -\/(RepositoryError.UniqueKeyConflict("email", "The e-mail address $email is already in use."))
+        if (existingId.isEmpty || (existingId.get != user.id)) -\/(RepositoryError.UniqueKeyConflict("email", s"The e-mail address $email is already in use."))
         else \/-(email)
       case -\/(RepositoryError.NoResults) => \/-(email)
       case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)

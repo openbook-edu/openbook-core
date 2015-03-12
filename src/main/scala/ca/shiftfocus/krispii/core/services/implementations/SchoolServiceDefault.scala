@@ -41,11 +41,11 @@ class SchoolServiceDefault(val db: Connection,
    * @return an [[IndexedSeq]] of [[Course]]
    */
   override def listCoursesByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
-    (for {
+    for {
       user <- lift(authService.find(userId))
       courses <- lift(courseRepository.list(user, false))
     }
-    yield courses).run
+    yield courses
   }
 
   /**
@@ -58,10 +58,10 @@ class SchoolServiceDefault(val db: Connection,
    * @return an [[IndexedSeq]] of [[Course]]
    */
   override def listCoursesByTeacher(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
-    (for {
+    for {
       user <- lift(authService.find(userId))
       courses <- lift(courseRepository.list(user, true))
-    } yield courses).run
+    } yield courses
   }
 
   /**
@@ -83,7 +83,7 @@ class SchoolServiceDefault(val db: Connection,
    */
   override def createCourse(teacherId: UUID, name: String, color: Color): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         teacher <- lift(authService.find(teacherId))
         _ <- predicate (teacher.roles.map(_.name).contains("teacher")) (ServiceError.BadPermissions("Tried to create a course for a user who isn't a teacher."))
         newCourse = Course(
@@ -93,7 +93,7 @@ class SchoolServiceDefault(val db: Connection,
         )
         createdCourse <- lift(courseRepository.insert(newCourse))
       }
-      yield newCourse).run
+      yield newCourse
     }
   }
 
@@ -107,7 +107,7 @@ class SchoolServiceDefault(val db: Connection,
    */
   override def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: Option[String], color: Option[Color]): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         existingCourse <- lift(courseRepository.find(id))
         tId = teacherId.getOrElse(existingCourse.teacherId)
         teacher <- lift(authService.find(tId))
@@ -119,7 +119,7 @@ class SchoolServiceDefault(val db: Connection,
         )
         updatedCourse <- lift(courseRepository.update(toUpdate))
       }
-      yield updatedCourse).run
+      yield updatedCourse
     }
   }
 
@@ -132,11 +132,11 @@ class SchoolServiceDefault(val db: Connection,
    */
   override def deleteCourse(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         existingCourse <- lift(courseRepository.find(id))
         toDelete = existingCourse.copy(version = version)
         wasDeleted <- lift(courseRepository.delete(toDelete))
-      } yield wasDeleted).run
+      } yield wasDeleted
     }
   }
 
@@ -146,10 +146,10 @@ class SchoolServiceDefault(val db: Connection,
    * List all students registered to a course.
    */
   override def listStudents(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
-    (for {
+    for {
       course <- lift(courseRepository.find(courseId))
       students <- lift(listStudents(course))
-    } yield students).run
+    } yield students
   }
 
   override def listStudents(course: Course): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
@@ -160,10 +160,10 @@ class SchoolServiceDefault(val db: Connection,
 //   * List all projects belonging to a course.
 //   */
 //  override def listProjects(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
-//    (for {
+//    for {
 //      course <- lift(courseRepository.find(courseId))
 //      projects <- lift(listProjects(course))
-//    } yield projects).run
+//    } yield projects
 //  }
 
   /**
@@ -175,11 +175,11 @@ class SchoolServiceDefault(val db: Connection,
    */
   override def addUsers(course: Course, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         users <- lift(userRepository.list(userIds))
         wereAdded <- lift(courseRepository.addUsers(course, users))
         usersInCourse <- lift(userRepository.list(course))
-      } yield usersInCourse).run
+      } yield usersInCourse
     }
   }
 
@@ -192,11 +192,11 @@ class SchoolServiceDefault(val db: Connection,
    */
   override def removeUsers(course: Course, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         users <- lift(userRepository.list(userIds))
         wereRemoved <- lift(courseRepository.removeUsers(course, users))
         usersInCourse <- lift(userRepository.list(course))
-      } yield usersInCourse).run
+      } yield usersInCourse
     }
   }
 
@@ -208,11 +208,11 @@ class SchoolServiceDefault(val db: Connection,
    * @return
    */
   override def findUserForTeacher(userId: UUID, teacherId: UUID): Future[\/[ErrorUnion#Fail, User]] = {
-    (for {
+    for {
       user <- lift(authService.find(userId))
       teacher <- lift(authService.find(teacherId))
       maybeStudent <- lift(courseRepository.findUserForTeacher(user, teacher))
       student <- lift(authService.find(maybeStudent.id))
-    } yield student).run
+    } yield student
   }
 }

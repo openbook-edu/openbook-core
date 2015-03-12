@@ -28,11 +28,11 @@ class ScheduleServiceDefault(val db: Connection,
    * @return a vector of the given course's schedules
    */
   override def listByCourse(id: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[CourseSchedule]]] = {
-    (for {
+    for {
       course <- lift(schoolService.findCourse(id))
       schedules <- lift(courseScheduleRepository.list(course))
     }
-    yield schedules).run
+    yield schedules
   }
 
   /**
@@ -57,7 +57,7 @@ class ScheduleServiceDefault(val db: Connection,
    */
   override def create(courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String): Future[\/[ErrorUnion#Fail, CourseSchedule]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         course <- lift(schoolService.findCourse(courseId))
         newSchedule = CourseSchedule(
             courseId = course.id,
@@ -68,7 +68,7 @@ class ScheduleServiceDefault(val db: Connection,
           )
         createdSchedule <- lift(courseScheduleRepository.insert(newSchedule))
       }
-      yield createdSchedule).run
+      yield createdSchedule
     }
   }
 
@@ -89,7 +89,7 @@ class ScheduleServiceDefault(val db: Connection,
                       endTime: Option[LocalTime],
                       description: Option[String]): Future[\/[ErrorUnion#Fail, CourseSchedule]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         courseSchedule <- lift(courseScheduleRepository.find(id))
         toUpdate = courseSchedule.copy(
           version = version,
@@ -101,7 +101,7 @@ class ScheduleServiceDefault(val db: Connection,
         )
         updatedSchedule <- lift(courseScheduleRepository.update(toUpdate))
       }
-      yield updatedSchedule).run
+      yield updatedSchedule
     }
   }
 
@@ -114,12 +114,12 @@ class ScheduleServiceDefault(val db: Connection,
    */
   override def delete(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, CourseSchedule]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         courseSchedule <- lift(courseScheduleRepository.find(id))
         toDelete = courseSchedule.copy(version = version)
         isDeleted <- lift(courseScheduleRepository.delete(toDelete))
       }
-      yield isDeleted).run
+      yield isDeleted
     }
   }
 
@@ -128,11 +128,11 @@ class ScheduleServiceDefault(val db: Connection,
    *
    */
   override def isAnythingScheduledForUser(userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
-    (for {
+    for {
       user <- lift(authService.find(userId))
       somethingScheduled <- lift(courseScheduleRepository.isAnythingScheduledForUser(user, currentDay, currentTime))
     }
-    yield somethingScheduled).run
+    yield somethingScheduled
   }
 
   /**
@@ -142,11 +142,11 @@ class ScheduleServiceDefault(val db: Connection,
     val fProject = projectService.find(projectSlug)
     val fUser = authService.find(userId)
 
-    (for {
+    for {
       project <- lift(fProject)
       user <- lift(fUser)
       projectScheduled <- lift(courseScheduleRepository.isProjectScheduledForUser(project, user, currentDay, currentTime))
     }
-    yield projectScheduled).run
+    yield projectScheduled
   }
 }

@@ -7,10 +7,12 @@ import ca.shiftfocus.krispii.core.lib.FutureMonad
 import com.github.mauricio.async.db.Connection
 
 import scala.concurrent.Future
-import scalaz.{\/-, \/}
+import scalaz.{EitherT, \/-, \/}
 
 trait Service[F] extends FutureMonad[F]  {
   val db: Connection
+
+  implicit def eitherRunner[A](eithert: EitherT[Future, F, A]): Future[\/[F, A]] = eithert.run
 
   /**
    * Takes a function that returns a future, and runs it inside a database

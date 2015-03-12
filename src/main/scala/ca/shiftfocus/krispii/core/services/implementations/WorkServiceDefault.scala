@@ -38,12 +38,12 @@ class WorkServiceDefault(val db: Connection,
     val fUser = authService.find(userId)
     val fProject = projectService.find(projectId)
 
-    (for {
+    for {
       user <- lift(fUser)
       project <- lift(fProject)
       workList <- lift(workRepository.list(user, project))
     }
-    yield workList).run
+    yield workList
   }
 
   /**
@@ -55,11 +55,11 @@ class WorkServiceDefault(val db: Connection,
    * @return a future disjunction containing either a list of work, or a failure
    */
   override def listWork(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]] = {
-    (for {
+    for {
       task <- lift(projectService.findTask(taskId))
       workList <- lift(workRepository.list(task))
     }
-    yield workList).run
+    yield workList
   }
 
   /**
@@ -73,12 +73,12 @@ class WorkServiceDefault(val db: Connection,
     val fUser = authService.find(userId)
     val fTask = projectService.findTask(taskId)
 
-    (for {
+    for {
       user <- lift(fUser)
       task <- lift(fTask)
       workList <- lift(workRepository.list(user, task))
     }
-    yield workList).run
+    yield workList
   }
 
   /**
@@ -102,12 +102,12 @@ class WorkServiceDefault(val db: Connection,
     val fUser = authService.find(userId)
     val fTask = projectService.findTask(taskId)
 
-    (for {
+    for {
       user <- lift(fUser)
       task <- lift(fTask)
       work <- lift(workRepository.find(user, task))
     }
-    yield work).run
+    yield work
   }
 
   /**
@@ -122,12 +122,12 @@ class WorkServiceDefault(val db: Connection,
     val fUser = authService.find(userId)
     val fTask = projectService.findTask(taskId)
 
-    (for {
+    for {
       user <- lift(fUser)
       task <- lift(fTask)
       work <- lift(workRepository.find(user, task, version))
     }
-    yield work).run
+    yield work
   }
 
   /**
@@ -159,7 +159,7 @@ class WorkServiceDefault(val db: Connection,
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
 
-      (for {
+      for {
         user <- lift(fUser)
         task <- lift(fTask)
         document <- lift(documentService.create(UUID.random, user, "", Delta(IndexedSeq())))
@@ -170,7 +170,7 @@ class WorkServiceDefault(val db: Connection,
           isComplete = isComplete
         )
         work <- lift(workRepository.insert(newWork))
-      } yield work.asInstanceOf[LongAnswerWork]).run
+      } yield work.asInstanceOf[LongAnswerWork]
     }
   }
 
@@ -189,7 +189,7 @@ class WorkServiceDefault(val db: Connection,
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
 
-      (for {
+      for {
         user <- lift(fUser)
         task <- lift(fTask)
         document <- lift(documentService.create(UUID.random, user, "", Delta(IndexedSeq())))
@@ -200,7 +200,7 @@ class WorkServiceDefault(val db: Connection,
           isComplete = isComplete
         )
         work <- lift(workRepository.insert(newWork))
-      } yield work.asInstanceOf[ShortAnswerWork]).run
+      } yield work.asInstanceOf[ShortAnswerWork]
     }
   }
 
@@ -220,7 +220,7 @@ class WorkServiceDefault(val db: Connection,
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
 
-      (for {
+      for {
         user <- lift(fUser)
         task <- lift(fTask)
         document <- lift(documentService.create(UUID.random, user, "", Delta(IndexedSeq())))
@@ -232,7 +232,7 @@ class WorkServiceDefault(val db: Connection,
           isComplete = isComplete
         )
         work <- lift(workRepository.insert(newWork))
-      } yield work.asInstanceOf[MultipleChoiceWork]).run
+      } yield work.asInstanceOf[MultipleChoiceWork]
     }
   }
 
@@ -252,7 +252,7 @@ class WorkServiceDefault(val db: Connection,
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
 
-      (for {
+      for {
         user <- lift(fUser)
         task <- lift(fTask)
         document <- lift(documentService.create(UUID.random, user, "", Delta(IndexedSeq())))
@@ -264,7 +264,7 @@ class WorkServiceDefault(val db: Connection,
           isComplete = isComplete
         )
         work <- lift(workRepository.insert(newWork))
-      } yield work.asInstanceOf[OrderingWork]).run
+      } yield work.asInstanceOf[OrderingWork]
     }
   }
 
@@ -284,7 +284,7 @@ class WorkServiceDefault(val db: Connection,
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
 
-      (for {
+      for {
         user <- lift(fUser)
         task <- lift(fTask)
         document <- lift(documentService.create(UUID.random, user, "", Delta(IndexedSeq())))
@@ -296,7 +296,7 @@ class WorkServiceDefault(val db: Connection,
           isComplete = isComplete
         )
         work <- lift(workRepository.insert(newWork))
-      } yield work.asInstanceOf[MatchingWork]).run
+      } yield work.asInstanceOf[MatchingWork]
     }
   }
 
@@ -318,12 +318,12 @@ class WorkServiceDefault(val db: Connection,
     val fUser = authService.find(newerWork.studentId)
     val fTask = projectService.findTask(newerWork.taskId)
 
-    (for {
+    for {
       user <- lift(fUser)
       task <- lift(fTask)
       latestRevision <- lift(workRepository.find(user, task))
       updatedWork <- lift(workRepository.update(newerWork, newRevision))
-    } yield updatedWork).run
+    } yield updatedWork
   }
 
   /**
@@ -337,7 +337,7 @@ class WorkServiceDefault(val db: Connection,
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
 
-      (for {
+      for {
         user <- lift(fUser)
         task <- lift(fTask)
         existingWork <- lift(workRepository.find(user, task))
@@ -345,7 +345,7 @@ class WorkServiceDefault(val db: Connection,
         workToUpdate = existingLAWork.copy(isComplete = isComplete)
         updatedWork <- lift(workRepository.update(workToUpdate))
       }
-      yield updatedWork.asInstanceOf[LongAnswerWork]).run
+      yield updatedWork.asInstanceOf[LongAnswerWork]
     }
   }
 
@@ -360,7 +360,7 @@ class WorkServiceDefault(val db: Connection,
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
 
-      (for {
+      for {
         user <- lift(fUser)
         task <- lift(fTask)
         existingWork <- lift(workRepository.find(user, task))
@@ -368,7 +368,7 @@ class WorkServiceDefault(val db: Connection,
         workToUpdate = existingSAWork.copy(isComplete = isComplete)
         updatedWork <- lift(workRepository.update(workToUpdate))
       }
-      yield updatedWork.asInstanceOf[ShortAnswerWork]).run
+      yield updatedWork.asInstanceOf[ShortAnswerWork]
     }
   }
 
@@ -377,7 +377,7 @@ class WorkServiceDefault(val db: Connection,
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
 
-      (for {
+      for {
         user <- lift(fUser)
         task <- lift(fTask)
         existingWork <- lift(workRepository.find(user, task))
@@ -385,7 +385,7 @@ class WorkServiceDefault(val db: Connection,
         workToUpdate = existingMCWork.copy(answer = answer, isComplete = isComplete)
         updatedWork <- lift(workRepository.update(workToUpdate))
       }
-      yield updatedWork.asInstanceOf[MultipleChoiceWork]).run
+      yield updatedWork.asInstanceOf[MultipleChoiceWork]
     }
   }
 
@@ -394,7 +394,7 @@ class WorkServiceDefault(val db: Connection,
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
 
-      (for {
+      for {
         user <- lift(fUser)
         task <- lift(fTask)
         existingWork <- lift(workRepository.find(user, task))
@@ -402,7 +402,7 @@ class WorkServiceDefault(val db: Connection,
         workToUpdate = existingOrdWork.copy(answer = answer, isComplete = isComplete)
         updatedWork <- lift(workRepository.update(workToUpdate))
       }
-      yield updatedWork.asInstanceOf[OrderingWork]).run
+      yield updatedWork.asInstanceOf[OrderingWork]
     }
   }
 
@@ -411,7 +411,7 @@ class WorkServiceDefault(val db: Connection,
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
 
-      (for {
+      for {
         user <- lift(fUser)
         task <- lift(fTask)
         existingWork <- lift(workRepository.find(user, task))
@@ -419,14 +419,14 @@ class WorkServiceDefault(val db: Connection,
         workToUpdate = existingMatchingWork.copy(answer = answer, isComplete = isComplete)
         updatedWork <- lift(workRepository.update(workToUpdate))
       }
-      yield updatedWork.asInstanceOf[MatchingWork]).run
+      yield updatedWork.asInstanceOf[MatchingWork]
     }
   }
 
   override def forceComplete(taskId: UUID, justThis: Boolean = true): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn =>
       if (justThis) {
-        (for {
+        for {
           task <- lift(projectService.findTask(taskId))
           works <- lift(listWork(task.id))
           worksToUpdate = works.map {
@@ -437,10 +437,10 @@ class WorkServiceDefault(val db: Connection,
             case work: MatchingWork => work.copy(isComplete = true)
           }
           updatedWorks <- lift(serializedT(worksToUpdate)(workRepository.update))
-        } yield ()).run
+        } yield ()
       }
       else {
-        (for {
+        for {
           task <- lift(projectService.findTask(taskId))
           part <- lift(projectService.findPart(task.partId))
           project <- lift(projectService.find(part.projectId))
@@ -456,7 +456,7 @@ class WorkServiceDefault(val db: Connection,
             case work: MatchingWork => work.copy(isComplete = true)
           }
           updatedWorks <- lift(serializedT(worksToUpdate)(workRepository.update))
-        } yield ()).run
+        } yield ()
       }
     }
   }
@@ -477,12 +477,12 @@ class WorkServiceDefault(val db: Connection,
     val fStudent = authService.find(studentId)
     val fProject = projectService.find(projectId)
 
-    (for {
+    for {
       student <- lift(fStudent)
       project <- lift(fProject)
       feedbacks <- lift(taskFeedbackRepository.list(student, project))
     }
-    yield feedbacks).run
+    yield feedbacks
   }
 
   /**
@@ -494,11 +494,11 @@ class WorkServiceDefault(val db: Connection,
   def listFeedbacks(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[TaskFeedback]]] = {
     val fTask = projectService.findTask(taskId)
 
-    (for {
+    for {
       task <- lift(fTask)
       feedbackList <- lift(taskFeedbackRepository.list(task))
     }
-    yield feedbackList).run
+    yield feedbackList
   }
 
   /**
@@ -512,12 +512,12 @@ class WorkServiceDefault(val db: Connection,
     val fStudent = authService.find(studentId)
     val fTask = projectService.findTask(taskId)
 
-    (for {
+    for {
       student <- lift(fStudent)
       task <- lift(fTask)
       feedback <- lift(taskFeedbackRepository.find(student, task))
     }
-    yield feedback).run
+    yield feedback
   }
 
   /**
@@ -534,7 +534,7 @@ class WorkServiceDefault(val db: Connection,
       val fStudent = authService.find(studentId)
       val fTask = projectService.findTask(taskId)
 
-      (for {
+      for {
         student <- lift(fStudent)
         task <- lift(fTask)
         document <- lift(documentService.create(UUID.random, student, "", Delta(IndexedSeq())))
@@ -546,7 +546,7 @@ class WorkServiceDefault(val db: Connection,
         // Insert the new feedback
         createdFeedback <- lift(taskFeedbackRepository.insert(newFeedback))
       }
-      yield createdFeedback).run
+      yield createdFeedback
     }
   }
 
@@ -567,7 +567,7 @@ class WorkServiceDefault(val db: Connection,
       val fStudent = authService.find(studentId)
       val fTask = projectService.findTask(taskId)
 
-      (for {
+      for {
         student <- lift(fStudent)
         task <- lift(fTask)
         existing <- lift(taskFeedbackRepository.find(student, task))
@@ -575,7 +575,7 @@ class WorkServiceDefault(val db: Connection,
         // Insert the new feedback
         updatedFeedback <- lift(taskFeedbackRepository.update(toUpdate))
       }
-      yield updatedFeedback).run
+      yield updatedFeedback
     }
   }
 
@@ -596,12 +596,12 @@ class WorkServiceDefault(val db: Connection,
     val fUser = authService.find(userId)
     val fProject = projectService.find(projectId)
 
-    (for {
+    for {
       user <- lift(fUser)
       project <- lift(fProject)
       responses <- lift(taskScratchpadRepository.list(user, project))
     }
-    yield responses).run
+    yield responses
   }
 
   /**
@@ -615,12 +615,12 @@ class WorkServiceDefault(val db: Connection,
     val fUser = authService.find(userId)
     val fTask = projectService.findTask(taskId)
 
-    (for {
+    for {
       user <- lift(fUser)
       task <- lift(fTask)
       responses <- lift(taskScratchpadRepository.find(user, task))
     }
-    yield responses).run
+    yield responses
   }
 
   /**
@@ -635,7 +635,7 @@ class WorkServiceDefault(val db: Connection,
       val fStudent = authService.find(userId)
       val fTask = projectService.findTask(taskId)
 
-      (for {
+      for {
         student <- lift(fStudent)
         task <- lift(fTask)
         document <- lift(documentService.create(UUID.random, student, "", Delta(IndexedSeq())))
@@ -647,7 +647,7 @@ class WorkServiceDefault(val db: Connection,
         // Insert the new feedback
         createdFeedback <- lift(taskScratchpadRepository.insert(newScratchpad))
       }
-      yield createdFeedback).run
+      yield createdFeedback
     }
   }
 
@@ -667,7 +667,7 @@ class WorkServiceDefault(val db: Connection,
       val fStudent = authService.find(userId)
       val fTask = projectService.findTask(taskId)
 
-      (for {
+      for {
         student <- lift(fStudent)
         task <- lift(fTask)
         existing <- lift(taskScratchpadRepository.find(student, task))
@@ -675,7 +675,7 @@ class WorkServiceDefault(val db: Connection,
         // Insert the new feedback
         updatedFeedback <- lift(taskScratchpadRepository.update(toUpdate))
       }
-      yield updatedFeedback).run
+      yield updatedFeedback
     }
   }
 
@@ -697,11 +697,11 @@ class WorkServiceDefault(val db: Connection,
   override def listComponentScratchpadsByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[ComponentScratchpad]]] = {
     val fUser = authService.find(userId)
 
-    (for {
+    for {
       user <- lift(fUser)
       responses <- lift(componentScratchpadRepository.list(user))
     }
-    yield responses).run
+    yield responses
   }
 
   /**
@@ -714,11 +714,11 @@ class WorkServiceDefault(val db: Connection,
   override def listComponentScratchpadsByComponent(componentId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[ComponentScratchpad]]] = {
     val fComponent = componentService.find(componentId)
 
-    (for {
+    for {
       component <- lift(fComponent)
       responses <- lift(componentScratchpadRepository.list(component))
     }
-    yield responses).run
+    yield responses
   }
 
   /**
@@ -732,12 +732,12 @@ class WorkServiceDefault(val db: Connection,
     val fUser = authService.find(userId)
     val fComponent = componentService.find(componentId)
 
-    (for {
+    for {
       user <- lift(fUser)
       component <- lift(fComponent)
       responses <- lift(componentScratchpadRepository.find(user, component))
     }
-    yield responses).run
+    yield responses
   }
 
   /**
@@ -755,7 +755,7 @@ class WorkServiceDefault(val db: Connection,
       val fStudent = authService.find(userId)
       val fComponent = componentService.find(componentId)
 
-      (for {
+      for {
         student <- lift(fStudent)
         component <- lift(fComponent)
         document <- lift(documentService.create(UUID.random, student, "", Delta(IndexedSeq())))
@@ -766,7 +766,7 @@ class WorkServiceDefault(val db: Connection,
         )
         createdScratchpad <- lift(componentScratchpadRepository.insert(newScratchpad))
       }
-      yield createdScratchpad).run
+      yield createdScratchpad
     }
   }
 
@@ -784,7 +784,7 @@ class WorkServiceDefault(val db: Connection,
       val fStudent = authService.find(userId)
       val fComponent = componentService.find(componentId)
 
-      (for {
+      for {
         student <- lift(fStudent)
         component <- lift(fComponent)
         existing <- lift(componentScratchpadRepository.find(student, component))
@@ -792,7 +792,7 @@ class WorkServiceDefault(val db: Connection,
         // Insert the new feedback
         updatedFeedback <- lift(componentScratchpadRepository.update(toUpdate))
       }
-      yield updatedFeedback).run
+      yield updatedFeedback
     }
   }
 }

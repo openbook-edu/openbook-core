@@ -72,13 +72,23 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
     """.stripMargin
   }
 
-  val Update = {
+  val UpdateNoPass = {
     s"""
        |UPDATE $Table
-       |SET username = ?, email = ?, password_hash = ?, givenname = ?, surname = ?, version = ?, updated_at = ?
+       |SET username = ?, email = ?, givenname = ?, surname = ?, version = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $Fields
+    """.stripMargin
+  }
+
+  val UpdateWithPass = {
+    s"""
+       |UPDATE $Table
+        |SET username = ?, email = ?, password_hash = ?, givenname = ?, surname = ?, version = ?, updated_at = ?
+        |WHERE id = ?
+        |  AND version = ?
+        |RETURNING $Fields
     """.stripMargin
   }
 
@@ -228,12 +238,16 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @return a future disjunction containing either the updated user, or a failure
    */
   override def update(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
-    val params = Seq[Any](
-      user.username, user.email, user.hash.get, user.givenname, user.surname,
-      user.version + 1, new DateTime, user.id.bytes, user.version
-    )
-
-    queryOne(Update, params)
+    user.hash match {
+      case Some(hash) => queryOne(UpdateWithPass, Seq[Any](
+        user.username, user.email, hash, user.givenname, user.surname,
+        user.version + 1, new DateTime, user.id.bytes, user.version
+      ))
+      case None => queryOne(UpdateNoPass, Seq[Any](
+        user.username, user.email, user.givenname, user.surname,
+        user.version + 1, new DateTime, user.id.bytes, user.version
+      ))
+    }
   }
 
   /**

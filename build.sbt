@@ -4,9 +4,9 @@ organization := "ca.shiftfocus"
 
 version := "1.0-SNAPSHOT"
 
-scalaVersion := "2.11.5"
+scalaVersion := "2.11.6"
 
-crossScalaVersions := Seq("2.10.4", "2.11.5")
+crossScalaVersions := Seq("2.10.4", "2.11.6")
 
 resolvers ++= Seq(
   "Typesafe" at "http://repo.typesafe.com/typesafe/releases",

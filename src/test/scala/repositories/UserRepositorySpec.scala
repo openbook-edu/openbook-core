@@ -1,19 +1,10 @@
-import java.io.File
-
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.uuid.UUID
-import com.github.mauricio.async.db.pool.PoolConfiguration
-import com.github.mauricio.async.db.{Connection, Configuration, RowData}
-import com.typesafe.config.ConfigFactory
 import scala.collection.immutable.TreeMap
-import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import ca.shiftfocus.krispii.core.repositories.UserRepositoryPostgres
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import grizzled.slf4j.Logger
-import org.scalamock.scalatest.MockFactory
 import org.scalatest._
 import Matchers._
 import collection.breakOut
@@ -85,11 +76,10 @@ class UserRepositorySpec
         }
       }
       "return RepositoryError.NoResults if set contains unexisting user ID" in {
-        val result = userRepository.list(Vector(UUID("a5caac60-8fd7-4ecc-8fd3-f84dc11355f1")))
+        val result = userRepository.list(Vector(TestValues.testUserA.id, UUID("a5caac60-8fd7-4ecc-8fd3-f84dc11355f1")))
 
-        an [java.util.NoSuchElementException] should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
-      // TODO check if role/course doesn't have users
       "List all users who have a role" in {
         val testUserList = TreeMap[Int, User](
           0 -> TestValues.testUserA,
@@ -385,6 +375,3 @@ class UserRepositorySpec
     }
   }
 }
-
-
-

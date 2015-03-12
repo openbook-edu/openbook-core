@@ -154,6 +154,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
     queryList(ListRoles, Array[Any](user.id.bytes))
   }
 
+  // TODO - update or remove
   /**
    * List the roles associated with users.
    */

@@ -5,6 +5,9 @@ import scala.concurrent.Future
 import scalaz._
 
 trait FutureMonad[E] {
+
+  implicit def eitherRunner[A](eithert: EitherT[Future, E, A]): Future[\/[E, A]] = eithert.run
+
   def lift[A] = EitherT.eitherT[Future, E, A] _
 
   def liftSeq[A](interList: IndexedSeq[Future[\/[E, A]]]): EitherT[Future, E, IndexedSeq[A]] = {

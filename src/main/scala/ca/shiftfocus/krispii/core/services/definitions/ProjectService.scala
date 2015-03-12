@@ -34,7 +34,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
   // Parts
   def listPartsInComponent(componentId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Part]]]
   def findPart(partId: UUID): Future[\/[ErrorUnion#Fail, Part]]
-  def createPart(projectId: UUID, name: String, description: String, position: Int): Future[\/[ErrorUnion#Fail, Part]]
+  def createPart(projectId: UUID, name: String, position: Int): Future[\/[ErrorUnion#Fail, Part]]
   def updatePart(partId: UUID, version: Long, name: String, position: Int): Future[\/[ErrorUnion#Fail, Part]]
   def deletePart(partId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Part]]
   def reorderParts(projectId: UUID, partIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Project]]

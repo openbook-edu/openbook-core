@@ -262,7 +262,7 @@ class ProjectServiceDefault(val db: Connection,
    * @param position this part's position in the project. If this position has already
    *                 been taken, the existing parts will be shifted down.
    */
-  override def createPart(projectId: UUID, name: String, description: String, position: Int): Future[\/[ErrorUnion#Fail, Part]] = {
+  override def createPart(projectId: UUID, name: String, position: Int): Future[\/[ErrorUnion#Fail, Part]] = {
     transactional { implicit conn: Connection =>
       (for {
         project <- lift(projectRepository.find(projectId))

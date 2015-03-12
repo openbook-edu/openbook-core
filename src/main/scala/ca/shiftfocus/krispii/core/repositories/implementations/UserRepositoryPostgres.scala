@@ -35,7 +35,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
     )
   }
 
-  val Fields = "id, version, created_at, updated_at, username, email, password_hash, givenname, surname"
+  val Fields = "users.id, users.version, users.created_at, users.updated_at, users.username, users.email, users.password_hash, users.givenname, users.surname"
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
   val Table = "users"
   val OrderBy = "surname ASC, givenname ASC"
@@ -60,7 +60,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
     s"""
        |SELECT $Fields
        |FROM $Table, users_roles
-       |WHERE users.id = users_roles.id
+       |WHERE users.id = users_roles.user_id
        |  AND users_roles.role_id = ?
      """.stripMargin
 
@@ -111,17 +111,18 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
     WHERE users.id = users_courses.user_id
       AND users_courses.course_id = ?
     ORDER BY $OrderBy
-  """
+  """.stripMargin
 
-  val ListUsersFilterByRoles = s"""
-    SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
-    FROM users, roles, users_roles
-    WHERE users.id = users_roles.user_id
-      AND roles.id = users_roles.role_id
-      AND roles.name = ANY (?::text[])
-    GROUP BY users.id
-    ORDER BY $OrderBy
-  """
+  // TODO - not used
+//  val ListUsersFilterByRoles = s"""
+//    SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
+//    FROM users, roles, users_roles
+//    WHERE users.id = users_roles.user_id
+//      AND roles.id = users_roles.role_id
+//      AND roles.name = ANY (?::text[])
+//    GROUP BY users.id
+//    ORDER BY $OrderBy
+//  """.stripMargin
 
   // TODO - not used
 //    val ListUsersFilterByCourses = s"""
@@ -142,7 +143,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
       AND courses.name = ANY (?::text[])
     GROUP BY users.id
     ORDER BY $OrderBy
-  """
+  """.stripMargin
 
   /**
    * List all users.
@@ -177,7 +178,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @return
    */
   override def list(role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    queryList(SelectAllWithRole, role.id.bytes)
+    queryList(SelectAllWithRole, Seq[Any](role.id.bytes))
   }
 
   /**

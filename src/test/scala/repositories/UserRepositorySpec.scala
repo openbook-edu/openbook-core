@@ -87,6 +87,31 @@ class UserRepositorySpec
 
         an [java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
       }
+      "List all users who have a role" in {
+        val testUserList = TreeMap[Int, User](
+          0 -> TestValues.testUserA,
+          1 -> TestValues.testUserB
+        )
+
+        val result = userRepository.list(TestValues.testRoleA)
+        val eitherUsers = Await.result(result, Duration.Inf)
+        val \/-(users) = eitherUsers
+
+        eitherUsers.toString should be(\/-(testUserList.map(_._2.toString)(breakOut)).toString)
+
+        testUserList.foreach {
+          case (key, user: User) => {
+            users(key).id should be(user.id)
+            users(key).version should be(user.version)
+            users(key).email should be(user.email)
+            users(key).username should be(user.username)
+            users(key).givenname should be(user.givenname)
+            users(key).surname should be(user.surname)
+            users(key).createdAt.toString should be(user.createdAt.toString)
+            users(key).updatedAt.toString should be(user.updatedAt.toString)
+          }
+        }
+      }
       "list users in a given course" in {
         val testUserList = TreeMap[Int, User](
           0 -> TestValues.testUserB,
@@ -122,86 +147,9 @@ class UserRepositorySpec
     }
   }
 
-  
-//
-//  "UserRepository.listForRoles" should {
-//    inSequence{
-//      "list the users one of a set of roles" in {
-//        val result = userRepository.listForRoles(Vector("test role A", "test role B"))
-//
-//        val users = Await.result(result, Duration.Inf)
-//        users should be (Vector(TestValues.testUserA, TestValues.testUserB))
-//        Map[Int, User](0 -> TestValues.testUserA, 1 -> TestValues.testUserB).foreach {
-//          case (key, user: User) => {
-//            users(key).id should be(user.id)
-//            users(key).version should be(user.version)
-//            users(key).email should be(user.email)
-//            users(key).username should be(user.username)
-//            users(key).givenname should be(user.givenname)
-//            users(key).surname should be(user.surname)
-//            users(key).createdAt.toString should be(user.createdAt.toString)
-//            users(key).updatedAt.toString should be(user.updatedAt.toString)
-//          }
-//        }
-//      }
-//      "return empty Vector() if set of roles contains unexisting role name" in {
-//        val result = userRepository.listForRoles(Vector("unexisting role"))
-//
-//        Await.result(result, Duration.Inf) should be (Vector())
-//      }
-//    }
-//  }
-//
-//  "UserRepository.listForRolesAndSections" should {
-//    inSequence{
-//      "list users filtering by both roles and courses" in {
-//        val result = userRepository.listForRolesAndCourses(Vector(TestValues.testRoleA.name, TestValues.testRoleB.name), Vector(TestValues.testCourseA.name, TestValues.testCourseB.name))
-//
-//        val users = Await.result(result, Duration.Inf)
-//        users should be (Vector(TestValues.testUserA, TestValues.testUserB))
-//        Map[Int, User](0 -> TestValues.testUserA, 1 -> TestValues.testUserB).foreach {
-//          case (key, user: User) => {
-//            users(key).id should be(user.id)
-//            users(key).version should be(user.version)
-//            users(key).email should be(user.email)
-//            users(key).username should be(user.username)
-//            users(key).givenname should be(user.givenname)
-//            users(key).surname should be(user.surname)
-//            users(key).createdAt.toString should be(user.createdAt.toString)
-//            users(key).updatedAt.toString should be(user.updatedAt.toString)
-//          }
-//        }
-//      }
-//      "return only one user if set of roles contains more elements than set of courses" in {
-//        val result = userRepository.listForRolesAndCourses(Vector(TestValues.testRoleA.name, TestValues.testRoleB.name), Vector(TestValues.testCourseA.name))
-//
-//        val users = Await.result(result, Duration.Inf)
-//        users should be (Vector(TestValues.testUserA))
-//        Map[Int, User](0 -> TestValues.testUserA).foreach {
-//          case (key, user: User) => {
-//            users(key).id should be(user.id)
-//            users(key).version should be(user.version)
-//            users(key).email should be(user.email)
-//            users(key).username should be(user.username)
-//            users(key).givenname should be(user.givenname)
-//            users(key).surname should be(user.surname)
-//            users(key).createdAt.toString should be(user.createdAt.toString)
-//            users(key).updatedAt.toString should be(user.updatedAt.toString)
-//          }
-//        }
-//      }
-//      "return empty Vector() if set of roles contains only unexisting role name" in {
-//        val result = userRepository.listForRolesAndCourses(Vector("unexisting role"), Vector(TestValues.testCourseA.name, TestValues.testCourseB.name))
-//
-//        Await.result(result, Duration.Inf) should be (Vector())
-//      }
-//      "return empty Vector() if set of courses contains unexisting course name" in {
-//        val result = userRepository.listForRolesAndCourses(Vector(TestValues.testRoleA.name, TestValues.testRoleB.name), Vector("unexisting course"))
-//
-//        Await.result(result, Duration.Inf) should be (Vector())
-//      }
-//    }
-//  }
+
+
+
 //
 //  "UserRepository.find" should {
 //    inSequence {

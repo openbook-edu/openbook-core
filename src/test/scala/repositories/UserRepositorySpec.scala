@@ -120,6 +120,11 @@ class UserRepositorySpec
 
         Await.result(result, Duration.Inf) should be (\/- (Vector()))
       }
+      "return empty Vector() if there are no users that have this role" in {
+        val result = userRepository.list(TestValues.testRoleD)
+
+        Await.result(result, Duration.Inf) should be (\/- (Vector()))
+      }
       "list users in a given course" in {
         val testUserList = TreeMap[Int, User](
           0 -> TestValues.testUserB,
@@ -149,6 +154,11 @@ class UserRepositorySpec
       }
       "return empty Vector() if course doesn't exist" in {
         val result = userRepository.list(TestValues.testCourseC)
+
+        Await.result(result, Duration.Inf) should be(\/- (Vector()))
+      }
+      "return empty Vector() if there are no users in the course" in {
+        val result = userRepository.list(TestValues.testCourseD)
 
         Await.result(result, Duration.Inf) should be(\/- (Vector()))
       }
@@ -336,42 +346,44 @@ class UserRepositorySpec
       }
     }
   }
-//
-//  "UserRepository.delete" should {
-//    inSequence {
-//      "delete a user from the database if user has no references in other tables" in {
-//        val result = userRepository.delete(TestValues.testUserC)
-//
-//        val is_deleted = Await.result(result, Duration.Inf)
-//        is_deleted should be (true)
-//
-//        // Check if user has been deleted
-//        val queryResult = db.pool.sendPreparedStatement(SelectOneByIdentifier, Array[Any](TestValues.testUserC.email, TestValues.testUserC.email)).map { queryResult =>
-//          val userList = queryResult.rows.get.map {
-//            item: RowData => User(item)
-//          }
-//          userList
-//        }
-//
-//        Await.result(queryResult, Duration.Inf) should be (Vector())
-//      }
-//      "throw a GenericDatabaseException if user is teacher and has references in other tables" in {
-//        val result = userRepository.delete(TestValues.testUserB)
-//
-//        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
-//      }
-//      "return FALSE if User hasn't been found" in {
-//        val result = userRepository.delete(User(
-//          email = "unexisting_email@example.com",
-//          username = "unexisting_username",
-//          givenname = "unexisting_givenname",
-//          surname = "unexisting_surname"
-//        ))
-//
-//        Await.result(result, Duration.Inf) should be(false)
-//      }
-//    }
-//  }
+
+  "UserRepository.delete" should {
+    inSequence {
+      "delete a user from the database if user has no references in other tables" in {
+        val testUser = TestValues.testUserC
+
+        val result = userRepository.delete(testUser)
+        val eitherUser = Await.result(result, Duration.Inf)
+        val \/-(user) = eitherUser
+
+        user.id should be(testUser.id)
+        user.version should be(testUser.version)
+        user.email should be(testUser.email)
+        user.username should be(testUser.username)
+        user.givenname should be(testUser.givenname)
+        user.surname should be(testUser.surname)
+        user.createdAt.toString() should be (testUser.createdAt.toString())
+        user.updatedAt.toString() should be (testUser.updatedAt.toString())
+      }
+      "return ForeignKeyConflict if user is teacher and has references in other tables" in {
+        val result = userRepository.delete(TestValues.testUserB)
+
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("teacher_id", "courses_teacher_id_fkey")))
+      }
+      "return RepositoryError.NoResults if User hasn't been found" in {
+        val unexistingUser = User(
+          email     = "unexisting_email@example.com",
+          username  = "unexisting_username",
+          givenname = "unexisting_givenname",
+          surname   = "unexisting_surname"
+        )
+
+        val result = userRepository.delete(unexistingUser)
+
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+    }
+  }
 }
 
 

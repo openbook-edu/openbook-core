@@ -38,10 +38,10 @@ class DocumentServiceDefault(val db: Connection,
    * @return
    */
   override def listRevisions(documentId: UUID, fromVersion: Long = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[Revision]]] = {
-    (for {
+    for {
       document <- lift(documentRepository.find(documentId))
       revisions <- lift(documentRepository.list(document, fromVersion))
-    } yield revisions).run
+    } yield revisions
   }
 
   /**
@@ -77,10 +77,10 @@ class DocumentServiceDefault(val db: Connection,
    */
   override def update(id: UUID, version: Long, owner: User, editors: IndexedSeq[User], title: String): Future[\/[ErrorUnion#Fail, Document]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         document <- lift(documentRepository.find(id))
         updated <- lift(documentRepository.update(document.copy(title = title, owner = owner, editors = editors)))
-      } yield updated).run
+      } yield updated
     }
   }
 
@@ -106,7 +106,7 @@ class DocumentServiceDefault(val db: Connection,
    */
   override def push(documentId: UUID, version: Long, author: User, delta: Delta): Future[\/[ErrorUnion#Fail, PushResult]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         // 1. Get the document
         document <- lift(documentRepository.find(documentId))
 
@@ -158,7 +158,7 @@ class DocumentServiceDefault(val db: Connection,
             } yield PushResult(document = updatedDocument, revision = pushedRevision, serverOps = recentRevisions)
           }
         }
-      } yield pushResult).run
+      } yield pushResult
     }
   }
 }

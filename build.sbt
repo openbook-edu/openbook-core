@@ -24,6 +24,7 @@ scalacOptions in ThisBuild ++= Seq(
   "-deprecation", // warning and location for usages of deprecated APIs
   "-feature", // warning and location for usages of features that should be imported explicitly
   "-language:higherKinds", // enable higher kinded types
+  "-language:implicitConversions", // enable implicit conversions
   "-unchecked", // additional warnings where generated code depends on assumptions
   "-Xlint", // recommended additional warnings
   "-Ywarn-adapted-args", // Warn if an argument list is modified to match the receiver

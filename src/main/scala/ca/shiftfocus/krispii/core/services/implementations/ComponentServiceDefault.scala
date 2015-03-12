@@ -36,11 +36,11 @@ class ComponentServiceDefault(val db: Connection,
    * @return an array of components
    */
   override def listByPart(partId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
-    (for {
+    for {
       part <- lift(projectService.findPart(partId))
       componentList <- lift(componentRepository.list(part))
     }
-    yield componentList).run
+    yield componentList
   }
 
   /**
@@ -52,11 +52,11 @@ class ComponentServiceDefault(val db: Connection,
    * @return an array of components
    */
   override def listByProject(projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
-    (for {
+    for {
       project <- lift(projectService.find(projectId))
       componentList <- lift(componentRepository.list(project))
     }
-    yield componentList).run
+    yield componentList
   }
 
   /**
@@ -72,12 +72,12 @@ class ComponentServiceDefault(val db: Connection,
     val fProject = projectService.find(projectId)
     val fUser = authService.find(userId)
 
-    (for {
+    for {
       project <- lift(fProject)
       user <- lift(fUser)
       componentList <- lift(componentRepository.list(project, user))
     }
-    yield componentList).run
+    yield componentList
   }
 
   /**
@@ -137,7 +137,7 @@ class ComponentServiceDefault(val db: Connection,
                            thingsToThinkAbout: Option[String],
                            soundcloudId: Option[String]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         existingComponent <- lift(componentRepository.find(id))
         existingAudio = existingComponent.asInstanceOf[AudioComponent]
         componentToUpdate = existingAudio.copy(
@@ -150,7 +150,7 @@ class ComponentServiceDefault(val db: Connection,
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
       }
-      yield updatedComponent).run
+      yield updatedComponent
     }
   }
 
@@ -160,7 +160,7 @@ class ComponentServiceDefault(val db: Connection,
                           thingsToThinkAbout: Option[String],
                           content: Option[String]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         existingComponent <- lift(componentRepository.find(id))
         existingText = existingComponent.asInstanceOf[TextComponent]
         componentToUpdate = existingText.copy(
@@ -173,7 +173,7 @@ class ComponentServiceDefault(val db: Connection,
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
       }
-      yield updatedComponent).run
+      yield updatedComponent
     }
   }
 
@@ -185,7 +185,7 @@ class ComponentServiceDefault(val db: Connection,
                            width: Option[Int],
                            height: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         existingComponent <- lift(componentRepository.find(id))
         existingVideo = existingComponent.asInstanceOf[VideoComponent]
         componentToUpdate = existingVideo.copy(
@@ -200,13 +200,13 @@ class ComponentServiceDefault(val db: Connection,
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
       }
-      yield updatedComponent).run
+      yield updatedComponent
     }
   }
 
   override def delete(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
-      (for {
+      for {
         component <- lift(componentRepository.find(id))
         toDelete = component match {
           case comp: AudioComponent => comp.copy(version = version)
@@ -214,7 +214,7 @@ class ComponentServiceDefault(val db: Connection,
           case comp: VideoComponent => comp.copy(version = version)
         }
         deleted <- lift(componentRepository.delete(toDelete))
-      } yield deleted).run
+      } yield deleted
     }
   }
 
@@ -233,12 +233,12 @@ class ComponentServiceDefault(val db: Connection,
       val fComponent = componentRepository.find(componentId)
       val fPart = projectService.findPart(partId)
 
-      (for {
+      for {
         component <- lift(fComponent)
         part <- lift(fPart)
         addedComp <- lift(componentRepository.addToPart(component, part))
       }
-      yield component).run
+      yield component
     }
   }
 
@@ -258,12 +258,12 @@ class ComponentServiceDefault(val db: Connection,
       val fComponent = componentRepository.find(componentId)
       val fPart = projectService.findPart(partId)
 
-      (for {
+      for {
         component <- lift(fComponent)
         part <- lift(fPart)
         wasRemoved <- lift(componentRepository.removeFromPart(component, part))
       }
-      yield component).run
+      yield component
     }
   }
 
@@ -298,12 +298,12 @@ class ComponentServiceDefault(val db: Connection,
       // Teachers can view the component if it's in one of their projects
       if (user.roles.map(_.name).contains("teacher")) {
 
-        val fAsTeacher: Future[\/[ErrorUnion#Fail, Boolean]] = (for {
+        val fAsTeacher: Future[\/[ErrorUnion#Fail, Boolean]] = for {
           courses <- lift(schoolService.listCoursesByTeacher(user.id))
           projects <- liftSeq(courses.map { course => projectService.list(course.id) })
           components <- liftSeq(projects.flatten.map { project => listByProject(project.id) })
         }
-        yield components.flatten.contains(component)).run
+        yield components.flatten.contains(component)
 
         fAsTeacher.flatMap {
           case -\/(error) => Future successful -\/(error)
@@ -316,12 +316,12 @@ class ComponentServiceDefault(val db: Connection,
               // - list their courses
               // - then list their projects for those courses
               // - then list the components for the enabled parts in those projects
-              val fAsStudent: Future[\/[ErrorUnion#Fail, Boolean]] = (for {
+              val fAsStudent: Future[\/[ErrorUnion#Fail, Boolean]] = for {
                 courses <- lift(schoolService.listCoursesByTeacher(user.id))
                 projects <- liftSeq(courses.map { course => projectService.list(course.id) })
                 components <- liftSeq(projects.flatten.map { project => listByProject(project.id) })
               }
-              yield components.flatten.contains(component)).run
+              yield components.flatten.contains(component)
               fAsStudent
             }
         }
@@ -329,13 +329,13 @@ class ComponentServiceDefault(val db: Connection,
 
       // Students can view the component if it's in one of their projects and attached to an active part
       else if (user.roles.map(_.name).contains("student")) {
-        (for {
+        for {
           courses <- lift(schoolService.listCoursesByUser(user.id))
           projects <- liftSeq(courses.map { course => projectService.list(course.id) })
           parts = projects.flatten.map(_.parts.filter(_.enabled == true)).flatten
           components <- liftSeq(parts.map { part => listByPart(part.id) })
         }
-        yield components.contains(component)).run
+        yield components.contains(component)
       }
       else {
         Future successful \/-(false)

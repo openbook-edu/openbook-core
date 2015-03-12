@@ -10,7 +10,7 @@ import play.api.libs.functional.syntax._
 
 case class JournalEntry(
   id: UUID = UUID.random,
-  version: Long = 0,
+  version: Long = 1L,
   remoteAddress: String = "",
   requestUri: String = "",
   userAgent: String = "",

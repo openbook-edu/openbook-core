@@ -14,7 +14,7 @@ case class CourseScheduleException(
   id: UUID = UUID.random,
   userId: UUID,
   courseId: UUID,
-  version: Long = 0,
+  version: Long = 1L,
   day: LocalDate,
   startTime: LocalTime,
   endTime: LocalTime,

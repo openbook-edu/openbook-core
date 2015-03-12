@@ -32,7 +32,7 @@ case class MultipleChoiceTask(
   partId: UUID,
   position: Int,
   // Additional data
-  version: Long = 0,
+  version: Long = 1L,
   settings: CommonTaskSettings = CommonTaskSettings(),
   choices: IndexedSeq[String] = IndexedSeq(),
   answer: IndexedSeq[Int] = IndexedSeq(),

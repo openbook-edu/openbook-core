@@ -8,7 +8,7 @@ import play.api.libs.functional.syntax._
 
 case class Role(
   id: UUID = UUID.random,
-  version: Long = 0,
+  version: Long = 1L,
   name: String,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime

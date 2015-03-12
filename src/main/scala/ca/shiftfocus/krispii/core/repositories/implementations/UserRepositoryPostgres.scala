@@ -35,10 +35,11 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
     )
   }
 
-  val Table = "users"
-  val Fields = s"${Table}.id, ${Table}.version, ${Table}.created_at, ${Table}.updated_at, ${Table}.username, ${Table}.email, ${Table}.password_hash, ${Table}.givenname, ${Table}.surname"
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
-  val OrderBy = s"${Table}.surname ASC, ${Table}.givenname ASC"
+  val Table           = "users"
+  val Fields          = "id, version, created_at, updated_at, username, email, password_hash, givenname, surname"
+  val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field}).mkString(", ")
+  val QMarks          = "?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val OrderBy         = s"${Table}.surname ASC, ${Table}.givenname ASC"
 
   // User CRUD operations
   val SelectAll =
@@ -58,7 +59,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
 
   val SelectAllWithRole =
     s"""
-       |SELECT $Fields
+       |SELECT $FieldsWithTable
        |FROM $Table, users_roles
        |WHERE users.id = users_roles.user_id
        |  AND users_roles.role_id = ?

@@ -150,7 +150,7 @@ class UserRepositorySpec
       "return empty Vector() if course doesn't exist" in {
         val result = userRepository.list(TestValues.testCourseC)
 
-        Await.result(result, Duration.Inf) should be(Vector())
+        Await.result(result, Duration.Inf) should be(\/- (Vector()))
       }
     }
   }
@@ -264,92 +264,78 @@ class UserRepositorySpec
       "reutrn RepositoryError.UniqueKeyConflict when update an existing user with username that already exists" in {
         val testUser        = TestValues.testUserA
         val updatedTestUser = testUser.copy(
-          username  = TestValues.testUserB.username
+          username = TestValues.testUserB.username
         )
 
         val result = userRepository.update(updatedTestUser)
 
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("username", "users_username_key")))
       }
-//      "throw a GenericDatabaseException when update an existing user with email that already exists" in {
-//        val result = userRepository.update(TestValues.testUserB.copy(
-//          email = TestValues.testUserC.email
-//        ))
-//
-//        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
-//      }
-//      "throw a NoSuchElementException when update an unexisting user" in {
-//        an [java.util.NoSuchElementException] should be thrownBy userRepository.update(User(
-//          email = "unexisting_email@example.com",
-//          username = "unexisting_username",
-//          givenname = "unexisting_givenname",
-//          surname = "unexisting_surname"
-//        ))
-//      }
+      "reutrn RepositoryError.UniqueKeyConflict when update an existing user with email that already exists" in {
+        val testUser        = TestValues.testUserA
+        val updatedTestUser = testUser.copy(
+          email = TestValues.testUserB.email
+        )
+
+        val result = userRepository.update(updatedTestUser)
+
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("email", "users_email_key")))
+      }
+      "reutrn RepositoryError.NoResults when update an unexisting user" in {
+        val unexistingUser = User(
+          email     = "unexisting_email@example.com",
+          username  = "unexisting_username",
+          givenname = "unexisting_givenname",
+          surname   = "unexisting_surname"
+        )
+
+        val result = userRepository.update(unexistingUser)
+
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
     }
   }
-//
-//  "UserRepository.insert" should {
-//    inSequence {
-//      "save a new User" in {
-//        val result = userRepository.insert(TestValues.testUserD)
-//
-//        val user = Await.result(result, Duration.Inf)
-//
-//        user.id should be (TestValues.testUserD.id)
-//        user.version should be (1L)
-//        user.email should be (TestValues.testUserD.email)
-//        user.username should be (TestValues.testUserD.username)
-//        user.givenname should be (TestValues.testUserD.givenname)
-//        user.surname should be (TestValues.testUserD.surname)
-//
-//        // Find new user and check
-//        val queryResult = db.pool.sendPreparedStatement(SelectOneByIdentifier, Array[Any](TestValues.testUserD.email, TestValues.testUserD.email)).map { queryResult =>
-//          val userList = queryResult.rows.get.map {
-//            item: RowData => User(item)
-//          }
-//          userList
-//        }
-//
-//        val userList = Await.result(queryResult, Duration.Inf)
-//        val new_user = userList(0)
-//
-//        new_user.id should be (TestValues.testUserD.id)
-//        new_user.version should be (1L)
-//        new_user.email should be (TestValues.testUserD.email)
-//        new_user.username should be (TestValues.testUserD.username)
-//        new_user.givenname should be (TestValues.testUserD.givenname)
-//        new_user.surname should be (TestValues.testUserD.surname)
-//      }
-//      "throw a GenericDatabaseException if user already exists" in {
-//        val result = userRepository.insert(TestValues.testUserA)
-//
-//        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
-//      }
-//      "throw a GenericDatabaseException if username already exists" in {
-//        val result = userRepository.insert(User(
-//          email = "unexistinguser@example.com",
-//          username = TestValues.testUserB.username,
-//          passwordHash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3W1234="),
-//          givenname = "unexisting",
-//          surname = "user"
-//        ))
-//
-//        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
-//      }
-//      "throw a GenericDatabaseException if email already exists" in {
-//        val result = userRepository.insert(User(
-//          email = TestValues.testUserB.email,
-//          username = "unexisting user",
-//          passwordHash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3W1234="),
-//          givenname = "unexisting",
-//          surname = "user"
-//        ))
-//
-//        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
-//      }
-//    }
-//  }
+
+  "UserRepository.insert" should {
+    inSequence {
+      "save a new User" in {
+        val testUser = TestValues.testUserD
+
+        val result = userRepository.insert(testUser)
+        val eitherUser = Await.result(result, Duration.Inf)
+        val \/-(user) = eitherUser
+
+        user.id should be(testUser.id)
+        user.version should be(testUser.version)
+        user.email should be(testUser.email)
+        user.username should be(testUser.username)
+        user.givenname should be(testUser.givenname)
+        user.surname should be(testUser.surname)
+      }
+      "reutrn RepositoryError.PrimaryKeyConflict if user already exists" in {
+        val testUser = TestValues.testUserA
+        val result = userRepository.insert(TestValues.testUserA)
+
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+      }
+      "reutrn RepositoryError.UniqueKeyConflict if username already exists" in {
+        val testUser = TestValues.testUserD.copy(
+          username = TestValues.testUserA.username
+        )
+        val result = userRepository.insert(testUser)
+
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("username", "users_username_key")))
+      }
+      "reutrn RepositoryError.UniqueKeyConflict if email already exists" in {
+        val testUser = TestValues.testUserD.copy(
+          email = TestValues.testUserA.email
+        )
+        val result = userRepository.insert(testUser)
+
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("email", "users_email_key")))
+      }
+    }
+  }
 //
 //  "UserRepository.delete" should {
 //    inSequence {

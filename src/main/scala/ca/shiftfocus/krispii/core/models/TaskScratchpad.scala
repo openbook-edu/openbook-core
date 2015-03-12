@@ -14,7 +14,7 @@ case class TaskScratchpadDisabledException(msg: String) extends Exception
 case class TaskScratchpad(
   userId: UUID,
   taskId: UUID,
-  version: Long = 0,
+  version: Long = 1L,
   documentId: UUID,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime

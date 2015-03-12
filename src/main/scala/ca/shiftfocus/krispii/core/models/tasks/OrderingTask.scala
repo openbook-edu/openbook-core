@@ -29,7 +29,7 @@ case class OrderingTask(
   partId: UUID,
   position: Int,
   // Additional data
-  version: Long = 0,
+  version: Long = 1L,
   settings: CommonTaskSettings = CommonTaskSettings(),
   elements: IndexedSeq[String] = IndexedSeq(),
   answer: IndexedSeq[Int] = IndexedSeq(),

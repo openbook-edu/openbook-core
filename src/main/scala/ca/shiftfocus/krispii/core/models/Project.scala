@@ -11,7 +11,7 @@ import play.api.libs.functional.syntax._
 case class Project(
   id: UUID = UUID.random,
   courseId: UUID,
-  version: Long = 0,
+  version: Long = 1L,
   name: String,
   slug: String,
   description: String,

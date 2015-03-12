@@ -9,7 +9,7 @@ import play.api.libs.functional.syntax._
 
 case class Part(
   id: UUID = UUID.random,
-  version: Long = 0,
+  version: Long = 1L,
   projectId: UUID,
   name: String,
   position: Int = 0,

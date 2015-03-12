@@ -15,7 +15,7 @@ trait Work {
   val id: UUID
   val studentId: UUID
   val taskId: UUID
-  val version: Long = 0
+  val version: Long = 1L
   val answer: AnyRef
   val isComplete: Boolean
   val createdAt: DateTime

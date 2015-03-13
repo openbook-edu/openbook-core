@@ -49,6 +49,7 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-simple" % "1.7.5",
   "org.clapper" %% "grizzled-slf4j" % "1.0.2",
   "ca.shiftfocus" %% "uuid" % "1.0.0",
+  "ca.shiftfocus" %% "sflib" % "1.0.1",
   "ws.kahn" %% "ot" % "1.0-SNAPSHOT"
 )
 

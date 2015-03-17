@@ -37,40 +37,40 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
 
   // User CRUD operations
   val SelectAll = s"""
-    SELECT $Fields
-    FROM $Table
-  """
+    |SELECT $Fields
+    |FROM $Table
+  """.stripMargin
 
   val SelectOne = s"""
-    SELECT $Fields
-    FROM $Table
-    WHERE id = ?
-  """
+    |SELECT $Fields
+    |FROM $Table
+    |WHERE id = ?
+  """.stripMargin
 
   val SelectOneByName = s"""
-    SELECT $Fields
-    FROM $Table
-    WHERE name = ?
-    ORDER BY created_at ASC
-    LIMIT 1
-  """
+    |SELECT $Fields
+    |FROM $Table
+    |WHERE name = ?
+    |ORDER BY created_at ASC
+    |LIMIT 1
+  """.stripMargin
 
   val Insert = {
     s"""
-      INSERT INTO $Table ($Fields)
-      VALUES ($QMarks)
-      RETURNING $Fields
-    """
+      |INSERT INTO $Table ($Fields)
+      |VALUES ($QMarks)
+      |RETURNING $Fields
+    """.stripMargin
   }
 
   val Update = {
     s"""
-      UPDATE $Table
-      SET name = ?, version = ?, updated_at = ?
-      WHERE id = ?
-        AND version = ?
-      RETURNING $Fields
-    """
+      |UPDATE $Table
+      |SET name = ?, version = ?, updated_at = ?
+      |WHERE id = ?
+      |  AND version = ?
+      |RETURNING $Fields
+    """.stripMargin
   }
 
   val Delete =
@@ -78,67 +78,68 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
        |DELETE FROM $Table
        |WHERE id = ?
        |  AND version = ?
+       |RETURNING $Fields
      """.stripMargin
 
 
   // ---- User->[Roles] relationship operations --------------------------------
 
   val AddRole = """
-    INSERT INTO users_roles (user_id, role_id, created_at)
-    VALUES (?, ?, ?)
-  """
+    |INSERT INTO users_roles (user_id, role_id, created_at)
+    |VALUES (?, ?, ?)
+  """.stripMargin
 
   val AddRoleByName = """
-    INSERT INTO users_roles (user_id, role_id, created_at)
-      SELECT ? AS user_id, roles.id, ? AS created_at
-      FROM roles
-      WHERE roles.name = ?
-  """
+    |INSERT INTO users_roles (user_id, role_id, created_at)
+    |  SELECT ? AS user_id, roles.id, ? AS created_at
+    |  FROM roles
+    |  WHERE roles.name = ?
+  """.stripMargin
 
   val RemoveRole = """
-    DELETE FROM users_roles
-    WHERE user_id = ?
-      AND role_id = ?
-  """
+    |DELETE FROM users_roles
+    |WHERE user_id = ?
+    |  AND role_id = ?
+  """.stripMargin
 
   val RemoveRoleByName = """
-    DELETE FROM users_roles
-    WHERE user_id = ?
-      AND role_id = (SELECT id FROM roles WHERE name = ?)
-  """
+    |DELETE FROM users_roles
+    |WHERE user_id = ?
+    |  AND role_id = (SELECT id FROM roles WHERE name = ?)
+  """.stripMargin
 
   val RemoveFromAllUsers = """
-    DELETE FROM users_roles
-    WHERE role_id = ?
-  """
+    |DELETE FROM users_roles
+    |WHERE role_id = ?
+  """.stripMargin
 
   val RemoveFromAllUsersByName = """
-    DELETE FROM users_roles
-    WHERE role_id = (SELECT id FROM roles WHERE name = ? LIMIT 1)
-  """
+    |DELETE FROM users_roles
+    |WHERE role_id = (SELECT id FROM roles WHERE name = ? LIMIT 1)
+  """.stripMargin
 
   val ListRoles = """
-    SELECT id, version, roles.name as name, roles.created_at as created_at, updated_at
-    FROM roles, users_roles
-    WHERE roles.id = users_roles.role_id
-      AND users_roles.user_id = ?
-  """
+    |SELECT id, version, roles.name as name, roles.created_at as created_at, updated_at
+    |FROM roles, users_roles
+    |WHERE roles.id = users_roles.role_id
+    |  AND users_roles.user_id = ?
+  """.stripMargin
 
   val ListRolesForUserList = """
-    SELECT id, version, users_roles.user_id, roles.name as name, roles.created_at as created_at, updated_at
-    FROM roles, users_roles
-    WHERE roles.id = users_roles.role_id
-  """
+    |SELECT id, version, users_roles.user_id, roles.name as name, roles.created_at as created_at, updated_at
+    |FROM roles, users_roles
+    |WHERE roles.id = users_roles.role_id
+  """.stripMargin
 
   val AddUsers = s"""
-    INSERT INTO users_roles (role_id, user_id, created_at)
-    VALUES
-  """
+    |INSERT INTO users_roles (role_id, user_id, created_at)
+    |VALUES
+  """.stripMargin
 
   val RemoveUsers = s"""
-    DELETE FROM users_roles
-    WHERE role_id =
-  """
+    |DELETE FROM users_roles
+    |WHERE role_id =
+  """.stripMargin
 
   /**
    * List all roles.
@@ -210,7 +211,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * @param conn
    * @return
    */
-  def addUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Role]] = {
+  def addUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     val cleanRoleId = role.id.string filterNot ("-" contains _)
     val query = AddUsers + userList.map { user =>
       val cleanUserId = user.id.string filterNot ("-" contains _)
@@ -218,7 +219,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
     }.mkString(",")
 
     queryNumRows(query)(userList.length == _).map {
-      case \/-(wasSuccessful) => if (wasSuccessful) \/-(role)
+      case \/-(wasSuccessful) => if (wasSuccessful) \/-( () )
                                  else -\/(RepositoryError.DatabaseError("Role couldn't be added to all users."))
       case -\/(error) => -\/(error)
     }
@@ -231,7 +232,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * @param conn
    * @return
    */
-  def removeUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Role]] = {
+  def removeUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     val cleanRoleId = role.id.string filterNot ("-" contains _)
     val arrayString = userList.map { user =>
       val cleanUserId = user.id.string filterNot ("-" contains _)
@@ -241,8 +242,8 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
     val query = s"""${RemoveUsers} '\\x$cleanRoleId' AND ARRAY[user_id] <@ $arrayString"""
 
    queryNumRows(query)(userList.length == _).map {
-     case \/-(wasSuccessful) => if (wasSuccessful) \/-(role)
-                                else -\/(RepositoryError.DatabaseError("Role couldn't be added to all users."))
+     case \/-(wasSuccessful) => if (wasSuccessful) \/-( () )
+                                else -\/(RepositoryError.DatabaseError("Role couldn't be removed from all users."))
      case -\/(error) => -\/(error)
     }.recover {
       case exception: Throwable => throw exception

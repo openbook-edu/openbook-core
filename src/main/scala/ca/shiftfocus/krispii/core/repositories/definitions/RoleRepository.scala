@@ -33,8 +33,8 @@ trait RoleRepository {
    * These methods manipulate the table joining users and roles in a many-to-many
    * relationship.
    */
-  def addUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Role]]
-  def removeUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Role]]
+  def addUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
+  def removeUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
   def addToUser(user: User, role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
   def addToUser(user: User, name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
   def removeFromUser(user: User, role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]

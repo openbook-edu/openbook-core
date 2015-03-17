@@ -118,19 +118,20 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |ORDER BY $OrderBy
     """.stripMargin
 
-  val ListUsersFilterByRolesAndCourses =
-    s"""
-       |SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
-       |FROM users, roles, users_roles, courses, users_courses
-       |WHERE users.id = users_roles.user_id
-       |  AND roles.id = users_roles.role_id
-       |  AND roles.name = ANY (?::text[])
-       |  AND users.id = users_courses.user_id
-       |  AND courses.id = users_courses.course_id
-       |  AND courses.name = ANY (?::text[])
-       |GROUP BY users.id
-       |ORDER BY $OrderBy
-  """.stripMargin
+  // TODO - not used
+//  val ListUsersFilterByRolesAndCourses =
+//    s"""
+//       |SELECT users.id, users.version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
+//       |FROM users, roles, users_roles, courses, users_courses
+//       |WHERE users.id = users_roles.user_id
+//       |  AND roles.id = users_roles.role_id
+//       |  AND roles.name = ANY (?::text[])
+//       |  AND users.id = users_courses.user_id
+//       |  AND courses.id = users_courses.course_id
+//       |  AND courses.name = ANY (?::text[])
+//       |GROUP BY users.id
+//       |ORDER BY $OrderBy
+//  """.stripMargin
 
   /**
    * List all users.

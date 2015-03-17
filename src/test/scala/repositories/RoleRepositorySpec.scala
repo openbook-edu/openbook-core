@@ -188,236 +188,197 @@ class RoleRepositorySpec
       }
     }
   }
-//
-//  /*
-//    After implementation
-//    In db: RoleA, RoleB, RoleC, RoleF, RoleG, RoleH
-//    testUserA -> RoleA, RoleB, RoleF, RoleG, RoleC
-//    testUserB -> RoleA, RoleB, RoleF, RoleG, RoleC
-//    testUserF -> RoleC, RoleH
-//  */
-//  "RoleRepository.addUsers" should {
-//    inSequence {
-//      "add role to users" in {
-//        val query_result = roleRepository.addUsers(TestValues.testRoleC, Vector(TestValues.testUserA, TestValues.testUserB))
-//
-//        Await.result(query_result, Duration.Inf) should be (true)
-//
-//        // Find roles for TestValues.testUserA
-//        val resultForUserA = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserA.id.bytes)).map { queryResult =>
-//          val roleList = queryResult.rows.get.map {
-//            item: RowData => Role(item)
-//          }
-//          roleList
-//        }
-//
-//        val roleListUserA = Await.result(resultForUserA, Duration.Inf)
-//        roleListUserA contains TestValues.testRoleC should be (true)
-//
-//        // Find roles for TestValues.testUserB
-//        val resultForUserB = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserB.id.bytes)).map { queryResult =>
-//          val roleList = queryResult.rows.get.map {
-//            item: RowData => Role(item)
-//          }
-//          roleList
-//        }
-//
-//        val roleListUserB = Await.result(resultForUserB, Duration.Inf)
-//        roleListUserB contains TestValues.testRoleC should be (true)
-//      }
-//    }
-//    "throw a GenericDatabaseException if we add a role to the user that already has this role" in {
-//      val query_result = roleRepository.addUsers(TestValues.testRoleB, Vector(TestValues.testUserA))
-//
-//      an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy  Await.result(query_result, Duration.Inf)
-//    }
-//    "throw a GenericDatabaseException if we add a role to unexisting user" in {
-//      val query_result = roleRepository.addUsers(TestValues.testRoleB, Vector(TestValues.testUserD))
-//
-//      an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy  Await.result(query_result, Duration.Inf)
-//    }
-//    "throw a GenericDatabaseException if we add an unexisting role to user" in {
-//      val query_result = roleRepository.addUsers(TestValues.testRoleD, Vector(TestValues.testUserD))
-//
-//      an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy  Await.result(query_result, Duration.Inf)
-//    }
-//  }
-//
-//  /*
-//    After implementation
-//    In db: RoleA, RoleB, RoleC, RoleF, RoleG, RoleH
-//    testUserA -> RoleA, RoleF, RoleG, RoleC
-//    testUserB -> RoleA, RoleF, RoleG, RoleC
-//    testUserF -> RoleC, RoleH
-//  */
-//  "RoleRepository.removeUsers" should {
-//    inSequence {
-//      "remove role from users" in {
-//        val query_result = roleRepository.removeUsers(TestValues.testRoleB, Vector(TestValues.testUserA, TestValues.testUserB))
-//
-//        Await.result(query_result, Duration.Inf) should be (true)
-//
-//        // Find roles for TestValues.testUserA
-//        val resultForUserA = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserA.id.bytes)).map { queryResult =>
-//          val roleList = queryResult.rows.get.map {
-//            item: RowData => Role(item)
-//          }
-//          roleList
-//        }
-//
-//        val roleListUserA = Await.result(resultForUserA, Duration.Inf)
-//        roleListUserA contains TestValues.testRoleB should be (false)
-//
-//        // Find roles for TestValues.testUserB
-//        val resultForUserB = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserB.id.bytes)).map { queryResult =>
-//          val roleList = queryResult.rows.get.map {
-//            item: RowData => Role(item)
-//          }
-//          roleList
-//        }
-//
-//        val roleListUserB = Await.result(resultForUserB, Duration.Inf)
-//        roleListUserB contains TestValues.testRoleB should be (false)
-//      }
-//    }
-//    "return FALSE if the user doesn't have this role" in {
-//      val query_result = roleRepository.removeUsers(TestValues.testRoleA, Vector(TestValues.testUserC))
-//
-//      val role = Await.result(query_result, Duration.Inf)
-//      role should be (false)
-//    }
-//  }
-//
-//  /*
-//    After implementation
-//    In db: RoleA, RoleB, RoleC, RoleD, RoleF, RoleG, RoleH
-//  */
-//  "RoleRepository.insert" should {
-//    inSequence {
-//      "save a Role row" in {
-//        val result = roleRepository.insert(Role(
-//          id = TestValues.testRoleD.id,
-//          name = TestValues.testRoleD.name
-//        ))
-//
-//        val role = Await.result(result, Duration.Inf)
-//        role.id should be(TestValues.testRoleD.id)
-//        role.name should be(TestValues.testRoleD.name)
-//        role.version should be(1L)
-//
-//        // Check Role record
-//        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testRoleD.id.bytes)).map { queryResult =>
-//          val roleList = queryResult.rows.get.map {
-//            item: RowData => Role(item)
-//          }
-//          roleList
-//        }
-//
-//        val roleList = Await.result(queryResult, Duration.Inf)
-//        roleList(0).id should be (TestValues.testRoleD.id)
-//        roleList(0).version should be (1L)
-//        roleList(0).name should be (TestValues.testRoleD.name)
-//      }
-//      "throw a GenericDatabaseException if role already exists" in {
-//        val result = roleRepository.insert(TestValues.testRoleA)
-//
-//        an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
-//      }
-//    }
-//  }
-//
-//  "RoleRepository.update" should {
-//    inSequence {
-//      "update an existing Role" in {
-//        val result = roleRepository.update(TestValues.testRoleC.copy(
-//          name = "new test role C"
-//        ))
-//
-//        val role = Await.result(result, Duration.Inf)
-//        role.name should be("new test role C")
-//        role.version should be(TestValues.testRoleC.version + 1)
-//        role.createdAt.toString should be (TestValues.testRoleC.createdAt.toString)
-//        role.updatedAt.toString should not be (TestValues.testRoleC.updatedAt.toString)
-//
-//        // Check Role record
-//        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testRoleC.id.bytes)).map { queryResult =>
-//          val roleList = queryResult.rows.get.map {
-//            item: RowData => Role(item)
-//          }
-//          roleList
-//        }
-//
-//        val roleList = Await.result(queryResult, Duration.Inf)
-//
-//        roleList(0).name should be("new test role C")
-//        roleList(0).version should be(TestValues.testRoleC.version + 1)
-//      }
-//      "throw a NoSuchElementException when update an existing Role with wrong version" in {
-//        val result = roleRepository.update(TestValues.testRoleC.copy(
-//          version = 99L,
-//          name = "new test role C"
-//        ))
-//
-//        an[java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
-//      }
-//      "throw a NoSuchElementException when update an unexisting Role" in {
-//        val result = roleRepository.update(Role(
-//          name = "test role E"
-//        ))
-//
-//        an[java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
-//      }
-//    }
-//  }
-//
-//  /*
-//    After implementation
-//    In db: RoleC, RoleD, RoleF, RoleG, RoleH
-//    testUserA -> RoleF, RoleG, RoleC
-//    testUserB -> RoleF, RoleG, RoleC
-//    testUserF -> RoleC, RoleH
-//  */
-//  "RoleRepository.delete" should {
-//    inSequence{
-//      "delete role if role doesn't have any references in other tables" in {
-//        val result = roleRepository.delete(TestValues.testRoleB)
-//
-//        Await.result(result, Duration.Inf) should be (true)
-//
-//        // Check if role has been deleted
-//        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testRoleB.id.bytes)).map { queryResult =>
-//          val roleList = queryResult.rows.get.map {
-//            item: RowData => Role(item)
-//          }
-//          roleList
-//        }
-//
-//        Await.result(queryResult, Duration.Inf) should be (Vector())
-//      }
-//      "delete role if role has a references in other tables" in {
-//        val result = roleRepository.delete(TestValues.testRoleA)
-//
-//        Await.result(result, Duration.Inf) should be (true)
-//
-//        // Check if role has been deleted
-//        val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testRoleA.id.bytes)).map { queryResult =>
-//          val roleList = queryResult.rows.get.map {
-//            item: RowData => Role(item)
-//          }
-//          roleList
-//        }
-//
-//        Await.result(queryResult, Duration.Inf) should be (Vector())
-//      }
-//      "return FALSE if Role hasn't been found" in {
-//        val result = roleRepository.delete(Role(
-//          name = "unexisting role"
-//        ))
-//
-//        Await.result(result, Duration.Inf) should be(false)
-//      }
-//    }
-//  }
+
+
+  // TODO - find out the way to test -\/(RepositoryError.DatabaseError("Role couldn't be added to all users."))
+  "RoleRepository.addUsers" should {
+    inSequence {
+      "add role to users" in {
+        val testRole = TestValues.testRoleC
+        val testUsersList = Vector(
+          TestValues.testUserA,
+          TestValues.testUserB
+        )
+
+        val result = roleRepository.addUsers(testRole, testUsersList)
+        val eitherRole = Await.result(result, Duration.Inf)
+        val \/-(role) = eitherRole
+
+        role.id should be(testRole.id)
+        role.version should be(testRole.version)
+        role.name should be(testRole.name)
+        role.createdAt.toString should be(testRole.createdAt.toString)
+        role.updatedAt.toString should be(testRole.updatedAt.toString)
+      }
+      "return RepositoryError.PrimaryKeyConflict if we add a role to the user that already has this role" in {
+        val testRole = TestValues.testRoleB
+        val testUsersList = Vector(
+          TestValues.testUserC,
+          TestValues.testUserA
+        )
+
+        val result = roleRepository.addUsers(testRole, testUsersList)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+      }
+      "return RepositoryError.ForeignKeyConflict if we add a role to unexisting user" in {
+        val testRole = TestValues.testRoleC
+        val testUsersList = Vector(
+          TestValues.testUserA,
+          TestValues.testUserD
+        )
+
+        val result = roleRepository.addUsers(testRole, testUsersList)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("user_id", "users_roles_user_id_fkey")))
+      }
+      "return RepositoryError.ForeignKeyConflict if we add an unexisting role to user" in {
+        val testRole = TestValues.testRoleD
+        val testUsersList = Vector(
+          TestValues.testUserA
+        )
+
+        val result = roleRepository.addUsers(testRole, testUsersList)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("role_id", "users_roles_role_id_fkey")))
+      }
+    }
+  }
+
+
+  "RoleRepository.removeUsers" should {
+    inSequence {
+      "remove role from users" in {
+        val testRole = TestValues.testRoleB
+        val testUsersList = Vector(
+          TestValues.testUserA,
+          TestValues.testUserB
+        )
+
+        val result = roleRepository.removeUsers(testRole, testUsersList)
+        val eitherRole = Await.result(result, Duration.Inf)
+        val \/-(role) = eitherRole
+
+        role.id should be(testRole.id)
+        role.version should be(testRole.version)
+        role.name should be(testRole.name)
+        role.createdAt.toString should be(testRole.createdAt.toString)
+        role.updatedAt.toString should be(testRole.updatedAt.toString)
+      }
+      "return RepositoryError.DatabaseError if the user doesn't have this role" in {
+        val testRole = TestValues.testRoleA
+        val testUsersList = Vector(
+          TestValues.testUserA,
+          TestValues.testUserC
+        )
+
+        val result = roleRepository.removeUsers(testRole, testUsersList)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("Role couldn't be removed from all users." ,None)))
+      }
+      "return RepositoryError.DatabaseError if role doesn't exist" in {
+        val testRole = TestValues.testRoleD
+        val testUsersList = Vector(
+          TestValues.testUserA
+        )
+
+        val result = roleRepository.removeUsers(testRole, testUsersList)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("Role couldn't be removed from all users." ,None)))
+      }
+      "return RepositoryError.DatabaseError if user doesn't exist" in {
+        val testRole = TestValues.testRoleA
+        val testUsersList = Vector(
+          TestValues.testUserD
+        )
+
+        val result = roleRepository.removeUsers(testRole, testUsersList)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("Role couldn't be removed from all users." ,None)))
+      }
+    }
+  }
+
+
+  "RoleRepository.insert" should {
+    inSequence {
+      "save a Role row" in {
+        val testRole = TestValues.testRoleD
+
+        val result = roleRepository.insert(testRole)
+        val eitherRole = Await.result(result, Duration.Inf)
+        val \/-(role) = eitherRole
+
+        role.id should be(testRole.id)
+        role.version should be(testRole.version)
+        role.name should be(testRole.name)
+      }
+      "return RepositoryError.PrimaryKeyConflict if role already exists" in {
+        val result = roleRepository.insert(TestValues.testRoleA)
+
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+      }
+    }
+  }
+
+  "RoleRepository.update" should {
+    inSequence {
+      "update an existing Role" in {
+        val testRole = TestValues.testRoleC
+        val updatedRole = testRole.copy(
+          name = "updated test role name"
+        )
+
+        val result = roleRepository.update(updatedRole)
+        val eitherRole = Await.result(result, Duration.Inf)
+        val \/-(role) = eitherRole
+
+        role.id should be(updatedRole.id)
+        role.version should be(updatedRole.version + 1)
+        role.name should be(updatedRole.name)
+        role.createdAt.toString should be(updatedRole.createdAt.toString)
+      }
+      "reutrn RepositoryError.NoResults when update an existing Role with wrong version" in {
+        val testRole = TestValues.testRoleC
+        val updatedRole = testRole.copy(
+          name    = "updated test role name",
+          version = 99L
+        )
+
+        val result = roleRepository.update(updatedRole)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+      "reutrn RepositoryError.NoResults when update an unexisting Role" in {
+        val testRole = TestValues.testRoleD
+        val updatedRole = testRole.copy(
+          name    = "updated test role name"
+        )
+
+        val result = roleRepository.update(updatedRole)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+    }
+  }
+
+
+  "RoleRepository.delete" should {
+    inSequence{
+      "delete role if role doesn't have any references in other tables" in {
+        val testRole = TestValues.testRoleB
+
+        val result = roleRepository.delete(testRole)
+        Await.result(result, Duration.Inf) should be(\/-(testRole))
+      }
+      "delete role if role has a references in other tables" in {
+        val testRole = TestValues.testRoleA
+
+        val result = roleRepository.delete(testRole)
+        Await.result(result, Duration.Inf) should be(\/-(testRole))
+      }
+      "return RepositoryError.NoResults if Role hasn't been found" in {
+        val testRole = Role(
+          name = "unexisting role"
+        )
+
+        val result = roleRepository.delete(testRole)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+    }
+  }
 //
 //  /*
 //    After implementation

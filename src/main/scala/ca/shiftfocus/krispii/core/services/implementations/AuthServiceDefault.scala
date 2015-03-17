@@ -485,7 +485,7 @@ class AuthServiceDefault(val db: Connection,
    * @param userIds an [[IndexedSeq]] of [[UUID]] listing the users to gain the role
    * @return a boolean indicator if the role was added
    */
-  override def addUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Role]] = {
+  override def addUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn =>
       val fRole = roleRepository.find(roleId)
       val fUsers = userRepository.list(userIds)
@@ -506,7 +506,7 @@ class AuthServiceDefault(val db: Connection,
    * @param userIds an [[IndexedSeq]] of [[UUID]] listing the users to lose the role
    * @return a boolean indicator if the role was removed
    */
-  override def removeUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Role]] = {
+  override def removeUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn =>
       val fRole = roleRepository.find(roleId)
       val fUsers = userRepository.list(userIds)
@@ -514,9 +514,9 @@ class AuthServiceDefault(val db: Connection,
       for {
         role <- lift(fRole)
         userList <- lift(fUsers)
-        addedUsers <- lift(roleRepository.removeUsers(role, userList))
+        removedUsers <- lift(roleRepository.removeUsers(role, userList))
       }
-      yield addedUsers
+      yield removedUsers
     }
   }
 

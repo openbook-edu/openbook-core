@@ -111,9 +111,9 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
 
   val SelectAllWithCourse =
     s"""
-       |SELECT id, version, username, email, givenname, surname, password_hash, users.created_at as created_at, users.updated_at as updated_at
-       |FROM users, users_courses
-       |WHERE users.id = users_courses.user_id
+       |SELECT $Table
+       |FROM $Table, users_courses
+       |WHERE $Table.id = users_courses.user_id
        |  AND users_courses.course_id = ?
        |ORDER BY $OrderBy
     """.stripMargin

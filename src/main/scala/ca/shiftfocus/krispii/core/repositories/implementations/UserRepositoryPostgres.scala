@@ -111,7 +111,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
 
   val SelectAllWithCourse =
     s"""
-       |SELECT $Table
+       |SELECT $FieldsWithTable
        |FROM $Table, users_courses
        |WHERE $Table.id = users_courses.user_id
        |  AND users_courses.course_id = ?

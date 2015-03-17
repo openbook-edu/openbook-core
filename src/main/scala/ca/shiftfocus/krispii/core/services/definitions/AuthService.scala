@@ -214,7 +214,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @param userIds an [[IndexedSeq]] of [[UUID]] listing the users to gain the role
    * @return a boolean indicator if the role was added
    */
-  def addUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Role]]
+  def addUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]]
 
   /**
    * Remove a role from a given list of users.
@@ -223,5 +223,5 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @param userIds an [[IndexedSeq]] of [[UUID]] listing the users to lose the role
    * @return a boolean indicator if the role was removed
    */
-  def removeUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Role]]
+  def removeUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]]
 }

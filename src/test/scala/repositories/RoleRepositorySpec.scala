@@ -201,14 +201,7 @@ class RoleRepositorySpec
         )
 
         val result = roleRepository.addUsers(testRole, testUsersList)
-        val eitherRole = Await.result(result, Duration.Inf)
-        val \/-(role) = eitherRole
-
-        role.id should be(testRole.id)
-        role.version should be(testRole.version)
-        role.name should be(testRole.name)
-        role.createdAt.toString should be(testRole.createdAt.toString)
-        role.updatedAt.toString should be(testRole.updatedAt.toString)
+        Await.result(result, Duration.Inf) should be(Unit)
       }
       "return RepositoryError.PrimaryKeyConflict if we add a role to the user that already has this role" in {
         val testRole = TestValues.testRoleB
@@ -253,14 +246,7 @@ class RoleRepositorySpec
         )
 
         val result = roleRepository.removeUsers(testRole, testUsersList)
-        val eitherRole = Await.result(result, Duration.Inf)
-        val \/-(role) = eitherRole
-
-        role.id should be(testRole.id)
-        role.version should be(testRole.version)
-        role.name should be(testRole.name)
-        role.createdAt.toString should be(testRole.createdAt.toString)
-        role.updatedAt.toString should be(testRole.updatedAt.toString)
+        Await.result(result, Duration.Inf) should be(Unit)
       }
       "return RepositoryError.DatabaseError if the user doesn't have this role" in {
         val testRole = TestValues.testRoleA

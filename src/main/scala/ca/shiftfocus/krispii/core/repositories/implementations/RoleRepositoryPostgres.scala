@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.NoSuchElementException
 
 import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.lib.concurrent.Lifting
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -19,7 +20,7 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import scalaz.{\/, -\/, \/-}
 import scalaz.syntax.either._
 
-class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRepository with PostgresRepository[Role] {
+class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRepository with PostgresRepository[Role] with Lifting[RepositoryError.Fail] {
 
   override def constructor(row: RowData): Role = {
     Role(
@@ -300,14 +301,20 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * Associate a role to a user by role name.
    */
   override def addToUser(user: User, name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
-    val params = Seq[Any](user.id.bytes, new DateTime, name)
-    val fResult = queryNumRows(AddRoleByName, params)(1 == _)
+    for {
+      role   <- lift(find(name))
+      _      <- {
+        val params = Seq[Any] (user.id.bytes, new DateTime, name)
+        val fResult = queryNumRows(AddRoleByName, params) (1 == _)
 
-    fResult.map {
-      case \/-(true) => \/-( () )
-      case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
-      case -\/(error) => -\/(error)
-    }
+        fResult.map {
+          case \/-(true)  => \/-(())
+          case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
+          case -\/(error) => -\/(error)
+        }
+        lift(fResult)
+      }
+    } yield ()
   }
 
   /**
@@ -315,7 +322,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    */
   override def removeFromUser(user: User, role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     queryNumRows(RemoveRole, Seq(user.id.bytes, role.id.bytes))(1 == _).map {
-      case \/-(true) => \/-( () )
+      case \/-(true)  => \/-( () )
       case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
       case -\/(error) => -\/(error)
     }
@@ -325,11 +332,14 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * Remove a role from a user by role name.
    */
   override def removeFromUser(user: User, name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
-    queryNumRows(RemoveRoleByName, Seq(user.id.bytes, name))(1 == _).map {
-      case \/-(true) => \/-( () )
-      case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
-      case -\/(error) => -\/(error)
-    }
+    for {
+      role <- lift(find(name))
+      _    <- lift(queryNumRows(RemoveRoleByName, Seq(user.id.bytes, name))(1 == _).map {
+        case \/-(true) => \/-( () )
+        case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
+        case -\/(error) => -\/(error)
+      })
+    } yield ()
   }
 
   /**

@@ -1,7 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.FutureMonad
+import ca.shiftfocus.lib.concurrent.FutureMonad
 import ca.shiftfocus.krispii.core.repositories.{PartRepository, ProjectRepository, ComponentRepository}
 import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models._

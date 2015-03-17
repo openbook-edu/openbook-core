@@ -5,7 +5,7 @@ import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseExcepti
 import com.github.mauricio.async.db.{RowData, Connection, ResultSet}
 import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
-import ca.shiftfocus.krispii.core.lib.ExceptionWriter
+import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.uuid.UUID
 import play.api.i18n.Messages

@@ -1,7 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.FutureMonad
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories.{SessionRepository, CourseRepository, RoleRepository, UserRepository}
 import ca.shiftfocus.uuid.UUID

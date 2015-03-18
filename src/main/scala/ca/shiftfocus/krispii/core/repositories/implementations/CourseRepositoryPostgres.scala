@@ -302,7 +302,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   override def removeUser(user: User, course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     queryNumRows(RemoveUser, Array(user.id.bytes, course.id.bytes))(1 == _).map {
       case \/-(true) => \/-( () )
-      case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the course could not be added."))
+      case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the user could not be removed from the course."))
       case -\/(error) => -\/(error)
     }
   }
@@ -327,6 +327,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
     }
   }
 
+
   /**
    * Add users to a course.
    *
@@ -342,16 +343,11 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
       s"('\\x$cleanCourseId', '\\x$cleanUserId', '${new DateTime}')"
     }.mkString(",")
 
-    val wasAdded = for {
-      result <- conn.sendQuery(query)
+    queryNumRows(query)(users.length == _).map {
+      case \/-(true) => \/-( () )
+      case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the users could not be added to the course."))
+      case -\/(error) => -\/(error)
     }
-    yield
-      if (result.rowsAffected == 0) {
-        -\/(RepositoryError.DatabaseError("No rows were modified"))
-      } else {
-        \/-( () )
-      }
-    wasAdded
   }
 
   /**
@@ -370,18 +366,10 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
     }.mkString("ARRAY[", ",", "]")
     val query = s"""${RemoveUsers} '\\x$cleanCourseId' AND ARRAY[user_id] <@ $arrayString"""
 
-    val wasRemoved = for {
-      result <- conn.sendQuery(query)
-    }
-    yield
-      if (result.rowsAffected == 0) {
-        -\/(RepositoryError.DatabaseError("No rows were modified"))
-      } else {
-        \/-( () )
-      }
-
-    wasRemoved.recover {
-      case exception: Throwable => throw exception
+    queryNumRows(query)(users.length == _).map {
+      case \/-(true) => \/-( () )
+      case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the users could not be removed from the course."))
+      case -\/(error) => -\/(error)
     }
   }
 
@@ -398,20 +386,6 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
       case \/-(true) => \/-( () )
       case \/-(false) => -\/(RepositoryError.DatabaseError("No rows were affected"))
       case -\/(error) => -\/(error)
-    }
-
-    val wasRemoved = for {
-      result <- conn.sendPreparedStatement(RemoveAllUsers, Array[Any](course.id.bytes))
-    }
-    yield
-      if (result.rowsAffected == 0) {
-        -\/(RepositoryError.DatabaseError("No rows were modified"))
-      } else {
-        \/-( () )
-      }
-
-    wasRemoved.recover {
-      case exception: Throwable => throw exception
     }
   }
 

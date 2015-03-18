@@ -166,7 +166,7 @@ class UserRepositorySpec
         Await.result(result, Duration.Inf) should be(\/- (Vector()))
       }
       "return empty Vector() if there are no users in the course" in {
-        val testCourse = TestValues.testCourseD
+        val testCourse = TestValues.testCourseG
 
         val result = userRepository.list(testCourse)
         Await.result(result, Duration.Inf) should be(\/- (Vector()))

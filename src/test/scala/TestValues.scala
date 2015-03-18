@@ -237,6 +237,19 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  /**
+   *  Course without students
+   */
+  val testCourseG = Course(
+    id = UUID("b24abba8-e6c7-4700-900c-e66ed0185a70"),
+    version = 5L,
+    teacherId = testUserF.id,
+    name = "test course G",
+    color = new Color(23, 6, 45),
+    createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
 
   /* TASKS */
   /* LONG ANSWER TASKS */

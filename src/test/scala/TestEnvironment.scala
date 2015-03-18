@@ -77,7 +77,7 @@ class TestEnvironment
   // After test
   after {
     // DROP tables
-    load_schema(drop_schema_path, conn)
+//    load_schema(drop_schema_path, conn)
   }
 
   def selectOneById(from: String, fields: String) =

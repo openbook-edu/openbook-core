@@ -23,7 +23,6 @@ import scalaz.{-\/, \/-}
 class CourseRepositorySpec
   extends TestEnvironment
 {
-
   val userRepository = new UserRepositoryPostgres
   val courseRepository = new CourseRepositoryPostgres(userRepository)
 
@@ -34,7 +33,8 @@ class CourseRepositorySpec
            0 -> TestValues.testCourseA,
            1 -> TestValues.testCourseB,
            2 -> TestValues.testCourseD,
-           3 -> TestValues.testCourseF
+           3 -> TestValues.testCourseF,
+           4 -> TestValues.testCourseG
          )
 
          val result = courseRepository.list
@@ -111,7 +111,8 @@ class CourseRepositorySpec
          val testTeacher = TestValues.testUserF
          val testCoursesList = TreeMap[Int, Course](
            0 -> TestValues.testCourseD,
-           1 -> TestValues.testCourseF
+           1 -> TestValues.testCourseF,
+           2 -> TestValues.testCourseG
          )
 
          val result = courseRepository.list(testTeacher, true)
@@ -245,381 +246,338 @@ class CourseRepositorySpec
        }
      }
    }
-//
-//   "CourseRepository.addUser" should {
-//     inSequence {
-//       "add user to a course" in {
-//         val result = courseRepository.addUser(TestValues.testUserC, TestValues.testCourseA)
-//         Await.result(result, Duration.Inf) should be(true)
-//
-//         // Check
-//         val queryResult = db.pool.sendPreparedStatement(countUserInCourse, Array[Any](TestValues.testUserC.id.bytes, TestValues.testCourseA.id.bytes))
-//         val rowsAffected = Await.result(queryResult, Duration.Inf).rowsAffected
-//
-//         rowsAffected should be (1)
-//       }
-//       "throw a GenericDatabaseException if user is already in the course" in {
-//         val result = courseRepository.addUser(TestValues.testUserE, TestValues.testCourseB)
-//
-//         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
-//       }
-//       "throw a GenericDatabaseException if user unexists" in {
-//         val result = courseRepository.addUser(TestValues.testUserD, TestValues.testCourseB)
-//
-//         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
-//       }
-//       "throw a GenericDatabaseException if course unexists" in {
-//         val result = courseRepository.addUser(TestValues.testUserE, TestValues.testCourseC)
-//
-//         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
-//       }
-//     }
-//   }
-//
-//   "CourseRepository.removeUser" should {
-//     inSequence {
-//       "remove a user from a course" in {
-//         // Check if user present
-//         val queryResultIs = db.pool.sendPreparedStatement(countUserInCourse, Array[Any](TestValues.testUserA.id.bytes, TestValues.testCourseA.id.bytes))
-//         val rowsAffectedIs = Await.result(queryResultIs, Duration.Inf).rowsAffected
-//
-//         rowsAffectedIs should be (1)
-//
-//         val result = courseRepository.removeUser(TestValues.testUserA, TestValues.testCourseA)
-//         Await.result(result, Duration.Inf) should be(true)
-//
-//         // Check
-//         val queryResult = db.pool.sendPreparedStatement(countUserInCourse, Array[Any](TestValues.testUserA.id.bytes, TestValues.testCourseA.id.bytes))
-//         val rowsAffected = Await.result(queryResult, Duration.Inf).rowsAffected
-//
-//         rowsAffected should be (0)
-//       }
-//       "be FALSE if user unexists" in {
-//         val result = courseRepository.removeUser(TestValues.testUserD, TestValues.testCourseB)
-//
-//         Await.result(result, Duration.Inf) should be(false)
-//       }
-//       "be FALSE if course unexists" in {
-//         val result = courseRepository.removeUser(TestValues.testUserA, TestValues.testCourseC)
-//
-//         Await.result(result, Duration.Inf) should be(false)
-//       }
-//     }
-//   }
-//
-//   "CourseRepository.hasProject" should {
-//     inSequence {
-//       "verify if this user has access to this project through any of his courses" in {
-//         val result = courseRepository.hasProject(TestValues.testUserE, TestValues.testProjectB)
-//
-//         Await.result(result, Duration.Inf) should be(true)
-//       }
-//       "be FALSE if user is not in a project's course" in {
-//         val result = courseRepository.hasProject(TestValues.testUserE, TestValues.testProjectA)
-//
-//         Await.result(result, Duration.Inf) should be(false)
-//       }
-//       "be FALSE if user unexists" in {
-//         val result = courseRepository.hasProject(TestValues.testUserD, TestValues.testProjectA)
-//
-//         Await.result(result, Duration.Inf) should be(false)
-//       }
-//       "be FALSE if project unexists" in {
-//         val result = courseRepository.hasProject(TestValues.testUserD, TestValues.testProjectD)
-//
-//         Await.result(result, Duration.Inf) should be(false)
-//       }
-//     }
-//   }
-//
-//   "CourseRepository.addUsers" should {
-//     inSequence {
-//       "add users to a `course`" in {
-//         val result = courseRepository.addUsers(TestValues.testCourseD, Vector(TestValues.testUserA, TestValues.testUserB))
-//
-//         Await.result(result, Duration.Inf) should be(true)
-//
-//         // Check User A in course D
-//         val queryResultUserA = db.pool.sendPreparedStatement(countUserInCourse, Array[Any](TestValues.testUserA.id.bytes, TestValues.testCourseD.id.bytes))
-//         val rowsAffectedUserA = Await.result(queryResultUserA, Duration.Inf).rowsAffected
-//
-//         rowsAffectedUserA should be (1)
-//
-//         // Check User B in course D
-//         val queryResultUserB = db.pool.sendPreparedStatement(countUserInCourse, Array[Any](TestValues.testUserB.id.bytes, TestValues.testCourseD.id.bytes))
-//         val rowsAffectedUserB = Await.result(queryResultUserB, Duration.Inf).rowsAffected
-//
-//         rowsAffectedUserB should be (1)
-//       }
-//       "throw a GenericDatabaseException if user is already in the course" in {
-//         val result = courseRepository.addUsers(TestValues.testCourseB, Vector(TestValues.testUserE))
-//
-//         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
-//       }
-//       "throw a GenericDatabaseException if user unexists" in {
-//         val result = courseRepository.addUsers(TestValues.testCourseB, Vector(TestValues.testUserD))
-//
-//         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
-//       }
-//       "throw a GenericDatabaseException if course unexists" in {
-//         val result = courseRepository.addUsers(TestValues.testCourseC, Vector(TestValues.testUserE))
-//
-//         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
-//       }
-//     }
-//   }
-//
-//   "CourseRepository.removeUsers" should {
-//     inSequence {
-//       "Remove users from a course" in {
-//         // Check User B in course B
-//         val queryResultIsUserB = db.pool.sendPreparedStatement(countUserInCourse, Array[Any](TestValues.testUserB.id.bytes, TestValues.testCourseB.id.bytes))
-//         val rowsAffectedIsUserB = Await.result(queryResultIsUserB, Duration.Inf).rowsAffected
-//
-//         rowsAffectedIsUserB should be (1)
-//
-//         // Check User E in course B
-//         val queryResultIsUserE = db.pool.sendPreparedStatement(countUserInCourse, Array[Any](TestValues.testUserE.id.bytes, TestValues.testCourseB.id.bytes))
-//         val rowsAffectedIsUserE = Await.result(queryResultIsUserE, Duration.Inf).rowsAffected
-//
-//         rowsAffectedIsUserE should be (1)
-//
-//         val result = courseRepository.removeUsers(TestValues.testCourseB, Vector(TestValues.testUserB, TestValues.testUserE))
-//
-//         Await.result(result, Duration.Inf) should be(true)
-//
-//         // Check User B in course B
-//         val queryResultUserB = db.pool.sendPreparedStatement(countUserInCourse, Array[Any](TestValues.testUserB.id.bytes, TestValues.testCourseB.id.bytes))
-//         val rowsAffectedUserB = Await.result(queryResultUserB, Duration.Inf).rowsAffected
-//
-//         rowsAffectedUserB should be (0)
-//
-//         // Check User E in course B
-//         val queryResultUserE = db.pool.sendPreparedStatement(countUserInCourse, Array[Any](TestValues.testUserE.id.bytes, TestValues.testCourseB.id.bytes))
-//         val rowsAffectedUserE = Await.result(queryResultUserE, Duration.Inf).rowsAffected
-//
-//         rowsAffectedUserE should be (0)
-//       }
-//       "be FALSE if user is not in the course" in {
-//         val result = courseRepository.removeUsers(TestValues.testCourseA, Vector(TestValues.testUserE))
-//
-//         Await.result(result, Duration.Inf) should be(false)
-//       }
-//       "be FALSE if user unexists" in {
-//         val result = courseRepository.removeUsers(TestValues.testCourseB, Vector(TestValues.testUserD))
-//
-//         Await.result(result, Duration.Inf) should be(false)
-//       }
-//       "be FALSE if course unexists" in {
-//         val result = courseRepository.removeUsers(TestValues.testCourseC, Vector(TestValues.testUserE))
-//
-//         Await.result(result, Duration.Inf) should be(false)
-//       }
-//     }
-//   }
-//
-//   "CourseRepository.removeAllUsers" should {
-//     inSequence {
-//       "remove all users from a course" in {
-//         // Check User G in course B
-//         val queryResultIsUserG = db.pool.sendPreparedStatement(countUserInCourse, Array[Any](TestValues.testUserG.id.bytes, TestValues.testCourseB.id.bytes))
-//         val rowsAffectedIsUserG = Await.result(queryResultIsUserG, Duration.Inf).rowsAffected
-//
-//         rowsAffectedIsUserG should be (1)
-//
-//         // Check User H in course B
-//         val queryResultIsUserH = db.pool.sendPreparedStatement(countUserInCourse, Array[Any](TestValues.testUserH.id.bytes, TestValues.testCourseB.id.bytes))
-//         val rowsAffectedIsUserH = Await.result(queryResultIsUserH, Duration.Inf).rowsAffected
-//
-//         rowsAffectedIsUserH should be (1)
-//
-//
-//         val result = courseRepository.removeAllUsers(TestValues.testCourseB)
-//
-//         Await.result(result, Duration.Inf) should be(true)
-//
-//         // Check User G in course B
-//         val queryResultUserG = db.pool.sendPreparedStatement(countUserInCourse, Array[Any](TestValues.testUserG.id.bytes, TestValues.testCourseB.id.bytes))
-//         val rowsAffectedUserG = Await.result(queryResultUserG, Duration.Inf).rowsAffected
-//
-//         rowsAffectedUserG should be (0)
-//
-//         // Check User H in course B
-//         val queryResultUserH = db.pool.sendPreparedStatement(countUserInCourse, Array[Any](TestValues.testUserH.id.bytes, TestValues.testCourseB.id.bytes))
-//         val rowsAffectedUserH = Await.result(queryResultUserH, Duration.Inf).rowsAffected
-//
-//         rowsAffectedUserH should be (0)
-//       }
-//       "be FALSE if course unexists" in {
-//         val result = courseRepository.removeAllUsers(TestValues.testCourseC)
-//
-//         Await.result(result, Duration.Inf) should be(false)
-//       }
-//     }
-//   }
-//
-//   "CourseRepository.insert" should {
-//     inSequence {
-//       "insert new course" in {
-//         val result = courseRepository.insert(TestValues.testCourseE)
-//
-//         val newCourse = Await.result(result, Duration.Inf)
-//
-//         newCourse.id should be (TestValues.testCourseE.id)
-//         newCourse.teacherId should be (TestValues.testCourseE.teacherId)
-//         newCourse.version should be (1L)
-//         newCourse.name should be (TestValues.testCourseE.name)
-//         newCourse.color should be (TestValues.testCourseE.color)
-//
-//         // Check
-//         val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testCourseE.id.bytes)).map { queryResult =>
-//           val courseList = queryResult.rows.get.map {
-//             item: RowData => Course(item)
-//           }
-//           courseList
-//         }
-//
-//         val courseList = Await.result(queryResult, Duration.Inf)
-//
-//         courseList(0).id should be(TestValues.testCourseE.id)
-//         courseList(0).teacherId should be(TestValues.testCourseE.teacherId)
-//         courseList(0).version should be(1L)
-//         courseList(0).name should be(TestValues.testCourseE.name)
-//         courseList(0).color should be(TestValues.testCourseE.color)
-//       }
-//       "throw a GenericDatabaseException if course has unexisting teacher id" in {
-//         val result = courseRepository.insert(TestValues.testCourseC.copy(
-//           teacherId = Option(UUID("9d8ed645-b055-4a69-ab7d-387791c1e064"))
-//         ))
-//
-//         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
-//       }
-//       "throw a GenericDatabaseException if course already exists" in {
-//         val result = courseRepository.insert(TestValues.testCourseA)
-//
-//         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
-//       }
-//     }
-//   }
-//
-//   "CourseRepository.update" should {
-//     inSequence {
-//       "update existing course" in {
-//         val result = courseRepository.update(TestValues.testCourseA.copy(
-//           teacherId = Option(TestValues.testUserG.id),
-//           name = "new test course A name",
-//           color = new Color(78, 40, 23)
-//         ))
-//
-//         val updatedCourse = Await.result(result, Duration.Inf)
-//
-//         updatedCourse.id should be (TestValues.testCourseA.id)
-//         updatedCourse.teacherId should be (Some(TestValues.testUserG.id)) // TODO - check why SOME?
-//         updatedCourse.version should be (TestValues.testCourseA.version + 1)
-//         updatedCourse.name should be ("new test course A name")
-//         updatedCourse.color should be (new Color(78, 40, 23))
-//
-//         // Check
-//         val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testCourseA.id.bytes)).map { queryResult =>
-//           val courseList = queryResult.rows.get.map {
-//             item: RowData => Course(item)
-//           }
-//           courseList
-//         }
-//
-//         val courseList = Await.result(queryResult, Duration.Inf)
-//
-//         courseList(0).id should be(TestValues.testCourseA.id)
-//         courseList(0).teacherId should be(Some(TestValues.testUserG.id))
-//         courseList(0).version should be(TestValues.testCourseA.version + 1)
-//         courseList(0).name should be("new test course A name")
-//         courseList(0).color should be(new Color(78, 40, 23))
-//       }
-//       "throw a NoSuchElementException when update an existing Course with wrong version" in {
-//         val result = courseRepository.update(TestValues.testCourseA.copy(
-//           version = 99L,
-//           name = "new test course A name"
-//         ))
-//
-//         an[java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
-//       }
-//       "throw a NoSuchElementException when update an unexisting Course" in {
-//         val result = courseRepository.update(Course(
-//           teacherId = Option(TestValues.testUserG.id),
-//           name = "new test course A name",
-//           color = new Color(8, 4, 3)
-//         ))
-//
-//         an[java.util.NoSuchElementException] should be thrownBy Await.result(result, Duration.Inf)
-//       }
-//     }
-//   }
-//
-//   "CourseRepository.delete" should {
-//     inSequence {
-//       "delete course if course has no references" in {
-//         val result = courseRepository.delete(TestValues.testCourseF)
-//
-//         Await.result(result, Duration.Inf) should be(true)
-//
-//         // Check
-//         val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testCourseF.id.bytes)).map { queryResult =>
-//           val courseList = queryResult.rows.get.map {
-//             item: RowData => Course(item)
-//           }
-//           courseList
-//         }
-//
-//         Await.result(queryResult, Duration.Inf) should be(Vector())
-//       }
-//       "delete course if course has references in users_courses table" in {
-//         val result = courseRepository.delete(TestValues.testCourseD)
-//
-//         Await.result(result, Duration.Inf) should be(true)
-//
-//         // Check
-//         val queryResult = db.pool.sendPreparedStatement(SelectOne, Array[Any](TestValues.testCourseD.id.bytes)).map { queryResult =>
-//           val courseList = queryResult.rows.get.map {
-//             item: RowData => Course(item)
-//           }
-//           courseList
-//         }
-//
-//         Await.result(queryResult, Duration.Inf) should be(Vector())
-//       }
-//       "throw a GenericDatabaseException if course has references in projects table" in {
-//         val result = courseRepository.delete(TestValues.testCourseB)
-//
-//         an [com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException] should be thrownBy Await.result(result, Duration.Inf)
-//       }
-//       "return FALSE if Course hasn't been found" in {
-//         val result = courseRepository.delete(Course(
-//           teacherId = Option(TestValues.testUserG.id),
-//           name = "new test course A name",
-//           color = new Color(8, 4, 3)
-//         ))
-//
-//         Await.result(result, Duration.Inf) should be(false)
-//       }
-//     }
-//   }
-//
-//   // TODO - delete
-//   "CourseRepository.enablePart"  + Console.RED + Console.BOLD + " (NOTE: Method is deprecated, talbe COURSES_PROJECTS will be deleted) " + Console.RESET should {
-//     inSequence {
-//       "enable a particular project part for this Section's users" in {
-//
-//       }
-//     }
-//   }
-//
-//   // TODO - delete
-//   "CourseRepository.disablePart" + Console.RED + Console.BOLD + " (NOTE: Method is deprecated, talbe COURSES_PROJECTS will be deleted) " + Console.RESET should {
-//     inSequence {
-//       "disable a particular project part for this Section's users" in {
-//
-//       }
-//     }
-//   }
+
+   "CourseRepository.addUser" should {
+     inSequence {
+       "add user to a course" in {
+         val testUser = TestValues.testUserE
+         val testCourse = TestValues.testCourseA
+
+         val result = courseRepository.addUser(testUser, testCourse)
+         Await.result(result, Duration.Inf) should be(\/-( () ))
+       }
+       "return RepositoryError.PrimaryKeyConflict if user is already in the course" in {
+         val testUser = TestValues.testUserE
+         val testCourse = TestValues.testCourseB
+
+         val result = courseRepository.addUser(testUser, testCourse)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+       }
+       "return RepositoryError.ForeignKeyConflict if user doesn't exist" in {
+         val testUser = TestValues.testUserD
+         val testCourse = TestValues.testCourseA
+
+         val result = courseRepository.addUser(testUser, testCourse)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("user_id", "users_courses_user_id_fkey")))
+       }
+       "return RepositoryError.ForeignKeyConflict if course doesn't exist" in {
+         val testUser = TestValues.testUserE
+         val testCourse = TestValues.testCourseC
+
+         val result = courseRepository.addUser(testUser, testCourse)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("course_id", "users_courses_course_id_fkey")))
+       }
+     }
+   }
+
+   "CourseRepository.removeUser" should {
+     inSequence {
+       "remove a user from a course" in {
+         val testUser   = TestValues.testUserC
+         val testCourse = TestValues.testCourseA
+
+         val result = courseRepository.removeUser(testUser, testCourse)
+         Await.result(result, Duration.Inf) should be(\/-( () ))
+       }
+       "be FALSE if user doesn't attend the course" in {
+         val testUser   = TestValues.testUserC
+         val testCourse = TestValues.testCourseF
+
+         val result = courseRepository.removeUser(testUser, testCourse)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the user could not be removed from the course.")))
+       }
+       "be FALSE if user unexists" in {
+         val testUser   = TestValues.testUserD
+         val testCourse = TestValues.testCourseA
+
+         val result = courseRepository.removeUser(testUser, testCourse)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the user could not be removed from the course.")))
+       }
+       "be FALSE if course unexists" in {
+         val testUser   = TestValues.testUserC
+         val testCourse = TestValues.testCourseC
+
+         val result = courseRepository.removeUser(testUser, testCourse)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the user could not be removed from the course.")))
+       }
+     }
+   }
+
+   "CourseRepository.hasProject" should {
+     inSequence {
+       "verify if this user has access to this project through any of his courses" in {
+         val testProject = TestValues.testProjectB
+         val testUser    = TestValues.testUserE
+
+         val result = courseRepository.hasProject(testUser, testProject)
+         Await.result(result, Duration.Inf) should be(\/-(true))
+       }
+       "be FALSE if user doesn't have access to this project through any of his courses" in {
+         val testProject = TestValues.testProjectA
+         val testUser    = TestValues.testUserE
+
+         val result = courseRepository.hasProject(testUser, testProject)
+         Await.result(result, Duration.Inf) should be(\/-(false))
+       }
+       "be FALSE if user unexists" in {
+         val testProject = TestValues.testProjectB
+         val testUser    = TestValues.testUserD
+
+         val result = courseRepository.hasProject(testUser, testProject)
+         Await.result(result, Duration.Inf) should be(\/-(false))
+       }
+       "be FALSE if project unexists" in {
+         val testProject = TestValues.testProjectD
+         val testUser    = TestValues.testUserE
+
+         val result = courseRepository.hasProject(testUser, testProject)
+         Await.result(result, Duration.Inf) should be(\/-(false))
+       }
+     }
+   }
+
+   "CourseRepository.addUsers" should {
+     inSequence {
+       "add users to a course" in {
+         val testCourse = TestValues.testCourseD
+         val testUserList =  Vector(
+           TestValues.testUserC,
+           TestValues.testUserE
+         )
+
+         val result = courseRepository.addUsers(testCourse, testUserList)
+         Await.result(result, Duration.Inf) should be(\/-( () ))
+       }
+       "return RepositoryError.PrimaryKeyConflict if one of the users is already in the course" in {
+         val testCourse = TestValues.testCourseF
+         val testUserList =  Vector(
+           TestValues.testUserE,
+           TestValues.testUserG
+         )
+
+         val result = courseRepository.addUsers(testCourse, testUserList)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+       }
+       "return RepositoryError.ForeignKeyConflict if one of the users doesn't exist" in {
+         val testCourse = TestValues.testCourseF
+         val testUserList =  Vector(
+           TestValues.testUserE,
+           TestValues.testUserD
+         )
+
+         val result = courseRepository.addUsers(testCourse, testUserList)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("user_id", "users_courses_user_id_fkey")))
+       }
+       "return RepositoryError.ForeignKeyConflict if course doesn't exist" in {
+         val testCourse = TestValues.testCourseE
+         val testUserList =  Vector(
+           TestValues.testUserE,
+           TestValues.testUserG
+         )
+
+         val result = courseRepository.addUsers(testCourse, testUserList)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("course_id", "users_courses_course_id_fkey")))
+       }
+     }
+   }
+
+   "CourseRepository.removeUsers" should {
+     inSequence {
+       "Remove users from a course" in {
+         val testCourse = TestValues.testCourseB
+         val testUserList =  Vector(
+           TestValues.testUserE,
+           TestValues.testUserC
+         )
+
+         val result = courseRepository.removeUsers(testCourse, testUserList)
+         Await.result(result, Duration.Inf) should be(\/-( () ))
+       }
+       "return RepositoryError.DatabaseError if one of the users is not in the course" in {
+         val testCourse = TestValues.testCourseB
+         val testUserList =  Vector(
+           TestValues.testUserE,
+           TestValues.testUserG
+         )
+
+         val result = courseRepository.removeUsers(testCourse, testUserList)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the users could not be removed from the course.", None)))
+       }
+       "return RepositoryError.DatabaseError if one of the users doesn't exist" in {
+         val testCourse = TestValues.testCourseB
+         val testUserList =  Vector(
+           TestValues.testUserE,
+           TestValues.testUserD
+         )
+
+         val result = courseRepository.removeUsers(testCourse, testUserList)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the users could not be removed from the course.", None)))
+       }
+       "return RepositoryError.DatabaseError if course unexists" in {
+         val testCourse = TestValues.testCourseC
+         val testUserList =  Vector(
+           TestValues.testUserE,
+           TestValues.testUserC
+         )
+
+         val result = courseRepository.removeUsers(testCourse, testUserList)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the users could not be removed from the course.", None)))
+       }
+     }
+   }
+
+   "CourseRepository.removeAllUsers" should {
+     inSequence {
+       "remove all users from a course" in {
+         val testCourse = TestValues.testCourseB
+
+         val result = courseRepository.removeAllUsers(testCourse)
+         Await.result(result, Duration.Inf) should be(\/-( () ))
+       }
+       "be FALSE if course doesn't have users" in {
+         val testCourse = TestValues.testCourseG
+
+         val result = courseRepository.removeAllUsers(testCourse)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("No rows were affected", None)))
+       }
+       "be FALSE if course doesn't exist" in {
+         val testCourse = TestValues.testCourseE
+
+         val result = courseRepository.removeAllUsers(testCourse)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("No rows were affected", None)))
+       }
+     }
+   }
+
+   "CourseRepository.insert" should {
+     inSequence {
+       "insert new course" in {
+         val testCourse = TestValues.testCourseE
+
+         val result = courseRepository.insert(testCourse)
+         val eitherCourse = Await.result(result, Duration.Inf)
+         val \/-(course) = eitherCourse
+
+         course.id should be (testCourse.id)
+         course.teacherId should be (testCourse.teacherId)
+         course.version should be (1L)
+         course.name should be (testCourse.name)
+         course.color should be (testCourse.color)
+       }
+       "return RepositoryError.ForeignKeyConflict if course has unexisting teacher id" in {
+         val testCourse = TestValues.testCourseE.copy(
+           teacherId = UUID("9d8ed645-b055-4a69-ab7d-387791c1e064")
+         )
+
+         val result = courseRepository.insert(testCourse)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("teacher_id", "courses_teacher_id_fkey")))
+       }
+       "return RepositoryError.PrimaryKeyConflict if course already exists" in {
+         val testCourse = TestValues.testCourseA
+
+         val result = courseRepository.insert(testCourse)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+       }
+     }
+   }
+
+   "CourseRepository.update" should {
+     inSequence {
+       "update existing course" in {
+         val testCourse    = TestValues.testCourseA
+         val updatedCourse = testCourse.copy(
+           teacherId = TestValues.testCourseB.teacherId,
+           name      = "new test course name",
+           color     = new Color(78, 40, 23)
+         )
+
+         val result = courseRepository.update(updatedCourse)
+         val eitherCourse = Await.result(result, Duration.Inf)
+         val \/-(course) = eitherCourse
+
+         course.id should be (updatedCourse.id)
+         course.teacherId should be (updatedCourse.teacherId)
+         course.version should be (updatedCourse.version + 1)
+         course.name should be (updatedCourse.name)
+         course.color should be (updatedCourse.color)
+       }
+       "return RepositoryError.NoResults when update an existing Course with wrong version" in {
+         val testCourse    = TestValues.testCourseA
+         val updatedCourse = testCourse.copy(
+           teacherId = TestValues.testCourseB.teacherId,
+           name      = "new test course name",
+           color     = new Color(78, 40, 23),
+           version   = 99L
+         )
+
+         val result = courseRepository.update(updatedCourse)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+       }
+       "return RepositoryError.NoResults when update a Course that doesn't exist" in {
+         val testCourse    = TestValues.testCourseC
+         val updatedCourse = testCourse.copy(
+           teacherId = TestValues.testCourseB.teacherId,
+           name      = "new test course name",
+           color     = new Color(78, 40, 23)
+         )
+
+         val result = courseRepository.update(updatedCourse)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+       }
+     }
+   }
+
+   "CourseRepository.delete" should {
+     inSequence {
+       "delete course if course has no references" in {
+         val testCourse = TestValues.testCourseG
+
+         val result = courseRepository.delete(testCourse)
+         val eitherCourse = Await.result(result, Duration.Inf)
+         val \/-(course) = eitherCourse
+
+         course.id should be (testCourse.id)
+         course.teacherId should be (testCourse.teacherId)
+         course.version should be (testCourse.version)
+         course.name should be (testCourse.name)
+         course.color should be (testCourse.color)
+       }
+       "delete course if course has references only in users_courses table" in {
+         val testCourse = TestValues.testCourseF
+
+         val result = courseRepository.delete(testCourse)
+         val eitherCourse = Await.result(result, Duration.Inf)
+         val \/-(course) = eitherCourse
+
+         course.id should be (testCourse.id)
+         course.teacherId should be (testCourse.teacherId)
+         course.version should be (testCourse.version)
+         course.name should be (testCourse.name)
+         course.color should be (testCourse.color)
+       }
+       "return RepositoryError.ForeignKeyConflict if course has references in projects table" in {
+         val testCourse = TestValues.testCourseA
+
+         val result = courseRepository.delete(testCourse)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("course_id", "projects_course_id_fkey")))
+       }
+       "return RepositoryError.NoResults if Course hasn't been found" in {
+         val testCourse = TestValues.testCourseE
+
+         val result = courseRepository.delete(testCourse)
+         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+       }
+     }
+   }
 }
 

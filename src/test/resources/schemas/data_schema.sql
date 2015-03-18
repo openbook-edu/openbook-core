@@ -105,6 +105,10 @@ VALUES ('\x94cc65bb45424f628e08d58522e7b5f1', 3, '\x4d01347ec5924e5fb09fdd281b3d
 INSERT INTO courses (id, version, teacher_id, name, color, created_at, updated_at)
 VALUES ('\x287b61f5da6b4de785353bc500cffac7', 4, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test course F', 269368, '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 
+/* course G -> user F (teacher) */
+INSERT INTO courses (id, version, teacher_id, name, color, created_at, updated_at)
+VALUES ('\xb24abba8e6c74700900ce66ed0185a70', 5, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test course G', 1508909, '2014-08-17 14:01:19.545-04', '2014-08-18 14:01:19.545-04');
+
 
 /* USERS_COURSES */
 /* UserC (student) -> CourseA -> user A (teacher) */

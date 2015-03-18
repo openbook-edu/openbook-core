@@ -35,80 +35,68 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
     )
   }
 
-  val Select =
-    s"""
-       |SELECT courses.id as id, courses.version as version, courses.teacher_id as teacher_id,
-       |       courses.name as name, courses.color as color, courses.created_at as created_at, courses.updated_at as updated_at
-     """.stripMargin
-
-  val From =
-    s"""
-       |FROM courses
-     """.stripMargin
-
-  val OrderBy =
-    s"""
-       |ORDER BY name ASC
-     """.stripMargin
-
-  val Returning =
-    s"""
-       |RETURNING id, version, teacher_id, name, color, created_at, updated_at
-     """.stripMargin
+  val Table           = "courses"
+  val Fields          = "id, version, teacher_id, name, color, created_at, updated_at"
+  val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field}).mkString(", ")
+  val QMarks          = "?, ?, ?, ?, ?, ?, ?"
+  val OrderBy         = s"${Table}.name ASC"
 
   // User CRUD operations
   val SelectAll =
     s"""
-       |$Select
-       |$From
-       |$OrderBy
+       |SELECT $Fields
+       |FROM $Table
+       |ORDER BY $OrderBy
   """.stripMargin
 
   val SelectOne =
     s"""
-       |$Select
-       |$From
+       |SELECT $Fields
+       |FROM $Table
        |WHERE id = ?
-       |$OrderBy
+       |LIMIT 1
      """.stripMargin
 
-  val Insert =
+  val Insert = {
     s"""
-       |INSERT INTO courses (id, version, teacher_id, name, color, created_at, updated_at)
-       |VALUES (?, 1, ?, ?, ?, ?, ?)
-       |$Returning
+       |INSERT INTO $Table ($Fields)
+       |VALUES ($QMarks)
+       |RETURNING $Fields
     """.stripMargin
+  }
 
   val Update =
     s"""
-       |UPDATE courses
+       |UPDATE $Table
        |SET version = ?, teacher_id = ?, name = ?, color = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
-       |$Returning
+       |RETURNING $Fields
      """.stripMargin
 
   val Delete =
     s"""
-       |DELETE FROM courses
-       |WHERE id = ? AND version = ?
+       |DELETE FROM $Table
+       |WHERE id = ?
+       |  AND version = ?
+       |RETURNING $Fields
      """.stripMargin
 
   val ListByTeacherId =
     s"""
-       |$Select
-       |$From
+       |SELECT $Fields
+       |FROM $Table
        |WHERE teacher_id = ?
-       |$OrderBy
+       |ORDER BY $OrderBy
      """.stripMargin
 
   val ListCourses =
     s"""
-       |$Select
-       |$From, users_courses
-       |WHERE courses.id = users_courses.course_id
+       |SELECT $FieldsWithTable
+       |FROM $Table, users_courses
+       |WHERE $Table.id = users_courses.course_id
        |  AND users_courses.user_id = ?
-       |$OrderBy
+       |ORDER BY $OrderBy
      """.stripMargin
 
   // TODO - not used
@@ -122,11 +110,11 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
 
   val ListCourseForProject =
     s"""
-       |$Select
-       |$From, projects
-       |WHERE courses.id = projects.course_id
+       |SELECT $FieldsWithTable
+       |FROM $Table, projects
+       |WHERE $Table.id = projects.course_id
        |  AND projects.id = ?
-       |$OrderBy
+       |ORDER BY $OrderBy
      """.stripMargin
 
   val AddUsers =
@@ -160,9 +148,9 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
 
   val ListCoursesForUserList =
     s"""
-       |SELECT user_id, id, version, teacher_id, color, courses.name as name, courses.created_at as created_at, courses.updated_at as updated_at
-       |FROM courses, users_courses
-       |WHERE courses.id = users_courses.course_id
+       |SELECT user_id, $FieldsWithTable
+       |FROM $Table, users_courses
+       |WHERE $Table.id = users_courses.course_id
      """.stripMargin
 
   val RemoveUsers =
@@ -196,21 +184,22 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
     s"""
        |SELECT projects.id
        |FROM projects
-       |INNER JOIN courses ON courses.id = projects.course_id
-       |INNER JOIN users_courses ON users_courses.course_id = courses.id
+       |INNER JOIN $Table ON $Table.id = projects.course_id
+       |INNER JOIN users_courses ON users_courses.course_id = $Table.id
        |WHERE projects.id = ?
        |  AND users_courses.user_id = ?
      """.stripMargin
 
   val FindUserForTeacher =
     s"""
-       |SELECT users.id as id, users.version as version, users.username as username, users.email as email,
+       |SELECT users.id as student_id, users.version as version, users.username as username, users.email as email,
        |       users.password_hash as password_hash, users.givenname as givenname, users.surname as surname,
        |       users.created_at as created_at, users.updated_at as updated_at
-       |FROM users, courses, users_courses
-       |WHERE courses.teacher_id = ?
+       |FROM users, $Table, users_courses
+       |WHERE $Table.teacher_id = ?
        |  AND users_courses.user_id = ?
-       |  AND courses.id = users_courses.course_id
+       |  AND $Table.id = users_courses.course_id
+       |  AND users.id  = users_courses.user_id
      """.stripMargin
 
   /**
@@ -294,27 +283,6 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
    */
   override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = {
     queryOne(SelectOne, Array[Any](id.bytes))
-  }
-
-  /**
-   * Find student in teacher's course
-   *
-   * @param student
-   * @param teacher
-   * @return
-   */
-  override def findUserForTeacher(student: User, teacher: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
-    conn.sendPreparedStatement(FindUserForTeacher, Array[Any](teacher.id.bytes, student.id.bytes)).flatMap { result =>
-      result.rows match {
-        case Some(resultSet) => resultSet.headOption match {
-          case Some(firstRow) => userRepository.find(UUID(firstRow("user_id").asInstanceOf[Array[Byte]]))
-          case None => Future successful -\/(RepositoryError.NoResults)
-        }
-        case None => Future successful -\/(RepositoryError.NoResults)
-      }
-    }.recover {
-      case exception: Throwable => throw exception
-    }
   }
 
   /**
@@ -456,7 +424,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
    */
   def insert(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = {
     val params = Seq[Any](
-      course.id.bytes, course.teacherId.bytes, course.name,
+      course.id.bytes, 1, course.teacherId.bytes, course.name,
       course.color.getRGB, new DateTime, new DateTime
     )
 

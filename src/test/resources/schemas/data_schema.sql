@@ -107,25 +107,29 @@ VALUES ('\x287b61f5da6b4de785353bc500cffac7', 4, '\x4d01347ec5924e5fb09fdd281b3d
 
 
 /* USERS_COURSES */
-/* UserA -> CourseA */
+/* UserC (student) -> CourseA -> user A (teacher) */
 INSERT INTO users_courses (user_id, course_id, created_at)
-VALUES ('\x36c8c0ca50aa4806afa5916a5e33a81f', '\x217c5622ff9e43728e6a95fb3bae300b', '2014-08-07 14:01:19.545-04');
+VALUES ('\xf5f984073a0b4ea5952a575886e90586', '\x217c5622ff9e43728e6a95fb3bae300b', '2014-08-05 14:01:19.545-04');
 
-/* UserB -> CourseB */
+/* UserC (student) -> CourseB -> user B (teacher) */
 INSERT INTO users_courses (user_id, course_id, created_at)
-VALUES ('\x6c0e29bdd05b4b2981156be93e936c59', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-08 14:01:19.545-04');
+VALUES ('\xf5f984073a0b4ea5952a575886e90586', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-06 14:01:19.545-04');
 
-/* UserE (student) -> CourseB */
+/* UserE (student) -> CourseB -> user B (teacher) */
 INSERT INTO users_courses (user_id, course_id, created_at)
-VALUES ('\x871b525067124e548ab60784cae0bc64', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-09 14:01:19.545-04');
+VALUES ('\x871b525067124e548ab60784cae0bc64', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-07 14:01:19.545-04');
 
-/* UserG -> CourseB */
+/* UserG (student) -> CourseF -> user F (teacher) */
 INSERT INTO users_courses (user_id, course_id, created_at)
-VALUES ('\xc4d948967e1b45fabae74fb3a89a4d63', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-09 14:01:19.545-04');
+VALUES ('\xc4d948967e1b45fabae74fb3a89a4d63', '\x287b61f5da6b4de785353bc500cffac7', '2014-08-08 14:01:19.545-04');
 
-/* UserH -> CourseB */
+/* UserH (student) -> CourseF -> user F (teacher) */
 INSERT INTO users_courses (user_id, course_id, created_at)
-VALUES ('\x5099a6b48809400d8e380119184d0f93', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-10 14:01:19.545-04');
+VALUES ('\x5099a6b48809400d8e380119184d0f93', '\x287b61f5da6b4de785353bc500cffac7', '2014-08-10 14:01:19.545-04');
+
+/* UserH (student) -> CourseD -> user F (teacher) */
+INSERT INTO users_courses (user_id, course_id, created_at)
+VALUES ('\x5099a6b48809400d8e380119184d0f93', '\x94cc65bb45424f628e08d58522e7b5f1', '2014-08-10 14:01:19.545-04');
 
 
 /* SCHEDULES */

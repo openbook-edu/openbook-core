@@ -7,6 +7,7 @@ import com.github.mauricio.async.db.Connection
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.uuid.UUID
+import scala.collection.IndexedSeq
 import scala.concurrent.Future
 import scalaz.{\/-, -\/, \/}
 
@@ -209,10 +210,11 @@ class SchoolServiceDefault(val db: Connection,
    */
   override def findUserForTeacher(userId: UUID, teacherId: UUID): Future[\/[ErrorUnion#Fail, User]] = {
     for {
-      user <- lift(authService.find(userId))
-      teacher <- lift(authService.find(teacherId))
-      maybeStudent <- lift(courseRepository.findUserForTeacher(user, teacher))
-      student <- lift(authService.find(maybeStudent.id))
-    } yield student
+      user        <- lift(authService.find(userId))
+      teacher     <- lift(authService.find(teacherId))
+      userCourses <- lift(courseRepository.list(user, false))
+      filteredCourses = userCourses.filter(_.teacherId == teacherId)
+      _ <- predicate (filteredCourses.nonEmpty) (RepositoryError.NoResults)
+    } yield user
   }
 }

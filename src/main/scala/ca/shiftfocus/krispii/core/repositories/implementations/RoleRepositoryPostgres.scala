@@ -307,24 +307,24 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
         val params = Seq[Any] (user.id.bytes, new DateTime, name)
         val fResult = queryNumRows(AddRoleByName, params) (1 == _)
 
-        fResult.map {
+        lift(fResult.map {
           case \/-(true)  => \/-(())
           case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
           case -\/(error) => -\/(error)
-        }
-        lift(fResult)
+        })
       }
     } yield ()
   }
 
+  // TODO - replace RepositoryError.DatabaseError, when user doesn't have role
   /**
    * Remove a role from a user by role object.
    */
   override def removeFromUser(user: User, role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     queryNumRows(RemoveRole, Seq(user.id.bytes, role.id.bytes))(1 == _).map {
-      case \/-(true)  => \/-( () )
-      case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
-      case -\/(error) => -\/(error)
+        case \/-(true)  => \/-( () )
+        case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
+        case -\/(error) => -\/(error)
     }
   }
 
@@ -333,6 +333,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    */
   override def removeFromUser(user: User, name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
+      user <- lift(userRepository.find(user.id))
       role <- lift(find(name))
       _    <- lift(queryNumRows(RemoveRoleByName, Seq(user.id.bytes, name))(1 == _).map {
         case \/-(true) => \/-( () )
@@ -357,10 +358,13 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * Remove a role from all users by role name.
    */
   override def removeFromAllUsers(name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
-    queryNumRows(RemoveFromAllUsers, Seq[Any](name))(1 <= _).map {
-      case \/-(true) => \/-( () )
-      case \/-(false) => -\/(RepositoryError.DatabaseError("It appears that no users had this role, so it has been removed from no one. But the query was successful, so there's that."))
-      case -\/(error) => -\/(error)
-    }
+    for {
+      role <- lift(find(name))
+      _ <- lift(queryNumRows(RemoveFromAllUsersByName, Seq[Any](name))(1 <= _).map {
+        case \/-(true) => \/-(())
+        case \/-(false) => -\/(RepositoryError.DatabaseError("It appears that no users had this role, so it has been removed from no one. But the query was successful, so there's that."))
+        case -\/(error) => -\/(error)
+      })
+    } yield ()
   }
 }

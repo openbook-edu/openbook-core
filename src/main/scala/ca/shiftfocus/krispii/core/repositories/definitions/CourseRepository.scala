@@ -30,6 +30,5 @@ trait CourseRepository {
   def removeUsers(course: Course, users: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
   def removeAllUsers(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
 
-  def findUserForTeacher(student: User, teacher: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]]
   def hasProject(user: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Boolean]]
 }

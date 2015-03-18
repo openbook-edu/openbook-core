@@ -35,8 +35,6 @@ class RoleRepositorySpec
         val eitherRoles = Await.result(result, Duration.Inf)
         val \/-(roles) = eitherRoles
 
-        eitherRoles.toString should be(\/- (testRolesList.map(_._2.toString)(breakOut)).toString)
-
         testRolesList.foreach {
           case (key, role: Role) => {
             roles(key).id should be(role.id)
@@ -46,6 +44,8 @@ class RoleRepositorySpec
             roles(key).updatedAt.toString should be(role.updatedAt.toString)
           }
         }
+
+        eitherRoles.toString should be(\/- (testRolesList.map(_._2.toString)(breakOut)).toString)
       }
       "list the roles associated with a user" in {
         val testRolesList = TreeMap[Int, Role](
@@ -59,8 +59,6 @@ class RoleRepositorySpec
         val eitherRoles = Await.result(result, Duration.Inf)
         val \/-(roles) = eitherRoles
 
-        eitherRoles.toString should be(\/- (testRolesList.map(_._2.toString)(breakOut)).toString)
-
         testRolesList.foreach {
           case (key, role: Role) => {
             roles(key).id should be(role.id)
@@ -70,6 +68,8 @@ class RoleRepositorySpec
             roles(key).updatedAt.toString should be(role.updatedAt.toString)
           }
         }
+
+        eitherRoles.toString should be(\/- (testRolesList.map(_._2.toString)(breakOut)).toString)
       }
       "return empty Vector() if user doesn't exist" in {
         val unexistingUser = User(
@@ -103,11 +103,9 @@ class RoleRepositorySpec
           )
         )
 
-        val result = roleRepository.list(Vector(testUsersList(0), testUsersList(1)))
+        val result = roleRepository.list(testUsersList.map(_._2)(breakOut))
         val eitherRoles = Await.result(result, Duration.Inf)
         val \/-(roles) = eitherRoles
-
-        eitherRoles.toString should be(\/-(testRoleList).toString)
 
         testRoleList.foreach {
           case (userId: UUID, rolesList: Vector[Role]) => {
@@ -122,8 +120,10 @@ class RoleRepositorySpec
             }
           }
         }
+
+        eitherRoles.toString should be(\/-(testRoleList).toString)
       }
-      "return empty Vector() if one of the users doesn't exist" in {
+      "return empty Vector() only for one user if he doesn't exist" in {
         val testUsersList = TreeMap[Int, User](
           0 -> TestValues.testUserA,
           1 -> TestValues.testUserD
@@ -139,9 +139,23 @@ class RoleRepositorySpec
           testUsersList(1).id -> Vector()
         )
 
-        val result = roleRepository.list(Vector(testUsersList(0), testUsersList(1)))
+        val result = roleRepository.list(testUsersList.map(_._2)(breakOut))
         val eitherRoles = Await.result(result, Duration.Inf)
         val \/-(roles) = eitherRoles
+
+        testRoleList.foreach {
+          case (userId: UUID, rolesList: Vector[Role]) => {
+            var key = 0
+            for (role: Role <- rolesList) {
+              roles(userId)(key).id should be(role.id)
+              roles(userId)(key).version should be(role.version)
+              roles(userId)(key).name should be(role.name)
+              roles(userId)(key).createdAt.toString should be(role.createdAt.toString)
+              roles(userId)(key).updatedAt.toString should be(role.updatedAt.toString)
+              key = key + 1
+            }
+          }
+        }
 
         eitherRoles.toString should be(\/-(testRoleList).toString)
       }
@@ -416,157 +430,104 @@ class RoleRepositorySpec
       }
     }
   }
-//
-//  /*
-//    After implementation
-//    In db: RoleC, RoleD, RoleF, RoleG, RoleH
-//    testUserA -> RoleF, RoleG, RoleC
-//    testUserB -> RoleF, RoleG, RoleC
-//  */
-//  "RoleRepository.removeFromUser" should {
-//    inSequence {
-//      "remove role from user when role is object" in {
-//        val query_result = roleRepository.removeFromUser(TestValues.testUserF, TestValues.testRoleC)
-//
-//        Await.result(query_result, Duration.Inf) should be (true)
-//
-//        // Find roles for TestValues.testUserA
-//        val result = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserF.id.bytes)).map { queryResult =>
-//          val roleList = queryResult.rows.get.map {
-//            item: RowData => Role(item)
-//          }
-//          roleList
-//        }
-//
-//        val roleList = Await.result(result, Duration.Inf)
-//        roleList contains TestValues.testRoleC should be (false)
-//      }
-//      "remove role from user by role name" in {
-//        val query_result = roleRepository.removeFromUser(TestValues.testUserF, TestValues.testRoleH.name)
-//
-//        Await.result(query_result, Duration.Inf) should be (true)
-//
-//        // Find roles for TestValues.testUserB
-//        val result = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserF.id.bytes)).map { queryResult =>
-//          val roleList = queryResult.rows.get.map {
-//            item: RowData => Role(item)
-//          }
-//          roleList
-//        }
-//
-//        val roleList = Await.result(result, Duration.Inf)
-//        roleList contains TestValues.testRoleH should be (false)
-//      }
-//      "return FALSE if role (object) doesn't exist" in {
-//        val query_result = roleRepository.removeFromUser(TestValues.testUserA, TestValues.testRoleE)
-//
-//        Await.result(query_result, Duration.Inf) should be (false)
-//      }
-//      "return FALSE if role (name) doesn't exist" in {
-//        val query_result = roleRepository.removeFromUser(TestValues.testUserA, TestValues.testRoleE.name)
-//
-//        Await.result(query_result, Duration.Inf) should be (false)
-//      }
-//      "return FALSE if user doesn't exist" in {
-//        val query_result = roleRepository.removeFromUser(TestValues.testUserD, TestValues.testRoleA)
-//
-//        Await.result(query_result, Duration.Inf) should be (false)
-//      }
-//      "return FALSE if user doesn't have this role (object)" in {
-//        val query_result = roleRepository.removeFromUser(TestValues.testUserG, TestValues.testRoleG)
-//
-//        Await.result(query_result, Duration.Inf) should be (false)
-//      }
-//      "return FALSE if user doesn't have this role (name)" in {
-//        val query_result = roleRepository.removeFromUser(TestValues.testUserG, TestValues.testRoleG)
-//
-//        Await.result(query_result, Duration.Inf) should be (false)
-//      }
-//    }
-//  }
-//
-//  /*
-//    After implementation
-//    In db: RoleC, RoleD, RoleF, RoleG, RoleH
-//    testUserA -> RoleC
-//    testUserB -> RoleC
-//  */
-//  "RoleRepository.removeFromAllUsers" should {
-//    inSequence {
-//      "remove role from all users when role is object"  in {
-//        val query_result = roleRepository.removeFromAllUsers(TestValues.testRoleF)
-//
-//        Await.result(query_result, Duration.Inf) should be (true)
-//
-//        // Find roles for TestValues.testUserA
-//        val resultForUserA = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserA.id.bytes)).map { queryResult =>
-//          val roleList = queryResult.rows.get.map {
-//            item: RowData => Role(item)
-//          }
-//          roleList
-//        }
-//
-//        val roleListUserA = Await.result(resultForUserA, Duration.Inf)
-//        roleListUserA contains TestValues.testRoleF should be (false)
-//
-//        // Find roles for TestValues.testUserB
-//        val resultForUserB = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserB.id.bytes)).map { queryResult =>
-//          val roleList = queryResult.rows.get.map {
-//            item: RowData => Role(item)
-//          }
-//          roleList
-//        }
-//
-//        val roleListUserB = Await.result(resultForUserB, Duration.Inf)
-//        roleListUserB contains TestValues.testRoleF should be (false)
-//      }
-//      "remove role from all users by role name" in {
-//        val query_result = roleRepository.removeFromAllUsers(TestValues.testRoleG.name)
-//
-//        Await.result(query_result, Duration.Inf) should be (true)
-//
-//        // Find roles for TestValues.testUserA
-//        val resultForUserA = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserA.id.bytes)).map { queryResult =>
-//          val roleList = queryResult.rows.get.map {
-//            item: RowData => Role(item)
-//          }
-//          roleList
-//        }
-//
-//        val roleListUserA = Await.result(resultForUserA, Duration.Inf)
-//        roleListUserA contains TestValues.testRoleG should be (false)
-//
-//        // Find roles for TestValues.testUserB
-//        val resultForUserB = db.pool.sendPreparedStatement(find_roles_query, Array[Any](TestValues.testUserB.id.bytes)).map { queryResult =>
-//          val roleList = queryResult.rows.get.map {
-//            item: RowData => Role(item)
-//          }
-//          roleList
-//        }
-//
-//        val roleListUserB = Await.result(resultForUserB, Duration.Inf)
-//        roleListUserB contains TestValues.testRoleG should be (false)
-//      }
-//      "return FALSE if role (object) doesn't exist" in {
-//        val query_result = roleRepository.removeFromAllUsers(TestValues.testRoleE)
-//
-//        Await.result(query_result, Duration.Inf) should be (false)
-//      }
-//      "return FALSE if role (name) doesn't exist" in {
-//        val query_result = roleRepository.removeFromAllUsers(TestValues.testRoleE.name)
-//
-//        Await.result(query_result, Duration.Inf) should be (false)
-//      }
-//      "return FALSE if no one from users doesn't have this role (object)" in {
-//        val query_result = roleRepository.removeFromAllUsers(TestValues.testRoleG)
-//
-//        Await.result(query_result, Duration.Inf) should be (false)
-//      }
-//      "return FALSE if no one from users doesn't have this role (name)" in {
-//        val query_result = roleRepository.removeFromAllUsers(TestValues.testRoleG.name)
-//
-//        Await.result(query_result, Duration.Inf) should be (false)
-//      }
-//    }
-//  }
+
+  "RoleRepository.removeFromUser" should {
+    inSequence {
+      "remove role (object) from user" in {
+        val testRole = TestValues.testRoleC
+        val testUser = TestValues.testUserF
+
+        val result = roleRepository.removeFromUser(testUser, testRole)
+        Await.result(result, Duration.Inf) should be(\/-( () ))
+      }
+      "remove role (name) from user" in {
+        val testRole = TestValues.testRoleC
+        val testUser = TestValues.testUserF
+
+        val result = roleRepository.removeFromUser(testUser, testRole.name)
+        Await.result(result, Duration.Inf) should be(\/-( () ))
+      }
+      "return RepositoryError.DatabaseError if role (object) doesn't exist" in {
+        // If role is an object, we should have it when we call this method
+        val testRole = TestValues.testRoleE
+        val testUser = TestValues.testUserA
+
+        val result = roleRepository.removeFromUser(testUser, testRole)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified.", None)))
+      }
+      "return RepositoryError.NoResults if role (name) doesn't exist" in {
+        val testRole = TestValues.testRoleE
+        val testUser = TestValues.testUserA
+
+        val result = roleRepository.removeFromUser(testUser, testRole.name)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+      "return RepositoryError.NoResults if user doesn't exist" in {
+        // User is an object, we should have it when we call this method
+        val testRole = TestValues.testRoleA
+        val testUser = TestValues.testUserD
+
+        val result = roleRepository.removeFromUser(testUser, testRole)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified.", None)))
+      }
+      "return RepositoryError.DatabaseError if user doesn't have this role (object)" in {
+        // TODO - should be updated, should be another type of error
+        val testRole = TestValues.testRoleH
+        val testUser = TestValues.testUserF
+
+        val result = roleRepository.removeFromUser(testUser, testRole)
+        Await.result(result, Duration.Inf) should be (-\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified.", None)))
+      }
+      "return RepositoryError.DatabaseError if user doesn't have this role (name)" in {
+        // TODO - should be updated, should be another type of error
+        val testRole = TestValues.testRoleH
+        val testUser = TestValues.testUserF
+
+        val result = roleRepository.removeFromUser(testUser, testRole.name)
+        Await.result(result, Duration.Inf) should be (-\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified.", None)))
+      }
+    }
+  }
+
+  "RoleRepository.removeFromAllUsers" should {
+    inSequence {
+      "remove role (object) from all users"  in {
+        val testRole = TestValues.testRoleF
+
+        val result = roleRepository.removeFromAllUsers(testRole)
+        Await.result(result, Duration.Inf) should be (\/-( () ))
+      }
+      "remove role (name) from all users" in {
+        val testRole = TestValues.testRoleF
+
+        val result = roleRepository.removeFromAllUsers(testRole.name)
+        Await.result(result, Duration.Inf) should be (\/-( () ))
+      }
+      "return RepositoryError.DatabaseError if role (object) doesn't exist" in {
+        // If role is an object, we should have it when we call this method
+        val testRole = TestValues.testRoleE
+
+        val result = roleRepository.removeFromAllUsers(testRole)
+        Await.result(result, Duration.Inf) should be (-\/(RepositoryError.DatabaseError("It appears that no users had this role, so it has been removed from no one. But the query was successful, so there's that.", None)))
+      }
+      "return RepositoryError.NoResults if role (name) doesn't exist" in {
+        val testRole = TestValues.testRoleE
+
+        val result = roleRepository.removeFromAllUsers(testRole.name)
+        Await.result(result, Duration.Inf) should be (-\/(RepositoryError.NoResults))
+      }
+      "return RepositoryError.NoResults if no one from users doesn't have this role (object)" in {
+        val testRole = TestValues.testRoleH
+
+        val result = roleRepository.removeFromAllUsers(testRole)
+        Await.result(result, Duration.Inf) should be (-\/(RepositoryError.DatabaseError("It appears that no users had this role, so it has been removed from no one. But the query was successful, so there's that.", None)))
+      }
+      "return FALSE if no one from users doesn't have this role (name)" in {
+        val testRole = TestValues.testRoleH
+
+        val result = roleRepository.removeFromAllUsers(testRole.name)
+        Await.result(result, Duration.Inf) should be (-\/(RepositoryError.DatabaseError("It appears that no users had this role, so it has been removed from no one. But the query was successful, so there's that.", None)))
+      }
+    }
+  }
 }

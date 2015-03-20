@@ -102,6 +102,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
     |FROM $Table
     |WHERE id = ?
     | AND version = ?
+    |RETURNING $Fields
   """.stripMargin
 
   /**
@@ -222,6 +223,9 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @return a boolean indicator whether the deletion was successful.
    */
   override def delete(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
-    queryOne(Delete, Array(project.id.bytes, project.version))
+    (for {
+      updatedProject <- lift(queryOne(Delete, Array(project.id.bytes, project.version)))
+      oldParts = project.parts
+    } yield updatedProject.copy(parts = oldParts)).run
   }
 }

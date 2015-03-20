@@ -7,9 +7,6 @@ import ca.shiftfocus.uuid.UUID
 import org.joda.time.{DateTime, DateTimeZone}
 
 object TestValues {
-  // Make text red, bold in console for debuging
-  // Console.RED + Console.BOLD + " (TEXT) " + Console.RESET
-
   /* USERS */
   val testUserA = User(
     id = UUID("36c8c0ca-50aa-4806-afa5-916a5e33a81f"),

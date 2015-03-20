@@ -80,6 +80,18 @@ class TestEnvironment
 //    load_schema(drop_schema_path, conn)
   }
 
+  /**
+   * Print colored input in console (if supported)
+   * println(Console.RED + Console.BOLD + " (TEXT) " + Console.RESET)
+   *
+   * @param print
+   */
+  def console_log(print: Any): Unit = {
+    val debug = Console.GREEN + Console.BOLD + "[DEBUG] " + Console.RESET
+    val value = Console.RED + Console.BOLD + print + Console.RESET
+    println (debug + value)
+  }
+
   def selectOneById(from: String, fields: String) =
     s"""
        |SELECT ${fields}

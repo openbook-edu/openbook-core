@@ -355,6 +355,7 @@ class ProjectRepositorySpec
           project.description should be(updatedProject.description)
           project.availability should be(updatedProject.availability)
           project.parts should be(updatedProject.parts)
+          project.createdAt.toString should be(testProject.createdAt.toString)
         }
         "return RepositoryError.NoResults when update an existing Project with wrong version" in {
           val testProject = TestValues.testProjectA
@@ -402,6 +403,8 @@ class ProjectRepositorySpec
           project.description should be(testProject.description)
           project.availability should be(testProject.availability)
           project.parts should be(testProject.parts)
+          project.createdAt.toString should be(testProject.createdAt.toString)
+          project.updatedAt.toString should be(testProject.updatedAt.toString)
         }
         // TODO except if project is conntected with a part and part is connected with a task and the task_id is in the "work" table
         "delete a project if project has references in other tables" in {

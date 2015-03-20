@@ -31,9 +31,10 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
     )
   }
 
-  val Fields = "id, version, created_at, updated_at, project_id, name, position, enabled"
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?"
-  val Table = "parts"
+  val Table           = "parts"
+  val Fields          = "id, version, created_at, updated_at, project_id, name, position, enabled"
+  val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field}).mkString(", ")
+  val QMarks          = "?, ?, ?, ?, ?, ?, ?, ?"
 
   // CRUD operations
   val SelectAll =
@@ -80,39 +81,45 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
        |RETURNING $Fields
      """.stripMargin
 
-  val SelectByProjectId = s"""
-    SELECT $Fields
-    FROM $Table
-    WHERE project_id = ?
-    ORDER BY position ASC
-  """
+  val SelectByProjectId =
+    s"""
+      |SELECT $Fields
+      |FROM $Table
+      |WHERE project_id = ?
+      |ORDER BY position ASC
+    """.stripMargin
 
-  val FindByProjectPosition = s"""
-    SELECT $Fields
-    FROM $Table
-    WHERE project_id = ?
-      AND position = ?
-    LIMIT 1
-  """
+  val FindByProjectPosition =
+    s"""
+      |SELECT $Fields
+      |FROM $Table
+      |WHERE project_id = ?
+      |  AND position = ?
+      |LIMIT 1
+    """.stripMargin
 
-  val SelectByComponentId = s"""
-    SELECT parts.id as id, parts.version as version, parts.created_at as created_at, parts.updated_at as updated_at,
-           project_id, parts.name as name, parts.position as position, parts.enabled as enabled
-    FROM $Table
-    INNER JOIN parts_components ON parts.id = parts_components.part_id
-    WHERE parts_components.component_id = ?
-  """
+  val SelectByComponentId =
+    s"""
+      |SELECT project_id, $FieldsWithTable
+      |FROM $Table
+      |INNER JOIN parts_components
+      |  ON $Table.id = parts_components.part_id
+      |WHERE parts_components.component_id = ?
+    """.stripMargin
 
-  val ReorderParts1 = s"""
-    UPDATE parts AS p
-    SET position = c.position
-    FROM (VALUES
-  """
-
-  val ReorderParts2 = s"""
-    ) AS c(id, position)
-    WHERE c.id = p.id
-  """
+  // TODO - not used
+//  val ReorderParts1 =
+//    s"""
+//      |UPDATE $Table AS p
+//      |SET position = c.position
+//      |FROM (VALUES
+//    """.stripMargin
+//
+//  val ReorderParts2 =
+//    s"""
+//      |) AS c(id, position)
+//      |WHERE c.id = p.id
+//    """.stripMargin
 
   /**
    * Find all parts.
@@ -218,7 +225,10 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
       part.version + 1, new DateTime, part.id.bytes, part.version
     )
 
-    queryOne(Update, params)
+    (for {
+      updatedPart <- lift(queryOne(Update, params))
+      oldTasks = part.tasks
+    } yield updatedPart.copy(tasks = oldTasks)).run
   }
 
   /**
@@ -228,7 +238,10 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
    * @return A boolean indicating whether the operation was successful.
    */
   def delete(part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Part]] = {
-    queryOne(Delete, Seq[Any](part.id.bytes, part.version))
+    (for {
+      deletedPart <- lift(queryOne(Delete, Seq[Any](part.id.bytes, part.version)))
+      oldTasks = part.tasks
+    } yield deletedPart.copy(tasks = oldTasks)).run
   }
 
   /**
@@ -239,8 +252,13 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
    */
   def delete(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
     (for {
-      partList <- lift(list(project))
       deletedParts <- lift(queryList(DeleteByProject, Seq[Any](project.id.bytes)))
-    } yield deletedParts).run
+      deletedPartsWithTasks <- liftSeq(deletedParts.map{ part =>
+        (for {
+          tasks <- lift(taskRepository.list(part))
+          result = part.copy(tasks = tasks)
+        } yield result).run
+      })
+    } yield deletedPartsWithTasks).run
   }
 }

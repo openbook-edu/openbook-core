@@ -224,8 +224,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    */
   override def delete(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
-      updatedProject <- lift(queryOne(Delete, Array(project.id.bytes, project.version)))
+      deletedProject <- lift(queryOne(Delete, Array(project.id.bytes, project.version)))
       oldParts = project.parts
-    } yield updatedProject.copy(parts = oldParts)).run
+    } yield deletedProject.copy(parts = oldParts)).run
   }
 }

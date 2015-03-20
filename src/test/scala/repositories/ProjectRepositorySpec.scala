@@ -35,12 +35,11 @@ class ProjectRepositorySpec
           testProjectList(1).id.toString -> Vector(
             TestValues.testPartC
           ),
-          testProjectList(2).id.toString -> Vector(
-          ),
-          testProjectList(3).id.toString -> Vector(
-          )
+          testProjectList(2).id.toString -> Vector(),
+          testProjectList(3).id.toString -> Vector()
         )
 
+        // Put here parts = Vector(), because after db query Project object is created without parts.
         testProjectList.foreach {
           case (key, project: Project) => {
             (partRepository.list(_: Project)(_: Connection)) when(project.copy(parts = Vector()), *) returns(Future.successful(\/-(testPartList(project.id.toString))))
@@ -80,8 +79,7 @@ class ProjectRepositorySpec
           testProjectList(0).id.toString -> Vector(
             TestValues.testPartC
           ),
-          testProjectList(1).id.toString -> Vector(
-          )
+          testProjectList(1).id.toString -> Vector()
         )
 
         testProjectList.foreach {
@@ -312,7 +310,7 @@ class ProjectRepositorySpec
           project.slug should be(testProject.slug)
           project.description should be(testProject.description)
           project.availability should be(testProject.availability)
-          project.parts should be(testProject.parts)
+          project.parts should be(Vector())
         }
         "return RepositoryError.ForeignKeyConflict if project contains unexisting course id" in {
           val testProject = TestValues.testProjectD.copy(
@@ -337,6 +335,7 @@ class ProjectRepositorySpec
         "update project" in {
           val testProject = TestValues.testProjectA
           val updatedProject = testProject.copy(
+            courseId = TestValues.testCourseB.id,
             name = "updated test project",
             slug = "updated test project slug",
             description = "updated test project description",

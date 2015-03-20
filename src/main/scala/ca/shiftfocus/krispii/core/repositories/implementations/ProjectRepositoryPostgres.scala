@@ -36,43 +36,31 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
     )
   }
 
-  val Select =
-    """
-       |SELECT projects.id as id, projects.version as version, projects.course_id, projects.name as name, projects.slug as slug,
-       |       projects.description as description, projects.availability as availability, projects.created_at as created_at, projects.updated_at as updated_at
-     """.stripMargin
-
-  val From =
-    """
-      |FROM projects
-    """.stripMargin
-
-  val Returning =
-    """
-      |RETURNING id, version, course_id, name, slug, description, availability, created_at, updated_at
-    """.stripMargin
-
+  val Table           = "projects"
+  val Fields          = "id, version, course_id, name, slug, description, availability, created_at, updated_at"
+  val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field}).mkString(", ")
+  val QMarks          = "?, ?, ?, ?, ?, ?, ?, ?, ?"
 
   // User CRUD operations
   val SelectAll =
     s"""
-       |$Select
-       |$From
-    """.stripMargin
+       |SELECT $Fields
+       |FROM $Table
+     """.stripMargin
 
   val SelectOne =
     s"""
-       |$Select
-       |$From
-       |WHERE projects.id = ?
+       |SELECT $Fields
+       |FROM $Table
+       |WHERE id = ?
     """.stripMargin
 
   val SelectOneForUser =
     s"""
-       |$Select
-       |$From, courses, users_courses
-       |WHERE projects.id = ?
-       |  AND projects.course_id = courses.id
+       |SELECT $FieldsWithTable
+       |FROM $Table, courses, users_courses
+       |WHERE $Table.id = ?
+       |  AND $Table.course_id = courses.id
        |  AND (courses.teacher_id = ? OR (
        |    courses.id = users_courses.course_id AND users_courses.user_id = ?
        |  ))
@@ -80,38 +68,41 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
 
   val SelectOneBySlug =
     s"""
-       |$Select
-       |$From
+       |SELECT $Fields
+       |FROM $Table
        |WHERE slug = ?
      """.stripMargin
 
   val ListByCourse =
     s"""
-       |$Select
-       |$From
+       |SELECT $Fields
+       |FROM $Table
        |WHERE course_id = ?
      """.stripMargin
 
 
   val Insert =
     s"""
-      |INSERT INTO projects (id, version, course_id, name, slug, description, availability, created_at, updated_at)
-      |VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?)
-      |$Returning
+      |INSERT INTO $Table ($Fields)
+      |VALUES ($QMarks)
+      |RETURNING $Fields
     """.stripMargin
 
   val Update =
     s"""
-      |UPDATE projects
+      |UPDATE $Table
       |SET course_id = ?, name = ?, slug = ?, description = ?, availability = ?, version = ?, updated_at = ?
       |WHERE id = ?
       |  AND version = ?
-      |$Returning
+      |RETURNING $Fields
     """.stripMargin
 
   val Delete = s"""
-    DELETE FROM projects WHERE id = ? AND version = ?
-  """
+    |DELETE
+    |FROM $Table
+    |WHERE id = ?
+    | AND version = ?
+  """.stripMargin
 
   /**
    * Find all Projects.
@@ -197,7 +188,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    */
   override def insert(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq(
-      project.id.bytes, project.courseId.bytes, project.name, project.slug,
+      project.id.bytes, 1, project.courseId.bytes, project.name, project.slug,
       project.description, project.availability, new DateTime, new DateTime
     )
 
@@ -217,7 +208,10 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
       project.availability, project.version + 1, new DateTime, project.id.bytes, project.version
     )
 
-    queryOne(Update, params)
+    (for {
+      updatedProject <- lift(queryOne(Update, params))
+      oldParts = project.parts
+    } yield updatedProject.copy(parts = oldParts)).run
   }
 
   /**

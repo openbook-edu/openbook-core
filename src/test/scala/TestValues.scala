@@ -488,16 +488,19 @@ object TestValues {
   )
 
   /**
-   * No data in DB
+   * No references in other tables
    */
   val testProjectE = Project(
     id = UUID("b36919cb-2df0-43b7-bb7f-36cae797deaa"),
     courseId = testCourseA.id,
+    version = 4L,
     name = "test project E",
     slug = "test project slug E",
     description = "test project E description",
     availability = "course",
-    parts = Vector()
+    parts = Vector(),
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
 

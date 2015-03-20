@@ -177,6 +177,10 @@ VALUES ('\xe4ae3b9098714339b05c8d39e3aaf65d', '\x404c800a53854e6b867e365a1e6b00d
 INSERT INTO projects (id, course_id, version, name, slug, description, availability, created_at, updated_at)
 VALUES ('\x4ac4d872451b4092b13f643d6d5fa930', '\x404c800a53854e6b867e365a1e6b00de', 3, 'test project C', 'test project slug C', 'test project C description', 'course', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
+/* project E -> course A -> user A (teacher) */
+INSERT INTO projects (id, course_id, version, name, slug, description, availability, created_at, updated_at)
+VALUES ('\xb36919cb2df043b7bb7f36cae797deaa', '\x217c5622ff9e43728e6a95fb3bae300b', 4, 'test project E', 'test project slug E', 'test project E description', 'course', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+
 
 /* PARTS */
 /* part A -> project A -> course A -> user A (teacher) */

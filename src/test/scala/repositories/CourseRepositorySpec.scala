@@ -1,20 +1,12 @@
 import java.awt.Color
-import java.io.File
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.{User, Course}
 import ca.shiftfocus.krispii.core.repositories._
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
-import com.github.mauricio.async.db.RowData
-import grizzled.slf4j.Logger
-import org.scalamock.scalatest.MockFactory
-import org.scalatest.{MustMatchers, WordSpec, BeforeAndAfterAll, Suite}
 import org.scalatest._
 import Matchers._
 import scala.collection._
 import scala.collection.immutable.TreeMap
-import scala.concurrent.ExecutionContext.Implicits.global
-
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import scalaz.{-\/, \/-}

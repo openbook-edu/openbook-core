@@ -25,10 +25,10 @@ class TestEnvironment
   private val config = ConfigFactory.load()
 
   private val dbConfig = new Configuration(
-    username = config.getString("db.postgresql.username"), //"accounts",
+    username = config.getString("db.postgresql.username"), //"test_user",
     host     = config.getString("db.postgresql.host"), //"localhost",
-    password = Some(config.getString("db.postgresql.password")), //"the spice must flow"),
-    database = Some(config.getString("db.postgresql.database")), //"accounts")
+    password = Some(config.getString("db.postgresql.password")), //"test_user"),
+    database = Some(config.getString("db.postgresql.database")), //"testdb")
     port     = config.getInt("db.postgresql.port")
   )
 

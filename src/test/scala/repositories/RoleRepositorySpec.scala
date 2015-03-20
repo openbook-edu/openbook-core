@@ -45,7 +45,7 @@ class RoleRepositorySpec
           }
         }
 
-        eitherRoles.toString should be(\/- (testRolesList.map(_._2.toString)(breakOut)).toString)
+        roles.size should be(testRolesList.size)
       }
       "list the roles associated with a user" in {
         val testRolesList = TreeMap[Int, Role](
@@ -69,7 +69,7 @@ class RoleRepositorySpec
           }
         }
 
-        eitherRoles.toString should be(\/- (testRolesList.map(_._2.toString)(breakOut)).toString)
+        roles.size should be(testRolesList.size)
       }
       "return empty Vector() if user doesn't exist" in {
         val unexistingUser = User(
@@ -89,7 +89,7 @@ class RoleRepositorySpec
           1 -> TestValues.testUserB
         )
 
-        val testRoleList = Map[UUID, Vector[Role]](
+        val testRolesList = Map[UUID, Vector[Role]](
           testUsersList(0).id -> Vector(
             TestValues.testRoleA,
             TestValues.testRoleB,
@@ -107,7 +107,7 @@ class RoleRepositorySpec
         val eitherRoles = Await.result(result, Duration.Inf)
         val \/-(roles) = eitherRoles
 
-        testRoleList.foreach {
+        testRolesList.foreach {
           case (userId: UUID, rolesList: Vector[Role]) => {
             var key = 0
             for (role: Role <- rolesList) {
@@ -121,7 +121,7 @@ class RoleRepositorySpec
           }
         }
 
-        eitherRoles.toString should be(\/-(testRoleList).toString)
+        roles.size should be(testRolesList.size)
       }
       "return empty Vector() only for one user if he doesn't exist" in {
         val testUsersList = TreeMap[Int, User](
@@ -129,7 +129,7 @@ class RoleRepositorySpec
           1 -> TestValues.testUserD
         )
 
-        val testRoleList = Map[UUID, Vector[Role]](
+        val testRolesList = Map[UUID, Vector[Role]](
           testUsersList(0).id -> Vector(
             TestValues.testRoleA,
             TestValues.testRoleB,
@@ -143,7 +143,7 @@ class RoleRepositorySpec
         val eitherRoles = Await.result(result, Duration.Inf)
         val \/-(roles) = eitherRoles
 
-        testRoleList.foreach {
+        testRolesList.foreach {
           case (userId: UUID, rolesList: Vector[Role]) => {
             var key = 0
             for (role: Role <- rolesList) {
@@ -157,7 +157,7 @@ class RoleRepositorySpec
           }
         }
 
-        eitherRoles.toString should be(\/-(testRoleList).toString)
+        roles.size should be(testRolesList.size)
       }
     }
   }

@@ -49,7 +49,7 @@ class UserRepositorySpec
           }
         }
 
-        eitherUsers.toString should be(\/-(testUserList.map(_._2.toString)(breakOut)).toString)
+        users.size should be(testUserList.size)
       }
       "list users with a specified set of user Ids" in {
         val testUserList = TreeMap[Int, User](
@@ -75,7 +75,7 @@ class UserRepositorySpec
           }
         }
 
-        eitherUsers.toString should be(\/-(testUserList.map(_._2.toString)(breakOut)).toString)
+        users.size should be(testUserList.size)
       }
       "return RepositoryError.NoResults if set contains unexisting user ID" in {
         val ids = Vector(
@@ -113,7 +113,7 @@ class UserRepositorySpec
           }
         }
 
-        eitherUsers.toString should be(\/-(testUserList.map(_._2.toString)(breakOut)).toString)
+        users.size should be(testUserList.size)
       }
       "return empty Vector() if role doesn't exist" in {
         val unexistingRole = Role(
@@ -157,7 +157,7 @@ class UserRepositorySpec
           }
         }
 
-        eitherUsers.toString should be(\/-(testUserList.map(_._2.toString)(breakOut)).toString)
+        users.size should be(testUserList.size)
       }
       "return empty Vector() if course doesn't exist" in {
         val testCourse = TestValues.testCourseC

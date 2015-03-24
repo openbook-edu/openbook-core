@@ -295,7 +295,8 @@ object TestValues {
       notesAllowed = true
     ),
     choices = Vector("choice 1", "choice 2"),
-    answer  = Vector(1, 2),
+//    answer  = Vector(1, 2),
+    answer  = Vector(),
     allowMultiple = false,
     randomizeChoices = true,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -314,7 +315,7 @@ object TestValues {
       description = "test OrderingTask D description",
       notesAllowed = true
     ),
-    elements = Vector("choice 3", "choice 4"),
+    elements = Vector("element 3", "element 4"),
     answer  = Vector(3, 4),
     randomizeChoices = true,
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -334,7 +335,7 @@ object TestValues {
       notesAllowed = true
     ),
     elementsLeft = Vector("choice left 5", "choice left 6"),
-    elementsRight = Vector("choice right 5", "choice rigth 6"),
+    elementsRight = Vector("choice right 7", "choice rigth 8"),
     answer  = Vector(Match(5, 6), Match(7, 8)),
     randomizeChoices = true,
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),

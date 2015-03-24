@@ -245,8 +245,8 @@ VALUES ('\x808400838923476fa8738ba6c55e30c8', '{element 3, element 4}', '{3, 4}'
 INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
 VALUES ('\x7e9fe0e8e8214d84a7feac023fe6dfa3', 5, '\xabb84847a3d247a0ae7d8ce04063afc7', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test MatchingTask E', 'test MatchingTask E description', 14, 4, true, '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
-INSERT INTO matching_tasks (task_id, choices_left, choices_right, answers, randomize)
-VALUES ('\x7e9fe0e8e8214d84a7feac023fe6dfa3', '{choice left 5, choice left 6}', '{choice right 7, choice right 8}', '{5, 6}', true);
+INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, randomize)
+VALUES ('\x7e9fe0e8e8214d84a7feac023fe6dfa3', '{choice left 5, choice left 6}', '{choice right 7, choice right 8}', '{{5, 6}}', true);
 
 
 /* COMPONENTS */

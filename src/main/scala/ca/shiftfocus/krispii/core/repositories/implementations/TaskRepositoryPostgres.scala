@@ -244,10 +244,10 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   val InsertMatching =
     s"""
        |WITH task AS (${Insert}),
-       |     mat_task (INSERT INTO matching_tasks (task_id, choices_left, choices_right, answers, randomize)
-       |               SELECT task.id as task_id, ? as choices_left, ? as choices_right, ? as answers, ? as randomize
-       |               FROM task
-       |               RETURNING *)
+       |     mat_task AS (INSERT INTO matching_tasks (task_id, choices_left, choices_right, answers, randomize)
+       |                  SELECT task.id as task_id, ? as choices_left, ? as choices_right, ? as answers, ? as randomize
+       |                  FROM task
+       |                  RETURNING *)
        |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
        |       task.description, task.position, task.notes_allowed, task.task_type, mat_task.choices_left, mat_task.choices_right, mat_task.answers, mat_task.randomize
        |FROM task, mat_task
@@ -642,9 +642,8 @@ trait SpecificTaskConstructors {
       settings = CommonTaskSettings(row),
       elementsLeft = Option(row("elements_left").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
       elementsRight = Option(row("elements_right").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      answer = Option(row("answers").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]).map { element =>
-        val split = element.split(":")
-        Match(split(0).toInt, split(1).toInt)
+      answer = Option(row("answers").asInstanceOf[IndexedSeq[IndexedSeq[Int]]]).getOrElse(IndexedSeq()).map { element =>
+        Match(element.head, element.tail.head)
       },
       randomizeChoices = row("randomize").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],

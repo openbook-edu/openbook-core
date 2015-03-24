@@ -162,15 +162,15 @@ CREATE TABLE multiple_choice_tasks (
 
 CREATE TABLE ordering_tasks (
   task_id bytea PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
-  choices text[],
+  elements text[],
   answers int[],
   randomize boolean DEFAULT true
 );
 
 CREATE TABLE matching_tasks (
   task_id bytea PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
-  choices_left text[],
-  choices_right text[],
+  elements_left text[],
+  elements_right text[],
   answers int[][2],
   randomize boolean DEFAULT true
 );

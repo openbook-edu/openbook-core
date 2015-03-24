@@ -32,188 +32,158 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     }
   }
 
-  def fields = Seq("part_id", "dependency_id", "name", "description", "position",
-                   "notes_allowed", "max_length", "choices", "answers", "allow_multiple",
-                   "choices_left", "choices_right", "randomize")
-
-  def table = "tasks"
-  def orderBy = "position ASC"
-  val fieldsText = fields.mkString(", ")
-  val questions = fields.map(_ => "?").mkString(", ")
-
   // -- Common query components --------------------------------------------------------------------------------------
 
-  val Select =
+  val Table                 = "tasks"
+  val CommonFields          = "id, version, created_at, updated_at, part_id, dependency_id, name, description, position, notes_allowed, task_type"
+  val CommonFieldsWithTable = CommonFields.split(", ").map({ field => s"${Table}." + field}).mkString(", ")
+  val SpecificFields =
     s"""
-       |SELECT tasks.id, tasks.version, tasks.created_at, tasks.updated_at, tasks.part_id, tasks.dependency_id, tasks.name,
-       |  tasks.description, tasks.position, tasks.notes_allowed, tasks.task_type,
        |  short_answer_tasks.max_length,
        |  multiple_choice_tasks.choices as mc_choices,
        |  multiple_choice_tasks.answers as mc_answers,
        |  multiple_choice_tasks.allow_multiple,
        |  multiple_choice_tasks.randomize as mc_randomize,
-       |  ordering_tasks.choices as ord_choices,
+       |  ordering_tasks.elements as ord_elements,
        |  ordering_tasks.answers as ord_answers,
        |  ordering_tasks.randomize as ord_randomize,
-       |  matching_tasks.choices_left,
-       |  matching_tasks.choices_right,
+       |  matching_tasks.elements_left,
+       |  matching_tasks.elements_right,
        |  matching_Tasks.answers as mat_answers,
        |  matching_Tasks.randomize as mat_randomize
      """.stripMargin
 
-  val Fields =
-    s"""
-       |tasks.id, tasks.version, tasks.created_at, tasks.updated_at, tasks.part_id, tasks.dependency_id, tasks.name,
-       |  tasks.description, tasks.position, tasks.notes_allowed, tasks.task_type,
-       |  short_answer_tasks.max_length,
-       |  multiple_choice_tasks.choices,
-       |  multiple_choice_tasks.answers,
-       |  multiple_choice_tasks.allow_multiple,
-       |  multiple_choice_tasks.randomize,
-       |  ordering_tasks.choices,
-       |  ordering_tasks.answers,
-       |  ordering_tasks.randomize,
-       |  matching_tasks.choices_left,
-       |  matching_tasks.choices_right,
-       |  matching_Tasks.answers,
-       |  matching_Tasks.randomize
-     """.stripMargin
-
-  val From = "FROM tasks"
-
+  val QMarks  = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val OrderBy = s"${Table}.position ASC"
   val Join =
     s"""
-       |LEFT JOIN long_answer_tasks ON tasks.id = long_answer_tasks.task_id
-       |LEFT JOIN short_answer_tasks ON tasks.id = short_answer_tasks.task_id
-       |LEFT JOIN multiple_choice_tasks ON tasks.id = multiple_choice_tasks.task_id
-       |LEFT JOIN ordering_tasks ON tasks.id = ordering_tasks.task_id
-       |LEFT JOIN matching_tasks ON tasks.id = matching_tasks.task_id
+       |LEFT JOIN long_answer_tasks ON $Table.id = long_answer_tasks.task_id
+       |LEFT JOIN short_answer_tasks ON $Table.id = short_answer_tasks.task_id
+       |LEFT JOIN multiple_choice_tasks ON $Table.id = multiple_choice_tasks.task_id
+       |LEFT JOIN ordering_tasks ON $Table.id = ordering_tasks.task_id
+       |LEFT JOIN matching_tasks ON $Table.id = matching_tasks.task_id
      """.stripMargin
 
   // -- Select queries -----------------------------------------------------------------------------------------------
 
   val SelectAll =
     s"""
-       |$Select
-       |$From
+       |SELECT $CommonFields, $SpecificFields
+       |FROM $Table
        |$Join
-       |ORDER BY position ASC
+       |ORDER BY $OrderBy
      """.stripMargin
 
   val SelectOne =
     s"""
-       |$Select
-       |$From
+       |SELECT $CommonFields, $SpecificFields
+       |FROM $Table
        |$Join
        |WHERE tasks.id = ?
      """.stripMargin
 
   val SelectByPartId =
     s"""
-       |$Select
-       |$From
+       |SELECT $CommonFields, $SpecificFields
+       |FROM $Table
        |$Join
        |WHERE part_id = ?
      """.stripMargin
 
-  val SelectByProjectIdPartNum =
+  // TODO - not used
+//  val SelectByProjectIdPartNum =
+//    s"""
+//       |SELECT $CommonFields, $SpecificFields
+//       |FROM $Table, parts, projects
+//       |WHERE projects.id = ?
+//       |  AND projects.id = parts.project_id
+//       |  AND parts.position = ?
+//       |  AND parts.id = $Table.part_id
+//       |ORDER BY parts.position ASC, $Table.position ASC
+//     """.stripMargin
+
+  val SelectByProjectId =
     s"""
-       |$Select
-       |$From, parts, projects
-       |WHERE projects.id = ?
-       |  AND projects.id = parts.project_id
-       |  AND parts.position = ?
-       |  AND parts.id = tasks.part_id
-       |ORDER BY parts.position ASC, tasks.position ASC
-     """.stripMargin
+      |SELECT $CommonFieldsWithTable, $SpecificFields
+      |FROM $Table
+      |$Join
+      |INNER JOIN projects
+      | ON projects.id = ?
+      |INNER JOIN  parts
+      | ON parts.id = $Table.part_id
+      | AND parts.project_id = projects.id
+      |ORDER BY parts.position ASC, $OrderBy
+  """.stripMargin
 
-  val SelectByProjectId = s"""
-    $Select
-    $From, parts, projects
-    WHERE projects.id = ?
-      AND projects.id = parts.project_id
-      AND parts.id = tasks.part_id
-    ORDER BY parts.position ASC, tasks.position ASC
-  """
+  // TODO - not used
+//  val SelectActiveByProjectId = s"""
+//    $Select
+//    $From, parts, projects, classes, courses_projects, users_courses
+//    WHERE projects.id = ?
+//      AND projects.id = parts.project_id
+//      AND parts.id = tasks.part_id
+//      AND users_courses.user_id = ?
+//      AND users_courses.course_id = courses_projects.course_id
+//      AND courses_projects.project_id = projects.id
+//    ORDER BY parts.position ASC, tasks.position ASC
+//  """
 
-  val SelectActiveByProjectId = s"""
-    $Select
-    $From, parts, projects, classes, courses_projects, users_courses
-    WHERE projects.id = ?
-      AND projects.id = parts.project_id
-      AND parts.id = tasks.part_id
-      AND users_courses.user_id = ?
-      AND users_courses.course_id = courses_projects.course_id
-      AND courses_projects.project_id = projects.id
-    ORDER BY parts.position ASC, tasks.position ASC
-  """
-
-  val SelectByPosition = s"""
-    $Select
-    $From
-    $Join
-    INNER JOIN parts ON parts.id = tasks.part_id AND parts.position = ?
-    INNER JOIN projects ON projects.id = parts.project_id AND projects.id = ?
-    WHERE tasks.position = ?
-  """
+  val SelectByPosition =
+    s"""
+      |SELECT $CommonFieldsWithTable, $SpecificFields
+      |FROM $Table
+      |$Join
+      |INNER JOIN parts
+      | ON parts.id = $Table.part_id
+      | AND parts.position = ?
+      |INNER JOIN projects
+      | ON projects.id = parts.project_id
+      | AND projects.id = ?
+      |WHERE tasks.position = ?
+  """.stripMargin
 
   val SelectNowByUserId = s"""
-    $Select, COALESCE(work.is_complete, FALSE) AS is_complete
-    $From
-    $Join
-    INNER JOIN users ON users.id = ?
-    INNER JOIN projects ON projects.id = ?
-    INNER JOIN parts ON parts.project_id = projects.id AND parts.enabled = 't'
-    INNER JOIN users_courses ON users_courses.course_id = projects.course_id AND users_courses.user_id = users.id
-    LEFT JOIN work ON users.id = work.user_id AND tasks.id = work.task_id
-    WHERE COALESCE(work.is_complete, FALSE) = FALSE
-    ORDER BY parts.position ASC, tasks.position ASC
-    LIMIT 1
+    |SELECT $CommonFields, $SpecificFields, COALESCE(work.is_complete, FALSE) AS is_complete
+    |FROM $Table
+    |$Join
+    |INNER JOIN users ON users.id = ?
+    |INNER JOIN projects ON projects.id = ?
+    |INNER JOIN parts ON parts.project_id = projects.id AND parts.enabled = 't'
+    |INNER JOIN users_courses ON users_courses.course_id = projects.course_id AND users_courses.user_id = users.id
+    |LEFT JOIN work ON users.id = work.user_id AND tasks.id = work.task_id
+    |WHERE COALESCE(work.is_complete, FALSE) = FALSE
+    |ORDER BY parts.position ASC, $OrderBy
+    |LIMIT 1
   """
 
   // -- Insert queries -----------------------------------------------------------------------------------------------
 
-  val Insert = {
-    val extraFields = fields.mkString(",")
-    val questions = fields.map(_ => "?").mkString(",")
+  val Insert =
     s"""
-       |INSERT INTO tasks (id, version, created_at, updated_at, part_id, dependency_id,
-       |                   name, description, position, notes_allowed, task_type)
-       |VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-       |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
-       |          name, description, position, notes_allowed, task_type
+       |INSERT INTO $Table ($CommonFields)
+       |VALUES ($QMarks)
+       |RETURNING $CommonFields
     """.stripMargin
-  }
-
-
-//  short_answer_tasks.max_length,
-//  multiple_choice_tasks.choices,
-//  multiple_choice_tasks.answers,
-//  multiple_choice_tasks.allow_multiple,
-//  multiple_choice_tasks.randomize,
-//  ordering_tasks.choices,
-//  ordering_tasks.answers,
-//  ordering_tasks.randomize,
-//  matching_tasks.choices_left,
-//  matching_tasks.choices_right,
-//  matching_Tasks.answers,
-//  matching_Tasks.randomize
 
   val InsertLongAnswer =
     s"""
        |WITH task AS (${Insert}),
-       |     la_task AS (INSERT INTO long_answer_tasks (task_id) SELECT task.id as task_id FROM task RETURNING task_id)
-       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
-       |       task.description, task.position, task.notes_allowed, task.task_type
+       |     la_task AS (INSERT INTO long_answer_tasks (task_id)
+       |                 SELECT task.id as task_id
+       |                 FROM task
+       |                 RETURNING task_id)
+       |SELECT $CommonFieldsWithTable
        |FROM task, la_task
      """.stripMargin
 
   val InsertShortAnswer =
     s"""
        |WITH task AS (${Insert}),
-       |     sa_task AS (INSERT INTO short_answer_tasks (task_id, max_length) SELECT task.id as task_id, ? as max_length FROM task RETURNING max_length)
-       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
-       |       task.description, task.position, task.notes_allowed, task.task_type, sa_task.max_length
+       |     sa_task AS (INSERT INTO short_answer_tasks (task_id, max_length)
+       |                 SELECT task.id as task_id, ? as max_length
+       |                 FROM task
+       |                 RETURNING max_length)
+       |SELECT $CommonFieldsWithTable, sa_task.max_length
        |FROM task, sa_task
      """.stripMargin
 
@@ -224,35 +194,33 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |                 SELECT task.id as task_id, ? as choices, ? as answers, ? as allow_multiple, ? as randomize
        |                 FROM task
        |                 RETURNING *)
-       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
-       |       task.description, task.position, task.notes_allowed, task.task_type, mc_task.choices as mc_choices,
-       |       mc_task.answers as mc_answers, mc_task.allow_multiple, mc_task.randomize as mc_randomize
+       |SELECT $CommonFieldsWithTable,
+       |  mc_task.choices as mc_choices, mc_task.answers as mc_answers,
+       |  mc_task.allow_multiple, mc_task.randomize as mc_randomize
        |FROM task, mc_task
      """.stripMargin
 
   val InsertOrdering =
     s"""
        |WITH task AS (${Insert}),
-       |     ord_task AS (INSERT INTO ordering_tasks (task_id, choices, answers, randomize)
+       |     ord_task AS (INSERT INTO ordering_tasks (task_id, elements, answers, randomize)
        |                  SELECT task.id as task_id, ? as choices, ? as answers, ? as randomize
        |                  FROM task
        |                  RETURNING *)
-       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
-       |       task.description, task.position, task.notes_allowed, task.task_type, ord_task.choices as ord_choices, ord_task.answers as ord_answers,
-       |       ord_task.randomize as ord_randomize
+       |SELECT $CommonFieldsWithTable,
+       |  ord_task.choices as ord_elements, ord_task.answers as ord_answers, ord_task.randomize as ord_randomize
        |FROM task, ord_task
      """.stripMargin
 
   val InsertMatching =
     s"""
        |WITH task AS (${Insert}),
-       |     mat_task AS (INSERT INTO matching_tasks (task_id, choices_left, choices_right, answers, randomize)
-       |                  SELECT task.id as task_id, ? as choices_left, ? as choices_right, ? as answers, ? as randomize
-       |                  FROM task
-       |                  RETURNING *)
-       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
-       |       task.description, task.position, task.notes_allowed, task.task_type, mat_task.choices_left, mat_task.choices_right,
-       |       mat_task.answers as mat_answers, mat_task.randomize as mat_randomize
+       |     mat_task (INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, randomize)
+       |               SELECT task.id as task_id, ? as elements_left, ? as elements_right, ? as answers, ? as randomize
+       |               FROM task
+       |               RETURNING *)
+       |SELECT $CommonFieldsWithTable,
+       |  mat_task.elements_left, mat_task.elements_right, mat_task.answers as mat_answers, mat_task.randomize as mat_randomize
        |FROM task, mat_task
      """.stripMargin
 
@@ -267,10 +235,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |    version = ?
        |WHERE id = ?
        |  AND version = ?
-       |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
-       |          name, description, position, notes_allowed, task_type
+       |RETURNING $CommonFields
      """.stripMargin
-
 
   val UpdateLongAnswer =
     s"""
@@ -279,8 +245,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |)
        |UPDATE long_answer_tasks
        |SET task_id = task.id
-       |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
-       |          name, description, position, notes_allowed, task_type
+       |RETURNING $CommonFields
      """.stripMargin
 
   val UpdateShortAnswer =
@@ -290,8 +255,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |)
        |UPDATE short_answer_tasks
        |SET task_id = task.id, max_length = ?
-       |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
-       |          name, description, position, notes_allowed, task_type
+       |RETURNING $CommonFields
      """.stripMargin
 
   val UpdateMultipleChoice =
@@ -301,8 +265,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |)
        |UPDATE multiple_choice_tasks
        |SET task_id = task.id, choices = ?, answers = ?, allow_multiple = ?, randomize = ?
-       |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
-       |          name, description, position, notes_allowed, task_type
+       |RETURNING $CommonFields
      """.stripMargin
 
   val UpdateOrdering =
@@ -311,9 +274,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |  ${Update}
        |)
        |UPDATE ordering_tasks
-       |SET task_id = task.id, choices = ?, answers = ?, randomize = ?
-       |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
-       |          name, description, position, notes_allowed, task_type
+       |SET task_id = task.id, elements = ?, answers = ?, randomize = ?
+       |RETURNING $CommonFields
      """.stripMargin
 
   val UpdateMatching =
@@ -322,19 +284,18 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |  ${Update}
        |)
        |UPDATE matching_tasks
-       |SET task_id = task.id, choices_left = ?, choices_right = ?, answers = ?, randomize = ?
-       |RETURNING id, version, created_at, updated_at, part_id, dependency_id,
-       |          name, description, position, notes_allowed, task_type
+       |SET task_id = task.id, elements_left = ?, elements_right = ?, answers = ?, randomize = ?
+       |RETURNING $CommonFields
      """.stripMargin
 
   // -- Delete queries -----------------------------------------------------------------------------------------------
 
   val DeleteByPart = s"""
-    DELETE FROM $table WHERE part_id = ?
+    DELETE FROM $Table WHERE part_id = ?
   """
 
   val Delete = s"""
-    DELETE FROM $table WHERE id = ? AND version = ?
+    DELETE FROM $Table WHERE id = ? AND version = ?
   """
 
   // -- Methods ------------------------------------------------------------------------------------------------------
@@ -394,7 +355,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
    * a project, and its project.
    *
    * @param project the project to search within
-   * @param partNum the number of the part within its project
+   * @param part    the part to get position
    * @param taskNum the number of the task within its part
    * @return an optional task if one was found
    */
@@ -520,8 +481,16 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       case _ => throw new Exception("I don't know how you did this, but you sent me a task type that doesn't exist.")
     }
 
-    // Execute the query
-    queryOne(Update, dataArray)
+    val query = task match {
+      case longAnswer: LongAnswerTask => UpdateLongAnswer
+      case shortAnswer: ShortAnswerTask => UpdateShortAnswer
+      case multipleChoice: MultipleChoiceTask => UpdateMultipleChoice
+      case ordering: OrderingTask => UpdateOrdering
+      case matching: MatchingTask => UpdateMatching
+    }
+
+    // Send the query
+    queryOne(query, dataArray)
   }
 
   /**
@@ -622,7 +591,7 @@ trait SpecificTaskConstructors {
       position = row("position").asInstanceOf[Int],
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
-      elements = Option(row("ord_choices").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
+      elements = Option(row("ord_elements").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
       answer  = Option(row("ord_answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
       randomizeChoices = row("ord_randomize").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
@@ -643,8 +612,8 @@ trait SpecificTaskConstructors {
       position = row("position").asInstanceOf[Int],
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
-      elementsLeft = Option(row("choices_left").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      elementsRight = Option(row("choices_right").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
+      elementsLeft = Option(row("elements_left").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
+      elementsRight = Option(row("elements_right").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
       answer = row("mat_answers").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element => Match(element.head, element.tail.head) },
       randomizeChoices = row("mat_randomize").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],

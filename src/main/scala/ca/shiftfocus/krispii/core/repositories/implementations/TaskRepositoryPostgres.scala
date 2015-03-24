@@ -57,11 +57,11 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   val OrderBy = s"${Table}.position ASC"
   val Join =
     s"""
-       |LEFT JOIN long_answer_tasks ON tasks.id = long_answer_tasks.task_id
-       |LEFT JOIN short_answer_tasks ON tasks.id = short_answer_tasks.task_id
-       |LEFT JOIN multiple_choice_tasks ON tasks.id = multiple_choice_tasks.task_id
-       |LEFT JOIN ordering_tasks ON tasks.id = ordering_tasks.task_id
-       |LEFT JOIN matching_tasks ON tasks.id = matching_tasks.task_id
+       |LEFT JOIN long_answer_tasks ON $Table.id = long_answer_tasks.task_id
+       |LEFT JOIN short_answer_tasks ON $Table.id = short_answer_tasks.task_id
+       |LEFT JOIN multiple_choice_tasks ON $Table.id = multiple_choice_tasks.task_id
+       |LEFT JOIN ordering_tasks ON $Table.id = ordering_tasks.task_id
+       |LEFT JOIN matching_tasks ON $Table.id = matching_tasks.task_id
      """.stripMargin
 
   // -- Select queries -----------------------------------------------------------------------------------------------
@@ -104,11 +104,14 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   val SelectByProjectId =
     s"""
-      |SELECT $CommonFields, $SpecificFields
-      |FROM $Table, parts, projects
-      |WHERE projects.id = ?
-      | AND projects.id = parts.project_id
-      | AND parts.id = $Table.part_id
+      |SELECT $CommonFieldsWithTable, $SpecificFields
+      |FROM $Table
+      |$Join
+      |INNER JOIN projects
+      | ON projects.id = ?
+      |INNER JOIN  parts
+      | ON parts.id = $Table.part_id
+      | AND parts.project_id = projects.id
       |ORDER BY parts.position ASC, $OrderBy
   """.stripMargin
 
@@ -127,11 +130,11 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   val SelectByPosition =
     s"""
-      |SELECT $CommonFields, $SpecificFields
+      |SELECT $CommonFieldsWithTable, $SpecificFields
       |FROM $Table
       |$Join
       |INNER JOIN parts
-      | ON parts.id = tasks.part_id
+      | ON parts.id = $Table.part_id
       | AND parts.position = ?
       |INNER JOIN projects
       | ON projects.id = parts.project_id

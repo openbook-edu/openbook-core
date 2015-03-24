@@ -97,12 +97,11 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
 
   // -- Common query components --------------------------------------------------------------------------------------
 
-  val Select =
+  val Fields =
     s"""
-       |SELECT work.id as id,
+       |work.id as id,
        |       work.user_id as user_id,
        |       work.task_id as task_id,
-       |       work.course_id as course_id,
        |       work.is_complete as is_complete,
        |       work.created_at as created_at,
        |       work.updated_at as updated_at,
@@ -118,6 +117,11 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
        |       matching_work.version as matching_version
      """.stripMargin
 
+  val Select =
+    s"""
+       |SELECT $Fields
+     """.stripMargin
+
   val From = "FROM work"
 
   val Join =
@@ -131,8 +135,8 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
 
   val JoinMatchVersion =
     s"""
-       |LEFT JOIN long_answer_work ON work.id = long_answer_work.work_id AND work.version = long_answer_work.version
-       |LEFT JOIN short_answer_work ON work.id = short_answer_work.work_id AND work.version = short_answer_work.version
+       |LEFT JOIN long_answer_work ON work.id = long_answer_work.work_id
+       |LEFT JOIN short_answer_work ON work.id = short_answer_work.work_id
        |LEFT JOIN multiple_choice_work ON work.id = multiple_choice_work.work_id AND work.version = multiple_choice_work.version
        |LEFT JOIN ordering_work ON work.id = ordering_work.work_id AND work.version = ordering_work.version
        |LEFT JOIN matching_work ON work.id = matching_work.work_id AND work.version = matching_work.version
@@ -147,7 +151,6 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
        |$Join
        |WHERE projects.id = ?
        |  AND user_id = ?
-       |  AND course_id = ?
        |  AND parts.id = tasks.part_id
        |  AND projects.id = parts.project_id
        |  AND work.task_id = tasks.id
@@ -168,17 +171,15 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
        |$Join
        |WHERE user_id = ?
        |  AND task_id = ?
-       |  AND course_id = ?
      """.stripMargin
 
-  val SelectByStudentTaskCourse =
+  val SelectByStudentTask =
     s"""
        |$Select
        |$From
-       |$Join
+       |$JoinMatchVersion
        |WHERE user_id = ?
        |  AND task_id = ?
-       |  AND course_id = ?
        |LIMIT 1
      """.stripMargin
 
@@ -186,7 +187,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
     s"""
        |$Select
        |$From
-       |$Join
+       |$JoinMatchVersion
        |WHERE id = ?
        |LIMIT 1
      """.stripMargin
@@ -343,7 +344,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
    * @return
    */
   override def find(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    queryOne(SelectByStudentTaskCourse, Seq[Any](user.id.bytes, task.id.bytes))
+    queryOne(SelectByStudentTask, Seq[Any](user.id.bytes, task.id.bytes))
   }
 
   /**
@@ -354,7 +355,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
    * @return
    */
   override def find(user: User, task: Task, version: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    queryOne(SelectByStudentTaskCourse, Seq[Any](user.id.bytes, task.id.bytes, version))
+    queryOne(SelectByStudentTask, Seq[Any](user.id.bytes, task.id.bytes, version))
   }
 
   /**

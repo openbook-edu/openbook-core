@@ -142,19 +142,20 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       |WHERE tasks.position = ?
   """.stripMargin
 
-  val SelectNowByUserId = s"""
-    |SELECT $CommonFields, $SpecificFields, COALESCE(work.is_complete, FALSE) AS is_complete
-    |FROM $Table
-    |$Join
-    |INNER JOIN users ON users.id = ?
-    |INNER JOIN projects ON projects.id = ?
-    |INNER JOIN parts ON parts.project_id = projects.id AND parts.enabled = 't'
-    |INNER JOIN users_courses ON users_courses.course_id = projects.course_id AND users_courses.user_id = users.id
-    |LEFT JOIN work ON users.id = work.user_id AND tasks.id = work.task_id
-    |WHERE COALESCE(work.is_complete, FALSE) = FALSE
-    |ORDER BY parts.position ASC, $OrderBy
-    |LIMIT 1
-  """
+  val SelectNowByUserId =
+    s"""
+       |SELECT $CommonFieldsWithTable, $SpecificFields, COALESCE(work.is_complete, FALSE) AS is_complete
+       |FROM $Table
+       |$Join
+       |INNER JOIN users ON users.id = ?
+       |INNER JOIN projects ON projects.id = ?
+       |INNER JOIN parts ON parts.project_id = projects.id AND parts.enabled = 't'
+       |INNER JOIN users_courses ON users_courses.course_id = projects.course_id AND users_courses.user_id = users.id
+       |LEFT JOIN work ON users.id = work.user_id AND tasks.id = work.task_id
+       |WHERE COALESCE(work.is_complete, FALSE) = FALSE
+       |ORDER BY parts.position ASC, $OrderBy
+       |LIMIT 1
+     """.stripMargin
 
   // -- Insert queries -----------------------------------------------------------------------------------------------
 
@@ -172,7 +173,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |                 SELECT task.id as task_id
        |                 FROM task
        |                 RETURNING task_id)
-       |SELECT $CommonFieldsWithTable
+       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
+       |       task.description, task.position, task.notes_allowed, task.task_type
        |FROM task, la_task
      """.stripMargin
 
@@ -183,7 +185,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |                 SELECT task.id as task_id, ? as max_length
        |                 FROM task
        |                 RETURNING max_length)
-       |SELECT $CommonFieldsWithTable, sa_task.max_length
+       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
+       |       task.description, task.position, task.notes_allowed, task.task_type, sa_task.max_length
        |FROM task, sa_task
      """.stripMargin
 
@@ -194,7 +197,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |                 SELECT task.id as task_id, ? as choices, ? as answers, ? as allow_multiple, ? as randomize
        |                 FROM task
        |                 RETURNING *)
-       |SELECT $CommonFieldsWithTable,
+       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
+       |       task.description, task.position, task.notes_allowed, task.task_type,
        |  mc_task.choices as mc_choices, mc_task.answers as mc_answers,
        |  mc_task.allow_multiple, mc_task.randomize as mc_randomize
        |FROM task, mc_task
@@ -204,22 +208,24 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     s"""
        |WITH task AS (${Insert}),
        |     ord_task AS (INSERT INTO ordering_tasks (task_id, elements, answers, randomize)
-       |                  SELECT task.id as task_id, ? as choices, ? as answers, ? as randomize
+       |                  SELECT task.id as task_id, ? as elements, ? as answers, ? as randomize
        |                  FROM task
        |                  RETURNING *)
-       |SELECT $CommonFieldsWithTable,
-       |  ord_task.choices as ord_elements, ord_task.answers as ord_answers, ord_task.randomize as ord_randomize
+       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
+       |       task.description, task.position, task.notes_allowed, task.task_type,
+       |  ord_task.elements as ord_elements, ord_task.answers as ord_answers, ord_task.randomize as ord_randomize
        |FROM task, ord_task
      """.stripMargin
 
   val InsertMatching =
     s"""
        |WITH task AS (${Insert}),
-       |     mat_task (INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, randomize)
+       |     mat_task AS (INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, randomize)
        |               SELECT task.id as task_id, ? as elements_left, ? as elements_right, ? as answers, ? as randomize
        |               FROM task
        |               RETURNING *)
-       |SELECT $CommonFieldsWithTable,
+       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
+       |       task.description, task.position, task.notes_allowed, task.task_type,
        |  mat_task.elements_left, mat_task.elements_right, mat_task.answers as mat_answers, mat_task.randomize as mat_randomize
        |FROM task, mat_task
      """.stripMargin
@@ -377,6 +383,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     // All tasks have these properties.
     val commonData = Seq[Any](
       task.id.bytes,
+      1,
       new DateTime,
       new DateTime,
       task.partId.bytes,

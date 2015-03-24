@@ -60,7 +60,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
       studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
       taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
       version  = row("version").asInstanceOf[Long],
-      answer    = row("answer").asInstanceOf[IndexedSeq[Int]],
+      answer    = row("multiple_choice_response").asInstanceOf[IndexedSeq[Int]],
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
@@ -73,7 +73,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
       studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
       taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
       version  = row("version").asInstanceOf[Long],
-      answer    = row("answer").asInstanceOf[IndexedSeq[Int]],
+      answer    = row("ordering_response").asInstanceOf[IndexedSeq[Int]],
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
@@ -85,13 +85,13 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
       id = UUID(row("id").asInstanceOf[Array[Byte]]),
       studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
       taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      version  = row("version").asInstanceOf[Long],
-      answer    = row("answer").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element =>
+      version   = row("version").asInstanceOf[Long],
+      answer    = row("matching_response").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element =>
         Match(element(0), element(1))
       },
       isComplete = row("is_complete").asInstanceOf[Boolean],
-      createdAt = row("created_at").asInstanceOf[DateTime],
-      updatedAt = row("updated_at").asInstanceOf[DateTime]
+      createdAt  = row("created_at").asInstanceOf[DateTime],
+      updatedAt  = row("updated_at").asInstanceOf[DateTime]
     )
   }
 
@@ -109,11 +109,11 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
        |       work.version as version,
        |       long_answer_work.document_id as long_answer_document_id,
        |       short_answer_work.document_id as short_answer_document_id,
-       |       multiple_choice_work.answer as multiple_choice_answer,
+       |       multiple_choice_work.response as multiple_choice_response,
        |       multiple_choice_work.version as multiple_choice_version,
-       |       ordering_work.answer as ordering_answer,
+       |       ordering_work.response as ordering_response,
        |       ordering_work.version as ordering_version,
-       |       matching_work.answer as matching_answer,
+       |       matching_work.response as matching_response,
        |       matching_work.version as matching_version
      """.stripMargin
 
@@ -196,32 +196,39 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
 
   val Insert =
     s"""
-       |INSERT INTO work (id, user_id, task_id, course_id, version, is_complete, created_at, updated_at, work_type)
-       |VALUES (?, ?, ?, ?, 1, ?, ?, ?, ?)
-       |RETURNING id, user_id, task_id, course_id, is_complete, created_at, updated_at
+       |INSERT INTO work (id, user_id, task_id, version, is_complete, created_at, updated_at, work_type)
+       |VALUES (?, ?, ?, 1, ?, ?, ?, ?)
+       |RETURNING id, user_id, task_id, version, is_complete, created_at, updated_at, work_type
      """.stripMargin
 
   // TODO - We need RETURNING for every Work type
   def InsertIntoDocumentWork(table: String): String =
     s"""
-       |WITH w AS (
-       |  $Insert
-       |)
-       |INSERT INTO $table (work_id, document_id)
-       |  SELECT w.id as work_id,
-       |         ? as document_id
-       |  FROM w
+       |WITH w AS ($Insert),
+       |     x AS (INSERT INTO $table (work_id, document_id)
+       |           SELECT w.id as work_id, ? as document_id
+       |           FROM w
+       |           RETURNING *)
+       |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.created_at, w.updated_at, w.work_type, w.document_id
+       |FROM w, x
      """.stripMargin
 
-  def InsertIntoVersionedWork(table: String): String =
+  def InsertIntoVersionedWork(table: String): String = {
+    val response = table match {
+      case "multiple_choice_work" => "multiple_choice_response"
+      case "ordering_work" => "ordering_response"
+      case "matching_work" => "matching_response"
+    }
     s"""
-       |WITH w AS (
-       |  $Insert
-       |)
-       |INSERT INTO $table (work_id, version, answer)
-       |  SELECT work.id as work_id, work.version as version, ? as answer
-       |  FROM w
-     """
+       |WITH w AS ($Insert),
+       |     x AS (INSERT INTO $table (work_id, version, response)
+       |           SELECT w.id as work_id, w.version as version, ? as response
+       |           FROM w
+       |           RETURNING *)
+       |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.created_at, w.updated_at, w.work_type, x.response as $response
+       |FROM w, x
+     """.stripMargin
+  }
 
   val Update =
     s"""
@@ -231,7 +238,6 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
        |    updated_at = ?
        |WHERE user_id = ?
        |  AND task_id = ?
-       |  AND course_id = ?
        |  AND version = ?
      """.stripMargin
 
@@ -243,7 +249,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
        |UPDATE $table
        |SET answer = ?
        |WHERE work_id = work.id
-       |RETURNING id, user_id, task_id, course_id, version, answer, is_complete, created_at, updated_at
+       |RETURNING id, user_id, task_id, version, answer, is_complete, created_at, updated_at
      """.stripMargin
 
   def UpdateWithNewRevision(table: String): String =
@@ -251,13 +257,12 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
        |WITH work AS (
        |  $Update
        |)
-       |INSERT INTO $table (user_id, task_id, course_id, version, answer)
+       |INSERT INTO $table (user_id, task_id, version, answer)
        |  SELECT work.user_id as user_id,
        |         work.task_id as task_id,
-       |         work.course_id as course_id,
        |         ? as version,
        |         ? as answer
-       |RETURNING user_id, task_id, course_id, revision, version, answer, is_complete, created_at, updated_at
+       |RETURNING user_id, task_id, revision, version, answer, is_complete, created_at, updated_at
      """.stripMargin
 
   // -- Delete -------------------------------------------------------------------------------------------------------
@@ -271,7 +276,6 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
        |$Join
        |WHERE user_id = ?
        |  AND task_id = ?
-       |  AND course_id = ?
      """.stripMargin
 
   val DeleteRevision =
@@ -281,7 +285,6 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
        |$Join
        |WHERE user_id = ?
        |  AND task_id = ?
-       |  AND course_id = ?
        |  AND revision = ?
      """.stripMargin
 
@@ -393,7 +396,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
       case specific: ShortAnswerWork => baseParams ++ Array[Any](Task.ShortAnswer, specific.documentId.bytes)
       case specific: MultipleChoiceWork => baseParams ++ Array[Any](Task.MultipleChoice, specific.answer)
       case specific: OrderingWork => baseParams ++ Array[Any](Task.Ordering, specific.answer)
-      case specific: MatchingWork => baseParams ++ Array[Any](Task.Matching, specific.answer.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => s"${item.left}:${item.right}"})
+      case specific: MatchingWork => baseParams ++ Array[Any](Task.Matching, specific.answer.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => IndexedSeq[Int](item.left, item.right)})
     }
 
     queryOne(query, params)

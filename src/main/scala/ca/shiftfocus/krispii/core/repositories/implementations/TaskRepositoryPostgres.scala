@@ -48,17 +48,17 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |SELECT tasks.id, tasks.version, tasks.created_at, tasks.updated_at, tasks.part_id, tasks.dependency_id, tasks.name,
        |  tasks.description, tasks.position, tasks.notes_allowed, tasks.task_type,
        |  short_answer_tasks.max_length,
-       |  multiple_choice_tasks.choices,
-       |  multiple_choice_tasks.answers,
+       |  multiple_choice_tasks.choices as mc_choices,
+       |  multiple_choice_tasks.answers as mc_answers,
        |  multiple_choice_tasks.allow_multiple,
-       |  multiple_choice_tasks.randomize,
-       |  ordering_tasks.choices,
-       |  ordering_tasks.answers,
-       |  ordering_tasks.randomize,
+       |  multiple_choice_tasks.randomize as mc_randomize,
+       |  ordering_tasks.choices as ord_choices,
+       |  ordering_tasks.answers as ord_answers,
+       |  ordering_tasks.randomize as ord_randomize,
        |  matching_tasks.choices_left,
        |  matching_tasks.choices_right,
-       |  matching_Tasks.answers,
-       |  matching_Tasks.randomize
+       |  matching_Tasks.answers as mat_answers,
+       |  matching_Tasks.randomize as mat_randomize
      """.stripMargin
 
   val Fields =
@@ -225,7 +225,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |                 FROM task
        |                 RETURNING *)
        |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
-       |       task.description, task.position, task.notes_allowed, task.task_type, mc_task.choices, mc_task.answers, mc_task.allow_multiple, mc_task.randomize
+       |       task.description, task.position, task.notes_allowed, task.task_type, mc_task.choices as mc_choices,
+       |       mc_task.answers as mc_answers, mc_task.allow_multiple, mc_task.randomize as mc_randomize
        |FROM task, mc_task
      """.stripMargin
 
@@ -237,7 +238,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |                  FROM task
        |                  RETURNING *)
        |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
-       |       task.description, task.position, task.notes_allowed, task.task_type, ord_task.choices, ord_task.answers, ord_task.randomize
+       |       task.description, task.position, task.notes_allowed, task.task_type, ord_task.choices as ord_choices, ord_task.answers as ord_answers,
+       |       ord_task.randomize as ord_randomize
        |FROM task, ord_task
      """.stripMargin
 
@@ -249,7 +251,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |                  FROM task
        |                  RETURNING *)
        |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
-       |       task.description, task.position, task.notes_allowed, task.task_type, mat_task.choices_left, mat_task.choices_right, mat_task.answers, mat_task.randomize
+       |       task.description, task.position, task.notes_allowed, task.task_type, mat_task.choices_left, mat_task.choices_right,
+       |       mat_task.answers as mat_answers, mat_task.randomize as mat_randomize
        |FROM task, mat_task
      """.stripMargin
 
@@ -451,7 +454,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
         Task.Matching,
         matching.elementsLeft,
         matching.elementsRight,
-        matching.answer.map { element => s"${element.left}:${element.right}" },
+        matching.answer.map { element => IndexedSeq(element.left, element.right) },
         matching.randomizeChoices
       )
       case _ => throw new Exception("I don't know how you did this, but you sent me a task type that doesn't exist.")
@@ -597,10 +600,10 @@ trait SpecificTaskConstructors {
       position = row("position").asInstanceOf[Int],
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
-      choices = Option(row("choices").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      answer  = Option(row("answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
+      choices = Option(row("mc_choices").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
+      answer  = Option(row("mc_answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
       allowMultiple = row("allow_multiple").asInstanceOf[Boolean],
-      randomizeChoices = row("randomize").asInstanceOf[Boolean],
+      randomizeChoices = row("mc_randomize").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )
@@ -619,9 +622,9 @@ trait SpecificTaskConstructors {
       position = row("position").asInstanceOf[Int],
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
-      elements = Option(row("choices").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      answer  = Option(row("answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
-      randomizeChoices = row("randomize").asInstanceOf[Boolean],
+      elements = Option(row("ord_choices").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
+      answer  = Option(row("ord_answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
+      randomizeChoices = row("ord_randomize").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )
@@ -640,12 +643,10 @@ trait SpecificTaskConstructors {
       position = row("position").asInstanceOf[Int],
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
-      elementsLeft = Option(row("elements_left").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      elementsRight = Option(row("elements_right").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      answer = Option(row("answers").asInstanceOf[IndexedSeq[IndexedSeq[Int]]]).getOrElse(IndexedSeq()).map { element =>
-        Match(element.head, element.tail.head)
-      },
-      randomizeChoices = row("randomize").asInstanceOf[Boolean],
+      elementsLeft = Option(row("choices_left").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
+      elementsRight = Option(row("choices_right").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
+      answer = row("mat_answers").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element => Match(element.head, element.tail.head) },
+      randomizeChoices = row("mat_randomize").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )

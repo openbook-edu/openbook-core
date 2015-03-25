@@ -286,7 +286,6 @@ class TaskRepositorySpec
     }
   }
 
-  // TODO check if part enabled true and false
   "TaskRepository.findNow" should {
     inSequence {
       "find a task on which user is working on now" in {
@@ -309,20 +308,6 @@ class TaskRepositorySpec
 
         // Specific fields
         task.maxLength should be(testTask.maxLength)
-      }
-      "return RepositoryError.NoResults if user is not connected with project" in {
-        val testUser     = TestValues.testUserG
-        val testProject  = TestValues.testProjectB
-
-        val result = taskRepository.findNow(testUser, testProject)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
-      }
-      "return RepositoryError.NoResults if project doesn't have any task" in {
-        val testUser     = TestValues.testUserC
-        val testProject  = TestValues.testProjectE
-
-        val result = taskRepository.findNow(testUser, testProject)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
       "find a task on which user is working on now within another project" in {
         val testUser     = TestValues.testUserC
@@ -347,6 +332,32 @@ class TaskRepositorySpec
         task.answers should be(testTask.answers)
         task.randomizeChoices should be(testTask.randomizeChoices)
       }
+      "return RepositoryError.NoResults if user is not connected with project" in {
+        val testUser     = TestValues.testUserG
+        val testProject  = TestValues.testProjectB
+
+        val result = taskRepository.findNow(testUser, testProject)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+      "return RepositoryError.NoResults if project doesn't have any task" in {
+        val testUser     = TestValues.testUserC
+        val testProject  = TestValues.testProjectE
+
+        val result = taskRepository.findNow(testUser, testProject)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+      "return RepositoryError.NoResults if part is not enabled" in {
+        val testUser     = TestValues.testUserC
+        val testProject  = TestValues.testProjectC
+
+        val result = taskRepository.findNow(testUser, testProject)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+    }
+  }
+
+  "TaskRepository.findNowFromAll" should {
+    inSequence {
       "find a task from all tasks on which someone is working on now" in {
         val testTask = TestValues.testShortAnswerTaskB
 
@@ -679,6 +690,51 @@ class TaskRepositorySpec
         )
 
         val result = taskRepository.update(updatedTask)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+    }
+  }
+
+  // TODO delete with wrong version in all tests
+  "TaskRepository.delete" should {
+    inSequence {
+      "delete a task that doesn't have references in work table" in {
+        val testTask = TestValues.testMatchingTaskE
+
+        val result = taskRepository.delete(testTask)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: MatchingTask) = eitherTask
+
+        task.id should be(testTask.id)
+        task.version should be(testTask.version)
+        task.partId should be(testTask.partId)
+        task.taskType should be(testTask.taskType)
+        task.settings.toString should be(testTask.settings.toString)
+
+        // Specific fields
+        task.elementsLeft should be(testTask.elementsLeft)
+        task.elementsRight should be(testTask.elementsRight)
+        task.answers should be(testTask.answers)
+        task.randomizeChoices should be(testTask.randomizeChoices)
+      }
+      "return RepositoryError.ForeignKeyConflict if a task has references in work table" in {
+        val testTask = TestValues.testLongAnswerTaskA
+
+        val result = taskRepository.delete(testTask)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("dependency_id", "tasks_dependency_id_fkey")))
+      }
+      "return RepositoryError.NoResults if a task has wrong version" in {
+        val testTask = TestValues.testMatchingTaskE.copy(
+          version = 99L
+        )
+
+        val result = taskRepository.delete(testTask)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+      "return RepositoryError.NoResults if task doesn't exist" in {
+        val testTask = TestValues.testMatchingTaskJ
+
+        val result = taskRepository.delete(testTask)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
     }

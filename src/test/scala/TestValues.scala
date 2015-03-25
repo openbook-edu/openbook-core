@@ -436,6 +436,25 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testMatchingTaskK = MatchingTask(
+    id = UUID("337fa731-3685-4ba3-8668-280c0096514c"),
+    version = 7L,
+    partId = UUID("c850ec53-f0a9-460d-918a-5e6fd538f376"), // testPartE.id
+    position = 16,
+    settings = CommonTaskSettings(
+      dependencyId = Option(testLongAnswerTaskA.id),
+      title = "test MatchingTask K",
+      description = "test MatchingTask K description",
+      notesAllowed = true
+    ),
+    elementsLeft = Vector("choice left 6", "choice left 7"),
+    elementsRight = Vector("choice right 8", "choice right 9"),
+    answers  = Vector(Match(6, 7), Match(8, 9)),
+    randomizeChoices = true,
+    createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
 
   /* DOCUMENTS */
   val testDocumentA = Document(
@@ -578,7 +597,7 @@ object TestValues {
     version = 4L,
     projectId = UUID("4ac4d872-451b-4092-b13f-643d6d5fa930"), // testProjectC.id,
     name = "test part E",
-    enabled = true,
+    enabled = false,
     position = 13,
     tasks = Vector(),
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),

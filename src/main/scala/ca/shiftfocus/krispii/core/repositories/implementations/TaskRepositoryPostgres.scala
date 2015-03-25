@@ -317,13 +317,33 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   // -- Delete queries -----------------------------------------------------------------------------------------------
 
-  val DeleteByPart = s"""
-    DELETE FROM $Table WHERE part_id = ?
-  """
+  // TODO - we need RETURNING for specific fields!!!
+  val DeleteByPart =
+    s"""
+      |DELETE FROM $Table
+      |USING
+      | long_answer_tasks,
+      | short_answer_tasks,
+      | multiple_choice_tasks,
+      | ordering_tasks,
+      | matching_tasks
+      |WHERE part_id = ?
+      |RETURNING $CommonFields, $SpecificFields
+    """.stripMargin
 
-  val Delete = s"""
-    DELETE FROM $Table WHERE id = ? AND version = ?
-  """
+  val Delete =
+    s"""
+      |DELETE FROM $Table
+      |USING
+      | long_answer_tasks,
+      | short_answer_tasks,
+      | multiple_choice_tasks,
+      | ordering_tasks,
+      | matching_tasks
+      |WHERE id = ?
+      | AND version = ?
+      |RETURNING $CommonFields, $SpecificFields
+    """.stripMargin
 
   // -- Methods ------------------------------------------------------------------------------------------------------
 

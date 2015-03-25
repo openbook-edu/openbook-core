@@ -169,7 +169,7 @@ VALUES ('\xfb01f11b7f2341c8877b68410be62aa5', 3, '\xe4ae3b9098714339b05c8d39e3aa
 
 /* part E -> project C -> course B -> user B (teacher) */
 INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
-VALUES ('\xc850ec53f0a9460d918a5e6fd538f376', 4, '\x4ac4d872451b4092b13f643d6d5fa930', 'test part E', true, 13, '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
+VALUES ('\xc850ec53f0a9460d918a5e6fd538f376', 4, '\x4ac4d872451b4092b13f643d6d5fa930', 'test part E', false, 13, '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
 
 /* part F -> project C -> course B -> user B (teacher) */
 INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
@@ -219,6 +219,13 @@ VALUES ('\x7e9fe0e8e8214d84a7feac023fe6dfa3', 5, '\xfb01f11b7f2341c8877b68410be6
 
 INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, randomize)
 VALUES ('\x7e9fe0e8e8214d84a7feac023fe6dfa3', '{choice left 5, choice left 6}', '{choice right 7, choice right 8}', '{{5, 6}, {7, 8}}', true);
+
+/* matchingTask K -> partE (dependency_id -> longAnswerTask A) -> project C -> course B -> user B (teacher) */
+INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
+VALUES ('\x337fa73136854ba38668280c0096514c', 6, '\xc850ec53f0a9460d918a5e6fd538f376', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test MatchingTask K', 'test MatchingTask K description', 16, 4, true, '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+
+INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, randomize)
+VALUES ('\x337fa73136854ba38668280c0096514c', '{choice left 6, choice left 7}', '{choice right 8, choice right 9}', '{{6, 7}, {8, 9}}', true);
 
 
 /* DOCUMENTS */

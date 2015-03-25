@@ -268,19 +268,17 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-  /**
-   * No data in DB
-   */
+  /* No data in DB */
   val testLongAnswerTaskF = LongAnswerTask(
     id = UUID("6a50a2f1-0138-4d5c-abdd-fe85a7a520a4"),
     version = 2L,
     partId = UUID("5cd214be-6bba-47fa-9f35-0eb8bafec397"), // testPartA.id
-    position = 10,
+    position = 11,
     settings = CommonTaskSettings(
       dependencyId = None,
       title = "test longAnswerTask F",
       description = "test longAnswerTask F description",
-      notesAllowed = true
+      notesAllowed = false
     ),
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -303,6 +301,23 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  /* No data in DB */
+  val testShortAnswerTaskG = ShortAnswerTask(
+    id = UUID("54353246-bcc4-43af-9dbd-720c61f67b8f"),
+    version = 3L,
+    partId = UUID("5cd214be-6bba-47fa-9f35-0eb8bafec397"), // testPartA.id
+    position = 12,
+    settings = CommonTaskSettings(
+      dependencyId = Option(testLongAnswerTaskA.id),
+      title = "test shortAnswerTask G",
+      description = "test shortAnswerTask G description",
+      notesAllowed = false
+    ),
+    maxLength = 52,
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* MULTIPLE CHOICE TASKS */
   val testMultipleChoiceTaskC = MultipleChoiceTask(
     id = UUID("76cc2ed7-611b-4daf-aa3f-20efe42a65a0"),
@@ -321,6 +336,26 @@ object TestValues {
     randomizeChoices = true,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* No data in DB */
+  val testMultipleChoiceTaskH = MultipleChoiceTask(
+    id = UUID("f23fca57-c6b0-4e21-9809-f68659639a7f"),
+    version = 4L,
+    partId = UUID("5cd214be-6bba-47fa-9f35-0eb8bafec397"), // testPartA.id
+    position = 13,
+    settings = CommonTaskSettings(
+      dependencyId = Option(testLongAnswerTaskA.id),
+      title = "test MultipleChoiceTask H",
+      description = "test MultipleChoiceTask H description",
+      notesAllowed = true
+    ),
+    choices = Vector("choice 3", "choice 4"),
+    answers  = Vector(3, 4),
+    allowMultiple = true,
+    randomizeChoices = false,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   /* ORDERING TASKS */
@@ -342,6 +377,25 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  /* No data in DB */
+  val testOrderingTaskI = OrderingTask(
+    id = UUID("3064a825-9d40-427f-9579-86e601115730"),
+    version = 5L,
+    partId = UUID("abb84847-a3d2-47a0-ae7d-8ce04063afc7"), // testPartB.id
+    position = 14,
+    settings = CommonTaskSettings(
+      dependencyId = Option(testLongAnswerTaskA.id),
+      title = "test OrderingTask I",
+      description = "test OrderingTask I description",
+      notesAllowed = false
+    ),
+    elements = Vector("element 5", "element 6"),
+    answers  = Vector(5, 6),
+    randomizeChoices = false,
+    createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* MATCHING TASKS */
   val testMatchingTaskE = MatchingTask(
     id = UUID("7e9fe0e8-e821-4d84-a7fe-ac023fe6dfa3"),
@@ -360,6 +414,26 @@ object TestValues {
     randomizeChoices = true,
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* No data in DB */
+  val testMatchingTaskJ = MatchingTask(
+    id = UUID("e8b09639-6167-41f7-8b95-fe41705e078c"),
+    version = 6L,
+    partId = UUID("fb01f11b-7f23-41c8-877b-68410be62aa5"), // testPartC.id
+    position = 15,
+    settings = CommonTaskSettings(
+      dependencyId = Option(testLongAnswerTaskA.id),
+      title = "test MatchingTask J",
+      description = "test MatchingTask J description",
+      notesAllowed = false
+    ),
+    elementsLeft = Vector("choice left 6", "choice left 7"),
+    elementsRight = Vector("choice right 8", "choice right 9"),
+    answers  = Vector(Match(6, 7), Match(8, 9)),
+    randomizeChoices = true,
+    createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
 

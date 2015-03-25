@@ -36,7 +36,9 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   val Table                 = "tasks"
   val CommonFields          = "id, version, created_at, updated_at, part_id, dependency_id, name, description, position, notes_allowed, task_type"
-  val CommonFieldsWithTable = CommonFields.split(", ").map({ field => s"${Table}." + field}).mkString(", ")
+  def CommonFieldsWithTable(table: String = Table): String = {
+    CommonFields.split(", ").map({ field => s"${table}." + field}).mkString(", ")
+  }
   val SpecificFields =
     s"""
        |  short_answer_tasks.max_length,
@@ -104,7 +106,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   val SelectByProjectId =
     s"""
-      |SELECT $CommonFieldsWithTable, $SpecificFields
+      |SELECT ${CommonFieldsWithTable()}, $SpecificFields
       |FROM $Table
       |$Join
       |INNER JOIN projects
@@ -130,7 +132,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   val SelectByPosition =
     s"""
-      |SELECT $CommonFieldsWithTable, $SpecificFields
+      |SELECT ${CommonFieldsWithTable()}, $SpecificFields
       |FROM $Table
       |$Join
       |INNER JOIN parts
@@ -143,7 +145,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   """.stripMargin
 
   val SelectNowByUserId = s"""
-    |SELECT $CommonFieldsWithTable, $SpecificFields
+    |SELECT ${CommonFieldsWithTable()}, $SpecificFields
     |FROM $Table
     |$Join
     |INNER JOIN users
@@ -166,7 +168,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   """.stripMargin
 
   val SelectNowFromAll = s"""
-    |SELECT $CommonFieldsWithTable, $SpecificFields
+    |SELECT ${CommonFieldsWithTable()}, $SpecificFields
     |FROM $Table
     |$Join
     |LEFT JOIN work
@@ -192,8 +194,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |                 SELECT task.id as task_id
        |                 FROM task
        |                 RETURNING task_id)
-       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
-       |       task.description, task.position, task.notes_allowed, task.task_type
+       |SELECT ${CommonFieldsWithTable("task")}
        |FROM task, la_task
      """.stripMargin
 
@@ -204,8 +205,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |                 SELECT task.id as task_id, ? as max_length
        |                 FROM task
        |                 RETURNING max_length)
-       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
-       |       task.description, task.position, task.notes_allowed, task.task_type, sa_task.max_length
+       |SELECT ${CommonFieldsWithTable("task")},
+       |       sa_task.max_length
        |FROM task, sa_task
      """.stripMargin
 
@@ -216,10 +217,9 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |                 SELECT task.id as task_id, ? as choices, ? as answers, ? as allow_multiple, ? as randomize
        |                 FROM task
        |                 RETURNING *)
-       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
-       |       task.description, task.position, task.notes_allowed, task.task_type,
-       |  mc_task.choices as mc_choices, mc_task.answers as mc_answers,
-       |  mc_task.allow_multiple, mc_task.randomize as mc_randomize
+       |SELECT ${CommonFieldsWithTable("task")},
+       |       mc_task.choices as mc_choices, mc_task.answers as mc_answers,
+       |       mc_task.allow_multiple, mc_task.randomize as mc_randomize
        |FROM task, mc_task
      """.stripMargin
 
@@ -230,9 +230,9 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |                  SELECT task.id as task_id, ? as elements, ? as answers, ? as randomize
        |                  FROM task
        |                  RETURNING *)
-       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
-       |       task.description, task.position, task.notes_allowed, task.task_type,
-       |  ord_task.elements as ord_elements, ord_task.answers as ord_answers, ord_task.randomize as ord_randomize
+       |SELECT ${CommonFieldsWithTable("task")},
+       |       ord_task.elements as ord_elements, ord_task.answers as ord_answers,
+       |       ord_task.randomize as ord_randomize
        |FROM task, ord_task
      """.stripMargin
 
@@ -243,9 +243,9 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |               SELECT task.id as task_id, ? as elements_left, ? as elements_right, ? as answers, ? as randomize
        |               FROM task
        |               RETURNING *)
-       |SELECT task.id, task.version, task.created_at, task.updated_at, task.part_id, task.dependency_id, task.name,
-       |       task.description, task.position, task.notes_allowed, task.task_type,
-       |  mat_task.elements_left, mat_task.elements_right, mat_task.answers as mat_answers, mat_task.randomize as mat_randomize
+       |SELECT ${CommonFieldsWithTable("task")},
+       |       mat_task.elements_left, mat_task.elements_right,
+       |       mat_task.answers as mat_answers, mat_task.randomize as mat_randomize
        |FROM task, mat_task
      """.stripMargin
 
@@ -257,7 +257,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |SET part_id = ?, dependency_id = ?,
        |    name = ?, description = ?,
        |    position = ?, notes_allowed = ?,
-       |    version = ?
+       |    version = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $CommonFields
@@ -265,52 +265,54 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   val UpdateLongAnswer =
     s"""
-       |WITH task AS (
-       |  ${Update}
-       |)
-       |UPDATE long_answer_tasks
+       |WITH task AS (${Update})
+       |UPDATE long_answer_tasks AS la_task
        |SET task_id = task.id
+       |FROM task
        |RETURNING $CommonFields
      """.stripMargin
 
   val UpdateShortAnswer =
     s"""
-       |WITH task AS (
-       |  ${Update}
-       |)
-       |UPDATE short_answer_tasks
+       |WITH task AS (${Update})
+       |UPDATE short_answer_tasks AS sa_task
        |SET task_id = task.id, max_length = ?
-       |RETURNING $CommonFields
+       |FROM task
+       |RETURNING $CommonFields,
+       |  sa_task.max_length
      """.stripMargin
 
   val UpdateMultipleChoice =
     s"""
-       |WITH task AS (
-       |  ${Update}
-       |)
-       |UPDATE multiple_choice_tasks
+       |WITH task AS (${Update})
+       |UPDATE multiple_choice_tasks as mc_task
        |SET task_id = task.id, choices = ?, answers = ?, allow_multiple = ?, randomize = ?
-       |RETURNING $CommonFields
+       |FROM task
+       |RETURNING $CommonFields,
+       |          mc_task.choices as mc_choices, mc_task.answers as mc_answers,
+       |          mc_task.allow_multiple, mc_task.randomize as mc_randomize
      """.stripMargin
 
   val UpdateOrdering =
     s"""
-       |WITH task AS (
-       |  ${Update}
-       |)
-       |UPDATE ordering_tasks
+       |WITH task AS (${Update})
+       |UPDATE ordering_tasks as ord_task
        |SET task_id = task.id, elements = ?, answers = ?, randomize = ?
-       |RETURNING $CommonFields
+       |FROM task
+       |RETURNING $CommonFields,
+       |          ord_task.elements as ord_elements, ord_task.answers as ord_answers,
+       |          ord_task.randomize as ord_randomize
      """.stripMargin
 
   val UpdateMatching =
     s"""
-       |WITH task AS (
-       |  ${Update}
-       |)
-       |UPDATE matching_tasks
+       |WITH task AS (${Update})
+       |UPDATE matching_tasks as mat_task
        |SET task_id = task.id, elements_left = ?, elements_right = ?, answers = ?, randomize = ?
-       |RETURNING $CommonFields
+       |FROM task
+       |RETURNING $CommonFields,
+       |          mat_task.elements_left, mat_task.elements_right,
+       |          mat_task.answers as mat_answers, mat_task.randomize as mat_randomize
      """.stripMargin
 
   // -- Delete queries -----------------------------------------------------------------------------------------------
@@ -489,6 +491,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.position,
       task.settings.notesAllowed,
       task.version +1,
+      new DateTime,
       task.id.bytes, task.version
     )
 
@@ -512,7 +515,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       case matching: MatchingTask => commonData ++ Array[Any](
         matching.elementsLeft,
         matching.elementsRight,
-        matching.answers.map { element => s"${element.left}:${element.right}" },
+        matching.answers.map { element => IndexedSeq(element.left, element.right) },
         matching.randomizeChoices
       )
       case _ => throw new Exception("I don't know how you did this, but you sent me a task type that doesn't exist.")

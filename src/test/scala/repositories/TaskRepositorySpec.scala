@@ -324,7 +324,7 @@ class TaskRepositorySpec
         val result = taskRepository.findNow(testUser, testProject)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
-      "find a task on which user is working on now within a project" in {
+      "find a task on which user is working on now within another project" in {
         val testUser     = TestValues.testUserC
         val testProject  = TestValues.testProjectB
         val testTask     = TestValues.testMatchingTaskE
@@ -348,7 +348,7 @@ class TaskRepositorySpec
         task.randomizeChoices should be(testTask.randomizeChoices)
       }
       "find a task from all tasks on which someone is working on now" in {
-        val testTask     = TestValues.testShortAnswerTaskB
+        val testTask = TestValues.testShortAnswerTaskB
 
         val result = taskRepository.findNowFromAll
         val eitherTask = Await.result(result, Duration.Inf)
@@ -364,6 +364,322 @@ class TaskRepositorySpec
 
         // Specific fields
         task.maxLength should be(testTask.maxLength)
+      }
+    }
+  }
+
+  "TaskRepository.insert" should {
+    inSequence {
+      "insert new LongAnswer task" in {
+        val testTask = TestValues.testLongAnswerTaskF
+
+        val result = taskRepository.insert(testTask)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: LongAnswerTask) = eitherTask
+
+        task.id should be(testTask.id)
+        task.version should be(1L)
+        task.partId should be(testTask.partId)
+        task.taskType should be(testTask.taskType)
+        task.settings.toString should be(testTask.settings.toString)
+      }
+      "return RepositoryError.PrimaryKeyConflict if LongAnswer task already exists" in {
+        val testTask = TestValues.testLongAnswerTaskA
+
+        val result = taskRepository.insert(testTask)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+      }
+      "insert new ShortAnswer task" in {
+        val testTask = TestValues.testShortAnswerTaskG
+
+        val result = taskRepository.insert(testTask)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: ShortAnswerTask) = eitherTask
+
+        task.id should be(testTask.id)
+        task.version should be(1L)
+        task.partId should be(testTask.partId)
+        task.taskType should be(testTask.taskType)
+        task.settings.toString should be(testTask.settings.toString)
+
+        // Specific fields
+        task.maxLength should be(testTask.maxLength)
+      }
+      "return RepositoryError.PrimaryKeyConflict if ShortAnswer task already exists" in {
+        val testTask = TestValues.testShortAnswerTaskB
+
+        val result = taskRepository.insert(testTask)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+      }
+      "insert new MultipleChoice task" in {
+        val testTask = TestValues.testMultipleChoiceTaskH
+
+        val result = taskRepository.insert(testTask)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: MultipleChoiceTask) = eitherTask
+
+        task.id should be(testTask.id)
+        task.version should be(1L)
+        task.partId should be(testTask.partId)
+        task.taskType should be(testTask.taskType)
+        task.settings.toString should be(testTask.settings.toString)
+
+        // Specific fields
+        task.choices should be(testTask.choices)
+        task.answers should be(testTask.answers)
+        task.allowMultiple should be(testTask.allowMultiple)
+        task.randomizeChoices should be(testTask.randomizeChoices)
+      }
+      "return RepositoryError.PrimaryKeyConflict if MultipleChoice task already exists" in {
+        val testTask = TestValues.testMultipleChoiceTaskC
+
+        val result = taskRepository.insert(testTask)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+      }
+      "insert new Ordering task" in {
+        val testTask = TestValues.testOrderingTaskI
+
+        val result = taskRepository.insert(testTask)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: OrderingTask) = eitherTask
+
+        task.id should be(testTask.id)
+        task.version should be(1L)
+        task.partId should be(testTask.partId)
+        task.taskType should be(testTask.taskType)
+        task.settings.toString should be(testTask.settings.toString)
+
+        // Specific fields
+        task.elements should be(testTask.elements)
+        task.answers should be(testTask.answers)
+        task.randomizeChoices should be(testTask.randomizeChoices)
+      }
+      "return RepositoryError.PrimaryKeyConflict if Ordering task already exists" in {
+        val testTask = TestValues.testOrderingTaskD
+
+        val result = taskRepository.insert(testTask)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+      }
+      "insert new Matching task" in {
+        val testTask = TestValues.testMatchingTaskJ
+
+        val result = taskRepository.insert(testTask)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: MatchingTask) = eitherTask
+
+        task.id should be(testTask.id)
+        task.version should be(1L)
+        task.partId should be(testTask.partId)
+        task.taskType should be(testTask.taskType)
+        task.settings.toString should be(testTask.settings.toString)
+
+        // Specific fields
+        task.elementsLeft should be(testTask.elementsLeft)
+        task.elementsRight should be(testTask.elementsRight)
+        task.answers should be(testTask.answers)
+        task.randomizeChoices should be(testTask.randomizeChoices)
+      }
+      "return RepositoryError.PrimaryKeyConflict if Matching task already exists" in {
+        val testTask = TestValues.testMatchingTaskE
+
+        val result = taskRepository.insert(testTask)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+      }
+    }
+  }
+
+  // TODO - Add (updatedAt should not be) in all tests
+  "TaskRepository.update" should {
+    inSequence {
+      "update LongAnswer task" in {
+        val testTask = TestValues.testLongAnswerTaskA
+        val updatedTask = testTask.copy(
+          position = testTask.position + 1,
+          settings = testTask.settings.copy(
+            title = "updated task title",
+            description = "udated task description",
+            notesAllowed = false
+          )
+        )
+
+        val result = taskRepository.update(updatedTask)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: LongAnswerTask) = eitherTask
+
+        task.id should be(updatedTask.id)
+        task.version should be(updatedTask.version + 1)
+        task.partId should be(updatedTask.partId)
+        task.taskType should be(updatedTask.taskType)
+        task.settings.toString should be(updatedTask.settings.toString)
+        task.createdAt.toString should be(updatedTask.createdAt.toString)
+        task.updatedAt.toString should not be(updatedTask.updatedAt.toString)
+      }
+      "update ShortAnswer task" in {
+        val testTask = TestValues.testShortAnswerTaskB
+        val updatedTask = testTask.copy(
+          position = testTask.position + 1,
+          settings = testTask.settings.copy(
+            title = "updated task title",
+            description = "udated task description",
+            notesAllowed = false
+          ),
+          // Specific
+          maxLength = testTask.maxLength + 1
+        )
+
+        val result = taskRepository.update(updatedTask)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: ShortAnswerTask) = eitherTask
+
+        task.id should be(updatedTask.id)
+        task.version should be(updatedTask.version + 1)
+        task.partId should be(updatedTask.partId)
+        task.taskType should be(updatedTask.taskType)
+        task.settings.toString should be(updatedTask.settings.toString)
+        task.createdAt.toString should be(updatedTask.createdAt.toString)
+        task.updatedAt.toString should not be(updatedTask.updatedAt.toString)
+
+        // Specific fields
+        task.maxLength should be(updatedTask.maxLength)
+      }
+      "update MultipleChoice task" in {
+        val testTask = TestValues.testMultipleChoiceTaskC
+        val updatedTask = testTask.copy(
+          position = testTask.position + 1,
+          settings = testTask.settings.copy(
+            title = "updated task title",
+            description = "udated task description",
+            notesAllowed = false
+          ),
+          // Specific
+          choices = Vector("updated" + testTask.choices(0), "updated" + testTask.choices(1)),
+          answers = Vector(testTask.answers(0) + 1, testTask.answers(1) + 1),
+          allowMultiple = true,
+          randomizeChoices = false
+        )
+
+        val result = taskRepository.update(updatedTask)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: MultipleChoiceTask) = eitherTask
+
+        task.id should be(updatedTask.id)
+        task.version should be(updatedTask.version + 1)
+        task.partId should be(updatedTask.partId)
+        task.taskType should be(updatedTask.taskType)
+        task.settings.toString should be(updatedTask.settings.toString)
+        task.createdAt.toString should be(updatedTask.createdAt.toString)
+        task.updatedAt.toString should not be(updatedTask.updatedAt.toString)
+
+        // Specific fields
+        task.choices should be(updatedTask.choices)
+        task.answers should be(updatedTask.answers)
+        task.allowMultiple should be(updatedTask.allowMultiple)
+        task.randomizeChoices should be(updatedTask.randomizeChoices)
+      }
+      "update Ordering task" in {
+        val testTask = TestValues.testOrderingTaskD
+        val updatedTask = testTask.copy(
+          position = testTask.position + 1,
+          settings = testTask.settings.copy(
+            title = "updated task title",
+            description = "udated task description",
+            notesAllowed = false
+          ),
+          // Specific
+          elements = Vector("updated" + testTask.elements(0), "updated" + testTask.elements(1)),
+          answers = Vector(testTask.answers(0) + 1, testTask.answers(1) + 1),
+          randomizeChoices = false
+        )
+
+        val result = taskRepository.update(updatedTask)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: OrderingTask) = eitherTask
+
+        task.id should be(updatedTask.id)
+        task.version should be(updatedTask.version + 1)
+        task.partId should be(updatedTask.partId)
+        task.taskType should be(updatedTask.taskType)
+        task.settings.toString should be(updatedTask.settings.toString)
+        task.createdAt.toString should be(updatedTask.createdAt.toString)
+        task.updatedAt.toString should not be(updatedTask.updatedAt.toString)
+
+        // Specific fields
+        task.elements should be(updatedTask.elements)
+        task.answers should be(updatedTask.answers)
+        task.randomizeChoices should be(updatedTask.randomizeChoices)
+      }
+      "update Matching task" in {
+        val testTask = TestValues.testMatchingTaskE
+        val updatedTask = testTask.copy(
+          position = testTask.position + 1,
+          settings = testTask.settings.copy(
+            title = "updated task title",
+            description = "udated task description",
+            notesAllowed = false
+          ),
+          // Specific
+          elementsLeft = Vector("updated" + testTask.elementsLeft(0), "updated" + testTask.elementsLeft(1)),
+          elementsRight = Vector("updated" + testTask.elementsRight(0), "updated" + testTask.elementsRight(1)),
+          answers = Vector(testTask.answers(0), testTask.answers(1), testTask.answers(0)),
+          randomizeChoices = false
+        )
+
+        val result = taskRepository.update(updatedTask)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: MatchingTask) = eitherTask
+
+        task.id should be(updatedTask.id)
+        task.version should be(updatedTask.version + 1)
+        task.partId should be(updatedTask.partId)
+        task.taskType should be(updatedTask.taskType)
+        task.settings.toString should be(updatedTask.settings.toString)
+        task.createdAt.toString should be(updatedTask.createdAt.toString)
+        task.updatedAt.toString should not be(updatedTask.updatedAt.toString)
+
+        // Specific fields
+        task.elementsLeft should be(updatedTask.elementsLeft)
+        task.elementsRight should be(updatedTask.elementsRight)
+        task.answers should be(updatedTask.answers)
+        task.randomizeChoices should be(updatedTask.randomizeChoices)
+      }
+      "reutrn RepositoryError.NoResults when update an existing Task with wrong version" in {
+        val testTask = TestValues.testMatchingTaskE
+        val updatedTask = testTask.copy(
+          version = 99L,
+          position = testTask.position + 1,
+          settings = testTask.settings.copy(
+            title = "updated task title",
+            description = "udated task description",
+            notesAllowed = false
+          ),
+          // Specific
+          elementsLeft = Vector("updated" + testTask.elementsLeft(0), "updated" + testTask.elementsLeft(1)),
+          elementsRight = Vector("updated" + testTask.elementsRight(0), "updated" + testTask.elementsRight(1)),
+          answers = Vector(testTask.answers(0), testTask.answers(1), testTask.answers(0)),
+          randomizeChoices = false
+        )
+
+        val result = taskRepository.update(updatedTask)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+      "reutrn RepositoryError.NoResults when update a Task that doesn't exist" in {
+        val testTask = TestValues.testMatchingTaskJ
+        val updatedTask = testTask.copy(
+          position = testTask.position + 1,
+          settings = testTask.settings.copy(
+            title = "updated task title",
+            description = "udated task description",
+            notesAllowed = false
+          ),
+          // Specific
+          elementsLeft = Vector("updated" + testTask.elementsLeft(0), "updated" + testTask.elementsLeft(1)),
+          elementsRight = Vector("updated" + testTask.elementsRight(0), "updated" + testTask.elementsRight(1)),
+          answers = Vector(testTask.answers(0), testTask.answers(1), testTask.answers(0)),
+          randomizeChoices = false
+        )
+
+        val result = taskRepository.update(updatedTask)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
     }
   }

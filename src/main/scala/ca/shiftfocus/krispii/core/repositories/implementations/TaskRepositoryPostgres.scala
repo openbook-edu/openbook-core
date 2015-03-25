@@ -143,7 +143,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   """.stripMargin
 
   val SelectNowByUserId = s"""
-    |SELECT $CommonFieldsWithTable, $SpecificFields, COALESCE(work.is_complete, FALSE) AS is_complete
+    |SELECT $CommonFieldsWithTable, $SpecificFields
     |FROM $Table
     |$Join
     |INNER JOIN users
@@ -151,7 +151,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     |INNER JOIN projects
     | ON projects.id = ?
     |INNER JOIN parts
-    | ON parts.project_id = projects.id
+    | ON parts.id = $Table.part_id
+    | AND parts.project_id = projects.id
     | AND parts.enabled = 't'
     |INNER JOIN users_courses
     | ON users_courses.course_id = projects.course_id
@@ -161,6 +162,17 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     | AND $Table.id = work.task_id
     |WHERE COALESCE(work.is_complete, FALSE) = FALSE
     |ORDER BY parts.position ASC, $OrderBy
+    |LIMIT 1
+  """.stripMargin
+
+  val SelectNowFromAll = s"""
+    |SELECT $CommonFieldsWithTable, $SpecificFields
+    |FROM $Table
+    |$Join
+    |LEFT JOIN work
+    | ON $Table.id = work.task_id
+    |WHERE COALESCE(work.is_complete, FALSE) = FALSE
+    |ORDER BY $OrderBy
     |LIMIT 1
   """.stripMargin
 
@@ -376,6 +388,16 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
    */
   override def findNow(user: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]] = {
     queryOne(SelectNowByUserId, Seq[Any](user.id.bytes, project.id.bytes))
+  }
+
+  /**
+   * Find a task from all tasks on which someone is working on now.
+   *
+   * @param conn
+   * @return
+   */
+  override def findNowFromAll(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]] = {
+    queryOne(SelectNowFromAll)
   }
 
 

@@ -290,11 +290,80 @@ class TaskRepositorySpec
   "TaskRepository.findNow" should {
     inSequence {
       "find a task on which user is working on now" in {
+        // Should return testShortAnswerTaskB, because testLongAnswerTaskA has work that is completed
         val testUser     = TestValues.testUserC
+        val testProject  = TestValues.testProjectA
+        val testTask     = TestValues.testShortAnswerTaskB
+
+        val result = taskRepository.findNow(testUser, testProject)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: ShortAnswerTask) = eitherTask
+
+        task.id should be(testTask.id)
+        task.version should be(testTask.version)
+        task.partId should be(testTask.partId)
+        task.taskType should be(testTask.taskType)
+        task.settings.toString should be(testTask.settings.toString)
+        task.createdAt.toString should be(testTask.createdAt.toString)
+        task.updatedAt.toString should be(testTask.updatedAt.toString)
+
+        // Specific fields
+        task.maxLength should be(testTask.maxLength)
+      }
+      "return RepositoryError.NoResults if user is not connected with project" in {
+        val testUser     = TestValues.testUserG
         val testProject  = TestValues.testProjectB
 
         val result = taskRepository.findNow(testUser, testProject)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+      "return RepositoryError.NoResults if project doesn't have any task" in {
+        val testUser     = TestValues.testUserC
+        val testProject  = TestValues.testProjectE
+
+        val result = taskRepository.findNow(testUser, testProject)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+      "find a task on which user is working on now within a project" in {
+        val testUser     = TestValues.testUserC
+        val testProject  = TestValues.testProjectB
+        val testTask     = TestValues.testMatchingTaskE
+
+        val result = taskRepository.findNow(testUser, testProject)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: MatchingTask) = eitherTask
+
+        task.id should be(testTask.id)
+        task.version should be(testTask.version)
+        task.partId should be(testTask.partId)
+        task.taskType should be(testTask.taskType)
+        task.settings.toString should be(testTask.settings.toString)
+        task.createdAt.toString should be(testTask.createdAt.toString)
+        task.updatedAt.toString should be(testTask.updatedAt.toString)
+
+        // Specific
+        task.elementsLeft should be(testTask.elementsLeft)
+        task.elementsRight should be(testTask.elementsRight)
+        task.answers should be(testTask.answers)
+        task.randomizeChoices should be(testTask.randomizeChoices)
+      }
+      "find a task from all tasks on which someone is working on now" in {
+        val testTask     = TestValues.testShortAnswerTaskB
+
+        val result = taskRepository.findNowFromAll
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: ShortAnswerTask) = eitherTask
+
+        task.id should be(testTask.id)
+        task.version should be(testTask.version)
+        task.partId should be(testTask.partId)
+        task.taskType should be(testTask.taskType)
+        task.settings.toString should be(testTask.settings.toString)
+        task.createdAt.toString should be(testTask.createdAt.toString)
+        task.updatedAt.toString should be(testTask.updatedAt.toString)
+
+        // Specific fields
+        task.maxLength should be(testTask.maxLength)
       }
     }
   }

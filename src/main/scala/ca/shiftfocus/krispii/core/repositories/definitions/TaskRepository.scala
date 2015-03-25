@@ -19,6 +19,7 @@ trait TaskRepository extends Repository {
 
   def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]]
   def findNow(student: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]]
+  def findNowFromAll(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]]
   def find(project: Project, part: Part, taskNum: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]]
 
   def insert(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]]

@@ -362,6 +362,7 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+
   /* DOCUMENTS */
   val testDocumentA = Document(
     id = UUID("fd923b3f-6dc2-472e-8ce7-7a8fcc6a1a20"),
@@ -369,22 +370,23 @@ object TestValues {
     title = "testDocumentA title",
     plaintext = "testDocumentA plaintext",
     delta = Delta(IndexedSeq.empty[Operation]),
-    owner = testUserB,
-    editors = Vector(testUserB, testUserC),
+    owner = testUserC,
+    editors = Vector(),
     createdAt = Option(new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")))
   )
+
 
   /* WORK */
   /* LONG_ANSWER_WORK */
   val testLongAnswerWorkA = LongAnswerWork(
     id = UUID("441374e2-0b16-43ec-adb9-6a3251081d24"),
     studentId = testUserC.id,
-    taskId = testMatchingTaskE.id,
+    taskId = testLongAnswerTaskA.id,
     documentId = testDocumentA.id,
     version = 1L,
     response = "testLongAnswerWorkA response",
-    isComplete = false,
+    isComplete = true,
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -392,6 +394,7 @@ object TestValues {
   /* MULTIPLE_CHOICE_WORK */
   /* ORDERING_WORK */
   /* MATCHING_WORK */
+
 
   /* COMPONENTS */
   /* TEXT COMPONENT */
@@ -447,6 +450,7 @@ object TestValues {
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
+
 
   /* PARTS */
   val testPartA = Part(

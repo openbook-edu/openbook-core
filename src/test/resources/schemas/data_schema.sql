@@ -221,13 +221,20 @@ INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, ran
 VALUES ('\x7e9fe0e8e8214d84a7feac023fe6dfa3', '{choice left 5, choice left 6}', '{choice right 7, choice right 8}', '{{5, 6}, {7, 8}}', true);
 
 
+/* DOCUMENTS */
+/* documentA -> userC*/
+INSERT INTO documents (id, version, owner_id, title, plaintext, delta, created_at, updated_at)
+VALUES ('\xfd923b3f6dc2472e8ce77a8fcc6a1a20', 1, '\xf5f984073a0b4ea5952a575886e90586', 'testDocumentA title', 'testDocumentA plaintext', null, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+
+
 /* WORK */
-/* longAnswerWorkA */
-INSERT INTO work (id, user_id, task_id, version, contents, is_complete, work_type, created_at, updated_at)
-VALUES ('\x441374e20b1643ecadb96a3251081d24', '\xf5f984073a0b4ea5952a575886e90586', '\x7e9fe0e8e8214d84a7feac023fe6dfa3', 1, 'test longAnswerTask A', 'test longAnswerTask A description', 10, 0, true, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+/* longAnswerWorkA -> userC -> longAnswerTaskA -> documentA */
+INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
+VALUES ('\x441374e20b1643ecadb96a3251081d24', '\xf5f984073a0b4ea5952a575886e90586', '\xbf1a6ed09f834cb485c1ad456299b3a3', 1, true, 0, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
 
 INSERT INTO long_answer_work (work_id, document_id)
-VALUES ('\x441374e20b1643ecadb96a3251081d24');
+VALUES ('\x441374e20b1643ecadb96a3251081d24', '\xfd923b3f6dc2472e8ce77a8fcc6a1a20');
+
 
 /* COMPONENTS */
 /* testTextComponentA */

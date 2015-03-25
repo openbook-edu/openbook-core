@@ -19,6 +19,7 @@ case class Document(
   owner: User,
   editors: IndexedSeq[User],
   revisions: IndexedSeq[Operation] = IndexedSeq.empty[Operation],
+  // TODO - change Option[DateTime] = None on DateTime = new DateTime
   createdAt: Option[DateTime] = None,
   updatedAt: Option[DateTime] = None
 ) {

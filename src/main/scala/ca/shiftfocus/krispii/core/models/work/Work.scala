@@ -16,7 +16,7 @@ trait Work {
   val studentId: UUID
   val taskId: UUID
   val version: Long = 1L
-  val answer: AnyRef
+  val response: AnyRef
   val isComplete: Boolean
   val createdAt: DateTime
   val updatedAt: DateTime
@@ -30,13 +30,13 @@ object Work {
         "studentId" -> work.studentId,
         "taskId" -> work.taskId,
         "version" -> work.version,
-        "answer" -> {
+        "response" -> {
           work match {
-            case specific: LongAnswerWork => specific.answer
-            case specific: ShortAnswerWork => specific.answer
-            case specific: MultipleChoiceWork => specific.answer
-            case specific: OrderingWork => specific.answer
-            case specific: MatchingWork => specific.answer
+            case specific: LongAnswerWork     => specific.response
+            case specific: ShortAnswerWork    => specific.response
+            case specific: MultipleChoiceWork => specific.response
+            case specific: OrderingWork       => specific.response
+            case specific: MatchingWork       => specific.response
             case _ => throw new Exception("Tried to serialize a work type that, somehow, doesn't exist.")
           }
         },

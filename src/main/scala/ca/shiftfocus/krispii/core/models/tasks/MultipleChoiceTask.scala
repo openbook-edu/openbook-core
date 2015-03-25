@@ -18,7 +18,7 @@ import play.api.libs.functional.syntax._
  * @param version The version of the task entity, for offline locking. Default = 0.
  * @param settings An object containing common settings for tasks.
  * @param choices A vector of possible choices a student can select from.
- * @param answer A vector of indeces indicating which choices are "correct".
+ * @param answers A vector of indeces indicating which choices are "correct".
  * @param allowMultiple Whether the student is allowed to select more than one answer.
  * @param randomizeChoices Whether the choices should be presented randomly, or in the
  *                            order in which they are defined.
@@ -35,7 +35,7 @@ case class MultipleChoiceTask(
   version: Long = 1L,
   settings: CommonTaskSettings = CommonTaskSettings(),
   choices: IndexedSeq[String] = IndexedSeq(),
-  answer: IndexedSeq[Int] = IndexedSeq(),
+  answers: IndexedSeq[Int] = IndexedSeq(),
   allowMultiple: Boolean = false,
   randomizeChoices: Boolean = true,
   createdAt: DateTime = new DateTime,
@@ -69,7 +69,7 @@ object MultipleChoiceTask {
       (__ \ "version").write[Long] and
       (__ \ "settings").write[CommonTaskSettings] and
       (__ \ "choices").write[IndexedSeq[String]] and
-      (__ \ "answer").write[IndexedSeq[Int]] and
+      (__ \ "answers").write[IndexedSeq[Int]] and
       (__ \ "allowMultiple").write[Boolean] and
       (__ \ "randomizeChoices").write[Boolean] and
       (__ \ "createdAt").write[DateTime] and

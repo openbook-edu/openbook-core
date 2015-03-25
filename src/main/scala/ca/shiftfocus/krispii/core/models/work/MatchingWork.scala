@@ -10,7 +10,7 @@ case class MatchingWork(
   studentId: UUID,
   taskId: UUID,
   override val version: Long,
-  override val answer: IndexedSeq[Match],
+  override val response: IndexedSeq[Match],
   isComplete: Boolean = false,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime

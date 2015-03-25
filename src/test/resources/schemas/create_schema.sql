@@ -242,7 +242,6 @@ CREATE TABLE work (
   user_id bytea NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   task_id bytea NOT NULL REFERENCES tasks(id) ON DELETE RESTRICT,
   version bigint,
-  contents text,
   is_complete boolean DEFAULT false,
   work_type int,
   created_at timestamp with time zone,

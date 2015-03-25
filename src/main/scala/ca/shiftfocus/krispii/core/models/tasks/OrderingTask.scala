@@ -16,8 +16,7 @@ import play.api.libs.json._
  * @param version
  * @param settings
  * @param elements
- * @param answer
- * @param allowMultiple
+ * @param answers
  * @param randomizeChoices
  * @param createdAt
  * @param updatedAt
@@ -32,7 +31,7 @@ case class OrderingTask(
   version: Long = 1L,
   settings: CommonTaskSettings = CommonTaskSettings(),
   elements: IndexedSeq[String] = IndexedSeq(),
-  answer: IndexedSeq[Int] = IndexedSeq(),
+  answers: IndexedSeq[Int] = IndexedSeq(),
   randomizeChoices: Boolean = true,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
@@ -65,7 +64,7 @@ object OrderingTask {
       (__ \ "version").write[Long] and
       (__ \ "settings").write[CommonTaskSettings] and
       (__ \ "elements").write[IndexedSeq[String]] and
-      (__ \ "answer").write[IndexedSeq[Int]] and
+      (__ \ "answers").write[IndexedSeq[Int]] and
       (__ \ "randomizeChoices").write[Boolean] and
       (__ \ "createdAt").write[DateTime] and
       (__ \ "updatedAt").write[DateTime]

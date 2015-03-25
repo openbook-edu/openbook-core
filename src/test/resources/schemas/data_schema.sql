@@ -136,34 +136,6 @@ INSERT INTO users_courses (user_id, course_id, created_at)
 VALUES ('\x5099a6b48809400d8e380119184d0f93', '\x94cc65bb45424f628e08d58522e7b5f1', '2014-08-10 14:01:19.545-04');
 
 
-/* SCHEDULES */
-/* CourseSchedule A -> Course A */
-INSERT INTO schedules (id, course_id, version, start_time, length, reason, created_at, updated_at)
-VALUES ('\x308792b27a2943c8ad51a5c4f306cdaf', '\x217c5622ff9e43728e6a95fb3bae300b', 1, '2015-01-15 14:38:19-04', 12345, 'test CourseSchedule A reason', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
-
-/* CourseSchedule B -> Course B */
-INSERT INTO schedules (id, course_id, version, start_time, length, reason, created_at, updated_at)
-VALUES ('\xdc1190c2b5fd4bac95fa7d67e1f1d445', '\x404c800a53854e6b867e365a1e6b00de', 2, '2015-01-16 12:38:19-04', 12345, 'test CourseSchedule B reason', '2014-08-04 14:01:19.545-04','2014-08-05 14:01:19.545-04');
-
-/* CourseSchedule C -> Course B */
-INSERT INTO schedules (id, course_id, version, start_time, length, reason, created_at, updated_at)
-VALUES ('\x6df9d164b1514c389acd6b91301a199d', '\x404c800a53854e6b867e365a1e6b00de', 3, '2015-01-17 16:38:19-04', 12345, 'test CourseSchedule C reason', '2014-08-06 14:01:19.545-04','2014-08-07 14:01:19.545-04');
-
-
-/* SCHEDULE_EXCEPTIONS */
-/* SectionScheduleException A -> UserA -> CourseA */
-INSERT INTO schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
-VALUES ('\xda17e24aa5454d7494e1427896e13ebe', '\x36c8c0ca50aa4806afa5916a5e33a81f', '\x217c5622ff9e43728e6a95fb3bae300b', 1, '2014-08-01', '2014-08-01 14:01:19.545-04', '2014-08-01 15:01:19.545-04', 'testSectionScheduleExceptionA reason', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
-
-/* SectionScheduleException B -> UserB -> CourseB */
-INSERT INTO schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
-VALUES ('\x3a285f0c66d041b2851bcfcd203550d9', '\x6c0e29bdd05b4b2981156be93e936c59', '\x404c800a53854e6b867e365a1e6b00de', 2, '2014-08-04', '2014-08-04 16:01:19.545-04', '2014-08-04 17:01:19.545-04', 'testSectionScheduleExceptionB reason','2014-08-05 14:01:19.545-04','2014-08-06 14:01:19.545-04');
-
-/* SectionScheduleException C -> UserE -> CourseB */
-INSERT INTO schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
-VALUES ('\x4d7ca313f2164f5985ae88bcbca70317', '\x871b525067124e548ab60784cae0bc64', '\x404c800a53854e6b867e365a1e6b00de', 3, '2014-08-07', '2014-08-07 10:01:19.545-04', '2014-08-07 11:01:19.545-04', 'testSectionScheduleExceptionC reason','2014-08-08 14:01:19.545-04','2014-08-09 14:01:19.545-04');
-
-
 /* PROJECTS */
 /* project A -> course A -> user A (teacher) */
 INSERT INTO projects (id, course_id, version, name, slug, description, availability, created_at, updated_at)
@@ -213,41 +185,49 @@ VALUES ('\x45a146b3fd9a4cab9d1d3e9b0b15e12c', 7, '\x4ac4d872451b4092b13f643d6d5f
 
 
 /* TASKS */
-/* longAnswerTask A -> part A*/
+/* longAnswerTask A -> part A -> project A -> course A -> user A (teacher)*/
 INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
 VALUES ('\xbf1a6ed09f834cb485c1ad456299b3a3', 1, '\x5cd214be6bba47fa9f350eb8bafec397', null, 'test longAnswerTask A', 'test longAnswerTask A description', 10, 0, true, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
 
 INSERT INTO long_answer_tasks (task_id)
 VALUES ('\xbf1a6ed09f834cb485c1ad456299b3a3');
 
-/* shortAnswerTask B -> part A, dependency_id -> longAnswerTask A*/
+/* shortAnswerTask B -> part A (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
 INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
 VALUES ('\x10ef05ee7b494352b86e70510adf617f', 2, '\x5cd214be6bba47fa9f350eb8bafec397', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test shortAnswerTask B', 'test shortAnswerTask B description', 11, 1, true, '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
 INSERT INTO short_answer_tasks (task_id, max_length)
 VALUES ('\x10ef05ee7b494352b86e70510adf617f', 51);
 
-/* multipleChoiceTask C -> part A, dependency_id -> longAnswerTask A */
+/* multipleChoiceTask C -> part A (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
 INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
 VALUES ('\x76cc2ed7611b4dafaa3f20efe42a65a0', 3, '\x5cd214be6bba47fa9f350eb8bafec397', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test MultipleChoiceTask C', 'test MultipleChoiceTask C description', 12, 2, true, '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
 
 INSERT INTO multiple_choice_tasks (task_id, choices, answers, allow_multiple, randomize)
 VALUES ('\x76cc2ed7611b4dafaa3f20efe42a65a0', '{choice 1, choice 2}', '{1, 2}', false, true);
 
-/* orderingTask D -> part B, dependency_id -> longAnswerTask A */
+/* orderingTask D -> part B (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
 INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
 VALUES ('\x808400838923476fa8738ba6c55e30c8', 4, '\xabb84847a3d247a0ae7d8ce04063afc7', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test OrderingTask D', 'test OrderingTask D description', 13, 3, true, '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
 
 INSERT INTO ordering_tasks (task_id, elements, answers, randomize)
 VALUES ('\x808400838923476fa8738ba6c55e30c8', '{element 3, element 4}', '{3, 4}', true);
 
-/* matchingTask E -> part C, dependency_id -> longAnswerTask A */
+/* matchingTask E -> part C (dependency_id -> longAnswerTask A) -> project B -> course B -> user B (teacher) */
 INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
 VALUES ('\x7e9fe0e8e8214d84a7feac023fe6dfa3', 5, '\xfb01f11b7f2341c8877b68410be62aa5', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test MatchingTask E', 'test MatchingTask E description', 14, 4, true, '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
 INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, randomize)
 VALUES ('\x7e9fe0e8e8214d84a7feac023fe6dfa3', '{choice left 5, choice left 6}', '{choice right 7, choice right 8}', '{{5, 6}, {7, 8}}', true);
 
+
+/* WORK */
+/* longAnswerWorkA */
+INSERT INTO work (id, user_id, task_id, version, contents, is_complete, work_type, created_at, updated_at)
+VALUES ('\x441374e20b1643ecadb96a3251081d24', '\xf5f984073a0b4ea5952a575886e90586', '\x7e9fe0e8e8214d84a7feac023fe6dfa3', 1, 'test longAnswerTask A', 'test longAnswerTask A description', 10, 0, true, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+
+INSERT INTO long_answer_work (work_id, document_id)
+VALUES ('\x441374e20b1643ecadb96a3251081d24');
 
 /* COMPONENTS */
 /* testTextComponentA */
@@ -280,3 +260,30 @@ VALUES ('\x8cfc608981294c2e9ed145d38077d438', '\x5cd214be6bba47fa9f350eb8bafec39
 /* testTextComponentA -> PartB */
 INSERT INTO parts_components (component_id, part_id, created_at)
 VALUES ('\x8cfc608981294c2e9ed145d38077d438', '\xabb84847a3d247a0ae7d8ce04063afc7', '2014-08-02 14:01:19.545-04');
+
+/* SCHEDULES */
+/* CourseSchedule A -> Course A */
+INSERT INTO schedules (id, course_id, version, start_time, length, reason, created_at, updated_at)
+VALUES ('\x308792b27a2943c8ad51a5c4f306cdaf', '\x217c5622ff9e43728e6a95fb3bae300b', 1, '2015-01-15 14:38:19-04', 12345, 'test CourseSchedule A reason', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
+
+/* CourseSchedule B -> Course B */
+INSERT INTO schedules (id, course_id, version, start_time, length, reason, created_at, updated_at)
+VALUES ('\xdc1190c2b5fd4bac95fa7d67e1f1d445', '\x404c800a53854e6b867e365a1e6b00de', 2, '2015-01-16 12:38:19-04', 12345, 'test CourseSchedule B reason', '2014-08-04 14:01:19.545-04','2014-08-05 14:01:19.545-04');
+
+/* CourseSchedule C -> Course B */
+INSERT INTO schedules (id, course_id, version, start_time, length, reason, created_at, updated_at)
+VALUES ('\x6df9d164b1514c389acd6b91301a199d', '\x404c800a53854e6b867e365a1e6b00de', 3, '2015-01-17 16:38:19-04', 12345, 'test CourseSchedule C reason', '2014-08-06 14:01:19.545-04','2014-08-07 14:01:19.545-04');
+
+
+/* SCHEDULE_EXCEPTIONS */
+/* SectionScheduleException A -> UserA -> CourseA */
+INSERT INTO schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
+VALUES ('\xda17e24aa5454d7494e1427896e13ebe', '\x36c8c0ca50aa4806afa5916a5e33a81f', '\x217c5622ff9e43728e6a95fb3bae300b', 1, '2014-08-01', '2014-08-01 14:01:19.545-04', '2014-08-01 15:01:19.545-04', 'testSectionScheduleExceptionA reason', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
+
+/* SectionScheduleException B -> UserB -> CourseB */
+INSERT INTO schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
+VALUES ('\x3a285f0c66d041b2851bcfcd203550d9', '\x6c0e29bdd05b4b2981156be93e936c59', '\x404c800a53854e6b867e365a1e6b00de', 2, '2014-08-04', '2014-08-04 16:01:19.545-04', '2014-08-04 17:01:19.545-04', 'testSectionScheduleExceptionB reason','2014-08-05 14:01:19.545-04','2014-08-06 14:01:19.545-04');
+
+/* SectionScheduleException C -> UserE -> CourseB */
+INSERT INTO schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
+VALUES ('\x4d7ca313f2164f5985ae88bcbca70317', '\x871b525067124e548ab60784cae0bc64', '\x404c800a53854e6b867e365a1e6b00de', 3, '2014-08-07', '2014-08-07 10:01:19.545-04', '2014-08-07 11:01:19.545-04', 'testSectionScheduleExceptionC reason','2014-08-08 14:01:19.545-04','2014-08-09 14:01:19.545-04');

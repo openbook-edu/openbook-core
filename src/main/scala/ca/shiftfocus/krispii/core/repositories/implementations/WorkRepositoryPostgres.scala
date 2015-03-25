@@ -34,7 +34,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
       taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
       documentId = UUID(row("long_answer_document_id").asInstanceOf[Array[Byte]]),
       version = row("version").asInstanceOf[Long],
-      answer = "",
+      response = "",
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
@@ -47,7 +47,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
       taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
       documentId = UUID(row("document_id").asInstanceOf[Array[Byte]]),
       version  = row("version").asInstanceOf[Long],
-      answer    = "",
+      response    = "",
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
@@ -60,7 +60,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
       studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
       taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
       version  = row("version").asInstanceOf[Long],
-      answer    = row("answer").asInstanceOf[IndexedSeq[Int]],
+      response    = row("response").asInstanceOf[IndexedSeq[Int]],
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
@@ -73,7 +73,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
       studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
       taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
       version  = row("version").asInstanceOf[Long],
-      answer    = row("answer").asInstanceOf[IndexedSeq[Int]],
+      response    = row("response").asInstanceOf[IndexedSeq[Int]],
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
@@ -86,7 +86,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
       studentId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
       taskId    = UUID(row("task_id").asInstanceOf[Array[Byte]]),
       version  = row("version").asInstanceOf[Long],
-      answer    = row("answer").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element =>
+      response    = row("response").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element =>
         Match(element(0), element(1))
       },
       isComplete = row("is_complete").asInstanceOf[Boolean],
@@ -110,11 +110,11 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
        |       work.version as version,
        |       long_answer_work.document_id as long_answer_document_id,
        |       short_answer_work.document_id as short_answer_document_id,
-       |       multiple_choice_work.answer as multiple_choice_answer,
+       |       multiple_choice_work.response as multiple_choice_answer,
        |       multiple_choice_work.version as multiple_choice_version,
-       |       ordering_work.answer as ordering_answer,
+       |       ordering_work.response as ordering_answer,
        |       ordering_work.version as ordering_version,
-       |       matching_work.answer as matching_answer,
+       |       matching_work.response as matching_answer,
        |       matching_work.version as matching_version
      """.stripMargin
 
@@ -390,9 +390,9 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
     val params = work match {
       case specific: LongAnswerWork => baseParams ++ Array[Any](Task.LongAnswer, specific.documentId.bytes)
       case specific: ShortAnswerWork => baseParams ++ Array[Any](Task.ShortAnswer, specific.documentId.bytes)
-      case specific: MultipleChoiceWork => baseParams ++ Array[Any](Task.MultipleChoice, specific.answer)
-      case specific: OrderingWork => baseParams ++ Array[Any](Task.Ordering, specific.answer)
-      case specific: MatchingWork => baseParams ++ Array[Any](Task.Matching, specific.answer.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => s"${item.left}:${item.right}"})
+      case specific: MultipleChoiceWork => baseParams ++ Array[Any](Task.MultipleChoice, specific.response)
+      case specific: OrderingWork => baseParams ++ Array[Any](Task.Ordering, specific.response)
+      case specific: MatchingWork => baseParams ++ Array[Any](Task.Matching, specific.response.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => s"${item.left}:${item.right}"})
     }
 
     queryOne(query, params)
@@ -429,7 +429,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
         work.taskId.bytes,
         work.version,
         work.version +1,
-        work.answer
+        work.response
       ))
     }
     else {
@@ -440,7 +440,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
         work.studentId.bytes,
         work.taskId.bytes,
         work.version,
-        work.answer
+        work.response
       ))
     }
   }

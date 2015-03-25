@@ -19,7 +19,7 @@ import play.api.libs.json._
  * @param settings An object containing common settings for tasks.
  * @param elementsLeft The left list of elements.
  * @param elementsRight The right list of elements.
- * @param answer The answers as a vector of Int -> Int tuples. Note that not every element
+ * @param answers The answers as a vector of Int -> Int tuples. Note that not every element
  *                needs to be accounted for in the answers.
  * @param randomizeChoices Whether the choices should be presented randomly, or in the
  *                            order in which they are defined.
@@ -37,7 +37,7 @@ case class MatchingTask(
   settings: CommonTaskSettings = CommonTaskSettings(),
   elementsLeft: IndexedSeq[String] = IndexedSeq(),
   elementsRight: IndexedSeq[String] = IndexedSeq(),
-  answer: IndexedSeq[MatchingTask.Match] = IndexedSeq(),
+  answers: IndexedSeq[MatchingTask.Match] = IndexedSeq(),
   randomizeChoices: Boolean = true,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
@@ -84,7 +84,7 @@ object MatchingTask {
       (__ \ "settings").write[CommonTaskSettings] and
       (__ \ "elements_left").write[IndexedSeq[String]] and
       (__ \ "elements_right").write[IndexedSeq[String]] and
-      (__ \ "answer").write[IndexedSeq[Match]] and
+      (__ \ "answers").write[IndexedSeq[Match]] and
       (__ \ "randomizeChoices").write[Boolean] and
       (__ \ "createdAt").write[DateTime] and
       (__ \ "updatedAt").write[DateTime]

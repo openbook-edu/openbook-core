@@ -211,11 +211,11 @@ class WorkServiceDefault(val db: Connection,
    *
    * @param userId the id of the student whose work is being entered
    * @param taskId the task for which the work was done
-   * @param answer the student's answer to the task (this is the actual "work")
+   * @param response the student's response to the task (this is the actual "work")
    * @param isComplete whether the student is finished with the task
    * @return the newly created work
    */
-  override def createMultipleChoiceWork(userId: UUID, taskId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]] = {
+  override def createMultipleChoiceWork(userId: UUID, taskId: UUID, response: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -228,7 +228,7 @@ class WorkServiceDefault(val db: Connection,
           studentId = userId,
           taskId = taskId,
           version = 1,
-          answer = answer,
+          response = response,
           isComplete = isComplete
         )
         work <- lift(workRepository.insert(newWork))
@@ -243,11 +243,11 @@ class WorkServiceDefault(val db: Connection,
    *
    * @param userId the id of the student whose work is being entered
    * @param taskId the task for which the work was done
-   * @param answer the student's answer to the task (this is the actual "work")
+   * @param response the student's response to the task (this is the actual "work")
    * @param isComplete whether the student is finished with the task
    * @return the newly created work
    */
-  override def createOrderingWork(userId: UUID, taskId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]] = {
+  override def createOrderingWork(userId: UUID, taskId: UUID, response: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -260,7 +260,7 @@ class WorkServiceDefault(val db: Connection,
           studentId = userId,
           taskId = taskId,
           version = 1,
-          answer = answer,
+          response = response,
           isComplete = isComplete
         )
         work <- lift(workRepository.insert(newWork))
@@ -275,11 +275,11 @@ class WorkServiceDefault(val db: Connection,
    *
    * @param userId the id of the student whose work is being entered
    * @param taskId the task for which the work was done
-   * @param answer the student's answer to the task (this is the actual "work")
+   * @param response the student's response to the task (this is the actual "work")
    * @param isComplete whether the student is finished with the task
    * @return the newly created work
    */
-  override def createMatchingWork(userId: UUID, taskId: UUID, answer: IndexedSeq[Match], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]] = {
+  override def createMatchingWork(userId: UUID, taskId: UUID, response: IndexedSeq[Match], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -292,7 +292,7 @@ class WorkServiceDefault(val db: Connection,
           studentId = userId,
           taskId = taskId,
           version = 1,
-          answer = answer,
+          response = response,
           isComplete = isComplete
         )
         work <- lift(workRepository.insert(newWork))
@@ -304,7 +304,7 @@ class WorkServiceDefault(val db: Connection,
    * Internal method for updating work.
    *
    * External classes should call the type-specific update methods which can perform any logic that need to
-   * for specific work types. For example, the long-answer tasks only require new revisions on timed intervals,
+   * for specific work types. For example, the long-response tasks only require new revisions on timed intervals,
    * whereas most other forms of work will store a new revision each time a change is made.
    *
    * Please wrap this method in a transaction and provide it with a connection.
@@ -372,7 +372,7 @@ class WorkServiceDefault(val db: Connection,
     }
   }
 
-  override def updateMultipleChoiceWork(userId: UUID, taskId: UUID, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]] = {
+  override def updateMultipleChoiceWork(userId: UUID, taskId: UUID, version: Long, response: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -382,14 +382,14 @@ class WorkServiceDefault(val db: Connection,
         task <- lift(fTask)
         existingWork <- lift(workRepository.find(user, task))
         existingMCWork = existingWork.asInstanceOf[MultipleChoiceWork]
-        workToUpdate = existingMCWork.copy(answer = answer, isComplete = isComplete)
+        workToUpdate = existingMCWork.copy(response = response, isComplete = isComplete)
         updatedWork <- lift(workRepository.update(workToUpdate))
       }
       yield updatedWork.asInstanceOf[MultipleChoiceWork]
     }
   }
 
-  override def updateOrderingWork(userId: UUID, taskId: UUID, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]] = {
+  override def updateOrderingWork(userId: UUID, taskId: UUID, version: Long, response: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -399,14 +399,14 @@ class WorkServiceDefault(val db: Connection,
         task <- lift(fTask)
         existingWork <- lift(workRepository.find(user, task))
         existingOrdWork = existingWork.asInstanceOf[OrderingWork]
-        workToUpdate = existingOrdWork.copy(answer = answer, isComplete = isComplete)
+        workToUpdate = existingOrdWork.copy(response = response, isComplete = isComplete)
         updatedWork <- lift(workRepository.update(workToUpdate))
       }
       yield updatedWork.asInstanceOf[OrderingWork]
     }
   }
 
-  override def updateMatchingWork(userId: UUID, taskId: UUID, version: Long, answer: IndexedSeq[Match], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]] = {
+  override def updateMatchingWork(userId: UUID, taskId: UUID, version: Long, response: IndexedSeq[Match], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -416,7 +416,7 @@ class WorkServiceDefault(val db: Connection,
         task <- lift(fTask)
         existingWork <- lift(workRepository.find(user, task))
         existingMatchingWork = existingWork.asInstanceOf[MatchingWork]
-        workToUpdate = existingMatchingWork.copy(answer = answer, isComplete = isComplete)
+        workToUpdate = existingMatchingWork.copy(response = response, isComplete = isComplete)
         updatedWork <- lift(workRepository.update(workToUpdate))
       }
       yield updatedWork.asInstanceOf[MatchingWork]

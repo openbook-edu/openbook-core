@@ -139,22 +139,30 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       |INNER JOIN projects
       | ON projects.id = parts.project_id
       | AND projects.id = ?
-      |WHERE tasks.position = ?
+      |WHERE $Table.position = ?
   """.stripMargin
 
   val SelectNowByUserId = s"""
-    |SELECT $CommonFields, $SpecificFields, COALESCE(work.is_complete, FALSE) AS is_complete
+    |SELECT $CommonFieldsWithTable, $SpecificFields, COALESCE(work.is_complete, FALSE) AS is_complete
     |FROM $Table
     |$Join
-    |INNER JOIN users ON users.id = ?
-    |INNER JOIN projects ON projects.id = ?
-    |INNER JOIN parts ON parts.project_id = projects.id AND parts.enabled = 't'
-    |INNER JOIN users_courses ON users_courses.course_id = projects.course_id AND users_courses.user_id = users.id
-    |LEFT JOIN work ON users.id = work.user_id AND tasks.id = work.task_id
+    |INNER JOIN users
+    | ON users.id = ?
+    |INNER JOIN projects
+    | ON projects.id = ?
+    |INNER JOIN parts
+    | ON parts.project_id = projects.id
+    | AND parts.enabled = 't'
+    |INNER JOIN users_courses
+    | ON users_courses.course_id = projects.course_id
+    | AND users_courses.user_id = users.id
+    |LEFT JOIN work
+    | ON users.id = work.user_id
+    | AND $Table.id = work.task_id
     |WHERE COALESCE(work.is_complete, FALSE) = FALSE
     |ORDER BY parts.position ASC, $OrderBy
     |LIMIT 1
-  """
+  """.stripMargin
 
   // -- Insert queries -----------------------------------------------------------------------------------------------
 
@@ -228,7 +236,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   val Update =
     s"""
-       |UPDATE tasks
+       |UPDATE $Table
        |SET part_id = ?, dependency_id = ?,
        |    name = ?, description = ?,
        |    position = ?, notes_allowed = ?,
@@ -340,17 +348,6 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   }
 
   /**
-   * Find a task on which user is working on now.
-   *
-   * @param user
-   * @param project
-   * @return
-   */
-  override def findNow(user: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]] = {
-    queryOne(SelectNowByUserId, Seq[Any](user.id.bytes, project.id.bytes))
-  }
-
-  /**
    * Find a task given its position within a part, its part's position within
    * a project, and its project.
    *
@@ -364,6 +361,18 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task <- lift(queryOne(SelectByPosition, Seq[Any](part.position, project.id.bytes, taskNum)))
     } yield task).run
   }
+
+  /**
+   * Find a task on which user is working on now.
+   *
+   * @param user
+   * @param project
+   * @return
+   */
+  override def findNow(user: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]] = {
+    queryOne(SelectNowByUserId, Seq[Any](user.id.bytes, project.id.bytes))
+  }
+
 
   /**
    * Insert a new task into the database.
@@ -401,21 +410,21 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       case multipleChoice: MultipleChoiceTask => commonData ++ Array[Any](
         Task.MultipleChoice,
         multipleChoice.choices,
-        multipleChoice.answer,
+        multipleChoice.answers,
         multipleChoice.allowMultiple,
         multipleChoice.randomizeChoices
       )
       case ordering: OrderingTask => commonData ++ Array[Any](
         Task.Ordering,
         ordering.elements,
-        ordering.answer,
+        ordering.answers,
         ordering.randomizeChoices
       )
       case matching: MatchingTask => commonData ++ Array[Any](
         Task.Matching,
         matching.elementsLeft,
         matching.elementsRight,
-        matching.answer.map { element => IndexedSeq(element.left, element.right) },
+        matching.answers.map { element => IndexedSeq(element.left, element.right) },
         matching.randomizeChoices
       )
       case _ => throw new Exception("I don't know how you did this, but you sent me a task type that doesn't exist.")
@@ -463,19 +472,19 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       )
       case multipleChoice: MultipleChoiceTask => commonData ++ Array[Any](
         multipleChoice.choices,
-        multipleChoice.answer,
+        multipleChoice.answers,
         multipleChoice.allowMultiple,
         multipleChoice.randomizeChoices
       )
       case ordering: OrderingTask => commonData ++ Array[Any](
         ordering.elements,
-        ordering.answer,
+        ordering.answers,
         ordering.randomizeChoices
       )
       case matching: MatchingTask => commonData ++ Array[Any](
         matching.elementsLeft,
         matching.elementsRight,
-        matching.answer.map { element => s"${element.left}:${element.right}" },
+        matching.answers.map { element => s"${element.left}:${element.right}" },
         matching.randomizeChoices
       )
       case _ => throw new Exception("I don't know how you did this, but you sent me a task type that doesn't exist.")
@@ -570,7 +579,7 @@ trait SpecificTaskConstructors {
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
       choices = Option(row("mc_choices").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      answer  = Option(row("mc_answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
+      answers  = Option(row("mc_answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
       allowMultiple = row("allow_multiple").asInstanceOf[Boolean],
       randomizeChoices = row("mc_randomize").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
@@ -592,7 +601,7 @@ trait SpecificTaskConstructors {
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
       elements = Option(row("ord_elements").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      answer  = Option(row("ord_answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
+      answers  = Option(row("ord_answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
       randomizeChoices = row("ord_randomize").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
@@ -614,7 +623,7 @@ trait SpecificTaskConstructors {
       settings = CommonTaskSettings(row),
       elementsLeft = Option(row("elements_left").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
       elementsRight = Option(row("elements_right").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      answer = row("mat_answers").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element => Match(element.head, element.tail.head) },
+      answers = row("mat_answers").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element => Match(element.head, element.tail.head) },
       randomizeChoices = row("mat_randomize").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]

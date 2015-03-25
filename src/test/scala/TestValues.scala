@@ -1,10 +1,13 @@
 import java.awt.Color
 
 import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.models.document.Document
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import ca.shiftfocus.krispii.core.models.tasks._
+import ca.shiftfocus.krispii.core.models.work.LongAnswerWork
 import ca.shiftfocus.uuid.UUID
 import org.joda.time.{DateTime, DateTimeZone}
+import ws.kahn.ot.{Operation, Delta}
 
 object TestValues {
   /* USERS */
@@ -265,6 +268,24 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  /**
+   * No data in DB
+   */
+  val testLongAnswerTaskF = LongAnswerTask(
+    id = UUID("6a50a2f1-0138-4d5c-abdd-fe85a7a520a4"),
+    version = 2L,
+    partId = UUID("5cd214be-6bba-47fa-9f35-0eb8bafec397"), // testPartA.id
+    position = 10,
+    settings = CommonTaskSettings(
+      dependencyId = None,
+      title = "test longAnswerTask F",
+      description = "test longAnswerTask F description",
+      notesAllowed = true
+    ),
+    createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* SHORT ANSWER TASKS */
   val testShortAnswerTaskB = ShortAnswerTask(
     id = UUID("10ef05ee-7b49-4352-b86e-70510adf617f"),
@@ -295,7 +316,7 @@ object TestValues {
       notesAllowed = true
     ),
     choices = Vector("choice 1", "choice 2"),
-    answer  = Vector(1, 2),
+    answers  = Vector(1, 2),
     allowMultiple = false,
     randomizeChoices = true,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -315,7 +336,7 @@ object TestValues {
       notesAllowed = true
     ),
     elements = Vector("element 3", "element 4"),
-    answer  = Vector(3, 4),
+    answers  = Vector(3, 4),
     randomizeChoices = true,
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -335,12 +356,42 @@ object TestValues {
     ),
     elementsLeft = Vector("choice left 5", "choice left 6"),
     elementsRight = Vector("choice right 7", "choice right 8"),
-    answer  = Vector(Match(5, 6), Match(7, 8)),
+    answers  = Vector(Match(5, 6), Match(7, 8)),
     randomizeChoices = true,
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  /* DOCUMENTS */
+  val testDocumentA = Document(
+    id = UUID("fd923b3f-6dc2-472e-8ce7-7a8fcc6a1a20"),
+    version = 1L,
+    title = "testDocumentA title",
+    plaintext = "testDocumentA plaintext",
+    delta = Delta(IndexedSeq.empty[Operation]),
+    owner = testUserB,
+    editors = Vector(testUserB, testUserC),
+    createdAt = Option(new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
+    updatedAt = Option(new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+  )
+
+  /* WORK */
+  /* LONG_ANSWER_WORK */
+  val testLongAnswerWorkA = LongAnswerWork(
+    id = UUID("441374e2-0b16-43ec-adb9-6a3251081d24"),
+    studentId = testUserC.id,
+    taskId = testMatchingTaskE.id,
+    documentId = testDocumentA.id,
+    version = 1L,
+    response = "testLongAnswerWorkA response",
+    isComplete = false,
+    createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+  /* SHORT_ANSWER_WORK */
+  /* MULTIPLE_CHOICE_WORK */
+  /* ORDERING_WORK */
+  /* MATCHING_WORK */
 
   /* COMPONENTS */
   /* TEXT COMPONENT */

@@ -49,7 +49,7 @@ class DocumentServiceDefault(val db: Connection,
    *
    * @param id
    * @param title
-   * @param initialContent
+   * @param initialDelta
    * @return
    */
   override def create(id: UUID = UUID.random, owner: User, title: String, initialDelta: Delta): Future[\/[ErrorUnion#Fail, Document]] = {

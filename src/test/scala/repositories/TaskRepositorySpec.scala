@@ -60,7 +60,7 @@ class TaskRepositorySpec
                 task match {
                   case task: MultipleChoiceTask => {
                     multipleChoice.choices should be(task.choices)
-                    multipleChoice.answer should be(task.answer)
+                    multipleChoice.answers should be(task.answers)
                     multipleChoice.allowMultiple should be(task.allowMultiple)
                     multipleChoice.randomizeChoices should be(task.randomizeChoices)
                   }
@@ -70,7 +70,7 @@ class TaskRepositorySpec
                 task match {
                   case task: OrderingTask => {
                     ordering.elements should be(task.elements)
-                    ordering.answer should be(task.answer)
+                    ordering.answers should be(task.answers)
                     ordering.randomizeChoices should be(task.randomizeChoices)
                   }
                 }
@@ -80,7 +80,7 @@ class TaskRepositorySpec
                   case task: MatchingTask => {
                     matching.elementsLeft should be(task.elementsLeft)
                     matching.elementsRight should be(task.elementsRight)
-                    matching.answer should be(task.answer)
+                    matching.answers should be(task.answers)
                     matching.randomizeChoices should be(task.randomizeChoices)
                   }
                 }
@@ -118,7 +118,7 @@ class TaskRepositorySpec
                 task match {
                   case task: OrderingTask => {
                     ordering.elements should be(task.elements)
-                    ordering.answer should be(task.answer)
+                    ordering.answers should be(task.answers)
                     ordering.randomizeChoices should be(task.randomizeChoices)
                   }
                 }
@@ -179,7 +179,7 @@ class TaskRepositorySpec
                 task match {
                   case task: MultipleChoiceTask => {
                     multipleChoice.choices should be(task.choices)
-                    multipleChoice.answer should be(task.answer)
+                    multipleChoice.answers should be(task.answers)
                     multipleChoice.allowMultiple should be(task.allowMultiple)
                     multipleChoice.randomizeChoices should be(task.randomizeChoices)
                   }
@@ -189,7 +189,7 @@ class TaskRepositorySpec
                 task match {
                   case task: OrderingTask => {
                     ordering.elements should be(task.elements)
-                    ordering.answer should be(task.answer)
+                    ordering.answers should be(task.answers)
                     ordering.randomizeChoices should be(task.randomizeChoices)
                   }
                 }
@@ -203,6 +203,98 @@ class TaskRepositorySpec
 
         val result = taskRepository.list(testProject)
         Await.result(result, Duration.Inf) should be(\/-(Vector()))
+      }
+    }
+  }
+
+  "TaskRepository.find" should {
+    inSequence {
+      "find a a single entry by ID" in {
+        val testTask = TestValues.testShortAnswerTaskB
+
+        val result = taskRepository.find(testTask.id)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: ShortAnswerTask) = eitherTask
+
+        task.id should be(testTask.id)
+        task.version should be(testTask.version)
+        task.partId should be(testTask.partId)
+        task.taskType should be(testTask.taskType)
+        task.settings.toString should be(testTask.settings.toString)
+        task.createdAt.toString should be(testTask.createdAt.toString)
+        task.updatedAt.toString should be(testTask.updatedAt.toString)
+
+        // Specific fields
+        task.maxLength should be(testTask.maxLength)
+      }
+      "return RepositoryError.NoResults if tas hasn't been found" in {
+        val testTask = TestValues.testLongAnswerTaskF
+
+        val result = taskRepository.find(testTask.id)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+      "find a task given its position within a part, its part's position within a project, and its project" in {
+        val testProject  = TestValues.testProjectA
+        val testPart     = TestValues.testPartB
+        val testTask     = TestValues.testOrderingTaskD
+        val taskPosition = testTask.position
+
+        val result = taskRepository.find(testProject, testPart, taskPosition)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: OrderingTask) = eitherTask
+
+        task.id should be(testTask.id)
+        task.version should be(testTask.version)
+        task.partId should be(testTask.partId)
+        task.taskType should be(testTask.taskType)
+        task.settings.toString should be(testTask.settings.toString)
+        task.createdAt.toString should be(testTask.createdAt.toString)
+        task.updatedAt.toString should be(testTask.updatedAt.toString)
+
+        // Specific fields
+        task.elements should be(testTask.elements)
+        task.answers should be(testTask.answers)
+        task.randomizeChoices should be(testTask.randomizeChoices)
+      }
+      "return RepositoryError.NoResults if project is wrong" in {
+        val testProject  = TestValues.testProjectB
+        val testPart     = TestValues.testPartB
+        val testTask     = TestValues.testOrderingTaskD
+        val taskPosition = testTask.position
+
+        val result = taskRepository.find(testProject, testPart, taskPosition)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+      "return RepositoryError.NoResults if part is wrong" in {
+        val testProject  = TestValues.testProjectA
+        val testPart     = TestValues.testPartA
+        val testTask     = TestValues.testOrderingTaskD
+        val taskPosition = testTask.position
+
+        val result = taskRepository.find(testProject, testPart, taskPosition)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+      "return RepositoryError.NoResults if task position is wrong" in {
+        val testProject  = TestValues.testProjectA
+        val testPart     = TestValues.testPartB
+        val testTask     = TestValues.testOrderingTaskD
+        val taskPosition = testTask.position + 1
+
+        val result = taskRepository.find(testProject, testPart, taskPosition)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+    }
+  }
+
+  // TODO check if part enabled true and false
+  "TaskRepository.findNow" should {
+    inSequence {
+      "find a task on which user is working on now" in {
+        val testUser     = TestValues.testUserC
+        val testProject  = TestValues.testProjectB
+
+        val result = taskRepository.findNow(testUser, testProject)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
     }
   }

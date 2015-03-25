@@ -724,7 +724,7 @@ class ProjectServiceDefault(val db: Connection,
                                position: Option[Int],
                                notesAllowed: Option[Boolean],
                                choices: Option[IndexedSeq[String]] = Some(IndexedSeq()),
-                               answer: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
+                               answers: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
                                allowMultiple: Option[Boolean] = Some(false),
                                randomizeChoices: Option[Boolean] = Some(true),
                                dependencyId: Option[UUID] = None,
@@ -748,7 +748,7 @@ class ProjectServiceDefault(val db: Connection,
           }
         ),
         choices = choices.getOrElse(mcTask.choices),
-        answer = answer.getOrElse(mcTask.answer),
+        answers = answers.getOrElse(mcTask.answers),
         allowMultiple = allowMultiple.getOrElse(mcTask.allowMultiple),
         randomizeChoices = randomizeChoices.getOrElse(mcTask.randomizeChoices)
       )
@@ -779,7 +779,7 @@ class ProjectServiceDefault(val db: Connection,
                          position: Option[Int],
                          notesAllowed: Option[Boolean],
                          elements: Option[IndexedSeq[String]] = Some(IndexedSeq()),
-                         answer: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
+                         answers: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
                          randomizeChoices: Option[Boolean] = Some(true),
                          dependencyId: Option[UUID] = None,
                          partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]] =
@@ -802,7 +802,7 @@ class ProjectServiceDefault(val db: Connection,
           }
         ),
         elements = elements.getOrElse(orderingTask.elements),
-        answer = answer.getOrElse(orderingTask.answer),
+        answers = answers.getOrElse(orderingTask.answers),
         randomizeChoices = randomizeChoices.getOrElse(orderingTask.randomizeChoices)
       )
       updatedTask <- lift(updateTask(task, toUpdate))
@@ -834,7 +834,7 @@ class ProjectServiceDefault(val db: Connection,
                          notesAllowed: Option[Boolean],
                          elementsLeft: Option[IndexedSeq[String]] = Some(IndexedSeq()),
                          elementsRight: Option[IndexedSeq[String]] = Some(IndexedSeq()),
-                         answer: Option[IndexedSeq[MatchingTask.Match]] = Some(IndexedSeq()),
+                         answers: Option[IndexedSeq[MatchingTask.Match]] = Some(IndexedSeq()),
                          randomizeChoices: Option[Boolean] = Some(true),
                          dependencyId: Option[UUID] = None,
                          partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]] =
@@ -858,7 +858,7 @@ class ProjectServiceDefault(val db: Connection,
         ),
         elementsLeft = elementsLeft.getOrElse(matchingTask.elementsLeft),
         elementsRight = elementsRight.getOrElse(matchingTask.elementsRight),
-        answer = answer.getOrElse(matchingTask.answer),
+        answers = answers.getOrElse(matchingTask.answers),
         randomizeChoices = randomizeChoices.getOrElse(matchingTask.randomizeChoices)
       )
       updatedTask <- lift(updateTask(task, toUpdate))

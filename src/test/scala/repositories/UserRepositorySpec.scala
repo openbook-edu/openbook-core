@@ -388,7 +388,7 @@ class UserRepositorySpec
   "UserRepository.delete" should {
     inSequence {
       "delete a user from the database if user has no references in other tables" in {
-        val testUser = TestValues.testUserC
+        val testUser = TestValues.testUserH
 
         val result = userRepository.delete(testUser)
         val eitherUser = Await.result(result, Duration.Inf)

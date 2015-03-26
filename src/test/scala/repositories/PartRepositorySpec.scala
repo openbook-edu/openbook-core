@@ -42,7 +42,9 @@ class PartRepositorySpec
             TestValues.testMatchingTaskE
           ),
           testPartList(2).id.toString -> Vector(),
-          testPartList(3).id.toString -> Vector(),
+          testPartList(3).id.toString -> Vector(
+            TestValues.testMatchingTaskK
+          ),
           testPartList(4).id.toString -> Vector(),
           testPartList(5).id.toString -> Vector(),
           testPartList(6).id.toString -> Vector()
@@ -393,24 +395,19 @@ class PartRepositorySpec
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
       "delete all parts in a project" in {
-        val testProject = TestValues.testProjectA
+        val testProject = TestValues.testProjectC
 
         val testPartList = TreeMap[Int, Part](
-          0 -> TestValues.testPartA,
-          1 -> TestValues.testPartB,
-          2 -> TestValues.testPartG
+          0 -> TestValues.testPartE,
+          1 -> TestValues.testPartF,
+          2 -> TestValues.testPartH
         )
 
         val testTaskList = TreeMap(
           testPartList(0).id.toString -> Vector(
-            TestValues.testLongAnswerTaskA,
-            TestValues.testShortAnswerTaskB,
-            TestValues.testMultipleChoiceTaskC
+            TestValues.testMatchingTaskK
           ),
-          testPartList(1).id.toString -> Vector(
-            TestValues.testOrderingTaskD,
-            TestValues.testMatchingTaskE
-          ),
+          testPartList(1).id.toString -> Vector(),
           testPartList(2).id.toString -> Vector()
         )
 

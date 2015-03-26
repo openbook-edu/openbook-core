@@ -398,7 +398,7 @@ object TestValues {
 
   /* MATCHING TASKS */
   val testMatchingTaskE = MatchingTask(
-    id = UUID("7e9fe0e8-e821-4d84-a7fe-ac023fe6dfa3"),
+    id = UUID("468a35bf-baf8-4045-aa18-4688f4d0721f"),
     version = 5L,
     partId = UUID("fb01f11b-7f23-41c8-877b-68410be62aa5"), // testPartC.id
     position = 14,
@@ -599,7 +599,7 @@ object TestValues {
     name = "test part E",
     enabled = false,
     position = 13,
-    tasks = Vector(),
+    tasks = Vector(testMatchingTaskK),
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )

@@ -7,7 +7,7 @@ VALUES ('\x36c8c0ca50aa4806afa5916a5e33a81f', 1, 'testUserA@example.com', 'testU
 INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
 VALUES ('\x6c0e29bdd05b4b2981156be93e936c59', 2, 'testUserB@example.com', 'testUserB', '$s0$100801$84r2edPRqM/8xFCe+G1PPw==$p7dTGjBJpGUMoyQ1Nqat1i4SBV6aT6BX7h1WU6cLRnc=', 'TestB', 'UserB', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
-/* user C no references in other tables */
+/* user C */
 INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
 VALUES ('\xf5f984073a0b4ea5952a575886e90586', 3, 'testUserC@example.com', 'testUserC', '$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3WmWjo=', 'TestC', 'UserC', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
 
@@ -23,7 +23,7 @@ VALUES ('\x4d01347ec5924e5fb09fdd281b3d9b87', 5, 'testUserF@example.com', 'testU
 INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
 VALUES ('\xc4d948967e1b45fabae74fb3a89a4d63', 6, 'testUserG@example.com', 'testUserG', '$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3WmWjo=', 'TestG', 'UserG', '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
 
-/* user H */
+/* user H no references in other tables */
 INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
 VALUES ('\x5099a6b48809400d8e380119184d0f93', 7, 'testUserH@example.com', 'testUserH', '$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3WmWjo=', 'TestH', 'UserH', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
@@ -212,17 +212,24 @@ VALUES ('\x808400838923476fa8738ba6c55e30c8', 4, '\xabb84847a3d247a0ae7d8ce04063
 
 INSERT INTO ordering_tasks (task_id, elements, answers, randomize)
 VALUES ('\x808400838923476fa8738ba6c55e30c8', '{element 3, element 4}', '{3, 4}', true);
+/*
+/* orderingTask L -> part B (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
+INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
+VALUES ('\x3d3578bd60d34aeabe070359dad2fecb', 6, '\xabb84847a3d247a0ae7d8ce04063afc7', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test OrderingTask L', 'test OrderingTask L description', 17, 3, true, '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
 
+INSERT INTO ordering_tasks (task_id, elements, answers, randomize)
+VALUES ('\x3d3578bd60d34aeabe070359dad2fecb', '{element 5, element 6}', '{5, 6}', true);
+*/
 /* matchingTask E -> part C (dependency_id -> longAnswerTask A) -> project B -> course B -> user B (teacher) */
 INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
-VALUES ('\x7e9fe0e8e8214d84a7feac023fe6dfa3', 5, '\xfb01f11b7f2341c8877b68410be62aa5', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test MatchingTask E', 'test MatchingTask E description', 14, 4, true, '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
+VALUES ('\x468a35bfbaf84045aa184688f4d0721f', 5, '\xfb01f11b7f2341c8877b68410be62aa5', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test MatchingTask E', 'test MatchingTask E description', 14, 4, true, '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
 INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, randomize)
-VALUES ('\x7e9fe0e8e8214d84a7feac023fe6dfa3', '{choice left 5, choice left 6}', '{choice right 7, choice right 8}', '{{5, 6}, {7, 8}}', true);
+VALUES ('\x468a35bfbaf84045aa184688f4d0721f', '{choice left 5, choice left 6}', '{choice right 7, choice right 8}', '{{5, 6}, {7, 8}}', true);
 
 /* matchingTask K -> partE (dependency_id -> longAnswerTask A) -> project C -> course B -> user B (teacher) */
 INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
-VALUES ('\x337fa73136854ba38668280c0096514c', 6, '\xc850ec53f0a9460d918a5e6fd538f376', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test MatchingTask K', 'test MatchingTask K description', 16, 4, true, '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+VALUES ('\x337fa73136854ba38668280c0096514c', 7, '\xc850ec53f0a9460d918a5e6fd538f376', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test MatchingTask K', 'test MatchingTask K description', 16, 4, true, '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
 INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, randomize)
 VALUES ('\x337fa73136854ba38668280c0096514c', '{choice left 6, choice left 7}', '{choice right 8, choice right 9}', '{{6, 7}, {8, 9}}', true);
@@ -244,36 +251,41 @@ VALUES ('\x441374e20b1643ecadb96a3251081d24', '\xfd923b3f6dc2472e8ce77a8fcc6a1a2
 
 
 /* COMPONENTS */
-/* testTextComponentA */
-INSERT INTO components (id, version, title, questions, things_to_think_about, type, created_at, updated_at)
-VALUES ('\x8cfc608981294c2e9ed145d38077d438', 1, 'testTextComponentA title', 'testTextComponentA questions', 'testTextComponentA thingsToThinkAbout', 'text', '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+/* testTextComponentA -> userA (teacher) */
+INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
+VALUES ('\x8cfc608981294c2e9ed145d38077d438', 1, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'testTextComponentA title', 'testTextComponentA questions', 'testTextComponentA thingsToThinkAbout', 'text', '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
 
 INSERT INTO text_components (component_id, content)
 VALUES ('\x8cfc608981294c2e9ed145d38077d438', 'testTextComponentA content');
 
-/* testVideoComponentB */
-INSERT INTO components (id, version, title, questions, things_to_think_about, type, created_at, updated_at)
-VALUES ('\x50d07485f33c47559ccf59d823cbb79e', 2, 'testVideoComponentB title', 'testVideoComponentB questions', 'testVideoComponentB thingsToThinkAbout', 'video', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
+/* testVideoComponentB -> userA (teacher) */
+INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
+VALUES ('\x50d07485f33c47559ccf59d823cbb79e', 2, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'testVideoComponentB title', 'testVideoComponentB questions', 'testVideoComponentB thingsToThinkAbout', 'video', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
 INSERT INTO video_components (component_id, vimeo_id, width, height)
 VALUES ('\x50d07485f33c47559ccf59d823cbb79e', '19579282', 640, 480);
 
-/* testAudionComponentC */
-INSERT INTO components (id, version, title, questions, things_to_think_about, type, created_at, updated_at)
-VALUES ('\xa51c6b535180416daa771cc620dee9c0', 3, 'testAudioComponentC title', 'testAudioComponentC questions', 'testAudioComponentC thingsToThinkAbout', 'audio', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
+/* testAudionComponentC -> userA (teacher) */
+INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
+VALUES ('\xa51c6b535180416daa771cc620dee9c0', 3, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'testAudioComponentC title', 'testAudioComponentC questions', 'testAudioComponentC thingsToThinkAbout', 'audio', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
 
 INSERT INTO audio_components (component_id, soundcloud_id)
 VALUES ('\xa51c6b535180416daa771cc620dee9c0', 'dj-whisky-ft-nozipho-just');
 
 
 /* PARTS_COMPONENTS*/
-/* testTextComponentA -> PartA */
+/* testTextComponentA -> PartA -> project A -> course A -> user A (teacher)*/
 INSERT INTO parts_components (component_id, part_id, created_at)
 VALUES ('\x8cfc608981294c2e9ed145d38077d438', '\x5cd214be6bba47fa9f350eb8bafec397', '2014-08-01 14:01:19.545-04');
 
-/* testTextComponentA -> PartB */
+/* testTextComponentA -> PartB -> project A -> course A -> user A (teacher)*/
 INSERT INTO parts_components (component_id, part_id, created_at)
 VALUES ('\x8cfc608981294c2e9ed145d38077d438', '\xabb84847a3d247a0ae7d8ce04063afc7', '2014-08-02 14:01:19.545-04');
+
+/* testVideoComponentB -> PartB -> project A -> course A -> user A (teacher)*/
+INSERT INTO parts_components (component_id, part_id, created_at)
+VALUES ('\x50d07485f33c47559ccf59d823cbb79e', '\xabb84847a3d247a0ae7d8ce04063afc7', '2014-08-03 14:01:19.545-04');
+
 
 /* SCHEDULES */
 /* CourseSchedule A -> Course A */

@@ -265,29 +265,27 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   val UpdateLongAnswer =
     s"""
-       |WITH task AS (${Update})
-       |UPDATE long_answer_tasks AS la_task
-       |SET task_id = task.id
-       |FROM task
-       |RETURNING $CommonFields
+       |${Update}
      """.stripMargin
 
   val UpdateShortAnswer =
     s"""
        |WITH task AS (${Update})
        |UPDATE short_answer_tasks AS sa_task
-       |SET task_id = task.id, max_length = ?
+       |SET max_length = ?
        |FROM task
+       |WHERE task_id = task.id
        |RETURNING $CommonFields,
-       |  sa_task.max_length
+       |          sa_task.max_length
      """.stripMargin
 
   val UpdateMultipleChoice =
     s"""
        |WITH task AS (${Update})
-       |UPDATE multiple_choice_tasks as mc_task
-       |SET task_id = task.id, choices = ?, answers = ?, allow_multiple = ?, randomize = ?
+       |UPDATE multiple_choice_tasks AS mc_task
+       |SET choices = ?, answers = ?, allow_multiple = ?, randomize = ?
        |FROM task
+       |WHERE task_id = task.id
        |RETURNING $CommonFields,
        |          mc_task.choices as mc_choices, mc_task.answers as mc_answers,
        |          mc_task.allow_multiple, mc_task.randomize as mc_randomize
@@ -296,9 +294,10 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   val UpdateOrdering =
     s"""
        |WITH task AS (${Update})
-       |UPDATE ordering_tasks as ord_task
-       |SET task_id = task.id, elements = ?, answers = ?, randomize = ?
+       |UPDATE ordering_tasks AS ord_task
+       |SET elements = ?, answers = ?, randomize = ?
        |FROM task
+       |WHERE task_id = task.id
        |RETURNING $CommonFields,
        |          ord_task.elements as ord_elements, ord_task.answers as ord_answers,
        |          ord_task.randomize as ord_randomize
@@ -307,9 +306,10 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   val UpdateMatching =
     s"""
        |WITH task AS (${Update})
-       |UPDATE matching_tasks as mat_task
-       |SET task_id = task.id, elements_left = ?, elements_right = ?, answers = ?, randomize = ?
+       |UPDATE matching_tasks AS mat_task
+       |SET  elements_left = ?, elements_right = ?, answers = ?, randomize = ?
        |FROM task
+       |WHERE task_id = task.id
        |RETURNING $CommonFields,
        |          mat_task.elements_left, mat_task.elements_right,
        |          mat_task.answers as mat_answers, mat_task.randomize as mat_randomize
@@ -317,7 +317,6 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   // -- Delete queries -----------------------------------------------------------------------------------------------
 
-  // TODO - we need RETURNING for specific fields!!!
   val DeleteByPart =
     s"""
       |DELETE FROM $Table

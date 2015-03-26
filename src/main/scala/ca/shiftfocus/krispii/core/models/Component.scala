@@ -13,6 +13,8 @@ abstract class Component {
   val title: String
   val questions: String
   val thingsToThinkAbout: String
+  val createdAt: DateTime
+  val updatedAt: DateTime
 }
 
 object Component {

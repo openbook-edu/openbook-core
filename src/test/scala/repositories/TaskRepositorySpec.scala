@@ -2,7 +2,7 @@ import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.repositories.TaskRepositoryPostgres
 import scala.collection.immutable.TreeMap
 import ca.shiftfocus.krispii.core.models.tasks._
-import ca.shiftfocus.krispii.core.models._
+
 import org.scalatest._
 import Matchers._
 import scala.concurrent.Await
@@ -21,7 +21,8 @@ class TaskRepositorySpec
           1 -> TestValues.testShortAnswerTaskB,
           2 -> TestValues.testMultipleChoiceTaskC,
           3 -> TestValues.testOrderingTaskD,
-          4 -> TestValues.testMatchingTaskE
+          4 -> TestValues.testMatchingTaskE,
+          5 -> TestValues.testMatchingTaskK
         )
 
         val result = taskRepository.list
@@ -41,6 +42,7 @@ class TaskRepositorySpec
             tasks(key).createdAt.toString should be(task.createdAt.toString)
             tasks(key).updatedAt.toString should be(task.updatedAt.toString)
 
+            //Specific
             tasks(key) match {
               case longAnswer: LongAnswerTask => {
                 task match {

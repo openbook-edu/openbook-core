@@ -68,94 +68,98 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
     )
   }
 
-  val SelectAll = """
-    SELECT id, version, owner_id, title, questions, things_to_think_about, type,
-           audio_components.component_id as audio_components_id,
-           text_components.component_id as text_components_id,
-           video_components.component_id as video_components_id,
-           soundcloud_id, content, vimeo_id, width, height,
-           created_at, updated_at
-    FROM components
-    LEFT JOIN audio_components ON components.id = audio_components.component_id
-    LEFT JOIN text_components ON components.id = text_components.component_id
-    LEFT JOIN video_components ON components.id = video_components.component_id
-    ORDER BY title ASC
-  """
+  // -- Common query components --------------------------------------------------------------------------------------
 
-  val SelectOne = """
-    SELECT id, version, owner_id, title, questions, things_to_think_about, type,
-           audio_components.component_id as audio_components_id,
-           text_components.component_id as text_components_id,
-           video_components.component_id as video_components_id,
-           soundcloud_id, content, vimeo_id, width, height,
-           created_at, updated_at
-    FROM components
-    LEFT JOIN audio_components ON components.id = audio_components.component_id
-    LEFT JOIN text_components ON components.id = text_components.component_id
-    LEFT JOIN video_components ON components.id = video_components.component_id
-      AND components.id = ?
-  """
+  val Table                 = "components"
+  val CommonFields          = "id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at"
+  def CommonFieldsWithTable(table: String = Table): String = {
+    CommonFields.split(", ").map({ field => s"${table}." + field}).mkString(", ")
+  }
+  val SpecificFields =
+    s"""
+       |  text_components.content,
+       |  video_components.vimeo_id,
+       |  video_components.width,
+       |  video_components.height,
+       |  audio_components.soundcloud_id
+     """.stripMargin
 
-  val SelectByPartId = """
-    SELECT id, version, owner_id, title, questions, things_to_think_about, type,
-           audio_components.component_id as audio_components_id,
-           text_components.component_id as text_components_id,
-           video_components.component_id as video_components_id,
-           soundcloud_id, content, vimeo_id, width, height,
-           created_at, updated_at
-    FROM components
-    INNER JOIN parts_components ON components.id = parts_components.component_id
-    LEFT JOIN audio_components ON components.id = audio_components.component_id
-    LEFT JOIN text_components ON components.id = text_components.component_id
-    LEFT JOIN video_components ON components.id = video_components.component_id
-    WHERE parts_components.part_id = ?
-    GROUP BY components.id
-    ORDER BY components.title ASC
-  """
+  val QMarks  = "?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val GroupBy = s"${Table}.id"
+  val OrderBy = s"${Table}.title ASC"
+  val Join =
+    s"""
+      |LEFT JOIN  text_components ON $Table.id = text_components.component_id
+      |LEFT JOIN  video_components ON $Table.id = video_components.component_id
+      |LEFT JOIN  audio_components ON $Table.id = audio_components.component_id
+     """.stripMargin
 
-  val SelectByProjectId = """
-    SELECT id, version, owner_id, title, questions, things_to_think_about, type,
-           audio_components.component_id as audio_components_id,
-           text_components.component_id as text_components_id,
-           video_components.component_id as video_components_id,
-           soundcloud_id, content, vimeo_id, width, height,
-           created_at, updated_at
-    FROM components
-    INNER JOIN parts_components ON components.id = parts_components.component_id
-    INNER JOIN parts
-    LEFT JOIN audio_components ON components.id = audio_components.component_id
-    LEFT JOIN text_components ON components.id = text_components.component_id
-    LEFT JOIN video_components ON components.id = video_components.component_id
-    WHERE parts_components.part_id = parts.id
-      AND parts.project_id = ?
-    GROUP BY components.id
-    ORDER BY components.title ASC
-  """
+  // -- Select queries -----------------------------------------------------------------------------------------------
 
-  val SelectEnabledByProjectId = """
-    SELECT components.id as id, components.version as version, components.owner_id as owner_id,
-           components.questions as questions, components.things_to_think_about as things_to_think_about,
-           components.type as type, components.title as title,
-           audio_components.component_id as audio_components_id,
-           text_components.component_id as text_components_id,
-           video_components.component_id as video_components_id,
-           soundcloud_id, content, vimeo_id, width, height,
-           components.created_at as created_at, components.updated_at as updated_at
-    FROM components
-    INNER JOIN users ON users.id = ?
-    INNER JOIN users_courses ON users.id = users_courses.user_id
-    INNER JOIN courses ON courses.id = users_courses.course_id
-    INNER JOIN projects ON projects.course_id = courses.id
-    INNER JOIN parts_components ON components.id = parts_components.component_id
-    INNER JOIN parts ON projects.id = parts.project_id AND parts.id = parts_components.part_id
-    LEFT JOIN audio_components ON components.id = audio_components.component_id
-    LEFT JOIN text_components ON components.id = text_components.component_id
-    LEFT JOIN video_components ON components.id = video_components.component_id
-    WHERE parts.project_id = ?
-      AND parts.enabled = 't'
-    GROUP BY components.id, audio_components.component_id, text_components.component_id, video_components.component_id
-    ORDER BY components.title ASC
-  """
+  val SelectAll =
+    s"""
+      |SELECT $CommonFields, $SpecificFields
+      |FROM $Table
+      |$Join
+      |ORDER BY $OrderBy
+  """.stripMargin
+
+  val SelectOne =
+    s"""
+      |SELECT $CommonFields, $SpecificFields
+      |FROM $Table
+      |$Join
+      |WHERE components.id = ?
+  """.stripMargin
+
+  val SelectByPartId =
+    s"""
+      |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+      |FROM $Table
+      |$Join
+      |INNER JOIN parts_components
+      |  ON $Table.id = parts_components.component_id
+      |WHERE parts_components.part_id = ?
+      |ORDER BY $OrderBy
+  """.stripMargin
+
+  val SelectByProjectId =
+    s"""
+      |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+      |FROM $Table
+      |$Join
+      |INNER JOIN parts_components
+      | ON components.id = parts_components.component_id
+      |INNER JOIN parts
+      | ON parts_components.part_id = parts.id
+      | AND parts.project_id = ?
+      |GROUP BY $GroupBy, $SpecificFields
+      |ORDER BY $OrderBy
+  """.stripMargin
+
+  val SelectEnabledByProjectId =
+    s"""
+      |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+      |FROM $Table
+      |$Join
+      |INNER JOIN users
+      |  ON users.id = ?
+      |INNER JOIN users_courses
+      | ON users_courses.user_id = users.id
+      |INNER JOIN courses
+      | ON courses.id = users_courses.course_id
+      |INNER JOIN projects
+      | ON projects.course_id = courses.id
+      |INNER JOIN parts_components
+      | ON parts_components.component_id = components.id
+      |INNER JOIN parts
+      | ON parts.project_id = projects.id
+      | AND parts.id = parts_components.part_id
+      |WHERE parts.project_id = ?
+      |  AND parts.enabled = 't'
+      |GROUP BY $GroupBy, $SpecificFields
+      |ORDER BY $OrderBy
+  """.stripMargin
 
   val AddToPart = """
     INSERT INTO parts_components (component_id, part_id, created_at) VALUES (?, ?, ?)
@@ -279,7 +283,7 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
   }
 
   /**
-   * Find all components enabled for a specific user, in a specific project.
+   * Find all components in a specific project.
    *
    * @param project the project to search within
    * @return an array of components

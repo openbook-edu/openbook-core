@@ -10,7 +10,6 @@ import scala.concurrent.Future
 import scalaz.{EitherT, \/}
 
 trait ComponentRepository extends Repository {
-  val partRepository: PartRepository
 
   def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]]
   def list(part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]]

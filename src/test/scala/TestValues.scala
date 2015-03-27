@@ -503,6 +503,19 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  /* No data in DB */
+  val testTextComponentG = TextComponent(
+    id = UUID("2b1357e7-1e3b-4d98-b4fd-7ff09dc77b40"),
+    version = 1L,
+    ownerId = testUserF.id,
+    title = "testTextComponentG title",
+    questions = "testTextComponentG questions",
+    thingsToThinkAbout = "testTextComponentG thingsToThinkAbout",
+    content = "testTextComponentG content",
+    createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* VIDEO COMPONENT */
   val testVideoComponentB = VideoComponent(
     id = UUID("50d07485-f33c-4755-9ccf-59d823cbb79e"),
@@ -518,6 +531,21 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  /* No data in DB */
+  val testVideoComponentF = VideoComponent(
+    id = UUID("913e9192-eb37-4557-9833-393e964472df"),
+    version = 1L,
+    ownerId = testUserB.id,
+    title = "testVideoComponentF title",
+    questions = "testVideoComponentF questions",
+    thingsToThinkAbout = "testVideoComponentF thingsToThinkAbout",
+    vimeoId = "19579283",
+    width = 640,
+    height = 480,
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* AUDIO COMPONENT */
   val testAudioComponentC = AudioComponent(
     id = UUID("a51c6b53-5180-416d-aa77-1cc620dee9c0"),
@@ -531,17 +559,29 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-  /* No data in DB*/
+  /* No data in DB */
   val testAudioComponentD = AudioComponent(
-    id = UUID("a51c6b53-5180-416d-aa77-1cc620dee9c0"),
-    version = 3L,
-    ownerId = testUserA.id,
-    title = "testAudioComponentC title",
-    questions = "testAudioComponentC questions",
-    thingsToThinkAbout = "testAudioComponentC thingsToThinkAbout",
-    soundcloudId = "dj-whisky-ft-nozipho-just",
-    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-    updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+    id = UUID("bf8980bb-8fda-49ab-a5d2-a9f537de90b0"),
+    version = 1L,
+    ownerId = testUserF.id,
+    title = "testAudioComponentD title",
+    questions = "testAudioComponentD questions",
+    thingsToThinkAbout = "testAudioComponentD thingsToThinkAbout",
+    soundcloudId = "fetty-wap-my-way-feat-monty",
+    createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testAudioComponentE = AudioComponent(
+    id = UUID("9f2dd973-397b-4f55-9618-b0ff3af69ecb"),
+    version = 4L,
+    ownerId = testUserB.id,
+    title = "testAudioComponentE title",
+    questions = "testAudioComponentE questions",
+    thingsToThinkAbout = "testAudioComponentE thingsToThinkAbout",
+    soundcloudId = "revolution-radio-network",
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
 

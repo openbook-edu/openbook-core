@@ -11,17 +11,16 @@ import scalaz._
 class ComponentRepositorySpec
   extends TestEnvironment
 {
-  val partRepository = stub[PartRepository]
-  val userRepository = stub[UserRepository]
-  val componentRepository = new ComponentRepositoryPostgres(userRepository, partRepository)
+  val componentRepository = new ComponentRepositoryPostgres()
 
   "ComponentRepository.list" should {
     inSequence {
       "find all components" in {
         val testComponentList = TreeMap[Int, Component](
           0 -> TestValues.testAudioComponentC,
-          1 -> TestValues.testTextComponentA,
-          2 -> TestValues.testVideoComponentB
+          1 -> TestValues.testAudioComponentE,
+          2 -> TestValues.testTextComponentA,
+          3 -> TestValues.testVideoComponentB
         )
 
         val result = componentRepository.list
@@ -237,7 +236,132 @@ class ComponentRepositorySpec
   "ComponentRepository.addToPart" should {
     inSequence {
       "add a component to a Part" in {
+        val testComponent = TestValues.testAudioComponentD
+        val testPart = TestValues.testPartC
 
+        val result = componentRepository.addToPart(testComponent, testPart)
+        Await.result(result, Duration.Inf) should be(\/-( () ))
+      }
+    }
+  }
+
+  "ComponentRepository.removeFromPart" should {
+    inSequence {
+      "remove a component from a Part" in {
+        val testComponent = TestValues.testTextComponentA
+        val testPart = TestValues.testPartA
+
+        val result = componentRepository.removeFromPart(testComponent, testPart)
+        Await.result(result, Duration.Inf) should be(\/-( () ))
+      }
+      "remove all Components from a Part" in {
+        val testPart = TestValues.testPartB
+
+        val testComponentList = TreeMap[Int, Component](
+          0 -> TestValues.testTextComponentA,
+          1 -> TestValues.testVideoComponentB
+        )
+
+        val result = componentRepository.removeFromPart(testPart)
+        val eitherComponents = Await.result(result, Duration.Inf)
+        val \/-(components) = eitherComponents
+
+        components.size should be(testComponentList.size)
+
+        testComponentList.foreach {
+          case (key, component: Component) => {
+            //Common
+            components(key).id should be(component.id)
+            components(key).version should be(component.version)
+            components(key).ownerId should be(component.ownerId)
+            components(key).title should be(component.title)
+            components(key).questions should be(component.questions)
+            components(key).thingsToThinkAbout should be(component.thingsToThinkAbout)
+            components(key).createdAt.toString should be(component.createdAt.toString)
+            components(key).updatedAt.toString should be(component.updatedAt.toString)
+
+            //Specific
+            components(key) match {
+              case textComponent: TextComponent => {
+                component match {
+                  case component: TextComponent => {
+                    textComponent.content should be(component.content)
+                  }
+                }
+              }
+              case videoComponent: VideoComponent => {
+                component match {
+                  case component: VideoComponent => {
+                    videoComponent.vimeoId should be(component.vimeoId)
+                    videoComponent.width should be(component.width)
+                    videoComponent.height should be(component.height)
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  "ComponentRepository.insert" should {
+    inSequence {
+      "insert TextComponent" in {
+        val testComponent = TestValues.testTextComponentG
+
+        val result = componentRepository.insert(testComponent)
+        val eitherComponent = Await.result(result, Duration.Inf)
+        val \/-(component: TextComponent) = eitherComponent
+
+        //Common
+        component.id should be(testComponent.id)
+        component.version should be(testComponent.version)
+        component.ownerId should be(testComponent.ownerId)
+        component.title should be(testComponent.title)
+        component.questions should be(testComponent.questions)
+        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
+
+        //Specific
+        component.content should be(testComponent.content)
+      }
+      "insert VideoComponent" in {
+        val testComponent = TestValues.testVideoComponentF
+
+        val result = componentRepository.insert(testComponent)
+        val eitherComponent = Await.result(result, Duration.Inf)
+        val \/-(component: VideoComponent) = eitherComponent
+
+        //Common
+        component.id should be(testComponent.id)
+        component.version should be(testComponent.version)
+        component.ownerId should be(testComponent.ownerId)
+        component.title should be(testComponent.title)
+        component.questions should be(testComponent.questions)
+        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
+
+        //Specific
+        component.vimeoId should be(testComponent.vimeoId)
+        component.width should be(testComponent.width)
+        component.height should be(testComponent.height)
+      }
+      "insert AudioComponent" in {
+        val testComponent = TestValues.testAudioComponentD
+
+        val result = componentRepository.insert(testComponent)
+        val eitherComponent = Await.result(result, Duration.Inf)
+        val \/-(component: AudioComponent) = eitherComponent
+
+        //Common
+        component.id should be(testComponent.id)
+        component.version should be(testComponent.version)
+        component.ownerId should be(testComponent.ownerId)
+        component.title should be(testComponent.title)
+        component.questions should be(testComponent.questions)
+        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
+
+        //Specific
+        component.soundcloudId should be(testComponent.soundcloudId)
       }
     }
   }

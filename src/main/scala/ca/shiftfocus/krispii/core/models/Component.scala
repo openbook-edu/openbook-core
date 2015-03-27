@@ -19,10 +19,14 @@ abstract class Component {
 
 object Component {
 
+  val Audio = "audio"
+  val Text  = "text"
+  val Video = "video"
+
   implicit val componentReads = new Reads[Component] {
     def reads(js: JsValue) = {
       JsSuccess((js \ "type").as[String] match {
-        case "audio" => AudioComponent(
+        case Component.Audio => AudioComponent(
           id = (js \ "id").as[UUID],
           version = (js \ "version").as[Long],
           ownerId = (js \ "ownerId").as[UUID],
@@ -33,7 +37,7 @@ object Component {
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
-        case "text" => TextComponent(
+        case Component.Text => TextComponent(
           id = (js \ "id").as[UUID],
           version = (js \ "version").as[Long],
           ownerId = (js \ "ownerId").as[UUID],
@@ -44,7 +48,7 @@ object Component {
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
-        case "video" => VideoComponent(
+        case Component.Video => VideoComponent(
           id = (js \ "id").as[UUID],
           version = (js \ "version").as[Long],
           ownerId = (js \ "ownerId").as[UUID],
@@ -64,13 +68,13 @@ object Component {
   implicit val componentWrites = new Writes[Component] {
     def writes(component: Component): JsValue = component match {
       case component: VideoComponent => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
-        "type" -> "video"
+        "type" -> Component.Video
       ))
       case component: AudioComponent => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
-        "type" -> "audio"
+        "type" -> Component.Audio
       ))
       case component: TextComponent  => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
-        "type" -> "text"
+        "type" -> Component.Text
       ))
     }
   }

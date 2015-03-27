@@ -12,8 +12,7 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import scalaz.{\/, -\/, \/-}
 
 
-class ComponentRepositoryPostgres(val userRepository: UserRepository,
-                                  val partRepository: PartRepository)
+class ComponentRepositoryPostgres()
   extends ComponentRepository with PostgresRepository[Component] {
 
   override def constructor(row: RowData): Component = {
@@ -161,46 +160,55 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
       |ORDER BY $OrderBy
   """.stripMargin
 
-  val AddToPart = """
-    INSERT INTO parts_components (component_id, part_id, created_at) VALUES (?, ?, ?)
-  """
+  // -- Insert queries -----------------------------------------------------------------------------------------------
 
-  val RemoveFromPart = """
-    DELETE FROM parts_components WHERE component_id = ? AND part_id = ?
-  """
+  val AddToPart =
+    """
+    |INSERT INTO parts_components (component_id, part_id, created_at)
+    |VALUES (?, ?, ?)
+  """.stripMargin
 
-  val RemoveAllFromParts = """
-    DELETE FROM parts_components WHERE part_id = ?
-  """
+  val Insert =
+    s"""
+      |INSERT INTO $Table ($CommonFields)
+      |VALUES ($QMarks)
+      |RETURNING $CommonFields
+    """.stripMargin
 
-  val InsertAudio = """
-    WITH c AS (INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at) VALUES (?, 1, ?, ?, ?, ?, 'audio', ?, ?) RETURNING *),
-         a AS (INSERT INTO audio_components (component_id, soundcloud_id) SELECT id, ? as soundcloud_id FROM c RETURNING *)
-    SELECT c.id, c.version, c.owner_id, c.title, c.questions, c.things_to_think_about, c.type, a.soundcloud_id, c.created_at, c.updated_at
-    FROM c,a
-  """
- // TODO - update
-  val UpdateAudio = """
-    WITH component AS (
-      UPDATE components
-      SET version = ?, owner_id = ?, title = ?, questions = ?, things_to_think_about = ?, type = 'audio', updated_at = ?
-      WHERE id = ?
-        AND version = ?
-      RETURNING id, version
-    )
-    UPDATE audio_components
-    SET soundcloud_id = ?
-    FROM component
-    WHERE component_id = component.id
-    RETURNING component.version
-  """
+  val InsertAudio =
+    s"""
+      |WITH c AS ($Insert),
+      |     a AS (INSERT INTO audio_components (component_id, soundcloud_id)
+      |           SELECT id as component_id, ? as soundcloud_id
+      |           FROM c
+      |           RETURNING soundcloud_id)
+      |SELECT ${CommonFieldsWithTable("c")}, a.soundcloud_id
+      |FROM c, a
+  """.stripMargin
 
-  val InsertText = """
-    WITH c AS (INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at) VALUES (?, 1, ?, ?, ?, ?, 'text', ?, ?) RETURNING *),
-         t AS (INSERT INTO text_components (component_id, content) SELECT id, ? as content FROM c RETURNING *)
-    SELECT c.id, c.version, c.owner_id, c.title, c.questions, c.things_to_think_about, c.type, t.content, c.created_at, c.updated_at
-    FROM c,t
-  """
+  val InsertText =
+    s"""
+      |WITH c AS ($Insert),
+      |     t AS (INSERT INTO text_components (component_id, content)
+      |           SELECT id as component_id, ? as content
+      |           FROM c
+      |           RETURNING content)
+      |SELECT ${CommonFieldsWithTable("c")}, t.content
+      |FROM c, t
+  """.stripMargin
+
+  val InsertVideo =
+    s"""
+      |WITH c AS ($Insert),
+      |     v AS (INSERT INTO video_components (component_id, vimeo_id, width, height)
+      |           SELECT id as component_id, ? as vimeo_id, ? as width, ? as height
+      |           FROM c
+      |           RETURNING vimeo_id, width, height)
+      |SELECT ${CommonFieldsWithTable("c")}, v.vimeo_id, v.width, v.height
+      |FROM c, v
+  """.stripMargin
+
+  // -- Update queries -----------------------------------------------------------------------------------------------
 
   val UpdateText = """
     WITH component AS (
@@ -215,14 +223,7 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
     FROM component
     WHERE component_id = component.id
     RETURNING component.version
-  """
-
-  val InsertVideo = """
-    WITH c AS (INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at) VALUES (?, 1, ?, ?, ?, ?, 'video', ?, ?) RETURNING *),
-         v AS (INSERT INTO video_components (component_id, vimeo_id, width, height) SELECT id, ? as vimeo_id, ? as width, ? as height FROM c RETURNING *)
-    SELECT c.id, c.version, c.owner_id, c.title, c.questions, c.things_to_think_about, c.type, v.vimeo_id, v.width, v.height, c.created_at, c.updated_at
-    FROM c,v
-  """
+                   """
 
   val UpdateVideo = """
     WITH component AS (
@@ -237,7 +238,38 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
     FROM component
     WHERE component_id = component.id
     RETURNING component.version
-  """
+                    """
+
+  // TODO - update
+  val UpdateAudio = """
+    WITH component AS (
+      UPDATE components
+      SET version = ?, owner_id = ?, title = ?, questions = ?, things_to_think_about = ?, type = 'audio', updated_at = ?
+      WHERE id = ?
+        AND version = ?
+      RETURNING id, version
+    )
+    UPDATE audio_components
+    SET soundcloud_id = ?
+    FROM component
+    WHERE component_id = component.id
+    RETURNING component.version
+                    """
+
+  // -- Delete queries -----------------------------------------------------------------------------------------------
+
+  val RemoveFromPart =
+    """
+     |DELETE FROM parts_components
+     |WHERE component_id = ?
+     |  AND part_id = ?
+   """.stripMargin
+
+  val RemoveAllFromParts =
+    """
+     |DELETE FROM parts_components
+     |WHERE part_id = ?
+   """.stripMargin
 
   val DeleteAudio =
     s"""
@@ -262,6 +294,8 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
        |  AND components.version = ?
        |  AND components.id = video_components.component_id
      """.stripMargin
+
+  // -- Methods ------------------------------------------------------------------------------------------------------
 
   /**
    * Find all components.
@@ -372,7 +406,7 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
   override def insert(component: Component)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Component]] = {
     component match {
       case asAudio: AudioComponent => insertAudio(asAudio)
-      case asText: TextComponent => insertText(asText)
+      case asText: TextComponent   => insertText(asText)
       case asVideo: VideoComponent => insertVideo(asVideo)
     }
   }
@@ -423,10 +457,12 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
   private def insertAudio(component: AudioComponent)(implicit conn: Connection): Future[\/[RepositoryError.Fail, AudioComponent]] = {
     conn.sendPreparedStatement(InsertAudio, Array(
       component.id.bytes,
+      1,
       component.ownerId.bytes,
       component.title,
       component.questions,
       component.thingsToThinkAbout,
+      Component.Audio,
       new DateTime,
       new DateTime,
       component.soundcloudId)
@@ -470,10 +506,12 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
   private def insertText(component: TextComponent)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TextComponent]] = {
     conn.sendPreparedStatement(InsertText, Array(
       component.id.bytes,
+      1,
       component.ownerId.bytes,
       component.title,
       component.questions,
       component.thingsToThinkAbout,
+      Component.Text,
       new DateTime,
       new DateTime,
       component.content)
@@ -517,10 +555,12 @@ class ComponentRepositoryPostgres(val userRepository: UserRepository,
   private def insertVideo(component: VideoComponent)(implicit conn: Connection): Future[\/[RepositoryError.Fail, VideoComponent]] = {
     conn.sendPreparedStatement(InsertVideo, Array(
       component.id.bytes,
+      1,
       component.ownerId.bytes,
       component.title,
       component.questions,
       component.thingsToThinkAbout,
+      Component.Video,
       new DateTime,
       new DateTime,
       component.vimeoId,

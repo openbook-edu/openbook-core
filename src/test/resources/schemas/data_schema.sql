@@ -265,12 +265,19 @@ VALUES ('\x50d07485f33c47559ccf59d823cbb79e', 2, '\x36c8c0ca50aa4806afa5916a5e33
 INSERT INTO video_components (component_id, vimeo_id, width, height)
 VALUES ('\x50d07485f33c47559ccf59d823cbb79e', '19579282', 640, 480);
 
-/* testAudionComponentC -> userA (teacher) */
+/* testAudioComponentC -> userA (teacher) */
 INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
 VALUES ('\xa51c6b535180416daa771cc620dee9c0', 3, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'testAudioComponentC title', 'testAudioComponentC questions', 'testAudioComponentC thingsToThinkAbout', 'audio', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
 
 INSERT INTO audio_components (component_id, soundcloud_id)
 VALUES ('\xa51c6b535180416daa771cc620dee9c0', 'dj-whisky-ft-nozipho-just');
+
+/* testAudioComponentE -> userB (teacher) */
+INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
+VALUES ('\x9f2dd973397b4f559618b0ff3af69ecb', 4, '\x6c0e29bdd05b4b2981156be93e936c59', 'testAudioComponentE title', 'testAudioComponentE questions', 'testAudioComponentE thingsToThinkAbout', 'audio', '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
+
+INSERT INTO audio_components (component_id, soundcloud_id)
+VALUES ('\x9f2dd973397b4f559618b0ff3af69ecb', 'revolution-radio-network');
 
 
 /* PARTS_COMPONENTS*/

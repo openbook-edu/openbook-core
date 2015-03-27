@@ -339,8 +339,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       | multiple_choice_tasks,
       | ordering_tasks,
       | matching_tasks
-      |WHERE id = ?
-      | AND version = ?
+      |WHERE $Table.id = ?
+      | AND $Table.version = ?
       |RETURNING $CommonFields, $SpecificFields
     """.stripMargin
 

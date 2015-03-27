@@ -70,7 +70,7 @@ class ComponentRepositoryPostgres()
   // -- Common query components --------------------------------------------------------------------------------------
 
   val Table                 = "components"
-  val CommonFields          = "id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at"
+  val CommonFields          = "id, version, owner_id, title, questions, things_to_think_about, created_at, updated_at, type"
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field}).mkString(", ")
   }
@@ -210,51 +210,50 @@ class ComponentRepositoryPostgres()
 
   // -- Update queries -----------------------------------------------------------------------------------------------
 
-  val UpdateText = """
-    WITH component AS (
-      UPDATE components
-      SET version = ?, owner_id = ?, title = ?, questions = ?, things_to_think_about = ?, type = 'text', updated_at = ?
-      WHERE id = ?
-        AND version = ?
-      RETURNING id, version
-    )
-    UPDATE text_components
-    SET content = ?
-    FROM component
-    WHERE component_id = component.id
-    RETURNING component.version
-                   """
+  val Update =
+    s"""
+      |UPDATE $Table
+      |SET version = ?, owner_id = ?,
+      |    title = ?, questions = ?,
+      |    things_to_think_about = ?,
+      |    updated_at = ?
+      |WHERE id = ?
+      |  AND version = ?
+      |RETURNING $CommonFields
+     """.stripMargin
 
-  val UpdateVideo = """
-    WITH component AS (
-      UPDATE components
-      SET version = ?, owner_id = ?, title = ?, questions = ?, things_to_think_about = ?, type = 'video', updated_at = ?
-      WHERE id = ?
-        AND version = ?
-      RETURNING id, version
-    )
-    UPDATE video_components
-    SET vimeo_id = ?, width = ?, height = ?
-    FROM component
-    WHERE component_id = component.id
-    RETURNING component.version
-                    """
+  val UpdateText =
+    s"""
+      |WITH component AS ($Update)
+      |UPDATE text_components as t
+      |SET content = ?
+      |FROM component
+      |WHERE component_id = component.id
+      |RETURNING $CommonFields,
+      |          t.content
+    """.stripMargin
 
-  // TODO - update
-  val UpdateAudio = """
-    WITH component AS (
-      UPDATE components
-      SET version = ?, owner_id = ?, title = ?, questions = ?, things_to_think_about = ?, type = 'audio', updated_at = ?
-      WHERE id = ?
-        AND version = ?
-      RETURNING id, version
-    )
-    UPDATE audio_components
-    SET soundcloud_id = ?
-    FROM component
-    WHERE component_id = component.id
-    RETURNING component.version
-                    """
+  val UpdateVideo =
+    s"""
+      |WITH component AS ($Update)
+      |UPDATE video_components as v
+      |SET vimeo_id = ?, width = ?, height = ?
+      |FROM component
+      |WHERE component_id = component.id
+      |RETURNING $CommonFields,
+      |          v.vimeo_id, v.width, v.height
+    """.stripMargin
+
+  val UpdateAudio =
+    s"""
+      |WITH component AS ($Update)
+      |UPDATE audio_components as a
+      |SET soundcloud_id = ?
+      |FROM component
+      |WHERE component_id = component.id
+      |RETURNING $CommonFields,
+      |          a.soundcloud_id
+    """.stripMargin
 
   // -- Delete queries -----------------------------------------------------------------------------------------------
 
@@ -271,29 +270,17 @@ class ComponentRepositoryPostgres()
      |WHERE part_id = ?
    """.stripMargin
 
-  val DeleteAudio =
+  val Delete =
     s"""
-       |DELETE FROM components, audio_components
-       |WHERE components.id = ?
-       |  AND components.version = ?
-       |  AND components.id = audio_components.component_id
-     """.stripMargin
-
-  val DeleteText =
-    s"""
-       |DELETE FROM components, text_components
-       |WHERE components.id = ?
-       |  AND components.version = ?
-       |  AND components.id = text_components.component_id
-     """.stripMargin
-
-  val DeleteVideo =
-    s"""
-       |DELETE FROM components, video_components
-       |WHERE components.id = ?
-       |  AND components.version = ?
-       |  AND components.id = video_components.component_id
-     """.stripMargin
+      |DELETE FROM $Table
+      |USING
+      | audio_components,
+      | text_components,
+      | video_components
+      |WHERE $Table.id = ?
+      | AND $Table.version = ?
+      |RETURNING $CommonFields, $SpecificFields
+    """.stripMargin
 
   // -- Methods ------------------------------------------------------------------------------------------------------
 
@@ -404,11 +391,45 @@ class ComponentRepositoryPostgres()
    * @return the newly created component
    */
   override def insert(component: Component)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Component]] = {
-    component match {
-      case asAudio: AudioComponent => insertAudio(asAudio)
-      case asText: TextComponent   => insertText(asText)
-      case asVideo: VideoComponent => insertVideo(asVideo)
+    // Common properties.
+    val commonData = Seq[Any](
+      component.id.bytes,
+      1,
+      component.ownerId.bytes,
+      component.title,
+      component.questions,
+      component.thingsToThinkAbout,
+      new DateTime,
+      new DateTime
+    )
+
+    // Specific properties
+    val dataArray = component match {
+      case textComponent: TextComponent => commonData ++ Array[Any](
+        Component.Text,
+        textComponent.content
+      )
+      case videoComponent: VideoComponent => commonData ++ Array[Any](
+        Component.Video,
+        videoComponent.vimeoId,
+        videoComponent.width,
+        videoComponent.height
+      )
+      case audioComponent: AudioComponent => commonData ++ Array[Any](
+        Component.Audio,
+        audioComponent.soundcloudId
+      )
+      case _ => throw new Exception("I don't know how you did this, but you sent me a component type that doesn't exist.")
     }
+
+    val query = component match {
+      case textComponent: TextComponent   => InsertText
+      case videoComponent: VideoComponent => InsertVideo
+      case audioComponent: AudioComponent => InsertAudio
+    }
+
+    // Send the query
+    queryOne(query, dataArray)
   }
 
   /**
@@ -418,11 +439,42 @@ class ComponentRepositoryPostgres()
    * @return the updated component
    */
   override def update(component: Component)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Component]] = {
-    component match {
-      case asAudio: AudioComponent => updateAudio(asAudio)
-      case asText: TextComponent => updateText(asText)
-      case asVideo: VideoComponent => updateVideo(asVideo)
+    // Common properties.
+    val commonData = Seq[Any](
+      component.version + 1,
+      component.ownerId.bytes,
+      component.title,
+      component.questions,
+      component.thingsToThinkAbout,
+      new DateTime,
+      component.id.bytes,
+      component.version
+    )
+
+    // Specific properties
+    val dataArray = component match {
+      case textComponent: TextComponent => commonData ++ Array[Any](
+        textComponent.content
+      )
+      case videoComponent: VideoComponent => commonData ++ Array[Any](
+        videoComponent.vimeoId,
+        videoComponent.width,
+        videoComponent.height
+      )
+      case audioComponent: AudioComponent => commonData ++ Array[Any](
+        audioComponent.soundcloudId
+      )
+      case _ => throw new Exception("I don't know how you did this, but you sent me a component type that doesn't exist.")
     }
+
+    val query = component match {
+      case textComponent: TextComponent   => UpdateText
+      case videoComponent: VideoComponent => UpdateVideo
+      case audioComponent: AudioComponent => UpdateAudio
+    }
+
+    // Send the query
+    queryOne(query, dataArray)
   }
 
   /**
@@ -433,169 +485,6 @@ class ComponentRepositoryPostgres()
    * @return
    */
   override def delete(component: Component)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Component]] = {
-    val query = component match {
-      case asAudio: AudioComponent => DeleteAudio
-      case asText: TextComponent => DeleteText
-      case asVideo: VideoComponent => DeleteVideo
-    }
-
-    queryOne(query, Seq[Any](component.id.bytes, component.version))
-  }
-
-  /*
-   * --------------------------------------------
-   * Private type-specific create/update methods.
-   * --------------------------------------------
-   */
-
-  /**
-   * Insert a new audio component.
-   *
-   * @param component the audio component to insert
-   * @return the created audio component
-   */
-  private def insertAudio(component: AudioComponent)(implicit conn: Connection): Future[\/[RepositoryError.Fail, AudioComponent]] = {
-    conn.sendPreparedStatement(InsertAudio, Array(
-      component.id.bytes,
-      1,
-      component.ownerId.bytes,
-      component.title,
-      component.questions,
-      component.thingsToThinkAbout,
-      Component.Audio,
-      new DateTime,
-      new DateTime,
-      component.soundcloudId)
-    ).map {
-      result => buildEntity(result.rows, constructAudio)
-    }.recover {
-      case exception: Throwable => throw exception
-    }
-  }
-
-  /**
-   * Update a new audio component.
-   *
-   * @param component the audio component to update
-   * @return the updated audio component
-   */
-  private def updateAudio(component: AudioComponent)(implicit conn: Connection): Future[\/[RepositoryError.Fail, AudioComponent]] = {
-    conn.sendPreparedStatement(UpdateAudio, Array(
-      component.version + 1,
-      component.ownerId.bytes,
-      component.title,
-      component.questions,
-      component.thingsToThinkAbout,
-      new DateTime,
-      component.id.bytes,
-      component.version,
-      component.soundcloudId)
-    ).map {
-      result => buildEntity(result.rows, constructAudio)
-    }.recover {
-      case exception: Throwable => throw exception
-    }
-  }
-
-  /**
-   * Insert a new text component.
-   *
-   * @param component the text component to insert
-   * @return the created text component
-   */
-  private def insertText(component: TextComponent)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TextComponent]] = {
-    conn.sendPreparedStatement(InsertText, Array(
-      component.id.bytes,
-      1,
-      component.ownerId.bytes,
-      component.title,
-      component.questions,
-      component.thingsToThinkAbout,
-      Component.Text,
-      new DateTime,
-      new DateTime,
-      component.content)
-    ).map {
-      result => buildEntity(result.rows, constructText)
-    }.recover {
-      case exception: Throwable => throw exception
-    }
-  }
-
-  /**
-   * Update a new text component.
-   *
-   * @param component the text component to update
-   * @return the updated text component
-   */
-  private def updateText(component: TextComponent)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TextComponent]] = {
-    conn.sendPreparedStatement(UpdateText, Array(
-      component.version + 1,
-      component.ownerId.bytes,
-      component.title,
-      component.questions,
-      component.thingsToThinkAbout,
-      new DateTime,
-      component.id.bytes,
-      component.version,
-      component.content)
-    ).map {
-      result => buildEntity(result.rows, constructText)
-    }.recover {
-      case exception: Throwable => throw exception
-    }
-  }
-
-  /**
-   * Insert a new video component.
-   *
-   * @param component the video component to insert
-   * @return the created video component
-   */
-  private def insertVideo(component: VideoComponent)(implicit conn: Connection): Future[\/[RepositoryError.Fail, VideoComponent]] = {
-    conn.sendPreparedStatement(InsertVideo, Array(
-      component.id.bytes,
-      1,
-      component.ownerId.bytes,
-      component.title,
-      component.questions,
-      component.thingsToThinkAbout,
-      Component.Video,
-      new DateTime,
-      new DateTime,
-      component.vimeoId,
-      component.width,
-      component.height)
-    ).map {
-      result => buildEntity(result.rows, constructVideo)
-    }.recover {
-      case exception: Throwable => throw exception
-    }
-  }
-
-  /**
-   * Update a new video component.
-   *
-   * @param component the video component to update
-   * @return the updated video component
-   */
-  private def updateVideo(component: VideoComponent)(implicit conn: Connection): Future[\/[RepositoryError.Fail, VideoComponent]] = {
-    conn.sendPreparedStatement(UpdateVideo, Array(
-      component.version + 1,
-      component.ownerId.bytes,
-      component.title,
-      component.questions,
-      component.thingsToThinkAbout,
-      new DateTime,
-      component.id.bytes,
-      component.version,
-      component.vimeoId,
-      component.width,
-      component.height)
-    ).map {
-      result => buildEntity(result.rows, constructVideo)
-    }.recover {
-      case exception: Throwable => throw exception
-    }
+    queryOne(Delete, Seq[Any](component.id.bytes, component.version))
   }
 }

@@ -1,5 +1,7 @@
+import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.uuid.UUID
 
 import org.scalatest._
 import Matchers._
@@ -118,6 +120,12 @@ class ComponentRepositorySpec
           }
         }
       }
+      "return empty Vector() if Part doesn't exist" in {
+        val testPart = TestValues.testPartD
+
+        val result = componentRepository.list(testPart)
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
+      }
       "find all components in a specific project" in {
         val testProject = TestValues.testProjectA
 
@@ -166,6 +174,12 @@ class ComponentRepositorySpec
           }
         }
       }
+      "return empty Vector() if Project doesn't exist" in {
+        val testProject = TestValues.testProjectD
+
+        val result = componentRepository.list(testProject)
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
+      }
       "find all components enabled for a specific user, in a specific project." in {
         val testUser = TestValues.testUserC
         val testProject = TestValues.testProjectA
@@ -205,13 +219,27 @@ class ComponentRepositorySpec
           }
         }
       }
+      "return empty Vector() for a specific user if Project doesn't exist" in {
+        val testUser = TestValues.testUserC
+        val testProject = TestValues.testProjectD
+
+        val result = componentRepository.list(testProject, testUser)
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
+      }
+      "return empty Vector() if User doesn't exist" in {
+        val testUser = TestValues.testUserD
+        val testProject = TestValues.testProjectA
+
+        val result = componentRepository.list(testProject, testUser)
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
+      }
     }
   }
 
   "ComponentRepository.find" should {
     inSequence {
       "find a single entry by ID" in {
-        val testComponent = TestValues.testAudioComponentD
+        val testComponent = TestValues.testAudioComponentC
 
         val result = componentRepository.find(testComponent.id)
         val eitherComponent = Await.result(result, Duration.Inf)
@@ -230,17 +258,37 @@ class ComponentRepositorySpec
         //Specific
         component.soundcloudId should be(testComponent.soundcloudId)
       }
+      "return RepositoryError.NoResults if id is wrong" in {
+        val id = UUID("024e4bde-282c-4947-a623-81ec11d2d85c")
+
+        val result = componentRepository.find(id)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
     }
   }
 
   "ComponentRepository.addToPart" should {
     inSequence {
       "add a component to a Part" in {
-        val testComponent = TestValues.testAudioComponentD
+        val testComponent = TestValues.testAudioComponentC
         val testPart = TestValues.testPartC
 
         val result = componentRepository.addToPart(testComponent, testPart)
         Await.result(result, Duration.Inf) should be(\/-( () ))
+      }
+      "return RepositoryError.ForeignKeyConflict if Part doesn't exist" in {
+        val testComponent = TestValues.testAudioComponentC
+        val testPart = TestValues.testPartD
+
+        val result = componentRepository.addToPart(testComponent, testPart)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("part_id", "parts_components_part_id_fkey")))
+      }
+      "return RepositoryError.ForeignKeyConflict if Component doesn't exist" in {
+        val testComponent = TestValues.testAudioComponentD
+        val testPart = TestValues.testPartC
+
+        val result = componentRepository.addToPart(testComponent, testPart)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("component_id", "parts_components_component_id_fkey")))
       }
     }
   }
@@ -253,6 +301,20 @@ class ComponentRepositorySpec
 
         val result = componentRepository.removeFromPart(testComponent, testPart)
         Await.result(result, Duration.Inf) should be(\/-( () ))
+      }
+      "return RepositoryError.NoResults if Part doesn't exist" in {
+        val testComponent = TestValues.testTextComponentA
+        val testPart = TestValues.testPartD
+
+        val result = componentRepository.removeFromPart(testComponent, testPart)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+      "return RepositoryError.NoResults if Component doesn't exist" in {
+        val testComponent = TestValues.testAudioComponentD
+        val testPart = TestValues.testPartA
+
+        val result = componentRepository.removeFromPart(testComponent, testPart)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
       "remove all Components from a Part" in {
         val testPart = TestValues.testPartB
@@ -302,6 +364,12 @@ class ComponentRepositorySpec
           }
         }
       }
+      "return empty Vector() when try to remove all Components if Part doesn't exist" in {
+        val testPart = TestValues.testPartD
+
+        val result = componentRepository.removeFromPart(testPart)
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
+      }
     }
   }
 
@@ -325,6 +393,12 @@ class ComponentRepositorySpec
         //Specific
         component.content should be(testComponent.content)
       }
+      "return RepositoryError.PrimaryKeyConflict if TextComponent already exists" in {
+        val testComponent = TestValues.testTextComponentA
+
+        val result = componentRepository.insert(testComponent)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+      }
       "insert VideoComponent" in {
         val testComponent = TestValues.testVideoComponentF
 
@@ -345,10 +419,176 @@ class ComponentRepositorySpec
         component.width should be(testComponent.width)
         component.height should be(testComponent.height)
       }
+      "return RepositoryError.PrimaryKeyConflict if VideoComponent already exists" in {
+        val testComponent = TestValues.testVideoComponentB
+
+        val result = componentRepository.insert(testComponent)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+      }
       "insert AudioComponent" in {
         val testComponent = TestValues.testAudioComponentD
 
         val result = componentRepository.insert(testComponent)
+        val eitherComponent = Await.result(result, Duration.Inf)
+        val \/-(component: AudioComponent) = eitherComponent
+
+        //Common
+        component.id should be(testComponent.id)
+        component.version should be(testComponent.version)
+        component.ownerId should be(testComponent.ownerId)
+        component.title should be(testComponent.title)
+        component.questions should be(testComponent.questions)
+        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
+
+        //Specific
+        component.soundcloudId should be(testComponent.soundcloudId)
+      }
+      "return RepositoryError.PrimaryKeyConflict if AudioComponent already exists" in {
+        val testComponent = TestValues.testAudioComponentC
+
+        val result = componentRepository.insert(testComponent)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+      }
+    }
+  }
+
+  "ComponentRepository.update" should {
+    inSequence {
+      "update TextComponent" in {
+        val testComponent = TestValues.testTextComponentA
+        val updatedComponent = testComponent.copy(
+          ownerId = TestValues.testUserF.id,
+          title = "updated title",
+          questions = "updated questions",
+          thingsToThinkAbout = "updated thingsToThinkAbout",
+          content = "updated content"
+        )
+
+        val result = componentRepository.update(updatedComponent)
+        val eitherComponent = Await.result(result, Duration.Inf)
+        val \/-(component: TextComponent) = eitherComponent
+
+        //Common
+        component.id should be(updatedComponent.id)
+        component.version should be(updatedComponent.version + 1)
+        component.ownerId should be(updatedComponent.ownerId)
+        component.title should be(updatedComponent.title)
+        component.questions should be(updatedComponent.questions)
+        component.thingsToThinkAbout should be(updatedComponent.thingsToThinkAbout)
+        component.createdAt.toString should be(updatedComponent.createdAt.toString)
+        component.updatedAt.toString should not be(updatedComponent.updatedAt.toString)
+
+        //Specific
+        component.content should be(updatedComponent.content)
+      }
+
+      "update VideoComponent" in {
+        val testComponent = TestValues.testVideoComponentB
+        val updatedComponent = testComponent.copy(
+          ownerId = TestValues.testUserF.id,
+          title = "updated title",
+          questions = "updated questions",
+          thingsToThinkAbout = "updated thingsToThinkAbout",
+          vimeoId = "bla bla",
+          width = 128,
+          height = 128
+        )
+
+        val result = componentRepository.update(updatedComponent)
+        val eitherComponent = Await.result(result, Duration.Inf)
+        val \/-(component: VideoComponent) = eitherComponent
+
+        //Common
+        component.id should be(updatedComponent.id)
+        component.version should be(updatedComponent.version + 1)
+        component.ownerId should be(updatedComponent.ownerId)
+        component.title should be(updatedComponent.title)
+        component.questions should be(updatedComponent.questions)
+        component.thingsToThinkAbout should be(updatedComponent.thingsToThinkAbout)
+        component.createdAt.toString should be(updatedComponent.createdAt.toString)
+        component.updatedAt.toString should not be(updatedComponent.updatedAt.toString)
+
+        //Specific
+        component.vimeoId should be(updatedComponent.vimeoId)
+        component.width should be(updatedComponent.width)
+        component.height should be(updatedComponent.height)
+      }
+      "update AudioComponent" in {
+        val testComponent = TestValues.testAudioComponentC
+        val updatedComponent = testComponent.copy(
+          ownerId = TestValues.testUserF.id,
+          title = "updated title",
+          questions = "updated questions",
+          thingsToThinkAbout = "updated thingsToThinkAbout",
+          soundcloudId = "bla bla bla"
+        )
+
+        val result = componentRepository.update(updatedComponent)
+        val eitherComponent = Await.result(result, Duration.Inf)
+        val \/-(component: AudioComponent) = eitherComponent
+
+        //Common
+        component.id should be(updatedComponent.id)
+        component.version should be(updatedComponent.version + 1)
+        component.ownerId should be(updatedComponent.ownerId)
+        component.title should be(updatedComponent.title)
+        component.questions should be(updatedComponent.questions)
+        component.thingsToThinkAbout should be(updatedComponent.thingsToThinkAbout)
+        component.createdAt.toString should be(updatedComponent.createdAt.toString)
+        component.updatedAt.toString should not be(updatedComponent.updatedAt.toString)
+
+        //Specific
+        component.soundcloudId should be(updatedComponent.soundcloudId)
+      }
+    }
+  }
+
+  "ComponentRepository.delete" should {
+    inSequence {
+      "delete TextComponent" in {
+        val testComponent = TestValues.testTextComponentA
+
+        val result = componentRepository.delete(testComponent)
+        val eitherComponent = Await.result(result, Duration.Inf)
+        val \/-(component: TextComponent) = eitherComponent
+
+        //Common
+        component.id should be(testComponent.id)
+        component.version should be(testComponent.version)
+        component.ownerId should be(testComponent.ownerId)
+        component.title should be(testComponent.title)
+        component.questions should be(testComponent.questions)
+        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
+        component.createdAt.toString should be(testComponent.createdAt.toString)
+        component.updatedAt.toString should be(testComponent.updatedAt.toString)
+
+        //Specific
+        component.content should be(testComponent.content)
+      }
+      "delete VideoComponent" in {
+        val testComponent = TestValues.testVideoComponentB
+
+        val result = componentRepository.delete(testComponent)
+        val eitherComponent = Await.result(result, Duration.Inf)
+        val \/-(component: VideoComponent) = eitherComponent
+
+        //Common
+        component.id should be(testComponent.id)
+        component.version should be(testComponent.version)
+        component.ownerId should be(testComponent.ownerId)
+        component.title should be(testComponent.title)
+        component.questions should be(testComponent.questions)
+        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
+
+        //Specific
+        component.vimeoId should be(testComponent.vimeoId)
+        component.width should be(testComponent.width)
+        component.height should be(testComponent.height)
+      }
+      "delete AudioComponent" in {
+        val testComponent = TestValues.testAudioComponentC
+
+        val result = componentRepository.delete(testComponent)
         val eitherComponent = Await.result(result, Duration.Inf)
         val \/-(component: AudioComponent) = eitherComponent
 

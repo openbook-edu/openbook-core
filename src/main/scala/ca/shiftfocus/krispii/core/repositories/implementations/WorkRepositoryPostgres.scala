@@ -202,17 +202,21 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
        |RETURNING id, user_id, task_id, version, is_complete, created_at, updated_at, work_type
      """.stripMargin
 
-  // TODO - We need RETURNING for every Work type
-  def InsertIntoDocumentWork(table: String): String =
+  def InsertIntoDocumentWork(table: String): String = {
+    val response = table match {
+      case "long_answer_work" => "long_answer_document_id"
+      case "short_answer_work" => "short_answer_document_id"
+    }
     s"""
        |WITH w AS ($Insert),
        |     x AS (INSERT INTO $table (work_id, document_id)
        |           SELECT w.id as work_id, ? as document_id
        |           FROM w
        |           RETURNING *)
-       |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.created_at, w.updated_at, w.work_type, w.document_id
+       |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.created_at, w.updated_at, w.work_type, x.document_id as $response
        |FROM w, x
      """.stripMargin
+  }
 
   def InsertIntoVersionedWork(table: String): String = {
     val response = table match {

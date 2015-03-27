@@ -9,6 +9,7 @@ import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.{ResultSet, Connection}
+import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
 import play.api.Logger
@@ -22,7 +23,7 @@ class DocumentRepositoryPostgres(val userRepository: UserRepository) extends Doc
 
   val SelectDocument =
     s"""
-       |SELECT id, version, title, plaintext, delta, owner_id, editor_ids, created_at, updated_at
+       |SELECT id, version, title, plaintext, delta, owner_id, created_at, updated_at
      """.stripMargin
 
   val FromDocuments =
@@ -32,7 +33,7 @@ class DocumentRepositoryPostgres(val userRepository: UserRepository) extends Doc
 
   val ReturningDocument =
     s"""
-       |RETURNING id, version, title, plaintext, delta, owner_id, editor_ids, created_at, updated_at
+       |RETURNING id, version, title, plaintext, delta, owner_id, created_at, updated_at
      """.stripMargin
 
   val SelectRevision =
@@ -57,14 +58,14 @@ class DocumentRepositoryPostgres(val userRepository: UserRepository) extends Doc
   val CreateDocument =
     s"""
        |INSERT INTO documents (id, version, title, plaintext, delta, owner_id, created_at, updated_at)
-       |VALUES (?, 0, ?, ?, ?, ?, ?)
+       |VALUES (?, 0, ?, ?, ?, ?, ?, ?)
        |$ReturningDocument
      """.stripMargin
 
   val UpdateDocument =
     s"""
        |UPDATE documents
-       |SET version = ?, title = ?, plaintext = ?, delta = ?, owner_id = ?, editor_ids = ?, updated_at = ?
+       |SET version = ?, title = ?, plaintext = ?, delta = ?, owner_id = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
        |$ReturningDocument
@@ -121,7 +122,7 @@ class DocumentRepositoryPostgres(val userRepository: UserRepository) extends Doc
    */
   override def insert(document: Document)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Document]] = {
     conn.sendPreparedStatement(CreateDocument, Seq[Any](
-      document.id.bytes, document.title, document.plaintext, document.delta, document.owner.id.bytes, new DateTime, new DateTime
+      document.id.bytes, document.title, document.plaintext, Json.toJson(document.delta).toString(), document.owner.id.bytes, new DateTime, new DateTime
     )).map { result =>
       buildDocument(result.rows)(document.owner, document.editors)
     }.recover {
@@ -138,7 +139,7 @@ class DocumentRepositoryPostgres(val userRepository: UserRepository) extends Doc
    */
   override def update(document: Document)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Document]] = {
     conn.sendPreparedStatement(UpdateDocument, Seq[Any](
-      document.version + 1, document.title, document.plaintext, document.delta, document.owner.id.bytes, document.editors.map(_.id.bytes),
+      document.version + 1, document.title, document.plaintext, Json.toJson(document.delta).toString(), document.owner.id.bytes,
       new DateTime, document.id.bytes, document.version
     )).map { result =>
       buildDocument(result.rows)(document.owner, document.editors)
@@ -204,7 +205,7 @@ class DocumentRepositoryPostgres(val userRepository: UserRepository) extends Doc
       revision.documentId.bytes,
       revision.version,
       revision.author.id.bytes,
-      Delta.writes.writes(revision.delta).toString(),
+      Json.toJson(revision.delta).toString(),
       new DateTime
     )).map { result =>
       \/-(revision)

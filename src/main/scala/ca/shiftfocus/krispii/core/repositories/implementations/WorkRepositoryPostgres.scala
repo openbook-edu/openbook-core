@@ -401,7 +401,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
       case specific: ShortAnswerWork => baseParams ++ Array[Any](Task.ShortAnswer, specific.documentId.bytes)
       case specific: MultipleChoiceWork => baseParams ++ Array[Any](Task.MultipleChoice, specific.response)
       case specific: OrderingWork => baseParams ++ Array[Any](Task.Ordering, specific.response)
-      case specific: MatchingWork => baseParams ++ Array[Any](Task.Matching, specific.response.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => s"${item.left}:${item.right}"})
+      case specific: MatchingWork => baseParams ++ Array[Any](Task.Matching, specific.response.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => IndexedSeq(item.left, item.right)})
     }
 
     queryOne(query, params)

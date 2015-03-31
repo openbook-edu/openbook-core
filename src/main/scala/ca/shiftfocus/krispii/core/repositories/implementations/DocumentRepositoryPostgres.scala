@@ -86,7 +86,7 @@ class DocumentRepositoryPostgres(val userRepository: UserRepository) extends Doc
     s"""
        |INSERT INTO document_revisions (document_id, version, author_id, delta, created_at)
        |VALUES (?, ?, ?, ?, ?)
-       |RETURNING document_id, version, author_id, operation, created_at
+       |RETURNING document_id, version, author_id, delta, created_at
      """.stripMargin
 
   // ----

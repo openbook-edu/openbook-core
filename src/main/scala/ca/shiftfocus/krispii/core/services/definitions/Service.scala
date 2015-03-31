@@ -19,7 +19,11 @@ trait Service[F] extends Lifting[F] {
    * transaction.
    */
   def transactional[A](f : Connection => Future[A]) = {
-    db.inTransaction(f).recover {
+    db.inTransaction { conn =>
+      conn.sendQuery("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ").flatMap { _ =>
+        f(conn)
+      }
+    }.recover {
       case exception => throw exception
     }
   }

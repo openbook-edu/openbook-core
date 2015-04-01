@@ -290,3 +290,10 @@ CREATE TABLE matching_work (
   response int[][2],
   PRIMARY KEY (work_id, version)
 );
+/*
+CREATE TABLE journals (
+  id bytea PRIMARY KEY,
+  version bigint,
+  user_id bytea REFERENCES users(id) ON DELETE CASCADE,
+);
+*/

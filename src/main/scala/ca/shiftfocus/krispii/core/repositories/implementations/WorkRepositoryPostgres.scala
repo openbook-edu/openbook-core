@@ -32,7 +32,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
       id         = UUID(row("id").asInstanceOf[Array[Byte]]),
       studentId  = UUID(row("user_id").asInstanceOf[Array[Byte]]),
       taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      documentId = UUID(row("long_answer_document_id").asInstanceOf[Array[Byte]]),
+      documentId = UUID(row("la_document_id").asInstanceOf[Array[Byte]]),
       version    = row("version").asInstanceOf[Long],
       response   = "",
       isComplete = row("is_complete").asInstanceOf[Boolean],
@@ -46,7 +46,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
       id         = UUID(row("id").asInstanceOf[Array[Byte]]),
       studentId  = UUID(row("user_id").asInstanceOf[Array[Byte]]),
       taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      documentId = UUID(row("document_id").asInstanceOf[Array[Byte]]),
+      documentId = UUID(row("sa_document_id").asInstanceOf[Array[Byte]]),
       version    = row("version").asInstanceOf[Long],
       response   = "",
       isComplete = row("is_complete").asInstanceOf[Boolean],
@@ -60,8 +60,8 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
       id         = UUID(row("id").asInstanceOf[Array[Byte]]),
       studentId  = UUID(row("user_id").asInstanceOf[Array[Byte]]),
       taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      version    = row("version").asInstanceOf[Long],
-      response   = row("multiple_choice_response").asInstanceOf[IndexedSeq[Int]],
+      version    = row("mc_version").asInstanceOf[Long],
+      response   = row("mc_response").asInstanceOf[IndexedSeq[Int]],
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt  = row("created_at").asInstanceOf[DateTime],
       updatedAt  = row("updated_at").asInstanceOf[DateTime]
@@ -73,8 +73,8 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
       id         = UUID(row("id").asInstanceOf[Array[Byte]]),
       studentId  = UUID(row("user_id").asInstanceOf[Array[Byte]]),
       taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      version    = row("version").asInstanceOf[Long],
-      response   = row("ordering_response").asInstanceOf[IndexedSeq[Int]],
+      version    = row("ord_version").asInstanceOf[Long],
+      response   = row("ord_response").asInstanceOf[IndexedSeq[Int]],
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt  = row("created_at").asInstanceOf[DateTime],
       updatedAt  = row("updated_at").asInstanceOf[DateTime]
@@ -86,8 +86,8 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
       id         = UUID(row("id").asInstanceOf[Array[Byte]]),
       studentId  = UUID(row("user_id").asInstanceOf[Array[Byte]]),
       taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      version    = row("version").asInstanceOf[Long],
-      response   = row("matching_response").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element =>
+      version    = row("mat_version").asInstanceOf[Long],
+      response   = row("mat_response").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element =>
         Match(element(0), element(1))
       },
       isComplete = row("is_complete").asInstanceOf[Boolean],
@@ -98,80 +98,111 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
 
   // -- Common query components --------------------------------------------------------------------------------------
 
-  val Fields =
+  val Table                 = "work"
+  val CommonFields          = "id, user_id, task_id, version, is_complete, work_type, created_at, updated_at"
+  def CommonFieldsWithTable(table: String = Table): String = {
+    CommonFields.split(", ").map({ field => s"${table}." + field}).mkString(", ")
+  }
+  val SpecificFields =
     s"""
-       |work.id as id,
-       |       work.user_id as user_id,
-       |       work.task_id as task_id,
-       |       work.is_complete as is_complete,
-       |       work.created_at as created_at,
-       |       work.updated_at as updated_at,
-       |       work.work_type as work_type,
-       |       work.version as version,
-       |       long_answer_work.document_id as long_answer_document_id,
-       |       short_answer_work.document_id as short_answer_document_id,
-       |       multiple_choice_work.response as multiple_choice_response,
-       |       multiple_choice_work.version as multiple_choice_version,
-       |       ordering_work.response as ordering_response,
-       |       ordering_work.version as ordering_version,
-       |       matching_work.response as matching_response,
-       |       matching_work.version as matching_version
+       |long_answer_work.document_id as la_document_id,
+       |short_answer_work.document_id as sa_document_id,
+       |multiple_choice_work.response as mc_response,
+       |multiple_choice_work.version as mc_version,
+       |ordering_work.response as ord_response,
+       |ordering_work.version as ord_version,
+       |matching_work.response as mat_response,
+       |matching_work.version as mat_version
      """.stripMargin
 
+  val QMarks  = "?, ?, ?, ?, ?, ?, ?, ?"
+  val OrderBy = s"${Table}.position ASC"
+  val Join =
+    s"""
+      |LEFT JOIN long_answer_work ON $Table.id = long_answer_work.work_id
+      |LEFT JOIN short_answer_work ON $Table.id = short_answer_work.work_id
+      |LEFT JOIN multiple_choice_work ON $Table.id = multiple_choice_work.work_id
+      |LEFT JOIN ordering_work ON $Table.id = ordering_work.work_id
+      |LEFT JOIN matching_work ON $Table.id = matching_work.work_id
+     """.stripMargin
+
+  // -- Select queries -----------------------------------------------------------------------------------------------
+
+//  val Fields =
+//    s"""
+//       |work.id as id,
+//       |       work.user_id as user_id,
+//       |       work.task_id as task_id,
+//       |       work.is_complete as is_complete,
+//       |       work.created_at as created_at,
+//       |       work.updated_at as updated_at,
+//       |       work.work_type as work_type,
+//       |       work.version as version,
+//       |       long_answer_work.document_id as long_answer_document_id,
+//       |       short_answer_work.document_id as short_answer_document_id,
+//       |       multiple_choice_work.response as multiple_choice_response,
+//       |       multiple_choice_work.version as multiple_choice_version,
+//       |       ordering_work.response as ordering_response,
+//       |       ordering_work.version as ordering_version,
+//       |       matching_work.response as matching_response,
+//       |       matching_work.version as matching_version
+//     """.stripMargin
+//
   val Select =
     s"""
-       |SELECT $Fields
+       |SELECT $CommonFields
      """.stripMargin
 
   val From = "FROM work"
 
-  val Join =
-    s"""
-       |LEFT JOIN long_answer_work ON work.id = long_answer_work.work_id
-       |LEFT JOIN short_answer_work ON work.id = short_answer_work.work_id
-       |LEFT JOIN multiple_choice_work ON work.id = multiple_choice_work.work_id
-       |LEFT JOIN ordering_work ON work.id = ordering_work.work_id
-       |LEFT JOIN matching_work ON work.id = matching_work.work_id
-     """.stripMargin
+
 
   val JoinMatchVersion =
     s"""
        |LEFT JOIN long_answer_work ON work.id = long_answer_work.work_id
        |LEFT JOIN short_answer_work ON work.id = short_answer_work.work_id
-       |LEFT JOIN multiple_choice_work ON work.id = multiple_choice_work.work_id AND work.version = multiple_choice_work.version
-       |LEFT JOIN ordering_work ON work.id = ordering_work.work_id AND work.version = ordering_work.version
-       |LEFT JOIN matching_work ON work.id = matching_work.work_id AND work.version = matching_work.version
+       |LEFT JOIN multiple_choice_work ON work.id = multiple_choice_work.work_id
+       |  AND work.version = multiple_choice_work.version
+       |LEFT JOIN ordering_work ON work.id = ordering_work.work_id
+       |  AND work.version = ordering_work.version
+       |LEFT JOIN matching_work ON work.id = matching_work.work_id
+       |  AND work.version = matching_work.version
      """.stripMargin
 
   // -- Select queries -----------------------------------------------------------------------------------------------
 
   val SelectAllForUserProject =
     s"""
-       |$Select
-       |$From, projects, parts, tasks
-       |$Join
-       |WHERE projects.id = ?
-       |  AND user_id = ?
-       |  AND parts.id = tasks.part_id
-       |  AND projects.id = parts.project_id
-       |  AND work.task_id = tasks.id
+        |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+        |FROM $Table
+        |$Join
+        |INNER JOIN projects
+        | ON projects.id = ?
+        |INNER JOIN parts
+        | ON parts.project_id = projects.id
+        |INNER JOIN tasks
+        | ON tasks.part_id = parts.id
+        |WHERE $Table.user_id = ?
+        | AND $Table.task_id = tasks.id
      """.stripMargin
 
   val SelectAllForTask =
     s"""
-       |$Select
-       |$From, tasks
-       |$JoinMatchVersion
-       |WHERE work.task_id = tasks.id
+        |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+        |FROM $Table
+        |$JoinMatchVersion
+        |INNER JOIN tasks
+        | ON tasks.id = ?
+        |WHERE $Table.task_id = tasks.id
      """.stripMargin
 
   val ListRevisionsById =
     s"""
-       |$Select
-       |$From
-       |$Join
-       |WHERE user_id = ?
-       |  AND task_id = ?
+      |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+      |FROM $Table
+      |$Join
+      |WHERE $Table.user_id = ?
+      | AND $Table.task_id = ?
      """.stripMargin
 
   val SelectByStudentTask =
@@ -186,11 +217,11 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
 
   val SelectById =
     s"""
-       |$Select
-       |$From
-       |$JoinMatchVersion
-       |WHERE id = ?
-       |LIMIT 1
+      |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+      |FROM $Table
+      |$JoinMatchVersion
+      |WHERE id = ?
+      |LIMIT 1
      """.stripMargin
 
   // -- Insert and Update  -------------------------------------------------------------------------------------------
@@ -303,7 +334,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
 
 
   /**
-   * List the latest revision of work for each task in a project.
+   * List the latest revision of work for each task in a project for a user.
    *
    * @param project
    * @param user
@@ -313,19 +344,20 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
     queryList(SelectAllForUserProject, Seq[Any](project.id.bytes, user.id.bytes))
   }
 
+  // TODO create separate methods for LongAnswer, ShortAnswer and MultipleChoice, Ordering, Matching
   /**
-   * List all revisions of a specific work.
+   * List all revisions of a specific work for a user.
    *
    * @param task
    * @param user
    * @return
    */
   override def list(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]] = {
-    queryList(ListRevisionsById, Seq[Any](task.id.bytes, user.id.bytes))
+    queryList(ListRevisionsById, Seq[Any](user.id.bytes, task.id.bytes))
   }
 
   /**
-   * List all revisions of a specific work.
+   * List all revisions of a specific work for all users.
    *
    * @param task
    * @return

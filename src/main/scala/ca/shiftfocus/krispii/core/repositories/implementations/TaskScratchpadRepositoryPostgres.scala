@@ -59,7 +59,6 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
        |FROM $Table
        |WHERE user_id = ?
        |  AND task_id = ?
-       |  AND revision = ?
        |LIMIT 1
      """.stripMargin
 

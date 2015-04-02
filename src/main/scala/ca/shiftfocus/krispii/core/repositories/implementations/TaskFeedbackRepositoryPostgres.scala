@@ -128,6 +128,7 @@ class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with Postgre
     queryOne(Insert, Array[Any](
       feedback.studentId.bytes,
       feedback.taskId.bytes,
+      1L,
       feedback.documentId.bytes,
       new DateTime,
       new DateTime

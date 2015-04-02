@@ -373,7 +373,17 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
    * @return
    */
   override def find(workId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    queryOne(SelectById, Seq[Any](workId.bytes))
+    queryOne(SelectById, Seq[Any](workId.bytes)).flatMap {
+      case \/-(work: LongAnswerWork) => documentRepository.find(work.documentId).map {
+        case \/-(document) => \/.right(work.copy(response = document.plaintext))
+        case -\/(error: ErrorUnion#Fail) => \/.left(error)
+      }
+      case \/-(work: ShortAnswerWork) => documentRepository.find(work.documentId).map {
+        case \/-(document) => \/.right(work.copy(response = document.plaintext))
+        case -\/(error: ErrorUnion#Fail) => \/.left(error)
+      }
+      case otherWorkTypes => Future successful otherWorkTypes
+    }
   }
 
   /**
@@ -384,7 +394,17 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
    * @return
    */
   override def find(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    queryOne(SelectByStudentTask, Seq[Any](user.id.bytes, task.id.bytes))
+    queryOne(SelectByStudentTask, Seq[Any](user.id.bytes, task.id.bytes)).flatMap {
+      case \/-(work: LongAnswerWork) => documentRepository.find(work.documentId).map {
+        case \/-(document) => \/.right(work.copy(response = document.plaintext))
+        case -\/(error: ErrorUnion#Fail) => \/.left(error)
+      }
+      case \/-(work: ShortAnswerWork) => documentRepository.find(work.documentId).map {
+        case \/-(document) => \/.right(work.copy(response = document.plaintext))
+        case -\/(error: ErrorUnion#Fail) => \/.left(error)
+      }
+      case otherWorkTypes => Future successful otherWorkTypes
+    }
   }
 
   /**

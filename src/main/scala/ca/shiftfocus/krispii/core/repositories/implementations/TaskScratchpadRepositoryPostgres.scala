@@ -24,7 +24,7 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
     )
   }
 
-  val Table = "task_feedbacks"
+  val Table = "task_notes"
   val Fields = "user_id, task_id, version, document_id, created_at, updated_at"
   val QMarks = "?, ?, ?, ?, ?, ?"
 
@@ -39,7 +39,7 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
   val Update = {
     s"""
        |UPDATE $Table
-       |SET document_id = ?, version = ?, updated_at = ?
+       |SET version = ?, updated_at = ?
        |WHERE user_id = ?
        |  AND task_id = ?
        |  AND version = ?
@@ -175,9 +175,9 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
       taskScratchpad.userId.bytes,
       taskScratchpad.taskId.bytes,
       1L,
-      new DateTime,
-      new DateTime,
-      taskScratchpad.documentId
+      taskScratchpad.documentId.bytes,
+      taskScratchpad.createdAt,
+      taskScratchpad.updatedAt
     ))
   }
 
@@ -191,14 +191,12 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
    */
   override def update(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskScratchpad]] = {
     queryOne(Update, Seq[Any](
-      taskScratchpad.documentId,
       taskScratchpad.version + 1,
       new DateTime,
       taskScratchpad.userId.bytes,
       taskScratchpad.taskId.bytes,
       taskScratchpad.version
     ))
-
   }
 
   /**

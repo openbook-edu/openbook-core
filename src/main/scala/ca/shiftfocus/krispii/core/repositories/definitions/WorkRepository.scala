@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
+import ca.shiftfocus.krispii.core.services.DocumentService
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
@@ -11,6 +12,8 @@ import scala.concurrent.Future
 import scalaz.\/
 
 trait WorkRepository extends Repository {
+  val documentRepository: DocumentRepository
+
   def list(user: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]]
   def list(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]]
   def list(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]]

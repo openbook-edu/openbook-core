@@ -1,9 +1,7 @@
 package ca.shiftfocus.krispii.core.models.work
 
 import ca.shiftfocus.uuid.UUID
-import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
-import play.api.Logger
 
 case class LongAnswerWork(
   id: UUID = UUID.random,
@@ -15,7 +13,15 @@ case class LongAnswerWork(
   isComplete: Boolean = false,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
-) extends DocumentWork
+) extends DocumentWork {
+
+  override def toString: String ={
+    return response;
+  }
+
+}
+
+
 
 object LongAnswerWork {
 

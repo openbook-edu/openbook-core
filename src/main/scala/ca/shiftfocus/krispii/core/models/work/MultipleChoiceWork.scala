@@ -1,7 +1,6 @@
 package ca.shiftfocus.krispii.core.models.work
 
 import ca.shiftfocus.uuid.UUID
-import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
 
 case class MultipleChoiceWork(

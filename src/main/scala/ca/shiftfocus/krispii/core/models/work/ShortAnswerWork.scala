@@ -1,7 +1,6 @@
 package ca.shiftfocus.krispii.core.models.work
 
 import ca.shiftfocus.uuid.UUID
-import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
 
 case class ShortAnswerWork(
@@ -14,7 +13,13 @@ case class ShortAnswerWork(
   isComplete: Boolean = false,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
-) extends DocumentWork
+) extends DocumentWork {
+
+  override def toString: String ={
+    return response;
+  }
+
+}
 
 object ShortAnswerWork {
 

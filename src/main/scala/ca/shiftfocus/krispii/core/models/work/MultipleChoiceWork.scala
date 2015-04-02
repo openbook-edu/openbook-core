@@ -16,8 +16,8 @@ case class MultipleChoiceWork(
 
   override def toString: String ={
     var result="";
-    response.zipWithIndex.foreach{case(e,i)=> result=result+ "Question:"+ i + "Answers:"+e.toString +"; \n"}
-    return result+", ";
+    response.zipWithIndex.foreach{case(e,i)=> result=result+ "Question "+ i + "Answers "+e.toString+"; "}
+    return result.dropRight(2);
 
   }
 

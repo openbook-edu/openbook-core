@@ -12,7 +12,17 @@ case class MultipleChoiceWork(
   isComplete: Boolean = false,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
-) extends Work
+) extends Work {
+
+  override def toString: String ={
+    var result="";
+    response.zipWithIndex.foreach{case(e,i)=> result=result+ "Question:"+ i + "Answers:"+e.toString +"; \n"}
+    return result+", ";
+
+  }
+
+}
+
 
 object MultipleChoiceWork {
 

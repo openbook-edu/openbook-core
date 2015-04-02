@@ -18,8 +18,9 @@ case class MatchingWork(
 
   override def toString: String ={
     var result="";
-    response.zipWithIndex.foreach{case(e,i)=>result=i+" = " +e.left.toString + " + " +e.right.toString +"\n"}
-    return result;
+
+    response.zipWithIndex.foreach{case(e,i)=> result=result+i+" = " +e.left.toString + " + " +e.right.toString +"\n"}
+    return result+", ";
 
   }
 

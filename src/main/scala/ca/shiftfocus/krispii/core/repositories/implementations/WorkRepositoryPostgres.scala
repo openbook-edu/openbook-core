@@ -14,7 +14,7 @@ import org.joda.time.DateTime
 import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
 
-class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work] {
+class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends WorkRepository with PostgresRepository[Work] {
 
   override def constructor(row: RowData): Work = {
     row("work_type").asInstanceOf[Int] match {
@@ -207,7 +207,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
 
   val SelectByStudentTask =
     s"""
-       |$Select
+       |SELECT ${CommonFieldsWithTable()}, $SpecificFields
        |$From
        |$JoinMatchVersion
        |WHERE user_id = ?
@@ -235,8 +235,8 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
 
   def InsertIntoDocumentWork(table: String): String = {
     val response = table match {
-      case "long_answer_work" => "long_answer_document_id"
-      case "short_answer_work" => "short_answer_document_id"
+      case "long_answer_work" => "la_document_id"
+      case "short_answer_work" => "sa_document_id"
     }
     s"""
        |WITH w AS ($Insert),
@@ -250,10 +250,15 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
   }
 
   def InsertIntoVersionedWork(table: String): String = {
+    val version = table match {
+      case "multiple_choice_work" => "mc_version"
+      case "ordering_work" => "ord_version"
+      case "matching_work" => "mat_version"
+    }
     val response = table match {
-      case "multiple_choice_work" => "multiple_choice_response"
-      case "ordering_work" => "ordering_response"
-      case "matching_work" => "matching_response"
+      case "multiple_choice_work" => "mc_response"
+      case "ordering_work" => "ord_response"
+      case "matching_work" => "mat_response"
     }
     s"""
        |WITH w AS ($Insert),
@@ -261,7 +266,7 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
        |           SELECT w.id as work_id, w.version as version, ? as response
        |           FROM w
        |           RETURNING *)
-       |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.created_at, w.updated_at, w.work_type, x.response as $response
+       |SELECT w.id, w.user_id, w.task_id, w.version as $version, w.is_complete, w.created_at, w.updated_at, w.work_type, x.response as $response
        |FROM w, x
      """.stripMargin
   }
@@ -376,11 +381,11 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
     queryOne(SelectById, Seq[Any](workId.bytes)).flatMap {
       case \/-(work: LongAnswerWork) => documentRepository.find(work.documentId).map {
         case \/-(document) => \/.right(work.copy(response = document.plaintext))
-        case -\/(error: ErrorUnion#Fail) => \/.left(error)
+        case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
       case \/-(work: ShortAnswerWork) => documentRepository.find(work.documentId).map {
         case \/-(document) => \/.right(work.copy(response = document.plaintext))
-        case -\/(error: ErrorUnion#Fail) => \/.left(error)
+        case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
       case otherWorkTypes => Future successful otherWorkTypes
     }
@@ -397,11 +402,11 @@ class WorkRepositoryPostgres extends WorkRepository with PostgresRepository[Work
     queryOne(SelectByStudentTask, Seq[Any](user.id.bytes, task.id.bytes)).flatMap {
       case \/-(work: LongAnswerWork) => documentRepository.find(work.documentId).map {
         case \/-(document) => \/.right(work.copy(response = document.plaintext))
-        case -\/(error: ErrorUnion#Fail) => \/.left(error)
+        case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
       case \/-(work: ShortAnswerWork) => documentRepository.find(work.documentId).map {
         case \/-(document) => \/.right(work.copy(response = document.plaintext))
-        case -\/(error: ErrorUnion#Fail) => \/.left(error)
+        case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
       case otherWorkTypes => Future successful otherWorkTypes
     }

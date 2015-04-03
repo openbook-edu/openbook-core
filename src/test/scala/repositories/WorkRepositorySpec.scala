@@ -1,5 +1,8 @@
+import ca.shiftfocus.krispii.core.models.JournalEntry
 import ca.shiftfocus.krispii.core.models.work.Work
-import ca.shiftfocus.krispii.core.repositories.WorkRepositoryPostgres
+import ca.shiftfocus.krispii.core.repositories._
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 
 import org.scalatest._
 import Matchers._
@@ -10,7 +13,8 @@ import scalaz._
 
 class WorkRepositorySpec
   extends TestEnvironment {
-  val workRepository = new WorkRepositoryPostgres
+  val documentRepository = stub[DocumentRepository]
+  val workRepository = new WorkRepositoryPostgres(documentRepository)
 
   "WorkRepository.list" should {
     inSequence {

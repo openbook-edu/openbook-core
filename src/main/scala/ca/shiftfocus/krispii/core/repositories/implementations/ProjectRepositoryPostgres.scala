@@ -1,22 +1,14 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
-import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
-import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
+import com.github.mauricio.async.db.{RowData, Connection}
 import scala.concurrent.ExecutionContext.Implicits.global
-import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.uuid.UUID
-import play.api.Play.current
-
-import play.api.Logger
 import scala.concurrent.Future
 import org.joda.time.DateTime
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
-import scalaz.syntax.traverse._
 import scalaz._
-import Scalaz._
 
 class ProjectRepositoryPostgres(val partRepository: PartRepository)
   extends ProjectRepository with PostgresRepository[Project] {

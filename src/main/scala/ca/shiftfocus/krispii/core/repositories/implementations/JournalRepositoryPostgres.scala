@@ -1,44 +1,42 @@
-package ca.shiftfocus.krispii.core.repositories.implementations
+package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.{User, JournalEntry}
-import ca.shiftfocus.krispii.core.repositories.{JournalRepository, PostgresRepository}
+import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.uuid.UUID
+import org.joda.time.format.DateTimeFormat
+import play.api.i18n.Messages
+import scala.concurrent.ExecutionContext.Implicits.global
 import com.github.mauricio.async.db.{Connection, RowData}
 import com.typesafe.config.ConfigFactory
 import org.joda.time.DateTime
 
 import scala.concurrent.Future
-import scalaz.\/
+import scalaz._
 
 
-class JournalRepositoryPostgres
+class JournalRepositoryPostgres (val userRepository: UserRepository,
+                                 val projectRepository: ProjectRepository)
   extends JournalRepository with PostgresRepository[JournalEntry] {
-
-  private val config     = ConfigFactory.load()
-  private val useJournal = config.getBoolean("journal.logging.use")
 
   override def constructor(row: RowData): JournalEntry = {
     JournalEntry(
-      UUID(row("id").asInstanceOf[Array[Byte]]),
-      row("version").asInstanceOf[Long],
-      UUID(row("user_id").asInstanceOf[Array[Byte]]),
-      UUID(row("project_id").asInstanceOf[Array[Byte]]),
-      row("entry_type").asInstanceOf[String],
-      row("message").asInstanceOf[String],
-      Some(row("created_at").asInstanceOf[DateTime]),
-      Some(row("updated_at").asInstanceOf[DateTime])
+      id        = UUID(row("id").asInstanceOf[Array[Byte]]),
+      version   = row("version").asInstanceOf[Long],
+      userId    = UUID(row("user_id").asInstanceOf[Array[Byte]]),
+      projectId = UUID(row("project_id").asInstanceOf[Array[Byte]]),
+      entryType = row("entry_type").asInstanceOf[String],
+      item      = row("item").asInstanceOf[String],
+      createdAt = row("created_at").asInstanceOf[DateTime],
+      updatedAt = row("updated_at").asInstanceOf[DateTime]
     )
   }
 
   // -- Common query components --------------------------------------------------------------------------------------
 
-  val Table           = "journals"
-  val Fields          = "id, version, user_id, project_id, entry_type, message, created_at, updated_at"
+  val Table           = "journal"
+  val Fields          = "id, version, user_id, project_id, entry_type, item, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field}).mkString(", ")
-
-  val QMarks  = "?, ?, ?, ?, ?, ?, ?, ?"
-//  val GroupByUser = s"${Table}.user_id"
+  val QMarks          = "?, ?, ?, ?, ?, ?, ?, ?"
 
   // -- CRUD Operations -----------------------------------------------------------------------------------------------
 
@@ -113,45 +111,131 @@ class JournalRepositoryPostgres
       |RETURNING $Fields
      """.stripMargin
 
+  // -- Methods ------------------------------------------------------------------------------------------------------
+
+  /**
+   * List Journal Entries by type.
+   *
+   * @param entryType
+   * @param conn
+   * @return
+   */
   override def list(entryType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
-    queryList(SelectByType, Seq[Any](entryType))
+    queryListJournal(SelectByType, Seq[Any](entryType))
   }
 
+  /**
+   * List Journal Entries by user ID.
+   *
+   * @param userId
+   * @param conn
+   * @return
+   */
   override def list(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
-    queryList(SelectByUser, Seq[Any](userId.bytes))
+    queryListJournal(SelectByUser, Seq[Any](userId.bytes))
   }
 
+  /**
+   * List Journal Entries by date.
+   *
+   * @param startDate
+   * @param endDate
+   * @param conn
+   * @return
+   */
   override def list(startDate: Option[DateTime], endDate: Option[DateTime])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
     (startDate, endDate) match {
-      case (startDate: Option[DateTime], None) => queryList(SelectByStartDate, Seq[Any](startDate))
-      case (None, endDate: Option[DateTime]) => queryList(SelectByEndDate, Seq[Any](endDate))
-      case (startDate: Option[DateTime], endDate: Option[DateTime]) => queryList(SelectByPeriod, Seq[Any](startDate, endDate))
+      case (startDate: Option[DateTime], None) => queryListJournal(SelectByStartDate, Seq[Any](startDate.get))
+      case (None, endDate: Option[DateTime]) => queryListJournal(SelectByEndDate, Seq[Any](endDate.get))
+      case (startDate: Option[DateTime], endDate: Option[DateTime]) => queryListJournal(SelectByPeriod, Seq[Any](startDate.get, endDate.get))
     }
   }
 
+  /**
+   * Find Journal Entry by ID.
+   *
+   * @param id
+   * @param conn
+   * @return
+   */
   override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]] = {
-    queryOne(SelectById, Seq[Any](id.bytes))
+    queryOneJournal(SelectById, Seq[Any](id.bytes))
   }
 
+  /**
+   * Insert new Journal Entry.
+   *
+   * @param journalEntry
+   * @param conn
+   * @return
+   */
   override def insert(journalEntry: JournalEntry)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]] = {
     val params = Seq[Any](
       journalEntry.id.bytes, 1, journalEntry.userId.bytes,
-      journalEntry.projectId.bytes, journalEntry.entryType, journalEntry.message,
+      journalEntry.projectId.bytes, journalEntry.entryType, journalEntry.item,
       new DateTime, new DateTime
     )
 
-    queryOne(Insert, params)
+    queryOneJournal(Insert, params)
   }
 
+  /**
+   * Delete Journal Entry by ID.
+   *
+   * @param journalEntry
+   * @param conn
+   * @return
+   */
   override def delete(journalEntry: JournalEntry)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]] = {
-    queryOne(Delete, Seq[Any](journalEntry.id.bytes, journalEntry.version))
+    queryOneJournal(Delete, Seq[Any](journalEntry.id.bytes, journalEntry.version))
   }
 
-  override def delete(entryType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]] = {
-    queryOne(DeleteByType, Seq[Any](entryType))
+  /**
+   * Delete all Journal Entries by type.
+   *
+   * @param entryType
+   * @param conn
+   * @return
+   */
+  override def delete(entryType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
+    queryListJournal(DeleteByType, Seq[Any](entryType))
   }
 
-  override def delete(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]] = {
-    queryOne(DeleteByUser, Seq[Any](user.id.bytes))
+  /**
+   * Delete all Journal Entries for the specific user.
+   *
+   * @param user
+   * @param conn
+   * @return
+   */
+  override def delete(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
+    queryListJournal(DeleteByUser, Seq[Any](user.id.bytes))
+  }
+
+  // --- Common methods -----------------------------------------------------------------------------------------------
+
+  private def buildEntryWithMessage(journalEntry: JournalEntry)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]] = {
+    (for {
+      user    <- lift(userRepository.find(journalEntry.userId))
+      project <- lift(projectRepository.find(journalEntry.projectId))
+      action  = JournalEntry.Action(journalEntry.entryType).action
+      format  = DateTimeFormat.forPattern("yyyy/MM/dd kk:mm:ss")
+      message = Messages("journalEntry.message", user.givenname, user.surname, action, journalEntry.item, format.print(journalEntry.createdAt))
+      result  = journalEntry.copy(message = message)
+    } yield result).run
+  }
+
+  private def queryListJournal(queryText: String, parameters: Seq[Any] = Seq.empty[Any])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
+    (for {
+      entryList <- lift(queryList(queryText, parameters))
+      result    <- lift(serializedT(entryList)(buildEntryWithMessage(_)))
+    } yield result).run
+  }
+
+  private def queryOneJournal(queryText: String, parameters: Seq[Any] = Seq.empty[Any])(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]] = {
+    (for {
+      entry  <- lift(queryOne(queryText, parameters))
+      result <- lift(buildEntryWithMessage(entry))
+    } yield result).run
   }
 }

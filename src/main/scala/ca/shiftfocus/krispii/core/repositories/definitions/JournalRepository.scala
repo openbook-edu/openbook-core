@@ -10,17 +10,17 @@ import scala.concurrent.Future
 import scalaz._
 
 trait JournalRepository extends Repository {
-//  def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]]
+  val userRepository: UserRepository
+  val projectRepository: ProjectRepository
+
   def list(entryType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]]
   def list(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]]
   def list(startDate: Option[DateTime], endDate: Option[DateTime])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]]
 
   def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]]
-//  def findNow(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]]
 
   def insert(journalEntry: JournalEntry)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]]
-//  def update(journalEntry: JournalEntry)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]]
   def delete(journalEntry: JournalEntry)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]]
-  def delete(entryType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]]
-  def delete(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]]
+  def delete(entryType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]]
+  def delete(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]]
 }

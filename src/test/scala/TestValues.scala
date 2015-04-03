@@ -1,5 +1,6 @@
 import java.awt.Color
 
+import ca.shiftfocus.krispii.core.models.JournalEntry._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.document.Document
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
@@ -902,5 +903,114 @@ object TestValues {
   //    endTime = new LocalTime(15, 1, 19),
   //    reason = "testSectionScheduleExceptionE reason"
   //  )
+
+  /* JOURNAL ENTRIES */
+  val testJournalEntryA = JournalEntry(
+    id = UUID("6aabd410-735f-4023-ae04-9f67f84a3846"),
+    version = 1L,
+    userId = testUserA.id,
+    projectId = testProjectA.id,
+    entryType = JournalEntryView.entryType,
+    item = "item 1",
+    message = "testUserA viewed SOMETHING in testProject on 2014/08/01 at 14:01:19",
+    createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testJournalEntryB = JournalEntry(
+    id = UUID("2ec1c797-9a60-4b11-a860-259ae0f59134"),
+    version = 2L,
+    userId = testUserA.id,
+    projectId = testProjectA.id,
+    entryType = JournalEntryClick.entryType,
+    item = "item 2",
+    message = "testUserA clicked on SOMETHING in testProject on 2014/08/03 at 14:01:19",
+    createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testJournalEntryC = JournalEntry(
+    id = UUID("f7a21844-4c76-4711-ae13-5e8a3758cefb"),
+    version = 3L,
+    userId = testUserA.id,
+    projectId = testProjectA.id,
+    entryType = JournalEntryWatch.entryType,
+    item = "item 3",
+    message = "testUserA watched SOME VIDEO in testProject on 2014/08/05 at 14:01:19",
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testJournalEntryD = JournalEntry(
+    id = UUID("d77a1706-e230-4798-853f-257cad2ed627"),
+    version = 4L,
+    userId = testUserA.id,
+    projectId = testProjectA.id,
+    entryType = JournalEntryListen.entryType,
+    item = "item 4",
+    message = "testUserA listened SOME AUDIO in testProject on 2014/08/07 at 14:01:19",
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testJournalEntryE = JournalEntry(
+    id = UUID("0d809bb8-779b-4e55-817c-f995959ff290"),
+    version = 5L,
+    userId = testUserB.id,
+    projectId = testProjectB.id,
+    entryType = JournalEntryWrite.entryType,
+    item = "item 5",
+    message = "testUserA wrote SOMETHING in testProject on 2014/08/09 at 14:01:19",
+    createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testJournalEntryF = JournalEntry(
+    id = UUID("59402102-4fb1-4fad-a0e1-605b37e09965"),
+    version = 6L,
+    userId = testUserB.id,
+    projectId = testProjectB.id,
+    entryType = JournalEntryCreate.entryType,
+    item = "item 6",
+    message = "testUserA created SOMETHING in testProject on 2014/08/11 at 14:01:19",
+    createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testJournalEntryG = JournalEntry(
+    id = UUID("eab8e5d1-d88c-4718-b1bf-da524daca133"),
+    version = 7L,
+    userId = testUserB.id,
+    projectId = testProjectB.id,
+    entryType = JournalEntryUpdate.entryType,
+    item = "item 7",
+    message = "testUserA updated SOMETHING in testProject on 2014/08/13 at 14:01:19",
+    createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testJournalEntryH = JournalEntry(
+    id = UUID("453c7d39-2bbd-4041-9fb4-6fb59a134395"),
+    version = 8L,
+    userId = testUserB.id,
+    projectId = testProjectB.id,
+    entryType = JournalEntryDelete.entryType,
+    item = "item 8",
+    message = "testUserA deleted SOMETHING in testProject on 2014/08/14 at 14:01:19",
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testJournalEntryI = JournalEntry(
+    id = UUID("cc19d1cd-9114-413a-96ba-46c981525e30"),
+    version = 9L,
+    userId = testUserA.id,
+    projectId = testProjectA.id,
+    entryType = JournalEntryDelete.entryType,
+    item = "item 9",
+    message = "testUserA deleted SOMETHING in testProject on 2014/08/14 at 14:01:19",
+    createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
 }
 

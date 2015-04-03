@@ -15,6 +15,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
   val partRepository: PartRepository
   val taskRepository: TaskRepository
 
+
   // Projects
   def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
   def list(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
@@ -49,62 +50,36 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
 
   def createTask(partId: UUID, taskType: Int, name: String, description: String, position: Int, dependencyId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]]
 
-  def updateLongAnswerTask(taskId: UUID,
-                           version: Long,
-                           name: Option[String],
-                           description: Option[String],
-                           position: Option[Int],
-                           notesAllowed: Option[Boolean],
-                           dependencyId: Option[UUID] = None,
-                           partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]]
-
-  def updateShortAnswerTask(taskId: UUID,
+  case class CommonTaskArgs(taskId: UUID,
                             version: Long,
                             name: Option[String],
                             description: Option[String],
                             position: Option[Int],
                             notesAllowed: Option[Boolean],
-                            maxLength: Option[Int],
                             dependencyId: Option[UUID] = None,
-                            partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]]
+                            partId: Option[UUID] = None)
 
-  def updateMultipleChoiceTask(taskId: UUID,
-                               version: Long,
-                               name: Option[String],
-                               description: Option[String],
-                               position: Option[Int],
-                               notesAllowed: Option[Boolean],
+  def updateLongAnswerTask(commonArgs: CommonTaskArgs): Future[\/[ErrorUnion#Fail, Task]]
+
+  def updateShortAnswerTask(commonArgs: CommonTaskArgs,
+                            maxLength: Option[Int]): Future[\/[ErrorUnion#Fail, Task]]
+
+  def updateMultipleChoiceTask(commonArgs: CommonTaskArgs,
                                choices: Option[IndexedSeq[String]] = Some(IndexedSeq()),
                                answer: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
                                allowMultiple: Option[Boolean] = Some(false),
-                               randomizeChoices: Option[Boolean] = Some(true),
-                               dependencyId: Option[UUID] = None,
-                               partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]]
+                               randomizeChoices: Option[Boolean] = Some(true)): Future[\/[ErrorUnion#Fail, Task]]
 
-  def updateOrderingTask(taskId: UUID,
-                         version: Long,
-                         name: Option[String],
-                         description: Option[String],
-                         position: Option[Int],
-                         notesAllowed: Option[Boolean],
+  def updateOrderingTask(commonArgs: CommonTaskArgs,
                          elements: Option[IndexedSeq[String]] = Some(IndexedSeq()),
                          answer: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
-                         randomizeChoices: Option[Boolean] = Some(true),
-                         dependencyId: Option[UUID] = None,
-                         partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]]
+                         randomizeChoices: Option[Boolean] = Some(true)): Future[\/[ErrorUnion#Fail, Task]]
 
-  def updateMatchingTask(taskId: UUID,
-                         version: Long,
-                         name: Option[String],
-                         description: Option[String],
-                         position: Option[Int],
-                         notesAllowed: Option[Boolean],
+  def updateMatchingTask(commonArgs: CommonTaskArgs,
                          elementsLeft: Option[IndexedSeq[String]] = Some(IndexedSeq()),
                          elementsRight: Option[IndexedSeq[String]] = Some(IndexedSeq()),
                          answer: Option[IndexedSeq[MatchingTask.Match]] = Some(IndexedSeq()),
-                         randomizeChoices: Option[Boolean] = Some(true),
-                         dependencyId: Option[UUID] = None,
-                         partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]]
+                         randomizeChoices: Option[Boolean] = Some(true)): Future[\/[ErrorUnion#Fail, Task]]
 
   def deleteTask(taskId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Task]]
 

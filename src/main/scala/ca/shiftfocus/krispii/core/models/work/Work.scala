@@ -27,6 +27,7 @@ object Work {
   implicit val jsonWrites = new Writes[Work] {
     def writes(work: Work): JsValue = {
       val jsVal = Json.obj(
+        "id" -> work.id,
         "studentId" -> work.studentId,
         "taskId" -> work.taskId,
         "version" -> work.version,

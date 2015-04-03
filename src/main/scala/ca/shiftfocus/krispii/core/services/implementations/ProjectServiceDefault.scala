@@ -613,37 +613,23 @@ class ProjectServiceDefault(val db: Connection,
   /**
    * Update a LongAnswerTask.
    *
-   * @param taskId
-   * @param version
-   * @param name
-   * @param description
-   * @param position
-   * @param notesAllowed
-   * @param dependencyId
-   * @param partId
+   * @param commonArgs
    * @return
    */
-  override def updateLongAnswerTask(taskId: UUID,
-                                    version: Long,
-                                    name: Option[String],
-                                    description: Option[String],
-                                    position: Option[Int],
-                                    notesAllowed: Option[Boolean],
-                                    dependencyId: Option[UUID] = None,
-                                    partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]] =
+  override def updateLongAnswerTask(commonArgs: CommonTaskArgs): Future[\/[ErrorUnion#Fail, Task]] =
   {
     for {
-      task <- lift(taskRepository.find(taskId))
-      _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail)
+      task <- lift(taskRepository.find(commonArgs.taskId))
+      _ <- predicate (task.version == commonArgs.version) (RepositoryError.OfflineLockFail)
       _ <- predicate (task.isInstanceOf[LongAnswerTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateLongAnswerTask.wrongTaskType")))
       toUpdate = task.asInstanceOf[LongAnswerTask].copy(
-        partId = partId.getOrElse(task.partId),
-        position = position.getOrElse(task.position),
+        partId = commonArgs.partId.getOrElse(task.partId),
+        position = commonArgs.position.getOrElse(task.position),
         settings = task.settings.copy(
-          title = name.getOrElse(task.settings.title),
-          description = description.getOrElse(task.settings.description),
-          notesAllowed = notesAllowed.getOrElse(task.settings.notesAllowed),
-          dependencyId = dependencyId match {
+          title = commonArgs.name.getOrElse(task.settings.title),
+          description = commonArgs.description.getOrElse(task.settings.description),
+          notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+          dependencyId = commonArgs.dependencyId match {
             case Some(newDepId) => Some(newDepId)
             case None => task.settings.dependencyId
           }
@@ -656,40 +642,26 @@ class ProjectServiceDefault(val db: Connection,
   /**
    * Update a ShortAnswerTask
    *
-   * @param taskId
-   * @param version
-   * @param name
-   * @param description
-   * @param position
-   * @param notesAllowed
+   * @param commonArgs
    * @param maxLength
-   * @param dependencyId
-   * @param partId
    * @return
    */
-  def updateShortAnswerTask(taskId: UUID,
-                            version: Long,
-                            name: Option[String],
-                            description: Option[String],
-                            position: Option[Int],
-                            notesAllowed: Option[Boolean],
-                            maxLength: Option[Int],
-                            dependencyId: Option[UUID] = None,
-                            partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]] =
+  def updateShortAnswerTask(commonArgs: CommonTaskArgs,
+                            maxLength: Option[Int]): Future[\/[ErrorUnion#Fail, Task]] =
   {
     for {
-      task <- lift(taskRepository.find(taskId))
-      _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail)
+      task <- lift(taskRepository.find(commonArgs.taskId))
+      _ <- predicate (task.version == commonArgs.version) (RepositoryError.OfflineLockFail)
       _ <- predicate (task.isInstanceOf[ShortAnswerTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateShortAnswerTask.wrongTaskType")))
       shortAnswerTask = task.asInstanceOf[ShortAnswerTask]
       toUpdate = shortAnswerTask.copy(
-        partId = partId.getOrElse(task.partId),
-        position = position.getOrElse(task.position),
+        partId = commonArgs.partId.getOrElse(task.partId),
+        position = commonArgs.position.getOrElse(task.position),
         settings = task.settings.copy(
-          title = name.getOrElse(task.settings.title),
-          description = description.getOrElse(task.settings.description),
-          notesAllowed = notesAllowed.getOrElse(task.settings.notesAllowed),
-          dependencyId = dependencyId match {
+          title = commonArgs.name.getOrElse(task.settings.title),
+          description = commonArgs.description.getOrElse(task.settings.description),
+          notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+          dependencyId = commonArgs.dependencyId match {
             case Some(newDepId) => Some(newDepId)
             case None => task.settings.dependencyId
           }
@@ -703,52 +675,38 @@ class ProjectServiceDefault(val db: Connection,
   /**
    * Update a MultipleChoiceTask
    *
-   * @param taskId
-   * @param version
-   * @param name
-   * @param description
-   * @param position
-   * @param notesAllowed
+   * @param commonArgs
    * @param choices
    * @param answer
    * @param allowMultiple
    * @param randomizeChoices
-   * @param dependencyId
-   * @param partId
    * @return
    */
-  def updateMultipleChoiceTask(taskId: UUID,
-                               version: Long,
-                               name: Option[String],
-                               description: Option[String],
-                               position: Option[Int],
-                               notesAllowed: Option[Boolean],
+  def updateMultipleChoiceTask(commonArgs: CommonTaskArgs,
                                choices: Option[IndexedSeq[String]] = Some(IndexedSeq()),
-                               answers: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
+                               answer: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
                                allowMultiple: Option[Boolean] = Some(false),
-                               randomizeChoices: Option[Boolean] = Some(true),
-                               dependencyId: Option[UUID] = None,
-                               partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]] =
+                               randomizeChoices: Option[Boolean] = Some(true)): Future[\/[ErrorUnion#Fail, Task]] =
   {
     for {
-      task <- lift(taskRepository.find(taskId))
-      _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail)
+      task <- lift(taskRepository.find(commonArgs.taskId))
+      _ <- predicate (task.version == commonArgs.version) (RepositoryError.OfflineLockFail)
       _ <- predicate (task.isInstanceOf[MultipleChoiceTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateMultipleChoiceTask.wrongTaskType")))
       mcTask = task.asInstanceOf[MultipleChoiceTask]
       toUpdate = mcTask.copy(
-        partId = partId.getOrElse(task.partId),
-        position = position.getOrElse(task.position),
+        partId = commonArgs.partId.getOrElse(task.partId),
+        position = commonArgs.position.getOrElse(task.position),
         settings = task.settings.copy(
-          title = name.getOrElse(task.settings.title),
-          description = description.getOrElse(task.settings.description),
-          notesAllowed = notesAllowed.getOrElse(task.settings.notesAllowed),
-          dependencyId = dependencyId match {
+          title = commonArgs.name.getOrElse(task.settings.title),
+          description = commonArgs.description.getOrElse(task.settings.description),
+          notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+          dependencyId = commonArgs.dependencyId match {
             case Some(newDepId) => Some(newDepId)
             case None => mcTask.settings.dependencyId
           }
         ),
         choices = choices.getOrElse(mcTask.choices),
-        answers = answers.getOrElse(mcTask.answers),
+        answers = answer.getOrElse(mcTask.answers),
         allowMultiple = allowMultiple.getOrElse(mcTask.allowMultiple),
         randomizeChoices = randomizeChoices.getOrElse(mcTask.randomizeChoices)
       )
@@ -759,50 +717,36 @@ class ProjectServiceDefault(val db: Connection,
   /**
    * Update an OrderingTask
    *
-   * @param taskId
-   * @param version
-   * @param name
-   * @param description
-   * @param position
-   * @param notesAllowed
+   * @param commonArgs
    * @param elements
    * @param answer
    * @param randomizeChoices
-   * @param dependencyId
-   * @param partId
    * @return
    */
-  def updateOrderingTask(taskId: UUID,
-                         version: Long,
-                         name: Option[String],
-                         description: Option[String],
-                         position: Option[Int],
-                         notesAllowed: Option[Boolean],
+  def updateOrderingTask(commonArgs: CommonTaskArgs,
                          elements: Option[IndexedSeq[String]] = Some(IndexedSeq()),
-                         answers: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
-                         randomizeChoices: Option[Boolean] = Some(true),
-                         dependencyId: Option[UUID] = None,
-                         partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]] =
+                         answer: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
+                         randomizeChoices: Option[Boolean] = Some(true)): Future[\/[ErrorUnion#Fail, Task]] =
   {
     for {
-      task <- lift(taskRepository.find(taskId))
-      _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail)
+      task <- lift(taskRepository.find(commonArgs.taskId))
+      _ <- predicate (task.version == commonArgs.version) (RepositoryError.OfflineLockFail)
       _ <- predicate (task.isInstanceOf[OrderingTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateOrderingTask.wrongTaskType")))
       orderingTask = task.asInstanceOf[OrderingTask]
       toUpdate = orderingTask.copy(
-        partId = partId.getOrElse(task.partId),
-        position = position.getOrElse(task.position),
+        partId = commonArgs.partId.getOrElse(task.partId),
+        position = commonArgs.position.getOrElse(task.position),
         settings = task.settings.copy(
-          title = name.getOrElse(task.settings.title),
-          description = description.getOrElse(task.settings.description),
-          notesAllowed = notesAllowed.getOrElse(task.settings.notesAllowed),
-          dependencyId = dependencyId match {
+          title = commonArgs.name.getOrElse(task.settings.title),
+          description = commonArgs.description.getOrElse(task.settings.description),
+          notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+          dependencyId = commonArgs.dependencyId match {
             case Some(newDepId) => Some(newDepId)
             case None => task.settings.dependencyId
           }
         ),
         elements = elements.getOrElse(orderingTask.elements),
-        answers = answers.getOrElse(orderingTask.answers),
+        answers = answer.getOrElse(orderingTask.answers),
         randomizeChoices = randomizeChoices.getOrElse(orderingTask.randomizeChoices)
       )
       updatedTask <- lift(updateTask(task, toUpdate))
@@ -812,53 +756,39 @@ class ProjectServiceDefault(val db: Connection,
   /**
    * Update a MatchingTask
    *
-   * @param taskId
-   * @param version
-   * @param name
-   * @param description
-   * @param position
-   * @param notesAllowed
+   * @param commonArgs
    * @param elementsLeft
    * @param elementsRight
    * @param answer
    * @param randomizeChoices
-   * @param dependencyId
-   * @param partId
    * @return
    */
-  def updateMatchingTask(taskId: UUID,
-                         version: Long,
-                         name: Option[String],
-                         description: Option[String],
-                         position: Option[Int],
-                         notesAllowed: Option[Boolean],
+  def updateMatchingTask(commonArgs: CommonTaskArgs,
                          elementsLeft: Option[IndexedSeq[String]] = Some(IndexedSeq()),
                          elementsRight: Option[IndexedSeq[String]] = Some(IndexedSeq()),
-                         answers: Option[IndexedSeq[MatchingTask.Match]] = Some(IndexedSeq()),
-                         randomizeChoices: Option[Boolean] = Some(true),
-                         dependencyId: Option[UUID] = None,
-                         partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]] =
+                         answer: Option[IndexedSeq[MatchingTask.Match]] = Some(IndexedSeq()),
+                         randomizeChoices: Option[Boolean] = Some(true)): Future[\/[ErrorUnion#Fail, Task]] =
   {
     for {
-      task <- lift(taskRepository.find(taskId))
-      _ <- predicate (task.version == version) (RepositoryError.OfflineLockFail)
+      task <- lift(taskRepository.find(commonArgs.taskId))
+      _ <- predicate (task.version == commonArgs.version) (RepositoryError.OfflineLockFail)
       _ <- predicate (task.isInstanceOf[MatchingTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateMatchingTask.wrongTaskType")))
       matchingTask = task.asInstanceOf[MatchingTask]
       toUpdate = matchingTask.copy(
-        partId = partId.getOrElse(task.partId),
-        position = position.getOrElse(task.position),
+        partId = commonArgs.partId.getOrElse(task.partId),
+        position = commonArgs.position.getOrElse(task.position),
         settings = task.settings.copy(
-          title = name.getOrElse(task.settings.title),
-          description = description.getOrElse(task.settings.description),
-          notesAllowed = notesAllowed.getOrElse(task.settings.notesAllowed),
-          dependencyId = dependencyId match {
+          title = commonArgs.name.getOrElse(task.settings.title),
+          description = commonArgs.description.getOrElse(task.settings.description),
+          notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+          dependencyId = commonArgs.dependencyId match {
             case Some(newDepId) => Some(newDepId)
             case None => task.settings.dependencyId
           }
         ),
         elementsLeft = elementsLeft.getOrElse(matchingTask.elementsLeft),
         elementsRight = elementsRight.getOrElse(matchingTask.elementsRight),
-        answers = answers.getOrElse(matchingTask.answers),
+        answers = answer.getOrElse(matchingTask.answers),
         randomizeChoices = randomizeChoices.getOrElse(matchingTask.randomizeChoices)
       )
       updatedTask <- lift(updateTask(task, toUpdate))

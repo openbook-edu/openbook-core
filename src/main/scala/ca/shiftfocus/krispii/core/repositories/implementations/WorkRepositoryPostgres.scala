@@ -297,7 +297,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
        |           FROM $table
        |           WHERE work_id = w.id
        |             AND version = w.version
-       |SELECT w.id, w.user_id, w.task_id, w.version as $version, x.response as $response, x.document_id as $documentId, w.is_complete, w.created_at, w.updated_at
+       |SELECT w.id, w.user_id, w.task_id, w.version as $version, x.response as $response, x.document_id as $documentId, w.is_complete, w.work_type, w.created_at, w.updated_at
        |FROM w,x
      """.stripMargin
   }
@@ -317,7 +317,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
        |                  ? as answer
        |           FROM w
        |           RETURNING *)
-       |SELECT w.id, w.user_id, w.task_id, w.version as $version, x.response as $response, w.is_complete, w.created_at, w.updated_at
+       |SELECT w.id, w.user_id, w.task_id, w.version as $version, x.response as $response, w.is_complete, w.work_type, w.created_at, w.updated_at
        |FROM w,x
      """.stripMargin
   }

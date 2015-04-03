@@ -17,12 +17,10 @@ case class MultipleChoiceWork(
   override def toString: String ={
     var result="";
     response.zipWithIndex.foreach{case(e,i)=> result=result+ "Question: "+ i + " Answer: "+e.toString+", "}
-    return """""""+result.dropRight(2)+""""""";
-
+    '"'+result.dropRight(2)+'"'
   }
 
 }
-
 
 object MultipleChoiceWork {
 

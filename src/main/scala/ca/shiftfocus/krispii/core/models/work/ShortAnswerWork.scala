@@ -16,7 +16,7 @@ case class ShortAnswerWork(
 ) extends DocumentWork {
 
   override def toString: String ={
-    return """"""" + response + """"""";
+    '"' + response + '"'
   }
 
 }

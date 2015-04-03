@@ -277,34 +277,50 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
        |SET version = ?,
        |    is_complete = ?,
        |    updated_at = ?
-       |WHERE user_id = ?
-       |  AND task_id = ?
+       |WHERE id = ?
        |  AND version = ?
+       |RETURNING *
      """.stripMargin
 
-  def UpdateKeepLatestRevision(table: String): String =
-    s"""
-       |WITH work AS (
-       |  $Update
-       |)
-       |UPDATE $table
-       |SET answer = ?
-       |WHERE work_id = work.id
-       |RETURNING id, user_id, task_id, version, answer, is_complete, created_at, updated_at
-     """.stripMargin
+  def UpdateKeepLatestRevision(table: String): String = {
+    val (version, response, documentId) = table match {
+      case "long_answer_work" => ("version", "not_used", "la_document_id")
+      case "short_answer_work" => ("version", "not_used", "sa_document_id")
+      case "multiple_choice_work" => ("mc_version", "mc_response", "not_used")
+      case "ordering_work" => ("ord_version", "ord_response", "not_used")
+      case "matching_work" => ("mat_version", "mat_response", "not_used")
+    }
 
-  def UpdateWithNewRevision(table: String): String =
     s"""
-       |WITH work AS (
-       |  $Update
-       |)
-       |INSERT INTO $table (user_id, task_id, version, answer)
-       |  SELECT work.user_id as user_id,
-       |         work.task_id as task_id,
-       |         ? as version,
-       |         ? as answer
-       |RETURNING user_id, task_id, revision, version, answer, is_complete, created_at, updated_at
+       |WITH w AS ($Update)
+       |     x AS (SELECT *
+       |           FROM $table
+       |           WHERE work_id = w.id
+       |             AND version = w.version
+       |SELECT w.id, w.user_id, w.task_id, w.version as $version, x.response as $response, x.document_id as $documentId, w.is_complete, w.created_at, w.updated_at
+       |FROM w,x
      """.stripMargin
+  }
+
+  def UpdateWithNewRevision(table: String): String = {
+    val (version, response) = table match {
+      case "multiple_choice_work" => ("mc_version", "mc_response")
+      case "ordering_work" => ("ord_version", "ord_response")
+      case "matching_work" => ("mat_version", "mat_response")
+    }
+
+    s"""
+       |WITH w AS ($Update),
+       |     x AS (INSERT INTO $table (work_id, version, response)
+       |           SELECT w.id as work_id,
+       |                  w.version as version,
+       |                  ? as answer
+       |           FROM w
+       |           RETURNING *)
+       |SELECT w.id, w.user_id, w.task_id, w.version as $version, x.response as $response, w.is_complete, w.created_at, w.updated_at
+       |FROM w,x
+     """.stripMargin
+  }
 
   // -- Delete -------------------------------------------------------------------------------------------------------
   // NB: the delete queries should never be used unless you know what you're doing. Due to work revisioning, the
@@ -491,10 +507,8 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
         work.version +1,
         work.isComplete,
         new DateTime,
-        work.studentId.bytes,
-        work.taskId.bytes,
+        work.id.bytes,
         work.version,
-        work.version +1,
         work.response
       ))
     }

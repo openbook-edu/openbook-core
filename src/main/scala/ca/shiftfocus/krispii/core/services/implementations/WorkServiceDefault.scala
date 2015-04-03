@@ -383,7 +383,7 @@ class WorkServiceDefault(val db: Connection,
         existingWork <- lift(workRepository.find(user, task))
         existingMCWork = existingWork.asInstanceOf[MultipleChoiceWork]
         workToUpdate = existingMCWork.copy(response = response, isComplete = isComplete)
-        updatedWork <- lift(workRepository.update(workToUpdate))
+        updatedWork <- lift(workRepository.update(workToUpdate, true))
       }
       yield updatedWork.asInstanceOf[MultipleChoiceWork]
     }
@@ -400,7 +400,7 @@ class WorkServiceDefault(val db: Connection,
         existingWork <- lift(workRepository.find(user, task))
         existingOrdWork = existingWork.asInstanceOf[OrderingWork]
         workToUpdate = existingOrdWork.copy(response = response, isComplete = isComplete)
-        updatedWork <- lift(workRepository.update(workToUpdate))
+        updatedWork <- lift(workRepository.update(workToUpdate, true))
       }
       yield updatedWork.asInstanceOf[OrderingWork]
     }
@@ -417,7 +417,7 @@ class WorkServiceDefault(val db: Connection,
         existingWork <- lift(workRepository.find(user, task))
         existingMatchingWork = existingWork.asInstanceOf[MatchingWork]
         workToUpdate = existingMatchingWork.copy(response = response, isComplete = isComplete)
-        updatedWork <- lift(workRepository.update(workToUpdate))
+        updatedWork <- lift(workRepository.update(workToUpdate, true))
       }
       yield updatedWork.asInstanceOf[MatchingWork]
     }

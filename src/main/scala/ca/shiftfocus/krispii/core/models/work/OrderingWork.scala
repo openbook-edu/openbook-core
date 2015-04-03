@@ -15,7 +15,7 @@ case class OrderingWork(
 ) extends Work {
 
   override def toString: String ={
-    response.mkString(" -> ");
+    response.mkString(" -> ")
   }
 
 }

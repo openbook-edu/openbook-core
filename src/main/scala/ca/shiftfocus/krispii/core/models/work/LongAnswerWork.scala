@@ -16,7 +16,7 @@ case class LongAnswerWork(
 ) extends DocumentWork {
 
   override def toString: String ={
-    return response;
+    return """"""" + response + """"""";
   }
 
 }

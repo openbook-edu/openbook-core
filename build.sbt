@@ -41,7 +41,7 @@ libraryDependencies ++= Seq(
   "joda-time" % "joda-time" % "2.1",
   "net.sf.uadetector" % "uadetector-resources" % "2014.04",
   "net.debasishg" %% "redisclient" % "2.13",
-  "com.github.cb372" %% "scalacache-redis" % "0.4.1",
+  "com.github.cb372" %% "scalacache-redis" % "0.6.1",
   "org.scalatest" % "scalatest_2.11" % "2.2.1" % "test",
   "org.scalamock" %% "scalamock-scalatest-support" % "3.2" % "test",
   "ca.shiftfocus" %% "webcrank-password" % "0.4.1",

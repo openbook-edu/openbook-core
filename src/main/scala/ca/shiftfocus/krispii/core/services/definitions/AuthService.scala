@@ -10,6 +10,7 @@ import scalaz.\/
 
 
 trait AuthService extends Service[ErrorUnion#Fail] {
+  val scalaCache: ScalaCache
   val userRepository: UserRepository
   val roleRepository: RoleRepository
   val sessionRepository: SessionRepository
@@ -26,11 +27,11 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   /*
    * Session definitions
    */
-  def listSessions(userId: UUID)(implicit cache: ScalaCache): Future[\/[ErrorUnion#Fail, IndexedSeq[Session]]]
-  def findSession(sessionId: UUID)(implicit cache: ScalaCache): Future[\/[ErrorUnion#Fail, Session]]
-  def createSession(userId: UUID, ipAddress: String, userAgent: String)(implicit cache: ScalaCache): Future[\/[ErrorUnion#Fail, Session]]
-  def updateSession(sessionId: UUID, ipAddress: String, userAgent: String)(implicit cache: ScalaCache): Future[\/[ErrorUnion#Fail, Session]]
-  def deleteSession(sessionId: UUID)(implicit cache: ScalaCache): Future[\/[ErrorUnion#Fail, Session]]
+  def listSessions(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Session]]]
+  def findSession(sessionId: UUID): Future[\/[ErrorUnion#Fail, Session]]
+  def createSession(userId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]]
+  def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]]
+  def deleteSession(sessionId: UUID): Future[\/[ErrorUnion#Fail, Session]]
 
   /**
    * List all users.

@@ -5,6 +5,7 @@ import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.postgresql.pool.PostgreSQLConnectionFactory
 import com.github.mauricio.async.db.pool.{PoolConfiguration, ConnectionPool}
 import com.typesafe.config._
+import scalacache.ScalaCache
 import scalaz.{\/, -\/, \/-}
 
 trait DB {

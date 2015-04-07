@@ -4,7 +4,6 @@ import _root_.redis.clients.jedis.Jedis
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.services.datasource.RedisCache
 import ca.shiftfocus.uuid.UUID
 import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global

@@ -27,7 +27,7 @@ class ScheduleServiceDefault(val db: Connection,
    * @param id the UUID of the course to list for.
    * @return a vector of the given course's schedules
    */
-  override def listByCourse(id: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[CourseSchedule]]] = {
+  override def listSchedulesByCourse(id: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[CourseSchedule]]] = {
     for {
       course <- lift(schoolService.findCourse(id))
       schedules <- lift(courseScheduleRepository.list(course))
@@ -41,7 +41,7 @@ class ScheduleServiceDefault(val db: Connection,
    * @param id
    * @return
    */
-  override def find(id: UUID): Future[\/[ErrorUnion#Fail, CourseSchedule]] = {
+  override def findSchedule(id: UUID): Future[\/[ErrorUnion#Fail, CourseSchedule]] = {
     courseScheduleRepository.find(id)
   }
 
@@ -55,7 +55,7 @@ class ScheduleServiceDefault(val db: Connection,
    * @param description a brief description may be entered
    * @return the newly created course schedule
    */
-  override def create(courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String): Future[\/[ErrorUnion#Fail, CourseSchedule]] = {
+  override def createSchedule(courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String): Future[\/[ErrorUnion#Fail, CourseSchedule]] = {
     transactional { implicit conn =>
       for {
         course <- lift(schoolService.findCourse(courseId))
@@ -82,7 +82,7 @@ class ScheduleServiceDefault(val db: Connection,
    * @param description a brief description may be entered
    * @return the newly created course schedule
    */
-  override def update(id: UUID, version: Long,
+  override def updateSchedule(id: UUID, version: Long,
                       courseId: Option[UUID],
                       day: Option[LocalDate],
                       startTime: Option[LocalTime],
@@ -112,7 +112,7 @@ class ScheduleServiceDefault(val db: Connection,
    * @param version the current version of the schedule for optimistic offline lock
    * @return a boolean indicating success or failure
    */
-  override def delete(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, CourseSchedule]] = {
+  override def deleteSchedule(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, CourseSchedule]] = {
     transactional { implicit conn =>
       for {
         courseSchedule <- lift(courseScheduleRepository.find(id))
@@ -122,6 +122,13 @@ class ScheduleServiceDefault(val db: Connection,
       yield isDeleted
     }
   }
+
+  def listScheduleExceptionsByCourse(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[CourseSchedule]]] = ???
+  def findScheduleException(id: UUID): Future[\/[ErrorUnion#Fail, CourseSchedule]] = ???
+
+  def createScheduleException(userId: UUID, courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String): Future[\/[ErrorUnion#Fail, CourseSchedule]] = ???
+  def updateScheduleException(id: UUID, version: Long, day: Option[LocalDate], startTime: Option[LocalTime], endTime: Option[LocalTime], description: Option[String]): Future[\/[ErrorUnion#Fail, CourseSchedule]] = ???
+  def deleteScheduleException(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, CourseSchedule]] = ???
 
   /**
    * Checks if any projects in any courses are scheduled for a particular user.

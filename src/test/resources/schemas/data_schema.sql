@@ -323,37 +323,37 @@ VALUES ('\x4d7ca313f2164f5985ae88bcbca70317', '\x871b525067124e548ab60784cae0bc6
 
 /* JOURNAL */
 /* JournalEntryA -> userA -> projectA */
-INSERT INTO journal (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
-VALUES ('\x6aabd410735f4023ae049f67f84a3846', 1, '\x36c8c0ca50aa4806afa5916a5e33a81f', '\xc9b4cfceaed448fd94f5c980763dfddc', 'view', 'item 1', '2014-08-01 14:01:19.545-04','2014-08-02 14:01:19.545-04');
+INSERT INTO journal_201401 (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
+VALUES ('\x6aabd410735f4023ae049f67f84a3846', 1, '\x36c8c0ca50aa4806afa5916a5e33a81f', '\xc9b4cfceaed448fd94f5c980763dfddc', 'view', 'item 1', '2014-01-01 14:01:19.545-04','2014-01-02 14:01:19.545-04');
 
 /* JournalEntryB -> userA -> projectA */
-INSERT INTO journal (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
-VALUES ('\x2ec1c7979a604b11a860259ae0f59134', 2, '\x36c8c0ca50aa4806afa5916a5e33a81f', '\xc9b4cfceaed448fd94f5c980763dfddc', 'click', 'item 2', '2014-08-03 14:01:19.545-04','2014-08-04 14:01:19.545-04');
+INSERT INTO journal_201402 (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
+VALUES ('\x2ec1c7979a604b11a860259ae0f59134', 2, '\x36c8c0ca50aa4806afa5916a5e33a81f', '\xc9b4cfceaed448fd94f5c980763dfddc', 'click', 'item 2', '2014-02-03 14:01:19.545-04','2014-02-04 14:01:19.545-04');
 
 /* JournalEntryC -> userA -> projectA */
-INSERT INTO journal (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
-VALUES ('\xf7a218444c764711ae135e8a3758cefb', 3, '\x36c8c0ca50aa4806afa5916a5e33a81f', '\xc9b4cfceaed448fd94f5c980763dfddc', 'watch', 'item 3', '2014-08-05 14:01:19.545-04','2014-08-06 14:01:19.545-04');
+INSERT INTO journal_201403 (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
+VALUES ('\xf7a218444c764711ae135e8a3758cefb', 3, '\x36c8c0ca50aa4806afa5916a5e33a81f', '\xc9b4cfceaed448fd94f5c980763dfddc', 'watch', 'item 3', '2014-03-05 14:01:19.545-04','2014-03-06 14:01:19.545-04');
 
 /* JournalEntryD -> userA -> projectA */
-INSERT INTO journal (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
-VALUES ('\xd77a1706e2304798853f257cad2ed627', 4, '\x36c8c0ca50aa4806afa5916a5e33a81f', '\xc9b4cfceaed448fd94f5c980763dfddc', 'listen', 'item 4', '2014-08-07 14:01:19.545-04','2014-08-08 14:01:19.545-04');
+INSERT INTO journal_201404 (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
+VALUES ('\xd77a1706e2304798853f257cad2ed627', 4, '\x36c8c0ca50aa4806afa5916a5e33a81f', '\xc9b4cfceaed448fd94f5c980763dfddc', 'listen', 'item 4', '2014-04-07 14:01:19.545-04','2014-04-08 14:01:19.545-04');
 
 /* JournalEntryE -> userB -> projectB */
-INSERT INTO journal (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
-VALUES ('\x0d809bb8779b4e55817cf995959ff290', 5, '\x6c0e29bdd05b4b2981156be93e936c59', '\xe4ae3b9098714339b05c8d39e3aaf65d', 'write', 'item 5', '2014-08-09 14:01:19.545-04','2014-08-10 14:01:19.545-04');
+INSERT INTO journal_201405 (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
+VALUES ('\x0d809bb8779b4e55817cf995959ff290', 5, '\x6c0e29bdd05b4b2981156be93e936c59', '\xe4ae3b9098714339b05c8d39e3aaf65d', 'write', 'item 5', '2014-05-09 14:01:19.545-04','2014-05-10 14:01:19.545-04');
 
 /* JournalEntryF -> userB -> projectB */
-INSERT INTO journal (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
-VALUES ('\x594021024fb14fada0e1605b37e09965', 6, '\x6c0e29bdd05b4b2981156be93e936c59', '\xe4ae3b9098714339b05c8d39e3aaf65d', 'create', 'item 6', '2014-08-11 14:01:19.545-04','2014-08-12 14:01:19.545-04');
+INSERT INTO journal_201406 (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
+VALUES ('\x594021024fb14fada0e1605b37e09965', 6, '\x6c0e29bdd05b4b2981156be93e936c59', '\xe4ae3b9098714339b05c8d39e3aaf65d', 'create', 'item 6', '2014-06-11 14:01:19.545-04','2014-06-12 14:01:19.545-04');
 
 /* JournalEntryG -> userB -> projectB */
-INSERT INTO journal (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
-VALUES ('\xeab8e5d1d88c4718b1bfda524daca133', 7, '\x6c0e29bdd05b4b2981156be93e936c59', '\xe4ae3b9098714339b05c8d39e3aaf65d', 'update', 'item 7', '2014-08-13 14:01:19.545-04','2014-08-14 14:01:19.545-04');
+INSERT INTO journal_201407 (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
+VALUES ('\xeab8e5d1d88c4718b1bfda524daca133', 7, '\x6c0e29bdd05b4b2981156be93e936c59', '\xe4ae3b9098714339b05c8d39e3aaf65d', 'update', 'item 7', '2014-07-13 14:01:19.545-04','2014-07-14 14:01:19.545-04');
 
 /* JournalEntryH -> userB -> projectB */
-INSERT INTO journal (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
+INSERT INTO journal_201408 (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
 VALUES ('\x453c7d392bbd40419fb46fb59a134395', 8, '\x6c0e29bdd05b4b2981156be93e936c59', '\xe4ae3b9098714339b05c8d39e3aaf65d', 'delete', 'item 8', '2014-08-15 14:01:19.545-04','2014-08-16 14:01:19.545-04');
 
 /* JournalEntryI -> userA -> projectA */
-INSERT INTO journal (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
-VALUES ('\xcc19d1cd9114413a96ba46c981525e30', 8, '\x36c8c0ca50aa4806afa5916a5e33a81f', '\xc9b4cfceaed448fd94f5c980763dfddc', 'delete', 'item 9', '2014-08-17 14:01:19.545-04','2014-08-18 14:01:19.545-04');
+INSERT INTO journal_201409 (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
+VALUES ('\xcc19d1cd9114413a96ba46c981525e30', 9, '\x36c8c0ca50aa4806afa5916a5e33a81f', '\xc9b4cfceaed448fd94f5c980763dfddc', 'delete', 'item 9', '2014-09-17 14:01:19.545-04','2014-09-18 14:01:19.545-04');

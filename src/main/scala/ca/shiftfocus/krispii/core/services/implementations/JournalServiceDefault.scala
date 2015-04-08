@@ -1,14 +1,12 @@
 package ca.shiftfocus.krispii.core.services
 
-import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError}
+import ca.shiftfocus.krispii.core.error.ErrorUnion
 import ca.shiftfocus.krispii.core.models.JournalEntry._
 import ca.shiftfocus.krispii.core.models.{User, JournalEntry}
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.Connection
 import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
-import play.api.i18n.Messages
 
 import scala.concurrent.Future
 import scalaz._

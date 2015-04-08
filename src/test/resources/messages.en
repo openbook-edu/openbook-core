@@ -1,0 +1,19 @@
+# JournalEntry action strings
+journalEntry.click.action  = clicked on
+journalEntry.view.action   = viewed
+journalEntry.watch.action  = watched
+journalEntry.listen.action = listened
+journalEntry.write.action  = wrote
+journalEntry.create.action = created
+journalEntry.update.action = updated
+journalEntry.delete.action = deleted
+
+# JournalEntry message
+# {0} = user.givenname
+# {1} = user.surname
+# {2} = action
+# {3} = item
+# {4} = project.name
+# {5} = time
+# {6} = date
+journalEntry.message = {0} {1} {2} {3} in the {4} at {5} on {6}

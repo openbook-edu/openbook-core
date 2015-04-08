@@ -1,7 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.repositories.CourseScheduleRepository
+import ca.shiftfocus.krispii.core.repositories.{CourseScheduleExceptionRepository, CourseScheduleRepository}
 import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models._
 import org.joda.time.LocalTime
@@ -14,6 +14,7 @@ trait ScheduleService extends Service[ErrorUnion#Fail] {
   val schoolService: SchoolService
   val projectService: ProjectService
   val courseScheduleRepository: CourseScheduleRepository
+  val courseScheduleExceptionRepository: CourseScheduleExceptionRepository
 
   def listSchedulesByCourse(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[CourseSchedule]]]
   def findSchedule(id: UUID): Future[\/[ErrorUnion#Fail, CourseSchedule]]

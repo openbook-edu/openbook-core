@@ -27,14 +27,15 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
       day.toLocalDate(),
       new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), startTime.getHourOfDay(), startTime.getMinuteOfHour, startTime.getSecondOfMinute()).toLocalTime(),
       new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), endTime.getHourOfDay(), endTime.getMinuteOfHour, endTime.getSecondOfMinute()).toLocalTime(),
+      row("reason").asInstanceOf[String],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
   }
 
-  val Fields = "id, version, created_at, updated_at, user_id, course_id, day, start_time, end_time"
+  val Fields = "id, version, created_at, updated_at, user_id, course_id, day, start_time, end_time, reason"
   val Table = "course_schedule_exceptions"
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 
   // User CRUD operations
   val SelectAll =
@@ -61,7 +62,7 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
   val Update =
     s"""
        |UPDATE $Table
-       |SET user_id = ?, course_id = ?, day = ?, start_time = ?, end_time = ?, version = ?, updated_at = ?
+       |SET user_id = ?, course_id = ?, day = ?, start_time = ?, end_time = ?, reason = ?, version = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $Fields
@@ -136,7 +137,8 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
       courseScheduleException.courseId.bytes,
       dayDT,
       startTimeDT,
-      endTimeDT
+      endTimeDT,
+      courseScheduleException.reason
     ))
   }
 
@@ -157,6 +159,7 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
       dayDT,
       startTimeDT,
       endTimeDT,
+      courseScheduleException.reason,
       courseScheduleException.version + 1,
       new DateTime,
       courseScheduleException.id.bytes,

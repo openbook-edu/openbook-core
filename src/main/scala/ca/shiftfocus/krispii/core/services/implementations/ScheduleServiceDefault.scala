@@ -17,7 +17,8 @@ class ScheduleServiceDefault(val db: Connection,
                              val authService: AuthService,
                              val schoolService: SchoolService,
                              val projectService: ProjectService,
-                             val courseScheduleRepository: CourseScheduleRepository) extends ScheduleService {
+                             val courseScheduleRepository: CourseScheduleRepository,
+                             val courseScheduleExceptionRepository: CourseScheduleExceptionRepository) extends ScheduleService {
 
   implicit def conn: Connection = db
 
@@ -67,8 +68,7 @@ class ScheduleServiceDefault(val db: Connection,
             description = description
           )
         createdSchedule <- lift(courseScheduleRepository.insert(newSchedule))
-      }
-      yield createdSchedule
+      } yield createdSchedule
     }
   }
 
@@ -100,8 +100,7 @@ class ScheduleServiceDefault(val db: Connection,
           description = description.getOrElse(courseSchedule.description)
         )
         updatedSchedule <- lift(courseScheduleRepository.update(toUpdate))
-      }
-      yield updatedSchedule
+      } yield updatedSchedule
     }
   }
 
@@ -118,32 +117,123 @@ class ScheduleServiceDefault(val db: Connection,
         courseSchedule <- lift(courseScheduleRepository.find(id))
         toDelete = courseSchedule.copy(version = version)
         isDeleted <- lift(courseScheduleRepository.delete(toDelete))
-      }
-      yield isDeleted
+      } yield isDeleted
     }
   }
 
-  def listScheduleExceptionsByCourse(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[CourseSchedule]]] = ???
-  def findScheduleException(id: UUID): Future[\/[ErrorUnion#Fail, CourseSchedule]] = ???
-
-  def createScheduleException(userId: UUID, courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String): Future[\/[ErrorUnion#Fail, CourseSchedule]] = ???
-  def updateScheduleException(id: UUID, version: Long, day: Option[LocalDate], startTime: Option[LocalTime], endTime: Option[LocalTime], description: Option[String]): Future[\/[ErrorUnion#Fail, CourseSchedule]] = ???
-  def deleteScheduleException(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, CourseSchedule]] = ???
+  /**
+   * Lists schedule exceptions for all students for one course.
+   *
+   * @param courseId
+   * @return
+   */
+  def listScheduleExceptionsByCourse(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[CourseScheduleException]]] = {
+    for {
+      course <- lift(schoolService.findCourse(courseId))
+      schedules <- lift(courseScheduleExceptionRepository.list(course))
+    } yield schedules
+  }
 
   /**
-   * Checks if any projects in any courses are scheduled for a particular user.
+   * Find a specific schedule exception object by ID.
    *
+   * @param id the unique identifier
+   * @return a future disjunction containing either a failure, or the schedule exception
+   */
+  def findScheduleException(id: UUID): Future[\/[ErrorUnion#Fail, CourseScheduleException]] = {
+    courseScheduleExceptionRepository.find(id)
+  }
+
+  /**
+   *
+   * @param userId
+   * @param courseId
+   * @param day
+   * @param startTime
+   * @param endTime
+   * @param description
+   * @return
+   */
+  def createScheduleException(userId: UUID, courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String): Future[\/[ErrorUnion#Fail, CourseScheduleException]] = {
+    transactional { implicit conn =>
+      for {
+        course <- lift(schoolService.findCourse(courseId))
+        user <- lift(authService.find(userId))
+        newSchedule = CourseScheduleException(
+          userId = user.id,
+          courseId = course.id,
+          day = day,
+          startTime = startTime,
+          endTime = endTime,
+          reason = description
+        )
+        createdSchedule <- lift(courseScheduleExceptionRepository.insert(newSchedule))
+      } yield createdSchedule
+    }
+  }
+
+  /**
+   *
+   * @param id
+   * @param version
+   * @param day
+   * @param startTime
+   * @param endTime
+   * @param description
+   * @return
+   */
+  def updateScheduleException(id: UUID, version: Long, day: Option[LocalDate], startTime: Option[LocalTime], endTime: Option[LocalTime], description: Option[String]): Future[\/[ErrorUnion#Fail, CourseScheduleException]] = {
+    for {
+      existingException <- lift(courseScheduleExceptionRepository.find(id))
+      _ <- predicate (existingException.version == version) (RepositoryError.OfflineLockFail)
+      toUpdate = existingException.copy(
+        version = version,
+        day = day.getOrElse(existingException.day),
+        startTime = startTime.getOrElse(existingException.startTime),
+        endTime = endTime.getOrElse(existingException.endTime),
+        reason = description.getOrElse(existingException.reason)
+      )
+      updatedSchedule <- lift(courseScheduleExceptionRepository.update(toUpdate))
+    }  yield updatedSchedule
+  }
+
+  /**
+   *
+   * @param id
+   * @param version
+   * @return
+   */
+  def deleteScheduleException(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, CourseScheduleException]] = {
+    transactional { implicit conn =>
+      for {
+        courseScheduleException <- lift(courseScheduleExceptionRepository.find(id))
+        toDelete = courseScheduleException.copy(version = version)
+        isDeleted <- lift(courseScheduleExceptionRepository.delete(toDelete))
+      } yield isDeleted
+    }
+  }
+
+  /**
+   *
+   * @param userId
+   * @param currentDay
+   * @param currentTime
+   * @return
    */
   override def isAnythingScheduledForUser(userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
     for {
       user <- lift(authService.find(userId))
       somethingScheduled <- lift(courseScheduleRepository.isAnythingScheduledForUser(user, currentDay, currentTime))
-    }
-    yield somethingScheduled
+    } yield somethingScheduled
   }
 
   /**
-   * Check if a project is scheduled in any of a user's courses.
+   *
+   * @param projectSlug
+   * @param userId
+   * @param currentDay
+   * @param currentTime
+   * @return
    */
   override def isProjectScheduledForUser(projectSlug: String, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
     val fProject = projectService.find(projectSlug)
@@ -153,7 +243,6 @@ class ScheduleServiceDefault(val db: Connection,
       project <- lift(fProject)
       user <- lift(fUser)
       projectScheduled <- lift(courseScheduleRepository.isProjectScheduledForUser(project, user, currentDay, currentTime))
-    }
-    yield projectScheduled
+    } yield projectScheduled
   }
 }

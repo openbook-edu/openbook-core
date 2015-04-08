@@ -18,6 +18,7 @@ case class CourseScheduleException(
   day: LocalDate,
   startTime: LocalTime,
   endTime: LocalTime,
+  reason: String,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 )
@@ -31,6 +32,7 @@ object CourseScheduleException extends LocalDateTimeJson {
       (__ \ "day").write[LocalDate] and
       (__ \ "startTime").write[LocalTime] and
       (__ \ "endTime").write[LocalTime] and
+      (__ \ "reason").write[String] and
       (__ \ "createdAt").write[DateTime] and
       (__ \ "updatedAt").write[DateTime]
     )(unlift(CourseScheduleException.unapply))

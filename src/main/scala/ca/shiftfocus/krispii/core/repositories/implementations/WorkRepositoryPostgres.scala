@@ -34,7 +34,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
       taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
       documentId = UUID(row("la_document_id").asInstanceOf[Array[Byte]]),
       version    = row("version").asInstanceOf[Long],
-      response   = "",
+      response   = None,
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt  = row("created_at").asInstanceOf[DateTime],
       updatedAt  = row("updated_at").asInstanceOf[DateTime]
@@ -48,7 +48,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
       taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
       documentId = UUID(row("sa_document_id").asInstanceOf[Array[Byte]]),
       version    = row("version").asInstanceOf[Long],
-      response   = "",
+      response   = None,
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt  = row("created_at").asInstanceOf[DateTime],
       updatedAt  = row("updated_at").asInstanceOf[DateTime]
@@ -396,11 +396,11 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
   override def find(workId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
     queryOne(SelectById, Seq[Any](workId.bytes)).flatMap {
       case \/-(work: LongAnswerWork) => documentRepository.find(work.documentId).map {
-        case \/-(document) => \/.right(work.copy(response = document.plaintext))
+        case \/-(document) => \/.right(work.copy(response = Some(document)))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
       case \/-(work: ShortAnswerWork) => documentRepository.find(work.documentId).map {
-        case \/-(document) => \/.right(work.copy(response = document.plaintext))
+        case \/-(document) => \/.right(work.copy(response = Some(document)))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
       case otherWorkTypes => Future successful otherWorkTypes
@@ -417,11 +417,11 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
   override def find(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
     queryOne(SelectByStudentTask, Seq[Any](user.id.bytes, task.id.bytes)).flatMap {
       case \/-(work: LongAnswerWork) => documentRepository.find(work.documentId).map {
-        case \/-(document) => \/.right(work.copy(response = document.plaintext))
+        case \/-(document) => \/.right(work.copy(response = Some(document)))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
       case \/-(work: ShortAnswerWork) => documentRepository.find(work.documentId).map {
-        case \/-(document) => \/.right(work.copy(response = document.plaintext))
+        case \/-(document) => \/.right(work.copy(response = Some(document)))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
       case otherWorkTypes => Future successful otherWorkTypes

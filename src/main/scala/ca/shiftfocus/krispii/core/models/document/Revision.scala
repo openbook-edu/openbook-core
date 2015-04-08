@@ -12,9 +12,9 @@ import ws.kahn.ot._
 case class Revision(
   documentId: UUID,
   version: Long,
-  author: User,
+  authorId: UUID,
   delta: Delta,
-  createdAt: Option[DateTime]
+  createdAt: DateTime = new DateTime
 )
 
 object Revision {
@@ -22,19 +22,9 @@ object Revision {
   implicit val writes: Writes[Revision] = (
     (__ \ "documentId").write[UUID] and
       (__ \ "version").write[Long] and
-      (__ \ "author").write[User] and
+      (__ \ "authorId").write[UUID] and
       (__ \ "delta").write[Delta] and
-      (__ \ "createdAt").writeNullable[DateTime]
+      (__ \ "createdAt").write[DateTime]
     )(unlift(Revision.unapply))
-
-  def apply(row: RowData)(author: User): Revision = {
-    Revision(
-      documentId = UUID(row("document_id").asInstanceOf[Array[Byte]]),
-      version = row("version").asInstanceOf[Long],
-      author = author,
-      delta = Json.parse(row("delta").asInstanceOf[String]).as[Delta],
-      createdAt = row("created_at").asInstanceOf[Option[DateTime]]
-    )
-  }
 
 }

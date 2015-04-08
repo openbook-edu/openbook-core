@@ -464,7 +464,7 @@ object TestValues {
     title = "testDocumentA title",
     plaintext = "testDocumentA plaintext",
     delta = Delta(IndexedSeq.empty[Operation]),
-    owner = testUserC,
+    ownerId = testUserC,
     editors = Vector(),
     createdAt = Option(new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
     updatedAt = Option(new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")))

@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.models.document._
-import ca.shiftfocus.krispii.core.repositories.{UserRepository, DocumentRepository}
+import ca.shiftfocus.krispii.core.repositories.{RevisionRepository, UserRepository, DocumentRepository}
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.Connection
@@ -16,7 +16,8 @@ import scalaz.\/
 
 class DocumentServiceDefault(val db: Connection,
                              val userRepository: UserRepository,
-                             val documentRepository: DocumentRepository) extends DocumentService {
+                             val documentRepository: DocumentRepository,
+                             val revisionRepository: RevisionRepository) extends DocumentService {
 
   implicit def conn: Connection = db
 
@@ -40,7 +41,7 @@ class DocumentServiceDefault(val db: Connection,
   override def listRevisions(documentId: UUID, fromVersion: Long = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[Revision]]] = {
     for {
       document <- lift(documentRepository.find(documentId))
-      revisions <- lift(documentRepository.list(document, fromVersion))
+      revisions <- lift(revisionRepository.list(document, fromVersion))
     } yield revisions
   }
 
@@ -58,10 +59,8 @@ class DocumentServiceDefault(val db: Connection,
         Document(
           id = id,
           title = title,
-          plaintext = initialDelta.applyTo(""),
           delta = initialDelta,
-          owner = owner,
-          editors = IndexedSeq.empty[User]
+          ownerId = owner.id
         )
       )
     }
@@ -79,7 +78,7 @@ class DocumentServiceDefault(val db: Connection,
     transactional { implicit conn =>
       for {
         document <- lift(documentRepository.find(id))
-        updated <- lift(documentRepository.update(document.copy(title = title, owner = owner, editors = editors)))
+        updated <- lift(documentRepository.update(document.copy(title = title, ownerId = owner.id)))
       } yield updated
     }
   }
@@ -111,7 +110,7 @@ class DocumentServiceDefault(val db: Connection,
         document <- lift(documentRepository.find(documentId))
 
         // 2. Look for the more recent server operations
-        recentRevisions <- lift(documentRepository.list(document, version))
+        recentRevisions <- lift(revisionRepository.list(document, version))
 
         pushResult <- {
           // If there were more recent revisions
@@ -125,17 +124,16 @@ class DocumentServiceDefault(val db: Connection,
             for {
               // 4. Update the document with the latest text
               updatedDocument <- lift(documentRepository.update(document.copy(
-                plaintext = transformedDelta.applyTo(document.plaintext),
                 delta = document.delta o transformedDelta
               )))
 
               // 5. Insert the new revision into the history
-              pushedRevision <- lift(documentRepository.insert(
+              pushedRevision <- lift(revisionRepository.insert(
                 Revision(documentId = document.id,
-                  version = document.version + 1,
-                  author = author,
-                  delta = transformedDelta,
-                  createdAt = Some(new DateTime))
+                         version = document.version + 1,
+                         authorId = author.id,
+                         delta = transformedDelta,
+                         createdAt = new DateTime)
               ))
             } yield PushResult(document = updatedDocument, revision = pushedRevision, serverOps = recentRevisions)
           }
@@ -143,17 +141,16 @@ class DocumentServiceDefault(val db: Connection,
           else {
             for {
               updatedDocument <- lift(documentRepository.update(document.copy(
-                plaintext = delta.applyTo(document.plaintext),
                 delta = document.delta o delta
               )))
 
               // 5. Insert the new revision into the history
-              pushedRevision <- lift(documentRepository.insert(
+              pushedRevision <- lift(revisionRepository.insert(
                 Revision(documentId = document.id,
                   version = document.version + 1,
-                  author = author,
+                  authorId = author.id,
                   delta = delta,
-                  createdAt = Some(new DateTime))
+                  createdAt = new DateTime)
               ))
             } yield PushResult(document = updatedDocument, revision = pushedRevision, serverOps = recentRevisions)
           }

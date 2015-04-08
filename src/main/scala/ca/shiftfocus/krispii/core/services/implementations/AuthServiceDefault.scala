@@ -14,13 +14,15 @@ import scalaz.{-\/, \/-, \/, EitherT}
 import webcrank.password._
 
 class AuthServiceDefault(val db: Connection,
+                         val scalaCache: ScalaCache,
                          val userRepository: UserRepository,
                          val roleRepository: RoleRepository,
                          val sessionRepository: SessionRepository)
   extends AuthService {
 
   implicit def conn: Connection = db
-
+  implicit def cache: ScalaCache = scalaCache
+  
   /**
    * List all users.
    *
@@ -83,7 +85,7 @@ class AuthServiceDefault(val db: Connection,
    * @param userId
    * @return
    */
-  override def listSessions(userId: UUID)(implicit cache: ScalaCache): Future[\/[ErrorUnion#Fail, IndexedSeq[Session]]] = {
+  override def listSessions(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Session]]] = {
     sessionRepository.list(userId)
   }
 
@@ -93,7 +95,7 @@ class AuthServiceDefault(val db: Connection,
    * @param sessionId
    * @return
    */
-  override def findSession(sessionId: UUID)(implicit cache: ScalaCache): Future[\/[ErrorUnion#Fail, Session]] = {
+  override def findSession(sessionId: UUID): Future[\/[ErrorUnion#Fail, Session]] = {
     sessionRepository.find(sessionId)
   }
 
@@ -105,7 +107,7 @@ class AuthServiceDefault(val db: Connection,
    * @param userAgent
    * @return
    */
-  override def createSession(userId: UUID, ipAddress: String, userAgent: String)(implicit cache: ScalaCache): Future[\/[ErrorUnion#Fail, Session]] = {
+  override def createSession(userId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]] = {
     sessionRepository.create(Session(
       userId = userId,
       ipAddress = ipAddress,
@@ -121,7 +123,7 @@ class AuthServiceDefault(val db: Connection,
    * @param userAgent
    * @return
    */
-  override def updateSession(sessionId: UUID, ipAddress: String, userAgent: String)(implicit cache: ScalaCache): Future[\/[ErrorUnion#Fail, Session]] = {
+  override def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]] = {
     val fUpdated = for {
       session <- lift(sessionRepository.find(sessionId))
       updated <- lift(sessionRepository.update(session.copy(
@@ -139,7 +141,7 @@ class AuthServiceDefault(val db: Connection,
    * @param sessionId
    * @return
    */
-  override def deleteSession(sessionId: UUID)(implicit cache: ScalaCache): Future[\/[ErrorUnion#Fail, Session]] = {
+  override def deleteSession(sessionId: UUID): Future[\/[ErrorUnion#Fail, Session]] = {
     val fDeleted = for {
       session <- lift(sessionRepository.find(sessionId))
       deleted <- lift(sessionRepository.delete(session))

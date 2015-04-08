@@ -14,59 +14,35 @@ case class Document(
   id: UUID = UUID.random,
   version: Long = 1L,
   title: String,
-  plaintext: String,
   delta: Delta,
-  owner: User,
-  editors: IndexedSeq[User],
+  ownerId: UUID,
   revisions: IndexedSeq[Operation] = IndexedSeq.empty[Operation],
-  // TODO - change Option[DateTime] = None on DateTime = new DateTime
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 ) {
-
-  /**
-   * Checksum is computed from the content string.
-   */
-  val checksum: Array[Byte] = Document.md5(this.plaintext)
-
+  def plaintext: String = {
+    delta.operations.map {
+      case insert: InsertText => insert.chars
+      case insert: InsertCode => insert.code match {
+        case 0 => "\n"
+        case _ => ""
+      }
+      case _ => ""
+    }.mkString
+  }
 }
 
 object Document {
-
-  /**
-   * Instantiate a Document given a row result from the database. Must be provided
-   * with the owner and users.
-   *
-   * @param row
-   * @param owner
-   * @param editors
-   * @return
-   */
-  def apply(row: RowData)(owner: User, editors: IndexedSeq[User]): Document = {
-    Document(
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-      version = row("version").asInstanceOf[Long],
-      title = row("title").asInstanceOf[String],
-      plaintext = row("plaintext").asInstanceOf[String],
-      delta = Json.parse(row("delta").asInstanceOf[String]).as[Delta],
-      owner = owner,
-      editors = editors,
-      createdAt = Option(row("created_at").asInstanceOf[DateTime]),
-      updatedAt = Option(row("created_at").asInstanceOf[DateTime])
-    )
-  }
 
   implicit val writes: Writes[Document] = (
     (__ \ "id").write[UUID] and
       (__ \ "version").write[Long] and
       (__ \ "title").write[String] and
-      (__ \ "plaintext").write[String] and
       (__ \ "delta").write[Delta] and
-      (__ \ "ownerId").write[User] and
-      (__ \ "editorIds").write[IndexedSeq[User]] and
+      (__ \ "ownerId").write[UUID] and
       (__ \ "revisions").write[IndexedSeq[Operation]] and
-      (__ \ "createdAt").writeNullable[DateTime] and
-      (__ \ "updatedAt").writeNullable[DateTime]
+      (__ \ "createdAt").write[DateTime] and
+      (__ \ "updatedAt").write[DateTime]
     )(unlift(Document.unapply))
 
   def md5(text: String): Array[Byte] = {

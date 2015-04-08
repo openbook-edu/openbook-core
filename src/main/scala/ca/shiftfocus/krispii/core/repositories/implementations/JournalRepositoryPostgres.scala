@@ -58,21 +58,22 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
     s"""
         |SELECT $Fields
         |FROM $Table
-        |WHERE user_id = ?
+        |WHERE created_at >= ?
   """.stripMargin
 
   val SelectByEndDate =
     s"""
         |SELECT $Fields
         |FROM $Table
-        |WHERE user_id = ?
+        |WHERE created_at <= ?
   """.stripMargin
 
   val SelectByPeriod =
     s"""
         |SELECT $Fields
         |FROM $Table
-        |WHERE user_id = ?
+        |WHERE created_at
+        |BETWEEN ? and ?
   """.stripMargin
 
   val SelectById =
@@ -82,9 +83,9 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
         |WHERE id = ?
   """.stripMargin
 
-  val Insert =
+  def Insert(suffix: String) =
     s"""
-      |INSERT INTO $Table ($Fields)
+      |INSERT INTO ${Table}_${suffix} ($Fields)
       |VALUES ($QMarks)
       |RETURNING $Fields
     """.stripMargin
@@ -143,11 +144,12 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
    * @param conn
    * @return
    */
-  override def list(startDate: Option[DateTime], endDate: Option[DateTime])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
+  override def list(startDate: Option[DateTime] = None, endDate: Option[DateTime] = None)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
     (startDate, endDate) match {
-      case (startDate: Option[DateTime], None) => queryListJournal(SelectByStartDate, Seq[Any](startDate.get))
-      case (None, endDate: Option[DateTime]) => queryListJournal(SelectByEndDate, Seq[Any](endDate.get))
-      case (startDate: Option[DateTime], endDate: Option[DateTime]) => queryListJournal(SelectByPeriod, Seq[Any](startDate.get, endDate.get))
+      case (Some(startDate), None) => queryListJournal(SelectByStartDate, Seq[Any](startDate))
+      case (None, Some(endDate))   => queryListJournal(SelectByEndDate, Seq[Any](endDate))
+      case (Some(startDate), Some(endDate)) => queryListJournal(SelectByPeriod, Seq[Any](startDate, endDate))
+      case _ => Future.successful(\/-(IndexedSeq.empty[JournalEntry]))
     }
   }
 
@@ -170,13 +172,17 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
    * @return
    */
   override def insert(journalEntry: JournalEntry)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]] = {
+    val createdDate  = journalEntry.createdAt
+    val formatSuffix = DateTimeFormat.forPattern("YYYYMM")
+    val suffix       = formatSuffix.print(createdDate)
+
     val params = Seq[Any](
       journalEntry.id.bytes, 1, journalEntry.userId.bytes,
       journalEntry.projectId.bytes, journalEntry.entryType, journalEntry.item,
-      new DateTime, new DateTime
+      journalEntry.createdAt, journalEntry.updatedAt
     )
 
-    queryOneJournal(Insert, params)
+    queryOneJournal(Insert(suffix), params)
   }
 
   /**
@@ -214,14 +220,16 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
 
   // --- Common methods -----------------------------------------------------------------------------------------------
 
+  // TODO - make translation of date format
   private def buildEntryWithMessage(journalEntry: JournalEntry)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]] = {
     (for {
-      user    <- lift(userRepository.find(journalEntry.userId))
-      project <- lift(projectRepository.find(journalEntry.projectId))
-      action  = JournalEntry.Action(journalEntry.entryType).action
-      format  = DateTimeFormat.forPattern("yyyy/MM/dd kk:mm:ss")
-      message = Messages("journalEntry.message", user.givenname, user.surname, action, journalEntry.item, format.print(journalEntry.createdAt))
-      result  = journalEntry.copy(message = message)
+      user       <- lift(userRepository.find(journalEntry.userId))
+      project    <- lift(projectRepository.find(journalEntry.projectId))
+      action     = JournalEntry.Action(journalEntry.entryType).action
+      formatTime = DateTimeFormat.forPattern("kk:mm:ss")
+      formatDate = DateTimeFormat.forPattern("E M d, YYYY")
+      message    = Messages("journalEntry.message", user.givenname, user.surname, action, journalEntry.item, formatTime.print(journalEntry.createdAt), formatDate.print(journalEntry.createdAt))
+      result     = journalEntry.copy(message = message)
     } yield result).run
   }
 

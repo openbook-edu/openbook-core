@@ -362,24 +362,24 @@ class UserRepositorySpec
       }
       "reutrn RepositoryError.PrimaryKeyConflict if user already exists" in {
         val testUser = TestValues.testUserA
-        val result = userRepository.insert(TestValues.testUserA)
 
+        val result = userRepository.insert(testUser)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
       }
       "reutrn RepositoryError.UniqueKeyConflict if username already exists" in {
         val testUser = TestValues.testUserD.copy(
           username = TestValues.testUserA.username
         )
-        val result = userRepository.insert(testUser)
 
+        val result = userRepository.insert(testUser)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("username", "users_username_key")))
       }
       "reutrn RepositoryError.UniqueKeyConflict if email already exists" in {
         val testUser = TestValues.testUserD.copy(
           email = TestValues.testUserA.email
         )
-        val result = userRepository.insert(testUser)
 
+        val result = userRepository.insert(testUser)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("email", "users_email_key")))
       }
     }
@@ -405,8 +405,9 @@ class UserRepositorySpec
         user.updatedAt.toString() should be (testUser.updatedAt.toString())
       }
       "return ForeignKeyConflict if user is teacher and has references in other tables" in {
-        val result = userRepository.delete(TestValues.testUserB)
+        val testUser = TestValues.testUserB
 
+        val result = userRepository.delete(testUser)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("teacher_id", "courses_teacher_id_fkey")))
       }
       "return RepositoryError.NoResults if User hasn't been found" in {

@@ -5,6 +5,8 @@ import com.github.mauricio.async.db.{Connection, Configuration}
 import com.github.mauricio.async.db.pool.PoolConfiguration
 import com.typesafe.config.ConfigFactory
 import grizzled.slf4j.Logger
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{BeforeAndAfter, Suite, MustMatchers, WordSpec}
 import scala.concurrent.Await
@@ -64,6 +66,27 @@ class TestEnvironment
     Await.result(result, Duration.Inf)
   }
 
+  // CREATE Journal table in database with current month
+  val journalTable = "journal"
+  val currentDate  = new DateTime
+  val lastDayDate  = currentDate.dayOfMonth().withMaximumValue()
+
+  val formatSuffix  = DateTimeFormat.forPattern("YYYYMM")
+  val formatDate    = DateTimeFormat.forPattern("YYYY-MM-")
+  val formatLastDay = DateTimeFormat.forPattern("dd")
+
+  val suffix       = formatSuffix.print(currentDate)
+  val checkDate    = formatDate.print(currentDate)
+  val checkDateDay = formatLastDay.print(lastDayDate)
+
+  val createJournalQuery =
+    s"""
+      |CREATE TABLE ${journalTable}_${suffix}  (
+      |  PRIMARY KEY(id),
+      |  check (created_at BETWEEN '${checkDate}01' AND '${checkDate}${checkDateDay}')
+      |) INHERITS (${journalTable})
+    """.stripMargin
+
   // Before test
   before {
     // DROP tables
@@ -72,6 +95,9 @@ class TestEnvironment
     load_schema(create_schema_path, conn)
     // Insert data into tables
     load_schema(data_schema_path, conn)
+    // Create Journal table
+    val resultJournal = conn.sendQuery(createJournalQuery)
+    Await.result(resultJournal, Duration.Inf)
   }
 
   // After test

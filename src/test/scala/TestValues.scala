@@ -912,9 +912,9 @@ object TestValues {
     projectId = testProjectA.id,
     entryType = JournalEntryView.entryType,
     item = "item 1",
-    message = "testUserA viewed SOMETHING in testProject on 2014/08/01 at 14:01:19",
-    createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-    updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+    message = "journalEntry.message",
+    createdAt = new DateTime(2014, 1, 1, 13, 1, 19, 545, DateTimeZone.forID("-05")),
+    updatedAt = new DateTime(2014, 1, 2, 13, 1, 19, 545, DateTimeZone.forID("-05"))
   )
 
   val testJournalEntryB = JournalEntry(
@@ -924,9 +924,9 @@ object TestValues {
     projectId = testProjectA.id,
     entryType = JournalEntryClick.entryType,
     item = "item 2",
-    message = "testUserA clicked on SOMETHING in testProject on 2014/08/03 at 14:01:19",
-    createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-    updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+    message = "journalEntry.message",
+    createdAt = new DateTime(2014, 2, 3, 13, 1, 19, 545, DateTimeZone.forID("-05")),
+    updatedAt = new DateTime(2014, 2, 4, 13, 1, 19, 545, DateTimeZone.forID("-05"))
   )
 
   val testJournalEntryC = JournalEntry(
@@ -936,9 +936,9 @@ object TestValues {
     projectId = testProjectA.id,
     entryType = JournalEntryWatch.entryType,
     item = "item 3",
-    message = "testUserA watched SOME VIDEO in testProject on 2014/08/05 at 14:01:19",
-    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-    updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+    message = "journalEntry.message",
+    createdAt = new DateTime(2014, 3, 5, 13, 1, 19, 545, DateTimeZone.forID("-05")),
+    updatedAt = new DateTime(2014, 3, 6, 13, 1, 19, 545, DateTimeZone.forID("-05"))
   )
 
   val testJournalEntryD = JournalEntry(
@@ -948,9 +948,9 @@ object TestValues {
     projectId = testProjectA.id,
     entryType = JournalEntryListen.entryType,
     item = "item 4",
-    message = "testUserA listened SOME AUDIO in testProject on 2014/08/07 at 14:01:19",
-    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+    message = "journalEntry.message",
+    createdAt = new DateTime(2014, 4, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 4, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   val testJournalEntryE = JournalEntry(
@@ -960,9 +960,9 @@ object TestValues {
     projectId = testProjectB.id,
     entryType = JournalEntryWrite.entryType,
     item = "item 5",
-    message = "testUserA wrote SOMETHING in testProject on 2014/08/09 at 14:01:19",
-    createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-    updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+    message = "journalEntry.message",
+    createdAt = new DateTime(2014, 5, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 5, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   val testJournalEntryF = JournalEntry(
@@ -972,9 +972,9 @@ object TestValues {
     projectId = testProjectB.id,
     entryType = JournalEntryCreate.entryType,
     item = "item 6",
-    message = "testUserA created SOMETHING in testProject on 2014/08/11 at 14:01:19",
-    createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-    updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+    message = "journalEntry.message",
+    createdAt = new DateTime(2014, 6, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 6, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   val testJournalEntryG = JournalEntry(
@@ -984,9 +984,9 @@ object TestValues {
     projectId = testProjectB.id,
     entryType = JournalEntryUpdate.entryType,
     item = "item 7",
-    message = "testUserA updated SOMETHING in testProject on 2014/08/13 at 14:01:19",
-    createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-    updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+    message = "journalEntry.message",
+    createdAt = new DateTime(2014, 7, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 7, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   val testJournalEntryH = JournalEntry(
@@ -996,7 +996,7 @@ object TestValues {
     projectId = testProjectB.id,
     entryType = JournalEntryDelete.entryType,
     item = "item 8",
-    message = "testUserA deleted SOMETHING in testProject on 2014/08/14 at 14:01:19",
+    message = "journalEntry.message",
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1008,9 +1008,20 @@ object TestValues {
     projectId = testProjectA.id,
     entryType = JournalEntryDelete.entryType,
     item = "item 9",
-    message = "testUserA deleted SOMETHING in testProject on 2014/08/14 at 14:01:19",
-    createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-    updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+    message = "journalEntry.message",
+    createdAt = new DateTime(2014, 9, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 9, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* No data in DB */
+  val testJournalEntryJ = JournalEntry(
+    id = UUID("f3bc1000-8d68-46d3-8d9a-7975ef4f65a4"),
+    version = 1L,
+    userId = testUserC.id,
+    projectId = testProjectC.id,
+    entryType = JournalEntryView.entryType,
+    item = "item 10",
+    message = "journalEntry.message"
   )
 }
 

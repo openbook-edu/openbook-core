@@ -9,12 +9,7 @@ import concurrent.Future
 import scalaz.\/
 
 trait DocumentRepository extends Repository {
-  val userRepository: UserRepository
-
   def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Document]]
   def insert(document: Document)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Document]]
   def update(document: Document)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Document]]
-
-  def list(document: Document, version: Long = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Revision]]]
-  def insert(revision: Revision)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Revision]]
 }

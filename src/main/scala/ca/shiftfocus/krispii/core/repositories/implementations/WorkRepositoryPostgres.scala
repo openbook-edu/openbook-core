@@ -314,7 +314,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
        |     x AS (INSERT INTO $table (work_id, version, response)
        |           SELECT w.id as work_id,
        |                  w.version as version,
-       |                  ? as answer
+       |                  ? as response
        |           FROM w
        |           RETURNING *)
        |SELECT w.id, w.user_id, w.task_id, w.version as $version, x.response as $response, w.is_complete, w.work_type, w.created_at, w.updated_at

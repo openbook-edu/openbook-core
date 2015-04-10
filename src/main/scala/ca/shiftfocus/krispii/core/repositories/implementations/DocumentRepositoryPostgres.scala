@@ -30,11 +30,11 @@ class DocumentRepositoryPostgres extends DocumentRepository with PostgresReposit
    */
   def constructor(row: RowData): Document = {
     Document(
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-      version = row("version").asInstanceOf[Long],
-      title = row("title").asInstanceOf[String],
-      delta = Json.parse(row("delta").asInstanceOf[String]).as[Delta],
-      ownerId = UUID(row("owner_id").asInstanceOf[Array[Byte]]),
+      id        = UUID(row("id").asInstanceOf[Array[Byte]]),
+      version   = row("version").asInstanceOf[Long],
+      title     = row("title").asInstanceOf[String],
+      delta     = Json.parse(row("delta").asInstanceOf[String]).as[Delta],
+      ownerId   = UUID(row("owner_id").asInstanceOf[Array[Byte]]),
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("created_at").asInstanceOf[DateTime]
     )

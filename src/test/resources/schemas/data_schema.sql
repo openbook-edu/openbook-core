@@ -236,9 +236,13 @@ VALUES ('\x337fa73136854ba38668280c0096514c', '{choice left 6, choice left 7}', 
 
 
 /* DOCUMENTS */
-/* documentA -> userC*/
-INSERT INTO documents (id, version, owner_id, title, plaintext, delta, created_at, updated_at)
-VALUES ('\xfd923b3f6dc2472e8ce77a8fcc6a1a20', 1, '\xf5f984073a0b4ea5952a575886e90586', 'testDocumentA title', 'testDocumentA plaintext', null, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+/* documentA -> userC */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\xfd923b3f6dc2472e8ce77a8fcc6a1a20', 1, '\xf5f984073a0b4ea5952a575886e90586', 'testDocumentA title', null, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+
+/* documentB -> userE */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\x15173757b881444082854e3d2c03616a', 2, '\x871b525067124e548ab60784cae0bc64', 'testDocumentB title', null, '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
 
 /* WORK */
@@ -320,6 +324,7 @@ VALUES ('\x3a285f0c66d041b2851bcfcd203550d9', '\x6c0e29bdd05b4b2981156be93e936c5
 /* SectionScheduleException C -> UserE -> CourseB */
 INSERT INTO schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
 VALUES ('\x4d7ca313f2164f5985ae88bcbca70317', '\x871b525067124e548ab60784cae0bc64', '\x404c800a53854e6b867e365a1e6b00de', 3, '2014-08-07', '2014-08-07 10:01:19.545-04', '2014-08-07 11:01:19.545-04', 'testSectionScheduleExceptionC reason','2014-08-08 14:01:19.545-04','2014-08-09 14:01:19.545-04');
+
 
 /* JOURNAL */
 /* JournalEntryA -> userA -> projectA */

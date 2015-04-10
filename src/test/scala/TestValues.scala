@@ -1,14 +1,13 @@
 import java.awt.Color
-
 import ca.shiftfocus.krispii.core.models.JournalEntry._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.document.Document
+import ca.shiftfocus.krispii.core.models.document.{Revision, Document}
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import ca.shiftfocus.krispii.core.models.tasks._
-import ca.shiftfocus.krispii.core.models.work.LongAnswerWork
+import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.uuid.UUID
 import org.joda.time.{DateTime, DateTimeZone}
-import ws.kahn.ot.{Operation, Delta}
+import ws.kahn.ot.{InsertText, Operation, Delta}
 
 object TestValues {
   /* USERS */
@@ -462,12 +461,22 @@ object TestValues {
     id = UUID("fd923b3f-6dc2-472e-8ce7-7a8fcc6a1a20"),
     version = 1L,
     title = "testDocumentA title",
-    plaintext = "testDocumentA plaintext",
     delta = Delta(IndexedSeq.empty[Operation]),
-    ownerId = testUserC,
-    editors = Vector(),
-    createdAt = Option(new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04"))),
-    updatedAt = Option(new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")))
+    ownerId = testUserC.id,
+    revisions = IndexedSeq.empty[Revision],
+    createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testDocumentB = Document(
+    id = UUID("15173757-b881-4440-8285-4e3d2c03616a"),
+    version = 2L,
+    title = "testDocumentB title",
+    delta = Delta(IndexedSeq.empty[Operation]),
+    ownerId = testUserE.id,
+    revisions = IndexedSeq.empty[Revision],
+    createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
 
@@ -479,15 +488,60 @@ object TestValues {
     taskId = testLongAnswerTaskA.id,
     documentId = testDocumentA.id,
     version = 1L,
-    response = "testLongAnswerWorkA response",
-    isComplete = true,
+    response = Option(testDocumentA),
+    isComplete = false,
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
+
   /* SHORT_ANSWER_WORK */
+  val testShortAnswerWorkB = ShortAnswerWork(
+    id = UUID("cbf452cd-915a-4b24-9d02-92be013bbba8"),
+    studentId = testUserE.id,
+    taskId = testMatchingTaskE.id,
+    documentId = testDocumentB.id,
+    version = 2L,
+    response = Option(testDocumentA),
+    isComplete = false,
+    createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* MULTIPLE_CHOICE_WORK */
+  val testMultipleChoiceWorkC = MultipleChoiceWork(
+    id = UUID("edfd6198-97b0-4f21-9e15-fbe4ed051970"),
+    studentId = testUserC.id,
+    taskId = testLongAnswerTaskA.id,
+    version = 3L,
+    response = IndexedSeq.empty[Int],
+    isComplete = false,
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* ORDERING_WORK */
+  val testOrderingWorkD = OrderingWork(
+    id = UUID("125eef5a-7e89-441c-b138-c1803bafdc03"),
+    studentId = testUserC.id,
+    taskId = testLongAnswerTaskA.id,
+    version = 4L,
+    response = IndexedSeq.empty[Int],
+    isComplete = false,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* MATCHING_WORK */
+  val testMatchingWorkD = MatchingWork(
+    id = UUID("e47442dd-8ac9-4d06-ad6f-ef62720d4ed3"),
+    studentId = testUserC.id,
+    taskId = testLongAnswerTaskA.id,
+    version = 4L,
+    response = IndexedSeq.empty[Match],
+    isComplete = false,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
 
 
   /* COMPONENTS */

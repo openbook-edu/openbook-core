@@ -116,11 +116,15 @@ class DocumentServiceDefault(val db: Connection,
           // If there were more recent revisions
           if (recentRevisions.nonEmpty) {
             val recentDeltas = recentRevisions.map(_.delta)
-            val recentServerDelta = recentDeltas.foldLeft(recentDeltas.head) {
-              (left: Delta, right: Delta) => left o right
-            }
+            val recentServerDelta =
+              if (recentDeltas.length == 1)
+                recentDeltas.head
+              else recentDeltas.tail.foldLeft(recentDeltas.head) {
+                (left: Delta, right: Delta) => {
+                  left o right
+                }
+              }
             val transformedDelta = recentServerDelta x delta
-
             for {
               // 4. Update the document with the latest text
               updatedDocument <- lift(documentRepository.update(document.copy(

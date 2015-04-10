@@ -15,7 +15,19 @@ case class Revision(
   authorId: UUID,
   delta: Delta,
   createdAt: DateTime = new DateTime
-)
+){
+  override def equals(anotherObject: Any): Boolean = {
+    anotherObject match {
+      case anotherRevision: Revision => {
+        this.documentId == anotherRevision.documentId &&
+        this.version    == anotherRevision.version &&
+        this.authorId   == anotherRevision.authorId &&
+        this.delta      == anotherRevision.delta
+      }
+      case _ => false
+    }
+  }
+}
 
 object Revision {
 

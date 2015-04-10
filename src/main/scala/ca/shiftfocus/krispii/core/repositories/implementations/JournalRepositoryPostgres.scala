@@ -7,7 +7,6 @@ import org.joda.time.format.DateTimeFormat
 import play.api.i18n.Messages
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.github.mauricio.async.db.{Connection, RowData}
-import com.typesafe.config.ConfigFactory
 import org.joda.time.DateTime
 
 import scala.concurrent.Future

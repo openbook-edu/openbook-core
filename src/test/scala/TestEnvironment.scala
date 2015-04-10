@@ -12,7 +12,12 @@ import org.scalatest.{BeforeAndAfter, Suite, MustMatchers, WordSpec}
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 
-class TestEnvironment
+/**
+ * Test Environment
+ *
+ * @param writeToDb Populate test DB with tables and values
+ */
+abstract class TestEnvironment(writeToDb: Boolean = true)
   extends WordSpec
   with MustMatchers
   with MockFactory
@@ -87,23 +92,26 @@ class TestEnvironment
       |) INHERITS (${journalTable})
     """.stripMargin
 
-  // Before test
-  before {
-    // DROP tables
-    load_schema(drop_schema_path, conn)
-    // CREATE tables
-    load_schema(create_schema_path, conn)
-    // Insert data into tables
-    load_schema(data_schema_path, conn)
-    // Create Journal table
-    val resultJournal = conn.sendQuery(createJournalQuery)
-    Await.result(resultJournal, Duration.Inf)
-  }
+  if (writeToDb) {
+    // Before test
+    before {
 
-  // After test
-  after {
-    // DROP tables
-//    load_schema(drop_schema_path, conn)
+      // DROP tables
+      load_schema(drop_schema_path, conn)
+      // CREATE tables
+      load_schema(create_schema_path, conn)
+      // Insert data into tables
+      load_schema(data_schema_path, conn)
+      // Create Journal table
+      val resultJournal = conn.sendQuery(createJournalQuery)
+      Await.result(resultJournal, Duration.Inf)
+    }
+
+    // After test
+    after {
+      // DROP tables
+      load_schema(drop_schema_path, conn)
+    }
   }
 
   /**

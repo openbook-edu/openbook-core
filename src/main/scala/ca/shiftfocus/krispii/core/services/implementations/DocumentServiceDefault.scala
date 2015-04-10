@@ -106,6 +106,8 @@ class DocumentServiceDefault(val db: Connection,
   override def push(documentId: UUID, version: Long, author: User, delta: Delta): Future[\/[ErrorUnion#Fail, PushResult]] = {
     transactional { implicit conn =>
       for {
+        _ <- predicate (!delta.isNoOp) (ServiceError.BadInput("Delta must not be a NOOP"))
+
         // 1. Get the document
         document <- lift(documentRepository.find(documentId))
 
@@ -125,10 +127,12 @@ class DocumentServiceDefault(val db: Connection,
                 }
               }
             val transformedDelta = recentServerDelta x delta
+            val newDelta = document.delta o transformedDelta
             for {
+              _ <- predicate (newDelta.isDocument) (ServiceError.BadInput("Document Delta must contain only inserts"))
               // 4. Update the document with the latest text
               updatedDocument <- lift(documentRepository.update(document.copy(
-                delta = document.delta o transformedDelta
+                delta = newDelta
               )))
 
               // 5. Insert the new revision into the history
@@ -143,9 +147,11 @@ class DocumentServiceDefault(val db: Connection,
           }
           // If there were no more recent revisions
           else {
+            val newDelta = document.delta o delta
             for {
+              _ <- predicate (newDelta.isDocument) (ServiceError.BadInput("Document Delta must contain only inserts"))
               updatedDocument <- lift(documentRepository.update(document.copy(
-                delta = document.delta o delta
+                delta = newDelta
               )))
 
               // 5. Insert the new revision into the history

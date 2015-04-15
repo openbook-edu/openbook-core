@@ -114,7 +114,7 @@ trait PostgresRepository[A] {
           case (Some(table), Some(nField)) if nField endsWith "_pkey" => \/.left(RepositoryError.PrimaryKeyConflict)
           case (Some(table), Some(nField)) if nField endsWith "_key" => \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-4).mkString), nField))
           case (Some(table), Some(nField)) if nField endsWith "_fkey" => \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-5).mkString), nField))
-          case _ => \/.left(RepositoryError.DatabaseError("Unhandled GenericDataabaseException", Some(exception)))
+          case _ => \/.left(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
         }
 
       case exception => throw exception

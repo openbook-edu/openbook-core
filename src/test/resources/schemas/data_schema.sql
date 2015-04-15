@@ -267,9 +267,9 @@ VALUES ('\xcbf452cd915a4b249d0292be013bbba8', '\x871b525067124e548ab60784cae0bc6
 INSERT INTO short_answer_work (work_id, document_id)
 VALUES ('\xcbf452cd915a4b249d0292be013bbba8', '\x15173757b881444082854e3d2c03616a');
 
-/* MultipleChoiceWorkC -> userG -> multipleChoiceTask C */
+/* MultipleChoiceWorkC -> userC -> multipleChoiceTask C */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('\xedfd619897b04f219e15fbe4ed051970', '\xc4d948967e1b45fabae74fb3a89a4d63', '\x76cc2ed7611b4dafaa3f20efe42a65a0', 3, true, 2, '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
+VALUES ('\xedfd619897b04f219e15fbe4ed051970', '\xf5f984073a0b4ea5952a575886e90586', '\x76cc2ed7611b4dafaa3f20efe42a65a0', 3, true, 2, '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
 
 INSERT INTO multiple_choice_work (work_id, version, response)
 VALUES ('\xedfd619897b04f219e15fbe4ed051970', 3, '{1, 2}');

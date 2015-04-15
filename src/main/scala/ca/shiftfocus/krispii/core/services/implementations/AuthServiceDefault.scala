@@ -531,8 +531,17 @@ class AuthServiceDefault(val db: Connection,
    * @return
    */
   private def isValidEmail(email: String): Future[\/[ErrorUnion#Fail, String]] = Future.successful {
-    if ("""(\w+)@([\w\.]+)""".r.unapplySeq(email).isDefined) \/-(email)
-    else -\/(ServiceError.BadInput(s"$email is not a valid e-mail format."))
+    val parts = email.split("@")
+    if (parts.length != 2 ||
+        !parts(0).charAt(0).isLetter ||
+        !parts(1).charAt(parts(1).length-1).isLetter ||
+        parts(1).indexOf("..") != -1 ||
+        !"""([\w\.]+)@([\w\.]+)""".r.unapplySeq(email.trim).isDefined
+    ) {
+      \/.left(ServiceError.BadInput(s"$email is not a valid format"))
+    } else {
+      \/.right(email)
+    }
   }
 
   /**

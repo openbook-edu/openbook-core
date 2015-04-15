@@ -46,6 +46,14 @@ class RevisionRepositoryPostgres extends RevisionRepository with PostgresReposit
       |FROM document_revisions
      """.stripMargin
 
+  val SelectOneRevision =
+    s"""
+       |$SelectRevision
+       |$FromRevisions
+       |WHERE document_id = ?
+       |  AND version = ?
+     """.stripMargin
+
   val ListRevisionsFrom =
     s"""
       |$SelectRevision
@@ -108,6 +116,18 @@ class RevisionRepositoryPostgres extends RevisionRepository with PostgresReposit
       case (_, _) => queryList(ListRevisionsBetween, Seq[Any](document.id.bytes, fromVersion, toVersion))
       case _      => Future.successful(\/-(IndexedSeq.empty[Revision]))
     }
+  }
+
+  /**
+   * Find a single revision.
+   *
+   * @param document
+   * @param version
+   * @param conn
+   * @return
+   */
+  override def find(document: Document, version: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Revision]] = {
+    queryOne(SelectOneRevision, Seq[Any](document.id.bytes, version))
   }
 
   /**

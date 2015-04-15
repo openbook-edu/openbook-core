@@ -149,8 +149,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @return a future disjunction containing either the users, or a failure
    */
   override def list(userIds: IndexedSeq[UUID])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    val fUsers = Future.sequence(userIds.map(find))
-    liftSeq(fUsers).run
+    serializedT(userIds)(find)
   }
 
   /**

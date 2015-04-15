@@ -13,14 +13,14 @@ import scalacache.ScalaCache
 import scalaz.{-\/, \/-, \/, EitherT}
 import webcrank.password._
 
-class AuthServiceDefault(val db: Connection,
+class AuthServiceDefault(val db: DB,
                          val scalaCache: ScalaCache,
                          val userRepository: UserRepository,
                          val roleRepository: RoleRepository,
                          val sessionRepository: SessionRepository)
   extends AuthService {
 
-  implicit def conn: Connection = db
+  implicit def conn: Connection = db.pool
   implicit def cache: ScalaCache = scalaCache
   
   /**
@@ -30,9 +30,9 @@ class AuthServiceDefault(val db: Connection,
    */
   override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     for {
-      users <- lift(userRepository.list(db))
+      users <- lift(userRepository.list(db.pool))
       result <- liftSeq { users.map { user =>
-        val fRoles = roleRepository.list(user)(db)
+        val fRoles = roleRepository.list(user)(db.pool)
         (for {
           roles <- lift(fRoles)
         } yield user.copy(roles = roles)).run
@@ -531,8 +531,17 @@ class AuthServiceDefault(val db: Connection,
    * @return
    */
   private def isValidEmail(email: String): Future[\/[ErrorUnion#Fail, String]] = Future.successful {
-    if ("""(\w+)@([\w\.]+)""".r.unapplySeq(email).isDefined) \/-(email)
-    else -\/(ServiceError.BadInput(s"$email is not a valid e-mail format."))
+    val parts = email.split("@")
+    if (parts.length != 2 ||
+        !parts(0).charAt(0).isLetter ||
+        !parts(1).charAt(parts(1).length-1).isLetter ||
+        parts(1).indexOf("..") != -1 ||
+        !"""([\w\.]+)@([\w\.]+)""".r.unapplySeq(email.trim).isDefined
+    ) {
+      \/.left(ServiceError.BadInput(s"$email is not a valid format"))
+    } else {
+      \/.right(email)
+    }
   }
 
   /**

@@ -11,14 +11,14 @@ import play.api.Logger
 import scala.concurrent.Future
 import scalaz.{-\/, \/-, \/}
 
-class ComponentServiceDefault(val db: Connection,
+class ComponentServiceDefault(val db: DB,
                               val authService: AuthService,
                               val projectService: ProjectService,
                               val schoolService: SchoolService,
                               val componentRepository: ComponentRepository)
   extends ComponentService {
 
-  implicit def conn: Connection = db
+  implicit def conn: Connection = db.pool
 
   /**
    * List all components.
@@ -26,7 +26,7 @@ class ComponentServiceDefault(val db: Connection,
    * @return an array of components
    */
   override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
-    componentRepository.list(db)
+    componentRepository.list(db.pool)
   }
 
   /**

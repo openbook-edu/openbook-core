@@ -33,10 +33,12 @@ trait DocumentService extends Service[ErrorUnion#Fail] {
   )
 
   // Find a document
-  def find(id: UUID): Future[\/[ErrorUnion#Fail, Document]]
+  def find(id: UUID, version: Option[Long] = None): Future[\/[ErrorUnion#Fail, Document]]
 
   // List revisions of a document
   def listRevisions(documentId: UUID, fromVersion: Long = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[Revision]]]
+
+  def getHistory(documentId: UUID, granularity: Int = 10): Future[\/[ErrorUnion#Fail, IndexedSeq[Revision]]]
 
   // Create a new document
   def create(id: UUID = UUID.random, owner: User, title: String, initialDelta: Delta): Future[\/[ErrorUnion#Fail, Document]]

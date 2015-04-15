@@ -27,8 +27,8 @@ class DocumentServiceDefault(val db: DB,
    * @param id
    * @return
    */
-  override def find(id: UUID): Future[\/[ErrorUnion#Fail, Document]] = {
-    documentRepository.find(id)
+  override def find(id: UUID, version: Option[Long] = None): Future[\/[ErrorUnion#Fail, Document]] = {
+    documentRepository.find(id, version.getOrElse(0))
   }
 
   /**
@@ -43,6 +43,26 @@ class DocumentServiceDefault(val db: DB,
       document <- lift(documentRepository.find(documentId))
       revisions <- lift(revisionRepository.list(document, fromVersion))
     } yield revisions
+  }
+
+  /**
+   * Get a list of revisions spaced by "granularity"
+   *
+   * @param documentId
+   * @param granularity
+   * @return
+   */
+  override def getHistory(documentId: UUID, granularity: Int = 10): Future[\/[ErrorUnion#Fail, IndexedSeq[Revision]]] = {
+    if (granularity > 0 && granularity <= 100 && granularity % 5 == 0) {
+      for {
+        document <- lift(documentRepository.find(documentId))
+        interval = document.version / granularity
+        versions = (0 until granularity).map(_ * interval).filter(_ < document.version)
+        revisions <- liftSeq(versions.map { version => revisionRepository.find(document, version) })
+      } yield revisions
+    } else {
+      Future successful \/.left(ServiceError.BadInput("Granularity must be a positive multiple of 5 no greater than 100."))
+    }
   }
 
   /**

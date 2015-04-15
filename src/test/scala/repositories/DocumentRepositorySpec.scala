@@ -1,7 +1,8 @@
-import ca.shiftfocus.krispii.core.repositories.DocumentRepositoryPostgres
-
-class DocumentRepositorySpec
-  extends TestEnvironment
-{
-  val documentRepository = new DocumentRepositoryPostgres
-}
+//import ca.shiftfocus.krispii.core.repositories.{RevisionRepository, DocumentRepositoryPostgres}
+//
+//class DocumentRepositorySpec
+//  extends TestEnvironment
+//{
+//  val revisionRepository = stub[RevisionRepository]
+//  val documentRepository = new DocumentRepositoryPostgres(revisionRepository)
+//}

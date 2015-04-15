@@ -317,6 +317,15 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   // -- Delete queries -----------------------------------------------------------------------------------------------
 
+  val DeleteWhere =
+    s"""
+      |long_answer_tasks.task_id = $Table.id
+      | OR short_answer_tasks.task_id = $Table.id
+      | OR multiple_choice_tasks.task_id = $Table.id
+      | OR ordering_tasks.task_id = $Table.id
+      | OR matching_tasks.task_id = $Table.id
+     """.stripMargin
+
   val DeleteByPart =
     s"""
       |DELETE FROM $Table
@@ -327,6 +336,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       | ordering_tasks,
       | matching_tasks
       |WHERE part_id = ?
+      | AND ($DeleteWhere)
       |RETURNING $CommonFields, $SpecificFields
     """.stripMargin
 
@@ -341,6 +351,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       | matching_tasks
       |WHERE $Table.id = ?
       | AND $Table.version = ?
+      | AND ($DeleteWhere)
       |RETURNING $CommonFields, $SpecificFields
     """.stripMargin
 
@@ -569,11 +580,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
    * @return A boolean indicating whether the operation was successful.
    */
   override def delete(part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
-    (for {
-      tasks <- lift(list(part))
-      deletedTasks <- lift(queryList(DeleteByPart, Array[Any](part.id.bytes)))
-    }
-    yield deletedTasks).run
+    queryList(DeleteByPart, Array[Any](part.id.bytes))
   }
 }
 

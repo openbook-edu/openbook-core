@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models.work
 
-import ca.shiftfocus.krispii.core.models.document.Document
+import ca.shiftfocus.krispii.core.models.document.{Revision, Document}
 import ca.shiftfocus.uuid.UUID
 import org.joda.time.DateTime
 
@@ -16,12 +16,13 @@ case class LongAnswerWork(
   updatedAt: DateTime = new DateTime
 ) extends DocumentWork {
 
-  override def toString: String ={
-    '"' + {response match {
-      case Some(document) => document.plaintext
-      case None => ""
-    }} + '"'
-  }
+  // TODO - remove
+//  override def toString: String ={
+//    '"' + {response match {
+//      case Some(document) => document.plaintext
+//      case None => ""
+//    }} + '"'
+//  }
 
 }
 

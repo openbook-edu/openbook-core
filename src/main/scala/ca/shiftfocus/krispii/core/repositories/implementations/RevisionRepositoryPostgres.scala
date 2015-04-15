@@ -43,16 +43,43 @@ class RevisionRepositoryPostgres extends RevisionRepository with PostgresReposit
 
   val FromRevisions =
     s"""
-       |FROM document_revisions
+      |FROM document_revisions
      """.stripMargin
 
-  val ListRecentRevisions =
+  val ListRevisionsFrom =
     s"""
-       |$SelectRevision
-        |$FromRevisions
-        |WHERE document_id = ?
-        |  AND version > ?
-        |ORDER BY version ASC
+      |$SelectRevision
+      |$FromRevisions
+      |WHERE document_id = ?
+      |  AND version > ?
+      |ORDER BY version ASC
+     """.stripMargin
+
+  val ListRevisionsTo =
+    s"""
+      |$SelectRevision
+      |$FromRevisions
+      |WHERE document_id = ?
+      |  AND version < ?
+      |ORDER BY version ASC
+     """.stripMargin
+
+  val ListRevisionsBetween =
+    s"""
+      |$SelectRevision
+      |$FromRevisions
+      |WHERE document_id = ?
+      | AND created_at
+      | BETWEEN ? and ?
+      |ORDER BY version ASC
+     """.stripMargin
+
+  val ListAllRevisions =
+    s"""
+      |$SelectRevision
+      |$FromRevisions
+      |WHERE document_id = ?
+      |ORDER BY version ASC
      """.stripMargin
 
   val PushRevision =
@@ -62,17 +89,25 @@ class RevisionRepositoryPostgres extends RevisionRepository with PostgresReposit
        |RETURNING document_id, version, author_id, delta, created_at
      """.stripMargin
 
+
+  // TODO - Should make 2 db queries: one for the list of revisions, and a second for the list of authors.
   /**
    * List revisions for a document.
    *
-   * Should make 2 db queries: one for the list of revisions, and a second for the list of authors.
-   *
    * @param document
-   * @param version
+   * @param fromVersion
+   * @param toVersion
+   * @param conn
    * @return
    */
-  override def list(document: Document, version: Long = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Revision]]] = {
-    queryList(ListRecentRevisions, Seq[Any](document.id.bytes, version))
+  override def list(document: Document, fromVersion: Long = 0, toVersion: Long = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Revision]]] = {
+    (fromVersion, toVersion) match {
+      case (0, 0) => queryList(ListAllRevisions, Seq[Any](document.id.bytes))
+      case (_, 0) => queryList(ListRevisionsFrom, Seq[Any](document.id.bytes, fromVersion))
+      case (0, _) => queryList(ListRevisionsTo, Seq[Any](document.id.bytes, toVersion))
+      case (_, _) => queryList(ListRevisionsBetween, Seq[Any](document.id.bytes, fromVersion, toVersion))
+      case _      => Future.successful(\/-(IndexedSeq.empty[Revision]))
+    }
   }
 
   /**

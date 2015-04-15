@@ -95,7 +95,6 @@ abstract class TestEnvironment(writeToDb: Boolean = true)
   if (writeToDb) {
     // Before test
     before {
-
       // DROP tables
       load_schema(drop_schema_path, conn)
       // CREATE tables

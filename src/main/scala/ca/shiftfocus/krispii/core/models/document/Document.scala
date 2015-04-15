@@ -16,7 +16,6 @@ case class Document(
   title: String,
   delta: Delta, // represents the current state of the document, only inserts (text or codes)
   ownerId: UUID,
-  revisions: IndexedSeq[Revision] = IndexedSeq.empty[Revision], // represents the revision history from version 1 to latest
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) {
@@ -40,7 +39,6 @@ object Document {
       (__ \ "title").write[String] and
       (__ \ "delta").write[Delta] and
       (__ \ "ownerId").write[UUID] and
-      (__ \ "revisions").write[IndexedSeq[Revision]] and
       (__ \ "createdAt").write[DateTime] and
       (__ \ "updatedAt").write[DateTime]
     )(unlift(Document.unapply))

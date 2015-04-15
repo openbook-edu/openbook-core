@@ -9,6 +9,6 @@ import concurrent.Future
 import scalaz.\/
 
 trait RevisionRepository extends Repository {
-  def list(document: Document, version: Long = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Revision]]]
+  def list(document: Document, fromVersion: Long = 0, toVersion: Long = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Revision]]]
   def insert(revision: Revision)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Revision]]
 }

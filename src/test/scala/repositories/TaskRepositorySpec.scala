@@ -16,13 +16,16 @@ class TaskRepositorySpec
   "TaskRepository.list" should {
     inSequence {
       "list all tasks" in {
+        // Should be ordered by Position.
         val testTaskList = TreeMap[Int, Task](
           0 -> TestValues.testLongAnswerTaskA,
           1 -> TestValues.testShortAnswerTaskB,
           2 -> TestValues.testMultipleChoiceTaskC,
           3 -> TestValues.testOrderingTaskD,
           4 -> TestValues.testMatchingTaskE,
-          5 -> TestValues.testMatchingTaskK
+          5 -> TestValues.testMatchingTaskK,
+          6 -> TestValues.testMatchingTaskM,
+          7 -> TestValues.testOrderingTaskL
         )
 
         val result = taskRepository.list
@@ -95,7 +98,10 @@ class TaskRepositorySpec
         val testPart = TestValues.testPartB
 
         val testTaskList = TreeMap[Int, Task](
-          0 -> TestValues.testOrderingTaskD
+          0 -> TestValues.testOrderingTaskD,
+          1 -> TestValues.testOrderingTaskL,
+          2 -> TestValues.testMatchingTaskK,
+          3 -> TestValues.testMatchingTaskM
         )
 
         val result = taskRepository.list(testPart)
@@ -125,6 +131,16 @@ class TaskRepositorySpec
                   }
                 }
               }
+              case matching: MatchingTask => {
+                task match {
+                  case task: MatchingTask => {
+                    matching.elementsLeft should be(task.elementsLeft)
+                    matching.elementsRight should be(task.elementsRight)
+                    matching.answers should be(task.answers)
+                    matching.randomizeChoices should be(task.randomizeChoices)
+                  }
+                }
+              }
             }
           }
         }
@@ -142,7 +158,10 @@ class TaskRepositorySpec
           0 -> TestValues.testLongAnswerTaskA,
           1 -> TestValues.testShortAnswerTaskB,
           2 -> TestValues.testMultipleChoiceTaskC,
-          3 -> TestValues.testOrderingTaskD
+          3 -> TestValues.testOrderingTaskD,
+          4 -> TestValues.testMatchingTaskK,
+          5 -> TestValues.testOrderingTaskL,
+          6 -> TestValues.testMatchingTaskM
         )
 
         val result = taskRepository.list(testProject)
@@ -193,6 +212,16 @@ class TaskRepositorySpec
                     ordering.elements should be(task.elements)
                     ordering.answers should be(task.answers)
                     ordering.randomizeChoices should be(task.randomizeChoices)
+                  }
+                }
+              }
+              case matching: MatchingTask => {
+                task match {
+                  case task: MatchingTask => {
+                    matching.elementsLeft should be(task.elementsLeft)
+                    matching.elementsRight should be(task.elementsRight)
+                    matching.answers should be(task.answers)
+                    matching.randomizeChoices should be(task.randomizeChoices)
                   }
                 }
               }
@@ -312,7 +341,7 @@ class TaskRepositorySpec
         task.maxLength should be(testTask.maxLength)
       }
       "find a task on which user is working on now within another project" in {
-        val testUser     = TestValues.testUserC
+        val testUser     = TestValues.testUserE
         val testProject  = TestValues.testProjectB
         val testTask     = TestValues.testMatchingTaskE
 
@@ -701,7 +730,7 @@ class TaskRepositorySpec
   "TaskRepository.delete" should {
     inSequence {
       "delete a task that doesn't have references in work table" in {
-        val testTask = TestValues.testMatchingTaskE
+        val testTask = TestValues.testMatchingTaskK
 
         val result = taskRepository.delete(testTask)
         val eitherTask = Await.result(result, Duration.Inf)
@@ -726,7 +755,7 @@ class TaskRepositorySpec
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("dependency_id", "tasks_dependency_id_fkey")))
       }
       "return RepositoryError.NoResults if a task has wrong version" in {
-        val testTask = TestValues.testMatchingTaskE.copy(
+        val testTask = TestValues.testMatchingTaskK.copy(
           version = 99L
         )
 
@@ -738,6 +767,70 @@ class TaskRepositorySpec
 
         val result = taskRepository.delete(testTask)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+      }
+      "delete all tasks belonging to a part" in {
+        val testPart = TestValues.testPartB
+
+        val testTaskList = TreeMap[Int, Task](
+          0 -> TestValues.testOrderingTaskD,
+          1 -> TestValues.testOrderingTaskL,
+          2 -> TestValues.testMatchingTaskK,
+          3 -> TestValues.testMatchingTaskM
+        )
+
+        val result = taskRepository.delete(testPart)
+        val eitherTasks = Await.result(result, Duration.Inf)
+        val \/-(tasks) = eitherTasks
+
+        tasks.size should be(testTaskList.size)
+
+        testTaskList.foreach {
+          case (key, task: Task) => {
+            // Common fields
+            tasks(key).id should be(task.id)
+            tasks(key).version should be(task.version)
+            tasks(key).partId should be(task.partId)
+            tasks(key).taskType should be(task.taskType)
+            tasks(key).settings.toString should be(task.settings.toString)
+            tasks(key).createdAt.toString should be(task.createdAt.toString)
+            tasks(key).updatedAt.toString should be(task.updatedAt.toString)
+
+            //Specific
+            tasks(key) match {
+              case ordering: OrderingTask => {
+                task match {
+                  case task: OrderingTask => {
+                    ordering.elements should be(task.elements)
+                    ordering.answers should be(task.answers)
+                    ordering.randomizeChoices should be(task.randomizeChoices)
+                  }
+                }
+              }
+              case matching: MatchingTask => {
+                task match {
+                  case task: MatchingTask => {
+                    matching.elementsLeft should be(task.elementsLeft)
+                    matching.elementsRight should be(task.elementsRight)
+                    matching.answers should be(task.answers)
+                    matching.randomizeChoices should be(task.randomizeChoices)
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      "return empty Vector() if Part doesn't have Tasks" in {
+        val testPart = TestValues.testPartH
+
+        val result = taskRepository.delete(testPart)
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
+      }
+      "return empty Vector() if Part doesn't exist" in {
+        val testPart = TestValues.testPartD
+
+        val result = taskRepository.delete(testPart)
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
     }
   }

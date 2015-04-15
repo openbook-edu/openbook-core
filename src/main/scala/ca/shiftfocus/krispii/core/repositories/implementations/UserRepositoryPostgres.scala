@@ -193,6 +193,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
     queryOne(SelectOneByIdentifier, Seq[Any](identifier, identifier))
   }
 
+  // TODO user.hash or user.hash.get?
   /**
    * Save a new User.
    *

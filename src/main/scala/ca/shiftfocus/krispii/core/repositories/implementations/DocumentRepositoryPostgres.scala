@@ -19,7 +19,8 @@ import scala.collection.immutable.HashMap
 import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
 
-class DocumentRepositoryPostgres extends DocumentRepository with PostgresRepository[Document] {
+class DocumentRepositoryPostgres (val revisionRepository: RevisionRepository)
+  extends DocumentRepository with PostgresRepository[Document] {
 
   /**
    * Instantiate a Document given a row result from the database. Must be provided
@@ -88,10 +89,42 @@ class DocumentRepositoryPostgres extends DocumentRepository with PostgresReposit
    * Find an individual document.
    *
    * @param id
+   * @param version Optional, if not indicated, the latest revision will be found. Otherwise, will return computed Delta
+   *                starting from first version till indicated one.
+   * @param conn
    * @return
    */
-  override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Document]] = {
-    queryOne(FindDocument, Seq[Any](id.bytes))
+  override def find(id: UUID, version: Long = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Document]] = {
+    queryOne(FindDocument, Seq[Any](id.bytes)).flatMap {
+      case \/-(document) => version match {
+        case 0 => Future successful \/-(document)
+        case _ => {
+          (for {
+            revisions <- lift(revisionRepository.list(document, toVersion = version))
+            result = {
+              // If there were more recent revisions
+              if (revisions.nonEmpty) {
+                val deltas = revisions.map(_.delta)
+                val computedDelta =
+                  if (deltas.length == 1)
+                    deltas.head
+                  else deltas.tail.foldRight(deltas(0)) {
+                    (left: Delta, right: Delta) => {
+                      left o right
+                    }
+                  }
+                document.copy(delta = computedDelta)
+              }
+              // If there were no more recent revisions
+              else {
+                document
+              }
+            }
+          } yield result).run
+        }
+      }
+      case -\/(error) => Future successful -\/(error)
+    }
   }
 
   /**

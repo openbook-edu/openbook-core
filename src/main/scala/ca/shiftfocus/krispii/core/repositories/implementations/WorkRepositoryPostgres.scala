@@ -155,8 +155,6 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
 
   val From = "FROM work"
 
-
-
   val JoinMatchVersion =
     s"""
        |LEFT JOIN long_answer_work ON work.id = long_answer_work.work_id
@@ -186,6 +184,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
         | AND $Table.task_id = tasks.id
      """.stripMargin
 
+  // TODO - maybe $Join instead of $JoinMatchVersion
   val SelectAllForTask =
     s"""
         |SELECT ${CommonFieldsWithTable()}, $SpecificFields
@@ -224,7 +223,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
       |LIMIT 1
      """.stripMargin
 
-  // -- Insert and Update  -------------------------------------------------------------------------------------------
+  // -- Insert queries  -------------------------------------------------------------------------------------------
 
   val Insert =
     s"""
@@ -270,6 +269,8 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
        |FROM w, x
      """.stripMargin
   }
+
+  // -- Update queries  -------------------------------------------------------------------------------------------
 
   val Update =
     s"""
@@ -322,7 +323,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
      """.stripMargin
   }
 
-  // -- Delete -------------------------------------------------------------------------------------------------------
+  // -- Delete queries -----------------------------------------------------------------------------------------------
   // NB: the delete queries should never be used unless you know what you're doing. Due to work revisioning, the
   //     proper way to "clear" a work is to create an empty revision.
 
@@ -367,7 +368,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
 
   // TODO create separate methods for LongAnswer, ShortAnswer and MultipleChoice, Ordering, Matching
   /**
-   * List all revisions of a specific work for a user.
+   * List latest revisions of a specific work for a user.
    *
    * @param task
    * @param user
@@ -378,7 +379,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
   }
 
   /**
-   * List all revisions of a specific work for all users.
+   * List latest revisions of a specific work for all users.
    *
    * @param task
    * @return
@@ -408,7 +409,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
   }
 
   /**
-   * Find the latest revision of a single work.
+   * Find the latest revision of a single work for a user.
    *
    * @param task
    * @param user
@@ -429,14 +430,24 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
   }
 
   /**
-   * Find a specific revision for a single work.
+   * Find a specific revision for a single work for a user.
    *
    * @param task
    * @param user
    * @return
    */
   override def find(user: User, task: Task, version: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    queryOne(SelectByStudentTask, Seq[Any](user.id.bytes, task.id.bytes, version))
+    queryOne(SelectByStudentTask, Seq[Any](user.id.bytes, task.id.bytes, version)).flatMap {
+      case \/-(work: LongAnswerWork) => documentRepository.find(work.documentId).map {
+        case \/-(document) => \/.right(work.copy(response = Some(document)))
+        case -\/(error: RepositoryError.Fail) => \/.left(error)
+      }
+      case \/-(work: ShortAnswerWork) => documentRepository.find(work.documentId).map {
+        case \/-(document) => \/.right(work.copy(response = Some(document)))
+        case -\/(error: RepositoryError.Fail) => \/.left(error)
+      }
+      case otherWorkTypes => Future successful otherWorkTypes
+    }
   }
 
   /**

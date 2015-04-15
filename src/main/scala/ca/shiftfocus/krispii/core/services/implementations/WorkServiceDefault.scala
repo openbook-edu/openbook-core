@@ -13,7 +13,7 @@ import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
 import ws.kahn.ot.Delta
 
-class WorkServiceDefault(val db: Connection,
+class WorkServiceDefault(val db: DB,
                          val authService: AuthService,
                          val projectService: ProjectService,
                          val documentService: DocumentService,
@@ -24,7 +24,7 @@ class WorkServiceDefault(val db: Connection,
                          val componentScratchpadRepository: ComponentScratchpadRepository)
   extends WorkService {
 
-  implicit def conn: Connection = db
+  implicit def conn: Connection = db.pool
 
   /**
    * List the latest revision of all of a user's work in a project for a specific

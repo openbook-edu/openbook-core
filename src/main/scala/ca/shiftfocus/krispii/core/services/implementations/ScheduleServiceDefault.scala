@@ -13,14 +13,14 @@ import org.joda.time.LocalDate
 import scala.concurrent.Future
 import scalaz.\/
 
-class ScheduleServiceDefault(val db: Connection,
+class ScheduleServiceDefault(val db: DB,
                              val authService: AuthService,
                              val schoolService: SchoolService,
                              val projectService: ProjectService,
                              val courseScheduleRepository: CourseScheduleRepository,
                              val courseScheduleExceptionRepository: CourseScheduleExceptionRepository) extends ScheduleService {
 
-  implicit def conn: Connection = db
+  implicit def conn: Connection = db.pool
 
   /**
    * List all schedules for a specific course.

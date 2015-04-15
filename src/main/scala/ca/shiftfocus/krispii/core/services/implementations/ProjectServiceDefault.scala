@@ -14,7 +14,7 @@ import play.api.i18n.Messages
 import scala.concurrent.Future
 import scalaz.{EitherT, \/, -\/, \/-}
 
-class ProjectServiceDefault(val db: Connection,
+class ProjectServiceDefault(val db: DB,
                             val authService: AuthService,
                             val schoolService: SchoolService,
                             val courseRepository: CourseRepository,
@@ -23,7 +23,7 @@ class ProjectServiceDefault(val db: Connection,
                             val taskRepository: TaskRepository)
   extends ProjectService {
 
-  implicit def conn: Connection = db
+  implicit def conn: Connection = db.pool
 
   /**
    * Lists all projects.

@@ -13,14 +13,14 @@ import scalacache.ScalaCache
 import scalaz.{-\/, \/-, \/, EitherT}
 import webcrank.password._
 
-class AuthServiceDefault(val db: Connection,
+class AuthServiceDefault(val db: DB,
                          val scalaCache: ScalaCache,
                          val userRepository: UserRepository,
                          val roleRepository: RoleRepository,
                          val sessionRepository: SessionRepository)
   extends AuthService {
 
-  implicit def conn: Connection = db
+  implicit def conn: Connection = db.pool
   implicit def cache: ScalaCache = scalaCache
   
   /**
@@ -30,9 +30,9 @@ class AuthServiceDefault(val db: Connection,
    */
   override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     for {
-      users <- lift(userRepository.list(db))
+      users <- lift(userRepository.list(db.pool))
       result <- liftSeq { users.map { user =>
-        val fRoles = roleRepository.list(user)(db)
+        val fRoles = roleRepository.list(user)(db.pool)
         (for {
           roles <- lift(fRoles)
         } yield user.copy(roles = roles)).run

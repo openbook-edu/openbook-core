@@ -509,7 +509,13 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
         new DateTime,
         work.id.bytes,
         work.version,
-        work.response
+        work match {
+          case specific: LongAnswerWork => ""
+          case specific: ShortAnswerWork => ""
+          case specific: MultipleChoiceWork => specific.response
+          case specific: OrderingWork => specific.response
+          case specific: MatchingWork => specific.response.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => IndexedSeq(item.left, item.right)}
+        }
       ))
     }
     else {
@@ -517,10 +523,8 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
         work.version,
         work.isComplete,
         new DateTime,
-        work.studentId.bytes,
-        work.taskId.bytes,
-        work.version,
-        work.response
+        work.id.bytes,
+        work.version
       ))
     }
   }

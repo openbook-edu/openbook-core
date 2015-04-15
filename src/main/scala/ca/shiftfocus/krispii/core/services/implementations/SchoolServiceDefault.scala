@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import java.awt.Color
 
 import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
@@ -11,13 +12,13 @@ import scala.collection.IndexedSeq
 import scala.concurrent.Future
 import scalaz.{\/-, -\/, \/}
 
-class SchoolServiceDefault(val db: Connection,
+class SchoolServiceDefault(val db: DB,
                            val authService: AuthService,
                            val userRepository: UserRepository,
                            val courseRepository: CourseRepository)
   extends SchoolService {
 
-  implicit def conn: Connection = db
+  implicit def conn: Connection = db.pool
 
   /*
    * Methods for Courses

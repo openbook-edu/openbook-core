@@ -4,7 +4,7 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.models.document._
 import ca.shiftfocus.krispii.core.repositories.{RevisionRepository, UserRepository, DocumentRepository}
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+import ca.shiftfocus.krispii.core.services.datasource.{DB, PostgresDB}
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -14,12 +14,12 @@ import ws.kahn.ot.Delta
 
 import scalaz.\/
 
-class DocumentServiceDefault(val db: Connection,
+class DocumentServiceDefault(val db: DB,
                              val userRepository: UserRepository,
                              val documentRepository: DocumentRepository,
                              val revisionRepository: RevisionRepository) extends DocumentService {
 
-  implicit def conn: Connection = db
+  implicit def conn: Connection = db.pool
 
   /**
    * Find a document.

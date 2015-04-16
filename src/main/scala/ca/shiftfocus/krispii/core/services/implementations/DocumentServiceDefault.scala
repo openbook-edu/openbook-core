@@ -57,7 +57,7 @@ class DocumentServiceDefault(val db: DB,
       for {
         document <- lift(documentRepository.find(documentId))
         interval = document.version / granularity
-        versions = (0 until granularity).map(_ * interval).filter(_ < document.version)
+        versions = (1 until granularity).map(_ * interval).filter(_ <= document.version)
         revisions <- liftSeq(versions.map { version => revisionRepository.find(document, version) })
       } yield revisions
     } else {

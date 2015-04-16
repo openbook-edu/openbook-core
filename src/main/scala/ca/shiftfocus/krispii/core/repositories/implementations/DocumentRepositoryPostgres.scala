@@ -10,10 +10,11 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.{RowData, ResultSet, Connection}
 import play.api.libs.json.Json
+import ws.kahn.ot.exceptions.IncompatibleDeltasException
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
 import play.api.Logger
-import ws.kahn.ot.Delta
+import ws.kahn.ot.{InsertText, Delta}
 
 import scala.collection.immutable.HashMap
 import scala.concurrent.Future
@@ -98,30 +99,33 @@ class DocumentRepositoryPostgres (val revisionRepository: RevisionRepository)
     queryOne(FindDocument, Seq[Any](id.bytes)).flatMap {
       case \/-(document) => version match {
         case 0 => Future successful \/-(document)
-        case _ => {
+        case _ =>
           (for {
             revisions <- lift(revisionRepository.list(document, toVersion = version))
-            result = {
-              // If there were more recent revisions
+            result =
               if (revisions.nonEmpty) {
                 val deltas = revisions.map(_.delta)
                 val computedDelta =
                   if (deltas.length == 1)
                     deltas.head
-                  else deltas.tail.foldRight(deltas(0)) {
+                  else deltas.foldLeft(Delta(IndexedSeq(InsertText("")))) {
                     (left: Delta, right: Delta) => {
                       left o right
                     }
                   }
                 document.copy(delta = computedDelta)
               }
-              // If there were no more recent revisions
               else {
                 document
               }
-            }
-          } yield result).run
-        }
+          } yield result).recover {
+            case ex: IncompatibleDeltasException =>
+              println(ex.leftDelta.toString)
+              println(ex.rightDelta.toString)
+              -\/(RepositoryError.DatabaseError("Incompatible deltas.", Some(ex)))
+
+            case ex: Exception => -\/(RepositoryError.DatabaseError("Unexpected failure", Some(ex)))
+          }
       }
       case -\/(error) => Future successful -\/(error)
     }

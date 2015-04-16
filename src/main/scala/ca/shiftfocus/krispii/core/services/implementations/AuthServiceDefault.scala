@@ -66,10 +66,11 @@ class AuthServiceDefault(val db: DB,
     transactional { implicit conn =>
       for {
         user <- lift(userRepository.find(identifier.trim))
+        roles <- lift(roleRepository.list(user))
         userHash = user.hash.getOrElse("")
         authUser <- lift(Future.successful {
           if (Passwords.scrypt().verify(password.trim(), userHash)) {
-            \/-(user)
+            \/-(user.copy(roles = roles))
           }
           else {
             -\/(ServiceError.BadPermissions("The password was invalid."))

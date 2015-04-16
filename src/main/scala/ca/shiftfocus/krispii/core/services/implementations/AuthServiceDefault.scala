@@ -447,8 +447,9 @@ class AuthServiceDefault(val db: DB,
    */
   override def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
-      val fUser = userRepository.find(userId)
-      val fRole = roleRepository.find(roleName)
+      val fUser = userRepository.find(userId)(db.pool)
+      val fRole = roleRepository.find(roleName)(db.pool)
+
       for {
         user <- lift(fUser)
         role <- lift(fRole)
@@ -471,7 +472,7 @@ class AuthServiceDefault(val db: DB,
     transactional { implicit conn =>
       for {
         user <- lift(userRepository.find(userId))
-        rolesAdded <- liftSeq(Future.sequence(roleNames.map(roleRepository.addToUser(user, _))))
+        rolesAdded <- lift(serializedT(roleNames)(roleRepository.addToUser(user, _)))
       } yield user
     }
   }
@@ -485,8 +486,8 @@ class AuthServiceDefault(val db: DB,
    */
   override def removeRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
-      val fUser = userRepository.find(userId)
-      val fRole = roleRepository.find(roleName)
+      val fUser = userRepository.find(userId)(db.pool)
+      val fRole = roleRepository.find(roleName)(db.pool)
       for {
         user <- lift(fUser)
         role <- lift(fRole)
@@ -506,8 +507,8 @@ class AuthServiceDefault(val db: DB,
    */
   override def addUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn =>
-      val fRole = roleRepository.find(roleId)
-      val fUsers = userRepository.list(userIds)
+      val fRole = roleRepository.find(roleId)(db.pool)
+      val fUsers = userRepository.list(userIds)(db.pool)
 
       for {
         role <- lift(fRole)
@@ -527,8 +528,8 @@ class AuthServiceDefault(val db: DB,
    */
   override def removeUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn =>
-      val fRole = roleRepository.find(roleId)
-      val fUsers = userRepository.list(userIds)
+      val fRole = roleRepository.find(roleId)(db.pool)
+      val fUsers = userRepository.list(userIds)(db.pool)
 
       for {
         role <- lift(fRole)

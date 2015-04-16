@@ -9,19 +9,21 @@ import org.scalatest._
 import Matchers._
 import ws.kahn.ot._
 import ws.kahn.ot.exceptions._
-
+import ca.shiftfocus.krispii.core.services.datasource.DB
 import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
 import scalaz._
 
 class DocumentServiceSpec
   extends TestEnvironment(writeToDb = false) {
+
+  val db = stub[DB]
   val mockConnection = stub[Connection]
   val userRepository = stub[UserRepository]
   val documentRepository = stub[DocumentRepository]
   val revisionRepository = stub[RevisionRepository]
 
-  val documentService = new DocumentServiceDefault(mockConnection, userRepository, documentRepository, revisionRepository) {
+  val documentService = new DocumentServiceDefault(db, userRepository, documentRepository, revisionRepository) {
     override implicit def conn: Connection = mockConnection
 
     override def transactional[A](f: Connection => Future[A]): Future[A] = {

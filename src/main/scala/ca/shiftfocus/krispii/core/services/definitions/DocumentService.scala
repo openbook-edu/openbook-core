@@ -40,6 +40,8 @@ trait DocumentService extends Service[ErrorUnion#Fail] {
 
   def getHistory(documentId: UUID, granularity: Int = 10): Future[\/[ErrorUnion#Fail, IndexedSeq[Revision]]]
 
+  def revert(documentId: UUID, version: Long, authorId: UUID): Future[\/[ErrorUnion#Fail, Document]]
+
   // Create a new document
   def create(id: UUID = UUID.random, owner: User, title: String, initialDelta: Delta): Future[\/[ErrorUnion#Fail, Document]]
 

@@ -460,6 +460,22 @@ class AuthServiceDefault(val db: DB,
 
 
   /**
+   * Add a role to a user.
+   *
+   * @param userId  the unique id of the user
+   * @param roleNames  the name of the role
+   * @return a boolean indicator if the role was added
+   */
+  override def addRoles(userId: UUID, roleNames: IndexedSeq[String]): Future[\/[ErrorUnion#Fail, User]] = {
+    transactional { implicit conn =>
+      for {
+        user <- lift(userRepository.find(userId))
+        rolesAdded <- liftSeq(Future.sequence(roleNames.map(roleRepository.addToUser(user, _))))
+      } yield user
+    }
+  }
+
+  /**
    * Remove a role from a user.
    *
    * @param userId  the unique id of the user

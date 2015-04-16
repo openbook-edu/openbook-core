@@ -200,6 +200,15 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, User]]
 
   /**
+   * Add several roles to a user.
+   *
+   * @param userId
+   * @param roleNames
+   * @return
+   */
+  def addRoles(userId: UUID, roleNames: IndexedSeq[String]): Future[\/[ErrorUnion#Fail, User]]
+
+  /**
    * Remove a role from a user.
    *
    * @param userId  the unique id of the user

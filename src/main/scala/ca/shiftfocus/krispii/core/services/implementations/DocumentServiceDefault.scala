@@ -10,7 +10,7 @@ import com.github.mauricio.async.db.Connection
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
 import scala.concurrent.Future
-import ws.kahn.ot.Delta
+import ws.kahn.ot.{Delete, Delta}
 
 import scalaz.\/
 
@@ -62,6 +62,46 @@ class DocumentServiceDefault(val db: DB,
       } yield revisions
     } else {
       Future successful \/.left(ServiceError.BadInput("Granularity must be a positive multiple of 5 no greater than 100."))
+    }
+  }
+
+  /**
+   * Revert a document to a previous revision. Note that this doesn't erase anything
+   * from the document's history, rather the "reversion" will be inserted as a new
+   * revision that clears the document and inserts the reverted text.
+   *
+   * @param documentId the document to revert
+   * @param version the version of the document to revert to
+   * @param authorId the ID of the user who will own the new revision
+   * @return
+   */
+  override def revert(documentId: UUID, version: Long, authorId: UUID): Future[\/[ErrorUnion#Fail, Document]] = {
+    transactional { implicit conn =>
+      for {
+        current <- lift(find(documentId))
+
+        _ <- predicate (current.version > version) (ServiceError.BadInput("Can only revert to a _previous_ revision."))
+
+        revertTo <- lift(find(documentId, Some(version)))
+        author <- lift(userRepository.find(authorId))
+
+        newDelta = Delete(current.delta.targetLength) +: revertTo.delta
+        newDocument = current.delta.compose(newDelta)
+
+        _ <- predicate (newDelta.isDocument) (ServiceError.BadInput("Document Delta must contain only inserts"))
+
+        updatedDocument <- lift(documentRepository.update(current.copy(
+          delta = newDocument
+        )))
+
+        pushedRevision <- lift(revisionRepository.insert(
+          Revision(documentId = documentId,
+            version = current.version + 1,
+            authorId = author.id,
+            delta = newDelta,
+            createdAt = new DateTime)
+        ))
+      } yield updatedDocument
     }
   }
 

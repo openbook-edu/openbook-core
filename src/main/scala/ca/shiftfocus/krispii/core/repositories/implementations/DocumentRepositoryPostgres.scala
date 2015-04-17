@@ -113,7 +113,7 @@ class DocumentRepositoryPostgres (val revisionRepository: RevisionRepository)
                       left o right
                     }
                   }
-                document.copy(delta = computedDelta)
+                document.copy(version = version, delta = computedDelta)
               }
               else {
                 document

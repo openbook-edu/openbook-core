@@ -88,7 +88,7 @@ class DocumentServiceDefault(val db: DB,
         newDelta = Delete(current.delta.targetLength) +: revertTo.delta
         newDocument = current.delta.compose(newDelta)
 
-        _ <- predicate (newDelta.isDocument) (ServiceError.BadInput("Document Delta must contain only inserts"))
+        _ <- predicate (newDocument.isDocument) (ServiceError.BadInput("Document Delta must contain only inserts"))
 
         updatedDocument <- lift(documentRepository.update(current.copy(
           delta = newDocument

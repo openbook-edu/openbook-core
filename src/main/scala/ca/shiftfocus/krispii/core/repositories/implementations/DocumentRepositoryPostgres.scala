@@ -120,8 +120,6 @@ class DocumentRepositoryPostgres (val revisionRepository: RevisionRepository)
               }
           } yield result).recover {
             case ex: IncompatibleDeltasException =>
-              println(ex.leftDelta.toString)
-              println(ex.rightDelta.toString)
               -\/(RepositoryError.DatabaseError("Incompatible deltas.", Some(ex)))
 
             case ex: Exception => -\/(RepositoryError.DatabaseError("Unexpected failure", Some(ex)))

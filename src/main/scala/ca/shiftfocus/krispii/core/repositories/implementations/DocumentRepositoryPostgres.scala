@@ -84,7 +84,7 @@ class DocumentRepositoryPostgres (val revisionRepository: RevisionRepository)
        |$ReturningDocument
      """.stripMargin
 
-  // ----
+  // ----l
 
   /**
    * Find an individual document.

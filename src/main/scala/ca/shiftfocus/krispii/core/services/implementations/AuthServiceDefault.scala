@@ -554,11 +554,11 @@ class AuthServiceDefault(val db: DB,
         !parts(0).charAt(0).isLetter ||
         !parts(1).charAt(parts(1).length-1).isLetter ||
         parts(1).indexOf("..") != -1 ||
-        !"""([\w\.]+)@([\w\.]+)""".r.unapplySeq(email.trim).isDefined
+        !"""([\w\._-]+)@([\w\._-]+)""".r.unapplySeq(email.trim).isDefined
     ) {
-      \/.left(ServiceError.BadInput(s"$email is not a valid format"))
+      \/.left(ServiceError.BadInput(s"'$email' is not a valid format"))
     } else {
-      \/.right(email)
+      \/.right(email.trim)
     }
   }
 
@@ -570,7 +570,7 @@ class AuthServiceDefault(val db: DB,
    */
   private def isValidUsername(username: String): Future[\/[ErrorUnion#Fail, String]] = Future.successful {
     if (username.length >= 3) \/-(username)
-    else -\/(ServiceError.BadInput(s"$username is not a valid format."))
+    else -\/(ServiceError.BadInput(s"Your username must be at least 3 characters."))
   }
 
   /**

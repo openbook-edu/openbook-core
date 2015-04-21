@@ -1,22 +1,21 @@
 package ca.shiftfocus.krispii.core.models.work
 
-import ca.shiftfocus.uuid.UUID
-import ca.shiftfocus.krispii.core.models.tasks.Task._
+import ca.shiftfocus.krispii.core.models.document.Document
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
-import com.github.mauricio.async.db.RowData
-import play.api.libs.functional.syntax._
-import play.api.libs.json._
+import ca.shiftfocus.uuid.UUID
 import org.joda.time.DateTime
+import play.api.libs.json.{Json, JsValue, Writes}
 
 /**
  * The "work" trait is the supertype for work that students have done.
+ *
+ * Sealed so that all possible sub-types must be defined here.
  */
-trait Work {
+sealed trait Work {
   val id: UUID
   val studentId: UUID
   val taskId: UUID
-  val version: Long = 1L
-  val response: AnyRef
+  val version: Long
   val isComplete: Boolean
   val createdAt: DateTime
   val updatedAt: DateTime
@@ -33,12 +32,9 @@ object Work {
         "version" -> work.version,
         "response" -> {
           work match {
-            case specific: LongAnswerWork     => specific.response
-            case specific: ShortAnswerWork    => specific.response
-            case specific: MultipleChoiceWork => specific.response
-            case specific: OrderingWork       => specific.response
-            case specific: MatchingWork       => specific.response
-            case _ => throw new Exception("Tried to serialize a work type that, somehow, doesn't exist.")
+            case specific: IntListWork   => specific.response
+            case specific: MatchListWork => specific.response
+            case specific: DocumentWork  => specific.response
           }
         },
         "isComplete" -> work.isComplete,
@@ -46,11 +42,116 @@ object Work {
         "updatedAt" -> work.updatedAt
       )
       work match {
-        case laWork: LongAnswerWork => jsVal + ("documentId" -> Json.toJson(laWork.documentId))
-        case saWork: ShortAnswerWork => jsVal + ("documentId" -> Json.toJson(saWork.documentId))
+        case docWork: DocumentWork => jsVal + ("documentId" -> Json.toJson(docWork.documentId))
         case _ => jsVal
       }
     }
   }
 
+}
+
+/**
+ * DocumentWork are types of work whose storage is backed by the DocumentService and use
+ * operational-transformation to synchronize between multiple clients. Eventually all
+ * types of work should move to ot-based DocumentWork.
+ */
+sealed trait DocumentWork extends Work {
+  val documentId: UUID
+  val response: Option[Document]
+}
+
+case class LongAnswerWork(
+  id: UUID = UUID.random,
+  studentId: UUID,
+  taskId: UUID,
+  documentId: UUID,
+  version: Long = 1L,
+  response: Option[Document] = None,
+  isComplete: Boolean = false,
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
+) extends DocumentWork
+
+case class ShortAnswerWork(
+  id: UUID = UUID.random,
+  studentId: UUID,
+  taskId: UUID,
+  documentId: UUID,
+  version: Long = 1L,
+  response: Option[Document] = None,
+  isComplete: Boolean = false,
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
+) extends DocumentWork
+
+
+/**
+ * ListWork are types of work that store lists of things and map to arrays in the database storage
+ * layer.
+ *
+ * @tparam A the thing that the work is a list of
+ */
+sealed trait ListWork[A] extends Work {
+  val response: IndexedSeq[A]
+}
+sealed trait IntListWork extends ListWork[Int] {
+  override val response: IndexedSeq[Int]
+}
+sealed trait MatchListWork extends ListWork[Match] {
+  override val response: IndexedSeq[Match]
+}
+
+case class MultipleChoiceWork(
+  id: UUID = UUID.random,
+  studentId: UUID,
+  taskId: UUID,
+  override val version: Long,
+  response: IndexedSeq[Int],
+  isComplete: Boolean = false,
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
+) extends IntListWork {
+
+  override def toString: String ={
+    var result=""
+    response.zipWithIndex.foreach{case(e,i)=> result=result+ "Question: "+ i + " Answer: "+e.toString+", "}
+    """""""+result.dropRight(2)+"""""""
+  }
+
+}
+
+case class OrderingWork(
+  id: UUID = UUID.random,
+  studentId: UUID,
+  taskId: UUID,
+  override val version: Long = 1L,
+  response: IndexedSeq[Int],
+  isComplete: Boolean = false,
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
+) extends IntListWork {
+
+  override def toString: String ={
+    response.mkString(" -> ")
+  }
+
+}
+
+case class MatchingWork(
+   id: UUID = UUID.random,
+   studentId: UUID,
+   taskId: UUID,
+   override val version: Long,
+   response: IndexedSeq[Match],
+   isComplete: Boolean = false,
+   createdAt: DateTime = new DateTime,
+   updatedAt: DateTime = new DateTime
+ ) extends MatchListWork {
+  override def toString: String ={
+    var result=""
+
+    response.zipWithIndex.foreach{case(e,i)=> result=result+i+" = " +e.left.toString + " + " +e.right.toString +", "}
+    '"' +result.dropRight(2)+'"'
+
+  }
 }

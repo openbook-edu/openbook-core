@@ -268,21 +268,21 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
      """.stripMargin
 
   def UpdateKeepLatestRevision(table: String): String = {
-    val (version, response, documentId) = table match {
-      case "long_answer_work" => ("version", "not_used", "la_document_id")
-      case "short_answer_work" => ("version", "not_used", "sa_document_id")
-      case "multiple_choice_work" => ("mc_version", "mc_response", "not_used")
-      case "ordering_work" => ("ord_version", "ord_response", "not_used")
-      case "matching_work" => ("mat_version", "mat_response", "not_used")
+    val (version, response) = table match {
+      case "long_answer_work" => ("version", "x.document_id as la_document_id")
+      case "short_answer_work" => ("version", "x.document_id as sa_document_id")
+      case "multiple_choice_work" => ("mc_version", "x.response as mc_response")
+      case "ordering_work" => ("ord_version", "x.response as mc_response")
+      case "matching_work" => ("mat_version", "x.response as mc_response")
     }
 
     s"""
-       |WITH w AS ($Update)
+       |WITH w AS ($Update),
        |     x AS (SELECT *
-       |           FROM $table
+       |           FROM $table, w
        |           WHERE work_id = w.id
-       |             AND version = w.version
-       |SELECT w.id, w.user_id, w.task_id, w.version as $version, x.response as $response, x.document_id as $documentId, w.is_complete, w.work_type, w.created_at, w.updated_at
+       |             AND version = w.version)
+       |SELECT w.id, w.user_id, w.task_id, w.version as $version, $response, w.is_complete, w.work_type, w.created_at, w.updated_at
        |FROM w,x
      """.stripMargin
   }

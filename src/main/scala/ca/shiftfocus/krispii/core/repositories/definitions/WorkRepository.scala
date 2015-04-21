@@ -6,16 +6,19 @@ import com.github.mauricio.async.db.Connection
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.Task
-import ca.shiftfocus.krispii.core.models.work.Work
+import ca.shiftfocus.krispii.core.models.work.{DocumentWork, Work}
 import ca.shiftfocus.uuid.UUID
 import scala.concurrent.Future
 import scalaz.\/
 
 trait WorkRepository extends Repository {
   val documentRepository: DocumentRepository
+  val revisionRepository: RevisionRepository
 
   def list(user: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]]
-  def list(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]]
+  // TODO - remove, is the same as find
+  def list(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Either[DocumentWork, IndexedSeq[Work]]]]
+
   def list(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]]
 
   def find(workId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]]

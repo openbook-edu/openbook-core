@@ -14,6 +14,7 @@ import scalaz._
 
 class JournalServiceDefault (val config: Boolean,
                              val db: DB,
+                             val authService: AuthService,
                              val journalRepository: JournalRepository,
                              val userRepository: UserRepository,
                              val projectRepository: ProjectRepository)
@@ -26,7 +27,12 @@ class JournalServiceDefault (val config: Boolean,
   }
   
   def list(userId: UUID)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
-    journalRepository.list(userId)
+    val fUser = authService.find(userId)
+
+    for {
+      user <- lift(fUser)
+      journalEntryList <- lift(journalRepository.list(user))
+    } yield journalEntryList
   }
   
   def list(startDate: Option[DateTime], endDate: Option[DateTime])(implicit conn: Connection): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {

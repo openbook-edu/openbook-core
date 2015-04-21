@@ -56,7 +56,7 @@ class JournalRepositorySpec
           }
         }
       }
-      "list Journal Entries by user ID" in {
+      "list Journal Entries by user" in {
         val testUser         = TestValues.testUserA
         val testProject      = TestValues.testProjectA
 
@@ -71,7 +71,7 @@ class JournalRepositorySpec
         (userRepository.find(_: UUID)(_: Connection)) when(testUser.id, *) returns(Future.successful(\/-(testUser)))
         (projectRepository.find(_: UUID)(_: Connection)) when(testProject.id, *) returns(Future.successful(\/-(testProject)))
 
-        val result = journalRepository.list(testUser.id)
+        val result = journalRepository.list(testUser)
         val eitherJournalEntryList = Await.result(result, Duration.Inf)
         val \/-(journalEntries) = eitherJournalEntryList
 
@@ -92,9 +92,9 @@ class JournalRepositorySpec
         }
       }
       "return empty Vector() if user ID doesn't exist" in {
-        val userId = UUID("97aa1c42-adba-4221-90ec-4eace2c6f3d5")
+        val testUser         = TestValues.testUserD
 
-        val result = journalRepository.list(userId)
+        val result = journalRepository.list(testUser)
         Await.result(result, Duration.Inf) should be(\/-( Vector() ))
       }
       "list Journal Entries by start date" in {

@@ -131,8 +131,8 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
    * @param conn
    * @return
    */
-  override def list(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
-    queryListJournal(SelectByUser, Seq[Any](userId.bytes))
+  override def list(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
+    queryListJournal(SelectByUser, Seq[Any](user.id.bytes))
   }
 
   /**

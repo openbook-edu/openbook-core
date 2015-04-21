@@ -10,7 +10,8 @@ import org.joda.time.{DateTime, DateTimeZone}
 import ws.kahn.ot.{InsertText, Operation, Delta}
 
 object TestValues {
-  /* USERS */
+  /* ---------------------- USERS ---------------------- */
+
   val testUserA = User(
     id = UUID("36c8c0ca-50aa-4806-afa5-916a5e33a81f"),
     version = 1L,
@@ -110,7 +111,8 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-  /* ROLES */
+  /* ---------------------- ROLES ---------------------- */
+
   val testRoleA = Role(
     id = UUID("1430e950-77f9-4b30-baf8-bb226fc7091a"),
     version = 1L,
@@ -176,7 +178,8 @@ object TestValues {
   )
 
 
-  /* COURSES */
+  /* ---------------------- COURSES ---------------------- */
+
   val testCourseA = Course(
     id = UUID("217c5622-ff9e-4372-8e6a-95fb3bae300b"),
     version = 1L,
@@ -251,7 +254,8 @@ object TestValues {
   )
 
 
-  /* TASKS */
+  /* ---------------------- TASKS ---------------------- */
+
   /* LONG ANSWER TASKS */
   val testLongAnswerTaskA = LongAnswerTask(
     id = UUID("bf1a6ed0-9f83-4cb4-85c1-ad456299b3a3"),
@@ -395,6 +399,24 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testOrderingTaskN = OrderingTask(
+    id = UUID("599a78ad-5bff-4246-9835-32fcb41168a6"),
+    version = 7L,
+    partId = UUID("8e080c00-2b20-4e7b-b18c-2582d79e7e68"), // testPartG.id
+    position = 18,
+    settings = CommonTaskSettings(
+      dependencyId = Option(testLongAnswerTaskA.id),
+      title = "test OrderingTask N",
+      description = "test OrderingTask N description",
+      notesAllowed = true
+    ),
+    elements = Vector("element 6", "element 7"),
+    answers  = Vector(6, 7),
+    randomizeChoices = true,
+    createdAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* No data in DB */
   val testOrderingTaskI = OrderingTask(
     id = UUID("3064a825-9d40-427f-9579-86e601115730"),
@@ -493,10 +515,11 @@ object TestValues {
   )
 
 
-  /* DOCUMENTS */
+  /* ---------------------- DOCUMENTS ---------------------- */
+
   val testDocumentA = Document(
     id = UUID("fd923b3f-6dc2-472e-8ce7-7a8fcc6a1a20"),
-    version = 1L,
+    version = 2L,
     title = "testDocumentA title",
     delta = Delta(IndexedSeq.empty[Operation]),
     ownerId = testUserC.id,
@@ -506,7 +529,7 @@ object TestValues {
 
   val testDocumentB = Document(
     id = UUID("15173757-b881-4440-8285-4e3d2c03616a"),
-    version = 2L,
+    version = 6L,
     title = "testDocumentB title",
     delta = Delta(IndexedSeq.empty[Operation]),
     ownerId = testUserE.id,
@@ -514,19 +537,86 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testDocumentC = Document(
+    id = UUID("462b7f6c-8b62-4c99-8643-a63b2720b2a7"),
+    version = 2L,
+    title = "testDocumentC title",
+    delta = Delta(IndexedSeq.empty[Operation]),
+    ownerId = testUserE.id,
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
 
-  /* WORK */
+  val testDocumentD = Document(
+    id = UUID("bd01c988-0369-4dda-ada2-05a9ff3645cf"),
+    version = 7L,
+    title = "testDocumentD title",
+    delta = Delta(IndexedSeq.empty[Operation]),
+    ownerId = testUserC.id,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* ---------------------- DOCUMENT_REVISIONS---------------------- */
+
+  val testRevisionA = Revision(
+    documentId = testDocumentA.id,
+    version =  testDocumentA.version - 1,
+    authorId = testDocumentA.ownerId,
+    delta = Delta(IndexedSeq.empty[Operation]),
+    createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testRevisionB = Revision(
+    documentId = testDocumentB.id,
+    version =  testDocumentB.version - 1,
+    authorId = testDocumentB.ownerId,
+    delta = Delta(IndexedSeq.empty[Operation]),
+    createdAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testRevisionC = Revision(
+    documentId = testDocumentC.id,
+    version =  testDocumentC.version - 1,
+    authorId = testDocumentC.ownerId,
+    delta = Delta(IndexedSeq.empty[Operation]),
+    createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testRevisionD = Revision(
+    documentId = testDocumentD.id,
+    version =  testDocumentD.version - 1,
+    authorId = testDocumentD.ownerId,
+    delta = Delta(IndexedSeq.empty[Operation]),
+    createdAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+
+  /* ---------------------- WORK ---------------------- */
+
   /* LONG_ANSWER_WORK */
   val testLongAnswerWorkA = LongAnswerWork(
     id = UUID("441374e2-0b16-43ec-adb9-6a3251081d24"),
     studentId = testUserC.id,
     taskId = testLongAnswerTaskA.id,
     documentId = testDocumentA.id,
-    version = 1L,
+    version = testDocumentA.version,
     response = Some(testDocumentA),
     isComplete = true,
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testLongAnswerWorkF = LongAnswerWork(
+    id = UUID("f7fcffc3-7b79-4de7-b6dd-cf37aa155fd9"),
+    studentId = testUserE.id,
+    taskId = testLongAnswerTaskA.id,
+    documentId = testDocumentB.id,
+    version = testDocumentB.version,
+    response = Some(testDocumentB),
+    isComplete = true,
+    createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   /* SHORT_ANSWER_WORK */
@@ -534,19 +624,31 @@ object TestValues {
     id = UUID("cbf452cd-915a-4b24-9d02-92be013bbba8"),
     studentId = testUserE.id,
     taskId = testShortAnswerTaskB.id,
-    documentId = testDocumentB.id,
-    version = 2L,
-    response = Some(testDocumentB),
+    documentId = testDocumentC.id,
+    version = testDocumentC.version,
+    response = Some(testDocumentC),
     isComplete = false,
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testShortAnswerWorkG = ShortAnswerWork(
+    id = UUID("b7bb09c1-6aca-40de-8152-5da483a5c476"),
+    studentId = testUserC.id,
+    taskId = testShortAnswerTaskB.id,
+    documentId = testDocumentD.id,
+    version = testDocumentD.version,
+    response = Some(testDocumentD),
+    isComplete = false,
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* MULTIPLE_CHOICE_WORK */
   val testMultipleChoiceWorkC = MultipleChoiceWork(
     id = UUID("edfd6198-97b0-4f21-9e15-fbe4ed051970"),
-    studentId = testUserG.id,
-    taskId = testLongAnswerTaskA.id,
+    studentId = testUserC.id,
+    taskId = testMultipleChoiceTaskC.id,
     version = 3L,
     response = Vector(1, 2),
     isComplete = true,
@@ -554,11 +656,22 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testMultipleChoiceWorkH = MultipleChoiceWork(
+    id = UUID("8f3b9f09-db43-4670-b159-0763eb4eaecd"),
+    studentId = testUserE.id,
+    taskId = testMultipleChoiceTaskC.id,
+    version = 8L,
+    response = Vector(3, 4),
+    isComplete = true,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* ORDERING_WORK */
   val testOrderingWorkD = OrderingWork(
     id = UUID("125eef5a-7e89-441c-b138-c1803bafdc03"),
-    studentId = testUserH.id,
-    taskId = testLongAnswerTaskA.id,
+    studentId = testUserC.id,
+    taskId = testOrderingTaskN.id,
     version = 4L,
     response = Vector(3, 4),
     isComplete = true,
@@ -566,11 +679,22 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testOrderingWorkI = OrderingWork(
+    id = UUID("db5165f4-4d48-4007-9191-beecd77763c7"),
+    studentId = testUserE.id,
+    taskId = testOrderingTaskN.id,
+    version = 5L,
+    response = Vector(4, 5),
+    isComplete = true,
+    createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* MATCHING_WORK */
   val testMatchingWorkE = MatchingWork(
     id = UUID("e47442dd-8ac9-4d06-ad6f-ef62720d4ed3"),
     studentId = testUserC.id,
-    taskId = testLongAnswerTaskA.id,
+    taskId = testMatchingTaskE.id,
     version = 5L,
     response = Vector(Match(5, 6), Match(7, 8)),
     isComplete = true,
@@ -578,8 +702,20 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testMatchingWorkJ = MatchingWork(
+    id = UUID("c57e0335-51da-4144-9dfc-dfa97f5f1a7c"),
+    studentId = testUserE.id,
+    taskId = testMatchingTaskE.id,
+    version = 6L,
+    response = Vector(Match(6, 7), Match(8, 9)),
+    isComplete = true,
+    createdAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
 
-  /* COMPONENTS */
+
+  /* ---------------------- COMPONENTS ---------------------- */
+
   /* TEXT COMPONENT */
   val testTextComponentA = TextComponent(
     id = UUID("8cfc6089-8129-4c2e-9ed1-45d38077d438"),
@@ -675,7 +811,8 @@ object TestValues {
   )
 
 
-  /* PARTS */
+  /* ---------------------- PARTS ---------------------- */
+
   val testPartA = Part(
     id = UUID("5cd214be-6bba-47fa-9f35-0eb8bafec397"),
     version = 1L,
@@ -771,7 +908,8 @@ object TestValues {
   )
 
 
-  /* PROJECTS */
+  /* ---------------------- PROJECTS ---------------------- */
+
   val testProjectA = Project(
     id = UUID("c9b4cfce-aed4-48fd-94f5-c980763dfddc"),
     courseId = testCourseA.id,
@@ -841,7 +979,8 @@ object TestValues {
   )
 
 
-  //  /* SCHEDULES */
+  //  /* ---------------------- SCHEDULES ---------------------- */
+  //
   //  /* Because in db there is time zone 4 for startTime and endTime, here hours should be -1 */
   //  val testCourseScheduleA = ClassSchedule(
   //    id = UUID("308792b2-7a29-43c8-ad51-a5c4f306cdaf"),
@@ -924,7 +1063,8 @@ object TestValues {
   //  )
   //
   //
-  //  /* SCHEDULE EXCEPTIONS */
+  //  /* ---------------------- SCHEDULE EXCEPTIONS ---------------------- */
+  //
   //  val testSectionScheduleExceptionA = SectionScheduleException(
   //    id = UUID("da17e24a-a545-4d74-94e1-427896e13ebe"),
   //    userId = testUserA.id,
@@ -993,7 +1133,9 @@ object TestValues {
   //    reason = "testSectionScheduleExceptionE reason"
   //  )
 
-  /* JOURNAL ENTRIES */
+
+  /* ---------------------- JOURNAL ENTRIES ---------------------- */
+
   val testJournalEntryA = JournalEntry(
     id = UUID("6aabd410-735f-4023-ae04-9f67f84a3846"),
     version = 1L,

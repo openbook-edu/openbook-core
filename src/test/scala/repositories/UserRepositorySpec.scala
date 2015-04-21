@@ -35,6 +35,8 @@ class UserRepositorySpec
         val eitherUsers = Await.result(result, Duration.Inf)
         val \/-(users) = eitherUsers
 
+        users.size should be(testUserList.size)
+
         testUserList.foreach {
           case (key, user: User) => {
             users(key).id should be(user.id)
@@ -48,8 +50,6 @@ class UserRepositorySpec
             users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
-
-        users.size should be(testUserList.size)
       }
       "list users with a specified set of user Ids" in {
         val testUserList = TreeMap[Int, User](
@@ -61,6 +61,8 @@ class UserRepositorySpec
         val eitherUsers = Await.result(result, Duration.Inf)
         val \/-(users) = eitherUsers
 
+        users.size should be(testUserList.size)
+
         testUserList.foreach {
           case (key, user: User) => {
             users(key).id should be(user.id)
@@ -74,8 +76,6 @@ class UserRepositorySpec
             users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
-
-        users.size should be(testUserList.size)
       }
       "return RepositoryError.NoResults if set contains unexisting user ID" in {
         val ids = Vector(
@@ -99,6 +99,8 @@ class UserRepositorySpec
         val eitherUsers = Await.result(result, Duration.Inf)
         val \/-(users) = eitherUsers
 
+        users.size should be(testUserList.size)
+
         testUserList.foreach {
           case (key, user: User) => {
             users(key).id should be(user.id)
@@ -112,8 +114,6 @@ class UserRepositorySpec
             users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
-
-        users.size should be(testUserList.size)
       }
       "return empty Vector() if role doesn't exist" in {
         val unexistingRole = Role(
@@ -134,14 +134,14 @@ class UserRepositorySpec
 
         val testUserList = TreeMap[Int, User](
           0 -> TestValues.testUserC.copy(hash = None),
-          1 -> TestValues.testUserE.copy(hash = None),
-          2 -> TestValues.testUserG.copy(hash = None),
-          3 -> TestValues.testUserH.copy(hash = None)
+          1 -> TestValues.testUserE.copy(hash = None)
         )
 
         val result = userRepository.list(testCourse)
         val eitherUsers = Await.result(result, Duration.Inf)
         val \/-(users) = eitherUsers
+
+        users.size should be(testUserList.size)
 
         testUserList.foreach {
           case (key, user: User) => {
@@ -156,8 +156,6 @@ class UserRepositorySpec
             users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
-
-        users.size should be(testUserList.size)
       }
       "return empty Vector() if course doesn't exist" in {
         val testCourse = TestValues.testCourseC

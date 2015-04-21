@@ -194,7 +194,7 @@ class DocumentServiceDefault(val db: DB,
               updatedDocument <- lift(documentRepository.update(document.copy(
                 delta = newDelta
               )))
-
+              // TODO - update Work version also
               // 5. Insert the new revision into the history
               pushedRevision <- lift(revisionRepository.insert(
                 Revision(documentId = document.id,

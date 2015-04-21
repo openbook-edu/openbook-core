@@ -14,7 +14,7 @@ trait JournalRepository extends Repository {
   val projectRepository: ProjectRepository
 
   def list(entryType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]]
-  def list(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]]
+  def list(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]]
   def list(startDate: Option[DateTime], endDate: Option[DateTime])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]]
 
   def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]]

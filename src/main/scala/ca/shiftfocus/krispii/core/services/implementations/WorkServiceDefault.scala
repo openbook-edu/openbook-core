@@ -62,6 +62,7 @@ class WorkServiceDefault(val db: DB,
     yield workList
   }
 
+  //TODO - get Document revisions in case of LongAnswer and ShortAnswer
   /**
    * List all of a user's work revisions for a specific task in a specific course.
    *
@@ -69,16 +70,17 @@ class WorkServiceDefault(val db: DB,
    * @param taskId the unique id of the task to filter by
    * @return a future disjunction containing either a list of work, or a failure
    */
-  override def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]] = {
+  // TODO change  IndexedSeq[Work] on  IndexedSeq[ListWork]
+  override def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Either[DocumentWork, IndexedSeq[Work]]]] = {
     val fUser = authService.find(userId)
     val fTask = projectService.findTask(taskId)
 
     for {
-      user <- lift(fUser)
-      task <- lift(fTask)
-      workList <- lift(workRepository.list(user, task))
+      user   <- lift(fUser)
+      task   <- lift(fTask)
+      result <- lift(workRepository.list(user, task))
     }
-    yield workList
+    yield result
   }
 
   /**
@@ -130,6 +132,8 @@ class WorkServiceDefault(val db: DB,
     yield work
   }
 
+  // --------- Create ---------------------------------------------------------------------------------------------
+
   /**
    * Generic internal work-creating method. This should only be used privately... expose the type-specific
    * methods to the outside world so that we'll have control over exactly how certain types of work
@@ -142,7 +146,7 @@ class WorkServiceDefault(val db: DB,
     workRepository.insert(newWork)
   }
 
-  // Create methods for each work type
+  // --------- Create methods for each work type --------------------------------------------------------------------
 
   /**
    * Create a long-answer work item.
@@ -300,6 +304,8 @@ class WorkServiceDefault(val db: DB,
     }
   }
 
+  // --------- Update ------------------------------------------------------------------------------------------
+
   /**
    * Internal method for updating work.
    *
@@ -325,6 +331,8 @@ class WorkServiceDefault(val db: DB,
       updatedWork <- lift(workRepository.update(newerWork, newRevision))
     } yield updatedWork
   }
+
+  // --------- Update methods for each work type --------------------------------------------------------------------
 
   /**
    * Update a long answer work.

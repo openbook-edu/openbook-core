@@ -22,7 +22,7 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   // Finder methods for work
   def listWork(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]]
   def listWork(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]]
-  def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]]
+  def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Either[DocumentWork, IndexedSeq[Work]]]]
   def findWork(workId: UUID): Future[\/[ErrorUnion#Fail, Work]]
   def findWork(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Work]]
   def findWork(userId: UUID, taskId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Work]]

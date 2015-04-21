@@ -3,8 +3,9 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
+import ca.shiftfocus.krispii.core.models.tasks.Task.Ordering
 import ca.shiftfocus.krispii.core.models.tasks.Task._
-import ca.shiftfocus.krispii.core.models.tasks.{MatchingTask, Task}
+import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
@@ -14,7 +15,9 @@ import org.joda.time.DateTime
 import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
 
-class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends WorkRepository with PostgresRepository[Work] {
+class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
+                             val revisionRepository: RevisionRepository)
+  extends WorkRepository with PostgresRepository[Work] {
 
   override def constructor(row: RowData): Work = {
     row("work_type").asInstanceOf[Int] match {
@@ -103,6 +106,9 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field}).mkString(", ")
   }
+
+  val QMarks  = "?, ?, ?, ?, ?, ?, ?, ?"
+
   val SpecificFields =
     s"""
        |long_answer_work.document_id as la_document_id,
@@ -115,8 +121,6 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
        |matching_work.version as mat_version
      """.stripMargin
 
-  val QMarks  = "?, ?, ?, ?, ?, ?, ?, ?"
-  val OrderBy = s"${Table}.position ASC"
   val Join =
     s"""
       |LEFT JOIN long_answer_work ON $Table.id = long_answer_work.work_id
@@ -126,54 +130,25 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
       |LEFT JOIN matching_work ON $Table.id = matching_work.work_id
      """.stripMargin
 
-  // -- Select queries -----------------------------------------------------------------------------------------------
-
-//  val Fields =
-//    s"""
-//       |work.id as id,
-//       |       work.user_id as user_id,
-//       |       work.task_id as task_id,
-//       |       work.is_complete as is_complete,
-//       |       work.created_at as created_at,
-//       |       work.updated_at as updated_at,
-//       |       work.work_type as work_type,
-//       |       work.version as version,
-//       |       long_answer_work.document_id as long_answer_document_id,
-//       |       short_answer_work.document_id as short_answer_document_id,
-//       |       multiple_choice_work.response as multiple_choice_response,
-//       |       multiple_choice_work.version as multiple_choice_version,
-//       |       ordering_work.response as ordering_response,
-//       |       ordering_work.version as ordering_version,
-//       |       matching_work.response as matching_response,
-//       |       matching_work.version as matching_version
-//     """.stripMargin
-//
-  val Select =
-    s"""
-       |SELECT $CommonFields
-     """.stripMargin
-
-  val From = "FROM work"
-
   val JoinMatchVersion =
     s"""
-       |LEFT JOIN long_answer_work ON work.id = long_answer_work.work_id
-       |LEFT JOIN short_answer_work ON work.id = short_answer_work.work_id
-       |LEFT JOIN multiple_choice_work ON work.id = multiple_choice_work.work_id
-       |  AND work.version = multiple_choice_work.version
-       |LEFT JOIN ordering_work ON work.id = ordering_work.work_id
-       |  AND work.version = ordering_work.version
-       |LEFT JOIN matching_work ON work.id = matching_work.work_id
-       |  AND work.version = matching_work.version
+      |LEFT JOIN long_answer_work ON $Table.id = long_answer_work.work_id
+      |LEFT JOIN short_answer_work ON $Table.id = short_answer_work.work_id
+      |LEFT JOIN multiple_choice_work ON $Table.id = multiple_choice_work.work_id
+      |  AND $Table.version = multiple_choice_work.version
+      |LEFT JOIN ordering_work ON $Table.id = ordering_work.work_id
+      |  AND $Table.version = ordering_work.version
+      |LEFT JOIN matching_work ON $Table.id = matching_work.work_id
+      |  AND $Table.version = matching_work.version
      """.stripMargin
 
   // -- Select queries -----------------------------------------------------------------------------------------------
 
-  val SelectAllForUserProject =
+  val SelectForUserProject =
     s"""
         |SELECT ${CommonFieldsWithTable()}, $SpecificFields
         |FROM $Table
-        |$Join
+        |$JoinMatchVersion
         |INNER JOIN projects
         | ON projects.id = ?
         |INNER JOIN parts
@@ -184,8 +159,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
         | AND $Table.task_id = tasks.id
      """.stripMargin
 
-  // TODO - maybe $Join instead of $JoinMatchVersion
-  val SelectAllForTask =
+  val SelectForTask =
     s"""
         |SELECT ${CommonFieldsWithTable()}, $SpecificFields
         |FROM $Table
@@ -195,7 +169,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
         |WHERE $Table.task_id = tasks.id
      """.stripMargin
 
-  val ListRevisionsById =
+  val SelectAllForUserTask =
     s"""
       |SELECT ${CommonFieldsWithTable()}, $SpecificFields
       |FROM $Table
@@ -204,17 +178,27 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
       | AND $Table.task_id = ?
      """.stripMargin
 
-  val SelectByStudentTask =
+  val FindByStudentTask =
     s"""
        |SELECT ${CommonFieldsWithTable()}, $SpecificFields
-       |$From
+       |FROM $Table
        |$JoinMatchVersion
        |WHERE user_id = ?
        |  AND task_id = ?
        |LIMIT 1
      """.stripMargin
 
-  val SelectById =
+  val FindByStudentTaskVersion =
+    s"""
+       |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+       |FROM $Table
+       |$JoinMatchVersion
+       |WHERE user_id = ?
+       |  AND task_id = ?
+       |LIMIT 1
+     """.stripMargin
+
+  val FindById =
     s"""
       |SELECT ${CommonFieldsWithTable()}, $SpecificFields
       |FROM $Table
@@ -330,7 +314,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
   val Delete =
     s"""
        |DELETE work
-       |$From
+       |FROM $Table
        |$Join
        |WHERE user_id = ?
        |  AND task_id = ?
@@ -339,7 +323,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
   val DeleteRevision =
     s"""
        |DELETE work
-       |$From
+       |FROM $Table
        |$Join
        |WHERE user_id = ?
        |  AND task_id = ?
@@ -349,7 +333,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
   val DeleteAllForTask =
     s"""
        |DELETE work
-       |$From
+       |FROM $Table
        |$Join
        |WHERE task.id = ?
      """.stripMargin
@@ -363,19 +347,70 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
    * @return
    */
   override def list(user: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]] = {
-    queryList(SelectAllForUserProject, Seq[Any](project.id.bytes, user.id.bytes))
+    for {
+      workList <- lift(queryList(SelectForUserProject, Seq[Any](project.id.bytes, user.id.bytes)))
+      result <- lift(serializedT(workList){
+        case longAnswerWork: LongAnswerWork => {
+          for  {
+            document <- lift(documentRepository.find(longAnswerWork.documentId))
+            result = longAnswerWork.copy(response = Some(document))
+          } yield result
+        }
+        case shortAnswerWork: ShortAnswerWork => {
+          for  {
+            document <- lift(documentRepository.find(shortAnswerWork.documentId))
+            result = shortAnswerWork.copy(response = Some(document))
+          } yield result
+        }
+        case otherWorkTypes => lift(Future successful \/.right(otherWorkTypes))
+      })
+    } yield result
   }
 
-  // TODO create separate methods for LongAnswer, ShortAnswer and MultipleChoice, Ordering, Matching
   /**
-   * List latest revisions of a specific work for a user.
+   * List all revisions of a specific work for a user.
    *
    * @param task
    * @param user
    * @return
    */
-  override def list(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]] = {
-    queryList(ListRevisionsById, Seq[Any](user.id.bytes, task.id.bytes))
+  override def list(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Either[DocumentWork, IndexedSeq[Work]]]] = {
+    task match {
+      case longAnswerTask: LongAnswerTask         => listDocumentWork(user, longAnswerTask).map(_.map { documentWork =>  Left(documentWork)})
+      case shortAnswerTask: ShortAnswerTask       => listDocumentWork(user, shortAnswerTask).map(_.map { documentWork =>  Left(documentWork)})
+      case multipleChoiceTask: MultipleChoiceTask => listListWork(user, multipleChoiceTask).map(_.map { listWork =>  Right(listWork)})
+      case orderingTask: OrderingTask             => listListWork(user, orderingTask).map(_.map { listWork =>  Right(listWork)})
+      case matchingTask: MatchingTask             => listListWork(user, matchingTask).map(_.map { listWork =>  Right(listWork)})
+    }
+  }
+
+  private def listDocumentWork(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, DocumentWork]] = {
+   (for {
+      work      <- lift(queryOne(SelectAllForUserTask, Seq[Any](user.id.bytes, task.id.bytes)))
+      result    <- { work match {
+        case longAnswerWork: LongAnswerWork => {
+          val res: Future[\/[RepositoryError.Fail, DocumentWork]] = for {
+            document  <- lift(documentRepository.find(longAnswerWork.documentId))
+            revisions <- lift(revisionRepository.list(document, toVersion = document.version))
+            result = longAnswerWork.copy(response = Some(document.copy(revisions = revisions)))
+          } yield result
+          lift(res)
+        }
+        case shortAnswerWork: ShortAnswerWork => {
+          val res: Future[\/[RepositoryError.Fail, DocumentWork]] = for {
+            document  <- lift(documentRepository.find(shortAnswerWork.documentId))
+            revisions <- lift(revisionRepository.list(document, toVersion = document.version))
+            result = shortAnswerWork.copy(response = Some(document.copy(revisions = revisions)))
+          } yield result
+          lift(res)
+        }
+        case _ => lift[DocumentWork](Future.successful(-\/(RepositoryError.NoResults)))
+      }}
+    } yield result).run
+  }
+
+  private def listListWork(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]] = {
+    queryList(SelectAllForUserTask, Seq[Any](user.id.bytes, task.id.bytes))
   }
 
   /**
@@ -385,9 +420,27 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
    * @return
    */
   override def list(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]] = {
-    queryList(SelectAllForTask, Seq[Any](task.id.bytes))
+    for {
+      workList <- lift(queryList(SelectForTask, Seq[Any](task.id.bytes)))
+      result <- lift(serializedT(workList){
+        case longAnswerWork: LongAnswerWork => {
+          for  {
+            document <- lift(documentRepository.find(longAnswerWork.documentId))
+            result = longAnswerWork.copy(response = Some(document))
+          } yield result
+        }
+        case shortAnswerWork: ShortAnswerWork => {
+          for  {
+            document <- lift(documentRepository.find(shortAnswerWork.documentId))
+            result = shortAnswerWork.copy(response = Some(document))
+          } yield result
+        }
+        case otherWorkTypes => lift(Future successful \/.right(otherWorkTypes))
+      })
+    } yield result
   }
 
+  // TODO add version
   /**
    * Find the latest revision of a single work.
    *
@@ -395,7 +448,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
    * @return
    */
   override def find(workId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    queryOne(SelectById, Seq[Any](workId.bytes)).flatMap {
+    queryOne(FindById, Seq[Any](workId.bytes)).flatMap {
       case \/-(work: LongAnswerWork) => documentRepository.find(work.documentId).map {
         case \/-(document) => \/.right(work.copy(response = Some(document)))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
@@ -416,13 +469,21 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
    * @return
    */
   override def find(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    queryOne(SelectByStudentTask, Seq[Any](user.id.bytes, task.id.bytes)).flatMap {
+    queryOne(FindByStudentTask, Seq[Any](user.id.bytes, task.id.bytes)).flatMap {
       case \/-(work: LongAnswerWork) => documentRepository.find(work.documentId).map {
-        case \/-(document) => \/.right(work.copy(response = Some(document)))
+        case \/-(document) => \/.right(work.copy(
+          // TODO - versions should match, DocumentService.push should update a Work version also
+          version = document.version,
+          response = Some(document)
+        ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
       case \/-(work: ShortAnswerWork) => documentRepository.find(work.documentId).map {
-        case \/-(document) => \/.right(work.copy(response = Some(document)))
+        case \/-(document) => \/.right(work.copy(
+          // TODO - versions should match, DocumentService.push should update a Work version also
+          version = document.version,
+          response = Some(document)
+        ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
       case otherWorkTypes => Future successful otherWorkTypes
@@ -437,12 +498,12 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
    * @return
    */
   override def find(user: User, task: Task, version: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    queryOne(SelectByStudentTask, Seq[Any](user.id.bytes, task.id.bytes, version)).flatMap {
-      case \/-(work: LongAnswerWork) => documentRepository.find(work.documentId).map {
+    queryOne(FindByStudentTaskVersion, Seq[Any](user.id.bytes, task.id.bytes, version)).flatMap {
+      case \/-(work: LongAnswerWork) => documentRepository.find(work.documentId, version).map {
         case \/-(document) => \/.right(work.copy(response = Some(document)))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
-      case \/-(work: ShortAnswerWork) => documentRepository.find(work.documentId).map {
+      case \/-(work: ShortAnswerWork) => documentRepository.find(work.documentId, version).map {
         case \/-(document) => \/.right(work.copy(response = Some(document)))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }

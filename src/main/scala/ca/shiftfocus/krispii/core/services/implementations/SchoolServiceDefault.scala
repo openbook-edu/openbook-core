@@ -83,7 +83,7 @@ class SchoolServiceDefault(val db: DB,
    * @param name the name of this course
    * @return the newly created [[Course]]
    */
-  override def createCourse(teacherId: UUID, name: String, color: Color): Future[\/[ErrorUnion#Fail, Course]] = {
+  override def createCourse(teacherId: UUID, name: String, color: Color, slug: String): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
       for {
         teacher <- lift(authService.find(teacherId))
@@ -91,7 +91,8 @@ class SchoolServiceDefault(val db: DB,
         newCourse = Course(
           teacherId = teacher.id,
           name = name,
-          color = color
+          color = color,
+          slug  = slug
         )
         createdCourse <- lift(courseRepository.insert(newCourse))
       }

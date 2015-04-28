@@ -186,6 +186,7 @@ object TestValues {
     teacherId = testUserA.id,
     name = "test course A",
     color = new Color(24, 6, 8),
+    slug  = "test course A slug",
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -196,6 +197,7 @@ object TestValues {
     teacherId = testUserB.id,
     name = "test course B",
     color = new Color(34, 8, 16),
+    slug  = "test course B slug",
     createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -207,7 +209,8 @@ object TestValues {
     id = UUID("7cf524fa-aa7f-4bfe-93d7-8cd7787fd030"),
     teacherId = testUserA.id,
     name = "unexisting course C",
-    color = new Color(24, 6, 8)
+    color = new Color(24, 6, 8),
+    slug  = "test course C slug"
   )
 
   val testCourseD = Course(
@@ -216,6 +219,7 @@ object TestValues {
     teacherId = testUserF.id,
     name = "test course D",
     color = new Color(4, 28, 56),
+    slug  = "test course D slug",
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -227,7 +231,8 @@ object TestValues {
     id = UUID("d0b05b14-4a5f-4727-ac43-bd8671aab53c"),
     teacherId = testUserA.id,
     name = "unexisting course E",
-    color = new Color(45, 10, 15)
+    color = new Color(45, 10, 15),
+    slug  = "test course E slug"
   )
 
   val testCourseF = Course(
@@ -236,6 +241,7 @@ object TestValues {
     teacherId = testUserF.id,
     name = "test course F",
     color = new Color(4, 28, 56),
+    slug  = "test course F slug",
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -249,6 +255,7 @@ object TestValues {
     teacherId = testUserF.id,
     name = "test course G",
     color = new Color(23, 6, 45),
+    slug  = "test course G slug",
     createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -266,7 +273,9 @@ object TestValues {
       dependencyId = None,
       title = "test longAnswerTask A",
       description = "test longAnswerTask A description",
-      notesAllowed = true
+      notesAllowed = true,
+      notesTitle = Some("test longAnswerTaskA notes title"),
+      responseTitle = Some("test longAnswerTask A response title")
     ),
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -282,7 +291,9 @@ object TestValues {
       dependencyId = None,
       title = "test longAnswerTask F",
       description = "test longAnswerTask F description",
-      notesAllowed = false
+      notesAllowed = false,
+      notesTitle = Some("test longAnswerTask F notes title"),
+      responseTitle = Some("test longAnswerTask F response title")
     ),
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -298,7 +309,9 @@ object TestValues {
       dependencyId = Option(testLongAnswerTaskA.id),
       title = "test shortAnswerTask B",
       description = "test shortAnswerTask B description",
-      notesAllowed = true
+      notesAllowed = true,
+      notesTitle = Some("test shortAnswerTask B notes title"),
+      responseTitle = Some("test shortAnswerTask B response title")
     ),
     maxLength = 51,
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -315,7 +328,9 @@ object TestValues {
       dependencyId = Option(testLongAnswerTaskA.id),
       title = "test shortAnswerTask G",
       description = "test shortAnswerTask G description",
-      notesAllowed = false
+      notesAllowed = false,
+      notesTitle = Some("test shortAnswerTask G notes title"),
+      responseTitle = Some("test shortAnswerTask G response title")
     ),
     maxLength = 52,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -332,7 +347,9 @@ object TestValues {
       dependencyId = Option(testLongAnswerTaskA.id),
       title = "test MultipleChoiceTask C",
       description = "test MultipleChoiceTask C description",
-      notesAllowed = true
+      notesAllowed = true,
+      notesTitle = Some("test MultipleChoiceTask C notes title"),
+      responseTitle = Some("test MultipleChoiceTask C response title")
     ),
     choices = Vector("choice 1", "choice 2"),
     answers  = Vector(1, 2),
@@ -352,7 +369,9 @@ object TestValues {
       dependencyId = Option(testLongAnswerTaskA.id),
       title = "test MultipleChoiceTask H",
       description = "test MultipleChoiceTask H description",
-      notesAllowed = true
+      notesAllowed = true,
+      notesTitle = Some("test MultipleChoiceTask H notes title"),
+      responseTitle = Some("test MultipleChoiceTask H response title")
     ),
     choices = Vector("choice 3", "choice 4"),
     answers  = Vector(3, 4),
@@ -372,7 +391,9 @@ object TestValues {
       dependencyId = Option(testLongAnswerTaskA.id),
       title = "test OrderingTask D",
       description = "test OrderingTask D description",
-      notesAllowed = true
+      notesAllowed = true,
+      notesTitle = Some("test OrderingTask D notes title"),
+      responseTitle = Some("test OrderingTask D response title")
     ),
     elements = Vector("element 3", "element 4"),
     answers  = Vector(3, 4),
@@ -390,7 +411,9 @@ object TestValues {
       dependencyId = Option(testLongAnswerTaskA.id),
       title = "test OrderingTask L",
       description = "test OrderingTask L description",
-      notesAllowed = true
+      notesAllowed = true,
+      notesTitle = Some("test OrderingTask L notes title"),
+      responseTitle = Some("test OrderingTask L response title")
     ),
     elements = Vector("element 5", "element 6"),
     answers  = Vector(5, 6),
@@ -408,7 +431,9 @@ object TestValues {
       dependencyId = Option(testLongAnswerTaskA.id),
       title = "test OrderingTask N",
       description = "test OrderingTask N description",
-      notesAllowed = true
+      notesAllowed = true,
+      notesTitle = Some("test OrderingTask N notes title"),
+      responseTitle = Some("test OrderingTask N response title")
     ),
     elements = Vector("element 6", "element 7"),
     answers  = Vector(6, 7),
@@ -427,7 +452,9 @@ object TestValues {
       dependencyId = Option(testLongAnswerTaskA.id),
       title = "test OrderingTask I",
       description = "test OrderingTask I description",
-      notesAllowed = false
+      notesAllowed = false,
+      notesTitle = Some("test OrderingTask I notes title"),
+      responseTitle = Some("test OrderingTask I response title")
     ),
     elements = Vector("element 5", "element 6"),
     answers  = Vector(5, 6),
@@ -446,7 +473,9 @@ object TestValues {
       dependencyId = Option(testLongAnswerTaskA.id),
       title = "test MatchingTask E",
       description = "test MatchingTask E description",
-      notesAllowed = true
+      notesAllowed = true,
+      notesTitle = Some("test MatchingTask E notes title"),
+      responseTitle = Some("test MatchingTask E response title")
     ),
     elementsLeft = Vector("choice left 5", "choice left 6"),
     elementsRight = Vector("choice right 7", "choice right 8"),
@@ -466,7 +495,9 @@ object TestValues {
       dependencyId = Option(testLongAnswerTaskA.id),
       title = "test MatchingTask J",
       description = "test MatchingTask J description",
-      notesAllowed = false
+      notesAllowed = false,
+      notesTitle = Some("test MatchingTask J notes title"),
+      responseTitle = Some("test MatchingTask J response title")
     ),
     elementsLeft = Vector("choice left 6", "choice left 7"),
     elementsRight = Vector("choice right 8", "choice right 9"),
@@ -485,7 +516,9 @@ object TestValues {
       dependencyId = Option(testLongAnswerTaskA.id),
       title = "test MatchingTask K",
       description = "test MatchingTask K description",
-      notesAllowed = true
+      notesAllowed = true,
+      notesTitle = Some("test MatchingTask K notes title"),
+      responseTitle = Some("test MatchingTask K response title")
     ),
     elementsLeft = Vector("choice left 6", "choice left 7"),
     elementsRight = Vector("choice right 8", "choice right 9"),
@@ -504,7 +537,9 @@ object TestValues {
       dependencyId = Option(testLongAnswerTaskA.id),
       title = "test MatchingTask M",
       description = "test MatchingTask M description",
-      notesAllowed = true
+      notesAllowed = true,
+      notesTitle = Some("test MatchingTask M notes title"),
+      responseTitle = Some("test MatchingTask M response title")
     ),
     elementsLeft = Vector("choice left 7", "choice left 8"),
     elementsRight = Vector("choice right 9", "choice right 10"),

@@ -13,6 +13,7 @@ case class Course(
   teacherId: UUID,
   name: String,
   color: Color,
+  slug: String,
   projects: Option[IndexedSeq[Project]] = None,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
@@ -49,6 +50,7 @@ object Course {
     (__ \ "teacherId").write[UUID] and
     (__ \ "name").write[String] and
     (__ \ "color").write[Color] and
+    (__ \ "slug").write[String] and
     (__ \ "projects").writeNullable[IndexedSeq[Project]] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
@@ -56,30 +58,37 @@ object Course {
 
 }
 
+
 case class CoursePost(
-  teacherId: Option[UUID],
-  projectIds: Option[IndexedSeq[UUID]],
-  name: String
+  teacherId: UUID,
+  name: String,
+  color: Color,
+  slug: String
 )
 object CoursePost {
+  implicit val colorReads = Course.colorReads
   implicit val coursePutReads = (
-    (__ \ "teacherId").readNullable[UUID] and
-    (__ \ "projectIds").readNullable[IndexedSeq[UUID]] and
-    (__ \ "name").read[String]
+    (__ \ "teacherId").read[UUID] and
+    (__ \ "name").read[String] and
+    (__ \ "color").read[Color] and
+    (__ \ "slug").read[String]
   )(CoursePost.apply _)
 }
 
 case class CoursePut(
   version: Long,
   teacherId: Option[UUID],
-  projectIds: Option[IndexedSeq[UUID]],
-  name: String
+  name: Option[String],
+  color: Option[Color],
+  slug: Option[String]
 )
 object CoursePut {
+  implicit val colorReads = Course.colorReads
   implicit val coursePutReads = (
     (__ \ "version").read[Long] and
     (__ \ "teacherId").readNullable[UUID] and
-    (__ \ "projectIds").readNullable[IndexedSeq[UUID]] and
-    (__ \ "name").read[String]
+    (__ \ "name").readNullable[String] and
+    (__ \ "color").readNullable[Color] and
+    (__ \ "slug").readNullable[String]
   )(CoursePut.apply _)
 }

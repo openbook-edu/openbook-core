@@ -35,7 +35,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   // -- Common query components --------------------------------------------------------------------------------------
 
   val Table                 = "tasks"
-  val CommonFields          = "id, version, created_at, updated_at, part_id, dependency_id, name, description, position, notes_allowed, task_type"
+  val CommonFields          = "id, version, created_at, updated_at, part_id, dependency_id, name, description, position, notes_allowed, response_title, notes_title, task_type"
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field}).mkString(", ")
   }
@@ -55,7 +55,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |  matching_Tasks.randomize as mat_randomize
      """.stripMargin
 
-  val QMarks  = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks  = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.position ASC"
   val Join =
     s"""
@@ -257,6 +257,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |SET part_id = ?, dependency_id = ?,
        |    name = ?, description = ?,
        |    position = ?, notes_allowed = ?,
+       |    response_title = ?, notes_title = ?,
        |    version = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
@@ -456,7 +457,9 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.settings.title,
       task.settings.description,
       task.position,
-      task.settings.notesAllowed
+      task.settings.notesAllowed,
+      task.settings.responseTitle,
+      task.settings.notesTitle
     )
 
     // Prepare the additional data to be sent depending on the type of task
@@ -520,6 +523,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.settings.description,
       task.position,
       task.settings.notesAllowed,
+      task.settings.responseTitle,
+      task.settings.notesTitle,
       task.version +1,
       new DateTime,
       task.id.bytes, task.version

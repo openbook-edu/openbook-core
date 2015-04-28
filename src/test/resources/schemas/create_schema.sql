@@ -31,6 +31,7 @@ CREATE TABLE courses (
   teacher_id bytea NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   name text,
   color integer,
+  slug text,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
@@ -139,6 +140,8 @@ CREATE TABLE tasks (
   position int,
   task_type int,
   notes_allowed boolean DEFAULT true,
+  response_title text,
+  notes_title text,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );

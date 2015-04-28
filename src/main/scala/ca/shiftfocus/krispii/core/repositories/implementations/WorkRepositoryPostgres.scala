@@ -442,15 +442,20 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
    * @return
    */
   private def listListWork(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]] = {
-    val result = (for {
+    (for {
       workList <- lift(queryList(SelectAllForUserTask, Seq[Any](user.id.bytes, task.id.bytes)))
       result   <- lift(Future.successful(workList match {
-        case intListWorkList: IndexedSeq[IntListWork] => \/.right(intListWorkList)
-        case matchListWorkList: IndexedSeq[MatchListWork] => \/.right(matchListWorkList)
+        case intListWorkList: IndexedSeq[IntListWork] => {
+          println(Console.GREEN + "Goes here" + Console.RESET)
+          \/.right(intListWorkList)
+        }
+        case matchListWorkList: IndexedSeq[MatchListWork] => {
+          println(Console.GREEN + "Goes there" + Console.RESET)
+          \/.right(matchListWorkList)
+        }
         case _ => \/.left(RepositoryError.NoResults)
       }))
     } yield result).run
-    result
   }
 
   /**

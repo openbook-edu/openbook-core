@@ -245,4 +245,23 @@ class ScheduleServiceDefault(val db: DB,
       projectScheduled <- lift(courseScheduleRepository.isProjectScheduledForUser(project, user, currentDay, currentTime))
     } yield projectScheduled
   }
+
+  /**
+   *
+   * @param projectId
+   * @param userId
+   * @param currentDay
+   * @param currentTime
+   * @return
+   */
+  override def isProjectScheduledForUser(projectId: UUID, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
+    val fProject = projectService.find(projectId)
+    val fUser = authService.find(userId)
+
+    for {
+      project <- lift(fProject)
+      user <- lift(fUser)
+      projectScheduled <- lift(courseScheduleRepository.isProjectScheduledForUser(project, user, currentDay, currentTime))
+    } yield projectScheduled
+  }
 }

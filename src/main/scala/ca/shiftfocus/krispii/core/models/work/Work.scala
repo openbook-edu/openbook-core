@@ -58,7 +58,24 @@ object Work {
 sealed trait DocumentWork extends Work {
   val documentId: UUID
   val response: Option[Document]
+
+  def copy(id: UUID = this.id,
+           studentId: UUID = this.studentId,
+           taskId: UUID = this.taskId,
+           documentId: UUID = this.documentId,
+           version: Long = this.version,
+           response: Option[Document] = this.response,
+           isComplete: Boolean = this.isComplete,
+           createdAt: DateTime = this.createdAt,
+           updatedAt: DateTime = this.updatedAt
+  ) = {
+    this match {
+      case longAnswerWork: LongAnswerWork   => LongAnswerWork(id, studentId, taskId, documentId, version, response, isComplete, createdAt, updatedAt)
+      case shortAnswerWork: ShortAnswerWork => ShortAnswerWork(id, studentId, taskId, documentId, version, response, isComplete, createdAt, updatedAt)
+    }
+  }
 }
+
 
 case class LongAnswerWork(
   id: UUID = UUID.random,

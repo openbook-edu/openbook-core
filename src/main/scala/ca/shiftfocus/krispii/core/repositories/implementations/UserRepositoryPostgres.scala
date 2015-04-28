@@ -20,38 +20,39 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
 
   override def constructor(row: RowData): User = {
     User(
-      id           = UUID(row("id").asInstanceOf[Array[Byte]]),
-      version      = row("version").asInstanceOf[Long],
-      email        = row("email").asInstanceOf[String],
-      username     = row("username").asInstanceOf[String],
-      hash = Option(row("password_hash")) match {
-        case Some(cell) => Some(cell.asInstanceOf[String])
-        case None => None
+      id         = UUID(row("id").asInstanceOf[Array[Byte]]),
+      version    = row("version").asInstanceOf[Long],
+      email      = row("email").asInstanceOf[String],
+      username   = row("username").asInstanceOf[String],
+      hash       = row.exists(_ == "password_hash") match {
+        case true  => Some(row("password_hash").asInstanceOf[String])
+        case false => None
       },
-      givenname    = row("givenname").asInstanceOf[String],
-      surname      = row("surname").asInstanceOf[String],
-      createdAt    = row("created_at").asInstanceOf[DateTime],
-      updatedAt    = row("updated_at").asInstanceOf[DateTime]
+      givenname  = row("givenname").asInstanceOf[String],
+      surname    = row("surname").asInstanceOf[String],
+      createdAt  = row("created_at").asInstanceOf[DateTime],
+      updatedAt  = row("updated_at").asInstanceOf[DateTime]
     )
   }
 
-  val Table           = "users"
-  val Fields          = "id, version, created_at, updated_at, username, email, password_hash, givenname, surname"
-  val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field}).mkString(", ")
-  val QMarks          = "?, ?, ?, ?, ?, ?, ?, ?, ?"
-  val OrderBy         = s"${Table}.surname ASC, ${Table}.givenname ASC"
+  val Table             = "users"
+  val Fields            = "id, version, created_at, updated_at, username, email, password_hash, givenname, surname"
+  val FieldsWithTable   = Fields.split(", ").map({ field => s"${Table}." + field}).mkString(", ")
+  val FieldsWithoutHash = Fields.replace("password_hash,", "")
+  val QMarks            = "?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val OrderBy           = s"${Table}.surname ASC, ${Table}.givenname ASC"
 
   // User CRUD operations
   val SelectAll =
     s"""
-       |SELECT $Fields
+       |SELECT $FieldsWithoutHash
        |FROM $Table
        |ORDER BY $OrderBy
      """.stripMargin
 
   val SelectOne =
     s"""
-       |SELECT $Fields
+       |SELECT $FieldsWithoutHash
        |FROM $Table
        |WHERE id = ?
        |LIMIT 1
@@ -98,12 +99,12 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |DELETE FROM $Table
        |WHERE id = ?
        |  AND version = ?
-       |RETURNING $Fields
+       |RETURNING $FieldsWithoutHash
      """.stripMargin
 
   val SelectOneByIdentifier =
     s"""
-       |SELECT $Fields
+       |SELECT ${Fields.replace("password_hash,", "")}
        |FROM $Table
        |WHERE (email = ? OR username = ?)
        |LIMIT 1
@@ -192,7 +193,6 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
     queryOne(SelectOneByIdentifier, Seq[Any](identifier, identifier))
   }
 
-  // TODO user.hash or user.hash.get?
   /**
    * Save a new User.
    *

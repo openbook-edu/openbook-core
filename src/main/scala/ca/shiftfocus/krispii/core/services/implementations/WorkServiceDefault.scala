@@ -2,6 +2,7 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.models.tasks.MatchingTask
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.repositories._
@@ -42,8 +43,7 @@ class WorkServiceDefault(val db: DB,
       user <- lift(fUser)
       project <- lift(fProject)
       workList <- lift(workRepository.list(user, project))
-    }
-    yield workList
+    } yield workList
   }
 
   /**
@@ -62,7 +62,6 @@ class WorkServiceDefault(val db: DB,
     yield workList
   }
 
-  //TODO - get Document revisions in case of LongAnswer and ShortAnswer
   /**
    * List all of a user's work revisions for a specific task in a specific course.
    *
@@ -70,8 +69,7 @@ class WorkServiceDefault(val db: DB,
    * @param taskId the unique id of the task to filter by
    * @return a future disjunction containing either a list of work, or a failure
    */
-  // TODO change  IndexedSeq[Work] on  IndexedSeq[ListWork]
-  override def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Either[DocumentWork, IndexedSeq[Work]]]] = {
+  override def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Either[DocumentWork, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]]] = {
     val fUser = authService.find(userId)
     val fTask = projectService.findTask(taskId)
 
@@ -79,8 +77,7 @@ class WorkServiceDefault(val db: DB,
       user   <- lift(fUser)
       task   <- lift(fTask)
       result <- lift(workRepository.list(user, task))
-    }
-    yield result
+    } yield result
   }
 
   /**
@@ -108,8 +105,7 @@ class WorkServiceDefault(val db: DB,
       user <- lift(fUser)
       task <- lift(fTask)
       work <- lift(workRepository.find(user, task))
-    }
-    yield work
+    } yield work
   }
 
   /**
@@ -128,8 +124,7 @@ class WorkServiceDefault(val db: DB,
       user <- lift(fUser)
       task <- lift(fTask)
       work <- lift(workRepository.find(user, task, version))
-    }
-    yield work
+    } yield work
   }
 
   // --------- Create ---------------------------------------------------------------------------------------------
@@ -148,6 +143,7 @@ class WorkServiceDefault(val db: DB,
 
   // --------- Create methods for each work type --------------------------------------------------------------------
 
+  // TODO - verify if user already has work for this task
   /**
    * Create a long-answer work item.
    *
@@ -219,7 +215,7 @@ class WorkServiceDefault(val db: DB,
    * @param isComplete whether the student is finished with the task
    * @return the newly created work
    */
-  override def createMultipleChoiceWork(userId: UUID, taskId: UUID, response: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]] = {
+  override def createMultipleChoiceWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -232,7 +228,7 @@ class WorkServiceDefault(val db: DB,
           studentId = userId,
           taskId = taskId,
           version = 1,
-          response = response,
+          response = IndexedSeq.empty[Int],
           isComplete = isComplete
         )
         work <- lift(workRepository.insert(newWork))
@@ -251,7 +247,7 @@ class WorkServiceDefault(val db: DB,
    * @param isComplete whether the student is finished with the task
    * @return the newly created work
    */
-  override def createOrderingWork(userId: UUID, taskId: UUID, response: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]] = {
+  override def createOrderingWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -264,7 +260,7 @@ class WorkServiceDefault(val db: DB,
           studentId = userId,
           taskId = taskId,
           version = 1,
-          response = response,
+          response = IndexedSeq.empty[Int],
           isComplete = isComplete
         )
         work <- lift(workRepository.insert(newWork))
@@ -283,7 +279,7 @@ class WorkServiceDefault(val db: DB,
    * @param isComplete whether the student is finished with the task
    * @return the newly created work
    */
-  override def createMatchingWork(userId: UUID, taskId: UUID, response: IndexedSeq[Match], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]] = {
+  override def createMatchingWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -296,7 +292,7 @@ class WorkServiceDefault(val db: DB,
           studentId = userId,
           taskId = taskId,
           version = 1,
-          response = response,
+          response = IndexedSeq.empty[Match],
           isComplete = isComplete
         )
         work <- lift(workRepository.insert(newWork))

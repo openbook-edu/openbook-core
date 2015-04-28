@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.models.tasks.MatchingTask
 import ca.shiftfocus.krispii.core.repositories.{ComponentScratchpadRepository, TaskScratchpadRepository, TaskFeedbackRepository, WorkRepository}
 import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models._
@@ -22,7 +23,7 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   // Finder methods for work
   def listWork(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]]
   def listWork(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]]
-  def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Either[DocumentWork, IndexedSeq[Work]]]]
+  def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Either[DocumentWork, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]]]
   def findWork(workId: UUID): Future[\/[ErrorUnion#Fail, Work]]
   def findWork(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Work]]
   def findWork(userId: UUID, taskId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Work]]
@@ -33,9 +34,9 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   def createShortAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, ShortAnswerWork]]
 
   // Create methods for the other work types
-  def createMultipleChoiceWork(userId: UUID, taskId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]]
-  def createOrderingWork(userId: UUID, taskId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]]
-  def createMatchingWork(userId: UUID, taskId: UUID, answer: IndexedSeq[Match], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]]
+  def createMultipleChoiceWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]]
+  def createOrderingWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]]
+  def createMatchingWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]]
 
 
   // Update methods for the textual work types

@@ -274,6 +274,7 @@ CREATE TABLE multiple_choice_work (
   work_id bytea REFERENCES work(id) ON DELETE CASCADE,
   version bigint,
   response int[],
+  created_at timestamp with time zone,
   PRIMARY KEY (work_id, version)
 );
 
@@ -281,6 +282,7 @@ CREATE TABLE ordering_work (
   work_id bytea REFERENCES work(id) ON DELETE CASCADE,
   version bigint,
   response int[],
+  created_at timestamp with time zone,
   PRIMARY KEY (work_id, version)
 );
 
@@ -288,6 +290,7 @@ CREATE TABLE matching_work (
   work_id bytea REFERENCES work(id) ON DELETE CASCADE,
   version bigint,
   response int[][2],
+  created_at timestamp with time zone,
   PRIMARY KEY (work_id, version)
 );
 

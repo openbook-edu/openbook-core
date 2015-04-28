@@ -43,7 +43,7 @@ class DocumentServiceSpec
         // If Revisions are not found then these too are equal
         val transformedDelta = pushedDelta
 
-        val testDocument = TestValues.testDocumentA
+        val testDocument = TestValues.testDocumentA.copy(delta = Delta(IndexedSeq.empty[Operation]))
         val updatedDocument = testDocument.copy(delta = expectedDelta)
         val testAuthor = TestValues.testUserC
 

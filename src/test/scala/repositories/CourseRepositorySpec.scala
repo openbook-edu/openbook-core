@@ -162,6 +162,7 @@ class CourseRepositorySpec
              TestValues.testCourseB
            ),
            testStudentList(1).id -> Vector(
+             TestValues.testCourseA,
              TestValues.testCourseB
            )
          )
@@ -243,7 +244,7 @@ class CourseRepositorySpec
      inSequence {
        "add user to a course" in {
          val testUser = TestValues.testUserE
-         val testCourse = TestValues.testCourseA
+         val testCourse = TestValues.testCourseF
 
          val result = courseRepository.addUser(testUser, testCourse)
          Await.result(result, Duration.Inf) should be(\/-( () ))
@@ -316,7 +317,7 @@ class CourseRepositorySpec
        }
        "be FALSE if user doesn't have access to this project through any of his courses" in {
          val testProject = TestValues.testProjectA
-         val testUser    = TestValues.testUserE
+         val testUser    = TestValues.testUserG
 
          val result = courseRepository.hasProject(testUser, testProject)
          Await.result(result, Duration.Inf) should be(\/-(false))

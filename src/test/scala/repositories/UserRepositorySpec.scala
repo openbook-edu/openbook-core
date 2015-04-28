@@ -175,7 +175,7 @@ class UserRepositorySpec
   "UserRepository.find" should {
     inSequence {
       "find a user by ID" in {
-        val testUser = TestValues.testUserA
+        val testUser = TestValues.testUserA.copy(hash = None)
 
         val result = userRepository.find(testUser.id)
         val eitherUser = Await.result(result, Duration.Inf)
@@ -198,7 +198,7 @@ class UserRepositorySpec
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
       "find a user by their identifier - email" in {
-        val testUser = TestValues.testUserA
+        val testUser = TestValues.testUserA.copy(hash = None)
 
         val result = userRepository.find(testUser.email)
         val eitherUser = Await.result(result, Duration.Inf)
@@ -215,7 +215,7 @@ class UserRepositorySpec
         user.updatedAt.toString() should be (testUser.updatedAt.toString())
       }
       "find a user by their identifier - username" in {
-        val testUser = TestValues.testUserB
+        val testUser = TestValues.testUserB.copy(hash = None)
 
         val result = userRepository.find(testUser.username)
         val eitherUser = Await.result(result, Duration.Inf)
@@ -358,6 +358,21 @@ class UserRepositorySpec
         user.givenname should be(testUser.givenname)
         user.surname should be(testUser.surname)
       }
+      "save a new User with empty Password Hash" in {
+        val testUser = TestValues.testUserD.copy(hash = None)
+
+        val result = userRepository.insert(testUser)
+        val eitherUser = Await.result(result, Duration.Inf)
+        val \/-(user) = eitherUser
+
+        user.id should be(testUser.id)
+        user.version should be(testUser.version)
+        user.email should be(testUser.email)
+        user.username should be(testUser.username)
+        user.hash should be(None)
+        user.givenname should be(testUser.givenname)
+        user.surname should be(testUser.surname)
+      }
       "reutrn RepositoryError.PrimaryKeyConflict if user already exists" in {
         val testUser = TestValues.testUserA
 
@@ -386,7 +401,7 @@ class UserRepositorySpec
   "UserRepository.delete" should {
     inSequence {
       "delete a user from the database if user has no references in other tables" in {
-        val testUser = TestValues.testUserH
+        val testUser = TestValues.testUserH.copy(hash = None)
 
         val result = userRepository.delete(testUser)
         val eitherUser = Await.result(result, Duration.Inf)

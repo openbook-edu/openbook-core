@@ -274,7 +274,7 @@ object TestValues {
       title = "test longAnswerTask A",
       description = "test longAnswerTask A description",
       notesAllowed = true,
-      notesTitle = Some("test longAnswerTaskA notes title"),
+      notesTitle = Some("test longAnswerTask A notes title"),
       responseTitle = Some("test longAnswerTask A response title")
     ),
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -598,6 +598,19 @@ object TestValues {
     ownerId = testUserC.id,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* No data in DB */
+  val testDocumentE = Document(
+    id = UUID("41d47dd9-e550-4942-af74-962ec26a0995"),
+    version = 1L,
+    title = "testDocumentE title",
+    delta = Delta(IndexedSeq(
+      InsertText("Hello Bruno")
+    )),
+    ownerId = testUserC.id,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
 

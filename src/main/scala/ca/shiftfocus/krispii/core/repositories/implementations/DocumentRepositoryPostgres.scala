@@ -38,53 +38,38 @@ class DocumentRepositoryPostgres (val revisionRepository: RevisionRepository)
       delta     = Json.parse(row("delta").asInstanceOf[String]).as[Delta],
       ownerId   = UUID(row("owner_id").asInstanceOf[Array[Byte]]),
       createdAt = row("created_at").asInstanceOf[DateTime],
-      updatedAt = row("created_at").asInstanceOf[DateTime]
+      updatedAt = row("updated_at").asInstanceOf[DateTime]
     )
   }
 
-  val SelectDocument =
-    s"""
-       |SELECT id, version, title, delta, owner_id, created_at, updated_at
-     """.stripMargin
+  val Table  = "documents"
+  val Fields = "id, version, title, delta, owner_id, created_at, updated_at"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?"
 
-  val FromDocuments =
-    s"""
-       |FROM documents
-     """.stripMargin
-
-  val ReturningDocument =
-    s"""
-       |RETURNING id, version, title, delta, owner_id, created_at, updated_at
-     """.stripMargin
-
-  // ----
 
   val FindDocument =
     s"""
-       |$SelectDocument
-
-        |$FromDocuments
-
-        |WHERE documents.id = ?
+       |SELECT $Fields
+       |FROM $Table
+       |WHERE id = ?
      """.stripMargin
 
   val CreateDocument =
     s"""
-       |INSERT INTO documents (id, version, title, delta, owner_id, created_at, updated_at)
-       |VALUES (?, 0, ?, ?, ?, ?, ?)
-       |$ReturningDocument
+       |INSERT INTO $Table ($Fields)
+       |VALUES ($QMarks)
+       |RETURNING $Fields
      """.stripMargin
 
   val UpdateDocument =
     s"""
-       |UPDATE documents
+       |UPDATE $Table
        |SET version = ?, title = ?, delta = ?, owner_id = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
-       |$ReturningDocument
+       |RETURNING $Fields
      """.stripMargin
 
-  // ----l
 
   /**
    * Find an individual document.
@@ -135,14 +120,14 @@ class DocumentRepositoryPostgres (val revisionRepository: RevisionRepository)
    */
   override def insert(document: Document)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Document]] = {
     queryOne(CreateDocument, Seq[Any](
-      document.id.bytes, document.title, Json.toJson(document.delta).toString(), document.ownerId.bytes, new DateTime, new DateTime
+      document.id.bytes, 1, document.title, Json.toJson(document.delta).toString(), document.ownerId.bytes, new DateTime, new DateTime
     ))
   }
 
   /**
    * Update an existing document.
    *
-   * Do not call this function to update the document's text unless you know what you're doing! The latest_text
+   * Do not call this function to update the document's delta unless you know what you're doing! The delta
    * field stores exactly that... a snapshot of the latest document text. That snapshot should be constructed
    * from the revision history stored in the revisions table.
    */

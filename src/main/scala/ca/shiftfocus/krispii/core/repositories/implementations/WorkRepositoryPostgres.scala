@@ -445,13 +445,12 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
     (for {
       workList <- lift(queryList(SelectAllForUserTask, Seq[Any](user.id.bytes, task.id.bytes)))
       result   <- lift(Future.successful(workList match {
-        case intListWorkList: IndexedSeq[IntListWork] => {
-          println(Console.GREEN + "Goes here" + Console.RESET)
-          \/.right(intListWorkList)
-        }
-        case matchListWorkList: IndexedSeq[MatchListWork] => {
-          println(Console.GREEN + "Goes there" + Console.RESET)
-          \/.right(matchListWorkList)
+        case IndexedSeq(work, rest @ _ *) => {
+          work match {
+            case intListWork: IntListWork => \/.right(IndexedSeq(intListWork) ++ rest.asInstanceOf[IndexedSeq[IntListWork]])
+            case matchListWork: MatchListWork => \/.right(IndexedSeq(matchListWork) ++ rest.asInstanceOf[IndexedSeq[MatchListWork]])
+            case _ => \/.left(RepositoryError.NoResults)
+          }
         }
         case _ => \/.left(RepositoryError.NoResults)
       }))
@@ -630,7 +629,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
 
     if (newRevision) {
       tableName match {
-        case "long_answer_work" | "short_answer_work" => Future successful  \/.left(RepositoryError.BadParam("Adding new Revisions to a DocumentWork should be done in the Document Repository"))
+        case "long_answer_work" | "short_answer_work" => Future successful  \/.left(RepositoryError.BadParam("Adding new Revisions to a DocumentWork should be done in the Document Repository and Revision Repository"))
         case _ => queryOne(UpdateWithNewRevision(tableName), Seq[Any](
           work.version +1,
           work.isComplete,

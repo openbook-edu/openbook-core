@@ -110,7 +110,7 @@ class DocumentServiceDefault(val db: DB,
    *
    * @param id
    * @param title
-   * @param initialDelta
+   * @param initialDelta TODO - can have default value Delta(IndexedSeq.empty[Operation]), if it is not empty it should have record in document_revisions table
    * @return
    */
   override def create(id: UUID = UUID.random, owner: User, title: String, initialDelta: Delta): Future[\/[ErrorUnion#Fail, Document]] = {
@@ -174,6 +174,8 @@ class DocumentServiceDefault(val db: DB,
         // 2. Look for the more recent server operations
         recentRevisions <- lift(revisionRepository.list(document, version))
 
+        // TODO - create method: workRepository.findByDocument to get work
+
         pushResult <- {
           // If there were more recent revisions
           if (recentRevisions.nonEmpty) {
@@ -194,7 +196,7 @@ class DocumentServiceDefault(val db: DB,
               updatedDocument <- lift(documentRepository.update(document.copy(
                 delta = newDelta
               )))
-              // TODO - update Work version also
+              // TODO - update Work version, updated_at also
               // 5. Insert the new revision into the history
               pushedRevision <- lift(revisionRepository.insert(
                 Revision(documentId = document.id,
@@ -214,6 +216,7 @@ class DocumentServiceDefault(val db: DB,
                 delta = newDelta
               )))
 
+              // TODO - update Work version, updated_at also
               // 5. Insert the new revision into the history
               pushedRevision <- lift(revisionRepository.insert(
                 Revision(documentId = document.id,

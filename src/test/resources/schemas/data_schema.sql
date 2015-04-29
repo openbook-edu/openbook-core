@@ -273,19 +273,19 @@ VALUES ('\x129f2b0856d34e14aa5b659f53f71e39', '{choice left 7, choice left 8}', 
 
 /* documentA -> userC */
 INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
-VALUES ('\xfd923b3f6dc2472e8ce77a8fcc6a1a20', 2, '\xf5f984073a0b4ea5952a575886e90586', 'testDocumentA title', null, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+VALUES ('\xfd923b3f6dc2472e8ce77a8fcc6a1a20', 2, '\xf5f984073a0b4ea5952a575886e90586', 'testDocumentA title', '{"ops":[{"insert":"Hello Sam"}]}', '2014-08-01 14:01:19.545-04', '2014-08-03 14:01:19.545-04');
 
 /* documentB -> userE */
 INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
-VALUES ('\x15173757b881444082854e3d2c03616a', 2, '\x871b525067124e548ab60784cae0bc64', 'testDocumentB title', null, '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
+VALUES ('\x15173757b881444082854e3d2c03616a', 2, '\x871b525067124e548ab60784cae0bc64', 'testDocumentB title', '{"ops":[{"insert":"Hello Dean"}]}', '2014-08-03 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
 
 /* documentC -> userE */
 INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
-VALUES ('\x462b7f6c8b624c998643a63b2720b2a7', 2, '\x871b525067124e548ab60784cae0bc64', 'testDocumentC title', null, '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
+VALUES ('\x462b7f6c8b624c998643a63b2720b2a7', 2, '\x871b525067124e548ab60784cae0bc64', 'testDocumentC title', '{"ops":[{"insert":"Hello Jhonatan"}]}', '2014-08-03 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
 
 /* documentD -> userC */
 INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
-VALUES ('\xbd01c98803694ddaada205a9ff3645cf', 2, '\xf5f984073a0b4ea5952a575886e90586', 'testDocumentD title', null, '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
+VALUES ('\xbd01c98803694ddaada205a9ff3645cf', 2, '\xf5f984073a0b4ea5952a575886e90586', 'testDocumentD title', '{"ops":[{"insert":"Hello Morgan"}]}', '2014-08-05 14:01:19.545-04', '2014-08-07 14:01:19.545-04');
 
 
 /* ----------------------- WORK ---------------------- */

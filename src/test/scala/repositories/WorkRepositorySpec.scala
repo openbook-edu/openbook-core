@@ -27,9 +27,9 @@ class WorkRepositorySpec
         val testProject = TestValues.testProjectA
 
         val testWorkList = TreeMap[Int, Work](
-          0 -> TestValues.testLongAnswerWorkA,
-          1 -> TestValues.testShortAnswerWorkG,
-          2 -> TestValues.testMultipleChoiceWorkC,
+          0 -> TestValues.testShortAnswerWorkG,
+          1 -> TestValues.testMultipleChoiceWorkC,
+          2 -> TestValues.testLongAnswerWorkA,
           3 -> TestValues.testOrderingWorkD
         )
 
@@ -320,33 +320,33 @@ class WorkRepositorySpec
           }
         }
       }
-      "return empty Vector() for task if user doesn't exist" in {
+      "return RepositoryError.NoResults for task if user doesn't exist" in {
         val testUser = TestValues.testUserD
         val testTask = TestValues.testMatchingTaskE
 
         val result = workRepository.list(testUser, testTask)
-        Await.result(result, Duration.Inf) should be(\/-(Right(Vector())))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
-      "return empty Vector() if the task doesn't exist for a user" in {
+      "return RepositoryError.NoResults if the task doesn't exist for a user" in {
         val testUser = TestValues.testUserE
         val testTask = TestValues.testMatchingTaskJ
 
         val result = workRepository.list(testUser, testTask)
-        Await.result(result, Duration.Inf) should be(\/-(Right(Vector())))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
-      "return empty Vector() if the user is not connected with this task" in {
+      "return RepositoryError.NoResults if the user is not connected with this task" in {
         val testUser = TestValues.testUserG
         val testTask = TestValues.testMatchingTaskE
 
         val result = workRepository.list(testUser, testTask)
-        Await.result(result, Duration.Inf) should be(\/-(Right(Vector())))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
-      "return empty Vector() if the user doesn't have any work within this task" in {
+      "return RepositoryError.NoResults if the user doesn't have any work within this task" in {
         val testUser = TestValues.testUserC
         val testTask = TestValues.testOrderingTaskD
 
         val result = workRepository.list(testUser, testTask)
-        Await.result(result, Duration.Inf) should be(\/-(Right(Vector())))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
 
       /* --- list(testTask) --- */
@@ -1345,14 +1345,14 @@ class WorkRepositorySpec
         val testWork    = TestValues.testLongAnswerWorkF
 
         val result = workRepository.update(testWork, true)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.BadParam("Adding new Revisions to a DocumentWork should be done in the Document Repository")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.BadParam("Adding new Revisions to a DocumentWork should be done in the Document Repository and Revision Repository")))
       }
 
       "return RepositoryError.BadParam when try to update ShortAnswerWork with (newRevision = TRUE)" in {
         val testWork    = TestValues.testShortAnswerWorkB
 
         val result = workRepository.update(testWork, true)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.BadParam("Adding new Revisions to a DocumentWork should be done in the Document Repository")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.BadParam("Adding new Revisions to a DocumentWork should be done in the Document Repository and Revision Repository")))
       }
       "update MultipleChoiceWork (newRevision = TRUE)" in {
         val testWork    = TestValues.testMultipleChoiceWorkC

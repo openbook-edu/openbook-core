@@ -90,6 +90,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |FROM $Table
        |$Join
        |WHERE part_id = ?
+       |ORDER BY $OrderBy
      """.stripMargin
 
   // TODO - not used

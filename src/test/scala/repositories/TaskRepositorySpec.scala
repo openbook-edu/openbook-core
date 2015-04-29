@@ -100,8 +100,8 @@ class TaskRepositorySpec
 
         val testTaskList = TreeMap[Int, Task](
           0 -> TestValues.testOrderingTaskD,
-          1 -> TestValues.testOrderingTaskL,
-          2 -> TestValues.testMatchingTaskK,
+          1 -> TestValues.testMatchingTaskK,
+          2 -> TestValues.testOrderingTaskL,
           3 -> TestValues.testMatchingTaskM
         )
 

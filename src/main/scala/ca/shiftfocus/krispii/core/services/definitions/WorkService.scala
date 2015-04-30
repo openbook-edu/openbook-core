@@ -12,6 +12,7 @@ import scalaz.\/
 
 trait WorkService extends Service[ErrorUnion#Fail] {
   val authService: AuthService
+  val schoolService: SchoolService
   val projectService: ProjectService
   val documentService: DocumentService
   val componentService: ComponentService

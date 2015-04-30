@@ -16,6 +16,7 @@ import ws.kahn.ot.Delta
 
 class WorkServiceDefault(val db: DB,
                          val authService: AuthService,
+                         val schoolService: SchoolService,
                          val projectService: ProjectService,
                          val documentService: DocumentService,
                          val componentService: ComponentService,
@@ -541,7 +542,11 @@ class WorkServiceDefault(val db: DB,
       for {
         student <- lift(fStudent)
         task <- lift(fTask)
-        document <- lift(documentService.create(UUID.random, student, "", Delta(IndexedSeq())))
+        part <- lift(projectService.findPart(task.partId))
+        project <- lift(projectService.find(part.projectId))
+        course <- lift(schoolService.findCourse(project.courseId))
+        teacher <- lift(authService.find(course.teacherId))
+        document <- lift(documentService.create(UUID.random, teacher, "", Delta(IndexedSeq())))
         newFeedback = TaskFeedback(
           studentId = student.id,
           taskId = task.id,

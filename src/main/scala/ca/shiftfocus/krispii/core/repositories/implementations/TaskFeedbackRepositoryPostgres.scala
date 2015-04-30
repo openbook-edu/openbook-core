@@ -22,7 +22,7 @@ class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with Postgre
     )
   }
 
-  val Fields = "student_id, task_id, version, document_id, created_at, updated_at"
+  val Fields = "student_id, task_id, document_id"
   val QMarks = "?, ?, ?, ?, ?, ?"
   val Table = "task_feedbacks"
 

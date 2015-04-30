@@ -23,13 +23,13 @@ class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with Postgre
   }
 
   val Fields = "student_id, task_id, document_id"
-  val QMarks = "?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?"
   val Table = "task_feedbacks"
 
   val Insert =
     s"""
        |INSERT INTO $Table ($Fields)
-       |VALUES (QMarks)
+       |VALUES ($QMarks)
        |RETURNING $Fields
     """.stripMargin
 

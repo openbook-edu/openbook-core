@@ -15,34 +15,20 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
 
   override def constructor(row: RowData): TaskScratchpad = {
     TaskScratchpad(
-      UUID(row("user_id").asInstanceOf[Array[Byte]]),
-      UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      row("version").asInstanceOf[Long],
-      UUID(row("document_id").asInstanceOf[Array[Byte]]),
-      row("created_at").asInstanceOf[DateTime],
-      row("updated_at").asInstanceOf[DateTime]
+      userId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
+      taskId = UUID(row("task_id").asInstanceOf[Array[Byte]]),
+      documentId = UUID(row("document_id").asInstanceOf[Array[Byte]])
     )
   }
 
   val Table = "task_notes"
-  val Fields = "user_id, task_id, version, document_id, created_at, updated_at"
+  val Fields = "user_id, task_id, document_id"
   val QMarks = "?, ?, ?, ?, ?, ?"
 
   val Insert = {
     s"""
        |INSERT INTO $Table ($Fields)
        |VALUES ($QMarks)
-       |RETURNING $Fields
-     """.stripMargin
-  }
-
-  val Update = {
-    s"""
-       |UPDATE $Table
-       |SET version = ?, updated_at = ?
-       |WHERE user_id = ?
-       |  AND task_id = ?
-       |  AND version = ?
        |RETURNING $Fields
      """.stripMargin
   }
@@ -99,7 +85,6 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
        |DELETE FROM $Table
        |WHERE user_id = ?
        |  AND task_id = ?
-       |  AND version = ?
      """.stripMargin
 
   val DeleteAllForTask =
@@ -174,28 +159,7 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
     queryOne(Insert, Seq(
       taskScratchpad.userId.bytes,
       taskScratchpad.taskId.bytes,
-      1L,
-      taskScratchpad.documentId.bytes,
-      taskScratchpad.createdAt,
-      taskScratchpad.updatedAt
-    ))
-  }
-
-  /**
-   * Update an existing [[TaskScratchpad]] revision. This always updates a specific
-   * revision, since the primary key comprises user ID, task ID, and revision number.
-   * Each revision has its own versioning w.r.t. optimistic offline lock.
-   *
-   * @param taskScratchpad the [[TaskScratchpad]] object to be inserted.
-   * @return the newly created [[TaskScratchpad]]
-   */
-  override def update(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskScratchpad]] = {
-    queryOne(Update, Seq[Any](
-      taskScratchpad.version + 1,
-      new DateTime,
-      taskScratchpad.userId.bytes,
-      taskScratchpad.taskId.bytes,
-      taskScratchpad.version
+      taskScratchpad.documentId.bytes
     ))
   }
 
@@ -208,8 +172,7 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
   override def delete(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskScratchpad]] = {
     queryOne(DeleteOne, Seq(
       taskScratchpad.userId.bytes,
-      taskScratchpad.taskId.bytes,
-      taskScratchpad.version
+      taskScratchpad.taskId.bytes
     ))
   }
 

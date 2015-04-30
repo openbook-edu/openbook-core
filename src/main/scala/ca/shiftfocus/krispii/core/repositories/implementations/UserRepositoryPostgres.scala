@@ -13,6 +13,7 @@ import scala.concurrent.Future
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
+import scala.util.Try
 import scalaz.{\/, -\/, \/-}
 import scalaz.syntax.either._
 
@@ -24,10 +25,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
       version    = row("version").asInstanceOf[Long],
       email      = row("email").asInstanceOf[String],
       username   = row("username").asInstanceOf[String],
-      hash       = row.exists(_ == "password_hash") match {
-        case true  => Some(row("password_hash").asInstanceOf[String])
-        case false => None
-      },
+      hash       = Try(row("password_hash")).map(_.asInstanceOf[String]).toOption,
       givenname  = row("givenname").asInstanceOf[String],
       surname    = row("surname").asInstanceOf[String],
       createdAt  = row("created_at").asInstanceOf[DateTime],
@@ -52,7 +50,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
 
   val SelectOne =
     s"""
-       |SELECT $FieldsWithoutHash
+       |SELECT $Fields
        |FROM $Table
        |WHERE id = ?
        |LIMIT 1
@@ -104,7 +102,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
 
   val SelectOneByIdentifier =
     s"""
-       |SELECT ${Fields.replace("password_hash,", "")}
+       |SELECT $Fields
        |FROM $Table
        |WHERE (email = ? OR username = ?)
        |LIMIT 1

@@ -56,21 +56,11 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   def listFeedbacks(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[TaskFeedback]]]
   def findFeedback(studentId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, TaskFeedback]]
   def createFeedback(studentId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, TaskFeedback]]
-  def updateFeedback(studentId: UUID, taskId: UUID, version: Long, documentId: UUID): Future[\/[ErrorUnion#Fail, TaskFeedback]]
 
 
   // Task notes
   def listTaskScratchpads(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[TaskScratchpad]]]
   def findTaskScratchpad(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, TaskScratchpad]]
   def createTaskScratchpad(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, TaskScratchpad]]
-  def updateTaskScratchpad(userId: UUID, taskId: UUID, version: Long, documentId: UUID): Future[\/[ErrorUnion#Fail, TaskScratchpad]]
-
-
-  // Component notes
-  def listComponentScratchpadsByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[ComponentScratchpad]]]
-  def listComponentScratchpadsByComponent(componentId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[ComponentScratchpad]]]
-  def findComponentScratchpad(userId: UUID, componentId: UUID): Future[\/[ErrorUnion#Fail, ComponentScratchpad]]
-  def createComponentScratchpad(userId: UUID, componentId: UUID): Future[\/[ErrorUnion#Fail, ComponentScratchpad]]
-  def updateComponentScratchpad(userId: UUID, componentId: UUID, version: Long, documentId: UUID): Future[\/[ErrorUnion#Fail, ComponentScratchpad]]
 
 }

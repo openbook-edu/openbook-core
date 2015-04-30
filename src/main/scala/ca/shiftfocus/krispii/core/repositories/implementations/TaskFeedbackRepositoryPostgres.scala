@@ -18,10 +18,7 @@ class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with Postgre
     TaskFeedback(
       studentId  = UUID(row("student_id").asInstanceOf[Array[Byte]]),
       taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      version    = row("version").asInstanceOf[Long],
-      documentId = UUID(row("document_id").asInstanceOf[Array[Byte]]),
-      createdAt  = row("created_at").asInstanceOf[DateTime],
-      updatedAt  = row("updated_at").asInstanceOf[DateTime]
+      documentId = UUID(row("document_id").asInstanceOf[Array[Byte]])
     )
   }
 
@@ -33,16 +30,6 @@ class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with Postgre
     s"""
        |INSERT INTO $Table ($Fields)
        |VALUES (QMarks)
-       |RETURNING $Fields
-    """.stripMargin
-
-  val Update =
-    s"""
-       |UPDATE $Table
-       |SET version = ?, document_id = ?, updated_at = ?
-       |WHERE student_id = ?
-       |  AND task_id = ?
-       |  AND version = ?
        |RETURNING $Fields
     """.stripMargin
 
@@ -76,7 +63,6 @@ class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with Postgre
     DELETE FROM $Table
     WHERE student_id = ?
       AND task_id = ?
-      AND version = ?
   """
 
   val DeleteAllForTask = s"""
@@ -128,29 +114,7 @@ class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with Postgre
     queryOne(Insert, Array[Any](
       feedback.studentId.bytes,
       feedback.taskId.bytes,
-      1L,
-      feedback.documentId.bytes,
-      new DateTime,
-      new DateTime
-    ))
-  }
-
-  /**
-   * Update an existing feedback.
-   *
-   * @param feedback
-   * @param conn an implicit connection is required, which can be used to
-   *             run this operation in a transaction.
-   * @return
-   */
-  def update(feedback: TaskFeedback)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskFeedback]] = {
-    queryOne(Insert, Array[Any](
-      feedback.version + 1,
-      feedback.documentId,
-      new DateTime,
-      feedback.studentId.bytes,
-      feedback.taskId.bytes,
-      feedback.version
+      feedback.documentId.bytes
     ))
   }
 
@@ -165,8 +129,7 @@ class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with Postgre
   def delete(feedback: TaskFeedback)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskFeedback]] = {
     queryOne(Delete, Array[Any](
       feedback.studentId,
-      feedback.taskId,
-      feedback.version
+      feedback.taskId
     ))
   }
 

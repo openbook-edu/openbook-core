@@ -8,7 +8,7 @@ import play.api.libs.functional.syntax._
 
 case class Chat(
   courseId: UUID,
-  messageNum: Long,
+  messageNum: Long = 0L,
   userId: UUID,
   message: String,
   hidden: Boolean = false,

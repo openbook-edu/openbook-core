@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.lib.concurrent.FutureMonad
-import ca.shiftfocus.krispii.core.repositories.{UserRepository, CourseRepository}
+import ca.shiftfocus.krispii.core.repositories.{ChatRepository, UserRepository, CourseRepository}
 import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models._
 import scala.concurrent.Future
@@ -14,6 +14,7 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
   val authService: AuthService
   val userRepository: UserRepository
   val courseRepository: CourseRepository
+  val chatRepository: ChatRepository
 
   def listCourses: Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]]
   def listCoursesByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]]
@@ -35,4 +36,18 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
 
   def addUsers(course: Course, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
   def removeUsers(course: Course, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
+
+
+  // -- Course chat methods -----
+
+  def listChats(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
+  def list(courseId: UUID, num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
+
+  def list(courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
+  def list(courseId: UUID, userId: UUID,  num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
+
+  def find(courseId: UUID, messageNum: Long): Future[\/[ErrorUnion#Fail, Chat]]
+
+  def insert(courseId: UUID, userId: UUID, message: String): Future[\/[ErrorUnion#Fail, Chat]]
+  def update(courseId: UUID, messageNum: Long, hidden: Boolean): Future[\/[ErrorUnion#Fail, Chat]]
 }

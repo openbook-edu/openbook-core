@@ -5,7 +5,7 @@ import java.util.NoSuchElementException
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models.document.Revision
 import ca.shiftfocus.krispii.core.models.document.Document
-import ca.shiftfocus.krispii.core.models.{Chat, User}
+import ca.shiftfocus.krispii.core.models.{Course, Chat, User}
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.{RowData, ResultSet, Connection}
@@ -105,22 +105,22 @@ class ChatRepositoryPostgres (val revisionRepository: RevisionRepository)
        |  AND message_num = ?
      """.stripMargin
 
-  override def list(courseId: UUID): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
-    queryList(SelectAllByCourse, Seq[Any](courseId.bytes))
+  override def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
+    queryList(SelectAllByCourse, Seq[Any](course.id.bytes))
   }
-  override def list(courseId: UUID, num: Long, offset: Long): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
-    queryList(SelectOffsetByCourse, Seq[Any](courseId.bytes, num, offset))
-  }
-
-  override def list(courseId: UUID, userId: UUID): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
-    queryList(SelectAllByCourseAndUser, Seq[Any](courseId.bytes, userId.bytes))
-  }
-  override def list(courseId: UUID, userId: UUID,  num: Long, offset: Long): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
-    queryList(SelectAllByCourse, Seq[Any](courseId.bytes, userId.bytes, num, offset))
+  override def list(course: Course, num: Long, offset: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
+    queryList(SelectOffsetByCourse, Seq[Any](course.id.bytes, num, offset))
   }
 
-  override def find(courseId: UUID, messageNum: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]] = {
-    queryOne(SelectOne, Seq[Any](courseId.bytes, messageNum))
+  override def list(course: Course, user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
+    queryList(SelectAllByCourseAndUser, Seq[Any](course.id.bytes, user.id.bytes))
+  }
+  override def list(course: Course, user: User,  num: Long, offset: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
+    queryList(SelectAllByCourse, Seq[Any](course.id.bytes, user.id.bytes, num, offset))
+  }
+
+  override def find(course: Course, messageNum: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]] = {
+    queryOne(SelectOne, Seq[Any](course.id.bytes, messageNum))
   }
 
   override def insert(chat: Chat)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]] = {

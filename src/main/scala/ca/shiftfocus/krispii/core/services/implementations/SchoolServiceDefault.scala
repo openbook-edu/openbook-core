@@ -2,7 +2,6 @@ package ca.shiftfocus.krispii.core.services
 
 import java.awt.Color
 
-import ca.shiftfocus.krispii.core.error.BadPermissionT.BadPermissions
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection

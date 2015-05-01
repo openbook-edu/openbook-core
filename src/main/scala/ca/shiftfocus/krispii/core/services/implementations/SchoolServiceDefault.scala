@@ -327,7 +327,7 @@ class SchoolServiceDefault(val db: DB,
   override def updateChat(courseId: UUID, messageNum: Long, hidden: Boolean): Future[\/[ErrorUnion#Fail, Chat]] = {
     transactional { implicit conn =>
       for {
-        existingChat <- lift(find(courseId, messageNum))
+        existingChat <- lift(findChat(courseId, messageNum))
         newChat = existingChat.copy(hidden = hidden)
         updatedChat <- lift(chatRepository.update(newChat))
       } yield updatedChat

@@ -123,10 +123,10 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
   }
 
   override def insert(chat: Chat)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]] = {
-    queryOne(SelectOne, Seq[Any](chat.courseId.bytes, chat.courseId.bytes, chat.userId.bytes, chat.message, false, chat.createdAt))
+    queryOne(Insert, Seq[Any](chat.courseId.bytes, chat.courseId.bytes, chat.userId.bytes, chat.message, false, chat.createdAt))
   }
 
   override def update(chat: Chat)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]] = {
-    queryOne(SelectOne, Seq[Any](chat.hidden, chat.courseId.bytes, chat.messageNum))
+    queryOne(Update, Seq[Any](chat.hidden, chat.courseId.bytes, chat.messageNum))
   }
 }

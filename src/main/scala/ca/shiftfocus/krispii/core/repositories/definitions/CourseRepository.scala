@@ -18,6 +18,7 @@ trait CourseRepository {
   def list(user: User, asTeacher: Boolean = false)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Course]]]
 
   def find(courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]]
+  def find(slug: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]]
 
   def insert(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]]
   def update(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]]

@@ -21,6 +21,7 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
   def listCoursesByTeacher(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]]
 
   def findCourse(id: UUID): Future[\/[ErrorUnion#Fail, Course]]
+  def findCourse(slug: String): Future[\/[ErrorUnion#Fail, Course]]
 
   def createCourse(teacherId: UUID, name: String, color: Color, slug: String): Future[\/[ErrorUnion#Fail, Course]]
   def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: Option[String], color: Option[Color]): Future[\/[ErrorUnion#Fail, Course]]

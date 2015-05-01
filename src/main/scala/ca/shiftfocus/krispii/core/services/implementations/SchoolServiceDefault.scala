@@ -78,6 +78,16 @@ class SchoolServiceDefault(val db: DB,
   }
 
   /**
+   * Find a specific course by slug.
+   *
+   * @param slug the [[String]] of the [[Course]] to find.
+   * @return an optional [[Course]]
+   */
+  override def findCourse(slug: String): Future[\/[ErrorUnion#Fail, Course]] = {
+    courseRepository.find(slug)
+  }
+
+  /**
    * Create a new course.
    *
    * @param teacherId the optional [[UUID]] of the [[User]] teaching this course

@@ -23,7 +23,7 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
 
   val Table = "task_notes"
   val Fields = "user_id, task_id, document_id"
-  val QMarks = "?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?"
 
   val Insert = {
     s"""

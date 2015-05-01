@@ -58,6 +58,14 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
        |LIMIT 1
      """.stripMargin
 
+  val SelectOneBySlug =
+    s"""
+       |SELECT $Fields
+       |FROM $Table
+       |WHERE slug = ?
+       |LIMIT 1
+     """.stripMargin
+
   val Insert = {
     s"""
        |INSERT INTO $Table ($Fields)
@@ -208,7 +216,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
    *
    * @return an  array of Courses
    */
-  def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Course]]] = {
+  override def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Course]]] = {
     queryList(SelectAll)
   }
 
@@ -219,7 +227,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
    *
    * @return a result set
    */
-  def list(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Course]]] = {
+  override def list(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Course]]] = {
     queryList(ListCourseForProject, Seq[Any](project.id.bytes))
   }
 
@@ -232,7 +240,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
    *
    * @return the found courses
    */
-  def list(user: User, asTeacher: Boolean = false)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Course]]] = {
+  override def list(user: User, asTeacher: Boolean = false)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Course]]] = {
     queryList(if (asTeacher) ListByTeacherId else ListCourses, Seq[Any](user.id.bytes))
   }
 
@@ -284,6 +292,16 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
    */
   override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = {
     queryOne(SelectOne, Array[Any](id.bytes))
+  }
+
+  /**
+   * Find a single entry by ID.
+   *
+   * @param slug the course's slug
+   * @return an optional RowData object containing the results
+   */
+  override def find(slug: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = {
+    queryOne(SelectOneBySlug, Seq[Any](slug))
   }
 
   /**

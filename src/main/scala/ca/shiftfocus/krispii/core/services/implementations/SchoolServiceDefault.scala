@@ -242,7 +242,7 @@ class SchoolServiceDefault(val db: DB,
    * @param offset
    * @return
    */
-  override def list(courseId: UUID, num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = {
+  override def listChats(courseId: UUID, num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = {
     for {
       course <- lift(findCourse(courseId))
       _ <- predicate (num > 0 && offset > 0) (ServiceError.BadInput("num, and offset parameters must be positive long integers"))
@@ -257,7 +257,7 @@ class SchoolServiceDefault(val db: DB,
    * @param userId
    * @return
    */
-  override def list(courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = {
+  override def listChats(courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = {
     for {
       course <- lift(findCourse(courseId))
       user <- lift(userRepository.find(userId))
@@ -274,7 +274,7 @@ class SchoolServiceDefault(val db: DB,
    * @param offset
    * @return
    */
-  override def list(courseId: UUID, userId: UUID,  num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = {
+  override def listChats(courseId: UUID, userId: UUID,  num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = {
     for {
       course <- lift(findCourse(courseId))
       user <- lift(userRepository.find(userId))
@@ -290,7 +290,7 @@ class SchoolServiceDefault(val db: DB,
    * @param messageNum
    * @return
    */
-  override def find(courseId: UUID, messageNum: Long): Future[\/[ErrorUnion#Fail, Chat]] = {
+  override def findChat(courseId: UUID, messageNum: Long): Future[\/[ErrorUnion#Fail, Chat]] = {
     for {
       course <- lift(findCourse(courseId))
       chat <- lift(chatRepository.find(course, messageNum))
@@ -305,7 +305,7 @@ class SchoolServiceDefault(val db: DB,
    * @param message
    * @return
    */
-  override def insert(courseId: UUID, userId: UUID, message: String): Future[\/[ErrorUnion#Fail, Chat]] = {
+  override def insertChat(courseId: UUID, userId: UUID, message: String): Future[\/[ErrorUnion#Fail, Chat]] = {
     transactional { implicit conn =>
       for {
         course <- lift(findCourse(courseId))
@@ -324,7 +324,7 @@ class SchoolServiceDefault(val db: DB,
    * @param hidden
    * @return
    */
-  override def update(courseId: UUID, messageNum: Long, hidden: Boolean): Future[\/[ErrorUnion#Fail, Chat]] = {
+  override def updateChat(courseId: UUID, messageNum: Long, hidden: Boolean): Future[\/[ErrorUnion#Fail, Chat]] = {
     transactional { implicit conn =>
       for {
         existingChat <- lift(find(courseId, messageNum))

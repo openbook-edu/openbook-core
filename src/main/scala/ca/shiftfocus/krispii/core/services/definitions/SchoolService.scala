@@ -41,13 +41,13 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
   // -- Course chat methods -----
 
   def listChats(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
-  def list(courseId: UUID, num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
+  def listChats(courseId: UUID, num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
 
-  def list(courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
-  def list(courseId: UUID, userId: UUID,  num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
+  def listChats(courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
+  def listChats(courseId: UUID, userId: UUID,  num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
 
-  def find(courseId: UUID, messageNum: Long): Future[\/[ErrorUnion#Fail, Chat]]
+  def findChat(courseId: UUID, messageNum: Long): Future[\/[ErrorUnion#Fail, Chat]]
 
-  def insert(courseId: UUID, userId: UUID, message: String): Future[\/[ErrorUnion#Fail, Chat]]
-  def update(courseId: UUID, messageNum: Long, hidden: Boolean): Future[\/[ErrorUnion#Fail, Chat]]
+  def insertChat(courseId: UUID, userId: UUID, message: String): Future[\/[ErrorUnion#Fail, Chat]]
+  def updateChat(courseId: UUID, messageNum: Long, hidden: Boolean): Future[\/[ErrorUnion#Fail, Chat]]
 }

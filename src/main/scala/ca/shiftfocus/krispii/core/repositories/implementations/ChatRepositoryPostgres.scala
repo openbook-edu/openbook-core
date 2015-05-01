@@ -92,7 +92,7 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
   val Insert =
     s"""
        |INSERT INTO $Table ($Fields)
-       |VALUES (?, (SELECT MAX(message_num)+1 WHERE course_id = ?), ?, ?, ?, ?)
+       |VALUES (?, (SELECT coalesce(MAX(cl.message_num), 0)+1 FROM chat_logs AS cl WHERE cl.course_id = ?), ?, ?, ?, ?)
        |RETURNING $Fields
      """.stripMargin
 

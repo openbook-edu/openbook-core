@@ -20,8 +20,7 @@ import scala.collection.immutable.HashMap
 import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
 
-class ChatRepositoryPostgres (val revisionRepository: RevisionRepository)
-  extends ChatRepository with PostgresRepository[Chat] {
+class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat] {
 
   /**
    * Instantiate a Document given a row result from the database. Must be provided

@@ -2,6 +2,7 @@ package ca.shiftfocus.krispii.core.services
 
 import java.awt.Color
 
+import ca.shiftfocus.krispii.core.error.BadPermissionT.BadPermissions
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
@@ -310,6 +311,8 @@ class SchoolServiceDefault(val db: DB,
       for {
         course <- lift(findCourse(courseId))
         user <- lift(userRepository.find(userId))
+        students <- lift(listStudents(course))
+        _ <- predicate (course.teacherId == user.id || students.contains(user)) (ServiceError.BadPermissions("You must be a member of a course to chat in it."))
         newChat = Chat(courseId = course.id, userId = userId, message = message)
         createdChat <- lift(chatRepository.insert(newChat))
       } yield createdChat

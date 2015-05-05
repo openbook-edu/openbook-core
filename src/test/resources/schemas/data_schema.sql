@@ -287,6 +287,49 @@ VALUES ('\x462b7f6c8b624c998643a63b2720b2a7', 2, '\x871b525067124e548ab60784cae0
 INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
 VALUES ('\xbd01c98803694ddaada205a9ff3645cf', 2, '\xf5f984073a0b4ea5952a575886e90586', 'testDocumentD title', '{"ops":[{"insert":"Hello Morgan"}]}', '2014-08-05 14:01:19.545-04', '2014-08-07 14:01:19.545-04');
 
+/* documentF -> userA (teacher) */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\x1a9d5407b3c444a18e7e1d7e9578eabc', 2, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'testDocumentF title', '{"ops":[{"insert":"Hello Jason"}]}', '2014-08-09 14:01:19.545-04', '2014-08-11 14:01:19.545-04');
+
+/* documentG -> userA (teacher) */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\x300ddfb7f9bf47fea0b226f332828fff', 2, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'testDocumentG title', '{"ops":[{"insert":"Hello Moony"}]}', '2014-08-11 14:01:19.545-04', '2014-08-13 14:01:19.545-04');
+
+/* documentH -> userB (teacher) */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\xeb8ef353d22f48a4a356351e0de3ed16', 2, '\x6c0e29bdd05b4b2981156be93e936c59', 'testDocumentH title', '{"ops":[{"insert":"Hello Flipper"}]}', '2014-08-13 14:01:19.545-04', '2014-08-15 14:01:19.545-04');
+
+/* documentI -> userB (teacher) */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\x9110c16f45fd42119e39b15ab8b6f9ee', 2, '\x6c0e29bdd05b4b2981156be93e936c59', 'testDocumentI title', '{"ops":[{"insert":"Hello Groovy"}]}', '2014-08-15 14:01:19.545-04', '2014-08-17 14:01:19.545-04');
+
+/* documentJ -> userA (teacher) */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\x30739c6d43774a2f8aa3d1240dfb0740', 2, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'testDocumentJ title', '{"ops":[{"insert":"Hello Bobby"}]}', '2014-08-17 14:01:19.545-04', '2014-08-19 14:01:19.545-04');
+
+
+/* ---------------------- TASK_FEEDBACKS ---------------------- */
+
+/* taskFeedbackA */
+INSERT INTO task_feedbacks (student_id, task_id, document_id)
+VALUES ('\xf5f984073a0b4ea5952a575886e90586', '\xbf1a6ed09f834cb485c1ad456299b3a3', '\x1a9d5407b3c444a18e7e1d7e9578eabc');
+
+/* taskFeedbackB */
+INSERT INTO task_feedbacks (student_id, task_id, document_id)
+VALUES ('\x871b525067124e548ab60784cae0bc64', '\x10ef05ee7b494352b86e70510adf617f', '\x300ddfb7f9bf47fea0b226f332828fff');
+
+/* taskFeedbackC */
+INSERT INTO task_feedbacks (student_id, task_id, document_id)
+VALUES ('\xf5f984073a0b4ea5952a575886e90586', '\x468a35bfbaf84045aa184688f4d0721f', '\xeb8ef353d22f48a4a356351e0de3ed16');
+
+/* taskFeedbackD */
+INSERT INTO task_feedbacks (student_id, task_id, document_id)
+VALUES ('\x871b525067124e548ab60784cae0bc64', '\x468a35bfbaf84045aa184688f4d0721f', '\x9110c16f45fd42119e39b15ab8b6f9ee');
+
+/* taskFeedbackE */
+INSERT INTO task_feedbacks (student_id, task_id, document_id)
+VALUES ('\xf5f984073a0b4ea5952a575886e90586', '\x599a78ad5bff4246983532fcb41168a6', '\x30739c6d43774a2f8aa3d1240dfb0740');
+
 
 /* ----------------------- WORK ---------------------- */
 

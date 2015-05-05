@@ -12,6 +12,8 @@ import scalaz.{\/, EitherT}
 
 trait TaskFeedbackRepository extends Repository {
 
+  val documentRepository: DocumentRepository
+
   /**
    * List all feedbacks in a project for one student.
    * @param student

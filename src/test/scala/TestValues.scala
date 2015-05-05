@@ -613,6 +613,68 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  // --- Documents for TaskFeedbacks ---
+
+  val testDocumentF = Document(
+    id = UUID("1a9d5407-b3c4-44a1-8e7e-1d7e9578eabc"),
+    version = 2L,
+    title = "testDocumentF title",
+    delta = Delta(IndexedSeq(
+      InsertText("Hello Jason")
+    )),
+    ownerId = testUserA.id,
+    createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testDocumentG = Document(
+    id = UUID("300ddfb7-f9bf-47fe-a0b2-26f332828fff"),
+    version = 2L,
+    title = "testDocumentG title",
+    delta = Delta(IndexedSeq(
+      InsertText("Hello Moony")
+    )),
+    ownerId = testUserA.id,
+    createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testDocumentH = Document(
+    id = UUID("eb8ef353-d22f-48a4-a356-351e0de3ed16"),
+    version = 2L,
+    title = "testDocumentH title",
+    delta = Delta(IndexedSeq(
+      InsertText("Hello Flipper")
+    )),
+    ownerId = testUserB.id,
+    createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testDocumentI = Document(
+    id = UUID("9110c16f-45fd-4211-9e39-b15ab8b6f9ee"),
+    version = 2L,
+    title = "testDocumentI title",
+    delta = Delta(IndexedSeq(
+      InsertText("Hello Groovy")
+    )),
+    ownerId = testUserB.id,
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testDocumentJ = Document(
+    id = UUID("30739c6d-4377-4a2f-8aa3-d1240dfb0740"),
+    version = 2L,
+    title = "testDocumentJ title",
+    delta = Delta(IndexedSeq(
+      InsertText("Hello Bobby")
+    )),
+    ownerId = testUserA.id,
+    createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 19, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
 
   /* ---------------------- REVISIONS---------------------- */
 
@@ -745,6 +807,64 @@ object TestValues {
     ownerId = testDocumentD.ownerId,
     createdAt = testDocumentD.createdAt,
     updatedAt = testPreviousRevisionD.createdAt
+  )
+
+
+  /* ---------------------- TASK_FEEDBACKS ---------------------- */
+
+  val testTaskFeedbackA  = TaskFeedback(
+    studentId = testUserC.id,
+    taskId = testLongAnswerTaskA.id,
+    version = testDocumentF.version,
+    documentId = testDocumentF.id,
+    createdAt = testDocumentF.createdAt,
+    updatedAt = testDocumentF.updatedAt
+  )
+
+  val testTaskFeedbackB  = TaskFeedback(
+    studentId = testUserE.id,
+    taskId = testShortAnswerTaskB.id,
+    version = testDocumentG.version,
+    documentId = testDocumentG.id,
+    createdAt = testDocumentG.createdAt,
+    updatedAt = testDocumentG.updatedAt
+  )
+
+  val testTaskFeedbackC  = TaskFeedback(
+    studentId = testUserC.id,
+    taskId = testMatchingTaskE.id,
+    version = testDocumentH.version,
+    documentId = testDocumentH.id,
+    createdAt = testDocumentH.createdAt,
+    updatedAt = testDocumentH.updatedAt
+  )
+
+  val testTaskFeedbackD  = TaskFeedback(
+    studentId = testUserE.id,
+    taskId = testMatchingTaskE.id,
+    version = testDocumentI.version,
+    documentId = testDocumentI.id,
+    createdAt = testDocumentI.createdAt,
+    updatedAt = testDocumentI.updatedAt
+  )
+
+  val testTaskFeedbackE  = TaskFeedback(
+    studentId = testUserC.id,
+    taskId = testOrderingTaskN.id,
+    version = testDocumentJ.version,
+    documentId = testDocumentJ.id,
+    createdAt = testDocumentJ.createdAt,
+    updatedAt = testDocumentJ.updatedAt
+  )
+
+  /* No data in DB */
+  val testTaskFeedbackF  = TaskFeedback(
+    studentId = testUserE.id,
+    taskId = testOrderingTaskL.id,
+    version = testDocumentA.version,
+    documentId = testDocumentA.id,
+    createdAt = testDocumentA.createdAt,
+    updatedAt = testDocumentA.updatedAt
   )
 
 

@@ -373,7 +373,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
   override def list(user: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]] = {
     for {
       workList <- lift(queryList(SelectForUserProject, Seq[Any](project.id.bytes, user.id.bytes)))
-      result <- lift(serializedT(workList){
+      result   <- lift(serializedT(workList) {
         case documentWork: DocumentWork => {
           for  {
             document <- lift(documentRepository.find(documentWork.documentId))

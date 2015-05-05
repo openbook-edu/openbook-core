@@ -30,6 +30,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
       row("name").asInstanceOf[String],
       new Color(Option(row("color").asInstanceOf[Int]).getOrElse(0)),
       row("slug").asInstanceOf[String],
+      row("chat_enabled").asInstanceOf[Boolean],
       None,
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
@@ -37,9 +38,9 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   }
 
   val Table           = "courses"
-  val Fields          = "id, version, teacher_id, name, color, slug, created_at, updated_at"
+  val Fields          = "id, version, teacher_id, name, color, slug, chat_enabled, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field}).mkString(", ")
-  val QMarks          = "?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks          = "?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy         = s"${Table}.name ASC"
 
   // User CRUD operations
@@ -77,7 +78,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   val Update =
     s"""
        |UPDATE $Table
-       |SET version = ?, teacher_id = ?, name = ?, color = ?, slug = ?, updated_at = ?
+       |SET version = ?, teacher_id = ?, name = ?, color = ?, slug = ?, chat_enabled = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $Fields
@@ -418,7 +419,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   def insert(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = {
     val params = Seq[Any](
       course.id.bytes, 1, course.teacherId.bytes, course.name,
-      course.color.getRGB, course.slug, new DateTime, new DateTime
+      course.color.getRGB, course.slug, course.chatEnabled, new DateTime, new DateTime
     )
 
     queryOne(Insert, params)
@@ -434,7 +435,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   def update(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = {
     val params = Seq[Any](
       course.version + 1, course.teacherId.bytes, course.name,
-      course.color.getRGB, course.slug, new DateTime, course.id.bytes, course.version
+      course.color.getRGB, course.slug, course.chatEnabled, new DateTime, course.id.bytes, course.version
     )
     queryOne(Update, params)
   }

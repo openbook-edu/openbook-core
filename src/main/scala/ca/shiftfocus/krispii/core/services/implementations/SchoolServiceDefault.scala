@@ -119,7 +119,7 @@ class SchoolServiceDefault(val db: DB,
    * @param name the name of this course
    * @return the newly created [[Course]]
    */
-  override def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: Option[String], color: Option[Color]): Future[\/[ErrorUnion#Fail, Course]] = {
+  override def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: Option[String], color: Option[Color], chatEnabled: Option[Boolean]): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
       for {
         existingCourse <- lift(courseRepository.find(id))
@@ -129,7 +129,8 @@ class SchoolServiceDefault(val db: DB,
         toUpdate = existingCourse.copy(
           teacherId = teacherId.getOrElse(existingCourse.teacherId),
           name = name.getOrElse(existingCourse.name),
-          color = color.getOrElse(existingCourse.color)
+          color = color.getOrElse(existingCourse.color),
+          chatEnabled = chatEnabled.getOrElse(existingCourse.chatEnabled)
         )
         updatedCourse <- lift(courseRepository.update(toUpdate))
       }

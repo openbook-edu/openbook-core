@@ -14,6 +14,7 @@ case class Course(
   name: String,
   color: Color,
   slug: String,
+  chatEnabled: Boolean = true,
   projects: Option[IndexedSeq[Project]] = None,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
@@ -51,6 +52,7 @@ object Course {
     (__ \ "name").write[String] and
     (__ \ "color").write[Color] and
     (__ \ "slug").write[String] and
+    (__ \ "chatEnabled").write[Boolean] and
     (__ \ "projects").writeNullable[IndexedSeq[Project]] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
@@ -80,7 +82,8 @@ case class CoursePut(
   teacherId: Option[UUID],
   name: Option[String],
   color: Option[Color],
-  slug: Option[String]
+  slug: Option[String],
+  chatEnabled: Option[Boolean]
 )
 object CoursePut {
   implicit val colorReads = Course.colorReads
@@ -89,6 +92,7 @@ object CoursePut {
     (__ \ "teacherId").readNullable[UUID] and
     (__ \ "name").readNullable[String] and
     (__ \ "color").readNullable[Color] and
-    (__ \ "slug").readNullable[String]
+    (__ \ "slug").readNullable[String] and
+    (__ \ "chatEnabled").readNullable[Boolean]
   )(CoursePut.apply _)
 }

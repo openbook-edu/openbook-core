@@ -34,7 +34,7 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
 
   val Fields = "id, version, created_at, updated_at, course_id, day, start_time, end_time, description"
   val Table = "course_schedules"
-  val QMarks = "?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
 
   // User CRUD operations
   val SelectAll = s"""
@@ -60,7 +60,7 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
   val Update = {
     s"""
       UPDATE $Table
-      SET course_id = ?, day = ?, start_time = ?, and_time = ?, description = ?, version = ?, updated_at = ?
+      SET course_id = ?, day = ?, start_time = ?, end_time = ?, description = ?, version = ?, updated_at = ?
       WHERE id = ?
         AND version = ?
       RETURNING $Fields
@@ -158,6 +158,7 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
 
     queryOne(Insert, Seq[Any](
       courseSchedule.id.bytes,
+      1L,
       new DateTime,
       new DateTime,
       courseSchedule.courseId.bytes,

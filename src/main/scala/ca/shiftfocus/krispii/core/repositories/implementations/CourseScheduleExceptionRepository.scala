@@ -131,6 +131,7 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
 
     queryOne(Insert, Array(
       courseScheduleException.id.bytes,
+      1L,
       new DateTime,
       new DateTime,
       courseScheduleException.userId.bytes,

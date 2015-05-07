@@ -22,11 +22,11 @@ class JournalServiceDefault (val config: Boolean,
 
   implicit def conn: Connection = db.pool
   
-  def list(entryType: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
+  def list(entryType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
     journalRepository.list(entryType)
   }
   
-  def list(userId: UUID)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
+  def list(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
     val fUser = authService.find(userId)
 
     for {
@@ -35,11 +35,11 @@ class JournalServiceDefault (val config: Boolean,
     } yield journalEntryList
   }
   
-  def list(startDate: Option[DateTime], endDate: Option[DateTime])(implicit conn: Connection): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
+  def list(startDate: Option[DateTime], endDate: Option[DateTime]): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
     journalRepository.list(startDate, endDate)
   }
 
-  def find(id: UUID)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, JournalEntry]] = {
+  def find(id: UUID): Future[\/[ErrorUnion#Fail, JournalEntry]] = {
     journalRepository.find(id)
   }
 
@@ -53,7 +53,7 @@ class JournalServiceDefault (val config: Boolean,
    * @param conn
    * @return
    */
-  private def create(userId: UUID, projectId: UUID, action: Action, item: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, JournalEntry]] = {
+  private def create(userId: UUID, projectId: UUID, action: Action, item: String): Future[\/[ErrorUnion#Fail, JournalEntry]] = {
     journalRepository.insert(JournalEntry(
       userId    = userId,
       projectId = projectId,
@@ -62,15 +62,15 @@ class JournalServiceDefault (val config: Boolean,
     ))
   }
 
-  def delete(journalEntry: JournalEntry)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, JournalEntry]] = {
+  def delete(journalEntry: JournalEntry): Future[\/[ErrorUnion#Fail, JournalEntry]] = {
     journalRepository.delete(journalEntry)
   }
   
-  def delete(entryType: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
+  def delete(entryType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
     journalRepository.delete(entryType)
   }
   
-  def delete(user: User)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
+  def delete(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
     journalRepository.delete(user)
   }
 
@@ -85,7 +85,7 @@ class JournalServiceDefault (val config: Boolean,
    * @param conn
    * @return
    */
-  def logView(userId: UUID, projectId: UUID, item: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Unit]] = {
+  def logView(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     if (config) lift(create(userId, projectId, JournalEntryView, item)).map { journalEntry => () }
     else Future.successful(\/.right( () ))
   }
@@ -99,7 +99,7 @@ class JournalServiceDefault (val config: Boolean,
    * @param conn
    * @return
    */
-  def logClick(userId: UUID, projectId: UUID, item: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Unit]] = {
+  def logClick(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     if (config) lift(create(userId, projectId, JournalEntryClick, item)).map { journalEntry => () }
     else Future.successful(\/.right( () ))
   }
@@ -113,7 +113,7 @@ class JournalServiceDefault (val config: Boolean,
    * @param conn
    * @return
    */
-  def logWatch(userId: UUID, projectId: UUID, item: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Unit]] = {
+  def logWatch(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     if (config) lift(create(userId, projectId, JournalEntryWatch, item)).map { journalEntry => () }
     else Future.successful(\/.right( () ))
   }
@@ -127,7 +127,7 @@ class JournalServiceDefault (val config: Boolean,
    * @param conn
    * @return
    */
-  def logListen(userId: UUID, projectId: UUID, item: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Unit]] = {
+  def logListen(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     if (config) lift(create(userId, projectId, JournalEntryListen, item)).map { journalEntry => () }
     else Future.successful(\/.right( () ))
   }
@@ -141,7 +141,7 @@ class JournalServiceDefault (val config: Boolean,
    * @param conn
    * @return
    */
-  def logInput(userId: UUID, projectId: UUID, item: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Unit]] = {
+  def logInput(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     if (config) lift(create(userId, projectId, JournalEntryWrite, item)).map { journalEntry => () }
     else Future.successful(\/.right( () ))
   }
@@ -155,7 +155,7 @@ class JournalServiceDefault (val config: Boolean,
    * @param conn
    * @return
    */
-  def logUpdate(userId: UUID, projectId: UUID, item: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Unit]] = {
+  def logUpdate(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     if (config) lift(create(userId, projectId, JournalEntryUpdate, item)).map { journalEntry => () }
     else Future.successful(\/.right( () ))
   }
@@ -169,7 +169,7 @@ class JournalServiceDefault (val config: Boolean,
    * @param conn
    * @return
    */
-  def logCreate(userId: UUID, projectId: UUID, item: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Unit]] = {
+  def logCreate(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     if (config) lift(create(userId, projectId, JournalEntryCreate, item)).map { journalEntry => () }
     else Future.successful(\/.right( () ))
   }
@@ -183,7 +183,7 @@ class JournalServiceDefault (val config: Boolean,
    * @param conn
    * @return
    */
-  def logDelete(userId: UUID, projectId: UUID, item: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Unit]] = {
+  def logDelete(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     if (config) lift(create(userId, projectId, JournalEntryDelete, item)).map { journalEntry => () }
     else Future.successful(\/.right( () ))
   }

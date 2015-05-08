@@ -31,6 +31,6 @@ trait ScheduleService extends Service[ErrorUnion#Fail] {
   def deleteScheduleException(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, CourseScheduleException]]
 
   def isAnythingScheduledForUser(userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]]
-  def isProjectScheduledForUser(projectSlug: String, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]]
-  def isProjectScheduledForUser(projectId: UUID, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]]
+  def isCourseScheduledForUser(courseSlug: String, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]]
+  def isCourseScheduledForUser(courseId: UUID, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]]
 }

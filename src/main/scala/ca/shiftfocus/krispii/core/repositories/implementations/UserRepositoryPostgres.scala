@@ -17,7 +17,13 @@ import scala.util.Try
 import scalaz.{\/, -\/, \/-}
 import scalaz.syntax.either._
 
+import scalacache._
+import scalacache.redis._
+import scala.concurrent.duration._
+
 class UserRepositoryPostgres extends UserRepository with PostgresRepository[User] {
+
+  val ttl = Some(15.minutes)
 
   override def constructor(row: RowData): User = {
     User(
@@ -147,7 +153,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @param userIds an [[IndexedSeq]] of [[UUID]] of the users to list.
    * @return a future disjunction containing either the users, or a failure
    */
-  override def list(userIds: IndexedSeq[UUID])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+  override def list(userIds: IndexedSeq[UUID])(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
     serializedT(userIds)(find)
   }
 
@@ -167,8 +173,15 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    *
    * @return a future disjunction containing either the users, or a failure
    */
-  override def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    queryList(SelectAllWithCourse, Seq[Any](course.id.bytes))
+  override def list(course: Course)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    get[IndexedSeq[User]](cacheStudentsKey(course.id)).flatMap {
+      case Some(userList) => Future successful \/.right[RepositoryError.Fail, IndexedSeq[User]](userList)
+      case None =>
+        for {
+          userList <- lift(queryList(SelectAllWithCourse, Seq[Any](course.id.bytes)))
+          _ <- put[IndexedSeq[User]](cacheUserKey(course.id))(userList, ttl)
+        } yield userList
+    }
   }
 
   /**
@@ -177,8 +190,16 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @param id the [[UUID]] of the user to search for.
    * @return a future disjunction containing either the user, or a failure
    */
-  override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
-    queryOne(SelectOne, Seq[Any](id.bytes))
+  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, User]] = {
+    get[User](cacheUserKey(id)).flatMap {
+      case Some(user) => Future successful \/.right[RepositoryError.Fail, User](user)
+      case None =>
+        for {
+          user <- lift(queryOne(SelectOne, Seq[Any](id.bytes)))
+          _ <- put[UUID](cacheUsernameKey(user.username))(user.id, ttl)
+          _ <- put[User](cacheUserKey(user.id))(user, ttl)
+        } yield user
+    }
   }
 
   /**
@@ -187,8 +208,22 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @param identifier a [[String]] representing their e-mail or username.
    * @return a future disjunction containing either the user, or a failure
    */
-  override def find(identifier: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
-    queryOne(SelectOneByIdentifier, Seq[Any](identifier, identifier))
+  override def find(identifier: String)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, User]] = {
+    get[UUID](cacheUsernameKey(identifier)).flatMap {
+      case Some(userId) => {
+        for {
+          _ <- put[UUID](cacheUsernameKey(identifier))(userId, ttl)
+          user <- lift(find(userId))
+        } yield user
+      }
+      case None => {
+        for {
+          user <- lift(queryOne(SelectOneByIdentifier, Seq[Any](identifier, identifier)))
+          _ <- put[UUID](cacheUsernameKey(identifier))(user.id, ttl)
+          _ <- put[User](cacheUserKey(user.id))(user, ttl)
+        } yield user
+      }
+    }
   }
 
   /**
@@ -200,12 +235,11 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @param user the [[User]] to insert into the database
    * @return a future disjunction containing either the inserted user, or a failure
    */
-  override def insert(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
+  override def insert(user: User)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, User]] = {
     val params = Seq[Any](
       user.id.bytes, 1, new DateTime, new DateTime, user.username, user.email,
       user.hash, user.givenname, user.surname
     )
-
     queryOne(Insert, params)
   }
 
@@ -219,17 +253,21 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @param user the [[User]] to update in the database
    * @return a future disjunction containing either the updated user, or a failure
    */
-  override def update(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
-    user.hash match {
-      case Some(hash) => queryOne(UpdateWithPass, Seq[Any](
-        user.username, user.email, hash, user.givenname, user.surname,
-        user.version + 1, new DateTime, user.id.bytes, user.version
-      ))
-      case None => queryOne(UpdateNoPass, Seq[Any](
-        user.username, user.email, user.givenname, user.surname,
-        user.version + 1, new DateTime, user.id.bytes, user.version
-      ))
-    }
+  override def update(user: User)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, User]] = {
+    for {
+      updated <- lift { user.hash match {
+        case Some(hash) => queryOne(UpdateWithPass, Seq[Any](
+          user.username, user.email, hash, user.givenname, user.surname,
+          user.version + 1, new DateTime, user.id.bytes, user.version
+        ))
+        case None => queryOne(UpdateNoPass, Seq[Any](
+          user.username, user.email, user.givenname, user.surname,
+          user.version + 1, new DateTime, user.id.bytes, user.version
+        ))
+      }}
+      _ <- remove(cacheUserKey(updated.id))
+      _ <- remove(cacheUsernameKey(updated.username))
+    } yield updated
   }
 
   /**
@@ -238,7 +276,11 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @param user the [[User]] to be deleted
    * @return a future disjunction containing either the deleted user, or a failure
    */
-  override def delete(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
-    queryOne(Delete, Seq[Any](user.id.bytes, user.version))
+  override def delete(user: User)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, User]] = {
+    for {
+      deleted <- lift(queryOne(Delete, Seq[Any](user.id.bytes, user.version)))
+      _ <- remove(cacheUserKey(deleted.id))
+      _ <- remove(cacheUsernameKey(deleted.username))
+    } yield deleted
   }
 }

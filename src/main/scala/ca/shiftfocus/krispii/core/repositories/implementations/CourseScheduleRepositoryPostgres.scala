@@ -72,6 +72,7 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
        |DELETE FROM $Table
        |WHERE id = ?
        |  AND version = ?
+       |RETURNING $Fields
      """.stripMargin
 
   val SelectByCourseId = s"""

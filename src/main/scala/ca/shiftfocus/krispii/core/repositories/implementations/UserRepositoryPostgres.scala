@@ -238,7 +238,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @param user the [[User]] to insert into the database
    * @return a future disjunction containing either the inserted user, or a failure
    */
-  override def insert(user: User)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, User]] = {
+  override def insert(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
     val params = Seq[Any](
       user.id.bytes, 1, new DateTime, new DateTime, user.username, user.email,
       user.hash, user.givenname, user.surname

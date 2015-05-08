@@ -447,7 +447,7 @@ class AuthServiceDefault(val db: DB,
    */
   override def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
-      val fUser = userRepository.find(userId)(db.pool)
+      val fUser = userRepository.find(userId)(db.pool, cache)
       val fRole = roleRepository.find(roleName)(db.pool)
 
       for {
@@ -486,7 +486,7 @@ class AuthServiceDefault(val db: DB,
    */
   override def removeRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
-      val fUser = userRepository.find(userId)(db.pool)
+      val fUser = userRepository.find(userId)(db.pool, cache)
       val fRole = roleRepository.find(roleName)(db.pool)
       for {
         user <- lift(fUser)
@@ -508,7 +508,7 @@ class AuthServiceDefault(val db: DB,
   override def addUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn =>
       val fRole = roleRepository.find(roleId)(db.pool)
-      val fUsers = userRepository.list(userIds)(db.pool)
+      val fUsers = userRepository.list(userIds)(db.pool, cache)
 
       for {
         role <- lift(fRole)
@@ -529,7 +529,7 @@ class AuthServiceDefault(val db: DB,
   override def removeUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn =>
       val fRole = roleRepository.find(roleId)(db.pool)
-      val fUsers = userRepository.list(userIds)(db.pool)
+      val fUsers = userRepository.list(userIds)(db.pool, cache)
 
       for {
         role <- lift(fRole)

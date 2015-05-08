@@ -10,9 +10,11 @@ import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.uuid.UUID
 import scala.collection.IndexedSeq
 import scala.concurrent.Future
+import scalacache.ScalaCache
 import scalaz.{\/-, -\/, \/}
 
 class SchoolServiceDefault(val db: DB,
+                           val scalaCache: ScalaCache,
                            val authService: AuthService,
                            val userRepository: UserRepository,
                            val courseRepository: CourseRepository,
@@ -20,6 +22,7 @@ class SchoolServiceDefault(val db: DB,
   extends SchoolService {
 
   implicit def conn: Connection = db.pool
+  implicit def cache: ScalaCache = scalaCache
 
   /*
    * Methods for Courses

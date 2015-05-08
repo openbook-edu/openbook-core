@@ -10,10 +10,12 @@ import com.github.mauricio.async.db.Connection
 import org.joda.time.DateTime
 
 import scala.concurrent.Future
+import scalacache.ScalaCache
 import scalaz._
 
 class JournalServiceDefault (val config: Boolean,
                              val db: DB,
+                             val scalaCache: ScalaCache,
                              val authService: AuthService,
                              val journalRepository: JournalRepository,
                              val userRepository: UserRepository,
@@ -21,6 +23,7 @@ class JournalServiceDefault (val config: Boolean,
   extends JournalService {
 
   implicit def conn: Connection = db.pool
+  implicit def cache: ScalaCache = scalaCache
   
   def list(entryType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
     journalRepository.list(entryType)

@@ -12,14 +12,17 @@ import org.joda.time.DateTime
 import scala.concurrent.Future
 import ws.kahn.ot.{Delete, Delta}
 
+import scalacache.ScalaCache
 import scalaz.\/
 
 class DocumentServiceDefault(val db: DB,
+                             val scalaCache: ScalaCache,
                              val userRepository: UserRepository,
                              val documentRepository: DocumentRepository,
                              val revisionRepository: RevisionRepository) extends DocumentService {
 
   implicit def conn: Connection = db.pool
+  implicit def cache: ScalaCache = scalaCache
 
   /**
    * Find a document.

@@ -17,6 +17,7 @@ import scala.Some
 import scala.concurrent.Future
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+import scalacache.ScalaCache
 import scalaz.{\/, -\/, \/-}
 import scalaz.syntax.either._
 
@@ -331,7 +332,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
   /**
    * Remove a role from a user by role name.
    */
-  override def removeFromUser(user: User, name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def removeFromUser(user: User, name: String)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       user <- lift(userRepository.find(user.id))
       role <- lift(find(name))

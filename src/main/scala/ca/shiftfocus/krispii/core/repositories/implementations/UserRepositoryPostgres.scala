@@ -174,13 +174,14 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @return a future disjunction containing either the users, or a failure
    */
   override def list(course: Course)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    get[IndexedSeq[User]](cacheStudentsKey(course.id)).flatMap {
-      case Some(userList) => Future successful \/.right[RepositoryError.Fail, IndexedSeq[User]](userList)
-      case None =>
+    getCached[IndexedSeq[User]](cacheStudentsKey(course.id)).flatMap {
+      case \/-(userList) => Future successful \/.right[RepositoryError.Fail, IndexedSeq[User]](userList)
+      case -\/(RepositoryError.NoResults) =>
         for {
           userList <- lift(queryList(SelectAllWithCourse, Seq[Any](course.id.bytes)))
-          _ <- put[IndexedSeq[User]](cacheUserKey(course.id))(userList, ttl)
+          _ <- lift(putCache[IndexedSeq[User]](cacheUserKey(course.id))(userList, ttl))
         } yield userList
+      case -\/(error) => Future successful -\/(error)
     }
   }
 
@@ -191,14 +192,15 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @return a future disjunction containing either the user, or a failure
    */
   override def find(id: UUID)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, User]] = {
-    get[User](cacheUserKey(id)).flatMap {
-      case Some(user) => Future successful \/.right[RepositoryError.Fail, User](user)
-      case None =>
+    getCached[User](cacheUserKey(id)).flatMap {
+      case \/-(user) => Future successful \/.right[RepositoryError.Fail, User](user)
+      case -\/(RepositoryError.NoResults) =>
         for {
           user <- lift(queryOne(SelectOne, Seq[Any](id.bytes)))
-          _ <- put[UUID](cacheUsernameKey(user.username))(user.id, ttl)
-          _ <- put[User](cacheUserKey(user.id))(user, ttl)
+          _ <- lift(putCache[UUID](cacheUsernameKey(user.username))(user.id, ttl))
+          _ <- lift(putCache[User](cacheUserKey(user.id))(user, ttl))
         } yield user
+      case -\/(error) => Future successful -\/(error)
     }
   }
 
@@ -209,20 +211,21 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @return a future disjunction containing either the user, or a failure
    */
   override def find(identifier: String)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, User]] = {
-    get[UUID](cacheUsernameKey(identifier)).flatMap {
-      case Some(userId) => {
+    getCached[UUID](cacheUsernameKey(identifier)).flatMap {
+      case \/-(userId) => {
         for {
-          _ <- put[UUID](cacheUsernameKey(identifier))(userId, ttl)
+          _ <- lift(putCache[UUID](cacheUsernameKey(identifier))(userId, ttl))
           user <- lift(find(userId))
         } yield user
       }
-      case None => {
+      case -\/(RepositoryError.NoResults) => {
         for {
           user <- lift(queryOne(SelectOneByIdentifier, Seq[Any](identifier, identifier)))
-          _ <- put[UUID](cacheUsernameKey(identifier))(user.id, ttl)
-          _ <- put[User](cacheUserKey(user.id))(user, ttl)
+          _ <- lift(putCache[UUID](cacheUsernameKey(identifier))(user.id, ttl))
+          _ <- lift(putCache[User](cacheUserKey(user.id))(user, ttl))
         } yield user
       }
+      case -\/(error) => Future successful -\/(error)
     }
   }
 
@@ -265,8 +268,8 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
           user.version + 1, new DateTime, user.id.bytes, user.version
         ))
       }}
-      _ <- remove(cacheUserKey(updated.id))
-      _ <- remove(cacheUsernameKey(updated.username))
+      _ <- lift(removeCached(cacheUserKey(updated.id)))
+      _ <- lift(removeCached(cacheUsernameKey(updated.username)))
     } yield updated
   }
 
@@ -279,8 +282,8 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   override def delete(user: User)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, User]] = {
     for {
       deleted <- lift(queryOne(Delete, Seq[Any](user.id.bytes, user.version)))
-      _ <- remove(cacheUserKey(deleted.id))
-      _ <- remove(cacheUsernameKey(deleted.username))
+      _ <- lift(removeCached(cacheUserKey(deleted.id)))
+      _ <- lift(removeCached(cacheUsernameKey(deleted.username)))
     } yield deleted
   }
 }

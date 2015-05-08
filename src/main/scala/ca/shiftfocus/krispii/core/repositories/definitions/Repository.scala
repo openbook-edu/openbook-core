@@ -9,6 +9,7 @@ import scala.concurrent.duration._
 import scala.concurrent.Future
 import scalacache.ScalaCache
 import scalaz.{-\/, \/}
+import scala.concurrent.ExecutionContext.Implicits.global
 
 trait Repository extends Lifting[RepositoryError.Fail] {
   def cacheUserKey(id: UUID): String = s"user[${id.string}]"
@@ -25,14 +26,14 @@ trait Repository extends Lifting[RepositoryError.Fail] {
     }
   }
 
-  def putCache[V](key: String)(value: V, ttl: Option[Duration] = None): Future[\/[RepositoryError.Fail, Unit]] = {
+  def putCache[V](key: String)(value: V, ttl: Option[Duration] = None)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Unit]] = {
     put[V](key)(value, ttl).map({unit => \/.right[RepositoryError.Fail, Unit](unit)}).recover {
       case failed: RuntimeException => -\/(RepositoryError.DatabaseError("Failed to write to cache.", Some(failed)))
       case exception: Throwable => throw exception
     }
   }
 
-  def removeCached(key: String): Future[\/[RepositoryError.Fail, Unit]] = {
+  def removeCached(key: String)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Unit]] = {
     remove(key).map({unit => \/.right[RepositoryError.Fail, Unit](unit)}).recover {
       case failed: RuntimeException => -\/(RepositoryError.DatabaseError("Failed to remove from cache.", Some(failed)))
       case exception: Throwable => throw exception

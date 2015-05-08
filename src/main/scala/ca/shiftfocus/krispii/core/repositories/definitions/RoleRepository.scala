@@ -8,6 +8,7 @@ import ca.shiftfocus.krispii.core.lib._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.uuid.UUID
 import scala.concurrent.Future
+import scalacache.ScalaCache
 import scalaz.{\/, EitherT}
 
 trait RoleRepository {
@@ -38,7 +39,7 @@ trait RoleRepository {
   def addToUser(user: User, role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
   def addToUser(user: User, name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
   def removeFromUser(user: User, role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
-  def removeFromUser(user: User, name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
+  def removeFromUser(user: User, name: String)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Unit]]
   def removeFromAllUsers(role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
   def removeFromAllUsers(name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
 }

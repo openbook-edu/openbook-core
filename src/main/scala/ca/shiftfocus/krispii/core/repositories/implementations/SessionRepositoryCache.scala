@@ -18,7 +18,7 @@ import scalaz.{-\/, \/-, \/}
 
 class SessionRepositoryCache extends SessionRepository {
 
-  val ttl = Some(2.days)
+  override val ttl = Some(2.days)
 
   /**
    * List all sessions for a given user ID.

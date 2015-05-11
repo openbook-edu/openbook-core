@@ -10,6 +10,7 @@ import org.joda.time.DateTime
 import org.joda.time.LocalTime
 import org.joda.time.LocalDate
 import scala.concurrent.Future
+import scalacache.ScalaCache
 import scalaz.{\/-, \/, -\/}
 
 class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with PostgresRepository[CourseSchedule] {
@@ -82,57 +83,19 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
     ORDER BY day asc, start_time asc, end_time asc
   """
 
-  val IsAnythingScheduledForUser = s"""
-    SELECT $Table.id
-    FROM $Table
-    INNER JOIN users_courses
-    ON users_courses.course_id = $Table.course_id
-      AND users_courses.user_id = ?
-    WHERE $Table.day = ?
-      AND $Table.start_time <= ?
-      AND $Table.end_time >= ?
-    ORDER BY day asc, start_time asc, end_time asc
-  """
-
-  val IsProjectScheduledForUser = s"""
-    SELECT $Table.id
-    FROM $Table
-    INNER JOIN users_courses
-    ON users_courses.course_id = $Table.course_id
-      AND users_courses.user_id = ?
-    INNER JOIN projects
-    ON projects.course_id = $Table.course_id
-    WHERE projects.id = ?
-      AND $Table.day = ?
-      AND $Table.start_time <= ?
-      AND $Table.end_time >= ?
-  """
-
-  /**
-   *
-   */
-  override def isAnythingScheduledForUser(user: User, currentDay: LocalDate, currentTime: LocalTime)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Boolean]] = {
-    val dayDT = currentDay.toDateTimeAtStartOfDay()
-    val TimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), currentTime.getHourOfDay(), currentTime.getMinuteOfHour, currentTime.getSecondOfMinute())
-
-    queryNumRows(IsAnythingScheduledForUser, Seq[Any](user.id.bytes, dayDT, TimeDT, TimeDT))(0 < _)
-  }
-
-  /**
-   *
-   */
-  override def isProjectScheduledForUser(project: Project, user: User, currentDay: LocalDate, currentTime: LocalTime)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Boolean]] = {
-    val dayDT = currentDay.toDateTimeAtStartOfDay()
-    val TimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), currentTime.getHourOfDay(), currentTime.getMinuteOfHour, currentTime.getSecondOfMinute())
-
-    queryNumRows(IsProjectScheduledForUser, Seq[Any](user.id.bytes, project.id.bytes, dayDT, TimeDT, TimeDT))(0 < _)
-  }
-
   /**
    * List all schedules for a given class
    */
-  override def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[CourseSchedule]]] = {
-    queryList(SelectByCourseId, Seq[Any](course.id.bytes))
+  override def list(course: Course)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[CourseSchedule]]] = {
+    getCached[IndexedSeq[CourseSchedule]](cacheSchedulesKey(course.id)).flatMap {
+      case \/-(schedules) => Future successful \/-(schedules)
+      case -\/(RepositoryError.NoResults) =>
+        for {
+          schedules <- lift(queryList(SelectByCourseId, Seq[Any](course.id.bytes)))
+          _ <- lift(putCache[IndexedSeq[CourseSchedule]](cacheSchedulesKey(course.id))(schedules, ttl))
+        } yield schedules
+      case -\/(error) => Future successful -\/(error)
+    }
   }
 
   /**
@@ -142,8 +105,17 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
    * @param conn An implicit connection object. Can be used in a transactional chain.
    * @return an optional task if one was found
    */
-  override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
-    queryOne(SelectOne, Seq[Any](id.bytes))
+  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
+    getCached[CourseSchedule](cacheScheduleKey(id)).flatMap {
+      case \/-(schedules) => Future successful \/-(schedules)
+      case -\/(RepositoryError.NoResults) =>
+        for {
+          schedule <- lift(queryOne(SelectOne, Seq[Any](id.bytes)))
+          _ <- lift(putCache[CourseSchedule](cacheScheduleKey(id))(schedule, ttl))
+        } yield schedule
+      case -\/(error) => Future successful -\/(error)
+    }
+
   }
 
   /**
@@ -152,22 +124,26 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
    * @param courseSchedule The course to be inserted
    * @return the new course
    */
-  override def insert(courseSchedule: CourseSchedule)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
+  override def insert(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
     val dayDT = courseSchedule.day.toDateTimeAtStartOfDay()
     val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.startTime.getHourOfDay(), courseSchedule.startTime.getMinuteOfHour, courseSchedule.startTime.getSecondOfMinute())
     val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.endTime.getHourOfDay(), courseSchedule.endTime.getMinuteOfHour, courseSchedule.endTime.getSecondOfMinute())
 
-    queryOne(Insert, Seq[Any](
-      courseSchedule.id.bytes,
-      1L,
-      new DateTime,
-      new DateTime,
-      courseSchedule.courseId.bytes,
-      dayDT,
-      startTimeDT,
-      endTimeDT,
-      courseSchedule.description
-    ))
+    for {
+      newSchedule <- lift(queryOne(Insert, Seq[Any](
+        courseSchedule.id.bytes,
+        1L,
+        new DateTime,
+        new DateTime,
+        courseSchedule.courseId.bytes,
+        dayDT,
+        startTimeDT,
+        endTimeDT,
+        courseSchedule.description
+      )))
+      _ <- lift(removeCached(cacheScheduleKey(newSchedule.id)))
+      _ <- lift(removeCached(cacheSchedulesKey(newSchedule.courseId)))
+    } yield newSchedule
   }
 
   /**
@@ -176,22 +152,26 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
    * @param courseSchedule The courseSchedule to be updated.
    * @return the updated course
    */
-  override def update(courseSchedule: CourseSchedule)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
+  override def update(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
     val dayDT = courseSchedule.day.toDateTimeAtStartOfDay()
     val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.startTime.getHourOfDay(), courseSchedule.startTime.getMinuteOfHour, courseSchedule.startTime.getSecondOfMinute())
     val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.endTime.getHourOfDay(), courseSchedule.endTime.getMinuteOfHour, courseSchedule.endTime.getSecondOfMinute())
 
-    queryOne(Update, Seq[Any](
-      courseSchedule.courseId.bytes,
-      dayDT,
-      startTimeDT,
-      endTimeDT,
-      courseSchedule.description,
-      courseSchedule.version + 1,
-      new DateTime,
-      courseSchedule.id.bytes,
-      courseSchedule.version
-    ))
+    for {
+      updated <- lift(queryOne(Update, Seq[Any](
+        courseSchedule.courseId.bytes,
+        dayDT,
+        startTimeDT,
+        endTimeDT,
+        courseSchedule.description,
+        courseSchedule.version + 1,
+        new DateTime,
+        courseSchedule.id.bytes,
+        courseSchedule.version
+      )))
+      _ <- lift(removeCached(cacheScheduleKey(updated.id)))
+      _ <- lift(removeCached(cacheSchedulesKey(updated.courseId)))
+    } yield updated
   }
 
   /**
@@ -200,7 +180,11 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
    * @param courseSchedule The course to delete.
    * @return A boolean indicating whether the operation was successful.
    */
-  override def delete(courseSchedule: CourseSchedule)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
-    queryOne(Delete, Seq[Any](courseSchedule.id.bytes, courseSchedule.version))
+  override def delete(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
+    for {
+      deleted <- lift(queryOne(Delete, Seq[Any](courseSchedule.id.bytes, courseSchedule.version)))
+      _ <- lift(removeCached(cacheScheduleKey(deleted.id)))
+      _ <- lift(removeCached(cacheSchedulesKey(deleted.courseId)))
+    } yield deleted
   }
 }

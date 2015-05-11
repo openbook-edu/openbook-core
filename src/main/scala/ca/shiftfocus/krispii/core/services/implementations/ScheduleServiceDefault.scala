@@ -11,9 +11,11 @@ import play.api.Logger
 import org.joda.time.LocalTime
 import org.joda.time.LocalDate
 import scala.concurrent.Future
+import scalacache.ScalaCache
 import scalaz.\/
 
 class ScheduleServiceDefault(val db: DB,
+                             val scalaCache: ScalaCache,
                              val authService: AuthService,
                              val schoolService: SchoolService,
                              val projectService: ProjectService,
@@ -21,6 +23,7 @@ class ScheduleServiceDefault(val db: DB,
                              val courseScheduleExceptionRepository: CourseScheduleExceptionRepository) extends ScheduleService {
 
   implicit def conn: Connection = db.pool
+  implicit def cache: ScalaCache = scalaCache
 
   /**
    * List all schedules for a specific course.
@@ -211,20 +214,6 @@ class ScheduleServiceDefault(val db: DB,
         isDeleted <- lift(courseScheduleExceptionRepository.delete(toDelete))
       } yield isDeleted
     }
-  }
-
-  /**
-   *
-   * @param userId
-   * @param currentDay
-   * @param currentTime
-   * @return
-   */
-  override def isAnythingScheduledForUser(userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
-    for {
-      user <- lift(authService.find(userId))
-      somethingScheduled <- lift(courseScheduleRepository.isAnythingScheduledForUser(user, currentDay, currentTime))
-    } yield somethingScheduled
   }
 
   /**

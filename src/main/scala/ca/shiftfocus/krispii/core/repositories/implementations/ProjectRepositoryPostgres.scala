@@ -8,6 +8,7 @@ import ca.shiftfocus.uuid.UUID
 import scala.concurrent.Future
 import org.joda.time.DateTime
 
+import scalacache.ScalaCache
 import scalaz._
 
 class ProjectRepositoryPostgres(val partRepository: PartRepository)
@@ -102,7 +103,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    *
    * @return a vector of the returned Projects
    */
-  override def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+  override def list(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
     (for {
       projectList <- lift(queryList(SelectAll))
       result <- liftSeq { projectList.map{ project =>
@@ -121,9 +122,17 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @param course The section to return projects from.
    * @return a vector of the returned Projects
    */
-  override def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+  override def list(course: Course)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
     (for {
-      projects <- lift(queryList(ListByCourse, Seq[Any](course.id.bytes)))
+      projects <- lift(getCached[IndexedSeq[Project]](cacheProjectsKey(course.id)).flatMap {
+        case \/-(projectList) => Future successful \/-(projectList)
+        case -\/(RepositoryError.NoResults) =>
+          for {
+            projectList <- lift(queryList(ListByCourse, Seq[Any](course.id.bytes)))
+            _ <- lift(putCache[IndexedSeq[Project]](cacheProjectsKey(course.id))(projectList, ttl))
+          } yield projectList
+        case -\/(error) => Future successful -\/(error)
+      })
       result <- liftSeq(projects.map{ project =>
         (for {
           partList <- lift(partRepository.list(project))
@@ -139,9 +148,18 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @param id the 128-bit UUID, as a byte array, to search for.
    * @return an optional Project if one was found
    */
-  override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
+  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
-      project <- lift(queryOne(SelectOne, Array[Any](id.bytes)))
+      project <- lift(getCached[Project](cacheProjectKey(id)).flatMap {
+        case \/-(project) => Future successful \/-(project)
+        case -\/(RepositoryError.NoResults) =>
+          for {
+            project <- lift(queryOne(SelectOne, Array[Any](id.bytes)))
+            _ <- lift(putCache[Project](cacheProjectKey(project.id))(project, ttl))
+            _ <- lift(putCache[UUID](cacheProjectSlugKey(project.slug))(project.id, ttl))
+          } yield project
+        case -\/(error) => Future successful -\/(error)
+      })
       parts <- lift(partRepository.list(project))
     } yield project.copy(parts = parts)).run
   }
@@ -152,10 +170,12 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @param projectId the 128-bit UUID, as a byte array, to search for.
    * @return an optional Project if one was found
    */
-  override def find(projectId: UUID, user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
+  override def find(projectId: UUID, user: User)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
       project <- lift(queryOne(SelectOneForUser, Array[Any](projectId.bytes, user.id.bytes, user.id.bytes)))
       parts <- lift(partRepository.list(project))
+      _ <- lift(putCache[Project](cacheProjectKey(project.id))(project, ttl))
+      _ <- lift(putCache[UUID](cacheProjectSlugKey(project.slug))(project.id, ttl))
     } yield project.copy(parts = parts)).run
   }
 
@@ -165,9 +185,18 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @param slug The project slug to search by.
    * @return an optional RowData object containing the results
    */
-  def find(slug: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
+  def find(slug: String)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
-      project <- lift(queryOne(SelectOneBySlug, Seq[Any](slug)))
+      project <- lift(getCached[UUID](cacheProjectSlugKey(slug)).flatMap {
+        case \/-(projectId) => find(projectId)
+        case -\/(RepositoryError.NoResults) =>
+          for {
+            project <- lift(queryOne(SelectOneBySlug, Seq[Any](slug)))
+            _ <- lift(putCache[Project](cacheProjectKey(project.id))(project, ttl))
+            _ <- lift(putCache[UUID](cacheProjectSlugKey(project.slug))(project.id, ttl))
+          } yield project
+        case -\/(error) => Future successful -\/(error)
+      })
       parts <- lift(partRepository.list(project))
     } yield project.copy(parts = parts)).run
   }
@@ -179,13 +208,16 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @param conn An implicit connection object. Can be used in a transactional chain.
    * @return the new project
    */
-  override def insert(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
+  override def insert(project: Project)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq(
       project.id.bytes, 1, project.courseId.bytes, project.name, project.slug,
       project.description, project.availability, new DateTime, new DateTime
     )
 
-    queryOne(Insert, params)
+    for {
+      inserted <- lift(queryOne(Insert, params))
+      _ <- lift(removeCached(cacheProjectsKey(project.courseId)))
+    } yield inserted
   }
 
   /**
@@ -195,7 +227,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @param conn An implicit connection object. Can be used in a transactional chain.
    * @return the updated project.
    */
-  override def update(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
+  override def update(project: Project)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
       project.courseId.bytes, project.name, project.slug, project.description,
       project.availability, project.version + 1, new DateTime, project.id.bytes, project.version
@@ -204,6 +236,9 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
     (for {
       updatedProject <- lift(queryOne(Update, params))
       oldParts = project.parts
+      _ <- lift(removeCached(cacheProjectKey(project.id)))
+      _ <- lift(removeCached(cacheProjectSlugKey(project.slug)))
+      _ <- lift(removeCached(cacheProjectsKey(project.courseId)))
     } yield updatedProject.copy(parts = oldParts)).run
   }
 
@@ -214,10 +249,13 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @param conn An implicit connection object. Can be used in a transactional chain.
    * @return a boolean indicator whether the deletion was successful.
    */
-  override def delete(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
+  override def delete(project: Project)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
       deletedProject <- lift(queryOne(Delete, Array(project.id.bytes, project.version)))
       oldParts = project.parts
+      _ <- lift(removeCached(cacheProjectKey(project.id)))
+      _ <- lift(removeCached(cacheProjectSlugKey(project.slug)))
+      _ <- lift(removeCached(cacheProjectsKey(project.courseId)))
     } yield deletedProject.copy(parts = oldParts)).run
   }
 }

@@ -9,9 +9,11 @@ import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.uuid.UUID
 import play.api.Logger
 import scala.concurrent.Future
+import scalacache.ScalaCache
 import scalaz.{-\/, \/-, \/}
 
 class ComponentServiceDefault(val db: DB,
+                              val scalaCache: ScalaCache,
                               val authService: AuthService,
                               val projectService: ProjectService,
                               val schoolService: SchoolService,
@@ -19,6 +21,7 @@ class ComponentServiceDefault(val db: DB,
   extends ComponentService {
 
   implicit def conn: Connection = db.pool
+  implicit def cache: ScalaCache = scalaCache
 
   /**
    * List all components.

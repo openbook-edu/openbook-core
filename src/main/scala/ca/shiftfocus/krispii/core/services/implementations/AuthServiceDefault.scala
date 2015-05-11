@@ -32,7 +32,7 @@ class AuthServiceDefault(val db: DB,
     for {
       users <- lift(userRepository.list(db.pool))
       result <- liftSeq { users.map { user =>
-        val fRoles = roleRepository.list(user)(db.pool)
+        val fRoles = roleRepository.list(user)(db.pool, cache)
         (for {
           roles <- lift(fRoles)
         } yield user.copy(roles = roles)).run
@@ -448,7 +448,7 @@ class AuthServiceDefault(val db: DB,
   override def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
       val fUser = userRepository.find(userId)(db.pool, cache)
-      val fRole = roleRepository.find(roleName)(db.pool)
+      val fRole = roleRepository.find(roleName)(db.pool, cache)
 
       for {
         user <- lift(fUser)
@@ -487,7 +487,7 @@ class AuthServiceDefault(val db: DB,
   override def removeRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
       val fUser = userRepository.find(userId)(db.pool, cache)
-      val fRole = roleRepository.find(roleName)(db.pool)
+      val fRole = roleRepository.find(roleName)(db.pool, cache)
       for {
         user <- lift(fUser)
         role <- lift(fRole)
@@ -507,7 +507,7 @@ class AuthServiceDefault(val db: DB,
    */
   override def addUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn =>
-      val fRole = roleRepository.find(roleId)(db.pool)
+      val fRole = roleRepository.find(roleId)(db.pool, cache)
       val fUsers = userRepository.list(userIds)(db.pool, cache)
 
       for {
@@ -528,7 +528,7 @@ class AuthServiceDefault(val db: DB,
    */
   override def removeUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn =>
-      val fRole = roleRepository.find(roleId)(db.pool)
+      val fRole = roleRepository.find(roleId)(db.pool, cache)
       val fUsers = userRepository.list(userIds)(db.pool, cache)
 
       for {

@@ -23,8 +23,6 @@ import scala.concurrent.duration._
 
 class UserRepositoryPostgres extends UserRepository with PostgresRepository[User] {
 
-  val ttl = Some(15.minutes)
-
   override def constructor(row: RowData): User = {
     User(
       id         = UUID(row("id").asInstanceOf[Array[Byte]]),

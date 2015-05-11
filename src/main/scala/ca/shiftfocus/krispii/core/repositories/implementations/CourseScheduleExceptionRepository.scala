@@ -8,6 +8,7 @@ import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
 import scala.concurrent.Future
+import scalacache.ScalaCache
 import scalaz.{-\/, \/-, \/}
 
 class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserRepository,
@@ -96,15 +97,31 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
    * @param conn An implicit connection object. Can be used in a transactional chain.
    * @return a vector of the returned courses
    */
-  override def list(user: User, course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[CourseScheduleException]]] = {
-    queryList(SelectForUserAndCourse, Array[Any](user.id.bytes, course.id.bytes))
+  override def list(user: User, course: Course)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[CourseScheduleException]]] = {
+    getCached[IndexedSeq[CourseScheduleException]](cacheExceptionsKey(course.id, user.id)).flatMap {
+      case \/-(schedules) => Future successful \/-(schedules)
+      case -\/(RepositoryError.NoResults) =>
+        for {
+          schedules <- lift(queryList(SelectForUserAndCourse, Array[Any](user.id.bytes, course.id.bytes)))
+          _ <- lift(putCache[IndexedSeq[CourseScheduleException]](cacheExceptionsKey(course.id, user.id))(schedules, ttl))
+        } yield schedules
+      case -\/(error) => Future successful -\/(error)
+    }
   }
 
   /**
    * Find all schedule exceptions for a given course.
    */
-  override def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[CourseScheduleException]]] = {
-    queryList(SelectForCourse, Array[Any](course.id.bytes))
+  override def list(course: Course)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[CourseScheduleException]]] = {
+    getCached[IndexedSeq[CourseScheduleException]](cacheExceptionsKey(course.id)).flatMap {
+      case \/-(schedules) => Future successful \/-(schedules)
+      case -\/(RepositoryError.NoResults) =>
+        for {
+          schedules <- lift(queryList(SelectForCourse, Seq[Any](course.id.bytes)))
+          _ <- lift(putCache[IndexedSeq[CourseScheduleException]](cacheExceptionsKey(course.id))(schedules, ttl))
+        } yield schedules
+      case -\/(error) => Future successful -\/(error)
+    }
   }
 
   /**
@@ -114,8 +131,16 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
    * @param conn An implicit connection object. Can be used in a transactional chain.
    * @return an optional task if one was found
    */
-  override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseScheduleException]] = {
-    queryOne(SelectOne, Array[Any](id.bytes))
+  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseScheduleException]] = {
+    getCached[CourseScheduleException](cacheExceptionKey(id)).flatMap {
+      case \/-(schedules) => Future successful \/-(schedules)
+      case -\/(RepositoryError.NoResults) =>
+        for {
+          schedule <- lift(queryOne(SelectOne, Seq[Any](id.bytes)))
+          _ <- lift(putCache[CourseScheduleException](cacheExceptionKey(id))(schedule, ttl))
+        } yield schedule
+      case -\/(error) => Future successful -\/(error)
+    }
   }
 
   /**
@@ -124,23 +149,27 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
    * @param course The course to be inserted
    * @return the new course
    */
-  override def insert(courseScheduleException: CourseScheduleException)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseScheduleException]] = {
+  override def insert(courseScheduleException: CourseScheduleException)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseScheduleException]] = {
     val dayDT = courseScheduleException.day.toDateTimeAtStartOfDay()
     val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.startTime.getHourOfDay(), courseScheduleException.startTime.getMinuteOfHour, courseScheduleException.startTime.getSecondOfMinute())
     val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.endTime.getHourOfDay(), courseScheduleException.endTime.getMinuteOfHour, courseScheduleException.endTime.getSecondOfMinute())
 
-    queryOne(Insert, Array(
-      courseScheduleException.id.bytes,
-      1L,
-      new DateTime,
-      new DateTime,
-      courseScheduleException.userId.bytes,
-      courseScheduleException.courseId.bytes,
-      dayDT,
-      startTimeDT,
-      endTimeDT,
-      courseScheduleException.reason
-    ))
+    for {
+      inserted <- lift(queryOne(Insert, Array(
+        courseScheduleException.id.bytes,
+        1L,
+        new DateTime,
+        new DateTime,
+        courseScheduleException.userId.bytes,
+        courseScheduleException.courseId.bytes,
+        dayDT,
+        startTimeDT,
+        endTimeDT,
+        courseScheduleException.reason
+      )))
+      _ <- lift(removeCached(cacheExceptionsKey(inserted.courseId)))
+      _ <- lift(removeCached(cacheExceptionsKey(inserted.courseId, inserted.userId)))
+    } yield inserted
   }
 
   /**
@@ -149,23 +178,27 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
    * @param course The course to be updated.
    * @return the updated course
    */
-  override def update(courseScheduleException: CourseScheduleException)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseScheduleException]] = {
+  override def update(courseScheduleException: CourseScheduleException)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseScheduleException]] = {
     val dayDT = courseScheduleException.day.toDateTimeAtStartOfDay()
     val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.startTime.getHourOfDay(), courseScheduleException.startTime.getMinuteOfHour, courseScheduleException.startTime.getSecondOfMinute())
     val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.endTime.getHourOfDay(), courseScheduleException.endTime.getMinuteOfHour, courseScheduleException.endTime.getSecondOfMinute())
 
-    queryOne(Update, Array(
-      courseScheduleException.userId.bytes,
-      courseScheduleException.courseId.bytes,
-      dayDT,
-      startTimeDT,
-      endTimeDT,
-      courseScheduleException.reason,
-      courseScheduleException.version + 1,
-      new DateTime,
-      courseScheduleException.id.bytes,
-      courseScheduleException.version
-    ))
+    for {
+      updated <- lift(queryOne(Update, Array(
+        courseScheduleException.userId.bytes,
+        courseScheduleException.courseId.bytes,
+        dayDT,
+        startTimeDT,
+        endTimeDT,
+        courseScheduleException.reason,
+        courseScheduleException.version + 1,
+        new DateTime,
+        courseScheduleException.id.bytes,
+        courseScheduleException.version
+      )))
+      _ <- lift(removeCached(cacheExceptionsKey(updated.courseId)))
+      _ <- lift(removeCached(cacheExceptionsKey(updated.courseId, updated.userId)))
+    } yield updated
   }
 
   /**
@@ -174,7 +207,11 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
    * @param course The course to delete.
    * @return A boolean indicating whether the operation was successful.
    */
-  override def delete(courseScheduleException: CourseScheduleException)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseScheduleException]] = {
-    queryOne(Delete, Array(courseScheduleException.id.bytes, courseScheduleException.version))
+  override def delete(courseScheduleException: CourseScheduleException)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseScheduleException]] = {
+    for {
+      deleted <- lift(queryOne(Delete, Array(courseScheduleException.id.bytes, courseScheduleException.version)))
+      _ <- lift(removeCached(cacheExceptionsKey(deleted.courseId)))
+      _ <- lift(removeCached(cacheExceptionsKey(deleted.courseId, deleted.userId)))
+    } yield deleted
   }
 }

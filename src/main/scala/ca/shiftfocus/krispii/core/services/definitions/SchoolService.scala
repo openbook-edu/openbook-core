@@ -23,7 +23,7 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
 
   def createCourse(teacherId: UUID, name: String, color: Color): Future[\/[ErrorUnion#Fail, Course]]
   def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: Option[String], color: Option[Color]): Future[\/[ErrorUnion#Fail, Course]]
-  def deleteCourse(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Course]]
+  def deleteCourse(id: UUID, version: Long): Future[\/[ErrorUnion#Fail Course]]
 
   //def listStudents(course: Course): Future[IndexedSeq[User]]
   def listStudents(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]

@@ -25,6 +25,10 @@ sealed trait OfflineLockFailT extends ErrorUnion {
   object OfflineLockFail extends Fail
 }
 
+sealed trait BadParamT extends ErrorUnion {
+  case class BadParam(message: String) extends Fail
+}
+
 // Service errors
 sealed trait BadInputT extends ErrorUnion {
   case class BadInput(message: String) extends Fail
@@ -44,6 +48,7 @@ object RepositoryError
   with UniqueKeyConflictT
   with ForeignKeyConflictT
   with OfflineLockFailT
+  with BadParamT
 
 object ServiceError
   extends BadInputT

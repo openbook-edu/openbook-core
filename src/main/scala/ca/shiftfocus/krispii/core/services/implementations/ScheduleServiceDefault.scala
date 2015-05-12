@@ -11,9 +11,11 @@ import play.api.Logger
 import org.joda.time.LocalTime
 import org.joda.time.LocalDate
 import scala.concurrent.Future
+import scalacache.ScalaCache
 import scalaz.\/
 
 class ScheduleServiceDefault(val db: DB,
+                             val scalaCache: ScalaCache,
                              val authService: AuthService,
                              val schoolService: SchoolService,
                              val projectService: ProjectService,
@@ -21,6 +23,7 @@ class ScheduleServiceDefault(val db: DB,
                              val courseScheduleExceptionRepository: CourseScheduleExceptionRepository) extends ScheduleService {
 
   implicit def conn: Connection = db.pool
+  implicit def cache: ScalaCache = scalaCache
 
   /**
    * List all schedules for a specific course.
@@ -215,34 +218,58 @@ class ScheduleServiceDefault(val db: DB,
 
   /**
    *
+   * @param courseSlug
    * @param userId
    * @param currentDay
    * @param currentTime
    * @return
    */
-  override def isAnythingScheduledForUser(userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
+  override def isCourseScheduledForUser(courseSlug: String, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
     for {
-      user <- lift(authService.find(userId))
-      somethingScheduled <- lift(courseScheduleRepository.isAnythingScheduledForUser(user, currentDay, currentTime))
-    } yield somethingScheduled
+      course <- lift( schoolService.findCourse(courseSlug))
+      scheduled <- lift(isCourseScheduledForUser(course, userId, currentDay, currentTime))
+    } yield scheduled
   }
 
   /**
    *
-   * @param projectSlug
+   * @param courseId
    * @param userId
    * @param currentDay
    * @param currentTime
    * @return
    */
-  override def isProjectScheduledForUser(projectSlug: String, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
-    val fProject = projectService.find(projectSlug)
-    val fUser = authService.find(userId)
-
+  override def isCourseScheduledForUser(courseId: UUID, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
     for {
-      project <- lift(fProject)
-      user <- lift(fUser)
-      projectScheduled <- lift(courseScheduleRepository.isProjectScheduledForUser(project, user, currentDay, currentTime))
-    } yield projectScheduled
+      course <- lift( schoolService.findCourse(courseId))
+      scheduled <- lift(isCourseScheduledForUser(course, userId, currentDay, currentTime))
+    } yield scheduled
+  }
+
+  private def isCourseScheduledForUser(course: Course, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
+    for {
+      user <- lift(authService.find(userId))
+      schedules <- lift(courseScheduleRepository.list(course))
+      exceptions <- lift(courseScheduleExceptionRepository.list(course))
+      scheduled = {
+        val numCurrentSchedules = schedules.count({ schedule =>
+          schedule.day == currentDay &&
+            schedule.startTime.isBefore(currentTime) &&
+            schedule.endTime.isAfter(currentTime)
+        })
+        if (numCurrentSchedules > 0) {
+          true
+        }
+        else {
+          val numCurrentExceptions = exceptions.count({ exception =>
+            exception.userId == userId &&
+              exception.day == currentDay &&
+              exception.startTime.isBefore(currentTime) &&
+              exception.endTime.isAfter(currentTime)
+          })
+          numCurrentExceptions > 0
+        }
+      }
+    } yield scheduled
   }
 }

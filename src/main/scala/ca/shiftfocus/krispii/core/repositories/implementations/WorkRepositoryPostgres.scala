@@ -3,8 +3,9 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
+import ca.shiftfocus.krispii.core.models.tasks.Task.Ordering
 import ca.shiftfocus.krispii.core.models.tasks.Task._
-import ca.shiftfocus.krispii.core.models.tasks.{MatchingTask, Task}
+import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
@@ -14,7 +15,9 @@ import org.joda.time.DateTime
 import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
 
-class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends WorkRepository with PostgresRepository[Work] {
+class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
+                             val revisionRepository: RevisionRepository)
+  extends WorkRepository with PostgresRepository[Work] {
 
   override def constructor(row: RowData): Work = {
     row("work_type").asInstanceOf[Int] match {
@@ -64,7 +67,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
       response   = row("mc_response").asInstanceOf[IndexedSeq[Int]],
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt  = row("created_at").asInstanceOf[DateTime],
-      updatedAt  = row("updated_at").asInstanceOf[DateTime]
+      updatedAt  = row("mc_created_at").asInstanceOf[DateTime]
     )
   }
 
@@ -77,7 +80,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
       response   = row("ord_response").asInstanceOf[IndexedSeq[Int]],
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt  = row("created_at").asInstanceOf[DateTime],
-      updatedAt  = row("updated_at").asInstanceOf[DateTime]
+      updatedAt  = row("ord_created_at").asInstanceOf[DateTime]
     )
   }
 
@@ -92,31 +95,41 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
       },
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt  = row("created_at").asInstanceOf[DateTime],
-      updatedAt  = row("updated_at").asInstanceOf[DateTime]
+      updatedAt  = row("mat_created_at").asInstanceOf[DateTime]
     )
   }
 
   // -- Common query components --------------------------------------------------------------------------------------
 
   val Table                 = "work"
-  val CommonFields          = "id, user_id, task_id, version, is_complete, work_type, created_at, updated_at"
+  val CommonFields          = "id, user_id, task_id, version, is_complete, created_at, updated_at, work_type"
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field}).mkString(", ")
   }
+
+  val QMarks  = "?, ?, ?, ?, ?, ?, ?, ?"
+
+  val SpecificOrderBy = s"""
+     |multiple_choice_work.version DESC,
+     |ordering_work.version DESC,
+     |matching_work.version DESC
+     """.stripMargin
+
   val SpecificFields =
     s"""
        |long_answer_work.document_id as la_document_id,
        |short_answer_work.document_id as sa_document_id,
        |multiple_choice_work.response as mc_response,
        |multiple_choice_work.version as mc_version,
+       |multiple_choice_work.created_at as mc_created_at,
        |ordering_work.response as ord_response,
        |ordering_work.version as ord_version,
+       |ordering_work.created_at as ord_created_at,
        |matching_work.response as mat_response,
-       |matching_work.version as mat_version
+       |matching_work.version as mat_version,
+       |matching_work.created_at as mat_created_at
      """.stripMargin
 
-  val QMarks  = "?, ?, ?, ?, ?, ?, ?, ?"
-  val OrderBy = s"${Table}.position ASC"
   val Join =
     s"""
       |LEFT JOIN long_answer_work ON $Table.id = long_answer_work.work_id
@@ -126,54 +139,25 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
       |LEFT JOIN matching_work ON $Table.id = matching_work.work_id
      """.stripMargin
 
-  // -- Select queries -----------------------------------------------------------------------------------------------
-
-//  val Fields =
-//    s"""
-//       |work.id as id,
-//       |       work.user_id as user_id,
-//       |       work.task_id as task_id,
-//       |       work.is_complete as is_complete,
-//       |       work.created_at as created_at,
-//       |       work.updated_at as updated_at,
-//       |       work.work_type as work_type,
-//       |       work.version as version,
-//       |       long_answer_work.document_id as long_answer_document_id,
-//       |       short_answer_work.document_id as short_answer_document_id,
-//       |       multiple_choice_work.response as multiple_choice_response,
-//       |       multiple_choice_work.version as multiple_choice_version,
-//       |       ordering_work.response as ordering_response,
-//       |       ordering_work.version as ordering_version,
-//       |       matching_work.response as matching_response,
-//       |       matching_work.version as matching_version
-//     """.stripMargin
-//
-  val Select =
+  def JoinMatchVersion(table: String = Table): String = {
     s"""
-       |SELECT $CommonFields
+      |LEFT JOIN long_answer_work ON $table.id = long_answer_work.work_id
+      |LEFT JOIN short_answer_work ON $table.id = short_answer_work.work_id
+      |LEFT JOIN multiple_choice_work ON $table.id = multiple_choice_work.work_id
+      |  AND $table.version = multiple_choice_work.version
+      |LEFT JOIN ordering_work ON $table.id = ordering_work.work_id
+      |  AND $table.version = ordering_work.version
+      |LEFT JOIN matching_work ON $table.id = matching_work.work_id
+      |  AND $table.version = matching_work.version
      """.stripMargin
-
-  val From = "FROM work"
-
-  val JoinMatchVersion =
-    s"""
-       |LEFT JOIN long_answer_work ON work.id = long_answer_work.work_id
-       |LEFT JOIN short_answer_work ON work.id = short_answer_work.work_id
-       |LEFT JOIN multiple_choice_work ON work.id = multiple_choice_work.work_id
-       |  AND work.version = multiple_choice_work.version
-       |LEFT JOIN ordering_work ON work.id = ordering_work.work_id
-       |  AND work.version = ordering_work.version
-       |LEFT JOIN matching_work ON work.id = matching_work.work_id
-       |  AND work.version = matching_work.version
-     """.stripMargin
+    }
 
   // -- Select queries -----------------------------------------------------------------------------------------------
-
-  val SelectAllForUserProject =
+  val SelectForUserProject =
     s"""
         |SELECT ${CommonFieldsWithTable()}, $SpecificFields
         |FROM $Table
-        |$Join
+        |${JoinMatchVersion()}
         |INNER JOIN projects
         | ON projects.id = ?
         |INNER JOIN parts
@@ -184,42 +168,67 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
         | AND $Table.task_id = tasks.id
      """.stripMargin
 
-  // TODO - maybe $Join instead of $JoinMatchVersion
-  val SelectAllForTask =
+  val SelectForTask =
     s"""
         |SELECT ${CommonFieldsWithTable()}, $SpecificFields
         |FROM $Table
-        |$JoinMatchVersion
+        |${JoinMatchVersion()}
         |INNER JOIN tasks
         | ON tasks.id = ?
         |WHERE $Table.task_id = tasks.id
      """.stripMargin
 
-  val ListRevisionsById =
+  val SelectAllForUserTask =
     s"""
       |SELECT ${CommonFieldsWithTable()}, $SpecificFields
       |FROM $Table
       |$Join
       |WHERE $Table.user_id = ?
       | AND $Table.task_id = ?
+      |ORDER BY $SpecificOrderBy
      """.stripMargin
 
-  val SelectByStudentTask =
+  val FindByStudentTask =
     s"""
        |SELECT ${CommonFieldsWithTable()}, $SpecificFields
-       |$From
-       |$JoinMatchVersion
+       |FROM $Table
+       |${JoinMatchVersion()}
        |WHERE user_id = ?
        |  AND task_id = ?
        |LIMIT 1
      """.stripMargin
 
-  val SelectById =
+  val FindByStudentTaskVersion =
+    s"""
+       |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+       |FROM $Table
+       |$Join
+       |WHERE user_id = ?
+       |  AND task_id = ?
+       |  AND (multiple_choice_work.version = ?
+       |       OR ordering_work.version = ?
+       |       OR matching_work.version = ?)
+       |LIMIT 1
+     """.stripMargin
+
+  val FindById =
     s"""
       |SELECT ${CommonFieldsWithTable()}, $SpecificFields
       |FROM $Table
-      |$JoinMatchVersion
+      |${JoinMatchVersion()}
       |WHERE id = ?
+      |LIMIT 1
+     """.stripMargin
+
+  val FindByIdVersion =
+  s"""
+      |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+      |FROM $Table
+      |$Join
+      |WHERE id = ?
+      | AND (multiple_choice_work.version = ?
+      |      OR ordering_work.version = ?
+      |      OR matching_work.version = ?)
       |LIMIT 1
      """.stripMargin
 
@@ -227,14 +236,14 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
 
   val Insert =
     s"""
-       |INSERT INTO work (id, user_id, task_id, version, is_complete, created_at, updated_at, work_type)
+       |INSERT INTO $Table ($CommonFields)
        |VALUES (?, ?, ?, 1, ?, ?, ?, ?)
-       |RETURNING id, user_id, task_id, version, is_complete, created_at, updated_at, work_type
+       |RETURNING $CommonFields
      """.stripMargin
 
   def InsertIntoDocumentWork(table: String): String = {
     val response = table match {
-      case "long_answer_work" => "la_document_id"
+      case "long_answer_work"  => "la_document_id"
       case "short_answer_work" => "sa_document_id"
     }
     s"""
@@ -249,23 +258,18 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
   }
 
   def InsertIntoVersionedWork(table: String): String = {
-    val version = table match {
-      case "multiple_choice_work" => "mc_version"
-      case "ordering_work" => "ord_version"
-      case "matching_work" => "mat_version"
-    }
-    val response = table match {
-      case "multiple_choice_work" => "mc_response"
-      case "ordering_work" => "ord_response"
-      case "matching_work" => "mat_response"
+    val (version, response, created) = table match {
+      case "multiple_choice_work" => ("mc_version", "mc_response", "mc_created_at")
+      case "ordering_work"        => ("ord_version", "ord_response", "ord_created_at")
+      case "matching_work"        => ("mat_version", "mat_response", "mat_created_at")
     }
     s"""
        |WITH w AS ($Insert),
-       |     x AS (INSERT INTO $table (work_id, version, response)
-       |           SELECT w.id as work_id, w.version as version, ? as response
+       |     x AS (INSERT INTO $table (work_id, version, response, created_at)
+       |           SELECT w.id as work_id, w.version as version, ? as response, w.updated_at as created_at
        |           FROM w
        |           RETURNING *)
-       |SELECT w.id, w.user_id, w.task_id, w.version as $version, w.is_complete, w.created_at, w.updated_at, w.work_type, x.response as $response
+       |SELECT w.id, w.user_id, w.task_id, w.version as $version, w.is_complete, w.created_at, w.updated_at as $created, w.work_type, x.response as $response
        |FROM w, x
      """.stripMargin
   }
@@ -274,7 +278,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
 
   val Update =
     s"""
-       |UPDATE work
+       |UPDATE $Table
        |SET version = ?,
        |    is_complete = ?,
        |    updated_at = ?
@@ -284,41 +288,40 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
      """.stripMargin
 
   def UpdateKeepLatestRevision(table: String): String = {
-    val (version, response) = table match {
-      case "long_answer_work" => ("version", "x.document_id as la_document_id")
-      case "short_answer_work" => ("version", "x.document_id as sa_document_id")
-      case "multiple_choice_work" => ("mc_version", "x.response as mc_response")
-      case "ordering_work" => ("ord_version", "x.response as mc_response")
-      case "matching_work" => ("mat_version", "x.response as mc_response")
+    val (version, response, and, updatedAt) = table match {
+      case "long_answer_work"     => ("version", "x.document_id as la_document_id", "", "updated_at")
+      case "short_answer_work"    => ("version", "x.document_id as sa_document_id", "", "updated_at")
+      case "multiple_choice_work" => ("mc_version", "x.response as mc_response", s"AND $table.version = w.version", "mc_created_at")
+      case "ordering_work"        => ("ord_version", "x.response as ord_response", s"AND $table.version = w.version", "ord_created_at")
+      case "matching_work"        => ("mat_version", "x.response as mat_response", s"AND $table.version = w.version", "mat_created_at")
     }
-
     s"""
        |WITH w AS ($Update),
        |     x AS (SELECT *
        |           FROM $table, w
        |           WHERE work_id = w.id
-       |             AND version = w.version)
-       |SELECT w.id, w.user_id, w.task_id, w.version as $version, $response, w.is_complete, w.work_type, w.created_at, w.updated_at
-       |FROM w,x
+       |            $and)
+       |SELECT w.id, w.user_id, w.task_id, w.version as $version, $response, w.is_complete, w.work_type, w.created_at, w.updated_at as $updatedAt
+       |FROM w, x
      """.stripMargin
   }
 
   def UpdateWithNewRevision(table: String): String = {
-    val (version, response) = table match {
-      case "multiple_choice_work" => ("mc_version", "mc_response")
-      case "ordering_work" => ("ord_version", "ord_response")
-      case "matching_work" => ("mat_version", "mat_response")
+    val (version, response, updatedAt) = table match {
+      case "multiple_choice_work" => ("mc_version", "mc_response", "mc_created_at")
+      case "ordering_work"        => ("ord_version", "ord_response", "ord_created_at")
+      case "matching_work"        => ("mat_version", "mat_response", "mat_created_at")
     }
-
     s"""
        |WITH w AS ($Update),
-       |     x AS (INSERT INTO $table (work_id, version, response)
+       |     x AS (INSERT INTO $table (work_id, version, response, created_at)
        |           SELECT w.id as work_id,
        |                  w.version as version,
-       |                  ? as response
+       |                  ? as response,
+       |                  created_at
        |           FROM w
        |           RETURNING *)
-       |SELECT w.id, w.user_id, w.task_id, w.version as $version, x.response as $response, w.is_complete, w.work_type, w.created_at, w.updated_at
+       |SELECT w.id, w.user_id, w.task_id, w.version as $version, x.response as $response, w.is_complete, w.work_type, w.created_at, w.updated_at as $updatedAt
        |FROM w,x
      """.stripMargin
   }
@@ -327,31 +330,36 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
   // NB: the delete queries should never be used unless you know what you're doing. Due to work revisioning, the
   //     proper way to "clear" a work is to create an empty revision.
 
-  val Delete =
+  val DeleteWhere =
     s"""
-       |DELETE work
-       |$From
-       |$Join
-       |WHERE user_id = ?
-       |  AND task_id = ?
+      |long_answer_work.work_id = $Table.id
+      | OR short_answer_work.work_id = $Table.id
+      | OR (multiple_choice_work.work_id = $Table.id
+      |     AND $Table.version = multiple_choice_work.version)
+      | OR (ordering_work.work_id = $Table.id
+      |     AND $Table.version = ordering_work.version)
+      | OR (matching_work.work_id = $Table.id
+      |     AND $Table.version = matching_work.version)
      """.stripMargin
 
-  val DeleteRevision =
+  val DeleteAllRevisions =
     s"""
-       |DELETE work
-       |$From
-       |$Join
-       |WHERE user_id = ?
-       |  AND task_id = ?
-       |  AND revision = ?
+       |DELETE FROM $Table
+       |USING
+       |  long_answer_work,
+       |  short_answer_work,
+       |  multiple_choice_work,
+       |  ordering_work,
+       |  matching_work
+       |WHERE id = ?
+       | AND ($DeleteWhere)
+       |RETURNING ${CommonFieldsWithTable()}, $SpecificFields
      """.stripMargin
 
   val DeleteAllForTask =
     s"""
-       |DELETE work
-       |$From
-       |$Join
-       |WHERE task.id = ?
+       |DELETE FROM $Table
+       |WHERE task_id = ?
      """.stripMargin
 
 
@@ -363,29 +371,114 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
    * @return
    */
   override def list(user: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]] = {
-    queryList(SelectAllForUserProject, Seq[Any](project.id.bytes, user.id.bytes))
+    for {
+      workList <- lift(queryList(SelectForUserProject, Seq[Any](project.id.bytes, user.id.bytes)))
+      result   <- lift(serializedT(workList) {
+        case documentWork: DocumentWork => {
+          for  {
+            document <- lift(documentRepository.find(documentWork.documentId))
+            result = documentWork.copy(
+              response = Some(document)
+//              version = document.version
+            )
+          } yield result
+        }
+        case otherWorkTypes => lift(Future successful \/.right(otherWorkTypes))
+      })
+    } yield result
   }
 
-  // TODO create separate methods for LongAnswer, ShortAnswer and MultipleChoice, Ordering, Matching
   /**
-   * List latest revisions of a specific work for a user.
+   * List all revisions of a specific work for a user within a Task.
    *
    * @param task
    * @param user
    * @return
    */
-  override def list(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]] = {
-    queryList(ListRevisionsById, Seq[Any](user.id.bytes, task.id.bytes))
+  override def list(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Either[DocumentWork, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]]] = {
+    task match {
+      case longAnswerTask: LongAnswerTask         => listDocumentWork(user, longAnswerTask).map(_.map { documentWork =>  Left(documentWork)})
+      case shortAnswerTask: ShortAnswerTask       => listDocumentWork(user, shortAnswerTask).map(_.map { documentWork =>  Left(documentWork)})
+      case multipleChoiceTask: MultipleChoiceTask => listListWork(user, multipleChoiceTask).map(_.map { listWork =>  Right(listWork)})
+      case orderingTask: OrderingTask             => listListWork(user, orderingTask).map(_.map { listWork =>  Right(listWork)})
+      case matchingTask: MatchingTask             => listListWork(user, matchingTask).map(_.map { listWork =>  Right(listWork)})
+    }
   }
 
   /**
-   * List latest revisions of a specific work for all users.
+   * @see list(user: User, task: Task)
+   *
+   * @param user
+   * @param task
+   * @param conn
+   * @return
+   */
+  private def listDocumentWork(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, DocumentWork]] = {
+   (for {
+      work   <- lift(queryOne(SelectAllForUserTask, Seq[Any](user.id.bytes, task.id.bytes)))
+      result <- { work match {
+        case documentWork: DocumentWork => {
+          val res: Future[\/[RepositoryError.Fail, DocumentWork]] = for {
+            document  <- lift(documentRepository.find(documentWork.documentId))
+            revisions <- lift(revisionRepository.list(document, toVersion = document.version))
+            result    = documentWork.copy(
+              response = Some(document.copy(revisions = revisions))
+//              version = document.version
+            )
+          } yield result
+          lift(res)
+        }
+        case _ => lift[DocumentWork](Future.successful(-\/(RepositoryError.NoResults)))
+      }}
+    } yield result).run
+  }
+
+  /**
+   * @see list(user: User, task: Task)
+   *
+   * @param user
+   * @param task
+   * @param conn
+   * @return
+   */
+  private def listListWork(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]] = {
+    (for {
+      workList <- lift(queryList(SelectAllForUserTask, Seq[Any](user.id.bytes, task.id.bytes)))
+      result   <- lift(Future.successful(workList match {
+        case IndexedSeq(work, rest @ _ *) => {
+          work match {
+            case intListWork: IntListWork => \/.right(IndexedSeq(intListWork) ++ rest.asInstanceOf[IndexedSeq[IntListWork]])
+            case matchListWork: MatchListWork => \/.right(IndexedSeq(matchListWork) ++ rest.asInstanceOf[IndexedSeq[MatchListWork]])
+            case _ => \/.left(RepositoryError.NoResults)
+          }
+        }
+        case _ => \/.left(RepositoryError.NoResults)
+      }))
+    } yield result).run
+  }
+
+  /**
+   * List latest revisions of a specific work for all users within a Task.
    *
    * @param task
    * @return
    */
   override def list(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]] = {
-    queryList(SelectAllForTask, Seq[Any](task.id.bytes))
+    for {
+      workList <- lift(queryList(SelectForTask, Seq[Any](task.id.bytes)))
+      result <- lift(serializedT(workList){
+        case documentWork: DocumentWork => {
+          for  {
+            document <- lift(documentRepository.find(documentWork.documentId))
+            result = documentWork.copy(
+              response = Some(document)
+//              version = document.version
+            )
+          } yield result
+        }
+        case otherWorkTypes => lift(Future successful \/.right(otherWorkTypes))
+      })
+    } yield result
   }
 
   /**
@@ -395,13 +488,12 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
    * @return
    */
   override def find(workId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    queryOne(SelectById, Seq[Any](workId.bytes)).flatMap {
-      case \/-(work: LongAnswerWork) => documentRepository.find(work.documentId).map {
-        case \/-(document) => \/.right(work.copy(response = Some(document)))
-        case -\/(error: RepositoryError.Fail) => \/.left(error)
-      }
-      case \/-(work: ShortAnswerWork) => documentRepository.find(work.documentId).map {
-        case \/-(document) => \/.right(work.copy(response = Some(document)))
+    queryOne(FindById, Seq[Any](workId.bytes)).flatMap {
+      case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId).map {
+        case \/-(document) => \/.right(documentWork.copy(
+          response = Some(document)
+//          version  = document.version
+        ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
       case otherWorkTypes => Future successful otherWorkTypes
@@ -409,20 +501,41 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
   }
 
   /**
-   * Find the latest revision of a single work for a user.
+   * Find a specific revision of a single work.
+   *
+   * @param workId
+   * @return
+   */
+  override def find(workId: UUID, version: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
+    queryOne(FindById, Seq[Any](workId.bytes)).flatMap {
+      case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId, version).map {
+        case \/-(document) => \/.right(documentWork.copy(
+          response  = Some(document),
+          version   = document.version,
+          updatedAt = document.updatedAt
+        ))
+        case -\/(error: RepositoryError.Fail) => \/.left(error)
+      }
+      case \/-(otherWorkTypes) => lift(queryOne(FindByIdVersion, Seq[Any](workId.bytes, version, version, version)))
+      case -\/(error: RepositoryError.Fail) => Future successful \/.left(error)
+    }
+  }
+
+  /**
+   * Find the latest revision of a single work for a user within a Task.
    *
    * @param task
    * @param user
    * @return
    */
   override def find(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    queryOne(SelectByStudentTask, Seq[Any](user.id.bytes, task.id.bytes)).flatMap {
-      case \/-(work: LongAnswerWork) => documentRepository.find(work.documentId).map {
-        case \/-(document) => \/.right(work.copy(response = Some(document)))
-        case -\/(error: RepositoryError.Fail) => \/.left(error)
-      }
-      case \/-(work: ShortAnswerWork) => documentRepository.find(work.documentId).map {
-        case \/-(document) => \/.right(work.copy(response = Some(document)))
+    queryOne(FindByStudentTask, Seq[Any](user.id.bytes, task.id.bytes)).flatMap {
+      case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId).map {
+        case \/-(document) => \/.right(documentWork.copy(
+          // TODO - versions should match, DocumentService.push should update a Work version  and updatedAt field also
+//          version = document.version,
+          response = Some(document)
+        ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
       case otherWorkTypes => Future successful otherWorkTypes
@@ -437,16 +550,17 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
    * @return
    */
   override def find(user: User, task: Task, version: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    queryOne(SelectByStudentTask, Seq[Any](user.id.bytes, task.id.bytes, version)).flatMap {
-      case \/-(work: LongAnswerWork) => documentRepository.find(work.documentId).map {
-        case \/-(document) => \/.right(work.copy(response = Some(document)))
+    queryOne(FindByStudentTask, Seq[Any](user.id.bytes, task.id.bytes)).flatMap {
+      case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId, version).map {
+        case \/-(document) => \/.right(documentWork.copy(
+          version   = document.version,
+          response  = Some(document),
+          updatedAt = document.updatedAt
+        ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
-      case \/-(work: ShortAnswerWork) => documentRepository.find(work.documentId).map {
-        case \/-(document) => \/.right(work.copy(response = Some(document)))
-        case -\/(error: RepositoryError.Fail) => \/.left(error)
-      }
-      case otherWorkTypes => Future successful otherWorkTypes
+      case \/-(otherWorkTypes) => lift(queryOne(FindByStudentTaskVersion, Seq[Any](user.id.bytes, task.id.bytes, version, version, version)))
+      case -\/(error: RepositoryError.Fail) => Future successful \/.left(error)
     }
   }
 
@@ -506,28 +620,29 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
   override def update(work: Work)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = update(work, false)
   override def update(work: Work, newRevision: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
     val tableName = work match {
-      case specific: LongAnswerWork => "long_answer_work"
-      case specific: ShortAnswerWork => "short_answer_work"
+      case specific: LongAnswerWork     => "long_answer_work"
+      case specific: ShortAnswerWork    => "short_answer_work"
       case specific: MultipleChoiceWork => "multiple_choice_work"
-      case specific: OrderingWork => "ordering_work"
-      case specific: MatchingWork => "matching_work"
+      case specific: OrderingWork       => "ordering_work"
+      case specific: MatchingWork       => "matching_work"
     }
 
-   if (newRevision) {
-      queryOne(UpdateWithNewRevision(tableName), Seq[Any](
-        work.version +1,
-        work.isComplete,
-        new DateTime,
-        work.id.bytes,
-        work.version,
-        work match {
-          case specific: LongAnswerWork => ""
-          case specific: ShortAnswerWork => ""
-          case specific: MultipleChoiceWork => specific.response
-          case specific: OrderingWork => specific.response
-          case specific: MatchingWork => specific.response.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => IndexedSeq(item.left, item.right)}
-        }
-      ))
+    if (newRevision) {
+      tableName match {
+        case "long_answer_work" | "short_answer_work" => Future successful  \/.left(RepositoryError.BadParam("Adding new Revisions to a DocumentWork should be done in the Document Repository and Revision Repository"))
+        case _ => queryOne(UpdateWithNewRevision(tableName), Seq[Any](
+          work.version +1,
+          work.isComplete,
+          new DateTime,
+          work.id.bytes,
+          work.version,
+          work match {
+            case specific: MultipleChoiceWork => specific.response
+            case specific: OrderingWork => specific.response
+            case specific: MatchingWork => specific.response.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => IndexedSeq(item.left, item.right)}
+          }
+        ))
+      }
     }
     else {
       queryOne(UpdateKeepLatestRevision(tableName), Seq[Any](
@@ -536,35 +651,47 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository) extends
         new DateTime,
         work.id.bytes,
         work.version
-      ))
+      )).flatMap {
+        case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId, documentWork.version).map {
+         case \/-(document) => \/.right(documentWork.copy(
+           response  = Some(document)
+         ))
+         case -\/(error: RepositoryError.Fail) => \/.left(error)
+        }
+        case \/-(otherWorkTypes) => Future successful \/.right(otherWorkTypes)
+        case -\/(error: RepositoryError.Fail) => Future successful \/.left(error)
+      }
     }
   }
 
+
+
   /**
-   * Delete a specific revision of a work.
+   *  Delete all revisions of a work.
    *
    * @param work
    * @param conn
    * @return
    */
-  override def delete(work: Work, thisRevisionOnly: Boolean = false)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    if (thisRevisionOnly) {
-      queryOne(DeleteRevision, Seq[Any](
-        work.studentId.bytes,
-        work.taskId.bytes,
-        work.version
-      ))
-    }
-    else {
-      queryOne(Delete, Seq[Any](
-        work.studentId.bytes,
-        work.taskId.bytes
-      ))
+  override def delete(work: Work)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
+    queryOne(DeleteAllRevisions, Seq[Any](work.id.bytes)).flatMap {
+      case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId).map {
+        case \/-(document) => \/.right(documentWork.copy(
+          // TODO - versions should match, DocumentService.push should update a Work version  and updatedAt field also
+//          version = document.version,
+          response = Some(document)
+        ))
+        case -\/(error: RepositoryError.Fail) => \/.left(error)
+      }
+      case otherWorkTypes => Future successful otherWorkTypes
     }
   }
 
   /**
    * Delete all work for a given task.
+   * Delete all revisions for MultipleChoice, Ordering, Matcing works and
+   * for DocumentWork we delete only in Work table and don't touch Documents table,
+   * that should be done in DocumentRepository
    *
    * This is needed when we want to delete the task itself... before that can be done,
    * all that task's work must itself be deleted.

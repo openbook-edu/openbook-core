@@ -12,6 +12,8 @@ import scalaz.{\/, EitherT}
 
 trait TaskFeedbackRepository extends Repository {
 
+  val documentRepository: DocumentRepository
+
   /**
    * List all feedbacks in a project for one student.
    * @param student
@@ -45,16 +47,6 @@ trait TaskFeedbackRepository extends Repository {
    * @return
    */
   def insert(feedback: TaskFeedback)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskFeedback]]
-
-  /**
-   * Update an existing feedback.
-   *
-   * @param feedback
-   * @param conn an implicit connection is required, which can be used to
-   *             run this operation in a transaction.
-   * @return
-   */
-  def update(feedback: TaskFeedback)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskFeedback]]
 
   /**
    * Delete a feedback.

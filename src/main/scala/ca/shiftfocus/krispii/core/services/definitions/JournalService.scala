@@ -16,22 +16,22 @@ trait JournalService extends Service[ErrorUnion#Fail] {
   val userRepository: UserRepository
   val projectRepository: ProjectRepository
 
-  def list(entryType: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]]
-  def list(userId: UUID)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]]
-  def list(startDate: Option[DateTime], endDate: Option[DateTime])(implicit conn: Connection): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]]
+  def list(entryType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]]
+  def list(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]]
+  def list(startDate: Option[DateTime], endDate: Option[DateTime]): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]]
 
-  def find(id: UUID)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, JournalEntry]]
+  def find(id: UUID): Future[\/[ErrorUnion#Fail, JournalEntry]]
 
-  def logView(userId: UUID, projectId: UUID, location: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Unit]]
-  def logClick(userId: UUID, projectId: UUID, location: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Unit]]
-  def logWatch(userId: UUID, projectId: UUID, location: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Unit]]
-  def logListen(userId: UUID, projectId: UUID, location: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Unit]]
-  def logInput(userId: UUID, projectId: UUID, location: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Unit]]
-  def logCreate(userId: UUID, projectId: UUID, location: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Unit]]
-  def logUpdate(userId: UUID, projectId: UUID, location: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Unit]]
-  def logDelete(userId: UUID, projectId: UUID, location: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Unit]]
+  def logView(userId: UUID, projectId: UUID, location: String): Future[\/[ErrorUnion#Fail, Unit]]
+  def logClick(userId: UUID, projectId: UUID, location: String): Future[\/[ErrorUnion#Fail, Unit]]
+  def logWatch(userId: UUID, projectId: UUID, location: String): Future[\/[ErrorUnion#Fail, Unit]]
+  def logListen(userId: UUID, projectId: UUID, location: String): Future[\/[ErrorUnion#Fail, Unit]]
+  def logInput(userId: UUID, projectId: UUID, location: String): Future[\/[ErrorUnion#Fail, Unit]]
+  def logCreate(userId: UUID, projectId: UUID, location: String): Future[\/[ErrorUnion#Fail, Unit]]
+  def logUpdate(userId: UUID, projectId: UUID, location: String): Future[\/[ErrorUnion#Fail, Unit]]
+  def logDelete(userId: UUID, projectId: UUID, location: String): Future[\/[ErrorUnion#Fail, Unit]]
 
-  def delete(journalEntry: JournalEntry)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, JournalEntry]]
-  def delete(entryType: String)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]]
-  def delete(user: User)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]]
+  def delete(journalEntry: JournalEntry): Future[\/[ErrorUnion#Fail, JournalEntry]]
+  def delete(entryType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]]
+  def delete(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]]
 }

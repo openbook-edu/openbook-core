@@ -19,6 +19,9 @@ sealed trait Work {
   val isComplete: Boolean
   val createdAt: DateTime
   val updatedAt: DateTime
+  def responseToString:String ={
+    "work"
+  }
 }
 
 object Work {
@@ -58,7 +61,30 @@ object Work {
 sealed trait DocumentWork extends Work {
   val documentId: UUID
   val response: Option[Document]
+
+  def copy(id: UUID = this.id,
+           studentId: UUID = this.studentId,
+           taskId: UUID = this.taskId,
+           documentId: UUID = this.documentId,
+           version: Long = this.version,
+           response: Option[Document] = this.response,
+           isComplete: Boolean = this.isComplete,
+           createdAt: DateTime = this.createdAt,
+           updatedAt: DateTime = this.updatedAt
+  ) = {
+    this match {
+      case longAnswerWork: LongAnswerWork   => LongAnswerWork(id, studentId, taskId, documentId, version, response, isComplete, createdAt, updatedAt)
+      case shortAnswerWork: ShortAnswerWork => ShortAnswerWork(id, studentId, taskId, documentId, version, response, isComplete, createdAt, updatedAt)
+    }
+  }
+  override def responseToString: String ={
+      if(response.isDefined)
+      response.get.plaintext
+      else
+      "Response is empty"
+  }
 }
+
 
 case class LongAnswerWork(
   id: UUID = UUID.random,
@@ -112,7 +138,7 @@ case class MultipleChoiceWork(
   updatedAt: DateTime = new DateTime
 ) extends IntListWork {
 
-  override def toString: String ={
+  override def responseToString: String ={
     var result=""
     response.zipWithIndex.foreach{case(e,i)=> result=result+ "Question: "+ i + " Answer: "+e.toString+", "}
     """""""+result.dropRight(2)+"""""""
@@ -131,7 +157,7 @@ case class OrderingWork(
   updatedAt: DateTime = new DateTime
 ) extends IntListWork {
 
-  override def toString: String ={
+ override def responseToString: String ={
     response.mkString(" -> ")
   }
 
@@ -147,9 +173,9 @@ case class MatchingWork(
    createdAt: DateTime = new DateTime,
    updatedAt: DateTime = new DateTime
  ) extends MatchListWork {
-  override def toString: String ={
-    var result=""
 
+  override def responseToString: String ={
+    var result=""
     response.zipWithIndex.foreach{case(e,i)=> result=result+i+" = " +e.left.toString + " + " +e.right.toString +", "}
     '"' +result.dropRight(2)+'"'
 

@@ -16,6 +16,7 @@ case class Document(
   title: String,
   delta: Delta, // represents the current state of the document, only inserts (text or codes)
   ownerId: UUID,
+  revisions: IndexedSeq[Revision] = IndexedSeq.empty[Revision],
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) {
@@ -29,6 +30,20 @@ case class Document(
       case _ => ""
     }.mkString
   }
+
+  override def equals(anotherObject: Any): Boolean = {
+    anotherObject match {
+      case anotherDocument: Document =>
+        this.id == anotherDocument.id &&
+        this.version == anotherDocument.version &&
+        this.ownerId == anotherDocument.ownerId &&
+        this.title == anotherDocument.title &&
+        this.delta == anotherDocument.delta &&
+        this.createdAt.toString == anotherDocument.createdAt.toString &&
+        this.updatedAt.toString == anotherDocument.updatedAt.toString
+      case _ => false
+    }
+  }
 }
 
 object Document {
@@ -39,6 +54,7 @@ object Document {
       (__ \ "title").write[String] and
       (__ \ "delta").write[Delta] and
       (__ \ "ownerId").write[UUID] and
+      (__ \ "revisions").write[IndexedSeq[Revision]] and
       (__ \ "createdAt").write[DateTime] and
       (__ \ "updatedAt").write[DateTime]
     )(unlift(Document.unapply))

@@ -2,6 +2,7 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.models.tasks.MatchingTask
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.repositories._
@@ -15,6 +16,7 @@ import ws.kahn.ot.Delta
 
 class WorkServiceDefault(val db: DB,
                          val authService: AuthService,
+                         val schoolService: SchoolService,
                          val projectService: ProjectService,
                          val documentService: DocumentService,
                          val componentService: ComponentService,
@@ -42,8 +44,7 @@ class WorkServiceDefault(val db: DB,
       user <- lift(fUser)
       project <- lift(fProject)
       workList <- lift(workRepository.list(user, project))
-    }
-    yield workList
+    } yield workList
   }
 
   /**
@@ -69,16 +70,15 @@ class WorkServiceDefault(val db: DB,
    * @param taskId the unique id of the task to filter by
    * @return a future disjunction containing either a list of work, or a failure
    */
-  override def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]] = {
+  override def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Either[DocumentWork, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]]] = {
     val fUser = authService.find(userId)
     val fTask = projectService.findTask(taskId)
 
     for {
-      user <- lift(fUser)
-      task <- lift(fTask)
-      workList <- lift(workRepository.list(user, task))
-    }
-    yield workList
+      user   <- lift(fUser)
+      task   <- lift(fTask)
+      result <- lift(workRepository.list(user, task))
+    } yield result
   }
 
   /**
@@ -106,8 +106,7 @@ class WorkServiceDefault(val db: DB,
       user <- lift(fUser)
       task <- lift(fTask)
       work <- lift(workRepository.find(user, task))
-    }
-    yield work
+    } yield work
   }
 
   /**
@@ -126,9 +125,10 @@ class WorkServiceDefault(val db: DB,
       user <- lift(fUser)
       task <- lift(fTask)
       work <- lift(workRepository.find(user, task, version))
-    }
-    yield work
+    } yield work
   }
+
+  // --------- Create ---------------------------------------------------------------------------------------------
 
   /**
    * Generic internal work-creating method. This should only be used privately... expose the type-specific
@@ -142,8 +142,9 @@ class WorkServiceDefault(val db: DB,
     workRepository.insert(newWork)
   }
 
-  // Create methods for each work type
+  // --------- Create methods for each work type --------------------------------------------------------------------
 
+  // TODO - verify if user already has work for this task
   /**
    * Create a long-answer work item.
    *
@@ -215,7 +216,7 @@ class WorkServiceDefault(val db: DB,
    * @param isComplete whether the student is finished with the task
    * @return the newly created work
    */
-  override def createMultipleChoiceWork(userId: UUID, taskId: UUID, response: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]] = {
+  override def createMultipleChoiceWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -228,7 +229,7 @@ class WorkServiceDefault(val db: DB,
           studentId = userId,
           taskId = taskId,
           version = 1,
-          response = response,
+          response = IndexedSeq.empty[Int],
           isComplete = isComplete
         )
         work <- lift(workRepository.insert(newWork))
@@ -247,7 +248,7 @@ class WorkServiceDefault(val db: DB,
    * @param isComplete whether the student is finished with the task
    * @return the newly created work
    */
-  override def createOrderingWork(userId: UUID, taskId: UUID, response: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]] = {
+  override def createOrderingWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -260,7 +261,7 @@ class WorkServiceDefault(val db: DB,
           studentId = userId,
           taskId = taskId,
           version = 1,
-          response = response,
+          response = IndexedSeq.empty[Int],
           isComplete = isComplete
         )
         work <- lift(workRepository.insert(newWork))
@@ -279,7 +280,7 @@ class WorkServiceDefault(val db: DB,
    * @param isComplete whether the student is finished with the task
    * @return the newly created work
    */
-  override def createMatchingWork(userId: UUID, taskId: UUID, response: IndexedSeq[Match], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]] = {
+  override def createMatchingWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -292,13 +293,15 @@ class WorkServiceDefault(val db: DB,
           studentId = userId,
           taskId = taskId,
           version = 1,
-          response = response,
+          response = IndexedSeq.empty[Match],
           isComplete = isComplete
         )
         work <- lift(workRepository.insert(newWork))
       } yield work.asInstanceOf[MatchingWork]
     }
   }
+
+  // --------- Update ------------------------------------------------------------------------------------------
 
   /**
    * Internal method for updating work.
@@ -325,6 +328,8 @@ class WorkServiceDefault(val db: DB,
       updatedWork <- lift(workRepository.update(newerWork, newRevision))
     } yield updatedWork
   }
+
+  // --------- Update methods for each work type --------------------------------------------------------------------
 
   /**
    * Update a long answer work.
@@ -537,7 +542,11 @@ class WorkServiceDefault(val db: DB,
       for {
         student <- lift(fStudent)
         task <- lift(fTask)
-        document <- lift(documentService.create(UUID.random, student, "", Delta(IndexedSeq())))
+        part <- lift(projectService.findPart(task.partId))
+        project <- lift(projectService.find(part.projectId))
+        course <- lift(schoolService.findCourse(project.courseId))
+        teacher <- lift(authService.find(course.teacherId))
+        document <- lift(documentService.create(UUID.random, teacher, "", Delta(IndexedSeq())))
         newFeedback = TaskFeedback(
           studentId = student.id,
           taskId = task.id,
@@ -547,35 +556,6 @@ class WorkServiceDefault(val db: DB,
         createdFeedback <- lift(taskFeedbackRepository.insert(newFeedback))
       }
       yield createdFeedback
-    }
-  }
-
-  /**
-   * Update a feedback item.
-   *
-   * Determines whether to create a new revision of this feedback, or to
-   * update an existing revision, using the configuration option.
-   *
-   * @param studentId
-   * @param taskId
-   * @param version
-   * @param documentId
-   * @return
-   */
-  override def updateFeedback(studentId: UUID, taskId: UUID, version: Long, documentId: UUID): Future[\/[ErrorUnion#Fail, TaskFeedback]] = {
-    transactional { implicit conn =>
-      val fStudent = authService.find(studentId)
-      val fTask = projectService.findTask(taskId)
-
-      for {
-        student <- lift(fStudent)
-        task <- lift(fTask)
-        existing <- lift(taskFeedbackRepository.find(student, task))
-        toUpdate = existing.copy(version = version, documentId = documentId)
-        // Insert the new feedback
-        updatedFeedback <- lift(taskFeedbackRepository.update(toUpdate))
-      }
-      yield updatedFeedback
     }
   }
 
@@ -648,151 +628,6 @@ class WorkServiceDefault(val db: DB,
         createdFeedback <- lift(taskScratchpadRepository.insert(newScratchpad))
       }
       yield createdFeedback
-    }
-  }
-
-  /**
-   * Update a task response.
-   *
-   * @param userId the unique ID of the user whose task scratchpad it is
-   * @param taskId the unique ID of the task this task scratchpad is for
-   * @param revision the current revision of the task to be updated
-   * @param version the current version of this revision to be updated
-   * @param content the text content of this task scratchpad
-   * @param newRevision whether a new revision should be forced
-   * @return the updated task scratchpad
-   */
-  override def updateTaskScratchpad(userId: UUID, taskId: UUID, version: Long, documentId: UUID): Future[\/[ErrorUnion#Fail, TaskScratchpad]] = {
-    transactional { implicit conn =>
-      val fStudent = authService.find(userId)
-      val fTask = projectService.findTask(taskId)
-
-      for {
-        student <- lift(fStudent)
-        task <- lift(fTask)
-        existing <- lift(taskScratchpadRepository.find(student, task))
-        toUpdate = existing.copy(version = version, documentId = documentId)
-        // Insert the new feedback
-        updatedFeedback <- lift(taskScratchpadRepository.update(toUpdate))
-      }
-      yield updatedFeedback
-    }
-  }
-
-
-
-  /*
-   * -----------------------------------------------------------
-   * ComponentScratchpad methods
-   * -----------------------------------------------------------
-   */
-
-  /**
-   * List all of a user's component scratchpads in a project.
-   *
-   * @param userId the unique ID of the user to list for
-   * @param projectId the project within which to search for component scratchpads
-   * @return a vector of responses
-   */
-  override def listComponentScratchpadsByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[ComponentScratchpad]]] = {
-    val fUser = authService.find(userId)
-
-    for {
-      user <- lift(fUser)
-      responses <- lift(componentScratchpadRepository.list(user))
-    }
-    yield responses
-  }
-
-  /**
-   * List all of a user's component scratchpads in a project.
-   *
-   * @param userId the unique ID of the user to list for
-   * @param projectId the project within which to search for component scratchpads
-   * @return a vector of responses
-   */
-  override def listComponentScratchpadsByComponent(componentId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[ComponentScratchpad]]] = {
-    val fComponent = componentService.find(componentId)
-
-    for {
-      component <- lift(fComponent)
-      responses <- lift(componentScratchpadRepository.list(component))
-    }
-    yield responses
-  }
-
-  /**
-   * Find the latest revision of a user's component scratchpad
-   *
-   * @param userId the unique ID of the user to list for
-   * @param componentId the task within which to search for component scratchpads
-   * @return an optional response
-   */
-  override def findComponentScratchpad(userId: UUID, componentId: UUID): Future[\/[ErrorUnion#Fail, ComponentScratchpad]] = {
-    val fUser = authService.find(userId)
-    val fComponent = componentService.find(componentId)
-
-    for {
-      user <- lift(fUser)
-      component <- lift(fComponent)
-      responses <- lift(componentScratchpadRepository.find(user, component))
-    }
-    yield responses
-  }
-
-  /**
-   * Create a new task component scratchpad.
-   *
-   * @param userId the unique ID of the user whose component scratchpad it is
-   * @param componentId the unique ID of the task this component scratchpad is for
-   * @param revision the current revision of the task to be updated
-   * @param version the current version of this revision to be updated
-   * @param content the text content of this component scratchpad
-   * @return the updated component scratchpad
-   */
-  override def createComponentScratchpad(userId: UUID, componentId: UUID): Future[\/[ErrorUnion#Fail, ComponentScratchpad]] = {
-    transactional { implicit conn =>
-      val fStudent = authService.find(userId)
-      val fComponent = componentService.find(componentId)
-
-      for {
-        student <- lift(fStudent)
-        component <- lift(fComponent)
-        document <- lift(documentService.create(UUID.random, student, "", Delta(IndexedSeq())))
-        newScratchpad = ComponentScratchpad(
-          userId = userId,
-          componentId = componentId,
-          documentId = document.id
-        )
-        createdScratchpad <- lift(componentScratchpadRepository.insert(newScratchpad))
-      }
-      yield createdScratchpad
-    }
-  }
-
-  /**
-   * Update a component scratchpad.
-   *
-   * @param userId the unique ID of the user whose component scratchpad it is
-   * @param componentId the current revision of the task to be updated
-   * @param version the current version of this revision to be updated
-   * @param documentId
-   * @return the updated component scratchpad
-   */
-  override def updateComponentScratchpad(userId: UUID, componentId: UUID, version: Long, documentId: UUID): Future[\/[ErrorUnion#Fail, ComponentScratchpad]] = {
-    transactional { implicit conn =>
-      val fStudent = authService.find(userId)
-      val fComponent = componentService.find(componentId)
-
-      for {
-        student <- lift(fStudent)
-        component <- lift(fComponent)
-        existing <- lift(componentScratchpadRepository.find(student, component))
-        toUpdate = existing.copy(version = version, documentId = documentId)
-        // Insert the new feedback
-        updatedFeedback <- lift(componentScratchpadRepository.update(toUpdate))
-      }
-      yield updatedFeedback
     }
   }
 }

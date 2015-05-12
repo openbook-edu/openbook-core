@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.models.tasks.MatchingTask
 import ca.shiftfocus.krispii.core.repositories.{ComponentScratchpadRepository, TaskScratchpadRepository, TaskFeedbackRepository, WorkRepository}
 import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models._
@@ -11,6 +12,7 @@ import scalaz.\/
 
 trait WorkService extends Service[ErrorUnion#Fail] {
   val authService: AuthService
+  val schoolService: SchoolService
   val projectService: ProjectService
   val documentService: DocumentService
   val componentService: ComponentService
@@ -22,7 +24,7 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   // Finder methods for work
   def listWork(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]]
   def listWork(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]]
-  def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]]
+  def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Either[DocumentWork, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]]]
   def findWork(workId: UUID): Future[\/[ErrorUnion#Fail, Work]]
   def findWork(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Work]]
   def findWork(userId: UUID, taskId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Work]]
@@ -33,9 +35,9 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   def createShortAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, ShortAnswerWork]]
 
   // Create methods for the other work types
-  def createMultipleChoiceWork(userId: UUID, taskId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]]
-  def createOrderingWork(userId: UUID, taskId: UUID, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]]
-  def createMatchingWork(userId: UUID, taskId: UUID, answer: IndexedSeq[Match], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]]
+  def createMultipleChoiceWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]]
+  def createOrderingWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]]
+  def createMatchingWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]]
 
 
   // Update methods for the textual work types
@@ -55,21 +57,11 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   def listFeedbacks(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[TaskFeedback]]]
   def findFeedback(studentId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, TaskFeedback]]
   def createFeedback(studentId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, TaskFeedback]]
-  def updateFeedback(studentId: UUID, taskId: UUID, version: Long, documentId: UUID): Future[\/[ErrorUnion#Fail, TaskFeedback]]
 
 
   // Task notes
   def listTaskScratchpads(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[TaskScratchpad]]]
   def findTaskScratchpad(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, TaskScratchpad]]
   def createTaskScratchpad(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, TaskScratchpad]]
-  def updateTaskScratchpad(userId: UUID, taskId: UUID, version: Long, documentId: UUID): Future[\/[ErrorUnion#Fail, TaskScratchpad]]
-
-
-  // Component notes
-  def listComponentScratchpadsByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[ComponentScratchpad]]]
-  def listComponentScratchpadsByComponent(componentId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[ComponentScratchpad]]]
-  def findComponentScratchpad(userId: UUID, componentId: UUID): Future[\/[ErrorUnion#Fail, ComponentScratchpad]]
-  def createComponentScratchpad(userId: UUID, componentId: UUID): Future[\/[ErrorUnion#Fail, ComponentScratchpad]]
-  def updateComponentScratchpad(userId: UUID, componentId: UUID, version: Long, documentId: UUID): Future[\/[ErrorUnion#Fail, ComponentScratchpad]]
 
 }

@@ -12,37 +12,25 @@ import scala.concurrent.Future
 import scalaz.{\/, -\/, \/-}
 
 
-class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with PostgresRepository[TaskFeedback] {
+class TaskFeedbackRepositoryPostgres (val documentRepository: DocumentRepository)
+  extends TaskFeedbackRepository with PostgresRepository[TaskFeedback] {
 
   def constructor(row: RowData): TaskFeedback = {
     TaskFeedback(
       studentId  = UUID(row("student_id").asInstanceOf[Array[Byte]]),
       taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      version    = row("version").asInstanceOf[Long],
-      documentId = UUID(row("document_id").asInstanceOf[Array[Byte]]),
-      createdAt  = row("created_at").asInstanceOf[DateTime],
-      updatedAt  = row("updated_at").asInstanceOf[DateTime]
+      documentId = UUID(row("document_id").asInstanceOf[Array[Byte]])
     )
   }
 
-  val Fields = "student_id, task_id, version, document_id, created_at, updated_at"
-  val QMarks = "?, ?, ?, ?, ?, ?"
+  val Fields = "student_id, task_id, document_id"
+  val QMarks = "?, ?, ?"
   val Table = "task_feedbacks"
 
   val Insert =
     s"""
        |INSERT INTO $Table ($Fields)
-       |VALUES (QMarks)
-       |RETURNING $Fields
-    """.stripMargin
-
-  val Update =
-    s"""
-       |UPDATE $Table
-       |SET version = ?, document_id = ?, updated_at = ?
-       |WHERE student_id = ?
-       |  AND task_id = ?
-       |  AND version = ?
+       |VALUES ($QMarks)
        |RETURNING $Fields
     """.stripMargin
 
@@ -73,16 +61,17 @@ class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with Postgre
     """.stripMargin
 
   val Delete = s"""
-    DELETE FROM $Table
-    WHERE student_id = ?
-      AND task_id = ?
-      AND version = ?
-  """
+    |DELETE FROM $Table
+    |WHERE student_id = ?
+    |  AND task_id = ?
+    |RETURNING $Fields
+  """.stripMargin
 
   val DeleteAllForTask = s"""
-    DELETE FROM $Table
-    WHERE task_id = ?
-  """
+    |DELETE FROM $Table
+    |WHERE task_id = ?
+    |RETURNING $Fields
+  """.stripMargin
 
   /**
    * List all feedbacks in a project for one student.
@@ -92,7 +81,19 @@ class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with Postgre
    * @return
    */
   def list(student: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskFeedback]]] = {
-    queryList(SelectAllForStudentAndProject, Seq[Any](student.id.bytes, project.id.bytes, student.id.bytes))
+    (for {
+      taskFeedbackList <- lift(queryList(SelectAllForStudentAndProject, Seq[Any](student.id.bytes, project.id.bytes)))
+      result <- liftSeq(taskFeedbackList.map( taskFeedback =>
+        (for {
+          document <- lift(documentRepository.find(taskFeedback.documentId))
+          result   = taskFeedback.copy(
+            version   = document.version,
+            createdAt = document.createdAt,
+            updatedAt = document.updatedAt
+          )
+        } yield result).run
+      ))
+    } yield result).run
   }
 
   /**
@@ -102,18 +103,37 @@ class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with Postgre
    * @return
    */
   def list(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskFeedback]]] = {
-    queryList(SelectAllForTask, Seq[Any](task.id.bytes))
+    (for {
+      taskFeedbackList <- lift(queryList(SelectAllForTask, Seq[Any](task.id.bytes)))
+      result <- liftSeq(taskFeedbackList.map( taskFeedback =>
+        (for {
+          document <- lift(documentRepository.find(taskFeedback.documentId))
+          result   = taskFeedback.copy(
+            version   = document.version,
+            createdAt = document.createdAt,
+            updatedAt = document.updatedAt
+          )
+        } yield result).run
+      ))
+    } yield result).run
   }
 
   /**
-   * Find a single feedback for one task, teacher and student.
+   * Find a single feedback for one task and student.
    *
    * @param student
    * @param task
    * @return
    */
   def find(student: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskFeedback]] = {
-    queryOne(SelectOneById, Array[Any](student.id.bytes, task.id.bytes))
+    (for {
+      taskFeedback <- lift(queryOne(SelectOneById, Array[Any](student.id.bytes, task.id.bytes)))
+      document     <- lift(documentRepository.find(taskFeedback.documentId))
+    } yield taskFeedback.copy(
+        version   = document.version,
+        createdAt = document.createdAt,
+        updatedAt = document.updatedAt
+      )).run
   }
 
   /**
@@ -125,33 +145,18 @@ class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with Postgre
    * @return
    */
   def insert(feedback: TaskFeedback)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskFeedback]] = {
-    queryOne(Insert, Array[Any](
-      feedback.studentId.bytes,
-      feedback.taskId.bytes,
-      1L,
-      feedback.documentId.bytes,
-      new DateTime,
-      new DateTime
-    ))
-  }
-
-  /**
-   * Update an existing feedback.
-   *
-   * @param feedback
-   * @param conn an implicit connection is required, which can be used to
-   *             run this operation in a transaction.
-   * @return
-   */
-  def update(feedback: TaskFeedback)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskFeedback]] = {
-    queryOne(Insert, Array[Any](
-      feedback.version + 1,
-      feedback.documentId,
-      new DateTime,
-      feedback.studentId.bytes,
-      feedback.taskId.bytes,
-      feedback.version
-    ))
+    (for {
+      taskFeedback <- lift(queryOne(Insert, Array[Any](
+        feedback.studentId.bytes,
+        feedback.taskId.bytes,
+        feedback.documentId.bytes
+      )))
+      document     <- lift(documentRepository.find(taskFeedback.documentId))
+    } yield taskFeedback.copy(
+        version   = document.version,
+        createdAt = document.createdAt,
+        updatedAt = document.updatedAt
+      )).run
   }
 
   /**
@@ -163,15 +168,21 @@ class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with Postgre
    * @return
    */
   def delete(feedback: TaskFeedback)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskFeedback]] = {
-    queryOne(Delete, Array[Any](
-      feedback.studentId,
-      feedback.taskId,
-      feedback.version
-    ))
+    (for {
+      taskFeedback <- lift(queryOne(Delete, Array[Any](
+        feedback.studentId.bytes,
+        feedback.taskId.bytes
+      )))
+      document     <- lift(documentRepository.find(taskFeedback.documentId))
+    } yield taskFeedback.copy(
+        version   = document.version,
+        createdAt = document.createdAt,
+        updatedAt = document.updatedAt
+      )).run
   }
 
   /**
-   * Delete a feedback.
+   * Delete all feedbacks for a task.
    *
    * @param task the task for which feedbacks should be deleted
    * @param conn an implicit connection is required, which can be used to
@@ -181,7 +192,7 @@ class TaskFeedbackRepositoryPostgres extends TaskFeedbackRepository with Postgre
   def delete(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskFeedback]]] = {
     (for {
       feedbackList <- lift(list(task))
-      deletedList <- lift(queryList(DeleteAllForTask, Array[Any](task.id.bytes)))
-    } yield deletedList).run
+      deletedList  <- lift(queryList(DeleteAllForTask, Array[Any](task.id.bytes)))
+    } yield feedbackList).run
   }
 }

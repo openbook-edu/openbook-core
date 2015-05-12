@@ -14,6 +14,7 @@ import scala.concurrent.Future
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
+import scalacache.ScalaCache
 import scalaz.{-\/, \/-, \/}
 
 class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRepository with PostgresRepository[Part] {
@@ -126,7 +127,7 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
    *
    * @return a vector of the returned Projects
    */
-  override def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
+  override def list(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
     (for {
       partList <- lift(queryList(SelectAll))
       partsWithTasks <- liftSeq(partList.map{ part =>
@@ -144,9 +145,17 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
    * @param project The project to return parts from.
    * @return a vector of the returned Projects
    */
-  override def list(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
+  override def list(project: Project)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
     (for {
-      partList <- lift(queryList(SelectByProjectId, Seq[Any](project.id.bytes)))
+      partList <- lift(getCached[IndexedSeq[Part]](cachePartsKey(project.id)).flatMap {
+        case \/-(partList) => Future successful \/-(partList)
+        case -\/(RepositoryError.NoResults) =>
+          for {
+            partList <- lift(queryList(SelectByProjectId, Seq[Any](project.id.bytes)))
+            _ <- lift(putCache[IndexedSeq[Part]](cachePartsKey(project.id))(partList, ttl))
+          } yield partList
+        case -\/(error) => Future successful -\/(error)
+      })
       partsWithTasks <- liftSeq(partList.map{ part =>
         (for {
           tasks <- lift(taskRepository.list(part))
@@ -159,7 +168,7 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
   /**
    * Find all Parts belonging to a given Component.
    */
-  override def list(component: Component)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
+  override def list(component: Component)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
     (for {
       partList <- lift(queryList(SelectByComponentId, Seq[Any](component.id.bytes)))
       partsWithTasks <- liftSeq(partList.map{ part =>
@@ -177,9 +186,17 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
    * @param id the 128-bit UUID, as a byte array, to search for.
    * @return an optional Project if one was found
    */
-  override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Part]] = {
+  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Part]] = {
     (for {
-      part <- lift(queryOne(SelectOne, Seq[Any](id.bytes)))
+      part <- lift(getCached[Part](cachePartKey(id)).flatMap {
+        case \/-(part) => Future successful \/-(part)
+        case -\/(RepositoryError.NoResults) =>
+          for {
+            part <- lift(queryOne(SelectOne, Seq[Any](id.bytes)))
+            _ <- lift(putCache[Part](cachePartsKey(part.id))(part, ttl))
+          } yield part
+        case -\/(error) => Future successful -\/(error)
+      })
       taskList <- lift(taskRepository.list(part))
     } yield part.copy(tasks = taskList)).run
   }
@@ -191,11 +208,18 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
    * @param position The part's position within the project.
    * @return an optional RowData object containing the results
    */
-  override def find(project: Project, position: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Part]] = {
-    (for {
-      part <- lift(queryOne(FindByProjectPosition, Seq[Any](project.id.bytes, position)))
-      taskList <- lift(taskRepository.list(part))
-    } yield part.copy(tasks = taskList)).run
+  override def find(project: Project, position: Int)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Part]] = {
+    getCached[UUID](cachePartPosKey(project.id, position)).flatMap {
+      case \/-(partId) => find(partId)
+      case -\/(RepositoryError.NoResults) =>
+        for {
+          part <- lift(queryOne(FindByProjectPosition, Seq[Any](project.id.bytes, position)))
+          taskList <- lift(taskRepository.list(part))
+          _ <- lift(putCache[Part](cachePartsKey(part.id))(part, ttl))
+          _ <- lift(putCache[UUID](cachePartPosKey(project.id, part.position))(part.id, ttl))
+        } yield part.copy(tasks = taskList)
+      case -\/(error) => Future successful -\/(error)
+    }
   }
 
   /**
@@ -204,13 +228,16 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
    * @param part The part to be inserted
    * @return the new part
    */
-  def insert(part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Part]] = {
+  def insert(part: Part)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Part]] = {
     val params = Seq[Any](
       part.id.bytes, 1, new DateTime, new DateTime,
       part.projectId.bytes, part.name, part.position, part.enabled
     )
 
-    queryOne(Insert, params)
+    for {
+      inserted <- lift(queryOne(Insert, params))
+      _ <- lift(removeCached(cachePartsKey(part.projectId)))
+    } yield inserted
   }
 
   /**
@@ -219,7 +246,7 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
    * @param part The part
    * @return id of the saved/new Part.
    */
-  def update(part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Part]] = {
+  def update(part: Part)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Part]] = {
     val params = Seq[Any](
       part.projectId.bytes, part.name, part.position, part.enabled,
       part.version + 1, new DateTime, part.id.bytes, part.version
@@ -227,6 +254,8 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
 
     (for {
       updatedPart <- lift(queryOne(Update, params))
+      _ <- lift(removeCached(cachePartsKey(part.id)))
+      _ <- lift(removeCached(cachePartPosKey(part.projectId, part.position)))
       oldTasks = part.tasks
     } yield updatedPart.copy(tasks = oldTasks)).run
   }
@@ -237,9 +266,11 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
    * @param part The part to delete.
    * @return A boolean indicating whether the operation was successful.
    */
-  def delete(part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Part]] = {
+  def delete(part: Part)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Part]] = {
     (for {
       deletedPart <- lift(queryOne(Delete, Seq[Any](part.id.bytes, part.version)))
+      _ <- lift(removeCached(cachePartsKey(part.id)))
+      _ <- lift(removeCached(cachePartPosKey(part.projectId, part.position)))
       oldTasks = part.tasks
     } yield deletedPart.copy(tasks = oldTasks)).run
   }
@@ -250,9 +281,11 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
    * @param project Delete all parts belonging to this project
    * @return A boolean indicating whether the operation was successful.
    */
-  def delete(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
+  def delete(project: Project)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
     (for {
       deletedParts <- lift(queryList(DeleteByProject, Seq[Any](project.id.bytes)))
+      _ <- liftSeq(deletedParts.map({ part => removeCached(cachePartKey(part.id)) }))
+      _ <- lift(removeCached(cachePartsKey(project.id)))
       deletedPartsWithTasks <- liftSeq(deletedParts.map{ part =>
         (for {
           tasks <- lift(taskRepository.list(part))

@@ -1,4 +1,5 @@
-/* USERS */
+/* ---------------------- USERS ---------------------- */
+
 /* user A */
 INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
 VALUES ('\x36c8c0ca50aa4806afa5916a5e33a81f', 1, 'testUserA@example.com', 'testUserA', '$s0$100801$SIZ9lgHz0kPMgtLB37Uyhw==$wyKhNrg/MmUvlYuVygDctBE5LHBjLB91nyaiTpjbeyM=', 'TestA', 'UserA', '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
@@ -28,7 +29,8 @@ INSERT INTO users (id, version, email, username, password_hash, givenname, surna
 VALUES ('\x5099a6b48809400d8e380119184d0f93', 7, 'testUserH@example.com', 'testUserH', '$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3WmWjo=', 'TestH', 'UserH', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
 
-/* ROLES */
+/* ---------------------- ROLES ---------------------- */
+
 /* role A */
 INSERT INTO roles (id, version, name, created_at, updated_at)
 VALUES ('\x1430e95077f94b30baf8bb226fc7091a', 1, 'test role A', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
@@ -54,7 +56,8 @@ INSERT INTO roles (id, version, name, created_at, updated_at)
 VALUES ('\x2a3edf38750a46aa84289fb08e648ee8', 6, 'test role H', '2014-08-19 14:01:19.545-04', '2014-08-20 14:01:19.545-04');
 
 
-/* USERS_ROLES*/
+/* ---------------------- USERS_ROLES ---------------------- */
+
 /* UserA -> RoleA */
 INSERT INTO users_roles (user_id, role_id, created_at)
 VALUES ('\x36c8c0ca50aa4806afa5916a5e33a81f', '\x1430e95077f94b30baf8bb226fc7091a', '2014-08-13 14:01:19.545-04');
@@ -88,29 +91,31 @@ INSERT INTO users_roles (user_id, role_id, created_at)
 VALUES ('\x4d01347ec5924e5fb09fdd281b3d9b87', '\x31a4c2e6762a4303bbb8e64c24048920', '2014-08-19 14:01:19.545-04');
 
 
-/* COURSES */
+/* ---------------------- COURSES ---------------------- */
+
 /* course A -> user A (teacher) */
-INSERT INTO courses (id, version, teacher_id, name, color, created_at, updated_at)
-VALUES ('\x217c5622ff9e43728e6a95fb3bae300b', 1, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'test course A', 1574408, '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
+INSERT INTO courses (id, version, teacher_id, name, color, slug, created_at, updated_at)
+VALUES ('\x217c5622ff9e43728e6a95fb3bae300b', 1, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'test course A', 1574408, 'test course A slug', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
 /* course B -> user B (teacher) */
-INSERT INTO courses (id, version, teacher_id, name, color, created_at, updated_at)
-VALUES ('\x404c800a53854e6b867e365a1e6b00de', 2, '\x6c0e29bdd05b4b2981156be93e936c59', 'test course B', 2230288, '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
+INSERT INTO courses (id, version, teacher_id, name, color, slug, created_at, updated_at)
+VALUES ('\x404c800a53854e6b867e365a1e6b00de', 2, '\x6c0e29bdd05b4b2981156be93e936c59', 'test course B', 2230288, 'test course B slug','2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
 
 /* course D -> user F (teacher) */
-INSERT INTO courses (id, version, teacher_id, name, color, created_at, updated_at)
-VALUES ('\x94cc65bb45424f628e08d58522e7b5f1', 3, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test course D', 269368, '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+INSERT INTO courses (id, version, teacher_id, name, color, slug, created_at, updated_at)
+VALUES ('\x94cc65bb45424f628e08d58522e7b5f1', 3, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test course D', 269368, 'test course D slug','2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
 /* course F -> user F (teacher) */
-INSERT INTO courses (id, version, teacher_id, name, color, created_at, updated_at)
-VALUES ('\x287b61f5da6b4de785353bc500cffac7', 4, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test course F', 269368, '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+INSERT INTO courses (id, version, teacher_id, name, color, slug, created_at, updated_at)
+VALUES ('\x287b61f5da6b4de785353bc500cffac7', 4, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test course F', 269368, 'test course F slug','2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 
 /* course G -> user F (teacher) */
-INSERT INTO courses (id, version, teacher_id, name, color, created_at, updated_at)
-VALUES ('\xb24abba8e6c74700900ce66ed0185a70', 5, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test course G', 1508909, '2014-08-17 14:01:19.545-04', '2014-08-18 14:01:19.545-04');
+INSERT INTO courses (id, version, teacher_id, name, color, slug, created_at, updated_at)
+VALUES ('\xb24abba8e6c74700900ce66ed0185a70', 5, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test course G', 1508909, 'test course G slug','2014-08-17 14:01:19.545-04', '2014-08-18 14:01:19.545-04');
 
 
-/* USERS_COURSES */
+/* ---------------------- USERS_COURSES ---------------------- */
+
 /* UserC (student) -> CourseA -> user A (teacher) */
 INSERT INTO users_courses (user_id, course_id, created_at)
 VALUES ('\xf5f984073a0b4ea5952a575886e90586', '\x217c5622ff9e43728e6a95fb3bae300b', '2014-08-05 14:01:19.545-04');
@@ -122,6 +127,10 @@ VALUES ('\xf5f984073a0b4ea5952a575886e90586', '\x404c800a53854e6b867e365a1e6b00d
 /* UserE (student) -> CourseB -> user B (teacher) */
 INSERT INTO users_courses (user_id, course_id, created_at)
 VALUES ('\x871b525067124e548ab60784cae0bc64', '\x404c800a53854e6b867e365a1e6b00de', '2014-08-07 14:01:19.545-04');
+
+/* UserE (student) -> CourseA -> user A (teacher) */
+INSERT INTO users_courses (user_id, course_id, created_at)
+VALUES ('\x871b525067124e548ab60784cae0bc64', '\x217c5622ff9e43728e6a95fb3bae300b', '2014-08-11 14:01:19.545-04');
 
 /* UserG (student) -> CourseF -> user F (teacher) */
 INSERT INTO users_courses (user_id, course_id, created_at)
@@ -136,7 +145,8 @@ INSERT INTO users_courses (user_id, course_id, created_at)
 VALUES ('\x5099a6b48809400d8e380119184d0f93', '\x94cc65bb45424f628e08d58522e7b5f1', '2014-08-10 14:01:19.545-04');
 
 
-/* PROJECTS */
+/* ---------------------- PROJECTS ---------------------- */
+
 /* project A -> course A -> user A (teacher) */
 INSERT INTO projects (id, course_id, version, name, slug, description, availability, created_at, updated_at)
 VALUES ('\xc9b4cfceaed448fd94f5c980763dfddc', '\x217c5622ff9e43728e6a95fb3bae300b', 1, 'test project A', 'test project slug A', 'test project A description', 'any', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
@@ -154,7 +164,8 @@ INSERT INTO projects (id, course_id, version, name, slug, description, availabil
 VALUES ('\xb36919cb2df043b7bb7f36cae797deaa', '\x217c5622ff9e43728e6a95fb3bae300b', 4, 'test project E', 'test project slug E', 'test project E description', 'course', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 
 
-/* PARTS */
+/* ---------------------- PARTS ---------------------- */
+
 /* part A -> project A -> course A -> user A (teacher) */
 INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
 VALUES ('\x5cd214be6bba47fa9f350eb8bafec397', 1, '\xc9b4cfceaed448fd94f5c980763dfddc', 'test part A', true, 10, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
@@ -184,112 +195,256 @@ INSERT INTO parts (id, version, project_id, name, enabled, position, created_at,
 VALUES ('\x45a146b3fd9a4cab9d1d3e9b0b15e12c', 7, '\x4ac4d872451b4092b13f643d6d5fa930', 'test part H', true, 16, '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
 
-/* TASKS */
+/* ---------------------- TASKS ---------------------- */
+
 /* longAnswerTask A -> part A -> project A -> course A -> user A (teacher)*/
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
-VALUES ('\xbf1a6ed09f834cb485c1ad456299b3a3', 1, '\x5cd214be6bba47fa9f350eb8bafec397', null, 'test longAnswerTask A', 'test longAnswerTask A description', 10, 0, true, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('\xbf1a6ed09f834cb485c1ad456299b3a3', 1, '\x5cd214be6bba47fa9f350eb8bafec397', null, 'test longAnswerTask A', 'test longAnswerTask A description', 10, 0, true, 'test longAnswerTask A response title', 'test longAnswerTask A notes title', '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
 
 INSERT INTO long_answer_tasks (task_id)
 VALUES ('\xbf1a6ed09f834cb485c1ad456299b3a3');
 
+
 /* shortAnswerTask B -> part A (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
-VALUES ('\x10ef05ee7b494352b86e70510adf617f', 2, '\x5cd214be6bba47fa9f350eb8bafec397', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test shortAnswerTask B', 'test shortAnswerTask B description', 11, 1, true, '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
+INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('\x10ef05ee7b494352b86e70510adf617f', 2, '\x5cd214be6bba47fa9f350eb8bafec397', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test shortAnswerTask B', 'test shortAnswerTask B description', 11, 1, true, 'test shortAnswerTask B response title', 'test shortAnswerTask B notes title', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
 INSERT INTO short_answer_tasks (task_id, max_length)
 VALUES ('\x10ef05ee7b494352b86e70510adf617f', 51);
 
+
 /* multipleChoiceTask C -> part A (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
-VALUES ('\x76cc2ed7611b4dafaa3f20efe42a65a0', 3, '\x5cd214be6bba47fa9f350eb8bafec397', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test MultipleChoiceTask C', 'test MultipleChoiceTask C description', 12, 2, true, '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
+INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('\x76cc2ed7611b4dafaa3f20efe42a65a0', 3, '\x5cd214be6bba47fa9f350eb8bafec397', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test MultipleChoiceTask C', 'test MultipleChoiceTask C description', 12, 2, true, 'test MultipleChoiceTask C response title', 'test MultipleChoiceTask C notes title', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
 
 INSERT INTO multiple_choice_tasks (task_id, choices, answers, allow_multiple, randomize)
 VALUES ('\x76cc2ed7611b4dafaa3f20efe42a65a0', '{choice 1, choice 2}', '{1, 2}', false, true);
 
+
 /* orderingTask D -> part B (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
-VALUES ('\x808400838923476fa8738ba6c55e30c8', 4, '\xabb84847a3d247a0ae7d8ce04063afc7', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test OrderingTask D', 'test OrderingTask D description', 13, 3, true, '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
+INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('\x808400838923476fa8738ba6c55e30c8', 4, '\xabb84847a3d247a0ae7d8ce04063afc7', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test OrderingTask D', 'test OrderingTask D description', 13, 3, true, 'test OrderingTask D response title', 'test OrderingTask D notes title', '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
 
 INSERT INTO ordering_tasks (task_id, elements, answers, randomize)
 VALUES ('\x808400838923476fa8738ba6c55e30c8', '{element 3, element 4}', '{3, 4}', true);
 
+
 /* orderingTask L -> part B (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
-VALUES ('\x3d3578bd60d34aeabe070359dad2fecb', 6, '\xabb84847a3d247a0ae7d8ce04063afc7', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test OrderingTask L', 'test OrderingTask L description', 17, 3, true, '2014-08-08 14:01:19.545-04', '2014-08-09 14:01:19.545-04');
+INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('\x3d3578bd60d34aeabe070359dad2fecb', 6, '\xabb84847a3d247a0ae7d8ce04063afc7', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test OrderingTask L', 'test OrderingTask L description', 17, 3, true, 'test OrderingTask L response title', 'test OrderingTask L notes title', '2014-08-08 14:01:19.545-04', '2014-08-09 14:01:19.545-04');
 
 INSERT INTO ordering_tasks (task_id, elements, answers, randomize)
 VALUES ('\x3d3578bd60d34aeabe070359dad2fecb', '{element 5, element 6}', '{5, 6}', true);
 
+
+/* orderingTask N -> part G (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
+INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('\x599a78ad5bff4246983532fcb41168a6', 7, '\x8e080c002b204e7bb18c2582d79e7e68', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test OrderingTask N', 'test OrderingTask N description', 18, 3, true, 'test OrderingTask N response title', 'test OrderingTask N notes title', '2014-08-10 14:01:19.545-04', '2014-08-11 14:01:19.545-04');
+
+INSERT INTO ordering_tasks (task_id, elements, answers, randomize)
+VALUES ('\x599a78ad5bff4246983532fcb41168a6', '{element 6, element 7}', '{6, 7}', true);
+
+
 /* matchingTask E -> part C (dependency_id -> longAnswerTask A) -> project B -> course B -> user B (teacher) */
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
-VALUES ('\x468a35bfbaf84045aa184688f4d0721f', 5, '\xfb01f11b7f2341c8877b68410be62aa5', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test MatchingTask E', 'test MatchingTask E description', 14, 4, true, '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
+INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('\x468a35bfbaf84045aa184688f4d0721f', 5, '\xfb01f11b7f2341c8877b68410be62aa5', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test MatchingTask E', 'test MatchingTask E description', 14, 4, true, 'test MatchingTask E response title', 'test MatchingTask E notes title', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
 INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, randomize)
 VALUES ('\x468a35bfbaf84045aa184688f4d0721f', '{choice left 5, choice left 6}', '{choice right 7, choice right 8}', '{{5, 6}, {7, 8}}', true);
 
+
 /* matchingTask K -> partB (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
-VALUES ('\x337fa73136854ba38668280c0096514c', 7, '\xabb84847a3d247a0ae7d8ce04063afc7', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test MatchingTask K', 'test MatchingTask K description', 16, 4, true, '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('\x337fa73136854ba38668280c0096514c', 7, '\xabb84847a3d247a0ae7d8ce04063afc7', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test MatchingTask K', 'test MatchingTask K description', 16, 4, true, 'test MatchingTask K response title', 'test MatchingTask K notes title', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
 INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, randomize)
 VALUES ('\x337fa73136854ba38668280c0096514c', '{choice left 6, choice left 7}', '{choice right 8, choice right 9}', '{{6, 7}, {8, 9}}', true);
 
+
 /* matchingTask M -> partB (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, created_at, updated_at)
-VALUES ('\x129f2b0856d34e14aa5b659f53f71e39', 8, '\xabb84847a3d247a0ae7d8ce04063afc7', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test MatchingTask M', 'test MatchingTask M description', 17, 4, true, '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('\x129f2b0856d34e14aa5b659f53f71e39', 8, '\xabb84847a3d247a0ae7d8ce04063afc7', '\xbf1a6ed09f834cb485c1ad456299b3a3', 'test MatchingTask M', 'test MatchingTask M description', 17, 4, true, 'test MatchingTask M response title', 'test MatchingTask M notes title', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 
 INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, randomize)
 VALUES ('\x129f2b0856d34e14aa5b659f53f71e39', '{choice left 7, choice left 8}', '{choice right 9, choice right 10}', '{{7, 8}, {9, 10}}', true);
 
 
-/* DOCUMENTS */
+/* ---------------------- DOCUMENTS ---------------------- */
+
 /* documentA -> userC */
 INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
-VALUES ('\xfd923b3f6dc2472e8ce77a8fcc6a1a20', 1, '\xf5f984073a0b4ea5952a575886e90586', 'testDocumentA title', null, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+VALUES ('\xfd923b3f6dc2472e8ce77a8fcc6a1a20', 2, '\xf5f984073a0b4ea5952a575886e90586', 'testDocumentA title', '{"ops":[{"insert":"Hello Sam"}]}', '2014-08-01 14:01:19.545-04', '2014-08-03 14:01:19.545-04');
 
 /* documentB -> userE */
 INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
-VALUES ('\x15173757b881444082854e3d2c03616a', 2, '\x871b525067124e548ab60784cae0bc64', 'testDocumentB title', null, '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
+VALUES ('\x15173757b881444082854e3d2c03616a', 2, '\x871b525067124e548ab60784cae0bc64', 'testDocumentB title', '{"ops":[{"insert":"Hello Dean"}]}', '2014-08-03 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
+
+/* documentC -> userE */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\x462b7f6c8b624c998643a63b2720b2a7', 2, '\x871b525067124e548ab60784cae0bc64', 'testDocumentC title', '{"ops":[{"insert":"Hello Jhonatan"}]}', '2014-08-03 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
+
+/* documentD -> userC */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\xbd01c98803694ddaada205a9ff3645cf', 2, '\xf5f984073a0b4ea5952a575886e90586', 'testDocumentD title', '{"ops":[{"insert":"Hello Morgan"}]}', '2014-08-05 14:01:19.545-04', '2014-08-07 14:01:19.545-04');
+
+/* documentF -> userA (teacher) */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\x1a9d5407b3c444a18e7e1d7e9578eabc', 2, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'testDocumentF title', '{"ops":[{"insert":"Hello Jason"}]}', '2014-08-09 14:01:19.545-04', '2014-08-11 14:01:19.545-04');
+
+/* documentG -> userA (teacher) */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\x300ddfb7f9bf47fea0b226f332828fff', 2, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'testDocumentG title', '{"ops":[{"insert":"Hello Moony"}]}', '2014-08-11 14:01:19.545-04', '2014-08-13 14:01:19.545-04');
+
+/* documentH -> userB (teacher) */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\xeb8ef353d22f48a4a356351e0de3ed16', 2, '\x6c0e29bdd05b4b2981156be93e936c59', 'testDocumentH title', '{"ops":[{"insert":"Hello Flipper"}]}', '2014-08-13 14:01:19.545-04', '2014-08-15 14:01:19.545-04');
+
+/* documentI -> userB (teacher) */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\x9110c16f45fd42119e39b15ab8b6f9ee', 2, '\x6c0e29bdd05b4b2981156be93e936c59', 'testDocumentI title', '{"ops":[{"insert":"Hello Groovy"}]}', '2014-08-15 14:01:19.545-04', '2014-08-17 14:01:19.545-04');
+
+/* documentJ -> userA (teacher) */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\x30739c6d43774a2f8aa3d1240dfb0740', 2, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'testDocumentJ title', '{"ops":[{"insert":"Hello Bobby"}]}', '2014-08-17 14:01:19.545-04', '2014-08-19 14:01:19.545-04');
 
 
-/* WORK */
+/* ---------------------- TASK_FEEDBACKS ---------------------- */
+
+/* taskFeedbackA */
+INSERT INTO task_feedbacks (student_id, task_id, document_id)
+VALUES ('\xf5f984073a0b4ea5952a575886e90586', '\xbf1a6ed09f834cb485c1ad456299b3a3', '\x1a9d5407b3c444a18e7e1d7e9578eabc');
+
+/* taskFeedbackB */
+INSERT INTO task_feedbacks (student_id, task_id, document_id)
+VALUES ('\x871b525067124e548ab60784cae0bc64', '\x10ef05ee7b494352b86e70510adf617f', '\x300ddfb7f9bf47fea0b226f332828fff');
+
+/* taskFeedbackC */
+INSERT INTO task_feedbacks (student_id, task_id, document_id)
+VALUES ('\xf5f984073a0b4ea5952a575886e90586', '\x468a35bfbaf84045aa184688f4d0721f', '\xeb8ef353d22f48a4a356351e0de3ed16');
+
+/* taskFeedbackD */
+INSERT INTO task_feedbacks (student_id, task_id, document_id)
+VALUES ('\x871b525067124e548ab60784cae0bc64', '\x468a35bfbaf84045aa184688f4d0721f', '\x9110c16f45fd42119e39b15ab8b6f9ee');
+
+/* taskFeedbackE */
+INSERT INTO task_feedbacks (student_id, task_id, document_id)
+VALUES ('\xf5f984073a0b4ea5952a575886e90586', '\x599a78ad5bff4246983532fcb41168a6', '\x30739c6d43774a2f8aa3d1240dfb0740');
+
+
+/* ----------------------- WORK ---------------------- */
+
 /* longAnswerWorkA -> userC -> longAnswerTaskA -> documentA */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('\x441374e20b1643ecadb96a3251081d24', '\xf5f984073a0b4ea5952a575886e90586', '\xbf1a6ed09f834cb485c1ad456299b3a3', 1, true, 0, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+VALUES ('\x441374e20b1643ecadb96a3251081d24', '\xf5f984073a0b4ea5952a575886e90586', '\xbf1a6ed09f834cb485c1ad456299b3a3', 2, true, 0, '2014-08-01 14:01:19.545-04', '2014-08-03 14:01:19.545-04');
 
 INSERT INTO long_answer_work (work_id, document_id)
 VALUES ('\x441374e20b1643ecadb96a3251081d24', '\xfd923b3f6dc2472e8ce77a8fcc6a1a20');
 
-/* ShortAnswerWorkB -> userE -> shortAnswerTask B -> documentB */
+
+/* longAnswerWorkF -> userE -> longAnswerTaskA -> documentB */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('\xcbf452cd915a4b249d0292be013bbba8', '\x871b525067124e548ab60784cae0bc64', '\x10ef05ee7b494352b86e70510adf617f', 2, false, 1, '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
+VALUES ('\xf7fcffc37b794de7b6ddcf37aa155fd9', '\x871b525067124e548ab60784cae0bc64', '\xbf1a6ed09f834cb485c1ad456299b3a3', 2, true, 0, '2014-08-03 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
+
+INSERT INTO long_answer_work (work_id, document_id)
+VALUES ('\xf7fcffc37b794de7b6ddcf37aa155fd9', '\x15173757b881444082854e3d2c03616a');
+
+
+/* ShortAnswerWorkB -> userE -> shortAnswerTask B -> documentC */
+INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
+VALUES ('\xcbf452cd915a4b249d0292be013bbba8', '\x871b525067124e548ab60784cae0bc64', '\x10ef05ee7b494352b86e70510adf617f', 2, false, 1, '2014-08-03 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
 
 INSERT INTO short_answer_work (work_id, document_id)
-VALUES ('\xcbf452cd915a4b249d0292be013bbba8', '\x15173757b881444082854e3d2c03616a');
+VALUES ('\xcbf452cd915a4b249d0292be013bbba8', '\x462b7f6c8b624c998643a63b2720b2a7');
+
+
+/* ShortAnswerWorkG -> userC -> shortAnswerTask B -> documentD */
+INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
+VALUES ('\xb7bb09c16aca40de81525da483a5c476', '\xf5f984073a0b4ea5952a575886e90586', '\x10ef05ee7b494352b86e70510adf617f', 2, false, 1, '2014-08-05 14:01:19.545-04', '2014-08-07 14:01:19.545-04');
+
+INSERT INTO short_answer_work (work_id, document_id)
+VALUES ('\xb7bb09c16aca40de81525da483a5c476', '\xbd01c98803694ddaada205a9ff3645cf');
+
 
 /* MultipleChoiceWorkC -> userC -> multipleChoiceTask C */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('\xedfd619897b04f219e15fbe4ed051970', '\xf5f984073a0b4ea5952a575886e90586', '\x76cc2ed7611b4dafaa3f20efe42a65a0', 3, true, 2, '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
+VALUES ('\xedfd619897b04f219e15fbe4ed051970', '\xf5f984073a0b4ea5952a575886e90586', '\x76cc2ed7611b4dafaa3f20efe42a65a0', 3, true, 2, '2014-08-05 14:01:19.545-04', '2014-08-07 14:01:19.545-04');
 
-INSERT INTO multiple_choice_work (work_id, version, response)
-VALUES ('\xedfd619897b04f219e15fbe4ed051970', 3, '{1, 2}');
+/* Latest revision */
+INSERT INTO multiple_choice_work (work_id, version, response, created_at)
+VALUES ('\xedfd619897b04f219e15fbe4ed051970', 3, '{1, 2}', '2014-08-07 14:01:19.545-04');
 
-/* OrderingWorkD -> userH -> longAnswerTaskA */
+/* Previous revision */
+INSERT INTO multiple_choice_work (work_id, version, response, created_at)
+VALUES ('\xedfd619897b04f219e15fbe4ed051970', 2, '{3, 4}', '2014-08-06 14:01:19.545-04');
+
+
+/* MultipleChoiceWorkH -> userE -> multipleChoiceTask C */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('\x125eef5a7e89441cb138c1803bafdc03', '\x5099a6b48809400d8e380119184d0f93', '\xbf1a6ed09f834cb485c1ad456299b3a3', 4, true, 3, '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
+VALUES ('\x8f3b9f09db434670b1590763eb4eaecd', '\x871b525067124e548ab60784cae0bc64', '\x76cc2ed7611b4dafaa3f20efe42a65a0', 8, true, 2, '2014-08-07 14:01:19.545-04', '2014-08-09 14:01:19.545-04');
 
-INSERT INTO ordering_work (work_id, version, response)
-VALUES ('\x125eef5a7e89441cb138c1803bafdc03', 4, '{3, 4}');
+/* Latest revision */
+INSERT INTO multiple_choice_work (work_id, version, response, created_at)
+VALUES ('\x8f3b9f09db434670b1590763eb4eaecd', 8, '{3, 4}', '2014-08-09 14:01:19.545-04');
+
+/* Previous revision */
+INSERT INTO multiple_choice_work (work_id, version, response, created_at)
+VALUES ('\x8f3b9f09db434670b1590763eb4eaecd', 7, '{5, 6}', '2014-08-08 14:01:19.545-04');
+
+
+/* OrderingWorkD -> userC -> orderingTaskN */
+INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
+VALUES ('\x125eef5a7e89441cb138c1803bafdc03', '\xf5f984073a0b4ea5952a575886e90586', '\x599a78ad5bff4246983532fcb41168a6', 4, true, 3, '2014-08-07 14:01:19.545-04', '2014-08-09 14:01:19.545-04');
+
+/* Latest revision */
+INSERT INTO ordering_work (work_id, version, response, created_at)
+VALUES ('\x125eef5a7e89441cb138c1803bafdc03', 4, '{3, 4}', '2014-08-09 14:01:19.545-04');
+
+/* Previous revision */
+INSERT INTO ordering_work (work_id, version, response, created_at)
+VALUES ('\x125eef5a7e89441cb138c1803bafdc03', 3, '{5, 6}', '2014-08-08 14:01:19.545-04');
+
+
+/* OrderingWorkI -> userE -> orderingTaskN */
+INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
+VALUES ('\xdb5165f44d4840079191beecd77763c7', '\x871b525067124e548ab60784cae0bc64', '\x599a78ad5bff4246983532fcb41168a6', 5, true, 3, '2014-08-09 14:01:19.545-04', '2014-08-11 14:01:19.545-04');
+
+/* Latest revision */
+INSERT INTO ordering_work (work_id, version, response, created_at)
+VALUES ('\xdb5165f44d4840079191beecd77763c7', 5, '{4, 5}', '2014-08-11 14:01:19.545-04');
+
+/* Previous revision */
+INSERT INTO ordering_work (work_id, version, response, created_at)
+VALUES ('\xdb5165f44d4840079191beecd77763c7', 4, '{6, 7}', '2014-08-10 14:01:19.545-04');
+
 
 /* testMatchingWorkE -> userC -> testMatchingTaskE */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('\xe47442dd8ac94d06ad6fef62720d4ed3', '\xf5f984073a0b4ea5952a575886e90586', '\x468a35bfbaf84045aa184688f4d0721f', 5, true, 4, '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
+VALUES ('\xe47442dd8ac94d06ad6fef62720d4ed3', '\xf5f984073a0b4ea5952a575886e90586', '\x468a35bfbaf84045aa184688f4d0721f', 5, true, 4, '2014-08-09 14:01:19.545-04', '2014-08-11 14:01:19.545-04');
 
-INSERT INTO matching_work (work_id, version, response)
-VALUES ('\xe47442dd8ac94d06ad6fef62720d4ed3', 5, '{{5, 6}, {7, 8}}');
+/* Latest revision */
+INSERT INTO matching_work (work_id, version, response, created_at)
+VALUES ('\xe47442dd8ac94d06ad6fef62720d4ed3', 5, '{{5, 6}, {7, 8}}', '2014-08-11 14:01:19.545-04');
+
+/* Previous revision */
+INSERT INTO matching_work (work_id, version, response, created_at)
+VALUES ('\xe47442dd8ac94d06ad6fef62720d4ed3', 4, '{{6, 7}, {8, 9}}', '2014-08-10 14:01:19.545-04');
 
 
-/* COMPONENTS */
+/* testMatchingWorkJ -> userE -> testMatchingTaskE */
+INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
+VALUES ('\xc57e033551da41449dfcdfa97f5f1a7c', '\x871b525067124e548ab60784cae0bc64', '\x468a35bfbaf84045aa184688f4d0721f', 6, false, 4, '2014-08-10 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
+
+/* Latest revision */
+INSERT INTO matching_work (work_id, version, response, created_at)
+VALUES ('\xc57e033551da41449dfcdfa97f5f1a7c', 6, '{{6, 7}, {8, 9}}', '2014-08-12 14:01:19.545-04');
+
+/* Previous revision */
+INSERT INTO matching_work (work_id, version, response, created_at)
+VALUES ('\xc57e033551da41449dfcdfa97f5f1a7c', 5, '{{7, 8}, {9, 10}}', '2014-08-11 14:01:19.545-04');
+
+
+/* ---------------------- COMPONENTS ---------------------- */
+
 /* testTextComponentA -> userA (teacher) */
 INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
 VALUES ('\x8cfc608981294c2e9ed145d38077d438', 1, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'testTextComponentA title', 'testTextComponentA questions', 'testTextComponentA thingsToThinkAbout', 'text', '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
@@ -319,7 +474,8 @@ INSERT INTO audio_components (component_id, soundcloud_id)
 VALUES ('\x9f2dd973397b4f559618b0ff3af69ecb', 'revolution-radio-network');
 
 
-/* PARTS_COMPONENTS*/
+/* ---------------------- PARTS_COMPONENTS ---------------------- */
+
 /* testTextComponentA -> PartA -> project A -> course A -> user A (teacher)*/
 INSERT INTO parts_components (component_id, part_id, created_at)
 VALUES ('\x8cfc608981294c2e9ed145d38077d438', '\x5cd214be6bba47fa9f350eb8bafec397', '2014-08-01 14:01:19.545-04');
@@ -333,7 +489,8 @@ INSERT INTO parts_components (component_id, part_id, created_at)
 VALUES ('\x50d07485f33c47559ccf59d823cbb79e', '\xabb84847a3d247a0ae7d8ce04063afc7', '2014-08-03 14:01:19.545-04');
 
 
-/* SCHEDULES */
+/* ---------------------- SCHEDULES ---------------------- */
+
 /* CourseSchedule A -> Course A */
 INSERT INTO schedules (id, course_id, version, start_time, length, reason, created_at, updated_at)
 VALUES ('\x308792b27a2943c8ad51a5c4f306cdaf', '\x217c5622ff9e43728e6a95fb3bae300b', 1, '2015-01-15 14:38:19-04', 12345, 'test CourseSchedule A reason', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
@@ -347,7 +504,8 @@ INSERT INTO schedules (id, course_id, version, start_time, length, reason, creat
 VALUES ('\x6df9d164b1514c389acd6b91301a199d', '\x404c800a53854e6b867e365a1e6b00de', 3, '2015-01-17 16:38:19-04', 12345, 'test CourseSchedule C reason', '2014-08-06 14:01:19.545-04','2014-08-07 14:01:19.545-04');
 
 
-/* SCHEDULE_EXCEPTIONS */
+/* ---------------------- SCHEDULE_EXCEPTIONS ---------------------- */
+
 /* SectionScheduleException A -> UserA -> CourseA */
 INSERT INTO schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
 VALUES ('\xda17e24aa5454d7494e1427896e13ebe', '\x36c8c0ca50aa4806afa5916a5e33a81f', '\x217c5622ff9e43728e6a95fb3bae300b', 1, '2014-08-01', '2014-08-01 14:01:19.545-04', '2014-08-01 15:01:19.545-04', 'testSectionScheduleExceptionA reason', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
@@ -361,7 +519,8 @@ INSERT INTO schedule_exceptions (id, user_id, course_id, version, day, start_tim
 VALUES ('\x4d7ca313f2164f5985ae88bcbca70317', '\x871b525067124e548ab60784cae0bc64', '\x404c800a53854e6b867e365a1e6b00de', 3, '2014-08-07', '2014-08-07 10:01:19.545-04', '2014-08-07 11:01:19.545-04', 'testSectionScheduleExceptionC reason','2014-08-08 14:01:19.545-04','2014-08-09 14:01:19.545-04');
 
 
-/* JOURNAL */
+/* ---------------------- JOURNAL ---------------------- */
+
 /* JournalEntryA -> userA -> projectA */
 INSERT INTO journal_201401 (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
 VALUES ('\x6aabd410735f4023ae049f67f84a3846', 1, '\x36c8c0ca50aa4806afa5916a5e33a81f', '\xc9b4cfceaed448fd94f5c980763dfddc', 'view', 'item 1', '2014-01-01 14:01:19.545-04','2014-01-02 14:01:19.545-04');

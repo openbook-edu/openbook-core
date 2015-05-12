@@ -10,15 +10,19 @@ import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.uuid.UUID
 import scala.collection.IndexedSeq
 import scala.concurrent.Future
+import scalacache.ScalaCache
 import scalaz.{\/-, -\/, \/}
 
 class SchoolServiceDefault(val db: DB,
+                           val scalaCache: ScalaCache,
                            val authService: AuthService,
                            val userRepository: UserRepository,
-                           val courseRepository: CourseRepository)
+                           val courseRepository: CourseRepository,
+                           val chatRepository: ChatRepository)
   extends SchoolService {
 
   implicit def conn: Connection = db.pool
+  implicit def cache: ScalaCache = scalaCache
 
   /*
    * Methods for Courses
@@ -77,13 +81,23 @@ class SchoolServiceDefault(val db: DB,
   }
 
   /**
+   * Find a specific course by slug.
+   *
+   * @param slug the [[String]] of the [[Course]] to find.
+   * @return an optional [[Course]]
+   */
+  override def findCourse(slug: String): Future[\/[ErrorUnion#Fail, Course]] = {
+    courseRepository.find(slug)
+  }
+
+  /**
    * Create a new course.
    *
    * @param teacherId the optional [[UUID]] of the [[User]] teaching this course
    * @param name the name of this course
    * @return the newly created [[Course]]
    */
-  override def createCourse(teacherId: UUID, name: String, color: Color): Future[\/[ErrorUnion#Fail, Course]] = {
+  override def createCourse(teacherId: UUID, name: String, color: Color, slug: String): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
       for {
         teacher <- lift(authService.find(teacherId))
@@ -91,7 +105,8 @@ class SchoolServiceDefault(val db: DB,
         newCourse = Course(
           teacherId = teacher.id,
           name = name,
-          color = color
+          color = color,
+          slug  = slug
         )
         createdCourse <- lift(courseRepository.insert(newCourse))
       }
@@ -107,7 +122,7 @@ class SchoolServiceDefault(val db: DB,
    * @param name the name of this course
    * @return the newly created [[Course]]
    */
-  override def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: Option[String], color: Option[Color]): Future[\/[ErrorUnion#Fail, Course]] = {
+  override def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: Option[String], color: Option[Color], chatEnabled: Option[Boolean]): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
       for {
         existingCourse <- lift(courseRepository.find(id))
@@ -117,7 +132,8 @@ class SchoolServiceDefault(val db: DB,
         toUpdate = existingCourse.copy(
           teacherId = teacherId.getOrElse(existingCourse.teacherId),
           name = name.getOrElse(existingCourse.name),
-          color = color.getOrElse(existingCourse.color)
+          color = color.getOrElse(existingCourse.color),
+          chatEnabled = chatEnabled.getOrElse(existingCourse.chatEnabled)
         )
         updatedCourse <- lift(courseRepository.update(toUpdate))
       }
@@ -217,5 +233,120 @@ class SchoolServiceDefault(val db: DB,
       filteredCourses = userCourses.filter(_.teacherId == teacherId)
       _ <- predicate (filteredCourses.nonEmpty) (RepositoryError.NoResults)
     } yield user
+  }
+
+  /**
+   * List all chats for a course.
+   *
+   * @param courseId
+   * @return
+   */
+  override def listChats(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = {
+    for {
+      course <- lift(findCourse(courseId))
+      chats <- lift(chatRepository.list(course))
+    } yield chats
+  }
+
+  /**
+   * List a slice of chats for a course.
+   *
+   * @param courseId
+   * @param num
+   * @param offset
+   * @return
+   */
+  override def listChats(courseId: UUID, num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = {
+    for {
+      course <- lift(findCourse(courseId))
+      _ <- predicate (num > 0 && offset > 0) (ServiceError.BadInput("num, and offset parameters must be positive long integers"))
+      chats <- lift(chatRepository.list(course, num, offset))
+    } yield chats
+  }
+
+  /**
+   * List all of one user's chats in a course.
+   *
+   * @param courseId
+   * @param userId
+   * @return
+   */
+  override def listChats(courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = {
+    for {
+      course <- lift(findCourse(courseId))
+      user <- lift(userRepository.find(userId))
+      chats <- lift(chatRepository.list(course, user))
+    } yield chats
+  }
+
+  /**
+   * List a slice of one user's chats in a course.
+   *
+   * @param courseId
+   * @param userId
+   * @param num
+   * @param offset
+   * @return
+   */
+  override def listChats(courseId: UUID, userId: UUID,  num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = {
+    for {
+      course <- lift(findCourse(courseId))
+      user <- lift(userRepository.find(userId))
+      _ <- predicate (num > 0 && offset > 0) (ServiceError.BadInput("num, and offset parameters must be positive long integers"))
+      chats <- lift(chatRepository.list(course, user, num, offset))
+    } yield chats
+  }
+
+  /**
+   * Find a specific chat message.
+   *
+   * @param courseId
+   * @param messageNum
+   * @return
+   */
+  override def findChat(courseId: UUID, messageNum: Long): Future[\/[ErrorUnion#Fail, Chat]] = {
+    for {
+      course <- lift(findCourse(courseId))
+      chat <- lift(chatRepository.find(course, messageNum))
+    } yield chat
+  }
+
+  /**
+   * Insert a new chat message.
+   *
+   * @param courseId
+   * @param userId
+   * @param message
+   * @return
+   */
+  override def insertChat(courseId: UUID, userId: UUID, message: String): Future[\/[ErrorUnion#Fail, Chat]] = {
+    transactional { implicit conn =>
+      for {
+        course <- lift(findCourse(courseId))
+        user <- lift(userRepository.find(userId))
+        students <- lift(listStudents(course))
+        _ <- predicate (course.teacherId == user.id || students.contains(user)) (ServiceError.BadPermissions("You must be a member of a course to chat in it."))
+        newChat = Chat(courseId = course.id, userId = userId, message = message)
+        createdChat <- lift(chatRepository.insert(newChat))
+      } yield createdChat
+    }
+  }
+
+  /**
+   * Update an existing chat message's hidden status.
+   *
+   * @param courseId
+   * @param messageNum
+   * @param hidden
+   * @return
+   */
+  override def updateChat(courseId: UUID, messageNum: Long, hidden: Boolean): Future[\/[ErrorUnion#Fail, Chat]] = {
+    transactional { implicit conn =>
+      for {
+        existingChat <- lift(findChat(courseId, messageNum))
+        newChat = existingChat.copy(hidden = hidden)
+        updatedChat <- lift(chatRepository.update(newChat))
+      } yield updatedChat
+    }
   }
 }

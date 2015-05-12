@@ -35,6 +35,8 @@ class UserRepositorySpec
         val eitherUsers = Await.result(result, Duration.Inf)
         val \/-(users) = eitherUsers
 
+        users.size should be(testUserList.size)
+
         testUserList.foreach {
           case (key, user: User) => {
             users(key).id should be(user.id)
@@ -48,8 +50,6 @@ class UserRepositorySpec
             users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
-
-        users.size should be(testUserList.size)
       }
       "list users with a specified set of user Ids" in {
         val testUserList = TreeMap[Int, User](
@@ -61,6 +61,8 @@ class UserRepositorySpec
         val eitherUsers = Await.result(result, Duration.Inf)
         val \/-(users) = eitherUsers
 
+        users.size should be(testUserList.size)
+
         testUserList.foreach {
           case (key, user: User) => {
             users(key).id should be(user.id)
@@ -74,8 +76,6 @@ class UserRepositorySpec
             users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
-
-        users.size should be(testUserList.size)
       }
       "return RepositoryError.NoResults if set contains unexisting user ID" in {
         val ids = Vector(
@@ -99,6 +99,8 @@ class UserRepositorySpec
         val eitherUsers = Await.result(result, Duration.Inf)
         val \/-(users) = eitherUsers
 
+        users.size should be(testUserList.size)
+
         testUserList.foreach {
           case (key, user: User) => {
             users(key).id should be(user.id)
@@ -112,8 +114,6 @@ class UserRepositorySpec
             users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
-
-        users.size should be(testUserList.size)
       }
       "return empty Vector() if role doesn't exist" in {
         val unexistingRole = Role(
@@ -134,14 +134,14 @@ class UserRepositorySpec
 
         val testUserList = TreeMap[Int, User](
           0 -> TestValues.testUserC.copy(hash = None),
-          1 -> TestValues.testUserE.copy(hash = None),
-          2 -> TestValues.testUserG.copy(hash = None),
-          3 -> TestValues.testUserH.copy(hash = None)
+          1 -> TestValues.testUserE.copy(hash = None)
         )
 
         val result = userRepository.list(testCourse)
         val eitherUsers = Await.result(result, Duration.Inf)
         val \/-(users) = eitherUsers
+
+        users.size should be(testUserList.size)
 
         testUserList.foreach {
           case (key, user: User) => {
@@ -156,8 +156,6 @@ class UserRepositorySpec
             users(key).updatedAt.toString should be(user.updatedAt.toString)
           }
         }
-
-        users.size should be(testUserList.size)
       }
       "return empty Vector() if course doesn't exist" in {
         val testCourse = TestValues.testCourseC
@@ -177,7 +175,7 @@ class UserRepositorySpec
   "UserRepository.find" should {
     inSequence {
       "find a user by ID" in {
-        val testUser = TestValues.testUserA
+        val testUser = TestValues.testUserA.copy(hash = None)
 
         val result = userRepository.find(testUser.id)
         val eitherUser = Await.result(result, Duration.Inf)
@@ -200,7 +198,7 @@ class UserRepositorySpec
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
       "find a user by their identifier - email" in {
-        val testUser = TestValues.testUserA
+        val testUser = TestValues.testUserA.copy(hash = None)
 
         val result = userRepository.find(testUser.email)
         val eitherUser = Await.result(result, Duration.Inf)
@@ -217,7 +215,7 @@ class UserRepositorySpec
         user.updatedAt.toString() should be (testUser.updatedAt.toString())
       }
       "find a user by their identifier - username" in {
-        val testUser = TestValues.testUserB
+        val testUser = TestValues.testUserB.copy(hash = None)
 
         val result = userRepository.find(testUser.username)
         val eitherUser = Await.result(result, Duration.Inf)
@@ -360,6 +358,21 @@ class UserRepositorySpec
         user.givenname should be(testUser.givenname)
         user.surname should be(testUser.surname)
       }
+      "save a new User with empty Password Hash" in {
+        val testUser = TestValues.testUserD.copy(hash = None)
+
+        val result = userRepository.insert(testUser)
+        val eitherUser = Await.result(result, Duration.Inf)
+        val \/-(user) = eitherUser
+
+        user.id should be(testUser.id)
+        user.version should be(testUser.version)
+        user.email should be(testUser.email)
+        user.username should be(testUser.username)
+        user.hash should be(None)
+        user.givenname should be(testUser.givenname)
+        user.surname should be(testUser.surname)
+      }
       "reutrn RepositoryError.PrimaryKeyConflict if user already exists" in {
         val testUser = TestValues.testUserA
 
@@ -388,7 +401,7 @@ class UserRepositorySpec
   "UserRepository.delete" should {
     inSequence {
       "delete a user from the database if user has no references in other tables" in {
-        val testUser = TestValues.testUserH
+        val testUser = TestValues.testUserH.copy(hash = None)
 
         val result = userRepository.delete(testUser)
         val eitherUser = Await.result(result, Duration.Inf)

@@ -31,6 +31,7 @@ CREATE TABLE courses (
   teacher_id bytea NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   name text,
   color integer,
+  slug text,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
@@ -139,6 +140,8 @@ CREATE TABLE tasks (
   position int,
   task_type int,
   notes_allowed boolean DEFAULT true,
+  response_title text,
+  notes_title text,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
@@ -274,6 +277,7 @@ CREATE TABLE multiple_choice_work (
   work_id bytea REFERENCES work(id) ON DELETE CASCADE,
   version bigint,
   response int[],
+  created_at timestamp with time zone,
   PRIMARY KEY (work_id, version)
 );
 
@@ -281,6 +285,7 @@ CREATE TABLE ordering_work (
   work_id bytea REFERENCES work(id) ON DELETE CASCADE,
   version bigint,
   response int[],
+  created_at timestamp with time zone,
   PRIMARY KEY (work_id, version)
 );
 
@@ -288,6 +293,7 @@ CREATE TABLE matching_work (
   work_id bytea REFERENCES work(id) ON DELETE CASCADE,
   version bigint,
   response int[][2],
+  created_at timestamp with time zone,
   PRIMARY KEY (work_id, version)
 );
 

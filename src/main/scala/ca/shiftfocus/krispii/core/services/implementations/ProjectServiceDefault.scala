@@ -12,9 +12,11 @@ import ca.shiftfocus.uuid.UUID
 import play.api.Logger
 import play.api.i18n.Messages
 import scala.concurrent.Future
+import scalacache.ScalaCache
 import scalaz.{EitherT, \/, -\/, \/-}
 
 class ProjectServiceDefault(val db: DB,
+                            val scalaCache: ScalaCache,
                             val authService: AuthService,
                             val schoolService: SchoolService,
                             val courseRepository: CourseRepository,
@@ -24,6 +26,7 @@ class ProjectServiceDefault(val db: DB,
   extends ProjectService {
 
   implicit def conn: Connection = db.pool
+  implicit def cache: ScalaCache = scalaCache
 
   /**
    * Lists all projects.

@@ -25,7 +25,8 @@ class TaskRepositorySpec
           4 -> TestValues.testMatchingTaskE,
           5 -> TestValues.testMatchingTaskK,
           6 -> TestValues.testMatchingTaskM,
-          7 -> TestValues.testOrderingTaskL
+          7 -> TestValues.testOrderingTaskL,
+          8 -> TestValues.testOrderingTaskN
         )
 
         val result = taskRepository.list
@@ -99,8 +100,8 @@ class TaskRepositorySpec
 
         val testTaskList = TreeMap[Int, Task](
           0 -> TestValues.testOrderingTaskD,
-          1 -> TestValues.testOrderingTaskL,
-          2 -> TestValues.testMatchingTaskK,
+          1 -> TestValues.testMatchingTaskK,
+          2 -> TestValues.testOrderingTaskL,
           3 -> TestValues.testMatchingTaskM
         )
 
@@ -160,8 +161,9 @@ class TaskRepositorySpec
           2 -> TestValues.testMultipleChoiceTaskC,
           3 -> TestValues.testOrderingTaskD,
           4 -> TestValues.testMatchingTaskK,
-          5 -> TestValues.testOrderingTaskL,
-          6 -> TestValues.testMatchingTaskM
+          5 -> TestValues.testMatchingTaskM,
+          6 -> TestValues.testOrderingTaskL,
+          7 -> TestValues.testOrderingTaskN
         )
 
         val result = taskRepository.list(testProject)

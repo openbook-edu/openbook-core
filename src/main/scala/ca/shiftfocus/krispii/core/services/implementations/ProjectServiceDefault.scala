@@ -343,7 +343,8 @@ class ProjectServiceDefault(val db: DB,
         }
         toUpdate = existingPart.copy(
           name = name.getOrElse(existingPart.name),
-          position = newPosition
+          position = newPosition,
+          enabled = enabled.getOrElse(existingPart.enabled)
         )
         // Now we insert the new part
         updatedPart <- lift(partRepository.update(toUpdate))

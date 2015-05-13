@@ -580,7 +580,7 @@ class AuthServiceDefault(val db: DB,
    * @return
    */
   private def isValidPassword(password: String): Future[\/[ErrorUnion#Fail, String]] = Future.successful {
-    if (password.length >= 8) \/-(password)
+    if (password.length >= 3) \/-(password)
     else -\/(ServiceError.BadInput(s"The password provided must be at least 8 characters."))
   }
 

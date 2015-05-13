@@ -254,7 +254,8 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
 
     (for {
       updatedPart <- lift(queryOne(Update, params))
-      _ <- lift(removeCached(cachePartsKey(part.id)))
+      _ <- lift(removeCached(cachePartKey(part.id)))
+      _ <- lift(removeCached(cachePartsKey(part.projectId)))
       _ <- lift(removeCached(cachePartPosKey(part.projectId, part.position)))
       oldTasks = part.tasks
     } yield updatedPart.copy(tasks = oldTasks)).run
@@ -269,7 +270,8 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
   def delete(part: Part)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Part]] = {
     (for {
       deletedPart <- lift(queryOne(Delete, Seq[Any](part.id.bytes, part.version)))
-      _ <- lift(removeCached(cachePartsKey(part.id)))
+      _ <- lift(removeCached(cachePartKey(part.id)))
+      _ <- lift(removeCached(cachePartsKey(part.projectId)))
       _ <- lift(removeCached(cachePartPosKey(part.projectId, part.position)))
       oldTasks = part.tasks
     } yield deletedPart.copy(tasks = oldTasks)).run

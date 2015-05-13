@@ -252,12 +252,8 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
       part.version + 1, new DateTime, part.id.bytes, part.version
     )
 
-    println("Updating part...")
-    println(part.toString)
-
     (for {
       updatedPart <- lift(queryOne(Update, params))
-      _ = println(updatedPart.toString)
       _ <- lift(removeCached(cachePartKey(part.id)))
       _ <- lift(removeCached(cachePartsKey(part.projectId)))
       _ <- lift(removeCached(cachePartPosKey(part.projectId, part.position)))

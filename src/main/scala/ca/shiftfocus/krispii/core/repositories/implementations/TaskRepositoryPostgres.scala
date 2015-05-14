@@ -617,7 +617,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   /**
    * Delete all tasks belonging to a part.
    *
-   * @param part the [[Part]] to delete tasks from.
+   * @param part the part to delete tasks from.
    * @return A boolean indicating whether the operation was successful.
    */
   override def delete(part: Part)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
@@ -633,8 +633,8 @@ trait SpecificTaskConstructors {
   /**
    * Create a LongAnswerTask from a row returned by the database.
    *
-   * @param row a [[RowData]] object returned from the db.
-   * @return a [[LongAnswerTask]] object
+   * @param row a RowData object returned from the db.
+   * @return a LongAnswerTask object
    */
   protected def constructLongAnswerTask(row: RowData): LongAnswerTask = {
     LongAnswerTask(
@@ -651,8 +651,8 @@ trait SpecificTaskConstructors {
   /**
    * Create a ShortAnswerTask from a row returned by the database.
    *
-   * @param row a [[RowData]] object returned from the db.
-   * @return a [[ShortAnswerTask]] object
+   * @param row a RowData object returned from the db.
+   * @return a ShortAnswerTask object
    */
   protected def constructShortAnswerTask(row: RowData): ShortAnswerTask = {
     ShortAnswerTask(
@@ -670,8 +670,8 @@ trait SpecificTaskConstructors {
   /**
    * Create a MultipleChoiceTask from a row returned by the database.
    *
-   * @param row a [[RowData]] object returned from the db.
-   * @return a [[MultipleChoiceTask]] object
+   * @param row a RowData object returned from the db.
+   * @return a MultipleChoiceTask object
    */
   protected def constructMultipleChoiceTask(row: RowData): MultipleChoiceTask = {
     MultipleChoiceTask(
@@ -692,8 +692,8 @@ trait SpecificTaskConstructors {
   /**
    * Create a OrderingTask from a row returned by the database.
    *
-   * @param row a [[RowData]] object returned from the db.
-   * @return a [[OrderingTask]] object
+   * @param row a RowData object returned from the db.
+   * @return a OrderingTask object
    */
   protected def constructOrderingTask(row: RowData): OrderingTask = {
     OrderingTask(
@@ -713,8 +713,8 @@ trait SpecificTaskConstructors {
   /**
    * Create a MatchingTask from a row returned by the database.
    *
-   * @param row a [[RowData]] object returned from the db.
-   * @return a [[MatchingTask]] object
+   * @param row a RowData object returned from the db.
+   * @return a MatchingTask object
    */
   protected def constructMatchingTask(row: RowData): MatchingTask = {
     MatchingTask(

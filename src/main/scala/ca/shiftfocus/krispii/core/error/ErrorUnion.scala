@@ -39,6 +39,9 @@ sealed trait BadPermissionT extends ErrorUnion {
 sealed trait BusinessLogicFailT extends ErrorUnion {
   case class BusinessLogicFail(message: String) extends Fail
 }
+sealed trait NotScheduledT extends ErrorUnion {
+  object NotScheduled extends Fail
+}
 
 // Now we can construct two concrete ADT's out of of the above traits
 object RepositoryError
@@ -54,6 +57,7 @@ object ServiceError
   extends BadInputT
   with BadPermissionT
   with BusinessLogicFailT
+  with NotScheduledT
 
 // And an exception for when you don't want to expect particular fails
 case class UnexpectedFailException(fail: ErrorUnion#Fail) extends Exception

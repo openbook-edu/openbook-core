@@ -55,7 +55,7 @@ case class OrderingTask(
 object OrderingTask {
 
   /**
-   * Serialize a [[OrderingTask]] to JSON.
+   * Serialize a OrderingTask to JSON.
    */
   implicit val taskWrites: Writes[OrderingTask] = (
     (__ \ "id").write[UUID] and

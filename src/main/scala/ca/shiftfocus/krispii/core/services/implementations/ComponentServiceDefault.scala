@@ -54,33 +54,15 @@ class ComponentServiceDefault(val db: DB,
    * @param projectId the unique ID of the part to filter by
    * @return an array of components
    */
-  override def listByProject(projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
+  override def listByProject(projectId: UUID, forceAll: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
     for {
       project <- lift(projectService.find(projectId))
-      componentList <- lift(componentRepository.list(project))
-    }
-    yield componentList
-  }
-
-  /**
-   * List components by project and user, thus listing "enabled" components.
-   *
-   * A user can view components that are enabled in any of their courses.
-   *
-   * @param projectId the unique ID of the part to filter by
-   * @param userId the user to check for
-   * @return an array of components
-   */
-  override def listByProject(projectId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
-    val fProject = projectService.find(projectId)
-    val fUser = authService.find(userId)
-
-    for {
-      project <- lift(fProject)
-      user <- lift(fUser)
-      componentList <- lift(componentRepository.list(project, user))
-    }
-    yield componentList
+      componentList <-
+        if (forceAll) lift { componentRepository.list(project) }
+        else liftSeq {
+          Future.sequence(project.parts.filter(_.enabled).map(componentRepository.list(_: Part)))
+        }.map(_.flatten.distinct)
+    } yield componentList
   }
 
   /**

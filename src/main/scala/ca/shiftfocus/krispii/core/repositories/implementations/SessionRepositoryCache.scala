@@ -23,7 +23,7 @@ class SessionRepositoryCache extends SessionRepository {
   /**
    * List all sessions for a given user ID.
    *
-   * @param userId the [[UUID]] of the user to load sessions for.
+   * @param userId the UUID of the user to load sessions for.
    * @return a list of sessions for this user
    */
   override def list(userId: UUID)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[Session]]] = {
@@ -41,8 +41,8 @@ class SessionRepositoryCache extends SessionRepository {
   /**
    * Find a session by its session ID.
    *
-   * @param sessionId the [[UUID]] of the session to lookup.
-   * @return an [[Option[Session]]] if one was found
+   * @param sessionId the UUID of the session to lookup.
+   * @return an Option[Session] if one was found
    */
   override def find(sessionId: UUID)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Session]] = {
     get[Session](sessionId.string).map {
@@ -59,8 +59,8 @@ class SessionRepositoryCache extends SessionRepository {
   /**
    * Create a new session
    *
-   * @param session the new [[Session]] to create
-   * @return the newly created [[Session]]
+   * @param session the new session to create
+   * @return the newly created session
    */
   override def create(session: Session)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Session]] = {
     val sessionWithDates = session.copy(
@@ -81,8 +81,8 @@ class SessionRepositoryCache extends SessionRepository {
   /**
    * Update an existing session
    *
-   * @param session the [[Session]] to update
-   * @return the updated [[Session]]
+   * @param session the session to update
+   * @return the updated session
    */
   override def update(session: Session)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Session]] = {
     val sessionWithDates = session.copy(updatedAt = Some(new DateTime))
@@ -117,8 +117,8 @@ class SessionRepositoryCache extends SessionRepository {
   /**
    * Delete an existing session.
    *
-   * @param session the [[Session]] to be deleted
-   * @return the deleted [[Session]]
+   * @param session the session to be deleted
+   * @return the deleted session
    */
   override def delete(session: Session)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Session]] = {
     val fRemove = for {

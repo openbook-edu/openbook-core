@@ -209,7 +209,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @return the new project
    */
   override def insert(project: Project)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Project]] = {
-    val params = Seq(
+    val params = Seq[Any](
       project.id.bytes, 1, project.courseId.bytes, project.name, project.slug,
       project.description, project.availability, new DateTime, new DateTime
     )

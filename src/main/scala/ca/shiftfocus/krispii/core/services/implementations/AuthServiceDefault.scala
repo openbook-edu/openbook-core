@@ -26,7 +26,7 @@ class AuthServiceDefault(val db: DB,
   /**
    * List all users.
    *
-   * @return an [[IndexedSeq]] of [[User]]
+   * @return an IndexedSeq of user
    */
   override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     for {
@@ -44,7 +44,7 @@ class AuthServiceDefault(val db: DB,
    * List users with filter for roles and courses.
    *
    * @param roles an optional list of roles to filter by
-   * @return an [[IndexedSeq]] of [[User]]
+   * @return an IndexedSeq of user
    */
   override def list(roles: IndexedSeq[String]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     for {
@@ -501,8 +501,8 @@ class AuthServiceDefault(val db: DB,
   /**
    * Add a role to a given list of users.
    *
-   * @param roleId the [[UUID]] of the [[Role]] to be added
-   * @param userIds an [[IndexedSeq]] of [[UUID]] listing the users to gain the role
+   * @param roleId the UUID of the Role to be added
+   * @param userIds an IndexedSeq of UUID listing the users to gain the role
    * @return a boolean indicator if the role was added
    */
   override def addUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]] = {
@@ -522,8 +522,8 @@ class AuthServiceDefault(val db: DB,
   /**
    * Remove a role from a given list of users.
    *
-   * @param roleId the [[UUID]] of the [[Role]] to be removed
-   * @param userIds an [[IndexedSeq]] of [[UUID]] listing the users to lose the role
+   * @param roleId the UUID of the Role to be removed
+   * @param userIds an IndexedSeq of UUID listing the users to lose the role
    * @return a boolean indicator if the role was removed
    */
   override def removeUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]] = {

@@ -12,8 +12,8 @@ import play.api.libs.functional.syntax._
  * A short answer task is one for which the student is expected to write only a
  * couple words.
  *
- * @param id The task's [[UUID]].
- * @param partId The [[Part]] to which this task belongs.
+ * @param id The task's UUID.
+ * @param partId The part to which this task belongs.
  * @param position The order in the part in which this task falls.
  * @param version The version of the task entity, for offline locking. Default = 0.
  * @param settings An object containing common settings for tasks.
@@ -53,7 +53,7 @@ case class ShortAnswerTask(
 object ShortAnswerTask {
 
   /**
-   * Serialize a [[ShortAnswerTask]] to JSON.
+   * Serialize a ShortAnswerTask to JSON.
    */
   implicit val taskWrites: Writes[ShortAnswerTask] = (
     (__ \ "id").write[UUID] and

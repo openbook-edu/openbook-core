@@ -640,6 +640,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
             case specific: MultipleChoiceWork => specific.response
             case specific: OrderingWork => specific.response
             case specific: MatchingWork => specific.response.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => IndexedSeq(item.left, item.right)}
+            case specific: DocumentWork => throw new Exception("Tried to use a list-work table on a document-work entity. Epic fail.")
           }
         ))
       }

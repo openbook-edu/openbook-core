@@ -125,8 +125,8 @@ class ComponentScratchpadRepositoryPostgres(val userRepository: UserRepository,
    * the task's ID, and the revision number, so each revision is a separate entry in
    * the database.
    *
-   * @param componentScratchpad the [[ComponentScratchpad]] object to be inserted.
-   * @return the newly created [[ComponentScratchpad]]
+   * @param componentScratchpad the ComponentScratchpad object to be inserted.
+   * @return the newly created ComponentScratchpad
    */
   override def insert(componentScratchpad: ComponentScratchpad)(implicit conn: Connection): Future[\/[RepositoryError.Fail, ComponentScratchpad]] = {
     queryOne(Insert, Seq(
@@ -140,12 +140,12 @@ class ComponentScratchpadRepositoryPostgres(val userRepository: UserRepository,
   }
 
   /**
-   * Update an existing [[ComponentScratchpad]] revision. This always updates a specific
+   * Update an existing ComponentScratchpad revision. This always updates a specific
    * revision, since the primary key comprises user ID, task ID, and revision number.
    * Each revision has its own versioning w.r.t. optimistic offline lock.
    *
-   * @param componentScratchpad the [[ComponentScratchpad]] object to be inserted.
-   * @return the newly created [[ComponentScratchpad]]
+   * @param componentScratchpad the ComponentScratchpad object to be inserted.
+   * @return the newly created ComponentScratchpad
    */
   override def update(componentScratchpad: ComponentScratchpad)(implicit conn: Connection): Future[\/[RepositoryError.Fail, ComponentScratchpad]] = {
     queryOne(Update, Seq(

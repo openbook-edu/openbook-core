@@ -12,8 +12,8 @@ import play.api.libs.functional.syntax._
  * A multiple-choice task is one in which the student must select one
  * or more from a list of possible answers.
  *
- * @param id The task's [[UUID]].
- * @param partId The [[Part]] to which this task belongs.
+ * @param id The task's UUID.
+ * @param partId The part to which this task belongs.
  * @param position The order in the part in which this task falls.
  * @param version The version of the task entity, for offline locking. Default = 0.
  * @param settings An object containing common settings for tasks.
@@ -60,7 +60,7 @@ case class MultipleChoiceTask(
 object MultipleChoiceTask {
 
   /**
-   * Serialize a [[MultipleChoiceTask]] to JSON.
+   * Serialize a MultipleChoiceTask to JSON.
    */
   implicit val taskWrites: Writes[MultipleChoiceTask] = (
     (__ \ "id").write[UUID] and

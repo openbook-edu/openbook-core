@@ -148,7 +148,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   /**
    * List users with a specified set of user Ids.
    *
-   * @param userIds an [[IndexedSeq]] of [[UUID]] of the users to list.
+   * @param userIds an IndexedSeq of UUID of the users to list.
    * @return a future disjunction containing either the users, or a failure
    */
   override def list(userIds: IndexedSeq[UUID])(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
@@ -190,7 +190,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   /**
    * Find a user by ID.
    *
-   * @param id the [[UUID]] of the user to search for.
+   * @param id the UUID of the user to search for.
    * @return a future disjunction containing either the user, or a failure
    */
   override def find(id: UUID)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, User]] = {
@@ -209,7 +209,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   /**
    * Find a user by their identifiers.
    *
-   * @param identifier a [[String]] representing their e-mail or username.
+   * @param identifier a String representing their e-mail or username.
    * @return a future disjunction containing either the user, or a failure
    */
   override def find(identifier: String)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, User]] = {
@@ -237,7 +237,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * Because we're using UUID, we assume we can always successfully create
    * a user. The failure conditions will be things that result in an exception.
    *
-   * @param user the [[User]] to insert into the database
+   * @param user the user to insert into the database
    * @return a future disjunction containing either the inserted user, or a failure
    */
   override def insert(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
@@ -255,7 +255,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * the database and will return the updated user. If your user is out of date,
    * or it's no longer found, an exception should be thrown.
    *
-   * @param user the [[User]] to update in the database
+   * @param user the user to update in the database
    * @return a future disjunction containing either the updated user, or a failure
    */
   override def update(user: User)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, User]] = {
@@ -278,7 +278,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   /**
    * Delete a user from the database.
    *
-   * @param user the [[User]] to be deleted
+   * @param user the user to be deleted
    * @return a future disjunction containing either the deleted user, or a failure
    */
   override def delete(user: User)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, User]] = {

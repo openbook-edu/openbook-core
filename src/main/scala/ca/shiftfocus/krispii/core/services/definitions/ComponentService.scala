@@ -16,8 +16,7 @@ trait ComponentService extends Service[ErrorUnion#Fail] {
 
   def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
   def listByPart(partId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
-  def listByProject(projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
-  def listByProject(projectId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
+  def listByProject(projectId: UUID, forceAll: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
   def find(id: UUID): Future[\/[ErrorUnion#Fail, Component]]
 
   def createAudio(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, soundCloudId: String): Future[\/[ErrorUnion#Fail, Component]]

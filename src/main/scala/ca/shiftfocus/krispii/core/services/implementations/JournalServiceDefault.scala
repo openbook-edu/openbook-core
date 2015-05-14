@@ -80,12 +80,37 @@ class JournalServiceDefault (val config: Boolean,
   // --- LOG METHODS --------------------------------------------------------------------------------------------------
 
   /**
+   * Log user Connected to a project action
+   *
+   * @param userId User that made an action
+   * @param projectId Project where action was made
+   * @param item What object was affected. ex: a task, a button, some video etc.
+   * @return
+   */
+  def logConnect(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
+    if (config) lift(create(userId, projectId, JournalEntryConnect, item)).map { journalEntry => () }
+    else Future.successful(\/.right( () ))
+  }
+
+  /**
+   * Log user Disconnected from a project action
+   *
+   * @param userId User that made an action
+   * @param projectId Project where action was made
+   * @param item What object was affected. ex: a task, a button, some video etc.
+   * @return
+   */
+  def logDisconnect(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
+    if (config) lift(create(userId, projectId, JournalEntryDisconnect, item)).map { journalEntry => () }
+    else Future.successful(\/.right( () ))
+  }
+
+  /**
    * Log View action
    *
    * @param userId User that made an action
    * @param projectId Project where action was made
    * @param item What object was affected. ex: a task, a button, some video etc.
-   * @param conn
    * @return
    */
   def logView(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
@@ -99,7 +124,6 @@ class JournalServiceDefault (val config: Boolean,
    * @param userId User that made an action
    * @param projectId Project where action was made
    * @param item What object was affected. ex: a task, a button, some video etc.
-   * @param conn
    * @return
    */
   def logClick(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
@@ -113,7 +137,6 @@ class JournalServiceDefault (val config: Boolean,
    * @param userId User that made an action
    * @param projectId Project where action was made
    * @param item What object was affected. ex: a task, a button, some video etc.
-   * @param conn
    * @return
    */
   def logWatch(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
@@ -127,7 +150,6 @@ class JournalServiceDefault (val config: Boolean,
    * @param userId User that made an action
    * @param projectId Project where action was made
    * @param item What object was affected. ex: a task, a button, some video etc.
-   * @param conn
    * @return
    */
   def logListen(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
@@ -141,7 +163,6 @@ class JournalServiceDefault (val config: Boolean,
    * @param userId User that made an action
    * @param projectId Project where action was made
    * @param item What object was affected. ex: a task, a button, some video etc.
-   * @param conn
    * @return
    */
   def logInput(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
@@ -155,7 +176,6 @@ class JournalServiceDefault (val config: Boolean,
    * @param userId User that made an action
    * @param projectId Project where action was made
    * @param item What object was affected. ex: a task, a button, some video etc.
-   * @param conn
    * @return
    */
   def logUpdate(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
@@ -169,7 +189,6 @@ class JournalServiceDefault (val config: Boolean,
    * @param userId User that made an action
    * @param projectId Project where action was made
    * @param item What object was affected. ex: a task, a button, some video etc.
-   * @param conn
    * @return
    */
   def logCreate(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {
@@ -183,7 +202,6 @@ class JournalServiceDefault (val config: Boolean,
    * @param userId User that made an action
    * @param projectId Project where action was made
    * @param item What object was affected. ex: a task, a button, some video etc.
-   * @param conn
    * @return
    */
   def logDelete(userId: UUID, projectId: UUID, item: String): Future[\/[ErrorUnion#Fail, Unit]] = {

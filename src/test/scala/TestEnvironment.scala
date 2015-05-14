@@ -1,5 +1,7 @@
 import java.io.File
 
+import ca.shiftfocus.krispii.core.error.RepositoryError
+import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import com.github.mauricio.async.db.{Connection, Configuration}
 import com.github.mauricio.async.db.pool.PoolConfiguration
@@ -9,8 +11,12 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.{BeforeAndAfter, Suite, MustMatchers, WordSpec}
-import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import scalacache.ScalaCache
+import scala.concurrent.{Future, Await}
+import ca.shiftfocus.krispii.core.repositories._
+
+import scalaz.-\/
 
 /**
  * Test Environment
@@ -52,6 +58,16 @@ abstract class TestEnvironment(writeToDb: Boolean = true)
   implicit val conn: Connection = testConnection
   //------------------
   //--END CONNECTION--
+  //------------------
+
+  //--------------------
+  //--START CACHE--
+  //--------------------
+  val redisCache: scalacache.Cache = stub[scalacache.Cache]
+  class TestCache extends ScalaCache(redisCache)
+  implicit val cache: ScalaCache = stub[TestCache]
+  //------------------
+  //--END CACHE--
   //------------------
 
   val project_path = new File(".").getAbsolutePath()
@@ -124,11 +140,4 @@ abstract class TestEnvironment(writeToDb: Boolean = true)
     val value = Console.RED + Console.BOLD + print + Console.RESET
     println (debug + value)
   }
-
-  def selectOneById(from: String, fields: String) =
-    s"""
-       |SELECT ${fields}
-       |FROM ${from}
-       |WHERE id = ?
-     """.stripMargin
 }

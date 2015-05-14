@@ -8,6 +8,7 @@ import Matchers._
 import scala.collection.immutable.TreeMap
 import scala.concurrent.{Future, Await}
 import scala.concurrent.duration.Duration
+import scalacache.ScalaCache
 import scalaz._
 
 
@@ -42,11 +43,11 @@ class ProjectRepositorySpec
         // Put here parts = Vector(), because after db query Project object is created without parts.
         testProjectList.foreach {
           case (key, project: Project) => {
-            (partRepository.list(_: Project)(_: Connection)) when(project.copy(parts = Vector()), *) returns(Future.successful(\/-(testPartList(project.id.toString))))
+            (partRepository.list(_: Project)(_: Connection, _: ScalaCache)) when(project.copy(parts = Vector()), *, *) returns(Future.successful(\/-(testPartList(project.id.toString))))
           }
         }
 
-        val result = projectRepository.list(conn)
+        val result = projectRepository.list
         val eitherProjects = Await.result(result, Duration.Inf)
         val \/-(projects) = eitherProjects
 
@@ -68,6 +69,9 @@ class ProjectRepositorySpec
         }
       }
       "find all projects belonging to a given course" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val testCourse = TestValues.testCourseB
 
         val testProjectList = TreeMap[Int, Project](
@@ -84,7 +88,7 @@ class ProjectRepositorySpec
 
         testProjectList.foreach {
           case (key, project: Project) => {
-            (partRepository.list(_: Project)(_: Connection)) when(project.copy(parts = Vector()), *) returns (Future.successful(\/-(testPartList(project.id.toString))))
+            (partRepository.list(_: Project)(_: Connection, _: ScalaCache)) when(project.copy(parts = Vector()), *, *) returns(Future.successful(\/-(testPartList(project.id.toString))))
           }
         }
 
@@ -110,12 +114,18 @@ class ProjectRepositorySpec
         }
       }
       "return empty Vector() if there are no projects within indicated course" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val testCourse = TestValues.testCourseD
 
         val result = projectRepository.list(testCourse)
         Await.result(result, Duration.Inf) should be (\/-(Vector()))
       }
       "return empty Vector() if course doesn't exist" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val testCourse = TestValues.testCourseE
 
         val result = projectRepository.list(testCourse)
@@ -127,6 +137,9 @@ class ProjectRepositorySpec
     "ProjectRepository.find" should {
       inSequence {
         "find project by ID" in {
+          (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+          (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
           val testProject = TestValues.testProjectA
 
           val testPartList = Vector(
@@ -134,7 +147,7 @@ class ProjectRepositorySpec
             TestValues.testPartB
           )
 
-          (partRepository.list(_: Project)(_: Connection)) when(testProject.copy(parts = Vector()), *) returns(Future.successful(\/-(testPartList)))
+          (partRepository.list(_: Project)(_: Connection, _: ScalaCache)) when(testProject.copy(parts = Vector()), *, *) returns(Future.successful(\/-(testPartList)))
 
           val result = projectRepository.find(testProject.id)
           val eitherProject = Await.result(result, Duration.Inf)
@@ -152,12 +165,18 @@ class ProjectRepositorySpec
           project.updatedAt.toString should be(testProject.updatedAt.toString)
         }
         "return RepositoryError.NoResults if project wasn't found by ID" in {
+          (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+          (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
           val projectId = UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
 
           val result = projectRepository.find(projectId)
           Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
         }
         "find project by ID and User (teacher)" in {
+          (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+          (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
           val testUser = TestValues.testUserB
 
           val testProject = TestValues.testProjectB
@@ -166,7 +185,7 @@ class ProjectRepositorySpec
             TestValues.testPartC
           )
 
-          (partRepository.list(_: Project)(_: Connection)) when(testProject.copy(parts = Vector()), *) returns(Future.successful(\/-(testPartList)))
+          (partRepository.list(_: Project)(_: Connection, _: ScalaCache)) when(testProject.copy(parts = Vector()), *, *) returns(Future.successful(\/-(testPartList)))
 
           val result = projectRepository.find(testProject.id, testUser)
           val eitherProject = Await.result(result, Duration.Inf)
@@ -184,6 +203,9 @@ class ProjectRepositorySpec
           project.updatedAt.toString should be(testProject.updatedAt.toString)
         }
         "find project by ID and User (student)" in {
+          (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+          (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
           val testUser = TestValues.testUserC
 
           val testProject = TestValues.testProjectB
@@ -192,7 +214,7 @@ class ProjectRepositorySpec
             TestValues.testPartC
           )
 
-          (partRepository.list(_: Project)(_: Connection)) when(testProject.copy(parts = Vector()), *) returns(Future.successful(\/-(testPartList)))
+          (partRepository.list(_: Project)(_: Connection, _: ScalaCache)) when(testProject.copy(parts = Vector()), *, *) returns(Future.successful(\/-(testPartList)))
 
           val result = projectRepository.find(testProject.id, testUser)
           val eitherProject = Await.result(result, Duration.Inf)
@@ -219,7 +241,7 @@ class ProjectRepositorySpec
             TestValues.testPartC
           )
 
-          (partRepository.list(_: Project)(_: Connection)) when(testProject.copy(parts = Vector()), *) returns(Future.successful(\/-(testPartList)))
+          (partRepository.list(_: Project)(_: Connection, _: ScalaCache)) when(testProject.copy(parts = Vector()), *, *) returns(Future.successful(\/-(testPartList)))
 
           val result = projectRepository.find(testProject.id, testUser)
           Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
@@ -233,7 +255,7 @@ class ProjectRepositorySpec
             TestValues.testPartC
           )
 
-          (partRepository.list(_: Project)(_: Connection)) when(testProject.copy(parts = Vector()), *) returns(Future.successful(\/-(testPartList)))
+          (partRepository.list(_: Project)(_: Connection, _: ScalaCache)) when(testProject.copy(parts = Vector()), *, *) returns(Future.successful(\/-(testPartList)))
 
           val result = projectRepository.find(testProject.id, testUser)
           Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
@@ -255,12 +277,15 @@ class ProjectRepositorySpec
             TestValues.testPartC
           )
 
-          (partRepository.list(_: Project)(_: Connection)) when(testProject.copy(parts = Vector()), *) returns(Future.successful(\/-(testPartList)))
+          (partRepository.list(_: Project)(_: Connection, _: ScalaCache)) when(testProject.copy(parts = Vector()), *, *) returns(Future.successful(\/-(testPartList)))
 
           val result = projectRepository.find(testProject.id, testUser)
           Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
         }
         "find project by slug" in {
+          (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+          (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
           val testProject = TestValues.testProjectA
 
           val testPartList = Vector(
@@ -268,7 +293,7 @@ class ProjectRepositorySpec
             TestValues.testPartB
           )
 
-          (partRepository.list(_: Project)(_: Connection)) when(testProject.copy(parts = Vector()), *) returns(Future.successful(\/-(testPartList)))
+          (partRepository.list(_: Project)(_: Connection, _: ScalaCache)) when(testProject.copy(parts = Vector()), *, *) returns(Future.successful(\/-(testPartList)))
 
           val result = projectRepository.find(testProject.slug)
           val eitherProject = Await.result(result, Duration.Inf)
@@ -286,6 +311,9 @@ class ProjectRepositorySpec
           project.updatedAt.toString should be(testProject.updatedAt.toString)
         }
         "return RepositoryError.NoResults if slug doesn't exist" in {
+          (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+          (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
           val projectSlug = "unexisting project slug"
 
           val result = projectRepository.find(projectSlug)
@@ -297,6 +325,8 @@ class ProjectRepositorySpec
     "ProjectRepository.insert" should {
       inSequence {
         "insert new project" in {
+          (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
           val testProject = TestValues.testProjectD
 
           val result = projectRepository.insert(testProject)
@@ -333,6 +363,8 @@ class ProjectRepositorySpec
     "ProjectRepository.update" should {
       inSequence {
         "update project" in {
+          (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
           val testProject = TestValues.testProjectA
           val updatedProject = testProject.copy(
             courseId = TestValues.testCourseB.id,
@@ -388,6 +420,8 @@ class ProjectRepositorySpec
     "ProjectRepository.delete" should {
       inSequence {
         "delete a project if project doesn't have references in other tables" in {
+          (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
           val testProject = TestValues.testProjectE
 
           val result = projectRepository.delete(testProject)
@@ -407,6 +441,8 @@ class ProjectRepositorySpec
         }
         // TODO except if project is conntected with a part and part is connected with a task and the task_id is in the "work" table
         "delete a project if project has references in other tables" in {
+          (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
           val testProject = TestValues.testProjectC
 
           val result = projectRepository.delete(testProject)

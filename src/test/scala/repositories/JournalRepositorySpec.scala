@@ -12,11 +12,12 @@ import Matchers._
 import scala.collection.immutable.TreeMap
 import scala.concurrent.{Future, Await}
 import scala.concurrent.duration.Duration
+import scalacache.ScalaCache
 import scalaz._
 
 
 class JournalRepositorySpec
- extends TestEnvironment {
+extends TestEnvironment {
   val userRepository    = stub[UserRepository]
   val projectRepository = stub[ProjectRepository]
   val journalRepository = new JournalRepositoryPostgres(userRepository, projectRepository)
@@ -33,8 +34,8 @@ class JournalRepositorySpec
           0 -> TestValues.testJournalEntryA
         )
 
-        (userRepository.find(_: UUID)(_: Connection)) when(testUser.id, *) returns(Future.successful(\/-(testUser)))
-        (projectRepository.find(_: UUID)(_: Connection)) when(testProject.id, *) returns(Future.successful(\/-(testProject)))
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(testProject.id, *, *) returns(Future.successful(\/-(testProject)))
 
         val result = journalRepository.list(journalEntryType)
         val eitherJournalEntryList = Await.result(result, Duration.Inf)
@@ -68,8 +69,8 @@ class JournalRepositorySpec
           4 -> TestValues.testJournalEntryI
         )
 
-        (userRepository.find(_: UUID)(_: Connection)) when(testUser.id, *) returns(Future.successful(\/-(testUser)))
-        (projectRepository.find(_: UUID)(_: Connection)) when(testProject.id, *) returns(Future.successful(\/-(testProject)))
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(testProject.id, *, *) returns(Future.successful(\/-(testProject)))
 
         val result = journalRepository.list(testUser)
         val eitherJournalEntryList = Await.result(result, Duration.Inf)
@@ -121,13 +122,13 @@ class JournalRepositorySpec
 
         testUserList.foreach {
           case (key, user: User) => {
-            (userRepository.find(_: UUID)(_: Connection)) when(user.id, *) returns(Future.successful(\/-(user)))
+            (userRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(user.id, *, *) returns(Future.successful(\/-(user)))
           }
         }
 
         testProjectList.foreach {
           case (key, project: Project) => {
-            (projectRepository.find(_: UUID)(_: Connection)) when(project.id, *) returns(Future.successful(\/-(project)))
+            (projectRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(project.id, *, *) returns(Future.successful(\/-(project)))
           }
         }
 
@@ -173,13 +174,13 @@ class JournalRepositorySpec
 
         testUserList.foreach {
           case (key, user: User) => {
-            (userRepository.find(_: UUID)(_: Connection)) when(user.id, *) returns(Future.successful(\/-(user)))
+            (userRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(user.id, *, *) returns(Future.successful(\/-(user)))
           }
         }
 
         testProjectList.foreach {
           case (key, project: Project) => {
-            (projectRepository.find(_: UUID)(_: Connection)) when(project.id, *) returns(Future.successful(\/-(project)))
+            (projectRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(project.id, *, *) returns(Future.successful(\/-(project)))
           }
         }
 
@@ -225,13 +226,13 @@ class JournalRepositorySpec
 
         testUserList.foreach {
           case (key, user: User) => {
-            (userRepository.find(_: UUID)(_: Connection)) when(user.id, *) returns(Future.successful(\/-(user)))
+            (userRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(user.id, *, *) returns(Future.successful(\/-(user)))
           }
         }
 
         testProjectList.foreach {
           case (key, project: Project) => {
-            (projectRepository.find(_: UUID)(_: Connection)) when(project.id, *) returns(Future.successful(\/-(project)))
+            (projectRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(project.id, *, *) returns(Future.successful(\/-(project)))
           }
         }
 
@@ -279,8 +280,8 @@ class JournalRepositorySpec
         val testProject  = TestValues.testProjectA
         val testJournalEntry = TestValues.testJournalEntryB
 
-        (userRepository.find(_: UUID)(_: Connection)) when(testUser.id, *) returns(Future.successful(\/-(testUser)))
-        (projectRepository.find(_: UUID)(_: Connection)) when(testProject.id, *) returns(Future.successful(\/-(testProject)))
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(testProject.id, *, *) returns(Future.successful(\/-(testProject)))
 
         val result = journalRepository.find(testJournalEntry.id)
         val eitherJournalEntry = Await.result(result, Duration.Inf)
@@ -312,8 +313,8 @@ class JournalRepositorySpec
         val testProject  = TestValues.testProjectC
         val testJournalEntry = TestValues.testJournalEntryJ
 
-        (userRepository.find(_: UUID)(_: Connection)) when(testUser.id, *) returns(Future.successful(\/-(testUser)))
-        (projectRepository.find(_: UUID)(_: Connection)) when(testProject.id, *) returns(Future.successful(\/-(testProject)))
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(testProject.id, *, *) returns(Future.successful(\/-(testProject)))
 
         val result = journalRepository.insert(testJournalEntry)
         val eitherJournalEntry = Await.result(result, Duration.Inf)
@@ -332,8 +333,8 @@ class JournalRepositorySpec
         val testProject  = TestValues.testProjectA
         val testJournalEntry = TestValues.testJournalEntryA
 
-        (userRepository.find(_: UUID)(_: Connection)) when(testUser.id, *) returns(Future.successful(\/-(testUser)))
-        (projectRepository.find(_: UUID)(_: Connection)) when(testProject.id, *) returns(Future.successful(\/-(testProject)))
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(testProject.id, *, *) returns(Future.successful(\/-(testProject)))
 
         val result = journalRepository.insert(testJournalEntry)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
@@ -348,8 +349,8 @@ class JournalRepositorySpec
         val testProject  = TestValues.testProjectA
         val testJournalEntry = TestValues.testJournalEntryB
 
-        (userRepository.find(_: UUID)(_: Connection)) when(testUser.id, *) returns(Future.successful(\/-(testUser)))
-        (projectRepository.find(_: UUID)(_: Connection)) when(testProject.id, *) returns(Future.successful(\/-(testProject)))
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(testProject.id, *, *) returns(Future.successful(\/-(testProject)))
 
         val result = journalRepository.delete(testJournalEntry)
         val eitherJournalEntry = Await.result(result, Duration.Inf)
@@ -389,13 +390,13 @@ class JournalRepositorySpec
 
         testUserList.foreach {
           case (key, user: User) => {
-            (userRepository.find(_: UUID)(_: Connection)) when(user.id, *) returns(Future.successful(\/-(user)))
+            (userRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(user.id, *, *) returns(Future.successful(\/-(user)))
           }
         }
 
         testProjectList.foreach {
           case (key, project: Project) => {
-            (projectRepository.find(_: UUID)(_: Connection)) when(project.id, *) returns(Future.successful(\/-(project)))
+            (projectRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(project.id, *, *) returns(Future.successful(\/-(project)))
           }
         }
 
@@ -436,8 +437,8 @@ class JournalRepositorySpec
           3 -> TestValues.testJournalEntryH
         )
 
-        (userRepository.find(_: UUID)(_: Connection)) when(testUser.id, *) returns(Future.successful(\/-(testUser)))
-        (projectRepository.find(_: UUID)(_: Connection)) when(testProject.id, *) returns(Future.successful(\/-(testProject)))
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCache)) when(testProject.id, *, *) returns(Future.successful(\/-(testProject)))
 
         val result = journalRepository.delete(testUser)
         val eitherJournalEntryList = Await.result(result, Duration.Inf)

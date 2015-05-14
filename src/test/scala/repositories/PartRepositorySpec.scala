@@ -8,6 +8,7 @@ import Matchers._
 import scala.collection.immutable.TreeMap
 import scala.concurrent.{Future, Await}
 import scala.concurrent.duration.Duration
+import scalacache.ScalaCache
 import scalaz._
 
 
@@ -53,7 +54,7 @@ class PartRepositorySpec
         // Put here tasks = Vector(), because after db query Project object is created without tasks.
         testPartList.foreach {
           case (key, part: Part) => {
-            (taskRepository.list(_: Part)(_: Connection)) when(part.copy(tasks = Vector()), *) returns(Future.successful(\/-(testTaskList(part.id.toString))))
+            (taskRepository.list(_: Part)(_: Connection, _: ScalaCache)) when(part.copy(tasks = Vector()), *, *) returns(Future.successful(\/-(testTaskList(part.id.toString))))
           }
         }
 
@@ -78,6 +79,9 @@ class PartRepositorySpec
         }
       }
       "list all Parts belonging to a given Project" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val testProject = TestValues.testProjectA
 
         val testPartList = TreeMap[Int, Part](
@@ -102,7 +106,7 @@ class PartRepositorySpec
         // Put here tasks = Vector(), because after db query Project object is created without tasks.
         testPartList.foreach {
           case (key, part: Part) => {
-            (taskRepository.list(_: Part)(_: Connection)) when(part.copy(tasks = Vector()), *) returns(Future.successful(\/-(testTaskList(part.id.toString))))
+            (taskRepository.list(_: Part)(_: Connection, _: ScalaCache)) when(part.copy(tasks = Vector()), *, *) returns(Future.successful(\/-(testTaskList(part.id.toString))))
           }
         }
 
@@ -127,6 +131,9 @@ class PartRepositorySpec
         }
       }
       "return empty Vector() if project doesn't exist" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val testProject = TestValues.testProjectD
 
         val result = partRepository.list(testProject)
@@ -155,7 +162,7 @@ class PartRepositorySpec
         // Put here tasks = Vector(), because after db query Project object is created without tasks.
         testPartList.foreach {
           case (key, part: Part) => {
-            (taskRepository.list(_: Part)(_: Connection)) when(part.copy(tasks = Vector()), *) returns(Future.successful(\/-(testTaskList(part.id.toString))))
+            (taskRepository.list(_: Part)(_: Connection, _: ScalaCache)) when(part.copy(tasks = Vector()), *, *) returns(Future.successful(\/-(testTaskList(part.id.toString))))
           }
         }
 
@@ -191,6 +198,9 @@ class PartRepositorySpec
   "PartRepository.find" should {
     inSequence {
       "find a single entry by ID" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val testPart = TestValues.testPartA
 
         val testTaskList = Vector(
@@ -199,7 +209,7 @@ class PartRepositorySpec
           TestValues.testMultipleChoiceTaskC
         )
 
-        (taskRepository.list(_: Part)(_: Connection)) when(testPart.copy(tasks = Vector()), *) returns(Future.successful(\/-(testTaskList)))
+        (taskRepository.list(_: Part)(_: Connection, _: ScalaCache)) when(testPart.copy(tasks = Vector()), *, *) returns(Future.successful(\/-(testTaskList)))
 
         val result = partRepository.find(testPart.id)
         val eitherPart = Await.result(result, Duration.Inf)
@@ -216,12 +226,18 @@ class PartRepositorySpec
         part.updatedAt.toString should be(testPart.updatedAt.toString)
       }
       "reuturn RepositoryError.NoResults if part wasn't found by ID" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val id = UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
 
         val result = partRepository.find(id)
         Await.result(result, Duration.Inf) should be (-\/(RepositoryError.NoResults))
       }
       "find a single entry by its position within a project" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val testProject  = TestValues.testProjectA
         val testPart     = TestValues.testPartA
         val partPosition = testPart.position
@@ -232,7 +248,7 @@ class PartRepositorySpec
           TestValues.testMultipleChoiceTaskC
         )
 
-        (taskRepository.list(_: Part)(_: Connection)) when(testPart.copy(tasks = Vector()), *) returns(Future.successful(\/-(testTaskList)))
+        (taskRepository.list(_: Part)(_: Connection, _: ScalaCache)) when(testPart.copy(tasks = Vector()), *, *) returns(Future.successful(\/-(testTaskList)))
 
         val result = partRepository.find(testProject, partPosition)
         val eitherPart = Await.result(result, Duration.Inf)
@@ -249,6 +265,9 @@ class PartRepositorySpec
         part.updatedAt.toString should be(testPart.updatedAt.toString)
       }
       "return RepositoryError.NoResults if project doesn't exist" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val unexistingProject = TestValues.testProjectD
         val partPosition      = 10
 
@@ -256,6 +275,9 @@ class PartRepositorySpec
         Await.result(result, Duration.Inf) should be (-\/(RepositoryError.NoResults))
       }
       "return RepositoryError.NoResults if position is wrong" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val testProject  = TestValues.testProjectA
         val testPart     = TestValues.testPartA
         val partPosition = 99
@@ -266,7 +288,7 @@ class PartRepositorySpec
           TestValues.testMultipleChoiceTaskC
         )
 
-        (taskRepository.list(_: Part)(_: Connection)) when(testPart.copy(tasks = Vector()), *) returns(Future.successful(\/-(testTaskList)))
+        (taskRepository.list(_: Part)(_: Connection, _: ScalaCache)) when(testPart.copy(tasks = Vector()), *, *) returns(Future.successful(\/-(testTaskList)))
 
         val result = partRepository.find(testProject, partPosition)
         Await.result(result, Duration.Inf) should be (-\/(RepositoryError.NoResults))
@@ -277,6 +299,8 @@ class PartRepositorySpec
   "PartRepository.insert" should {
     inSequence {
       "save a Part row" in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testPart = TestValues.testPartD
 
         val result = partRepository.insert(testPart)
@@ -311,6 +335,8 @@ class PartRepositorySpec
   "PartRepository.update" should {
     inSequence {
       "update a part" in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testPart = TestValues.testPartA
         val updatedPart = testPart.copy(
           projectId = TestValues.testProjectB.id,
@@ -366,6 +392,8 @@ class PartRepositorySpec
   "PartRepository.delete" should {
     inSequence {
       "delete a part if there is no dependency in the tasks.dependency_id" in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testPart = TestValues.testPartB
 
         val result = partRepository.delete(testPart)
@@ -395,6 +423,8 @@ class PartRepositorySpec
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
       "delete all parts in a project" in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testProject = TestValues.testProjectC
 
         val testPartList = TreeMap[Int, Part](
@@ -414,7 +444,7 @@ class PartRepositorySpec
         // Put here tasks = Vector(), because after db query Project object is created without tasks.
         testPartList.foreach {
           case (key, part: Part) => {
-            (taskRepository.list(_: Part)(_: Connection)) when(part.copy(tasks = Vector()), *) returns(Future.successful(\/-(testTaskList(part.id.toString))))
+            (taskRepository.list(_: Part)(_: Connection, _: ScalaCache)) when(part.copy(tasks = Vector()), *, *) returns(Future.successful(\/-(testTaskList(part.id.toString))))
           }
         }
 
@@ -439,6 +469,8 @@ class PartRepositorySpec
         }
       }
       "return empty Vector() if project doesn't exist" in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testProject = TestValues.testProjectD
 
         val result = partRepository.delete(testProject)

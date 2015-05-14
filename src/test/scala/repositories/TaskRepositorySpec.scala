@@ -5,7 +5,7 @@ import ca.shiftfocus.krispii.core.models.tasks._
 
 import org.scalatest._
 import Matchers._
-import scala.concurrent.Await
+import scala.concurrent.{Future, Await}
 import scala.concurrent.duration.Duration
 import scalaz._
 
@@ -105,6 +105,9 @@ class TaskRepositorySpec
           3 -> TestValues.testMatchingTaskM
         )
 
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val result = taskRepository.list(testPart)
         val eitherTasks = Await.result(result, Duration.Inf)
         val \/-(tasks) = eitherTasks
@@ -148,6 +151,9 @@ class TaskRepositorySpec
       }
       "return empty Vector() if part doesn't exist" in {
         val testPart = TestValues.testPartD
+
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
 
         val result = taskRepository.list(testPart)
         Await.result(result, Duration.Inf) should be(\/-(Vector()))
@@ -245,6 +251,9 @@ class TaskRepositorySpec
       "find a a single entry by ID" in {
         val testTask = TestValues.testShortAnswerTaskB
 
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val result = taskRepository.find(testTask.id)
         val eitherTask = Await.result(result, Duration.Inf)
         val \/-(task: ShortAnswerTask) = eitherTask
@@ -263,6 +272,9 @@ class TaskRepositorySpec
       "return RepositoryError.NoResults if tas hasn't been found" in {
         val testTask = TestValues.testLongAnswerTaskF
 
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val result = taskRepository.find(testTask.id)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
@@ -271,6 +283,9 @@ class TaskRepositorySpec
         val testPart     = TestValues.testPartB
         val testTask     = TestValues.testOrderingTaskD
         val taskPosition = testTask.position
+
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
 
         val result = taskRepository.find(testProject, testPart, taskPosition)
         val eitherTask = Await.result(result, Duration.Inf)
@@ -295,6 +310,9 @@ class TaskRepositorySpec
         val testTask     = TestValues.testOrderingTaskD
         val taskPosition = testTask.position
 
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val result = taskRepository.find(testProject, testPart, taskPosition)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
@@ -304,6 +322,9 @@ class TaskRepositorySpec
         val testTask     = TestValues.testOrderingTaskD
         val taskPosition = testTask.position
 
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val result = taskRepository.find(testProject, testPart, taskPosition)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
@@ -312,6 +333,9 @@ class TaskRepositorySpec
         val testPart     = TestValues.testPartB
         val testTask     = TestValues.testOrderingTaskD
         val taskPosition = testTask.position + 1
+
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
 
         val result = taskRepository.find(testProject, testPart, taskPosition)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
@@ -417,6 +441,8 @@ class TaskRepositorySpec
       "insert new LongAnswer task" in {
         val testTask = TestValues.testLongAnswerTaskF
 
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val result = taskRepository.insert(testTask)
         val eitherTask = Await.result(result, Duration.Inf)
         val \/-(task: LongAnswerTask) = eitherTask
@@ -435,6 +461,8 @@ class TaskRepositorySpec
       }
       "insert new ShortAnswer task" in {
         val testTask = TestValues.testShortAnswerTaskG
+
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
 
         val result = taskRepository.insert(testTask)
         val eitherTask = Await.result(result, Duration.Inf)
@@ -457,6 +485,8 @@ class TaskRepositorySpec
       }
       "insert new MultipleChoice task" in {
         val testTask = TestValues.testMultipleChoiceTaskH
+
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
 
         val result = taskRepository.insert(testTask)
         val eitherTask = Await.result(result, Duration.Inf)
@@ -483,6 +513,8 @@ class TaskRepositorySpec
       "insert new Ordering task" in {
         val testTask = TestValues.testOrderingTaskI
 
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val result = taskRepository.insert(testTask)
         val eitherTask = Await.result(result, Duration.Inf)
         val \/-(task: OrderingTask) = eitherTask
@@ -506,6 +538,8 @@ class TaskRepositorySpec
       }
       "insert new Matching task" in {
         val testTask = TestValues.testMatchingTaskJ
+
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
 
         val result = taskRepository.insert(testTask)
         val eitherTask = Await.result(result, Duration.Inf)
@@ -546,6 +580,8 @@ class TaskRepositorySpec
           )
         )
 
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val result = taskRepository.update(updatedTask)
         val eitherTask = Await.result(result, Duration.Inf)
         val \/-(task: LongAnswerTask) = eitherTask
@@ -570,6 +606,8 @@ class TaskRepositorySpec
           // Specific
           maxLength = testTask.maxLength + 1
         )
+
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
 
         val result = taskRepository.update(updatedTask)
         val eitherTask = Await.result(result, Duration.Inf)
@@ -601,6 +639,8 @@ class TaskRepositorySpec
           allowMultiple = true,
           randomizeChoices = false
         )
+
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
 
         val result = taskRepository.update(updatedTask)
         val eitherTask = Await.result(result, Duration.Inf)
@@ -635,6 +675,8 @@ class TaskRepositorySpec
           randomizeChoices = false
         )
 
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val result = taskRepository.update(updatedTask)
         val eitherTask = Await.result(result, Duration.Inf)
         val \/-(task: OrderingTask) = eitherTask
@@ -667,6 +709,8 @@ class TaskRepositorySpec
           answers = Vector(testTask.answers(0), testTask.answers(1), testTask.answers(0)),
           randomizeChoices = false
         )
+
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
 
         val result = taskRepository.update(updatedTask)
         val eitherTask = Await.result(result, Duration.Inf)
@@ -734,6 +778,8 @@ class TaskRepositorySpec
       "delete a task that doesn't have references in work table" in {
         val testTask = TestValues.testMatchingTaskK
 
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val result = taskRepository.delete(testTask)
         val eitherTask = Await.result(result, Duration.Inf)
         val \/-(task: MatchingTask) = eitherTask
@@ -780,6 +826,8 @@ class TaskRepositorySpec
           3 -> TestValues.testMatchingTaskM
         )
 
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val result = taskRepository.delete(testPart)
         val eitherTasks = Await.result(result, Duration.Inf)
         val \/-(tasks) = eitherTasks
@@ -825,11 +873,15 @@ class TaskRepositorySpec
       "return empty Vector() if Part doesn't have Tasks" in {
         val testPart = TestValues.testPartH
 
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val result = taskRepository.delete(testPart)
         Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
       "return empty Vector() if Part doesn't exist" in {
         val testPart = TestValues.testPartD
+
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
 
         val result = taskRepository.delete(testPart)
         Await.result(result, Duration.Inf) should be(\/-(Vector()))

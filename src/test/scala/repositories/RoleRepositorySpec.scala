@@ -7,7 +7,7 @@ import ca.shiftfocus.krispii.core.repositories.{UserRepositoryPostgres, RoleRepo
 import ca.shiftfocus.uuid.UUID
 import org.scalatest._
 import Matchers._
-import scala.concurrent.Await
+import scala.concurrent.{Future, Await}
 import scala.concurrent.duration.Duration
 import scalaz.{-\/, \/-}
 
@@ -48,6 +48,9 @@ class RoleRepositorySpec
         roles.size should be(testRolesList.size)
       }
       "list the roles associated with a user" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val testRolesList = TreeMap[Int, Role](
           0 -> TestValues.testRoleA,
           1 -> TestValues.testRoleB,
@@ -72,6 +75,9 @@ class RoleRepositorySpec
         roles.size should be(testRolesList.size)
       }
       "return empty Vector() if user doesn't exist" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val unexistingUser = User(
           email     = "unexisting_email@example.com",
           username  = "unexisting_username",
@@ -83,88 +89,15 @@ class RoleRepositorySpec
 
         Await.result(result, Duration.Inf) should be (\/- (Vector()))
       }
-      "list the roles associated with a users" in {
-        val testUsersList = TreeMap[Int, User](
-          0 -> TestValues.testUserA,
-          1 -> TestValues.testUserB
-        )
-
-        val testRolesList = Map[UUID, Vector[Role]](
-          testUsersList(0).id -> Vector(
-            TestValues.testRoleA,
-            TestValues.testRoleB,
-            TestValues.testRoleF,
-            TestValues.testRoleG
-          ),
-          testUsersList(1).id -> Vector(
-            TestValues.testRoleA,
-            TestValues.testRoleB,
-            TestValues.testRoleF
-          )
-        )
-
-        val result = roleRepository.list(testUsersList.map(_._2)(breakOut))
-        val eitherRoles = Await.result(result, Duration.Inf)
-        val \/-(roles) = eitherRoles
-
-        testRolesList.foreach {
-          case (userId: UUID, rolesList: Vector[Role]) => {
-            var key = 0
-            for (role: Role <- rolesList) {
-              roles(userId)(key).id should be(role.id)
-              roles(userId)(key).version should be(role.version)
-              roles(userId)(key).name should be(role.name)
-              roles(userId)(key).createdAt.toString should be(role.createdAt.toString)
-              roles(userId)(key).updatedAt.toString should be(role.updatedAt.toString)
-              key = key + 1
-            }
-          }
-        }
-
-        roles.size should be(testRolesList.size)
-      }
-      "return empty Vector() only for one user if he doesn't exist" in {
-        val testUsersList = TreeMap[Int, User](
-          0 -> TestValues.testUserA,
-          1 -> TestValues.testUserD
-        )
-
-        val testRolesList = Map[UUID, Vector[Role]](
-          testUsersList(0).id -> Vector(
-            TestValues.testRoleA,
-            TestValues.testRoleB,
-            TestValues.testRoleF,
-            TestValues.testRoleG
-          ),
-          testUsersList(1).id -> Vector()
-        )
-
-        val result = roleRepository.list(testUsersList.map(_._2)(breakOut))
-        val eitherRoles = Await.result(result, Duration.Inf)
-        val \/-(roles) = eitherRoles
-
-        testRolesList.foreach {
-          case (userId: UUID, rolesList: Vector[Role]) => {
-            var key = 0
-            for (role: Role <- rolesList) {
-              roles(userId)(key).id should be(role.id)
-              roles(userId)(key).version should be(role.version)
-              roles(userId)(key).name should be(role.name)
-              roles(userId)(key).createdAt.toString should be(role.createdAt.toString)
-              roles(userId)(key).updatedAt.toString should be(role.updatedAt.toString)
-              key = key + 1
-            }
-          }
-        }
-
-        roles.size should be(testRolesList.size)
-      }
     }
   }
 
   "RoleRepository.find" should {
     inSequence {
       "find a single entry by ID" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleA
 
         val result = roleRepository.find(testRole.id)
@@ -178,11 +111,17 @@ class RoleRepositorySpec
         role.updatedAt.toString should be(testRole.updatedAt.toString)
       }
       "return RepositoryError.NoResults if entry wasn't found by ID" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val result = roleRepository.find(UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477"))
 
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
       "find a single entry by name" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleA
 
         val result = roleRepository.find(testRole.name)
@@ -196,6 +135,9 @@ class RoleRepositorySpec
         role.updatedAt.toString should be(testRole.updatedAt.toString)
       }
       "return RepositoryError.NoResults if entry wasn't found by name" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val result = roleRepository.find("unexisting_role_name")
 
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
@@ -207,6 +149,8 @@ class RoleRepositorySpec
   "RoleRepository.addUsers" should {
     inSequence {
       "add role to users" in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleC
         val testUsersList = Vector(
           TestValues.testUserA,
@@ -251,6 +195,8 @@ class RoleRepositorySpec
   "RoleRepository.removeUsers" should {
     inSequence {
       "remove role from users" in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleB
         val testUsersList = Vector(
           TestValues.testUserA,
@@ -315,6 +261,8 @@ class RoleRepositorySpec
   "RoleRepository.update" should {
     inSequence {
       "update an existing Role" in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleC
         val updatedRole = testRole.copy(
           name = "updated test role name"
@@ -355,18 +303,24 @@ class RoleRepositorySpec
   "RoleRepository.delete" should {
     inSequence{
       "delete role if role doesn't have any references in other tables" in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleB
 
         val result = roleRepository.delete(testRole)
         Await.result(result, Duration.Inf) should be(\/-(testRole))
       }
       "delete role if role has a references in other tables" in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleA
 
         val result = roleRepository.delete(testRole)
         Await.result(result, Duration.Inf) should be(\/-(testRole))
       }
       "return RepositoryError.NoResults if Role doesn't exist" in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = Role(
           name = "unexisting role"
         )
@@ -380,6 +334,8 @@ class RoleRepositorySpec
   "RoleRepository.addToUser" should {
     inSequence {
       "associate a role (by object) to a user" in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleC
         val testUser = TestValues.testUserC
 
@@ -387,6 +343,10 @@ class RoleRepositorySpec
         Await.result(result, Duration.Inf) should be(\/-(()))
       }
       "associate a role (by name) to a user" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleH
         val testUser = TestValues.testUserC
 
@@ -408,6 +368,10 @@ class RoleRepositorySpec
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("role_id", "users_roles_role_id_fkey")))
       }
       "return RepositoryError.NoResults if role (name) doesn't exist" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleE
         val testUser = TestValues.testUserA
 
@@ -422,6 +386,10 @@ class RoleRepositorySpec
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
       }
       "return RepositoryError.PrimaryKeyConflict if user has already this role (name)" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleF
         val testUser = TestValues.testUserA
 
@@ -434,6 +402,8 @@ class RoleRepositorySpec
   "RoleRepository.removeFromUser" should {
     inSequence {
       "remove role (object) from user" in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleC
         val testUser = TestValues.testUserF
 
@@ -441,6 +411,10 @@ class RoleRepositorySpec
         Await.result(result, Duration.Inf) should be(\/-( () ))
       }
       "remove role (name) from user" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleC
         val testUser = TestValues.testUserF
 
@@ -456,6 +430,10 @@ class RoleRepositorySpec
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified.", None)))
       }
       "return RepositoryError.NoResults if role (name) doesn't exist" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleE
         val testUser = TestValues.testUserA
 
@@ -480,6 +458,10 @@ class RoleRepositorySpec
       }
       "return RepositoryError.DatabaseError if user doesn't have this role (name)" in {
         // TODO - should be updated, should be another type of error
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleH
         val testUser = TestValues.testUserF
 
@@ -492,12 +474,18 @@ class RoleRepositorySpec
   "RoleRepository.removeFromAllUsers" should {
     inSequence {
       "remove role (object) from all users"  in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleF
 
         val result = roleRepository.removeFromAllUsers(testRole)
         Await.result(result, Duration.Inf) should be (\/-( () ))
       }
       "remove role (name) from all users" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleF
 
         val result = roleRepository.removeFromAllUsers(testRole.name)
@@ -511,6 +499,10 @@ class RoleRepositorySpec
         Await.result(result, Duration.Inf) should be (-\/(RepositoryError.DatabaseError("It appears that no users had this role, so it has been removed from no one. But the query was successful, so there's that.", None)))
       }
       "return RepositoryError.NoResults if role (name) doesn't exist" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleE
 
         val result = roleRepository.removeFromAllUsers(testRole.name)
@@ -523,6 +515,10 @@ class RoleRepositorySpec
         Await.result(result, Duration.Inf) should be (-\/(RepositoryError.DatabaseError("It appears that no users had this role, so it has been removed from no one. But the query was successful, so there's that.", None)))
       }
       "return FALSE if no one from users doesn't have this role (name)" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testRole = TestValues.testRoleH
 
         val result = roleRepository.removeFromAllUsers(testRole.name)

@@ -37,12 +37,12 @@ class TaskFeedbackRepositoryPostgres (val documentRepository: DocumentRepository
   val SelectAllForStudentAndProject =
     s"""
        |SELECT $Fields
-       |FROM $Table as tf, projects, parts, tasks
+       |FROM $Table, projects, parts, tasks
        |WHERE student_id = ?
        |  AND projects.id = ?
        |  AND projects.id = parts.project_id
        |  AND parts.id = tasks.part_id
-       |  AND tasks.id = tf.task_id
+       |  AND tasks.id = $Table.task_id
      """.stripMargin
 
   val SelectAllForTask =

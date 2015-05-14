@@ -2,7 +2,7 @@ import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.{Role, User}
 import ca.shiftfocus.uuid.UUID
 import scala.collection.immutable.TreeMap
-import scala.concurrent.Await
+import scala.concurrent.{Future, Await}
 import scala.concurrent.duration._
 import ca.shiftfocus.krispii.core.repositories.UserRepositoryPostgres
 import org.scalatest._
@@ -15,8 +15,6 @@ class UserRepositorySpec
   extends TestEnvironment
 {
   val userRepository = new UserRepositoryPostgres
-  val users_table = userRepository.Table
-  val users_fields = userRepository.Fields
 
   "UserRepository.list" should {
     inSequence {
@@ -52,6 +50,9 @@ class UserRepositorySpec
         }
       }
       "list users with a specified set of user Ids" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val testUserList = TreeMap[Int, User](
           0 -> TestValues.testUserC.copy(hash = None),
           1 -> TestValues.testUserA.copy(hash = None)
@@ -78,6 +79,9 @@ class UserRepositorySpec
         }
       }
       "return RepositoryError.NoResults if set contains unexisting user ID" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val ids = Vector(
           TestValues.testUserA.id,
           UUID("a5caac60-8fd7-4ecc-8fd3-f84dc11355f1")
@@ -130,6 +134,9 @@ class UserRepositorySpec
         Await.result(result, Duration.Inf) should be (\/- (Vector()))
       }
       "list users in a given course" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val testCourse = TestValues.testCourseB
 
         val testUserList = TreeMap[Int, User](
@@ -158,12 +165,18 @@ class UserRepositorySpec
         }
       }
       "return empty Vector() if course doesn't exist" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val testCourse = TestValues.testCourseC
 
         val result = userRepository.list(testCourse)
         Await.result(result, Duration.Inf) should be(\/- (Vector()))
       }
       "return empty Vector() if there are no users in the course" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val testCourse = TestValues.testCourseG
 
         val result = userRepository.list(testCourse)
@@ -175,7 +188,10 @@ class UserRepositorySpec
   "UserRepository.find" should {
     inSequence {
       "find a user by ID" in {
-        val testUser = TestValues.testUserA.copy(hash = None)
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
+        val testUser = TestValues.testUserA
 
         val result = userRepository.find(testUser.id)
         val eitherUser = Await.result(result, Duration.Inf)
@@ -192,13 +208,19 @@ class UserRepositorySpec
         user.updatedAt.toString() should be (testUser.updatedAt.toString())
       }
       "return RepositoryError.NoResults if user wasn't found by ID" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val id = UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
 
         val result = userRepository.find(id)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
       "find a user by their identifier - email" in {
-        val testUser = TestValues.testUserA.copy(hash = None)
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
+        val testUser = TestValues.testUserA
 
         val result = userRepository.find(testUser.email)
         val eitherUser = Await.result(result, Duration.Inf)
@@ -215,7 +237,10 @@ class UserRepositorySpec
         user.updatedAt.toString() should be (testUser.updatedAt.toString())
       }
       "find a user by their identifier - username" in {
-        val testUser = TestValues.testUserB.copy(hash = None)
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
+        val testUser = TestValues.testUserB
 
         val result = userRepository.find(testUser.username)
         val eitherUser = Await.result(result, Duration.Inf)
@@ -232,12 +257,18 @@ class UserRepositorySpec
         user.updatedAt.toString() should be (testUser.updatedAt.toString())
       }
       "reutrn RepositoryError.NoResults if identifier - email that doesn't exist" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val email = "unexisting_email@example.com"
 
         val result = userRepository.find(email)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
       "reutrn RepositoryError.NoResults if identifier - username that doesn't exist" in {
+        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
+        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+
         val username = "unexisting_username"
 
         val result = userRepository.find(username)
@@ -249,6 +280,8 @@ class UserRepositorySpec
   "UserRepository.update" should {
     inSequence {
       "update an existing user with pass" in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testUser        = TestValues.testUserA
         val updatedTestUser = testUser.copy(
           email     = "updated_user@example.com",
@@ -273,6 +306,8 @@ class UserRepositorySpec
         user.updatedAt.toString() should not be (updatedTestUser.updatedAt.toString())
       }
       "update an existing user without pass" in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testUser        = TestValues.testUserA
         val updatedTestUser = testUser.copy(
           email     = "updated_user@example.com",
@@ -401,6 +436,8 @@ class UserRepositorySpec
   "UserRepository.delete" should {
     inSequence {
       "delete a user from the database if user has no references in other tables" in {
+        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+
         val testUser = TestValues.testUserH.copy(hash = None)
 
         val result = userRepository.delete(testUser)

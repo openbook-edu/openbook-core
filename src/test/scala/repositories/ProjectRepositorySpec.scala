@@ -442,7 +442,7 @@ class ProjectRepositorySpec
         // TODO except if project is conntected with a part and part is connected with a task and the task_id is in the "work" table
         "delete a project if project has references in other tables" in {
           (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
-          
+
           val testProject = TestValues.testProjectC
 
           val result = projectRepository.delete(testProject)

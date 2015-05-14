@@ -94,24 +94,24 @@ VALUES ('\x4d01347ec5924e5fb09fdd281b3d9b87', '\x31a4c2e6762a4303bbb8e64c2404892
 /* ---------------------- COURSES ---------------------- */
 
 /* course A -> user A (teacher) */
-INSERT INTO courses (id, version, teacher_id, name, color, slug, created_at, updated_at)
-VALUES ('\x217c5622ff9e43728e6a95fb3bae300b', 1, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'test course A', 1574408, 'test course A slug', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
+INSERT INTO courses (id, version, teacher_id, name, color, slug, chat_enabled, created_at, updated_at)
+VALUES ('\x217c5622ff9e43728e6a95fb3bae300b', 1, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'test course A', 1574408, 'test course A slug', true, '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
 /* course B -> user B (teacher) */
-INSERT INTO courses (id, version, teacher_id, name, color, slug, created_at, updated_at)
-VALUES ('\x404c800a53854e6b867e365a1e6b00de', 2, '\x6c0e29bdd05b4b2981156be93e936c59', 'test course B', 2230288, 'test course B slug','2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
+INSERT INTO courses (id, version, teacher_id, name, color, slug, chat_enabled, created_at, updated_at)
+VALUES ('\x404c800a53854e6b867e365a1e6b00de', 2, '\x6c0e29bdd05b4b2981156be93e936c59', 'test course B', 2230288, 'test course B slug', true, '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
 
 /* course D -> user F (teacher) */
-INSERT INTO courses (id, version, teacher_id, name, color, slug, created_at, updated_at)
-VALUES ('\x94cc65bb45424f628e08d58522e7b5f1', 3, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test course D', 269368, 'test course D slug','2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+INSERT INTO courses (id, version, teacher_id, name, color, slug, chat_enabled, created_at, updated_at)
+VALUES ('\x94cc65bb45424f628e08d58522e7b5f1', 3, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test course D', 269368, 'test course D slug', true, '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
 /* course F -> user F (teacher) */
-INSERT INTO courses (id, version, teacher_id, name, color, slug, created_at, updated_at)
-VALUES ('\x287b61f5da6b4de785353bc500cffac7', 4, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test course F', 269368, 'test course F slug','2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+INSERT INTO courses (id, version, teacher_id, name, color, slug, chat_enabled, created_at, updated_at)
+VALUES ('\x287b61f5da6b4de785353bc500cffac7', 4, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test course F', 269368, 'test course F slug', true, '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 
 /* course G -> user F (teacher) */
-INSERT INTO courses (id, version, teacher_id, name, color, slug, created_at, updated_at)
-VALUES ('\xb24abba8e6c74700900ce66ed0185a70', 5, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test course G', 1508909, 'test course G slug','2014-08-17 14:01:19.545-04', '2014-08-18 14:01:19.545-04');
+INSERT INTO courses (id, version, teacher_id, name, color, slug, chat_enabled, created_at, updated_at)
+VALUES ('\xb24abba8e6c74700900ce66ed0185a70', 5, '\x4d01347ec5924e5fb09fdd281b3d9b87', 'test course G', 1508909, 'test course G slug', true, '2014-08-17 14:01:19.545-04', '2014-08-18 14:01:19.545-04');
 
 
 /* ---------------------- USERS_COURSES ---------------------- */

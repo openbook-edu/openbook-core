@@ -40,7 +40,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   val Table             = "users"
   val Fields            = "id, version, created_at, updated_at, username, email, password_hash, givenname, surname"
   val FieldsWithTable   = Fields.split(", ").map({ field => s"${Table}." + field}).mkString(", ")
-  val FieldsWithoutHash = Fields.replace("password_hash,", "")
+  val FieldsWithoutHash = FieldsWithTable.replace(s"${Table}.password_hash,", "")
   val QMarks            = "?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy           = s"${Table}.surname ASC, ${Table}.givenname ASC"
 
@@ -62,7 +62,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
 
   val SelectAllWithRole =
     s"""
-       |SELECT $FieldsWithTable
+       |SELECT $FieldsWithoutHash
        |FROM $Table, users_roles
        |WHERE users.id = users_roles.user_id
        |  AND users_roles.role_id = ?
@@ -72,7 +72,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
     s"""
        |INSERT INTO $Table ($Fields)
        |VALUES ($QMarks)
-       |RETURNING $Fields
+       |RETURNING $FieldsWithoutHash
     """.stripMargin
   }
 
@@ -82,7 +82,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |SET username = ?, email = ?, givenname = ?, surname = ?, version = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
-       |RETURNING $Fields
+       |RETURNING $FieldsWithoutHash
     """.stripMargin
   }
 
@@ -92,7 +92,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
         |SET username = ?, email = ?, password_hash = ?, givenname = ?, surname = ?, version = ?, updated_at = ?
         |WHERE id = ?
         |  AND version = ?
-        |RETURNING $Fields
+        |RETURNING $FieldsWithoutHash
     """.stripMargin
   }
 
@@ -114,7 +114,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
 
   val SelectAllWithCourse =
     s"""
-       |SELECT $FieldsWithTable
+       |SELECT $FieldsWithoutHash
        |FROM $Table, users_courses
        |WHERE $Table.id = users_courses.user_id
        |  AND users_courses.course_id = ?

@@ -66,9 +66,6 @@ abstract class TestEnvironment(writeToDb: Boolean = true)
   val redisCache: scalacache.Cache = stub[scalacache.Cache]
   class TestCache extends ScalaCache(redisCache)
   implicit val cache: ScalaCache = stub[TestCache]
-  (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-  (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
-  (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
   //------------------
   //--END CACHE--
   //------------------

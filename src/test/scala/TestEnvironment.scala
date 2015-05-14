@@ -140,11 +140,4 @@ abstract class TestEnvironment(writeToDb: Boolean = true)
     val value = Console.RED + Console.BOLD + print + Console.RESET
     println (debug + value)
   }
-
-  def selectOneById(from: String, fields: String) =
-    s"""
-       |SELECT ${fields}
-       |FROM ${from}
-       |WHERE id = ?
-     """.stripMargin
 }

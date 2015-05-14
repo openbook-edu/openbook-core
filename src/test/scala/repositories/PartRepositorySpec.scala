@@ -470,7 +470,7 @@ class PartRepositorySpec
       }
       "return empty Vector() if project doesn't exist" in {
         (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
-        
+
         val testProject = TestValues.testProjectD
 
         val result = partRepository.delete(testProject)

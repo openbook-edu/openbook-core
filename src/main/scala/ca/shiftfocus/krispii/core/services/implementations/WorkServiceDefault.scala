@@ -168,7 +168,8 @@ class WorkServiceDefault(val db: DB,
           studentId = user.id,
           taskId = task.id,
           documentId = document.id,
-          isComplete = isComplete
+          isComplete = isComplete,
+          response = Some(document)
         )
         work <- lift(workRepository.insert(newWork))
       } yield work.asInstanceOf[LongAnswerWork]
@@ -198,7 +199,8 @@ class WorkServiceDefault(val db: DB,
           studentId = user.id,
           taskId = task.id,
           documentId = document.id,
-          isComplete = isComplete
+          isComplete = isComplete,
+          response = Some(document)
         )
         work <- lift(workRepository.insert(newWork))
       } yield work.asInstanceOf[ShortAnswerWork]

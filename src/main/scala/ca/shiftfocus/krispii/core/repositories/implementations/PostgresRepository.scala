@@ -125,8 +125,8 @@ trait PostgresRepository[A] {
    * Generic method to build an entity from postgresql database results, since
    * the postgresql database may not return results.
    *
-   * @param maybeResultSet an optional [[ResultSet]] returned from the database
-   * @param build a function that can build entities of type A from a [[RowData]] object
+   * @param maybeResultSet an optional ResultSet returned from the database
+   * @param build a function that can build entities of type A from a RowData object
    * @tparam B the type of entity to be built
    * @return a disjunction containing either a RepositoryError.Fail, or an object of type A
    */
@@ -146,8 +146,8 @@ trait PostgresRepository[A] {
    *
    * TODO: check in which case the database driver will return "None" instead of Some(ResultSet)
    *
-   * @param maybeResultSet an optional [[ResultSet]] returned from the database
-   * @param build a function that can build entities of type A from a [[RowData]] object
+   * @param maybeResultSet an optional ResultSet returned from the database
+   * @param build a function that can build entities of type A from a RowData object
    * @tparam B the type of entity to be built
    * @return a disjunction containing either a RepositoryError.Fail, or an object of type A
    */

@@ -31,7 +31,7 @@ class SchoolServiceDefault(val db: DB,
   /**
    * List all courses.
    *
-   * @return an [[IndexedSeq]] of [[Course]]
+   * @return an IndexedSeq of course
    */
   override def listCourses: Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
     courseRepository.list
@@ -43,8 +43,8 @@ class SchoolServiceDefault(val db: DB,
    * This finds courses for which the given id is set as a
    * student of the course via an association table.
    *
-   * @param userId the [[UUID]] of the [[User]] to search for.
-   * @return an [[IndexedSeq]] of [[Course]]
+   * @param userId the UUID of the user to search for.
+   * @return an IndexedSeq of course
    */
   override def listCoursesByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
     for {
@@ -60,8 +60,8 @@ class SchoolServiceDefault(val db: DB,
    * This finds courses for which the given id is set as the teacherID
    * parameter.
    *
-   * @param userId the [[UUID]] of the [[User]] to search for.
-   * @return an [[IndexedSeq]] of [[Course]]
+   * @param userId the UUID of the user to search for.
+   * @return an IndexedSeq of course
    */
   override def listCoursesByTeacher(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
     for {
@@ -73,8 +73,8 @@ class SchoolServiceDefault(val db: DB,
   /**
    * Find a specific course by id.
    *
-   * @param id the [[UUID]] of the [[Course]] to find.
-   * @return an optional [[Course]]
+   * @param id the UUID of the course to find.
+   * @return an optional course
    */
   override def findCourse(id: UUID): Future[\/[ErrorUnion#Fail, Course]] = {
     courseRepository.find(id)
@@ -83,8 +83,8 @@ class SchoolServiceDefault(val db: DB,
   /**
    * Find a specific course by slug.
    *
-   * @param slug the [[String]] of the [[Course]] to find.
-   * @return an optional [[Course]]
+   * @param slug the string of the course to find.
+   * @return an optional course
    */
   override def findCourse(slug: String): Future[\/[ErrorUnion#Fail, Course]] = {
     courseRepository.find(slug)
@@ -93,9 +93,9 @@ class SchoolServiceDefault(val db: DB,
   /**
    * Create a new course.
    *
-   * @param teacherId the optional [[UUID]] of the [[User]] teaching this course
+   * @param teacherId the optional UUID of the user teaching this course
    * @param name the name of this course
-   * @return the newly created [[Course]]
+   * @return the newly created course
    */
   override def createCourse(teacherId: UUID, name: String, color: Color, slug: String): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
@@ -117,10 +117,10 @@ class SchoolServiceDefault(val db: DB,
   /**
    * Create a new course.
    *
-   * @param id the [[UUID]] of the [[Course]] this course belongs to
-   * @param teacherId the optional [[UUID]] of the [[User]] teaching this course
+   * @param id the UUID of the course this course belongs to
+   * @param teacherId the optional UUID of the user teaching this course
    * @param name the name of this course
-   * @return the newly created [[Course]]
+   * @return the newly created course
    */
   override def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: Option[String], color: Option[Color], chatEnabled: Option[Boolean]): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
@@ -142,10 +142,10 @@ class SchoolServiceDefault(val db: DB,
   }
 
   /**
-   * Delete a [[Course]] from the system.
+   * Delete a course from the system.
    *
-   * @param id the unique ID of the [[Course]] to update
-   * @param version the latest version of the [[Course]] for O.O.L.
+   * @param id the unique ID of the course to update
+   * @param version the latest version of the course for O.O.L.
    * @return a boolean indicating success or failure
    */
   override def deleteCourse(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Course]] = {
@@ -187,9 +187,9 @@ class SchoolServiceDefault(val db: DB,
   /**
    * Add students to a course.
    *
-   * @param course the [[Course]] to add users to
-   * @param userIds an [[IndexedSeq]] of [[UUID]] representing the [[User]]s to be added.
-   * @return a [[Boolean]] indicating success or failure.
+   * @param course the course to add users to
+   * @param userIds an IndexedSeq of UUID representing the users to be added.
+   * @return a boolean indicating success or failure.
    */
   override def addUsers(course: Course, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     transactional { implicit conn =>
@@ -204,9 +204,9 @@ class SchoolServiceDefault(val db: DB,
   /**
    * Remove students from a course.
    *
-   * @param course the [[Course]] to remove users from
-   * @param userIds an [[IndexedSeq]] of [[UUID]] representing the [[User]]s to be removed.
-   * @return [[Boolean]] indicating success or failure.
+   * @param course the course to remove users from
+   * @param userIds an IndexedSeq of UUID representing the users to be removed.
+   * @return boolean indicating success or failure.
    */
   override def removeUsers(course: Course, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     transactional { implicit conn =>

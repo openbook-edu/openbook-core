@@ -155,7 +155,7 @@ class DocumentServiceDefault(val db: DB,
    * The push operation runs in a transaction so that if any one part fails, the entire
    * operation fails and rolls back.
    *
-   * @param documentId the [[ca.shiftfocus.uuid.UUID]] of the document to update
+   * @param documentId the ca.shiftfocus.uuid.UUID of the document to update
    * @param version the version of the document to update from
    * @param delta the operation to be performed on the document
    * @return a [[PushResult]] object containing:

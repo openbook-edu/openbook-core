@@ -12,8 +12,8 @@ import play.api.libs.json._
  * lists of elements and is asked to match elements from one list with
  * their corresponding element in the other.
  *
- * @param id The task's [[UUID]].
- * @param partId The [[Part]] to which this task belongs.
+ * @param id The task's UUID.
+ * @param partId The part to which this task belongs.
  * @param position The order in the part in which this task falls.
  * @param version The version of the task entity, for offline locking. Default = 0.
  * @param settings An object containing common settings for tasks.
@@ -74,7 +74,7 @@ object MatchingTask {
   }
 
   /**
-   * Serialize a [[MatchingTask]] to JSON.
+   * Serialize a MatchingTask to JSON.
    */
   implicit val jsonWrites: Writes[MatchingTask] = (
     (__ \ "id").write[UUID] and

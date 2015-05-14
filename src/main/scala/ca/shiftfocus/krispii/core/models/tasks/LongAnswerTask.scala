@@ -13,8 +13,8 @@ import play.api.libs.functional.syntax._
  * a few words in response. This task type gives them free reign to enter as much
  * text as they desire.
  *
- * @param id The task's [[UUID]].
- * @param partId The [[Part]] to which this task belongs.
+ * @param id The task's UUID.
+ * @param partId The part to which this task belongs.
  * @param position The order in the part in which this task falls.
  * @param version The version of the task entity, for offline locking.
  * @param settings An object containing common settings for tasks.
@@ -51,7 +51,7 @@ case class LongAnswerTask(
 
 object LongAnswerTask {
   /**
-   * Serialize a [[LongAnswerTask]] to JSON.
+   * Serialize a LongAnswerTask to JSON.
    */
   implicit val taskWrites: Writes[LongAnswerTask] = (
     (__ \ "id").write[UUID] and

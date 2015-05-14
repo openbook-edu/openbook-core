@@ -96,9 +96,9 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
   /**
    * List all revisions of a task scratchpad.
    *
-   * @param user the [[User]] whose scratchpad it is
-   * @param task the [[Task]] this scratchpad is for
-   * @return an array of [[TaskScratchpad]] objects representing each revision
+   * @param user the user whose scratchpad it is
+   * @param task the task this scratchpad is for
+   * @return an array of TaskScratchpad objects representing each revision
    */
   override def list(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskScratchpad]]] = {
     queryList(SelectAllForUserAndTask, Seq[Any](user.id.bytes, task.id.bytes))
@@ -107,9 +107,9 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
   /**
    * List a user's latest revisions for each task in a project.
    *
-   * @param user the [[User]] whose scratchpad it is
-   * @param project the [[Project]] this scratchpad is for
-   * @return an array of [[TaskScratchpad]] objects representing each scratchpad
+   * @param user the user whose scratchpad it is
+   * @param project the Project this scratchpad is for
+   * @return an array of TaskScratchpad objects representing each scratchpad
    */
   override def list(user: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskScratchpad]]] = {
     queryList(SelectAllForProject, Seq[Any](user.id.bytes, project.id.bytes))
@@ -118,8 +118,8 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
   /**
    * List a user's latest revisions for all task scratchpads for all projects.
    *
-   * @param user the [[User]] whose scratchpad it is
-   * @return an array of [[TaskScratchpad]] objects representing each scratchpad
+   * @param user the user whose scratchpad it is
+   * @return an array of TaskScratchpad objects representing each scratchpad
    */
   override def list(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskScratchpad]]] = {
     queryList(SelectAllForUser, Seq[Any](user.id.bytes))
@@ -128,8 +128,8 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
   /**
    * List all users latest scratchpad revisions to a particular task.
    *
-   * @param task the [[Task]] to list scratchpads for
-   * @return an array of [[TaskScratchpad]] objects representing each scratchpad
+   * @param task the task to list scratchpads for
+   * @return an array of TaskScratchpad objects representing each scratchpad
    */
   override def list(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskScratchpad]]] = {
     queryList(SelectAllForTask, Seq[Any](task.id.bytes))
@@ -138,9 +138,9 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
   /**
    * Find the latest revision of a task scratchpad.
    *
-   * @param user the [[User]] whose scratchpad it is
-   * @param task the [[Task]] this scratchpad is for
-   * @return an optional [[TaskScratchpad]] object
+   * @param user the user whose scratchpad it is
+   * @param task the task this scratchpad is for
+   * @return an optional TaskScratchpad object
    */
   override def find(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskScratchpad]] = {
     queryOne(SelectOne, Seq[Any](user.id.bytes, task.id.bytes))
@@ -152,8 +152,8 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
    * the task's ID, and the revision number, so each revision is a separate entry in
    * the database.
    *
-   * @param taskScratchpad the [[TaskScratchpad]] object to be inserted.
-   * @return the newly created [[TaskScratchpad]]
+   * @param taskScratchpad the TaskScratchpad object to be inserted.
+   * @return the newly created TaskScratchpad
    */
   override def insert(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskScratchpad]] = {
     queryOne(Insert, Seq(

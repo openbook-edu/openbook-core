@@ -221,8 +221,8 @@ class ProjectServiceDefault(val db: DB,
    * NB: This deletes the entire project! All parts, all tasks, including all
    *     responses and scratch pads. Wrapped in a transaction.
    *
-   * @param id the [[UUID]] of the project to delete
-   * @param version the [[version]] of the project to delete
+   * @param id the UUID of the project to delete
+   * @param version the version of the project to delete
    * @return a boolean indicating success/failure
    */
   override def delete(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Project]] = {
@@ -240,7 +240,7 @@ class ProjectServiceDefault(val db: DB,
   /**
    * List the parts that have a component.
    *
-   * @param componentId the [[UUID]] of the component to filter by
+   * @param componentId the UUID of the component to filter by
    */
   override def listPartsInComponent(componentId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Part]]] = ???
 //    {
@@ -495,7 +495,7 @@ class ProjectServiceDefault(val db: DB,
    * @param partNum the number (corresponds to 'position' field) of the part
    *                that this task is in.
    * @param taskNum the number (position) of the task inside the part.
-   * @return an [[Option[Task]]] if one was found.
+   * @return an Option[Task] if one was found.
    */
   override def findTask(projectSlug: String, partNum: Int, taskNum: Int): Future[\/[ErrorUnion#Fail, Task]] = {
     for {
@@ -871,7 +871,7 @@ class ProjectServiceDefault(val db: DB,
   /**
    * Checks if a user has access to a project.
    *
-   * @param userId the [[UUID]] of the user to check
+   * @param userId the UUID of the user to check
    * @param projectSlug the slug of the project to look for
    * @return a boolean indicating success or failure
    */

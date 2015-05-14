@@ -21,7 +21,7 @@ object CommonTaskSettings {
    * Overloaded constructor to create a TaskSettings object from
    * a database result row.
    *
-   * @param row a [[RowData]] object returned from the db.
+   * @param row a RowData object returned from the db.
    * @return a [[CommonTaskSettings]] object
    */
   def apply(row: RowData): CommonTaskSettings = {

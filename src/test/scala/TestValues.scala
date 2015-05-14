@@ -868,7 +868,20 @@ object TestValues {
   )
 
 
-  /* ---------------------- WORK ---------------------- */
+  /* ---------------------- TASK_SCRATCHPADS ---------------------- */
+
+  val testTaskScratchpadA = TaskScratchpad(
+    userId = testUserE.id,
+    taskId = testOrderingTaskL.id,
+    version = testDocumentA.version,
+    documentId = testDocumentA.id,
+    createdAt = testDocumentA.createdAt,
+    updatedAt = testDocumentA.updatedAt
+  )
+
+
+
+   /* ---------------------- WORK ---------------------- */
 
   /* LONG_ANSWER_WORK */
   val testLongAnswerWorkA = LongAnswerWork(

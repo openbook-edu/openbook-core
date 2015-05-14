@@ -22,6 +22,8 @@ trait JournalService extends Service[ErrorUnion#Fail] {
 
   def find(id: UUID): Future[\/[ErrorUnion#Fail, JournalEntry]]
 
+  def logConnect(userId: UUID, projectId: UUID, location: String): Future[\/[ErrorUnion#Fail, Unit]]
+  def logDisconnect(userId: UUID, projectId: UUID, location: String): Future[\/[ErrorUnion#Fail, Unit]]
   def logView(userId: UUID, projectId: UUID, location: String): Future[\/[ErrorUnion#Fail, Unit]]
   def logClick(userId: UUID, projectId: UUID, location: String): Future[\/[ErrorUnion#Fail, Unit]]
   def logWatch(userId: UUID, projectId: UUID, location: String): Future[\/[ErrorUnion#Fail, Unit]]

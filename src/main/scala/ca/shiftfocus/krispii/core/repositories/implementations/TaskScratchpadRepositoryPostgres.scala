@@ -63,7 +63,7 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
     |  AND projects.id = ?
     |  AND parts.id = tasks.part_id
     |  AND projects.id = parts.project_id
-    |  AND task_notes.task_id = tasks.id
+    |  AND $Table.task_id = tasks.id
   """.stripMargin
 
   val SelectAllForUser =
@@ -93,16 +93,6 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
        |WHERE task_id = ?
      """.stripMargin
 
-  /**
-   * List all revisions of a task scratchpad.
-   *
-   * @param user the [[User]] whose scratchpad it is
-   * @param task the [[Task]] this scratchpad is for
-   * @return an array of [[TaskScratchpad]] objects representing each revision
-   */
-  override def list(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskScratchpad]]] = {
-    queryList(SelectAllForUserAndTask, Seq[Any](user.id.bytes, task.id.bytes))
-  }
 
   /**
    * List a user's latest revisions for each task in a project.

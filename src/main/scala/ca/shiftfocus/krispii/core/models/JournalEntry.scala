@@ -29,17 +29,27 @@ object JournalEntry {
 
   object Action {
     def apply(entryType: String): Action = entryType match {
-      case JournalEntryClick.entryType  => JournalEntryClick
-      case JournalEntryView.entryType   => JournalEntryView
-      case JournalEntryWatch.entryType  => JournalEntryWatch
-      case JournalEntryListen.entryType => JournalEntryListen
-      case JournalEntryWrite.entryType  => JournalEntryWrite
-      case JournalEntryCreate.entryType => JournalEntryCreate
-      case JournalEntryUpdate.entryType => JournalEntryUpdate
-      case JournalEntryDelete.entryType => JournalEntryDelete
+      case JournalEntryConnect.entryType    => JournalEntryConnect
+      case JournalEntryDisconnect.entryType => JournalEntryDisconnect
+      case JournalEntryClick.entryType      => JournalEntryClick
+      case JournalEntryView.entryType       => JournalEntryView
+      case JournalEntryWatch.entryType      => JournalEntryWatch
+      case JournalEntryListen.entryType     => JournalEntryListen
+      case JournalEntryWrite.entryType      => JournalEntryWrite
+      case JournalEntryCreate.entryType     => JournalEntryCreate
+      case JournalEntryUpdate.entryType     => JournalEntryUpdate
+      case JournalEntryDelete.entryType     => JournalEntryDelete
     }
   }
 
+  object JournalEntryConnect extends Action {
+    override val entryType = "connect"
+    override val action    = Messages("journalEntry.connect.action")
+  }
+  object JournalEntryDisconnect extends Action {
+    override val entryType = "disconnect"
+    override val action    = Messages("journalEntry.Disconnect.action")
+  }
   object JournalEntryClick extends Action {
     override val entryType = "click"
     override val action    = Messages("journalEntry.click.action")

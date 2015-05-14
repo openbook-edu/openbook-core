@@ -246,30 +246,34 @@ class ScheduleServiceDefault(val db: DB,
     } yield scheduled
   }
 
-  private def isCourseScheduledForUser(course: Course, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
+  private def isCourseScheduledForUser(course: Course, userId: UUID, today: LocalDate, now: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
+    val fUser = authService.find(userId)
+    val fCourses = schoolService.listCoursesByUser(userId)
     for {
-      user <- lift(authService.find(userId))
-      schedules <- lift(courseScheduleRepository.list(course))
-      exceptions <- lift(courseScheduleExceptionRepository.list(course))
-      scheduled = {
-        val numCurrentSchedules = schedules.count({ schedule =>
-          schedule.day == currentDay &&
-            schedule.startTime.isBefore(currentTime) &&
-            schedule.endTime.isAfter(currentTime)
+      user <- lift(fUser)
+      courses <- lift(fCourses)
+      _ <- predicate (courses.contains(course)) (ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource."))
+      fSchedules = listSchedulesByCourse(course.id)
+      fExceptions = listScheduleExceptionsByCourse(course.id)
+      schedules <- lift(fSchedules)
+      exceptions <- lift(fExceptions)
+      userExceptions = exceptions.filter(_.userId == userId)
+      scheduledForStudent = {
+        schedules.exists({ schedule =>
+          today.equals(schedule.day) && (
+            now.equals(schedule.startTime) ||
+              now.equals(schedule.endTime) ||
+              (now.isBefore(schedule.endTime) && now.isAfter(schedule.startTime))
+            )
+        }) ||
+        userExceptions.exists({ schedule =>
+          today.equals(schedule.day) && (
+            now.equals(schedule.startTime) ||
+              now.equals(schedule.endTime) ||
+              (now.isBefore(schedule.endTime) && now.isAfter(schedule.startTime))
+            )
         })
-        if (numCurrentSchedules > 0) {
-          true
-        }
-        else {
-          val numCurrentExceptions = exceptions.count({ exception =>
-            exception.userId == userId &&
-              exception.day == currentDay &&
-              exception.startTime.isBefore(currentTime) &&
-              exception.endTime.isAfter(currentTime)
-          })
-          numCurrentExceptions > 0
-        }
       }
-    } yield scheduled
+    } yield scheduledForStudent
   }
 }

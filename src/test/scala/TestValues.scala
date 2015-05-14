@@ -187,6 +187,7 @@ object TestValues {
     name = "test course A",
     color = new Color(24, 6, 8),
     slug  = "test course A slug",
+    chatEnabled = true,
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -198,6 +199,7 @@ object TestValues {
     name = "test course B",
     color = new Color(34, 8, 16),
     slug  = "test course B slug",
+    chatEnabled = true,
     createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -210,7 +212,8 @@ object TestValues {
     teacherId = testUserA.id,
     name = "unexisting course C",
     color = new Color(24, 6, 8),
-    slug  = "test course C slug"
+    slug  = "test course C slug",
+    chatEnabled = true
   )
 
   val testCourseD = Course(
@@ -220,6 +223,7 @@ object TestValues {
     name = "test course D",
     color = new Color(4, 28, 56),
     slug  = "test course D slug",
+    chatEnabled = true,
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -232,7 +236,8 @@ object TestValues {
     teacherId = testUserA.id,
     name = "unexisting course E",
     color = new Color(45, 10, 15),
-    slug  = "test course E slug"
+    slug  = "test course E slug",
+    chatEnabled = true
   )
 
   val testCourseF = Course(
@@ -242,6 +247,7 @@ object TestValues {
     name = "test course F",
     color = new Color(4, 28, 56),
     slug  = "test course F slug",
+    chatEnabled = true,
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -256,6 +262,7 @@ object TestValues {
     name = "test course G",
     color = new Color(23, 6, 45),
     slug  = "test course G slug",
+    chatEnabled = true,
     createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )

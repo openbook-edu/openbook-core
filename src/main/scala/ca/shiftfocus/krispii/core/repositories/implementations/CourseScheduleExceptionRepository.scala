@@ -12,7 +12,7 @@ import scalacache.ScalaCache
 import scalaz.{-\/, \/-, \/}
 
 class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserRepository,
-                                                        val courseScheduleRepository: CourseScheduleRepository)
+                                                val courseScheduleRepository: CourseScheduleRepository)
   extends CourseScheduleExceptionRepository with PostgresRepository[CourseScheduleException] {
 
   def constructor(row: RowData): CourseScheduleException = {
@@ -71,7 +71,10 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
 
   val Delete =
     s"""
-       |DELETE FROM $Table WHERE id = ? AND version = ?
+       |DELETE FROM $Table
+       |WHERE id = ?
+       |  AND version = ?
+       |RETURNING $Fields
      """.stripMargin
 
   val SelectForCourse =
@@ -146,7 +149,7 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
   /**
    * Create a new course schedule exception.
    *
-   * @param course The course to be inserted
+   * @param courseScheduleException The courseScheduleException to be inserted
    * @return the new course
    */
   override def insert(courseScheduleException: CourseScheduleException)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseScheduleException]] = {
@@ -175,7 +178,7 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
   /**
    * Update a course.
    *
-   * @param course The course to be updated.
+   * @param courseScheduleException The courseScheduleException to be updated.
    * @return the updated course
    */
   override def update(courseScheduleException: CourseScheduleException)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseScheduleException]] = {
@@ -204,7 +207,7 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
   /**
    * Delete a course.
    *
-   * @param course The course to delete.
+   * @param courseScheduleException The courseScheduleException to delete.
    * @return A boolean indicating whether the operation was successful.
    */
   override def delete(courseScheduleException: CourseScheduleException)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseScheduleException]] = {

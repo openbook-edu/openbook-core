@@ -1,6 +1,5 @@
 import ca.shiftfocus.krispii.core.models.CourseSchedule
 import ca.shiftfocus.krispii.core.repositories.CourseScheduleRepositoryPostgres
-import org.joda.time.{LocalTime, LocalDate}
 import org.scalatest._
 import Matchers._
 import scala.collection.immutable.TreeMap
@@ -41,6 +40,7 @@ class CourseScheduleRepositorySpec
             courseSchedules(key).day should be(courseSchedule.day)
             courseSchedules(key).startTime should be(courseSchedule.startTime)
             courseSchedules(key).endTime should be(courseSchedule.endTime)
+            courseSchedules(key).description should be(courseSchedule.description)
             courseSchedules(key).createdAt.toString should be(courseSchedule.createdAt.toString)
             courseSchedules(key).updatedAt.toString should be(courseSchedule.updatedAt.toString)
           }
@@ -67,6 +67,7 @@ class CourseScheduleRepositorySpec
         courseSchedule.day should be(testCourseSchedule.day)
         courseSchedule.startTime should be(testCourseSchedule.startTime)
         courseSchedule.endTime should be(testCourseSchedule.endTime)
+        courseSchedule.description should be(testCourseSchedule.description)
         courseSchedule.createdAt.toString should be(testCourseSchedule.createdAt.toString)
         courseSchedule.updatedAt.toString should be(testCourseSchedule.updatedAt.toString)
       }
@@ -90,6 +91,7 @@ class CourseScheduleRepositorySpec
         courseSchedule.day should be(testCourseSchedule.day)
         courseSchedule.startTime should be(testCourseSchedule.startTime)
         courseSchedule.endTime should be(testCourseSchedule.endTime)
+        courseSchedule.description should be(testCourseSchedule.description)
       }
     }
   }
@@ -118,6 +120,7 @@ class CourseScheduleRepositorySpec
         courseSchedule.day should be(testUpdatedCourseSchedule.day)
         courseSchedule.startTime should be(testUpdatedCourseSchedule.startTime)
         courseSchedule.endTime should be(testUpdatedCourseSchedule.endTime)
+        courseSchedule.description should be(testUpdatedCourseSchedule.description)
         courseSchedule.updatedAt.toString should not be(testUpdatedCourseSchedule.updatedAt.toString)
         courseSchedule.createdAt.toString should be(testUpdatedCourseSchedule.createdAt.toString)
       }
@@ -141,6 +144,7 @@ class CourseScheduleRepositorySpec
         courseSchedule.day should be(testCourseSchedule.day)
         courseSchedule.startTime should be(testCourseSchedule.startTime)
         courseSchedule.endTime should be(testCourseSchedule.endTime)
+        courseSchedule.description should be(testCourseSchedule.description)
         courseSchedule.createdAt.toString should be(testCourseSchedule.createdAt.toString)
         courseSchedule.updatedAt.toString should be(testCourseSchedule.updatedAt.toString)
       }

@@ -549,17 +549,21 @@ VALUES ('\x6df9d164b1514c389acd6b91301a199d', '\x404c800a53854e6b867e365a1e6b00d
 
 /* ---------------------- SCHEDULE_EXCEPTIONS ---------------------- */
 
-/* SectionScheduleException A -> UserA -> CourseA */
+/* SectionScheduleException A -> UserC -> CourseA */
 INSERT INTO course_schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
-VALUES ('\xda17e24aa5454d7494e1427896e13ebe', '\x36c8c0ca50aa4806afa5916a5e33a81f', '\x217c5622ff9e43728e6a95fb3bae300b', 1, '2014-08-01', '2014-08-01 14:01:19.545-04', '2014-08-01 15:01:19.545-04', 'testSectionScheduleExceptionA reason', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
+VALUES ('\xda17e24aa5454d7494e1427896e13ebe', '\xf5f984073a0b4ea5952a575886e90586', '\x217c5622ff9e43728e6a95fb3bae300b', 1, '2014-08-01', '2014-08-01 14:01:19.545-04', '2014-08-01 15:01:19.545-04', 'testCourseScheduleExceptionA reason', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
 
-/* SectionScheduleException B -> UserB -> CourseB */
+/* SectionScheduleException B -> UserC -> CourseB */
 INSERT INTO course_schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
-VALUES ('\x3a285f0c66d041b2851bcfcd203550d9', '\x6c0e29bdd05b4b2981156be93e936c59', '\x404c800a53854e6b867e365a1e6b00de', 2, '2014-08-04', '2014-08-04 16:01:19.545-04', '2014-08-04 17:01:19.545-04', 'testSectionScheduleExceptionB reason','2014-08-05 14:01:19.545-04','2014-08-06 14:01:19.545-04');
+VALUES ('\x3a285f0c66d041b2851bcfcd203550d9', '\xf5f984073a0b4ea5952a575886e90586', '\x404c800a53854e6b867e365a1e6b00de', 2, '2014-08-02', '2014-08-02 16:01:19.545-04', '2014-08-02 17:01:19.545-04', 'testCourseScheduleExceptionB reason','2014-08-04 14:01:19.545-04','2014-08-05 14:01:19.545-04');
 
 /* SectionScheduleException C -> UserE -> CourseB */
 INSERT INTO course_schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
-VALUES ('\x4d7ca313f2164f5985ae88bcbca70317', '\x871b525067124e548ab60784cae0bc64', '\x404c800a53854e6b867e365a1e6b00de', 3, '2014-08-07', '2014-08-07 10:01:19.545-04', '2014-08-07 11:01:19.545-04', 'testSectionScheduleExceptionC reason','2014-08-08 14:01:19.545-04','2014-08-09 14:01:19.545-04');
+VALUES ('\x4d7ca313f2164f5985ae88bcbca70317', '\x871b525067124e548ab60784cae0bc64', '\x404c800a53854e6b867e365a1e6b00de', 3, '2014-08-03', '2014-08-03 18:01:19.545-04', '2014-08-03 19:01:19.545-04', 'testCourseScheduleExceptionC reason','2014-08-06 14:01:19.545-04','2014-08-07 14:01:19.545-04');
+
+/* SectionScheduleException D -> UserE -> CourseB */
+INSERT INTO course_schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
+VALUES ('\xb9a1cd293c04450e9b4a2a63a6871c35', '\x871b525067124e548ab60784cae0bc64', '\x404c800a53854e6b867e365a1e6b00de', 4, '2014-08-04', '2014-08-04 20:01:19.545-04', '2014-08-04 21:01:19.545-04', 'testCourseScheduleExceptionD reason','2014-08-08 14:01:19.545-04','2014-08-09 14:01:19.545-04');
 
 
 /* ---------------------- JOURNAL ---------------------- */

@@ -638,3 +638,30 @@ VALUES ('\x453c7d392bbd40419fb46fb59a134395', 8, '\x6c0e29bdd05b4b2981156be93e93
 /* JournalEntryI -> userA -> projectA */
 INSERT INTO journal_201409 (id, version, user_id, project_id, entry_type, item, created_at, updated_at)
 VALUES ('\xcc19d1cd9114413a96ba46c981525e30', 9, '\x36c8c0ca50aa4806afa5916a5e33a81f', '\xc9b4cfceaed448fd94f5c980763dfddc', 'delete', 'item 9', '2014-09-17 14:01:19.545-04','2014-09-18 14:01:19.545-04');
+
+
+/* ---------------------- CHAT_LOGS ---------------------- */
+
+/* chatA */
+INSERT INTO chat_logs (course_id, message_num, user_id, message, hidden, created_at)
+VALUES ('\x217c5622ff9e43728e6a95fb3bae300b', 1, '\x871b525067124e548ab60784cae0bc64', 'testChatA message', false, '2014-08-01 14:01:19.545-04');
+
+/* chatB */
+INSERT INTO chat_logs (course_id, message_num, user_id, message, hidden, created_at)
+VALUES ('\x217c5622ff9e43728e6a95fb3bae300b', 2, '\xf5f984073a0b4ea5952a575886e90586', 'testChatB message', false, '2014-08-02 14:01:19.545-04');
+
+/* chatC */
+INSERT INTO chat_logs (course_id, message_num, user_id, message, hidden, created_at)
+VALUES ('\x217c5622ff9e43728e6a95fb3bae300b', 3, '\xf5f984073a0b4ea5952a575886e90586', 'testChatC message', false, '2014-08-03 14:01:19.545-04');
+
+/* chatD */
+INSERT INTO chat_logs (course_id, message_num, user_id, message, hidden, created_at)
+VALUES ('\x217c5622ff9e43728e6a95fb3bae300b', 4, '\x871b525067124e548ab60784cae0bc64', 'testChatD message', false, '2014-08-04 14:01:19.545-04');
+
+/* chatE */
+INSERT INTO chat_logs (course_id, message_num, user_id, message, hidden, created_at)
+VALUES ('\x217c5622ff9e43728e6a95fb3bae300b', 5, '\xf5f984073a0b4ea5952a575886e90586', 'testChatE message', false, '2014-08-05 14:01:19.545-04');
+
+/* chatF */
+INSERT INTO chat_logs (course_id, message_num, user_id, message, hidden, created_at)
+VALUES ('\x217c5622ff9e43728e6a95fb3bae300b', 6, '\xf5f984073a0b4ea5952a575886e90586', 'testChatF message', false, '2014-08-06 14:01:19.545-04');

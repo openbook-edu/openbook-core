@@ -311,6 +311,16 @@ CREATE TABLE journal (
   updated_at timestamp with time zone
 );
 
+CREATE TABLE chat_logs (
+  course_id bytea REFERENCES courses(id) ON DELETE CASCADE,
+  message_num bigint,
+  user_id bytea REFERENCES users(id) ON DELETE CASCADE,
+  message text,
+  hidden boolean,
+  created_at timestamp with time zone,
+  PRIMARY KEY (course_id, message_num)
+);
+
 /* YEAR 2014 */
 CREATE TABLE journal_201401 (
     PRIMARY KEY(id),

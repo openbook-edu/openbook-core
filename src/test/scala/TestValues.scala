@@ -835,6 +835,18 @@ object TestValues {
     createdAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testUnexistingRevisionD = Revision(
+    documentId = testDocumentD.id,
+    version =  testDocumentD.version + 1,
+    authorId = testDocumentD.ownerId,
+    delta = Delta(IndexedSeq(
+      Retain(6),
+      Delete(6),
+      InsertText("Chris")
+    )),
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
 
   /* ---------------------- DOCUMENT_REVISIONS---------------------- */
 

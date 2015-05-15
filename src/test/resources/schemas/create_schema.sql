@@ -129,7 +129,8 @@ CREATE TABLE document_revisions (
   version bigint,
   author_id bytea NOT NULL REFERENCES users(id),
   delta json,
-  created_at timestamp with time zone
+  created_at timestamp with time zone,
+  PRIMARY KEY (document_id, version)
 );
 
 CREATE TABLE tasks (

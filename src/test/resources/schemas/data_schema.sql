@@ -328,6 +328,41 @@ INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_
 VALUES ('\x78b9baaf16b743a39cec410104cdde4e', 2, '\x871b525067124e548ab60784cae0bc64', 'testDocumentO title', '{"ops":[{"insert":"Hello Doris"}]}', '2014-08-27 14:01:19.545-04', '2014-08-29 14:01:19.545-04');
 
 
+/* ---------------------- DOCUMENT_REVISIONS ---------------------- */
+
+/* CurrentRevisionA */
+INSERT INTO document_revisions (document_id, version, author_id, delta, created_at)
+VALUES ('\xfd923b3f6dc2472e8ce77a8fcc6a1a20', 2, '\xf5f984073a0b4ea5952a575886e90586', '{"ops":[{"delete":7},{"insert":"Hello"},{"retain":4}]}', '2014-08-03 14:01:19.545-04');
+
+/* PreviousRevisionA */
+INSERT INTO document_revisions (document_id, version, author_id, delta, created_at)
+VALUES ('\xfd923b3f6dc2472e8ce77a8fcc6a1a20', 1, '\xf5f984073a0b4ea5952a575886e90586', '{"ops":[{"insert":"Goodbye Sam"}]}', '2014-08-02 14:01:19.545-04');
+
+/* CurrentRevisionB */
+INSERT INTO document_revisions (document_id, version, author_id, delta, created_at)
+VALUES ('\x15173757b881444082854e3d2c03616a', 2, '\x871b525067124e548ab60784cae0bc64', '{"ops":[{"delete":7},{"insert":"Hello"},{"retain":5}]}', '2014-08-05 14:01:19.545-04');
+
+/* PreviousRevisionB */
+INSERT INTO document_revisions (document_id, version, author_id, delta, created_at)
+VALUES ('\x15173757b881444082854e3d2c03616a', 1, '\x871b525067124e548ab60784cae0bc64', '{"ops":[{"insert":"Goodbye Dean"}]}', '2014-08-04 14:01:19.545-04');
+
+/* CurrentRevisionC */
+INSERT INTO document_revisions (document_id, version, author_id, delta, created_at)
+VALUES ('\x462b7f6c8b624c998643a63b2720b2a7', 2, '\x871b525067124e548ab60784cae0bc64', '{"ops":[{"delete":7},{"insert":"Hello"},{"retain":9}]}', '2014-08-05 14:01:19.545-04');
+
+/* PreviousRevisionC */
+INSERT INTO document_revisions (document_id, version, author_id, delta, created_at)
+VALUES ('\x462b7f6c8b624c998643a63b2720b2a7', 1, '\x871b525067124e548ab60784cae0bc64', '{"ops":[{"insert":"Goodbye Jhonatan"}]}', '2014-08-04 14:01:19.545-04');
+
+/* CurrentRevisionD */
+INSERT INTO document_revisions (document_id, version, author_id, delta, created_at)
+VALUES ('\xbd01c98803694ddaada205a9ff3645cf', 2, '\xf5f984073a0b4ea5952a575886e90586', '{"ops":[{"delete":7},{"insert":"Hello"},{"retain":7}]}', '2014-08-07 14:01:19.545-04');
+
+/* PreviousRevisionD */
+INSERT INTO document_revisions (document_id, version, author_id, delta, created_at)
+VALUES ('\xbd01c98803694ddaada205a9ff3645cf', 1, '\xf5f984073a0b4ea5952a575886e90586', '{"ops":[{"insert":"Goodbye Morgan"}]}', '2014-08-06 14:01:19.545-04');
+
+
 /* ---------------------- TASK_FEEDBACKS ---------------------- */
 
 /* taskFeedbackA */

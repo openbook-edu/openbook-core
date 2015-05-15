@@ -36,65 +36,60 @@ class RevisionRepositoryPostgres extends RevisionRepository with PostgresReposit
     )
   }
 
-  val SelectRevision =
-    s"""
-       |SELECT document_id, version, author_id, delta, created_at
-     """.stripMargin
-
-  val FromRevisions =
-    s"""
-      |FROM document_revisions
-     """.stripMargin
+  val Fields = "document_id, version, author_id, delta, created_at"
+  val Table = "document_revisions"
+  val QMarks = "?, ?, ?, ?, ?"
+  val OrderBy = "version ASC"
 
   val SelectOneRevision =
     s"""
-       |$SelectRevision
-       |$FromRevisions
+       |SELECT $Fields
+       |FROM $Table
        |WHERE document_id = ?
        |  AND version = ?
      """.stripMargin
 
-  val ListRevisionsFrom =
+  val ListRevisionsAfter =
     s"""
-      |$SelectRevision
-      |$FromRevisions
+      |SELECT $Fields
+      |FROM $Table
       |WHERE document_id = ?
       |  AND version > ?
-      |ORDER BY version ASC
+      |ORDER BY $OrderBy
      """.stripMargin
 
   val ListRevisionsTo =
     s"""
-      |$SelectRevision
-      |$FromRevisions
+      |SELECT $Fields
+      |FROM $Table
       |WHERE document_id = ?
-      |  AND version < ?
-      |ORDER BY version ASC
+      |  AND version <= ?
+      |ORDER BY $OrderBy
      """.stripMargin
 
   val ListRevisionsBetween =
     s"""
-      |$SelectRevision
-      |$FromRevisions
+      |SELECT $Fields
+      |FROM $Table
       |WHERE document_id = ?
-      | AND created_at
+      | AND version
       | BETWEEN ? and ?
-      |ORDER BY version ASC
+      |ORDER BY $OrderBy
      """.stripMargin
 
   val ListAllRevisions =
     s"""
-      |$SelectRevision
-      |$FromRevisions
+      |SELECT $Fields
+      |FROM $Table
       |WHERE document_id = ?
-      |ORDER BY version ASC
+      |ORDER BY $OrderBy
      """.stripMargin
 
   val PushRevision =
     s"""
-       |INSERT INTO document_revisions (document_id, version, author_id, delta, created_at)
-       |VALUES (?, ?, ?, ?, ?)
-       |RETURNING document_id, version, author_id, delta, created_at
+       |INSERT INTO $Table ($Fields)
+       |VALUES ($QMarks)
+       |RETURNING $Fields
      """.stripMargin
 
 
@@ -103,17 +98,17 @@ class RevisionRepositoryPostgres extends RevisionRepository with PostgresReposit
    * List revisions for a document.
    *
    * @param document
-   * @param fromVersion
+   * @param afterVersion
    * @param toVersion
    * @param conn
    * @return
    */
-  override def list(document: Document, fromVersion: Long = 0, toVersion: Long = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Revision]]] = {
-    (fromVersion, toVersion) match {
+  override def list(document: Document, afterVersion: Long = 0, toVersion: Long = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Revision]]] = {
+    (afterVersion, toVersion) match {
       case (0, 0) => queryList(ListAllRevisions, Seq[Any](document.id.bytes))
-      case (_, 0) => queryList(ListRevisionsFrom, Seq[Any](document.id.bytes, fromVersion))
+      case (_, 0) => queryList(ListRevisionsAfter, Seq[Any](document.id.bytes, afterVersion))
       case (0, _) => queryList(ListRevisionsTo, Seq[Any](document.id.bytes, toVersion))
-      case (_, _) => queryList(ListRevisionsBetween, Seq[Any](document.id.bytes, fromVersion, toVersion))
+      case (_, _) => queryList(ListRevisionsBetween, Seq[Any](document.id.bytes, afterVersion, toVersion))
       case _      => Future.successful(\/-(IndexedSeq.empty[Revision]))
     }
   }

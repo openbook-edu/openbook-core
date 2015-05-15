@@ -1819,5 +1819,72 @@ object TestValues {
     item = "item 10",
     message = "journalEntry.message"
   )
+
+
+  /* ---------------------- CHAT_LOGS ---------------------- */
+
+  val testChatA = Chat(
+    courseId = testCourseA.id,
+    messageNum = 1L,
+    userId = testUserE.id,
+    message = "testChatA message",
+    hidden = false,
+    createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testChatB = Chat(
+    courseId = testCourseA.id,
+    messageNum = 2L,
+    userId = testUserC.id,
+    message = "testChatB message",
+    hidden = false,
+    createdAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testChatC = Chat(
+    courseId = testCourseA.id,
+    messageNum = 3L,
+    userId = testUserC.id,
+    message = "testChatC message",
+    hidden = false,
+    createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testChatD = Chat(
+    courseId = testCourseA.id,
+    messageNum = 4L,
+    userId = testUserE.id,
+    message = "testChatD message",
+    hidden = false,
+    createdAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testChatE = Chat(
+    courseId = testCourseA.id,
+    messageNum = 5L,
+    userId = testUserC.id,
+    message = "testChatE message",
+    hidden = false,
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testChatF = Chat(
+    courseId = testCourseA.id,
+    messageNum = 6L,
+    userId = testUserC.id,
+    message = "testChatF message",
+    hidden = false,
+    createdAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* No data in DB */
+  val testChatG = Chat(
+    courseId = testCourseA.id,
+    messageNum = 7L,
+    userId = testUserE.id,
+    message = "testChatG message",
+    hidden = false,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
 }
 

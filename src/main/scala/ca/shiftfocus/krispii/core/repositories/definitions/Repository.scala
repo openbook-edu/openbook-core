@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.lib.concurrent.Lifting
 import ca.shiftfocus.uuid.UUID
+import com.typesafe.config.ConfigFactory
 import scalacache._
 import scalacache.redis._
 import scala.concurrent.duration._
@@ -10,6 +11,7 @@ import scala.concurrent.Future
 import scalacache.ScalaCache
 import scalaz.{-\/, \/}
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.Random
 
 trait Repository extends Lifting[RepositoryError.Fail] {
   val ttl = Some(15.minutes)
@@ -47,28 +49,4 @@ trait Repository extends Lifting[RepositoryError.Fail] {
   def cacheExceptionKey(id: UUID): String = s"exception[${id.string}]"
   def cacheExceptionsKey(courseId: UUID): String = s"exceptions[${courseId.string}]"
   def cacheExceptionsKey(courseId: UUID, userId: UUID): String = s"exceptions[${courseId.string},${userId.string}]"
-
-  def getCached[V](key: String)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, V]] = {
-    get[V](key).map {
-      case Some(entity) => \/.right[RepositoryError.Fail, V](entity)
-      case None => \/.left[RepositoryError.Fail, V](RepositoryError.NoResults)
-    }.recover {
-      case failed: RuntimeException => -\/(RepositoryError.DatabaseError("Failed to read from cache.", Some(failed)))
-      case exception: Throwable => throw exception
-    }
-  }
-
-  def putCache[V](key: String)(value: V, ttl: Option[Duration] = None)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Unit]] = {
-    put[V](key)(value, ttl).map({unit => \/.right[RepositoryError.Fail, Unit](unit)}).recover {
-      case failed: RuntimeException => -\/(RepositoryError.DatabaseError("Failed to write to cache.", Some(failed)))
-      case exception: Throwable => throw exception
-    }
-  }
-
-  def removeCached(key: String)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Unit]] = {
-    remove(key).map({unit => \/.right[RepositoryError.Fail, Unit](unit)}).recover {
-      case failed: RuntimeException => -\/(RepositoryError.DatabaseError("Failed to remove from cache.", Some(failed)))
-      case exception: Throwable => throw exception
-    }
-  }
 }

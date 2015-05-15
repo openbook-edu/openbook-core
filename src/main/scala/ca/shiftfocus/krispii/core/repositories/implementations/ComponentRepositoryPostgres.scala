@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -300,13 +301,13 @@ class ComponentRepositoryPostgres()
    * @param part the part to search in
    * @return an array of components
    */
-  override def list(part: Part)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
-    getCached[IndexedSeq[Component]](cacheComponentsKey(part.id)).flatMap {
+  override def list(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+    cache.getCached[IndexedSeq[Component]](cacheComponentsKey(part.id)).flatMap {
       case \/-(compList) => Future successful \/-(compList)
       case -\/(RepositoryError.NoResults) =>
         for {
           compList <- lift(queryList(SelectByPartId, Array[Any](part.id.bytes)))
-          _ <- lift(putCache[IndexedSeq[Component]](cacheComponentsKey(part.id))(compList, ttl))
+          _ <- lift(cache.putCache[IndexedSeq[Component]](cacheComponentsKey(part.id))(compList, ttl))
         } yield compList
       case -\/(error) => Future successful -\/(error)
     }
@@ -318,13 +319,13 @@ class ComponentRepositoryPostgres()
    * @param project the project to search within
    * @return an array of components
    */
-  override def list(project: Project)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
-    getCached[IndexedSeq[Component]](cacheComponentsKey(project.id)).flatMap {
+  override def list(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+    cache.getCached[IndexedSeq[Component]](cacheComponentsKey(project.id)).flatMap {
       case \/-(compList) => Future successful \/-(compList)
       case -\/(RepositoryError.NoResults) =>
         for {
           compList <- lift(queryList(SelectByProjectId, Array[Any](project.id.bytes)))
-          _ <- lift(putCache[IndexedSeq[Component]](cacheComponentsKey(project.id))(compList, ttl))
+          _ <- lift(cache.putCache[IndexedSeq[Component]](cacheComponentsKey(project.id))(compList, ttl))
         } yield compList
       case -\/(error) => Future successful -\/(error)
     }
@@ -347,13 +348,13 @@ class ComponentRepositoryPostgres()
    * @param id the 128-bit UUID, as a byte array, to search for.
    * @return an optional RowData object containing the results
    */
-  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Component]] = {
-    getCached[Component](cacheComponentKey(id)).flatMap {
+  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
+    cache.getCached[Component](cacheComponentKey(id)).flatMap {
       case \/-(compList) => Future successful \/-(compList)
       case -\/(RepositoryError.NoResults) =>
         for {
           compList <- lift(queryOne(SelectOne, Array[Any](id.bytes)))
-          _ <- lift(putCache[Component](cacheComponentKey(id))(compList, ttl))
+          _ <- lift(cache.putCache[Component](cacheComponentKey(id))(compList, ttl))
         } yield compList
       case -\/(error) => Future successful -\/(error)
     }
@@ -366,14 +367,14 @@ class ComponentRepositoryPostgres()
    * @param part the part to add this component to
    * @return a boolean indicating whether the operation was successful
    */
-  override def addToPart(component: Component, part: Part)(implicit conn: Connection, cache: ScalaCache):Future[\/[RepositoryError.Fail, Unit]] = {
+  override def addToPart(component: Component, part: Part)(implicit conn: Connection, cache: ScalaCachePool):Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       _ <- lift(queryNumRows(AddToPart, Array[Any](component.id.bytes, part.id.bytes, new DateTime))(1 == _).map {
         case \/-(true) => \/-( () )
         case \/-(false) => -\/(RepositoryError.NoResults)
         case -\/(error) => -\/(error)
       })
-      _ <- lift(removeCached(cacheComponentsKey(part.id)))
+      _ <- lift(cache.removeCached(cacheComponentsKey(part.id)))
     } yield ()
   }
 
@@ -384,14 +385,14 @@ class ComponentRepositoryPostgres()
    * @param part the part to remove this component from
    * @return a boolean indicating whether the operation was successful
    */
-  override def removeFromPart(component: Component, part: Part)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def removeFromPart(component: Component, part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       _ <- lift(queryNumRows(RemoveFromPart, Array[Any](component.id.bytes, part.id.bytes))(1 == _).map {
         case \/-(true) => \/-( () )
         case \/-(false) => -\/(RepositoryError.NoResults)
         case -\/(error) => -\/(error)
       })
-      _ <- lift(removeCached(cacheComponentsKey(part.id)))
+      _ <- lift(cache.removeCached(cacheComponentsKey(part.id)))
     } yield ()
   }
 
@@ -402,7 +403,7 @@ class ComponentRepositoryPostgres()
    * @param conn
    * @return
    */
-  override def removeFromPart(part: Part)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+  override def removeFromPart(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     (for {
       componentsInPart <- lift(list(part))
       deletedComponents <- lift {
@@ -412,7 +413,7 @@ class ComponentRepositoryPostgres()
           case -\/(error) => -\/(error)
         }
       }
-      _ <- lift(removeCached(cacheComponentsKey(part.id)))
+      _ <- lift(cache.removeCached(cacheComponentsKey(part.id)))
     } yield deletedComponents).run
   }
 
@@ -470,7 +471,7 @@ class ComponentRepositoryPostgres()
    * @param component the component to be updated
    * @return the updated component
    */
-  override def update(component: Component)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Component]] = {
+  override def update(component: Component)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
     // Common properties.
     val commonData = Seq[Any](
       component.version + 1,
@@ -508,7 +509,7 @@ class ComponentRepositoryPostgres()
     // Send the query
     for {
       updated <- lift(queryOne(query, dataArray))
-      _ <- lift(removeCached(cacheComponentKey(component.id)))
+      _ <- lift(cache.removeCached(cacheComponentKey(component.id)))
     } yield updated
   }
 
@@ -519,10 +520,10 @@ class ComponentRepositoryPostgres()
    * @param conn
    * @return
    */
-  override def delete(component: Component)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, Component]] = {
+  override def delete(component: Component)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
     for {
       deleted <- lift(queryOne(Delete, Seq[Any](component.id.bytes, component.version)))
-      _ <- lift(removeCached(cacheComponentKey(component.id)))
+      _ <- lift(cache.removeCached(cacheComponentKey(component.id)))
     } yield deleted
   }
 }

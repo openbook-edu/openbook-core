@@ -13,11 +13,11 @@ import scalacache.ScalaCache
 import scalaz.{\/, EitherT}
 
 trait CourseScheduleRepository extends Repository {
-  def list(course: Course)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[CourseSchedule]]]
+  def list(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[CourseSchedule]]]
 
-  def find(id: UUID)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseSchedule]]
+  def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseSchedule]]
 
-  def insert(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseSchedule]]
-  def update(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseSchedule]]
-  def delete(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseSchedule]]
+  def insert(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseSchedule]]
+  def update(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseSchedule]]
+  def delete(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseSchedule]]
 }

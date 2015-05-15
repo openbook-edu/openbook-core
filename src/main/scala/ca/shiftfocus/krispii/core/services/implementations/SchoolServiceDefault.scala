@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import java.awt.Color
 
 import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import ca.shiftfocus.krispii.core.models._
@@ -14,7 +15,7 @@ import scalacache.ScalaCache
 import scalaz.{\/-, -\/, \/}
 
 class SchoolServiceDefault(val db: DB,
-                           val scalaCache: ScalaCache,
+                           val scalaCache: ScalaCachePool,
                            val authService: AuthService,
                            val userRepository: UserRepository,
                            val courseRepository: CourseRepository,
@@ -22,7 +23,7 @@ class SchoolServiceDefault(val db: DB,
   extends SchoolService {
 
   implicit def conn: Connection = db.pool
-  implicit def cache: ScalaCache = scalaCache
+  implicit def cache: ScalaCachePool = scalaCache
 
   /*
    * Methods for Courses

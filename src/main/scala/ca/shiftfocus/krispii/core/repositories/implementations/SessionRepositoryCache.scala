@@ -2,6 +2,7 @@ package ca.shiftfocus.krispii.core.repositories
 
 import _root_.redis.clients.jedis.Jedis
 import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.uuid.UUID
@@ -26,9 +27,9 @@ class SessionRepositoryCache extends SessionRepository {
    * @param userId the UUID of the user to load sessions for.
    * @return a list of sessions for this user
    */
-  override def list(userId: UUID)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[Session]]] = {
-    get[IndexedSeq[Session]](userId.string).map {
-      case Some(sessions: IndexedSeq[Session]) => \/-(sessions)
+  override def list(userId: UUID)(implicit cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Session]]] = {
+    cache.getCached[IndexedSeq[Session]](userId.string).map {
+      case \/-(sessions: IndexedSeq[Session]) => \/-(sessions)
       case _ => \/-(IndexedSeq())
     }.recover {
       case exception => {
@@ -44,16 +45,8 @@ class SessionRepositoryCache extends SessionRepository {
    * @param sessionId the UUID of the session to lookup.
    * @return an Option[Session] if one was found
    */
-  override def find(sessionId: UUID)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Session]] = {
-    get[Session](sessionId.string).map {
-      case Some(session) => \/-(session)
-      case None => -\/(RepositoryError.NoResults)
-    }.recover {
-      case exception => {
-        Logger.error("Could not create session")
-        \/.left(RepositoryError.DatabaseError("Internal error: could not find session", Some(exception)))
-      }
-    }
+  override def find(sessionId: UUID)(implicit cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Session]] = {
+    cache.getCached[Session](sessionId.string)
   }
 
   /**
@@ -62,13 +55,13 @@ class SessionRepositoryCache extends SessionRepository {
    * @param session the new session to create
    * @return the newly created session
    */
-  override def create(session: Session)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Session]] = {
+  override def create(session: Session)(implicit cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Session]] = {
     val sessionWithDates = session.copy(
       createdAt = Some(new DateTime),
       updatedAt = Some(new DateTime)
     )
 
-    put[Session](session.id.string)(session, ttl).map {
+    cache.putCache[Session](session.id.string)(session, ttl).map {
       result => \/-(session)
     }.recover {
       case exception => {
@@ -84,21 +77,21 @@ class SessionRepositoryCache extends SessionRepository {
    * @param session the session to update
    * @return the updated session
    */
-  override def update(session: Session)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Session]] = {
+  override def update(session: Session)(implicit cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Session]] = {
     val sessionWithDates = session.copy(updatedAt = Some(new DateTime))
 
     val fUpdate = for {
       existing <- lift(list(session.userId))
       newSessions = existing.filter(_.id != session.id) :+ sessionWithDates
       updatedList <- lift {
-        put(session.userId.string)(newSessions).map {
+        cache.putCache(session.userId.string)(newSessions).map {
           result => \/-(newSessions)
         }.recover {
           case exception => throw exception
         }
       }
       updatedSession <- lift {
-        put(session.id.string)(sessionWithDates).map {
+        cache.putCache[Session](session.id.string)(sessionWithDates).map {
           result => \/-(sessionWithDates)
         }.recover {
           case exception => throw exception
@@ -120,19 +113,19 @@ class SessionRepositoryCache extends SessionRepository {
    * @param session the session to be deleted
    * @return the deleted session
    */
-  override def delete(session: Session)(implicit cache: ScalaCache): Future[\/[RepositoryError.Fail, Session]] = {
+  override def delete(session: Session)(implicit cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Session]] = {
     val fRemove = for {
       userSessions <- lift(list(session.userId))
       updatedList = userSessions.filter(_.id != session.id)
       savedList <- lift {
-        put(session.userId.string)(updatedList).map {
+        cache.putCache(session.userId.string)(updatedList).map {
           result => \/-(updatedList)
         }.recover {
           case exception => throw exception
         }
       }
       deletedSession <- lift {
-        remove(session.id.string).map {
+        cache.removeCached(session.id.string).map {
           result => \/-(session)
         }.recover {
           case exception => throw exception

@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.uuid.UUID
@@ -86,13 +87,13 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
   /**
    * List all schedules for a given class
    */
-  override def list(course: Course)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, IndexedSeq[CourseSchedule]]] = {
-    getCached[IndexedSeq[CourseSchedule]](cacheSchedulesKey(course.id)).flatMap {
+  override def list(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[CourseSchedule]]] = {
+    cache.getCached[IndexedSeq[CourseSchedule]](cacheSchedulesKey(course.id)).flatMap {
       case \/-(schedules) => Future successful \/-(schedules)
       case -\/(RepositoryError.NoResults) =>
         for {
           schedules <- lift(queryList(SelectByCourseId, Seq[Any](course.id.bytes)))
-          _ <- lift(putCache[IndexedSeq[CourseSchedule]](cacheSchedulesKey(course.id))(schedules, ttl))
+          _ <- lift(cache.putCache[IndexedSeq[CourseSchedule]](cacheSchedulesKey(course.id))(schedules, ttl))
         } yield schedules
       case -\/(error) => Future successful -\/(error)
     }
@@ -105,13 +106,13 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
    * @param conn An implicit connection object. Can be used in a transactional chain.
    * @return an optional task if one was found
    */
-  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
-    getCached[CourseSchedule](cacheScheduleKey(id)).flatMap {
+  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
+    cache.getCached[CourseSchedule](cacheScheduleKey(id)).flatMap {
       case \/-(schedules) => Future successful \/-(schedules)
       case -\/(RepositoryError.NoResults) =>
         for {
           schedule <- lift(queryOne(SelectOne, Seq[Any](id.bytes)))
-          _ <- lift(putCache[CourseSchedule](cacheScheduleKey(id))(schedule, ttl))
+          _ <- lift(cache.putCache[CourseSchedule](cacheScheduleKey(id))(schedule, ttl))
         } yield schedule
       case -\/(error) => Future successful -\/(error)
     }
@@ -124,7 +125,7 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
    * @param courseSchedule The course to be inserted
    * @return the new course
    */
-  override def insert(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
+  override def insert(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
     val dayDT = courseSchedule.day.toDateTimeAtStartOfDay()
     val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.startTime.getHourOfDay(), courseSchedule.startTime.getMinuteOfHour, courseSchedule.startTime.getSecondOfMinute())
     val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.endTime.getHourOfDay(), courseSchedule.endTime.getMinuteOfHour, courseSchedule.endTime.getSecondOfMinute())
@@ -141,8 +142,8 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
         endTimeDT,
         courseSchedule.description
       )))
-      _ <- lift(removeCached(cacheScheduleKey(newSchedule.id)))
-      _ <- lift(removeCached(cacheSchedulesKey(newSchedule.courseId)))
+      _ <- lift(cache.removeCached(cacheScheduleKey(newSchedule.id)))
+      _ <- lift(cache.removeCached(cacheSchedulesKey(newSchedule.courseId)))
     } yield newSchedule
   }
 
@@ -152,7 +153,7 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
    * @param courseSchedule The courseSchedule to be updated.
    * @return the updated course
    */
-  override def update(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
+  override def update(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
     val dayDT = courseSchedule.day.toDateTimeAtStartOfDay()
     val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.startTime.getHourOfDay(), courseSchedule.startTime.getMinuteOfHour, courseSchedule.startTime.getSecondOfMinute())
     val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.endTime.getHourOfDay(), courseSchedule.endTime.getMinuteOfHour, courseSchedule.endTime.getSecondOfMinute())
@@ -169,8 +170,8 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
         courseSchedule.id.bytes,
         courseSchedule.version
       )))
-      _ <- lift(removeCached(cacheScheduleKey(updated.id)))
-      _ <- lift(removeCached(cacheSchedulesKey(updated.courseId)))
+      _ <- lift(cache.removeCached(cacheScheduleKey(updated.id)))
+      _ <- lift(cache.removeCached(cacheSchedulesKey(updated.courseId)))
     } yield updated
   }
 
@@ -180,11 +181,11 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
    * @param courseSchedule The course to delete.
    * @return A boolean indicating whether the operation was successful.
    */
-  override def delete(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCache): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
+  override def delete(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
     for {
       deleted <- lift(queryOne(Delete, Seq[Any](courseSchedule.id.bytes, courseSchedule.version)))
-      _ <- lift(removeCached(cacheScheduleKey(deleted.id)))
-      _ <- lift(removeCached(cacheSchedulesKey(deleted.courseId)))
+      _ <- lift(cache.removeCached(cacheScheduleKey(deleted.id)))
+      _ <- lift(cache.removeCached(cacheSchedulesKey(deleted.courseId)))
     } yield deleted
   }
 }

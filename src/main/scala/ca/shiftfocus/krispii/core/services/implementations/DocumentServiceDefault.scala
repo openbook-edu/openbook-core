@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.models.document._
 import ca.shiftfocus.krispii.core.repositories.{RevisionRepository, UserRepository, DocumentRepository}
@@ -16,13 +17,13 @@ import scalacache.ScalaCache
 import scalaz.\/
 
 class DocumentServiceDefault(val db: DB,
-                             val scalaCache: ScalaCache,
+                             val scalaCache: ScalaCachePool,
                              val userRepository: UserRepository,
                              val documentRepository: DocumentRepository,
                              val revisionRepository: RevisionRepository) extends DocumentService {
 
   implicit def conn: Connection = db.pool
-  implicit def cache: ScalaCache = scalaCache
+  implicit def cache: ScalaCachePool = scalaCache
 
   /**
    * Find a document.

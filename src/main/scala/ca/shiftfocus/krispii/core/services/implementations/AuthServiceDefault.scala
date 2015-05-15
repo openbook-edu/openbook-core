@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
@@ -14,14 +15,14 @@ import scalaz.{-\/, \/-, \/, EitherT}
 import webcrank.password._
 
 class AuthServiceDefault(val db: DB,
-                         val scalaCache: ScalaCache,
+                         val scalaCache: ScalaCachePool,
                          val userRepository: UserRepository,
                          val roleRepository: RoleRepository,
                          val sessionRepository: SessionRepository)
   extends AuthService {
 
   implicit def conn: Connection = db.pool
-  implicit def cache: ScalaCache = scalaCache
+  implicit def cache: ScalaCachePool = scalaCache
   
   /**
    * List all users.

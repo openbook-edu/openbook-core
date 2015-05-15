@@ -1,5 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
+import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error._
@@ -16,7 +17,7 @@ import scalacache.ScalaCache
 import scalaz.{EitherT, \/, -\/, \/-}
 
 class ProjectServiceDefault(val db: DB,
-                            val scalaCache: ScalaCache,
+                            val scalaCache: ScalaCachePool,
                             val authService: AuthService,
                             val schoolService: SchoolService,
                             val courseRepository: CourseRepository,
@@ -26,7 +27,7 @@ class ProjectServiceDefault(val db: DB,
   extends ProjectService {
 
   implicit def conn: Connection = db.pool
-  implicit def cache: ScalaCache = scalaCache
+  implicit def cache: ScalaCachePool = scalaCache
 
   /**
    * Lists all projects.

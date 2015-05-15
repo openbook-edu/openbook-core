@@ -192,7 +192,7 @@ class TaskFeedbackRepositoryPostgres (val documentRepository: DocumentRepository
   def delete(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskFeedback]]] = {
     (for {
       feedbackList <- lift(list(task))
-      deletedList  <- lift(queryList(DeleteAllForTask, Array[Any](task.id.bytes)))
+      _  <- lift(queryList(DeleteAllForTask, Array[Any](task.id.bytes)))
     } yield feedbackList).run
   }
 }

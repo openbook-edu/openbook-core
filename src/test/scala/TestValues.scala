@@ -682,6 +682,68 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 19, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  // --- Documents for TaskScratchpads ---
+
+  val testDocumentK = Document(
+    id = UUID("2f1180f0-17f4-488b-9f03-ad8fbfbeaf3a"),
+    version = 2L,
+    title = "testDocumentK title",
+    delta = Delta(IndexedSeq(
+      InsertText("Hello Moris")
+    )),
+    ownerId = testUserC.id,
+    createdAt = new DateTime(2014, 8, 19, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 21, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testDocumentL = Document(
+    id = UUID("7c9d0dae-fe79-4ecc-b36c-c141a4122fab"),
+    version = 2L,
+    title = "testDocumentL title",
+    delta = Delta(IndexedSeq(
+      InsertText("Hello Boris")
+    )),
+    ownerId = testUserE.id,
+    createdAt = new DateTime(2014, 8, 21, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 23, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testDocumentM = Document(
+    id = UUID("0ed856aa-fd4c-486d-b6c5-293ca18c37dd"),
+    version = 2L,
+    title = "testDocumentM title",
+    delta = Delta(IndexedSeq(
+      InsertText("Hello Vasea")
+    )),
+    ownerId = testUserC.id,
+    createdAt = new DateTime(2014, 8, 23, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 25, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testDocumentN = Document(
+    id = UUID("196a1793-c688-4f66-b725-a8353dd1ac67"),
+    version = 2L,
+    title = "testDocumentN title",
+    delta = Delta(IndexedSeq(
+      InsertText("Hello Petea")
+    )),
+    ownerId = testUserC.id,
+    createdAt = new DateTime(2014, 8, 25, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 27, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testDocumentO = Document(
+    id = UUID("78b9baaf-16b7-43a3-9cec-410104cdde4e"),
+    version = 2L,
+    title = "testDocumentO title",
+    delta = Delta(IndexedSeq(
+      InsertText("Hello Doris")
+    )),
+    ownerId = testUserE.id,
+    createdAt = new DateTime(2014, 8, 27, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 29, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
 
   /* ---------------------- REVISIONS---------------------- */
 
@@ -878,6 +940,52 @@ object TestValues {
   /* ---------------------- TASK_SCRATCHPADS ---------------------- */
 
   val testTaskScratchpadA = TaskScratchpad(
+    userId = testUserC.id,
+    taskId = testLongAnswerTaskA.id,
+    version = testDocumentK.version,
+    documentId = testDocumentK.id,
+    createdAt = testDocumentK.createdAt,
+    updatedAt = testDocumentK.updatedAt
+  )
+
+  val testTaskScratchpadB = TaskScratchpad(
+    userId = testUserE.id,
+    taskId = testShortAnswerTaskB.id,
+    version = testDocumentL.version,
+    documentId = testDocumentL.id,
+    createdAt = testDocumentL.createdAt,
+    updatedAt = testDocumentL.updatedAt
+  )
+
+  val testTaskScratchpadC = TaskScratchpad(
+    userId = testUserC.id,
+    taskId = testMatchingTaskE.id,
+    version = testDocumentN.version,
+    documentId = testDocumentN.id,
+    createdAt = testDocumentN.createdAt,
+    updatedAt = testDocumentN.updatedAt
+  )
+
+  val testTaskScratchpadD = TaskScratchpad(
+    userId = testUserE.id,
+    taskId = testMatchingTaskE.id,
+    version = testDocumentO.version,
+    documentId = testDocumentO.id,
+    createdAt = testDocumentO.createdAt,
+    updatedAt = testDocumentO.updatedAt
+  )
+
+  val testTaskScratchpadE = TaskScratchpad(
+    userId = testUserC.id,
+    taskId = testOrderingTaskN.id,
+    version = testDocumentM.version,
+    documentId = testDocumentM.id,
+    createdAt = testDocumentM.createdAt,
+    updatedAt = testDocumentM.updatedAt
+  )
+
+  /* No data in DB */
+  val testTaskScratchpadF = TaskScratchpad(
     userId = testUserE.id,
     taskId = testOrderingTaskL.id,
     version = testDocumentA.version,

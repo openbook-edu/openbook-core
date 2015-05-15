@@ -307,6 +307,26 @@ VALUES ('\x9110c16f45fd42119e39b15ab8b6f9ee', 2, '\x6c0e29bdd05b4b2981156be93e93
 INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
 VALUES ('\x30739c6d43774a2f8aa3d1240dfb0740', 2, '\x36c8c0ca50aa4806afa5916a5e33a81f', 'testDocumentJ title', '{"ops":[{"insert":"Hello Bobby"}]}', '2014-08-17 14:01:19.545-04', '2014-08-19 14:01:19.545-04');
 
+/* documentK -> userC */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\x2f1180f017f4488b9f03ad8fbfbeaf3a', 2, '\xf5f984073a0b4ea5952a575886e90586', 'testDocumentK title', '{"ops":[{"insert":"Hello Moris"}]}', '2014-08-19 14:01:19.545-04', '2014-08-21 14:01:19.545-04');
+
+/* documentL -> userE */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\x7c9d0daefe794eccb36cc141a4122fab', 2, '\x871b525067124e548ab60784cae0bc64', 'testDocumentL title', '{"ops":[{"insert":"Hello Boris"}]}', '2014-08-21 14:01:19.545-04', '2014-08-23 14:01:19.545-04');
+
+/* documentM -> userC */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\x0ed856aafd4c486db6c5293ca18c37dd', 2, '\xf5f984073a0b4ea5952a575886e90586', 'testDocumentM title', '{"ops":[{"insert":"Hello Vasea"}]}', '2014-08-23 14:01:19.545-04', '2014-08-25 14:01:19.545-04');
+
+/* documentN -> userC */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\x196a1793c6884f66b725a8353dd1ac67', 2, '\xf5f984073a0b4ea5952a575886e90586', 'testDocumentN title', '{"ops":[{"insert":"Hello Petea"}]}', '2014-08-25 14:01:19.545-04', '2014-08-27 14:01:19.545-04');
+
+/* documentO -> userE */
+INSERT INTO documents (id, version, owner_id, title, delta, created_at, updated_at)
+VALUES ('\x78b9baaf16b743a39cec410104cdde4e', 2, '\x871b525067124e548ab60784cae0bc64', 'testDocumentO title', '{"ops":[{"insert":"Hello Doris"}]}', '2014-08-27 14:01:19.545-04', '2014-08-29 14:01:19.545-04');
+
 
 /* ---------------------- TASK_FEEDBACKS ---------------------- */
 
@@ -329,6 +349,29 @@ VALUES ('\x871b525067124e548ab60784cae0bc64', '\x468a35bfbaf84045aa184688f4d0721
 /* taskFeedbackE */
 INSERT INTO task_feedbacks (student_id, task_id, document_id)
 VALUES ('\xf5f984073a0b4ea5952a575886e90586', '\x599a78ad5bff4246983532fcb41168a6', '\x30739c6d43774a2f8aa3d1240dfb0740');
+
+
+/* ---------------------- TASK_SCRATCHPADS ---------------------- */
+
+/* taskScratchpadA */
+INSERT INTO task_notes (user_id, task_id, document_id)
+VALUES ('\xf5f984073a0b4ea5952a575886e90586', '\xbf1a6ed09f834cb485c1ad456299b3a3', '\x2f1180f017f4488b9f03ad8fbfbeaf3a');
+
+/* taskScratchpadB */
+INSERT INTO task_notes (user_id, task_id, document_id)
+VALUES ('\x871b525067124e548ab60784cae0bc64', '\x10ef05ee7b494352b86e70510adf617f', '\x7c9d0daefe794eccb36cc141a4122fab');
+
+/* taskScratchpadC */
+INSERT INTO task_notes (user_id, task_id, document_id)
+VALUES ('\xf5f984073a0b4ea5952a575886e90586', '\x468a35bfbaf84045aa184688f4d0721f', '\x196a1793c6884f66b725a8353dd1ac67');
+
+/* taskScratchpadD */
+INSERT INTO task_notes (user_id, task_id, document_id)
+VALUES ('\x871b525067124e548ab60784cae0bc64', '\x468a35bfbaf84045aa184688f4d0721f', '\x78b9baaf16b743a39cec410104cdde4e');
+
+/* taskScratchpadE */
+INSERT INTO task_notes (user_id, task_id, document_id)
+VALUES ('\xf5f984073a0b4ea5952a575886e90586', '\x599a78ad5bff4246983532fcb41168a6', '\x0ed856aafd4c486db6c5293ca18c37dd');
 
 
 /* ----------------------- WORK ---------------------- */

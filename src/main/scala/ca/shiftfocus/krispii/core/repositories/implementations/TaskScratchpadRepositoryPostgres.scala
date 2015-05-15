@@ -11,7 +11,8 @@ import org.joda.time.DateTime
 import scala.concurrent.Future
 import scalaz.{\/, \/-, -\/}
 
-class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with PostgresRepository[TaskScratchpad] {
+class TaskScratchpadRepositoryPostgres(val documentRepository: DocumentRepository)
+  extends TaskScratchpadRepository with PostgresRepository[TaskScratchpad] {
 
   override def constructor(row: RowData): TaskScratchpad = {
     TaskScratchpad(
@@ -77,12 +78,14 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
        |DELETE FROM $Table
        |WHERE user_id = ?
        |  AND task_id = ?
+       |RETURNING $Fields
      """.stripMargin
 
   val DeleteAllForTask =
     s"""
        |DELETE FROM $Table
        |WHERE task_id = ?
+       |RETURNING $Fields
      """.stripMargin
 
 
@@ -94,7 +97,19 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
    * @return an array of TaskScratchpad objects representing each scratchpad
    */
   override def list(user: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskScratchpad]]] = {
-    queryList(SelectAllForProject, Seq[Any](user.id.bytes, project.id.bytes))
+    (for {
+      taskScratchpadList <- lift(queryList(SelectAllForProject, Seq[Any](user.id.bytes, project.id.bytes)))
+      result <- liftSeq(taskScratchpadList.map( taskScratchpad =>
+        (for {
+          document <- lift(documentRepository.find(taskScratchpad.documentId))
+          result   = taskScratchpad.copy(
+            version   = document.version,
+            createdAt = document.createdAt,
+            updatedAt = document.updatedAt
+          )
+        } yield result).run
+      ))
+    } yield result).run
   }
 
   /**
@@ -104,7 +119,19 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
    * @return an array of TaskScratchpad objects representing each scratchpad
    */
   override def list(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskScratchpad]]] = {
-    queryList(SelectAllForUser, Seq[Any](user.id.bytes))
+    (for {
+      taskScratchpadList <- lift(queryList(SelectAllForUser, Seq[Any](user.id.bytes)))
+      result <- liftSeq(taskScratchpadList.map( taskScratchpad =>
+        (for {
+          document <- lift(documentRepository.find(taskScratchpad.documentId))
+          result   = taskScratchpad.copy(
+            version   = document.version,
+            createdAt = document.createdAt,
+            updatedAt = document.updatedAt
+          )
+        } yield result).run
+      ))
+    } yield result).run
   }
 
   /**
@@ -114,7 +141,19 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
    * @return an array of TaskScratchpad objects representing each scratchpad
    */
   override def list(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskScratchpad]]] = {
-    queryList(SelectAllForTask, Seq[Any](task.id.bytes))
+    (for {
+      taskScratchpadList <- lift(queryList(SelectAllForTask, Seq[Any](task.id.bytes)))
+      result <- liftSeq(taskScratchpadList.map( taskScratchpad =>
+        (for {
+          document <- lift(documentRepository.find(taskScratchpad.documentId))
+          result   = taskScratchpad.copy(
+            version   = document.version,
+            createdAt = document.createdAt,
+            updatedAt = document.updatedAt
+          )
+        } yield result).run
+      ))
+    } yield result).run
   }
 
   /**
@@ -125,7 +164,14 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
    * @return an optional TaskScratchpad object
    */
   override def find(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskScratchpad]] = {
-    queryOne(SelectOne, Seq[Any](user.id.bytes, task.id.bytes))
+    (for {
+      taskScratchpad <- lift(queryOne(SelectOne, Seq[Any](user.id.bytes, task.id.bytes)))
+      document     <- lift(documentRepository.find(taskScratchpad.documentId))
+    } yield taskScratchpad.copy(
+        version   = document.version,
+        createdAt = document.createdAt,
+        updatedAt = document.updatedAt
+      )).run
   }
 
   /**
@@ -134,15 +180,22 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
    * the task's ID, and the revision number, so each revision is a separate entry in
    * the database.
    *
-   * @param taskScratchpad the TaskScratchpad object to be inserted.
+   * @param scratchpad the TaskScratchpad object to be inserted.
    * @return the newly created TaskScratchpad
    */
-  override def insert(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskScratchpad]] = {
-    queryOne(Insert, Seq(
-      taskScratchpad.userId.bytes,
-      taskScratchpad.taskId.bytes,
-      taskScratchpad.documentId.bytes
-    ))
+  override def insert(scratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskScratchpad]] = {
+    (for {
+      taskScratchpad <- lift(queryOne(Insert, Array[Any](
+        scratchpad.userId.bytes,
+        scratchpad.taskId.bytes,
+        scratchpad.documentId.bytes
+      )))
+      document <- lift(documentRepository.find(taskScratchpad.documentId))
+    } yield taskScratchpad.copy(
+        version   = document.version,
+        createdAt = document.createdAt,
+        updatedAt = document.updatedAt
+      )).run
   }
 
   /**
@@ -152,10 +205,17 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
    * @return
    */
   override def delete(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskScratchpad]] = {
-    queryOne(DeleteOne, Seq(
-      taskScratchpad.userId.bytes,
-      taskScratchpad.taskId.bytes
-    ))
+    (for {
+      taskScratchpad <- lift(queryOne(DeleteOne, Seq(
+        taskScratchpad.userId.bytes,
+        taskScratchpad.taskId.bytes
+      )))
+      document <- lift(documentRepository.find(taskScratchpad.documentId))
+    } yield taskScratchpad.copy(
+        version   = document.version,
+        createdAt = document.createdAt,
+        updatedAt = document.updatedAt
+      )).run
   }
 
   /**
@@ -167,7 +227,7 @@ class TaskScratchpadRepositoryPostgres extends TaskScratchpadRepository with Pos
   override def delete(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskScratchpad]]] = {
     (for {
       currentList <- lift(list(task))
-      deletedList <- lift(queryList(DeleteAllForTask, Seq[Any](task.id.bytes)))
-    } yield deletedList).run
+      _ <- lift(queryList(DeleteAllForTask, Seq[Any](task.id.bytes)))
+    } yield currentList).run
   }
 }

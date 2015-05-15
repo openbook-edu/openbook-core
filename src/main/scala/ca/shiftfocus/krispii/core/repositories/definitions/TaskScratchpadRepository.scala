@@ -11,6 +11,9 @@ import scala.concurrent.Future
 import scalaz.{\/, EitherT}
 
 trait TaskScratchpadRepository extends Repository {
+
+  val documentRepository: DocumentRepository
+
   /**
    * The usual CRUD functions for the projects table.
    */

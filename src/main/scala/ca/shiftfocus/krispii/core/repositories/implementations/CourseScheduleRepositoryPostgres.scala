@@ -36,36 +36,36 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
   val Fields = "id, version, created_at, updated_at, course_id, day, start_time, end_time, description"
   val Table = "course_schedules"
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val OrderBy = "day ASC"
 
-  // User CRUD operations
   val SelectAll = s"""
-    SELECT $Fields
-    FROM $Table
-    ORDER BY day ASC
-  """
+    |SELECT $Fields
+    |FROM $Table
+    |ORDER BY $OrderBy
+  """.stripMargin
 
   val SelectOne = s"""
-    SELECT $Fields
-    FROM $Table
-    WHERE id = ?
-  """
+    |SELECT $Fields
+    |FROM $Table
+    |WHERE id = ?
+  """.stripMargin
 
   val Insert = {
     s"""
-      INSERT INTO $Table ($Fields)
-      VALUES ($QMarks)
-      RETURNING $Fields
-    """
+      |INSERT INTO $Table ($Fields)
+      |VALUES ($QMarks)
+      |RETURNING $Fields
+    """.stripMargin
   }
 
   val Update = {
     s"""
-      UPDATE $Table
-      SET course_id = ?, day = ?, start_time = ?, end_time = ?, description = ?, version = ?, updated_at = ?
-      WHERE id = ?
-        AND version = ?
-      RETURNING $Fields
-    """
+      |UPDATE $Table
+      |SET course_id = ?, day = ?, start_time = ?, end_time = ?, description = ?, version = ?, updated_at = ?
+      |WHERE id = ?
+      |  AND version = ?
+      |RETURNING $Fields
+    """.stripMargin
   }
 
   val Delete =
@@ -77,11 +77,11 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
      """.stripMargin
 
   val SelectByCourseId = s"""
-    SELECT $Fields
-    FROM $Table
-    WHERE course_id = ?
-    ORDER BY day asc, start_time asc, end_time asc
-  """
+    |SELECT $Fields
+    |FROM $Table
+    |WHERE course_id = ?
+    |ORDER BY $OrderBy, start_time ASC, end_time ASC
+  """.stripMargin
 
   /**
    * List all schedules for a given class

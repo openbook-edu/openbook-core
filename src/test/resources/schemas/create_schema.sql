@@ -44,18 +44,19 @@ CREATE TABLE users_courses (
   PRIMARY KEY (user_id, course_id)
 );
 
-CREATE TABLE schedules (
+CREATE TABLE course_schedules (
   id bytea PRIMARY KEY,
   course_id bytea NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   version bigint,
+  day timestamp with time zone,
   start_time timestamp with time zone,
-  length int,
-  reason text,
+  end_time timestamp with time zone,
+  description text,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
 
-CREATE TABLE schedule_exceptions (
+CREATE TABLE course_schedule_exceptions (
   id bytea PRIMARY KEY,
   user_id bytea NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   course_id bytea NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
@@ -183,14 +184,14 @@ CREATE TABLE task_feedbacks (
   task_id    bytea REFERENCES tasks(id) ON DELETE RESTRICT,
   student_id bytea REFERENCES users(id) ON DELETE CASCADE,
   document_id bytea REFERENCES documents(id) ON DELETE RESTRICT,
-  PRIMARY KEY (task_id, student_id, document_id)
+  PRIMARY KEY (task_id, student_id)
 );
 
 CREATE TABLE task_notes (
   user_id bytea REFERENCES users(id) ON DELETE CASCADE,
   task_id bytea REFERENCES tasks(id) ON DELETE RESTRICT,
   document_id bytea REFERENCES documents(id) ON DELETE RESTRICT,
-  PRIMARY KEY (user_id, task_id, document_id)
+  PRIMARY KEY (user_id, task_id)
 );
 
 

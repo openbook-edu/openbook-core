@@ -535,30 +535,30 @@ VALUES ('\x50d07485f33c47559ccf59d823cbb79e', '\xabb84847a3d247a0ae7d8ce04063afc
 /* ---------------------- SCHEDULES ---------------------- */
 
 /* CourseSchedule A -> Course A */
-INSERT INTO schedules (id, course_id, version, start_time, length, reason, created_at, updated_at)
-VALUES ('\x308792b27a2943c8ad51a5c4f306cdaf', '\x217c5622ff9e43728e6a95fb3bae300b', 1, '2015-01-15 14:38:19-04', 12345, 'test CourseSchedule A reason', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
+INSERT INTO course_schedules (id, course_id, version, day, start_time, end_time, description, created_at, updated_at)
+VALUES ('\x308792b27a2943c8ad51a5c4f306cdaf', '\x217c5622ff9e43728e6a95fb3bae300b', 1, '2015-01-15', '2014-08-15 14:01:19.545-04', '2014-08-15 15:01:19.545-04', 'test CourseSchedule A description', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
 
 /* CourseSchedule B -> Course B */
-INSERT INTO schedules (id, course_id, version, start_time, length, reason, created_at, updated_at)
-VALUES ('\xdc1190c2b5fd4bac95fa7d67e1f1d445', '\x404c800a53854e6b867e365a1e6b00de', 2, '2015-01-16 12:38:19-04', 12345, 'test CourseSchedule B reason', '2014-08-04 14:01:19.545-04','2014-08-05 14:01:19.545-04');
+INSERT INTO course_schedules (id, course_id, version, day, start_time, end_time, description, created_at, updated_at)
+VALUES ('\xdc1190c2b5fd4bac95fa7d67e1f1d445', '\x404c800a53854e6b867e365a1e6b00de', 2, '2015-01-16', '2014-08-16 16:01:19.545-04', '2014-08-16 17:01:19.545-04', 'test CourseSchedule B description', '2014-08-04 14:01:19.545-04','2014-08-05 14:01:19.545-04');
 
 /* CourseSchedule C -> Course B */
-INSERT INTO schedules (id, course_id, version, start_time, length, reason, created_at, updated_at)
-VALUES ('\x6df9d164b1514c389acd6b91301a199d', '\x404c800a53854e6b867e365a1e6b00de', 3, '2015-01-17 16:38:19-04', 12345, 'test CourseSchedule C reason', '2014-08-06 14:01:19.545-04','2014-08-07 14:01:19.545-04');
+INSERT INTO course_schedules (id, course_id, version, day, start_time, end_time, description, created_at, updated_at)
+VALUES ('\x6df9d164b1514c389acd6b91301a199d', '\x404c800a53854e6b867e365a1e6b00de', 3, '2015-01-17', '2014-08-17 18:01:19.545-04', '2014-08-17 19:01:19.545-04', 'test CourseSchedule C description', '2014-08-06 14:01:19.545-04','2014-08-07 14:01:19.545-04');
 
 
 /* ---------------------- SCHEDULE_EXCEPTIONS ---------------------- */
 
 /* SectionScheduleException A -> UserA -> CourseA */
-INSERT INTO schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
+INSERT INTO course_schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
 VALUES ('\xda17e24aa5454d7494e1427896e13ebe', '\x36c8c0ca50aa4806afa5916a5e33a81f', '\x217c5622ff9e43728e6a95fb3bae300b', 1, '2014-08-01', '2014-08-01 14:01:19.545-04', '2014-08-01 15:01:19.545-04', 'testSectionScheduleExceptionA reason', '2014-08-02 14:01:19.545-04','2014-08-03 14:01:19.545-04');
 
 /* SectionScheduleException B -> UserB -> CourseB */
-INSERT INTO schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
+INSERT INTO course_schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
 VALUES ('\x3a285f0c66d041b2851bcfcd203550d9', '\x6c0e29bdd05b4b2981156be93e936c59', '\x404c800a53854e6b867e365a1e6b00de', 2, '2014-08-04', '2014-08-04 16:01:19.545-04', '2014-08-04 17:01:19.545-04', 'testSectionScheduleExceptionB reason','2014-08-05 14:01:19.545-04','2014-08-06 14:01:19.545-04');
 
 /* SectionScheduleException C -> UserE -> CourseB */
-INSERT INTO schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
+INSERT INTO course_schedule_exceptions (id, user_id, course_id, version, day, start_time, end_time, reason, created_at, updated_at)
 VALUES ('\x4d7ca313f2164f5985ae88bcbca70317', '\x871b525067124e548ab60784cae0bc64', '\x404c800a53854e6b867e365a1e6b00de', 3, '2014-08-07', '2014-08-07 10:01:19.545-04', '2014-08-07 11:01:19.545-04', 'testSectionScheduleExceptionC reason','2014-08-08 14:01:19.545-04','2014-08-09 14:01:19.545-04');
 
 

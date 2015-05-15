@@ -6,7 +6,7 @@ import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.uuid.UUID
-import org.joda.time.{DateTime, DateTimeZone}
+import org.joda.time.{LocalTime, LocalDate, DateTime, DateTimeZone}
 import ws.kahn.ot._
 
 object TestValues {
@@ -1567,88 +1567,56 @@ object TestValues {
   )
 
 
-  //  /* ---------------------- SCHEDULES ---------------------- */
-  //
-  //  /* Because in db there is time zone 4 for startTime and endTime, here hours should be -1 */
-  //  val testCourseScheduleA = ClassSchedule(
-  //    id = UUID("308792b2-7a29-43c8-ad51-a5c4f306cdaf"),
-  //    courseId = testCourseA.id,
-  //    version = 1L,
-  //    startTime = new LocalTime(13, 38, 19),
-  //    //    length = 12345,
-  //    //    reason = "test ClassSchedule A reason",
-  //
-  //    day = new LocalDate(2015, 1, 15),
-  //    description = "test ClassSchedule A description",
-  //    endTime = new LocalTime(14, 38, 19),
-  //
-  //    createdAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-  //    updatedAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
-  //  )
-  //
-  //  val testCourseScheduleB = ClassSchedule(
-  //    id = UUID("dc1190c2-b5fd-4bac-95fa-7d67e1f1d445"),
-  //    courseId = testCourseB.id,
-  //    version = 2L,
-  //    startTime = new LocalTime(11, 38, 19),
-  ////    length = 12345,
-  ////    reason = "test ClassSchedule B reason",
-  //
-  //    day = new LocalDate(2015, 1, 16),
-  //    description = "test ClassSchedule B description",
-  //    endTime = new LocalTime(12, 38, 19),
-  //
-  //    createdAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-  //    updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
-  //  )
-  //
-  //  val testCourseScheduleC = ClassSchedule(
-  //    id = UUID("6df9d164-b151-4c38-9acd-6b91301a199d"),
-  //    courseId = testCourseB.id,
-  //    version = 3L,
-  //    startTime = new LocalTime(15, 38, 19),
-  ////    length = 12345,
-  ////    reason = "test ClassSchedule C reason",
-  //
-  //    day = new LocalDate(2015, 1, 17),
-  //    description = "test ClassSchedule C description",
-  //    endTime = new LocalTime(16, 38, 19),
-  //
-  //    createdAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-  //    updatedAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
-  //  )
-  //
-  //  /**
-  //   * No data in DB for insert
-  //   */
-  //  val testCourseScheduleD = ClassSchedule(
-  //    id = UUID("02eaad44-5f0a-4c75-b05a-c92991903c10"),
-  //    courseId = testCourseB.id,
-  //    startTime = new LocalTime(16, 38, 19),
-  ////    length = new LocalTime(17, 38, 19),
-  ////    reason = "test ClassSchedule D reason"
-  //
-  //    day = new LocalDate(2015, 1, 18),
-  //    description = "test ClassSchedule D description",
-  //    endTime = new LocalTime(17, 38, 19)
-  //
-  //  )
-  //
-  //  /**
-  //   * No data in DB
-  //   */
-  //  val testCourseScheduleE = ClassSchedule(
-  //    id = UUID("43ac00c3-7546-41f0-bc93-72cc81158597"),
-  //    courseId = testCourseB.id,
-  //    startTime = new LocalTime(17, 38, 19),
-  ////    length = 12345,
-  ////    reason = "test ClassSchedule E reason"
-  //
-  //    day = new LocalDate(2015, 1, 19),
-  //    description = "test ClassSchedule A description",
-  //    endTime = new LocalTime(18, 38, 19)
-  //
-  //  )
+    /* ---------------------- SCHEDULES ---------------------- */
+  
+    val testCourseScheduleA = CourseSchedule(
+      id = UUID("308792b2-7a29-43c8-ad51-a5c4f306cdaf"),
+      courseId = testCourseA.id,
+      version = 1L,
+      day = new LocalDate(2015, 1, 15),
+      startTime = new LocalTime(14, 1, 19),
+      endTime = new LocalTime(15, 1, 19),
+      description = "test CourseSchedule A description",
+      createdAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+      updatedAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+    )
+  
+    val testCourseScheduleB = CourseSchedule(
+      id = UUID("dc1190c2-b5fd-4bac-95fa-7d67e1f1d445"),
+      courseId = testCourseB.id,
+      version = 2L,
+      day = new LocalDate(2015, 1, 16),
+      startTime = new LocalTime(16, 1, 19),
+      endTime = new LocalTime(17, 1, 19),
+      description = "test CourseSchedule B description",
+      createdAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+      updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+    )
+  
+    val testCourseScheduleC = CourseSchedule(
+      id = UUID("6df9d164-b151-4c38-9acd-6b91301a199d"),
+      courseId = testCourseB.id,
+      version = 3L,
+      day = new LocalDate(2015, 1, 17),
+      startTime = new LocalTime(18, 1, 19),
+      endTime = new LocalTime(19, 1, 19),
+      description = "test CourseSchedule C description",
+      createdAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+      updatedAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+    )
+  
+    /**
+     * No data in DB
+     */
+    val testCourseScheduleD = CourseSchedule(
+      id = UUID("02eaad44-5f0a-4c75-b05a-c92991903c10"),
+      courseId = testCourseB.id,
+      day = new LocalDate(2015, 1, 18),
+      startTime = new LocalTime(16, 38, 19),
+      endTime = new LocalTime(17, 38, 19),
+      description = "test CourseSchedule D description"
+    )
+
   //
   //
   //  /* ---------------------- SCHEDULE EXCEPTIONS ---------------------- */

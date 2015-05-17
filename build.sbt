@@ -2,7 +2,7 @@ name := "krispii-core"
 
 organization := "ca.shiftfocus"
 
-version := "1.0.0-RC10"
+version := "1.0.0-RC11"
 
 scalaVersion := "2.11.6"
 

@@ -12,7 +12,7 @@ import scalacache.redis.RedisCache
 import scalaz.{-\/, \/}
 
 case class ScalaCachePool(master: ScalaCache, slaves: Seq[ScalaCache] = IndexedSeq()) {
-  val pool = (slaves :+ master).toIndexedSeq
+  val pool = slaves.toIndexedSeq
 
   def randomInstance: ScalaCache = {
     if (slaves.isEmpty) master
@@ -24,7 +24,7 @@ case class ScalaCachePool(master: ScalaCache, slaves: Seq[ScalaCache] = IndexedS
   }
 
   def getCached[V](key: String): Future[\/[RepositoryError.Fail, V]] = {
-    Logger.debug("Fetching from cache: " + key)
+    //Logger.debug("Fetching from cache: " + key)
     randomInstance.cache.get[V](key).map {
       case Some(entity) => \/.right[RepositoryError.Fail, V](entity)
       case None => \/.left[RepositoryError.Fail, V](RepositoryError.NoResults)

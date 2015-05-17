@@ -158,6 +158,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     |INNER JOIN parts
     | ON parts.id = $Table.part_id
     | AND parts.project_id = projects.id
+    | AND parts.enabled = 't'
     |INNER JOIN users_courses
     | ON users_courses.course_id = projects.course_id
     | AND users_courses.user_id = users.id

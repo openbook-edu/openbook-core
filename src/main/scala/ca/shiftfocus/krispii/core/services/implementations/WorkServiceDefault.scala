@@ -38,7 +38,7 @@ class WorkServiceDefault(val db: DB,
    */
   override def listWork(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]] = {
     val fUser = authService.find(userId)
-    val fProject = projectService.find(projectId)
+    val fProject = projectService.find(projectId, false)
 
     for {
       user <- lift(fUser)
@@ -449,8 +449,8 @@ class WorkServiceDefault(val db: DB,
       else {
         for {
           task <- lift(projectService.findTask(taskId))
-          part <- lift(projectService.findPart(task.partId))
-          project <- lift(projectService.find(part.projectId))
+          part <- lift(projectService.findPart(task.partId, false))
+          project <- lift(projectService.find(part.projectId, false))
           tasks = project.parts.filter(_.position <= part.position)
                                .map(_.tasks).flatten
                                .filter { task => task.partId != part.id || task.position <= task.position }
@@ -544,8 +544,8 @@ class WorkServiceDefault(val db: DB,
       for {
         student <- lift(fStudent)
         task <- lift(fTask)
-        part <- lift(projectService.findPart(task.partId))
-        project <- lift(projectService.find(part.projectId))
+        part <- lift(projectService.findPart(task.partId, false))
+        project <- lift(projectService.find(part.projectId, false))
         course <- lift(schoolService.findCourse(project.courseId))
         teacher <- lift(authService.find(course.teacherId))
         document <- lift(documentService.create(UUID.random, teacher, "", Delta(IndexedSeq())))

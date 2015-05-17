@@ -21,10 +21,16 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
   def list(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
   def listProjectsByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
   def listProjectsByTeacher(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
+
   def find(id: UUID): Future[\/[ErrorUnion#Fail, Project]]
   def find(projectSlug: String): Future[\/[ErrorUnion#Fail, Project]]
   def find(projectId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]]
   def find(projectSlug: String, userId: UUID): Future[\/[ErrorUnion#Fail, Project]]
+
+  def find(id: UUID, fetchParts: Boolean): Future[\/[ErrorUnion#Fail, Project]]
+  def find(projectSlug: String, fetchParts: Boolean): Future[\/[ErrorUnion#Fail, Project]]
+  def find(projectId: UUID, userId: UUID, fetchParts: Boolean): Future[\/[ErrorUnion#Fail, Project]]
+  def find(projectSlug: String, userId: UUID, fetchParts: Boolean): Future[\/[ErrorUnion#Fail, Project]]
 
   def userHasProject(userId: UUID, projectSlug: String): Future[\/[ErrorUnion#Fail, Boolean]]
 
@@ -35,7 +41,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
 
   // Parts
   def listPartsInComponent(componentId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Part]]]
-  def findPart(partId: UUID): Future[\/[ErrorUnion#Fail, Part]]
+  def findPart(partId: UUID, fetchTasks: Boolean = true): Future[\/[ErrorUnion#Fail, Part]]
   def createPart(projectId: UUID, name: String, position: Int): Future[\/[ErrorUnion#Fail, Part]]
   def updatePart(partId: UUID, version: Long, name: Option[String], position: Option[Int], enabled: Option[Boolean]): Future[\/[ErrorUnion#Fail, Part]]
   def deletePart(partId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Part]]

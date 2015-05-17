@@ -2,6 +2,7 @@ package ca.shiftfocus.krispii.core.lib
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import com.typesafe.config.ConfigFactory
+import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
@@ -23,6 +24,7 @@ case class ScalaCachePool(master: ScalaCache, slaves: Seq[ScalaCache] = IndexedS
   }
 
   def getCached[V](key: String): Future[\/[RepositoryError.Fail, V]] = {
+    Logger.debug("Fetching from cache: " + key)
     randomInstance.cache.get[V](key).map {
       case Some(entity) => \/.right[RepositoryError.Fail, V](entity)
       case None => \/.left[RepositoryError.Fail, V](RepositoryError.NoResults)

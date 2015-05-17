@@ -170,7 +170,8 @@ class TaskScratchpadRepositoryPostgres(val documentRepository: DocumentRepositor
     } yield taskScratchpad.copy(
         version   = document.version,
         createdAt = document.createdAt,
-        updatedAt = document.updatedAt
+        updatedAt = document.updatedAt,
+        document = Some(document)
       )).run
   }
 

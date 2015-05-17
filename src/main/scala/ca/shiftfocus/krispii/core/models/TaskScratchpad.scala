@@ -1,5 +1,6 @@
 package ca.shiftfocus.krispii.core.models
 
+import ca.shiftfocus.krispii.core.models.document.Document
 import com.github.mauricio.async.db.RowData
 import ca.shiftfocus.uuid.UUID
 import org.joda.time.DateTime
@@ -16,6 +17,7 @@ case class TaskScratchpad(
   taskId: UUID,
   version: Long = 1L,
   documentId: UUID,
+  document: Option[Document] = None,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 )
@@ -27,6 +29,7 @@ object TaskScratchpad {
     (__ \ "taskId").write[UUID] and
     (__ \ "version").write[Long] and
     (__ \ "documentId").write[UUID] and
+    (__ \ "document").writeNullable[Document] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
    )(unlift(TaskScratchpad.unapply _))

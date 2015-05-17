@@ -82,8 +82,9 @@ class ProjectServiceDefault(val db: DB,
    *
    * @return an optional project
    */
-  override def find(projectSlug: String): Future[\/[ErrorUnion#Fail, Project]] = {
-    projectRepository.find(projectSlug)
+  override def find(projectSlug: String): Future[\/[ErrorUnion#Fail, Project]] = find(projectSlug, true)
+  override def find(projectSlug: String, fetchParts: Boolean): Future[\/[ErrorUnion#Fail, Project]] = {
+    projectRepository.find(projectSlug, fetchParts)
   }
 
   /**
@@ -91,8 +92,9 @@ class ProjectServiceDefault(val db: DB,
    *
    * @return an optional project
    */
-  override def find(id: UUID): Future[\/[ErrorUnion#Fail, Project]] = {
-    projectRepository.find(id)
+  override def find(id: UUID): Future[\/[ErrorUnion#Fail, Project]] = find(id, true)
+  override def find(id: UUID, fetchParts: Boolean): Future[\/[ErrorUnion#Fail, Project]] = {
+    projectRepository.find(id, fetchParts)
   }
 
   /**
@@ -102,10 +104,11 @@ class ProjectServiceDefault(val db: DB,
    * @param userId the unique id of the user to filter by
    * @return a future disjunction containing either a project, or a failure
    */
-  override def find(projectId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]] = {
+  override def find(projectId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]] = find(projectId, userId, true)
+  override def find(projectId: UUID, userId: UUID, fetchParts: Boolean): Future[\/[ErrorUnion#Fail, Project]] = {
     for {
       user <- lift(authService.find(userId))
-      project <- lift(projectRepository.find(projectId, user))
+      project <- lift(projectRepository.find(projectId, user, fetchParts))
     }
     yield project
   }
@@ -115,11 +118,12 @@ class ProjectServiceDefault(val db: DB,
    *
    * @return an optional project
    */
-  override def find(projectSlug: String, userId: UUID): Future[\/[ErrorUnion#Fail, Project]] = {
+  override def find(projectSlug: String, userId: UUID): Future[\/[ErrorUnion#Fail, Project]] = find(projectSlug, userId, true)
+  override def find(projectSlug: String, userId: UUID, fetchParts: Boolean): Future[\/[ErrorUnion#Fail, Project]] = {
     for {
       user <- lift(authService.find(userId))
-      project <- lift(projectRepository.find(projectSlug))
-      projectFiltered <- lift(projectRepository.find(project.id, user))
+      project <- lift(projectRepository.find(projectSlug, false))
+      projectFiltered <- lift(projectRepository.find(project.id, user, fetchParts))
     }
     yield projectFiltered
   }
@@ -261,8 +265,8 @@ class ProjectServiceDefault(val db: DB,
    * @param partId the id of the part
    * @return a vector of this project's parts
    */
-  override def findPart(partId: UUID): Future[\/[ErrorUnion#Fail, Part]] = {
-    partRepository.find(partId)
+  override def findPart(partId: UUID, fetchParts: Boolean = true): Future[\/[ErrorUnion#Fail, Part]] = {
+    partRepository.find(partId, fetchParts)
   }
 
   /**

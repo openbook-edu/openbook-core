@@ -50,9 +50,13 @@ class SchoolServiceDefault(val db: DB,
   override def listCoursesByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
     for {
       user <- lift(authService.find(userId))
-      courses <- lift(courseRepository.list(user, false))
+      courses <- lift(listCoursesByUser(user))
     }
     yield courses
+  }
+
+  override def listCoursesByUser(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
+    courseRepository.list(user, false)
   }
 
   /**

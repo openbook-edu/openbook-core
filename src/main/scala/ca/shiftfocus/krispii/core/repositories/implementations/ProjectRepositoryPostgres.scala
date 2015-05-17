@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import com.github.mauricio.async.db.{RowData, Connection}
+import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.uuid.UUID
@@ -123,7 +124,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @param course The section to return projects from.
    * @return a vector of the returned Projects
    */
-  override def list(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+  override def list(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = list(course, true)
+  override def list(course: Course, fetchParts: Boolean)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
     (for {
       projects <- lift(cache.getCached[IndexedSeq[Project]](cacheProjectsKey(course.id)).flatMap {
         case \/-(projectList) => Future successful \/-(projectList)
@@ -134,12 +136,12 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
           } yield projectList
         case -\/(error) => Future successful -\/(error)
       })
-      result <- liftSeq(projects.map{ project =>
+      result <- if (fetchParts) liftSeq(projects.map{ project =>
         (for {
           partList <- lift(partRepository.list(project))
           result = project.copy(parts = partList)
         } yield result).run
-      })
+      }) else lift(Future successful \/-(projects))
     } yield result).run
   }
 
@@ -149,7 +151,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @param id the 128-bit UUID, as a byte array, to search for.
    * @return an optional Project if one was found
    */
-  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
+  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = find(id, true)
+  override def find(id: UUID, fetchParts: Boolean)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
       project <- lift(cache.getCached[Project](cacheProjectKey(id)).flatMap {
         case \/-(project) => Future successful \/-(project)
@@ -161,7 +164,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
           } yield project
         case -\/(error) => Future successful -\/(error)
       })
-      parts <- lift(partRepository.list(project))
+      parts <- lift(if (fetchParts) partRepository.list(project) else Future successful \/-(IndexedSeq()))
     } yield project.copy(parts = parts)).run
   }
 
@@ -171,10 +174,11 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @param projectId the 128-bit UUID, as a byte array, to search for.
    * @return an optional Project if one was found
    */
-  override def find(projectId: UUID, user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
+  override def find(projectId: UUID, user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = find(projectId, user, true)
+  override def find(projectId: UUID, user: User, fetchParts: Boolean)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
       project <- lift(queryOne(SelectOneForUser, Array[Any](projectId.bytes, user.id.bytes, user.id.bytes)))
-      parts <- lift(partRepository.list(project))
+      parts <- lift(if (fetchParts) partRepository.list(project) else Future successful \/-(IndexedSeq()))
       _ <- lift(cache.putCache[Project](cacheProjectKey(project.id))(project, ttl))
       _ <- lift(cache.putCache[UUID](cacheProjectSlugKey(project.slug))(project.id, ttl))
     } yield project.copy(parts = parts)).run
@@ -186,10 +190,12 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @param slug The project slug to search by.
    * @return an optional RowData object containing the results
    */
-  def find(slug: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
+  def find(slug: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = find(slug, true)
+  def find(slug: String, fetchParts: Boolean)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
+    Logger.error("finding project")
     (for {
       project <- lift(cache.getCached[UUID](cacheProjectSlugKey(slug)).flatMap {
-        case \/-(projectId) => find(projectId)
+        case \/-(projectId) => find(projectId, false)
         case -\/(RepositoryError.NoResults) =>
           for {
             project <- lift(queryOne(SelectOneBySlug, Seq[Any](slug)))
@@ -198,7 +204,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
           } yield project
         case -\/(error) => Future successful -\/(error)
       })
-      parts <- lift(partRepository.list(project))
+      parts <- lift(if (fetchParts) partRepository.list(project) else Future successful \/-(IndexedSeq()))
     } yield project.copy(parts = parts)).run
   }
 

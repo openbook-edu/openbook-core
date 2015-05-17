@@ -41,7 +41,7 @@ class ComponentServiceDefault(val db: DB,
    */
   override def listByPart(partId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
     for {
-      part <- lift(projectService.findPart(partId))
+      part <- lift(projectService.findPart(partId, false))
       componentList <- lift(componentRepository.list(part))
     }
     yield componentList
@@ -217,7 +217,7 @@ class ComponentServiceDefault(val db: DB,
   override def addToPart(componentId: UUID, partId: UUID): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
       val fComponent = componentRepository.find(componentId)
-      val fPart = projectService.findPart(partId)
+      val fPart = projectService.findPart(partId, false)
 
       for {
         component <- lift(fComponent)
@@ -242,7 +242,7 @@ class ComponentServiceDefault(val db: DB,
   override def removeFromPart(componentId: UUID, partId: UUID): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
       val fComponent = componentRepository.find(componentId)
-      val fPart = projectService.findPart(partId)
+      val fPart = projectService.findPart(partId, false)
 
       for {
         component <- lift(fComponent)

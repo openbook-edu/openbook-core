@@ -247,11 +247,9 @@ class ScheduleServiceDefault(val db: DB,
     } yield scheduled
   }
 
-  private def isCourseScheduledForUser(course: Course, userId: UUID, today: LocalDate, now: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
-    val fUser = authService.find(userId)
+  override def isCourseScheduledForUser(course: Course, userId: UUID, today: LocalDate, now: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
     val fCourses = schoolService.listCoursesByUser(userId)
     for {
-      user <- lift(fUser)
       courses <- lift(fCourses)
       _ <- predicate (courses.contains(course)) (ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource."))
       fSchedules = listSchedulesByCourse(course.id)

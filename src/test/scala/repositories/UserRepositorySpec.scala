@@ -50,8 +50,8 @@ class UserRepositorySpec
         }
       }
       "list users with a specified set of user Ids" in {
-        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
         val testUserList = TreeMap[Int, User](
           0 -> TestValues.testUserC.copy(hash = None),
@@ -79,8 +79,8 @@ class UserRepositorySpec
         }
       }
       "return RepositoryError.NoResults if set contains unexisting user ID" in {
-        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
         val ids = Vector(
           TestValues.testUserA.id,
@@ -134,8 +134,8 @@ class UserRepositorySpec
         Await.result(result, Duration.Inf) should be (\/- (Vector()))
       }
       "list users in a given course" in {
-        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseB
 
@@ -165,8 +165,8 @@ class UserRepositorySpec
         }
       }
       "return empty Vector() if course doesn't exist" in {
-        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseC
 
@@ -174,8 +174,8 @@ class UserRepositorySpec
         Await.result(result, Duration.Inf) should be(\/- (Vector()))
       }
       "return empty Vector() if there are no users in the course" in {
-        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseG
 
@@ -188,8 +188,8 @@ class UserRepositorySpec
   "UserRepository.find" should {
     inSequence {
       "find a user by ID" in {
-        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
         val testUser = TestValues.testUserA
 
@@ -208,8 +208,8 @@ class UserRepositorySpec
         user.updatedAt.toString() should be (testUser.updatedAt.toString())
       }
       "return RepositoryError.NoResults if user wasn't found by ID" in {
-        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
         val id = UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
 
@@ -217,8 +217,8 @@ class UserRepositorySpec
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
       "find a user by their identifier - email" in {
-        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
         val testUser = TestValues.testUserA
 
@@ -237,8 +237,8 @@ class UserRepositorySpec
         user.updatedAt.toString() should be (testUser.updatedAt.toString())
       }
       "find a user by their identifier - username" in {
-        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
         val testUser = TestValues.testUserB
 
@@ -257,8 +257,8 @@ class UserRepositorySpec
         user.updatedAt.toString() should be (testUser.updatedAt.toString())
       }
       "reutrn RepositoryError.NoResults if identifier - email that doesn't exist" in {
-        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
         val email = "unexisting_email@example.com"
 
@@ -266,8 +266,8 @@ class UserRepositorySpec
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
       "reutrn RepositoryError.NoResults if identifier - username that doesn't exist" in {
-        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
         val username = "unexisting_username"
 
@@ -280,7 +280,7 @@ class UserRepositorySpec
   "UserRepository.update" should {
     inSequence {
       "update an existing user with pass" in {
-        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
 
         val testUser        = TestValues.testUserA
         val updatedTestUser = testUser.copy(
@@ -306,7 +306,7 @@ class UserRepositorySpec
         user.updatedAt.toString() should not be (updatedTestUser.updatedAt.toString())
       }
       "update an existing user without pass" in {
-        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
 
         val testUser        = TestValues.testUserA
         val updatedTestUser = testUser.copy(
@@ -436,7 +436,7 @@ class UserRepositorySpec
   "UserRepository.delete" should {
     inSequence {
       "delete a user from the database if user has no references in other tables" in {
-        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
 
         val testUser = TestValues.testUserH.copy(hash = None)
 

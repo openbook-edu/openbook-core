@@ -72,8 +72,8 @@ class CourseRepositorySpec
          Await.result(result, Duration.Inf) should be(\/-(Vector()))
        }
        "select courses if user is a student (has record in 'users_courses' table) and (asTeacher = FALSE)" in {
-         (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-         (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+         (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
          val testStudent = TestValues.testUserH
          val testCoursesList = TreeMap[Int, Course](
@@ -97,8 +97,8 @@ class CourseRepositorySpec
          courses.size should be(testCoursesList.size)
        }
        "return empty Vector() if user is a student (has record in 'users_courses' table) and (asTeacher = TRUE)" in {
-         (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-         (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+         (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
          val testStudent = TestValues.testUserE
 
@@ -106,8 +106,8 @@ class CourseRepositorySpec
          Await.result(result, Duration.Inf) should be(\/-(Vector()))
        }
        "select courses if user is a teacher (hasn't record in 'users_courses' table) and (asTeacher = TRUE)" in {
-         (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-         (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+         (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
          val testTeacher = TestValues.testUserF
          val testCoursesList = TreeMap[Int, Course](
@@ -132,8 +132,8 @@ class CourseRepositorySpec
          courses.size should be(testCoursesList.size)
        }
        "return empty Vector() if user is a teacher (hasn't a record in 'users_courses' table) and (asTeacher = FALSE)" in {
-         (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-         (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+         (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
          val testTeacher = TestValues.testUserA
 
@@ -141,8 +141,8 @@ class CourseRepositorySpec
          Await.result(result, Duration.Inf) should be(\/-(Vector()))
        }
        "return empty Vector() if user doesn't exist and (asTeacher = FALSE)" in {
-         (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-         (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+         (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
          val unexistingUser = User(
            email     = "unexisting_email@example.com",
@@ -155,8 +155,8 @@ class CourseRepositorySpec
          Await.result(result, Duration.Inf) should be(\/-(Vector()))
        }
        "return empty Vector() if user doesn't exist and (asTeacher = TRUE)" in {
-         (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-         (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+         (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
          val unexistingUser = User(
            email     = "unexisting_email@example.com",
@@ -235,8 +235,8 @@ class CourseRepositorySpec
    "CourseRepository.find" should {
      inSequence {
        "find a single entry by ID" in {
-         (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-         (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+         (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
          val testCourse = TestValues.testCourseA
 
@@ -253,8 +253,8 @@ class CourseRepositorySpec
          course.updatedAt.toString should be(testCourse.updatedAt.toString)
        }
        "return RepositoryError.NoResults if entry wasn't found by ID" in {
-         (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-         (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+         (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
          val testCourse = TestValues.testCourseC
 
@@ -267,7 +267,7 @@ class CourseRepositorySpec
    "CourseRepository.addUser" should {
      inSequence {
        "add user to a course" in {
-         (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+         (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
 
          val testUser = TestValues.testUserE
          val testCourse = TestValues.testCourseF
@@ -302,7 +302,7 @@ class CourseRepositorySpec
    "CourseRepository.removeUser" should {
      inSequence {
        "remove a user from a course" in {
-         (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+         (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
 
          val testUser   = TestValues.testUserC
          val testCourse = TestValues.testCourseA
@@ -370,7 +370,7 @@ class CourseRepositorySpec
    "CourseRepository.addUsers" should {
      inSequence {
        "add users to a course" in {
-         (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+         (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
 
          val testCourse = TestValues.testCourseD
          val testUserList =  Vector(
@@ -417,7 +417,7 @@ class CourseRepositorySpec
    "CourseRepository.removeUsers" should {
      inSequence {
        "Remove users from a course" in {
-         (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+         (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
 
          val testCourse = TestValues.testCourseB
          val testUserList =  Vector(
@@ -464,7 +464,7 @@ class CourseRepositorySpec
    "CourseRepository.removeAllUsers" should {
      inSequence {
        "remove all users from a course" in {
-         (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+         (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
 
          val testCourse = TestValues.testCourseB
 
@@ -521,9 +521,9 @@ class CourseRepositorySpec
    "CourseRepository.update" should {
      inSequence {
        "update existing course" in {
-         (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-         (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
-         (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+         (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+         (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
 
          val testCourse    = TestValues.testCourseA
          val updatedCourse = testCourse.copy(
@@ -571,9 +571,9 @@ class CourseRepositorySpec
    "CourseRepository.delete" should {
      inSequence {
        "delete course if course has no references" in {
-         (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-         (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
-         (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+         (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+         (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
 
          val testCourse = TestValues.testCourseG
 
@@ -588,9 +588,9 @@ class CourseRepositorySpec
          course.color should be (testCourse.color)
        }
        "delete course if course has references only in users_courses table" in {
-         (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-         (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
-         (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+         (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+         (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
 
          val testCourse = TestValues.testCourseF
 

@@ -1,3 +1,4 @@
+import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.CourseSchedule
 import ca.shiftfocus.krispii.core.repositories.CourseScheduleRepositoryPostgres
 import org.scalatest._
@@ -5,7 +6,7 @@ import Matchers._
 import scala.collection.immutable.TreeMap
 import scala.concurrent.{Future, Await}
 import scala.concurrent.duration.Duration
-import scalaz.\/-
+import scalaz.{-\/, \/-}
 
 class CourseScheduleRepositorySpec
   extends TestEnvironment
@@ -16,8 +17,8 @@ class CourseScheduleRepositorySpec
   "CourseScheduleRepository.list" should {
     inSequence {
       "list all schedules for a given class" in {
-        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseB
 
@@ -52,8 +53,8 @@ class CourseScheduleRepositorySpec
   "CourseScheduleRepository.find" should {
     inSequence {
       "find a single entry by ID" in {
-        (redisCache.get(_: String)) when(*) returns(Future.successful(None))
-        (redisCache.put(_: String, _: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(Unit))
+        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
         val testCourseSchedule = TestValues.testCourseScheduleB
 
@@ -77,7 +78,7 @@ class CourseScheduleRepositorySpec
   "CourseScheduleRepository.insert" should {
     inSequence {
       "create a new schedule" in {
-        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
 
         val testCourseSchedule = TestValues.testCourseScheduleD
 
@@ -99,7 +100,7 @@ class CourseScheduleRepositorySpec
   "CourseScheduleRepository.update" should {
     inSequence {
       "update a schedule" in {
-        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
 
         val testCourseSchedule = TestValues.testCourseScheduleA
         val testUpdatedCourseSchedule = testCourseSchedule.copy(
@@ -130,7 +131,7 @@ class CourseScheduleRepositorySpec
   "CourseScheduleRepository.delete" should {
     inSequence {
       "delete a schedule" in {
-        (redisCache.remove(_: String)) when(*) returns(Future.successful(Unit))
+        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
 
         val testCourseSchedule = TestValues.testCourseScheduleA
 

@@ -1,6 +1,7 @@
 import java.io.File
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
+import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import com.github.mauricio.async.db.{Connection, Configuration}
@@ -16,7 +17,7 @@ import scalacache.ScalaCache
 import scala.concurrent.{Future, Await}
 import ca.shiftfocus.krispii.core.repositories._
 
-import scalaz.-\/
+import scalaz.{\/-, -\/}
 
 /**
  * Test Environment
@@ -65,7 +66,9 @@ abstract class TestEnvironment(writeToDb: Boolean = true)
   //--------------------
   val redisCache: scalacache.Cache = stub[scalacache.Cache]
   class TestCache extends ScalaCache(redisCache)
-  implicit val cache: ScalaCache = stub[TestCache]
+  val scalaCache: ScalaCache = stub[TestCache]
+  class TestScalaCachePool extends ScalaCachePool(scalaCache)
+  implicit val cache: ScalaCachePool = stub[TestScalaCachePool]
   //------------------
   //--END CACHE--
   //------------------

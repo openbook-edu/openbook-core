@@ -1,8 +1,8 @@
 package ca.shiftfocus.krispii.core.models
 
-import com.github.mauricio.async.db.RowData
-import ca.shiftfocus.krispii.core.lib.UUID
+import ca.shiftfocus.uuid.UUID
 import org.joda.time.DateTime
+import play.api.i18n.Messages
 import play.api.libs.json._
 import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
@@ -10,65 +10,100 @@ import play.api.libs.functional.syntax._
 
 case class JournalEntry(
   id: UUID = UUID.random,
-  version: Long = 0,
-  remoteAddress: String = "",
-  requestUri: String = "",
-  userAgent: String = "",
+  version: Long = 1L,
   userId: UUID,
-  message: String,
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  projectId: UUID,
+  entryType: String,
+  item: String,
+  message: String = "",
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 )
 
 object JournalEntry {
 
-  def apply(row: RowData): JournalEntry = {
-    JournalEntry(
-      UUID(row("id").asInstanceOf[Array[Byte]]),
-      row("version").asInstanceOf[Long],
-      row("remoteAddress").asInstanceOf[String],
-      row("requestUri").asInstanceOf[String],
-      row("userAgent").asInstanceOf[String],
-      UUID(row("userId").asInstanceOf[Array[Byte]]),
-      row("message").asInstanceOf[String],
-      Some(row("created_at").asInstanceOf[DateTime]),
-      Some(row("updated_at").asInstanceOf[DateTime])
-    )
+  trait Action {
+    val entryType: String
+    val action: String
+  }
+
+  object Action {
+    def apply(entryType: String): Action = entryType match {
+      case JournalEntryConnect.entryType    => JournalEntryConnect
+      case JournalEntryDisconnect.entryType => JournalEntryDisconnect
+      case JournalEntryClick.entryType      => JournalEntryClick
+      case JournalEntryView.entryType       => JournalEntryView
+      case JournalEntryWatch.entryType      => JournalEntryWatch
+      case JournalEntryListen.entryType     => JournalEntryListen
+      case JournalEntryWrite.entryType      => JournalEntryWrite
+      case JournalEntryCreate.entryType     => JournalEntryCreate
+      case JournalEntryUpdate.entryType     => JournalEntryUpdate
+      case JournalEntryDelete.entryType     => JournalEntryDelete
+    }
+  }
+
+  object JournalEntryConnect extends Action {
+    override val entryType = "connect"
+    override val action    = Messages("journalEntry.connect.action")
+  }
+  object JournalEntryDisconnect extends Action {
+    override val entryType = "disconnect"
+    override val action    = Messages("journalEntry.Disconnect.action")
+  }
+  object JournalEntryClick extends Action {
+    override val entryType = "click"
+    override val action    = Messages("journalEntry.click.action")
+  }
+  object JournalEntryView extends Action {
+    override val entryType = "view"
+    override val action    = Messages("journalEntry.view.action")
+  }
+  object JournalEntryWatch extends Action {
+    override val entryType = "watch"
+    override val action    = Messages("journalEntry.watch.action")
+  }
+  object JournalEntryListen extends Action {
+    override val entryType = "listen"
+    override val action    = Messages("journalEntry.listen.action")
+  }
+  object JournalEntryWrite extends Action {
+    override val entryType = "write"
+    override val action    = Messages("journalEntry.write.action")
+  }
+  object JournalEntryCreate extends Action {
+    override val entryType = "create"
+    override val action    = Messages("journalEntry.create.action")
+  }
+  object JournalEntryUpdate extends Action {
+    override val entryType = "update"
+    override val action    = Messages("journalEntry.update.action")
+  }
+  object JournalEntryDelete extends Action {
+    override val entryType = "delete"
+    override val action    = Messages("journalEntry.delete.action")
   }
 
   implicit val journalEntryReads: Reads[JournalEntry] = (
     (__ \ "id").read[UUID] and
     (__ \ "version").read[Long] and
-    (__ \ "remoteAddress").read[String] and
-    (__ \ "requestUri").read[String] and
-    (__ \ "userAgent").read[String] and
     (__ \ "userId").read[UUID] and
+    (__ \ "projectId").read[UUID] and
+    (__ \ "entryType").read[String] and
+    (__ \ "item").read[String] and
     (__ \ "message").read[String] and
-    (__ \ "createdAt").readNullable[DateTime] and
-    (__ \ "updatedAt").readNullable[DateTime]
-  )(JournalEntry.apply(_: UUID, _: Long, _: String, _: String, _: String, _: UUID, _: String, _: Option[DateTime], _: Option[DateTime]))
+    (__ \ "createdAt").read[DateTime] and
+    (__ \ "updatedAt").read[DateTime]
+  )(JournalEntry.apply(_: UUID, _: Long, _: UUID, _: UUID, _: String, _: String, _: String, _: DateTime, _: DateTime))
 
   implicit val journalEntryWrites: Writes[JournalEntry] = (
     (__ \ "id").write[UUID] and
     (__ \ "version").write[Long] and
-    (__ \ "remoteAddress").write[String] and
-    (__ \ "requestUri").write[String] and
-    (__ \ "userAgent").write[String] and
     (__ \ "userId").write[UUID] and
+    (__ \ "projectId").write[UUID] and
+    (__ \ "entryType").write[String] and
+    (__ \ "item").write[String] and
     (__ \ "message").write[String] and
-    (__ \ "createdAt").writeNullable[DateTime] and
-    (__ \ "updatedAt").writeNullable[DateTime]
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
   )(unlift(JournalEntry.unapply))
-
-}
-
-case class JournalEntryPut(
-  version: Long,
-  message: String
-)
-object JournalEntryPut {
-  implicit val journalEntryPutReads = (
-    (__ \ "version").read[Long] and
-    (__ \ "message").read[String]
-  )(JournalEntryPut.apply _)
 }

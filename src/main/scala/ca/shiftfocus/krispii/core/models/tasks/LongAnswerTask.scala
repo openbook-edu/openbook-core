@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models.tasks
 
-import ca.shiftfocus.krispii.core.lib.UUID
+import ca.shiftfocus.uuid.UUID
 import ca.shiftfocus.krispii.core.models.Part
 import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
@@ -13,8 +13,8 @@ import play.api.libs.functional.syntax._
  * a few words in response. This task type gives them free reign to enter as much
  * text as they desire.
  *
- * @param id The task's [[UUID]].
- * @param partId The [[Part]] to which this task belongs.
+ * @param id The task's UUID.
+ * @param partId The part to which this task belongs.
  * @param position The order in the part in which this task falls.
  * @param version The version of the task entity, for offline locking.
  * @param settings An object containing common settings for tasks.
@@ -28,10 +28,10 @@ case class LongAnswerTask(
   partId: UUID,
   position: Int,
   // Additional data
-  version: Long = 0,
+  version: Long = 1L,
   settings: CommonTaskSettings = CommonTaskSettings(),
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 ) extends Task {
 
   /**
@@ -39,50 +39,19 @@ case class LongAnswerTask(
    */
   override val taskType: Int = Task.LongAnswer
 
+  override def equals(other: Any): Boolean = {
+    other match {
+      case otherLongAnswerTask: LongAnswerTask => {
+        this.id == otherLongAnswerTask.id
+      }
+      case _ => false
+    }
+  }
 }
 
 object LongAnswerTask {
-
   /**
-   * Create a LongAnswerTask from a row returned by the database.
-   *
-   * @param row a [[RowData]] object returned from the db.
-   * @return a [[LongAnswerTask]] object
-   */
-  def apply(row: RowData): LongAnswerTask = {
-    LongAnswerTask(
-      // Primary Key
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-      partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
-      position = row("position").asInstanceOf[Int],
-
-      // Additional data
-      version = row("version").asInstanceOf[Long],
-      settings = CommonTaskSettings(row),
-      createdAt = Some(row("created_at").asInstanceOf[DateTime]),
-      updatedAt = Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
-
-  /**
-   * Unserialize a [[LongAnswerTask]] from JSON.
-   */
-  implicit val jsonReads = new Reads[LongAnswerTask] {
-    def reads(js: JsValue) = {
-      JsSuccess(LongAnswerTask(
-        id = (js \ "id").as[UUID],
-        partId = (js \ "partId").as[UUID],
-        position = (js \ "position").as[Int],
-        version = (js \ "version").as[Long],
-        settings = (js \ "settings").as[CommonTaskSettings],
-        createdAt = (js \ "createdAt").as[Option[DateTime]],
-        updatedAt = (js \ "updatedAt").as[Option[DateTime]]
-      ))
-    }
-  }
-
-  /**
-   * Serialize a [[LongAnswerTask]] to JSON.
+   * Serialize a LongAnswerTask to JSON.
    */
   implicit val taskWrites: Writes[LongAnswerTask] = (
     (__ \ "id").write[UUID] and
@@ -90,7 +59,7 @@ object LongAnswerTask {
       (__ \ "position").write[Int] and
       (__ \ "version").write[Long] and
       (__ \ "settings").write[CommonTaskSettings] and
-      (__ \ "createdAt").writeNullable[DateTime] and
-      (__ \ "updatedAt").writeNullable[DateTime]
+      (__ \ "createdAt").write[DateTime] and
+      (__ \ "updatedAt").write[DateTime]
   )(unlift(LongAnswerTask.unapply))
 }

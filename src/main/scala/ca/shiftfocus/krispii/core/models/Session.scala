@@ -1,10 +1,10 @@
 package ca.shiftfocus.krispii.core.models
 
-import ca.shiftfocus.krispii.core.lib.UUID
+import ca.shiftfocus.uuid.UUID
 import org.joda.time.DateTime
 
 case class Session(
-  sessionId: UUID = UUID.random,
+  id: UUID = UUID.random,
   userId: UUID,
   ipAddress: String = "",
   location: String = "",

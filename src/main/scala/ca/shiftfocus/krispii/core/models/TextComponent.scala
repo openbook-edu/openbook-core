@@ -1,7 +1,7 @@
 package ca.shiftfocus.krispii.core.models
 
 import com.github.mauricio.async.db.RowData
-import ca.shiftfocus.krispii.core.lib.UUID
+import ca.shiftfocus.uuid.UUID
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.json.Writes._
@@ -9,56 +9,35 @@ import play.api.libs.functional.syntax._
 
 case class TextComponent(
   id: UUID = UUID.random,
-  version: Long = 0,
+  version: Long = 1L,
+  ownerId: UUID,
   title: String,
   questions: String,
   thingsToThinkAbout: String,
   content: String,
-  createdAt: Option[DateTime] = None,
-  updatedAt: Option[DateTime] = None
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 ) extends Component
 
 object TextComponent {
 
-  def apply(row: RowData): TextComponent = {
-    TextComponent(
-      UUID(row("id").asInstanceOf[Array[Byte]]),
-      row("version").asInstanceOf[Long],
-      row("title").asInstanceOf[String],
-      row("questions").asInstanceOf[String],
-      row("things_to_think_about").asInstanceOf[String],
-      row("content").asInstanceOf[String],
-      Some(row("created_at").asInstanceOf[DateTime]),
-      Some(row("updated_at").asInstanceOf[DateTime])
-    )
-  }
-
-  // implicit val textComponentReads: Reads[TextComponent] = (
-  //   (__ \ "id").read[UUID] and
-  //   (__ \ "version").read[Long] and
-  //   (__ \ "projectId").read[UUID] and
-  //   (__ \ "name").read[String] and
-  //   (__ \ "description").read[String] and
-  //   (__ \ "position").read[Int] and
-  //   (__ \ "createdAt").readNullable[DateTime] and
-  //   (__ \ "updatedAt").readNullable[DateTime]
-  // )(TextComponent.apply _)
-
   implicit val textComponentWrites: Writes[TextComponent] = (
     (__ \ "id").write[UUID] and
     (__ \ "version").write[Long] and
+      (__ \ "ownerId").write[UUID] and
     (__ \ "title").write[String] and
     (__ \ "questions").write[String] and
     (__ \ "thingsToThinkAbout").write[String] and
     (__ \ "content").write[String] and
-    (__ \ "createdAt").writeNullable[DateTime] and
-    (__ \ "updatedAt").writeNullable[DateTime]
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
   )(unlift(TextComponent.unapply))
 
 }
 
 
 case class TextComponentPost(
+  ownerId: UUID,
   title: String,
   questions: Option[String],
   thingsToThinkAbout: Option[String],
@@ -66,6 +45,7 @@ case class TextComponentPost(
 )
 object TextComponentPost {
   implicit val projectPostReads = (
+    (__ \ "ownerId").read[UUID] and
     (__ \ "title").read[String] and
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and

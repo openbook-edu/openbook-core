@@ -7,6 +7,7 @@ import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.uuid.UUID
 import org.joda.time.{LocalTime, LocalDate, DateTime, DateTimeZone}
+import webcrank.password.Passwords
 import ws.kahn.ot._
 
 object TestValues {
@@ -17,7 +18,7 @@ object TestValues {
     version = 1L,
     email = "testUserA@example.com",
     username = "testUserA",
-    hash = Some("$s0$100801$SIZ9lgHz0kPMgtLB37Uyhw==$wyKhNrg/MmUvlYuVygDctBE5LHBjLB91nyaiTpjbeyM="),
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="), // adminpass
     givenname = "TestA",
     surname = "UserA",
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -29,7 +30,7 @@ object TestValues {
     version = 2L,
     email = "testUserB@example.com",
     username = "testUserB",
-    hash = Some("$s0$100801$84r2edPRqM/8xFCe+G1PPw==$p7dTGjBJpGUMoyQ1Nqat1i4SBV6aT6BX7h1WU6cLRnc="),
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestB",
     surname = "UserB",
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -44,7 +45,7 @@ object TestValues {
     version = 3L,
     email = "testUserC@example.com",
     username = "testUserC",
-    hash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3WmWjo="),
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestC",
     surname = "UserC",
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -58,7 +59,7 @@ object TestValues {
     id = UUID("4d97f26c-df3f-4866-8919-11f51f14e9c4"),
     email = "testUserD@example.com",
     username = "testUserD",
-    hash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3W1234="),
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestD",
     surname = "UserD"
   )
@@ -68,7 +69,7 @@ object TestValues {
     version = 4L,
     email = "testUserE@example.com",
     username = "testUserE",
-    hash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3WmWjo="),
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestE",
     surname = "UserE",
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -80,7 +81,7 @@ object TestValues {
     version = 5L,
     email = "testUserF@example.com",
     username = "testUserF",
-    hash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3WmWjo="),
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestF",
     surname = "UserF",
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -92,7 +93,7 @@ object TestValues {
     version = 6L,
     email = "testUserG@example.com",
     username = "testUserG",
-    hash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3WmWjo="),
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestG",
     surname = "UserG",
     createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -104,7 +105,7 @@ object TestValues {
     version = 7L,
     email = "testUserH@example.com",
     username = "testUserH",
-    hash = Some("$s0$100801$LmS/oJ7gIulUSr4qJ9by2A==$c91t4yMA594s092V4LB89topw5Deo10BXowjW3WmWjo="),
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestH",
     surname = "UserH",
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),

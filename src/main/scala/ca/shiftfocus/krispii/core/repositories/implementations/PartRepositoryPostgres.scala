@@ -148,7 +148,6 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
    */
   override def list(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = list(project, true)
   override def list(project: Project, fetchTasks: Boolean )(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
-    Logger.error("listing parts in project")
     (for {
       partList <- lift(cache.getCached[IndexedSeq[Part]](cachePartsKey(project.id)).flatMap {
         case \/-(partList) => Future successful \/-(partList)

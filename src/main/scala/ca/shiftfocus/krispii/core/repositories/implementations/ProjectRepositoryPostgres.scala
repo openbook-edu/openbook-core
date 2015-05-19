@@ -192,7 +192,6 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    */
   def find(slug: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = find(slug, true)
   def find(slug: String, fetchParts: Boolean)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
-    Logger.error("finding project")
     (for {
       project <- lift(cache.getCached[UUID](cacheProjectSlugKey(slug)).flatMap {
         case \/-(projectId) => find(projectId, false)

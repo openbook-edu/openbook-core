@@ -33,7 +33,7 @@ class SessionRepositoryCache extends SessionRepository {
       case _ => \/-(IndexedSeq())
     }.recover {
       case exception => {
-        Logger.error("Could not create session")
+        Logger.error("Could not list sessions")
         \/.left(RepositoryError.DatabaseError("Internal error: could not list sessions", Some(exception)))
       }
     }
@@ -101,7 +101,7 @@ class SessionRepositoryCache extends SessionRepository {
 
     fUpdate.run.recover {
       case exception => {
-        Logger.error("Could not create session")
+        Logger.error("Could not update session")
         \/.left(RepositoryError.DatabaseError("Internal error: could not update session", Some(exception)))
       }
     }
@@ -135,7 +135,7 @@ class SessionRepositoryCache extends SessionRepository {
 
     fRemove.run.recover {
       case exception => {
-        Logger.error("Could not create session")
+        Logger.error("Could not delete session")
         \/.left(RepositoryError.DatabaseError("Internal error: could not delete session", Some(exception)))
       }
     }

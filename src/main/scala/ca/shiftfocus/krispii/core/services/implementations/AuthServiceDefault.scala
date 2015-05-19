@@ -196,18 +196,18 @@ class AuthServiceDefault(val db: DB,
       val webcrank = Passwords.scrypt()
 
       for {
-        validEmail <- lift(validateEmail(email))
-        validUsername <- lift(validateUsername(username))
-        validPassword <- lift(isValidPassword(password))
-        passwordHash = Some(webcrank.crypt(password))
+        validEmail <- lift(validateEmail(email.trim))
+        validUsername <- lift(validateUsername(username.trim))
+        validPassword <- lift(isValidPassword(password.trim))
+        passwordHash = Some(webcrank.crypt(password.trim))
         newUser <- lift {
           val newUser = User(
             id = id,
-            username = username,
-            email = email,
+            username = username.trim,
+            email = email.trim,
             hash = passwordHash,
-            givenname = givenname,
-            surname = surname
+            givenname = givenname.trim,
+            surname = surname.trim
           )
           userRepository.insert(newUser)
         }

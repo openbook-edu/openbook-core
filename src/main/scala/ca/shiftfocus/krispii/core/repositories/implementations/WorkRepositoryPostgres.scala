@@ -532,9 +532,9 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
     queryOne(FindByStudentTask, Seq[Any](user.id.bytes, task.id.bytes)).flatMap {
       case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId).map {
         case \/-(document) => \/.right(documentWork.copy(
-          // TODO - versions should match, DocumentService.push should update a Work version  and updatedAt field also
-//          version = document.version,
-          response = Some(document)
+          version   = document.version,
+          response  = Some(document),
+          updatedAt = document.updatedAt
         ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
@@ -647,15 +647,17 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
     }
     else {
       queryOne(UpdateKeepLatestRevision(tableName), Seq[Any](
-        work.version,
+        1L,
         work.isComplete,
         new DateTime,
         work.id.bytes,
-        work.version
+        1L
       )).flatMap {
         case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId, documentWork.version).map {
          case \/-(document) => \/.right(documentWork.copy(
-           response  = Some(document)
+           response  = Some(document),
+           version = document.version,
+           updatedAt = document.updatedAt
          ))
          case -\/(error: RepositoryError.Fail) => \/.left(error)
         }

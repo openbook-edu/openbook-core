@@ -14,7 +14,7 @@ import scala.concurrent.Future
 import ws.kahn.ot.{Delete, Delta}
 
 import scalacache.ScalaCache
-import scalaz.\/
+import scalaz.{\/, \/-, -\/}
 
 class DocumentServiceDefault(val db: DB,
                              val scalaCache: ScalaCachePool,
@@ -60,10 +60,15 @@ class DocumentServiceDefault(val db: DB,
     if (granularity > 0 && granularity <= 100 && granularity % 5 == 0) {
       for {
         document <- lift(documentRepository.find(documentId))
-        interval = document.version / granularity
+        gran = if (document.version < 10) 1 else granularity
+        interval = if (document.version < 10) 1 else document.version / granularity
         versions = (1 until granularity).map(_ * interval).filter(_ <= document.version)
-        revisions <- liftSeq(versions.map { version => revisionRepository.find(document, version) })
-      } yield revisions
+        revisions <- liftSeq(versions.map { version => revisionRepository.find(document, version).map {
+            case \/-(revision) => \/-(Some(revision))
+            case -\/(RepositoryError.NoResults) => \/-(None)
+            case -\/(error) => -\/(error)
+          } })
+      } yield revisions.filter(_.isDefined).map(_.get)
     } else {
       Future successful \/.left(ServiceError.BadInput("Granularity must be a positive multiple of 5 no greater than 100."))
     }
@@ -194,42 +199,50 @@ class DocumentServiceDefault(val db: DB,
               }
             val transformedDelta = recentServerDelta x delta
             val newDelta = document.delta o transformedDelta
-            for {
-              _ <- predicate (newDelta.isDocument) (ServiceError.BadInput("Document Delta must contain only inserts"))
-              // 4. Update the document with the latest text
-              updatedDocument <- lift(documentRepository.update(document.copy(
-                delta = newDelta
-              )))
-              // TODO - update Work version, updated_at also
-              // 5. Insert the new revision into the history
-              pushedRevision <- lift(revisionRepository.insert(
-                Revision(documentId = document.id,
-                         version = document.version + 1,
-                         authorId = author.id,
-                         delta = transformedDelta,
-                         createdAt = new DateTime)
-              ))
-            } yield PushResult(document = updatedDocument, revision = pushedRevision, serverOps = recentRevisions)
+            if (newDelta.targetLength > 1024000) {
+              lift (Future successful \/.left[ErrorUnion#Fail, PushResult](ServiceError.BusinessLogicFail("Document cannot be longer than 1,024,000 characters.")))
+            } else {
+              for {
+                _ <- predicate (newDelta.isDocument) (ServiceError.BadInput("Document Delta must contain only inserts"))
+                // 4. Update the document with the latest text
+                updatedDocument <- lift(documentRepository.update(document.copy(
+                  delta = newDelta
+                )))
+                // TODO - update Work version, updated_at also
+                // 5. Insert the new revision into the history
+                pushedRevision <- lift(revisionRepository.insert(
+                  Revision(documentId = document.id,
+                    version = document.version + 1,
+                    authorId = author.id,
+                    delta = transformedDelta,
+                    createdAt = new DateTime)
+                ))
+              } yield PushResult(document = updatedDocument, revision = pushedRevision, serverOps = recentRevisions)
+            }
           }
           // If there were no more recent revisions
           else {
             val newDelta = document.delta o delta
-            for {
-              _ <- predicate (newDelta.isDocument) (ServiceError.BadInput("Document Delta must contain only inserts"))
-              updatedDocument <- lift(documentRepository.update(document.copy(
-                delta = newDelta
-              )))
+            if (newDelta.targetLength > 1024000) {
+              lift(Future successful \/.left[ErrorUnion#Fail, PushResult](ServiceError.BusinessLogicFail("Document cannot be longer than 1,024,000 characters.")))
+            } else {
+              for {
+                _ <- predicate (newDelta.isDocument) (ServiceError.BadInput("Document Delta must contain only inserts"))
+                updatedDocument <- lift(documentRepository.update(document.copy(
+                  delta = newDelta
+                )))
 
-              // TODO - update Work version, updated_at also
-              // 5. Insert the new revision into the history
-              pushedRevision <- lift(revisionRepository.insert(
-                Revision(documentId = document.id,
-                  version = document.version + 1,
-                  authorId = author.id,
-                  delta = delta,
-                  createdAt = new DateTime)
-              ))
-            } yield PushResult(document = updatedDocument, revision = pushedRevision, serverOps = recentRevisions)
+                // TODO - update Work version, updated_at also
+                // 5. Insert the new revision into the history
+                pushedRevision <- lift(revisionRepository.insert(
+                  Revision(documentId = document.id,
+                    version = document.version + 1,
+                    authorId = author.id,
+                    delta = delta,
+                    createdAt = new DateTime)
+                ))
+              } yield PushResult(document = updatedDocument, revision = pushedRevision, serverOps = recentRevisions)
+            }
           }
         }
       } yield pushResult

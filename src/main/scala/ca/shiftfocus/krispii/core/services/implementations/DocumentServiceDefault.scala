@@ -64,13 +64,8 @@ class DocumentServiceDefault(val db: DB,
         interval = if (document.version < 10) 1 else document.version / granularity
         versions = (1 until granularity).map(_ * interval).filter(_ <= document.version)
         revisions <- liftSeq(versions.map { version => revisionRepository.find(document, version).map {
-            case \/-(revision) => {
-              println(version + " found")
-              \/-(Some(revision)) }
-            case -\/(RepositoryError.NoResults) => {
-              println(version + " not found")
-              \/-(None)
-            }
+            case \/-(revision) => \/-(Some(revision))
+            case -\/(RepositoryError.NoResults) => \/-(None)
             case -\/(error) => -\/(error)
           } })
       } yield revisions.filter(_.isDefined).map(_.get)

@@ -1190,7 +1190,7 @@ class WorkRepositorySpec
         work.isComplete should be(updatedWork.isComplete)
         work.updatedAt.toString should not be(testWork.updatedAt.toString)
       }
-      "update MultipleChoiceWork (newRevision = FALSE)" in {
+      "return RepositoryError.BadParam when update MultipleChoiceWork (newRevision = FALSE)" in {
         val testWork    = TestValues.testMultipleChoiceWorkC
         // Work for new values
         val oppositeWork  = TestValues.testMultipleChoiceWorkH
@@ -1206,22 +1206,9 @@ class WorkRepositorySpec
         )
 
         val result = workRepository.update(updatedWork)
-        val eitherWork = Await.result(result, Duration.Inf)
-        val \/-(work: MultipleChoiceWork) = eitherWork
-
-        // This values should remain unchanged
-        work.id should be(testWork.id)
-        work.studentId should be(testWork.studentId)
-        work.taskId should be(testWork.taskId)
-        work.response should be(testWork.response)
-        work.createdAt.toString should be(testWork.createdAt.toString)
-        work.version should be(testWork.version)
-
-        // This should be updated
-        work.isComplete should be(updatedWork.isComplete)
-        work.updatedAt.toString should not be(testWork.updatedAt.toString)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.BadParam("Completing a ListWork should be done with a new Revision")))
       }
-      "update OrderingWork (newRevision = FALSE)" in {
+      "return RepositoryError.BadParam when update OrderingWork (newRevision = FALSE)" in {
         val testWork    = TestValues.testOrderingWorkI
         // Work for new values
         val oppositeWork  = TestValues.testOrderingWorkD
@@ -1237,22 +1224,9 @@ class WorkRepositorySpec
         )
 
         val result = workRepository.update(updatedWork)
-        val eitherWork = Await.result(result, Duration.Inf)
-        val \/-(work: OrderingWork) = eitherWork
-
-        // This values should remain unchanged
-        work.id should be(testWork.id)
-        work.studentId should be(testWork.studentId)
-        work.taskId should be(testWork.taskId)
-        work.response should be(testWork.response)
-        work.createdAt.toString should be(testWork.createdAt.toString)
-        work.version should be(testWork.version)
-
-        // This should be updated
-        work.isComplete should be(updatedWork.isComplete)
-        work.updatedAt.toString should not be(testWork.updatedAt.toString)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.BadParam("Completing a ListWork should be done with a new Revision")))
       }
-      "update MatchingWork (newRevision = FALSE)" in {
+      "return RepositoryError.BadParam when update MatchingWork (newRevision = FALSE)" in {
         val testWork = TestValues.testMatchingWorkJ
         // Work for new values
         val oppositeWork = TestValues.testMatchingWorkE
@@ -1268,31 +1242,20 @@ class WorkRepositorySpec
         )
 
         val result = workRepository.update(updatedWork)
-        val eitherWork = Await.result(result, Duration.Inf)
-        val \/-(work: MatchingWork) = eitherWork
-
-        // This values should remain unchanged
-        work.id should be(testWork.id)
-        work.studentId should be(testWork.studentId)
-        work.taskId should be(testWork.taskId)
-        work.response should be(testWork.response)
-        work.createdAt.toString should be(testWork.createdAt.toString)
-        work.version should be(testWork.version)
-
-        // This should be updated
-        work.isComplete should be(updatedWork.isComplete)
-        work.updatedAt.toString should not be(testWork.updatedAt.toString)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.BadParam("Completing a ListWork should be done with a new Revision")))
       }
-      "return RepositoryError.NoResults if version is wrong (newRevision = FALSE)" in {
-        val testWork = TestValues.testMatchingWorkJ
+      "update LongAnswerWork if version is wrong (newRevision = FALSE)" in {
+        val testWork    = TestValues.testLongAnswerWorkF
         // Work for new values
-        val oppositeWork = TestValues.testMatchingWorkE
+        val oppositeWork  = TestValues.testLongAnswerWorkA
+        val testDocument = testWork.response.get
         val updatedWork = testWork.copy(
           version = 99L,
 
           // Shouldn't be updated
           studentId  = oppositeWork.studentId,
           taskId     = oppositeWork.taskId,
+          documentId = oppositeWork.documentId,
           response   = oppositeWork.response,
           createdAt  = oppositeWork.createdAt,
 
@@ -1300,17 +1263,71 @@ class WorkRepositorySpec
           isComplete = !testWork.isComplete
         )
 
+        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(testDocument.id, *, *) returns(Future.successful(\/-(testDocument)))
+
         val result = workRepository.update(updatedWork)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        val eitherWork = Await.result(result, Duration.Inf)
+        val \/-(work: LongAnswerWork) = eitherWork
+
+        // This values should remain unchanged
+        work.id should be(testWork.id)
+        work.studentId should be(testWork.studentId)
+        work.taskId should be(testWork.taskId)
+        work.response should be(testWork.response)
+        work.createdAt.toString should be(testWork.createdAt.toString)
+        work.version should be(testWork.version)
+
+        // This should be updated
+        work.isComplete should be(updatedWork.isComplete)
+        work.updatedAt.toString should not be(testWork.updatedAt.toString)
+      }
+      "update ShortAnswerWork if version is wrong (newRevision = FALSE)" in {
+        val testWork    = TestValues.testShortAnswerWorkB
+        // Work for new values
+        val oppositeWork  = TestValues.testLongAnswerWorkA
+        val testDocument = testWork.response.get
+        val updatedWork = testWork.copy(
+          version = 99L,
+
+          // Shouldn't be updated
+          studentId  = oppositeWork.studentId,
+          taskId     = oppositeWork.taskId,
+          documentId = oppositeWork.documentId,
+          response   = oppositeWork.response,
+          createdAt  = oppositeWork.createdAt,
+
+          // Should be updated
+          isComplete = !testWork.isComplete
+        )
+
+        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(testDocument.id, *, *) returns(Future.successful(\/-(testDocument)))
+
+        val result = workRepository.update(updatedWork)
+        val eitherWork = Await.result(result, Duration.Inf)
+        val \/-(work: ShortAnswerWork) = eitherWork
+
+        // This values should remain unchanged
+        work.id should be(testWork.id)
+        work.studentId should be(testWork.studentId)
+        work.taskId should be(testWork.taskId)
+        work.response should be(testWork.response)
+        work.createdAt.toString should be(testWork.createdAt.toString)
+        work.version should be(testWork.version)
+
+        // This should be updated
+        work.isComplete should be(updatedWork.isComplete)
+        work.updatedAt.toString should not be(testWork.updatedAt.toString)
       }
       "return RepositoryError.NoResults if work doesn't exist (newRevision = FALSE)" in {
-        val testWork = TestValues.testMatchingWorkO
+        val testWork = TestValues.testLongAnswerWorkK
         // Work for new values
-        val oppositeWork = TestValues.testMatchingWorkE
+        val oppositeWork  = TestValues.testLongAnswerWorkA
+        val testDocument = testWork.response.get
         val updatedWork = testWork.copy(
           // Shouldn't be updated
           studentId  = oppositeWork.studentId,
           taskId     = oppositeWork.taskId,
+          documentId = oppositeWork.documentId,
           response   = oppositeWork.response,
           createdAt  = oppositeWork.createdAt,
 
@@ -1318,23 +1335,7 @@ class WorkRepositorySpec
           isComplete = !testWork.isComplete
         )
 
-        val result = workRepository.update(updatedWork)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
-      }
-      "return RepositoryError.NoResults if try to update work previous revision (newRevision = FALSE)" in {
-        val testWork = TestValues.testMatchingWorkRevisionJ
-        // Work for new values
-        val oppositeWork = TestValues.testMatchingWorkE
-        val updatedWork = testWork.copy(
-          // Shouldn't be updated
-          studentId  = oppositeWork.studentId,
-          taskId     = oppositeWork.taskId,
-          response   = oppositeWork.response,
-          createdAt  = oppositeWork.createdAt,
-
-          // Should be updated
-          isComplete = !testWork.isComplete
-        )
+        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(testDocument.id, *, *) returns(Future.successful(\/-(testDocument)))
 
         val result = workRepository.update(updatedWork)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))

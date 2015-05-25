@@ -378,8 +378,8 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
           for  {
             document <- lift(documentRepository.find(documentWork.documentId))
             result = documentWork.copy(
-              response = Some(document)
-//              version = document.version
+              response = Some(document),
+              version = document.version
             )
           } yield result
         }
@@ -422,8 +422,8 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
             document  <- lift(documentRepository.find(documentWork.documentId))
             revisions <- lift(revisionRepository.list(document, toVersion = document.version))
             result    = documentWork.copy(
-              response = Some(document.copy(revisions = revisions))
-//              version = document.version
+              response = Some(document.copy(revisions = revisions)),
+              version = document.version
             )
           } yield result
           lift(res)
@@ -471,8 +471,8 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
           for  {
             document <- lift(documentRepository.find(documentWork.documentId))
             result = documentWork.copy(
-              response = Some(document)
-//              version = document.version
+              response = Some(document),
+              version = document.version
             )
           } yield result
         }
@@ -491,8 +491,9 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
     queryOne(FindById, Seq[Any](workId.bytes)).flatMap {
       case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId).map {
         case \/-(document) => \/.right(documentWork.copy(
-          response = Some(document)
-//          version  = document.version
+          response = Some(document),
+          version  = document.version,
+          updatedAt = getLatestDate(documentWork.updatedAt, document.updatedAt)
         ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
@@ -512,6 +513,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
         case \/-(document) => \/.right(documentWork.copy(
           response  = Some(document),
           version   = document.version,
+          // As it is specific revision, we get document.updatedAt
           updatedAt = document.updatedAt
         ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
@@ -534,7 +536,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
         case \/-(document) => \/.right(documentWork.copy(
           version   = document.version,
           response  = Some(document),
-          updatedAt = document.updatedAt
+          updatedAt = getLatestDate(documentWork.updatedAt, document.updatedAt)
         ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
@@ -555,6 +557,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
         case \/-(document) => \/.right(documentWork.copy(
           version   = document.version,
           response  = Some(document),
+          // As it is specific revision, we get document.updatedAt
           updatedAt = document.updatedAt
         ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
@@ -562,6 +565,21 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
       case \/-(otherWorkTypes) => lift(queryOne(FindByStudentTaskVersion, Seq[Any](user.id.bytes, task.id.bytes, version, version, version)))
       case -\/(error: RepositoryError.Fail) => Future successful \/.left(error)
     }
+  }
+
+
+  /**
+   * When we update a LongAnswer or a ShortAnswer work without creating new revision, we also update updatedAt field,
+   * but the related document updatedAt field remains the same. So when we try to find a LongAnswer or a ShortAnswer work,
+   * we should verify what is the latest updatedAt field value.
+   *
+   * @param date1
+   * @param date2
+   * @return
+   */
+  private def getLatestDate (date1: DateTime, date2: DateTime): DateTime = {
+    if (date1.getMillis >= date2.getMillis) date1
+    else date2
   }
 
   /**
@@ -629,7 +647,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
 
     if (newRevision) {
       tableName match {
-        case "long_answer_work" | "short_answer_work" => Future successful  \/.left(RepositoryError.BadParam("Adding new Revisions to a DocumentWork should be done in the Document Repository and Revision Repository"))
+        case "long_answer_work" | "short_answer_work" => Future successful \/.left(RepositoryError.BadParam("Adding new Revisions to a DocumentWork should be done in the Document Repository and Revision Repository"))
         case _ => queryOne(UpdateWithNewRevision(tableName), Seq[Any](
           work.version +1,
           work.isComplete,
@@ -646,23 +664,27 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
       }
     }
     else {
-      queryOne(UpdateKeepLatestRevision(tableName), Seq[Any](
-        1L,
-        work.isComplete,
-        new DateTime,
-        work.id.bytes,
-        1L
-      )).flatMap {
-        case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId, documentWork.version).map {
-         case \/-(document) => \/.right(documentWork.copy(
-           response  = Some(document),
-           version = document.version,
-           updatedAt = document.updatedAt
-         ))
-         case -\/(error: RepositoryError.Fail) => \/.left(error)
+      work match {
+        case listWork: ListWork[_] => Future successful \/.left(RepositoryError.BadParam("Completing a ListWork should be done with a new Revision"))
+        case documentWork: DocumentWork => {
+          queryOne(UpdateKeepLatestRevision(tableName), Seq[Any](
+            1L,
+            work.isComplete,
+            new DateTime,
+            work.id.bytes,
+            1L
+          )).flatMap {
+            case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId, documentWork.version).map {
+              case \/-(document) => \/.right(documentWork.copy(
+                response  = Some(document),
+                version = document.version
+              ))
+              case -\/(error: RepositoryError.Fail) => \/.left(error)
+            }
+            case \/-(otherWorkTypes) => Future successful \/.right(otherWorkTypes)
+            case -\/(error: RepositoryError.Fail) => Future successful \/.left(error)
+          }
         }
-        case \/-(otherWorkTypes) => Future successful \/.right(otherWorkTypes)
-        case -\/(error: RepositoryError.Fail) => Future successful \/.left(error)
       }
     }
   }
@@ -681,7 +703,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
       case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId).map {
         case \/-(document) => \/.right(documentWork.copy(
           // TODO - versions should match, DocumentService.push should update a Work version  and updatedAt field also
-//          version = document.version,
+          version = document.version,
           response = Some(document)
         ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)

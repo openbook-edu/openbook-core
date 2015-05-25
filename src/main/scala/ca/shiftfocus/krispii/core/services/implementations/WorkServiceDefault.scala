@@ -430,43 +430,43 @@ class WorkServiceDefault(val db: DB,
     }
   }
 
-  override def forceComplete(taskId: UUID, justThis: Boolean = true): Future[\/[ErrorUnion#Fail, Unit]] = {
-    transactional { implicit conn =>
-      if (justThis) {
-        for {
-          task <- lift(projectService.findTask(taskId))
-          works <- lift(listWork(task.id))
-          worksToUpdate = works.map {
-            case work: LongAnswerWork => work.copy(isComplete = true)
-            case work: ShortAnswerWork => work.copy(isComplete = true)
-            case work: MultipleChoiceWork => work.copy(isComplete = true)
-            case work: OrderingWork => work.copy(isComplete = true)
-            case work: MatchingWork => work.copy(isComplete = true)
-          }
-          updatedWorks <- lift(serializedT(worksToUpdate)(workRepository.update))
-        } yield ()
-      }
-      else {
-        for {
-          task <- lift(projectService.findTask(taskId))
-          part <- lift(projectService.findPart(task.partId, false))
-          project <- lift(projectService.find(part.projectId, false))
-          tasks = project.parts.filter(_.position <= part.position)
-                               .map(_.tasks).flatten
-                               .filter { task => task.partId != part.id || task.position <= task.position }
-          worksLists <- liftSeq(tasks.map { task => workRepository.list(task) })
-          worksToUpdate = worksLists.flatten.map {
-            case work: LongAnswerWork => work.copy(isComplete = true)
-            case work: ShortAnswerWork => work.copy(isComplete = true)
-            case work: MultipleChoiceWork => work.copy(isComplete = true)
-            case work: OrderingWork => work.copy(isComplete = true)
-            case work: MatchingWork => work.copy(isComplete = true)
-          }
-          updatedWorks <- lift(serializedT(worksToUpdate)(workRepository.update))
-        } yield ()
-      }
-    }
-  }
+//  override def forceComplete(taskId: UUID, justThis: Boolean = true): Future[\/[ErrorUnion#Fail, Unit]] = {
+//    transactional { implicit conn =>
+//      if (justThis) {
+//        for {
+//          task <- lift(projectService.findTask(taskId))
+//          works <- lift(listWork(task.id))
+//          worksToUpdate = works.map {
+//            case work: LongAnswerWork => work.copy(isComplete = true)
+//            case work: ShortAnswerWork => work.copy(isComplete = true)
+//            case work: MultipleChoiceWork => work.copy(isComplete = true)
+//            case work: OrderingWork => work.copy(isComplete = true)
+//            case work: MatchingWork => work.copy(isComplete = true)
+//          }
+//          updatedWorks <- lift(serializedT(worksToUpdate)(workRepository.update))
+//        } yield ()
+//      }
+//      else {
+//        for {
+//          task <- lift(projectService.findTask(taskId))
+//          part <- lift(projectService.findPart(task.partId, false))
+//          project <- lift(projectService.find(part.projectId, false))
+//          tasks = project.parts.filter(_.position <= part.position)
+//                               .map(_.tasks).flatten
+//                               .filter { task => task.partId != part.id || task.position <= task.position }
+//          worksLists <- liftSeq(tasks.map { task => workRepository.list(task) })
+//          worksToUpdate = worksLists.flatten.map {
+//            case work: LongAnswerWork => work.copy(isComplete = true)
+//            case work: ShortAnswerWork => work.copy(isComplete = true)
+//            case work: MultipleChoiceWork => work.copy(isComplete = true)
+//            case work: OrderingWork => work.copy(isComplete = true)
+//            case work: MatchingWork => work.copy(isComplete = true)
+//          }
+//          updatedWorks <- lift(serializedT(worksToUpdate)(workRepository.update))
+//        } yield ()
+//      }
+//    }
+//  }
 
   /*
    * -----------------------------------------------------------

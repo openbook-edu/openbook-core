@@ -134,21 +134,14 @@ class AuthServiceSpec
 //
 //        an [EmailAlreadyExistsException] should be thrownBy Await.result(fNewUser, Duration.Inf)
 //      }
-//      "throw an exception if both username and email are not unique" in {
-//        // Mock authService.find
-//        (userRepository.find(_: UUID)) when(testUserA.id) returns(Future.successful(Some(testUserA)))
-//        (roleRepository.list(_: User)) when(testUserA) returns(Future.successful(indexedRole))
-//        (classRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedClass))
+//      "return if email is not valid" in {
 //
-//        // Conflicting user
-//        (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(Some(testUserB)))
-//        (userRepository.find(_: String)) when(testUserA.username) returns(Future.successful(Some(testUserB)))
+//      }
+//      "return if username is not valid (>= 3 caracters)" in {
 //
-//        (userRepository.update(_: User)(_: Connection)) when(testUserA, mockConnection) returns(Future.successful(testUserA))
+//      }
+//      "return if User id to update is not matching" in {
 //
-//        val fNewUser = authService.update(testUserA.id, testUserA.version, values)
-//
-//        an [EmailAndUsernameAlreadyExistException] should be thrownBy Await.result(fNewUser, Duration.Inf)
 //      }
 //    }
 //  }

@@ -239,7 +239,7 @@ class AuthServiceDefault(val db: DB,
           surname = surname.getOrElse(existingUser.surname)
         )
         updatedUser <- lift(userRepository.update(userToUpdate))
-      } yield existingUser
+      } yield updatedUser
       updated.run
     }
   }
@@ -266,7 +266,7 @@ class AuthServiceDefault(val db: DB,
           username = u_username
         )
         updatedUser <- lift(userRepository.update(userToUpdate))
-      } yield existingUser
+      } yield updatedUser
       updated.run
     }
   }
@@ -290,7 +290,7 @@ class AuthServiceDefault(val db: DB,
           surname = surname.getOrElse(existingUser.surname)
         )
         updatedUser <- lift(userRepository.update(userToUpdate))
-      } yield existingUser
+      } yield updatedUser
       updated.run
     }
   }
@@ -313,7 +313,7 @@ class AuthServiceDefault(val db: DB,
         u_hash = wc.crypt(u_password)
         userToUpdate = existingUser.copy(hash = Some(u_hash))
         updatedUser <- lift(userRepository.update(userToUpdate))
-      } yield existingUser
+      } yield updatedUser
       updated.run
     }
   }
@@ -423,19 +423,12 @@ class AuthServiceDefault(val db: DB,
   override def deleteRole(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Role]] = {
     transactional { implicit conn =>
       for {
-        role <- lift(roleRepository.find(id).map {
-          case \/-(role) =>
-            if (role.version != version)
-              -\/(ServiceError.BadInput("Incorrect version, role out of date."))
-            else
-              \/-(role)
-          case -\/(error) => -\/(error)
-        })
+        role <- lift(roleRepository.find(id))
         _ <- predicate (role.version == version) (RepositoryError.OfflineLockFail)
         wasRemovedFromUsers <- lift(roleRepository.removeFromAllUsers(role))
-        wasDeleted <- lift(roleRepository.delete(role))
+        deletedRole <- lift(roleRepository.delete(role))
       }
-      yield role
+      yield deletedRole
     }
   }
 

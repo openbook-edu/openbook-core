@@ -3,6 +3,7 @@ import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.uuid.UUID
 import com.github.mauricio.async.db.Connection
+import org.joda.time.DateTime
 import scala.concurrent.{Future,ExecutionContext,Await}
 import scala.concurrent.duration._
 import ca.shiftfocus.krispii.core.services._
@@ -14,12 +15,12 @@ import Matchers._ // Is used for "should be and etc."
 import scalaz.{-\/, \/, \/-}
 
 class AuthServiceSpec
-  extends TestEnvironment {
+  extends TestEnvironment(writeToDb = false) {
   // Create stubs of AuthService's dependencies
   val db = stub[DB]
-  val mockConnection = stub[Connection]
-  val userRepository = stub[UserRepository]
-  val roleRepository = stub[RoleRepository]
+  val mockConnection    = stub[Connection]
+  val userRepository    = stub[UserRepository]
+  val roleRepository    = stub[RoleRepository]
   val sessionRepository = stub[SessionRepository]
 
   // Create a real instance of AuthService for testing
@@ -77,83 +78,461 @@ class AuthServiceSpec
     }
   }
 
-//  "AuthService.update" should {
-//    inSequence {
-//      "update user with unique values" in {
-//        val testUser = TestValues.testUserA
-//        val testRoleList = Vector(
-//          TestValues.testRoleA
-//        )
-//        val values = Map(
-//          "email" -> testUser.email,
-//          "username" -> testUser.username
-//        )
-//        // Mock authService.find
-//        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(testUser.username, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
-//        (roleRepository.list(_: User)(_: Connection, _: ScalaCachePool)) when(testUser, *, *) returns(Future.successful(\/.right(testRoleList)))
-//
-//        // Conflicting user
-//        (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(Some(testUserA)))
-//        (userRepository.find(_: String)) when(testUserA.username) returns(Future.successful(Some(testUserA)))
-//
-//        (userRepository.update(_: User)(_: Connection)) when(testUserA, mockConnection) returns(Future.successful(testUserA))
-//
-//        val fNewUser = authService.update(testUserA.id, testUserA.version, values)
-//
-//        Await.result(fNewUser, Duration.Inf) should be (testUserA)
-//      }
-//      "throw an exception if username is not unique" in {
-//        // Mock authService.find
-//        (userRepository.find(_: UUID)) when(testUserA.id) returns(Future.successful(Some(testUserA)))
-//        (roleRepository.list(_: User)) when(testUserA) returns(Future.successful(indexedRole))
-//        (classRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedClass))
-//
-//        // Conflicting user
-//        (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(Some(testUserA)))
-//        (userRepository.find(_: String)) when(testUserA.username) returns(Future.successful(Some(testUserB)))
-//
-//        (userRepository.update(_: User)(_: Connection)) when(testUserA, mockConnection) returns(Future.successful(testUserA))
-//
-//        val fNewUser = authService.update(testUserA.id, testUserA.version, values)
-//
-//        an [UsernameAlreadyExistsException] should be thrownBy Await.result(fNewUser, Duration.Inf)
-//      }
-//      "throw an exception if email is not unique" in {
-//        // Mock authService.find
-//        (userRepository.find(_: UUID)) when(testUserA.id) returns(Future.successful(Some(testUserA)))
-//        (roleRepository.list(_: User)) when(testUserA) returns(Future.successful(indexedRole))
-//        (classRepository.list(_: User, _: Boolean)) when(testUserA, false) returns(Future.successful(indexedClass))
-//
-//        // Conflicting user
-//        (userRepository.find(_: String)) when(testUserA.email) returns(Future.successful(Some(testUserB)))
-//        (userRepository.find(_: String)) when(testUserA.username) returns(Future.successful(Some(testUserA)))
-//
-//        (userRepository.update(_: User)(_: Connection)) when(testUserA, mockConnection) returns(Future.successful(testUserA))
-//
-//        val fNewUser = authService.update(testUserA.id, testUserA.version, values)
-//
-//        an [EmailAlreadyExistsException] should be thrownBy Await.result(fNewUser, Duration.Inf)
-//      }
-//      "return if email is not valid" in {
-//
-//      }
-//      "return if username is not valid (>= 3 caracters)" in {
-//
-//      }
-//      "return if User id to update is not matching" in {
-//
-//      }
-//    }
-//  }
-//
-//  "AuthService.deleteRole" should {
-//    inSequence {
-//      "throw an exception if role versions don't match" in {
-//        (roleRepository.find(_: UUID)) when(testRoleA.id) returns(Future.successful(Option(testRoleA)))
-//
-//        val fNewUser = authService.deleteRole(testRoleA.id, 123456789L)
-//        an [OutOfDateException] should be thrownBy Await.result(fNewUser, Duration.Inf)
-//      }
-//    }
-//  }
+  "AuthService.update" should {
+    inSequence {
+      "update user with unique values (ALL)" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1,
+          email     = "updated_user@example.com",
+          username  = "updated_username",
+          givenname = "updated_givenname",
+          surname   = "updated_surname"
+        )
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        // Conflicting user
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.email, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.username, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+
+        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
+        val eitherUser = Await.result(result, Duration.Inf)
+        val \/-(user) = eitherUser
+
+        user.id should be(updatedTestUser.id)
+        user.version should be(updatedTestUser.version)
+        user.email should be(updatedTestUser.email)
+        user.username should be(updatedTestUser.username)
+        user.hash should be(None)
+        user.givenname should be(updatedTestUser.givenname)
+        user.surname should be(updatedTestUser.surname)
+      }
+      "update user with unique values (only ginvenname and surname)" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1,
+          givenname = "updated_givenname",
+          surname   = "updated_surname"
+        )
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        // Conflicting user
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.email, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.username, *, *) returns(Future.successful(\/-(testUser)))
+
+        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
+        val eitherUser = Await.result(result, Duration.Inf)
+        val \/-(user) = eitherUser
+
+        user.id should be(updatedTestUser.id)
+        user.version should be(updatedTestUser.version)
+        user.email should be(updatedTestUser.email)
+        user.username should be(updatedTestUser.username)
+        user.hash should be(None)
+        user.givenname should be(updatedTestUser.givenname)
+        user.surname should be(updatedTestUser.surname)
+      }
+      "return RepositoryError.UniqueKeyConflict if username is not unique" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1,
+          email     = "updated_user@example.com",
+          username  = "updated_username",
+          givenname = "updated_givenname",
+          surname   = "updated_surname"
+        )
+        val conflictingUser = TestValues.testUserB
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        // Conflicting user
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.email, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.username, *, *) returns(Future.successful(\/-(conflictingUser)))
+
+        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("username", s"The username ${updatedTestUser.username} is already in use.")))
+      }
+      "return RepositoryError.UniqueKeyConflict if email is not unique" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1,
+          email     = "updated_user@example.com",
+          username  = "updated_username",
+          givenname = "updated_givenname",
+          surname   = "updated_surname"
+        )
+        val conflictingUser = TestValues.testUserB
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        // Conflicting user
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.email, *, *) returns(Future.successful(\/-(conflictingUser)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.username, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+
+        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("email", s"The e-mail address ${updatedTestUser.email} is already in use.")))
+      }
+      "return ServiceError.BadInput if email is not valid" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1,
+          email     = "updated_userads aj9879example.com",
+          username  = "updated_username",
+          givenname = "updated_givenname",
+          surname   = "updated_surname"
+        )
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        // Conflicting user
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.email, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.username, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+
+        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"'${updatedTestUser.email}' is not a valid format")))
+      }
+      "return ServiceError.BadInput if username is not valid (>= 3 caracters)" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1,
+          email     = "updated_user@example.com",
+          username  = "up",
+          givenname = "updated_givenname",
+          surname   = "updated_surname"
+        )
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        // Conflicting user
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.email, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.username, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+
+        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"Your username must be at least 3 characters.")))
+      }
+      "return RepositoryError.OfflineLockFail if version is wrong" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1,
+          email     = "updated_user@example.com",
+          username  = "updated_username",
+          givenname = "updated_givenname",
+          surname   = "updated_surname"
+        )
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        // Conflicting user
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.email, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.username, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+
+        val result = authService.update(testUser.id, 99L, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.OfflineLockFail))
+      }
+    }
+  }
+
+  "AuthService.updateIdentifier" should {
+    inSequence {
+      "update user with unique values" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1,
+          email     = "updated_user@example.com",
+          username  = "updated_username"
+        )
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        // Conflicting user
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.email, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.username, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+
+        val result = authService.updateIdentifier(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username))
+        val eitherUser = Await.result(result, Duration.Inf)
+        val \/-(user) = eitherUser
+
+        user.id should be(updatedTestUser.id)
+        user.version should be(updatedTestUser.version)
+        user.email should be(updatedTestUser.email)
+        user.username should be(updatedTestUser.username)
+        user.hash should be(None)
+        user.givenname should be(updatedTestUser.givenname)
+        user.surname should be(updatedTestUser.surname)
+      }
+      "return RepositoryError.UniqueKeyConflict if username is not unique" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1,
+          email     = "updated_user@example.com",
+          username  = "updated_username"
+        )
+        val conflictingUser = TestValues.testUserB
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        // Conflicting user
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.email, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.username, *, *) returns(Future.successful(\/-(conflictingUser)))
+
+        val result = authService.updateIdentifier(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("username", s"The username ${updatedTestUser.username} is already in use.")))
+      }
+      "return RepositoryError.UniqueKeyConflict if email is not unique" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1,
+          email     = "updated_user@example.com",
+          username  = "updated_username"
+        )
+        val conflictingUser = TestValues.testUserB
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        // Conflicting user
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.email, *, *) returns(Future.successful(\/-(conflictingUser)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.username, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+
+        val result = authService.updateIdentifier(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("email", s"The e-mail address ${updatedTestUser.email} is already in use.")))
+      }
+      "return ServiceError.BadInput if email is not valid" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1,
+          email     = "updated_userads aj9879example.com",
+          username  = "updated_username"
+        )
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        // Conflicting user
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.email, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.username, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+
+        val result = authService.updateIdentifier(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username))
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"'${updatedTestUser.email}' is not a valid format")))
+      }
+      "return ServiceError.BadInput if username is not valid (>= 3 caracters)" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1,
+          email     = "updated_user@example.com",
+          username  = "up"
+        )
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        // Conflicting user
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.email, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.username, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+
+        val result = authService.updateIdentifier(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username))
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"Your username must be at least 3 characters.")))
+      }
+      "return RepositoryError.OfflineLockFail if version is wrong" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1,
+          email     = "updated_user@example.com",
+          username  = "updated_username"
+        )
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        // Conflicting user
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.email, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.username, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
+
+        val result = authService.updateIdentifier(testUser.id, 99L, Some(updatedTestUser.email), Some(updatedTestUser.username))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.OfflineLockFail))
+      }
+    }
+  }
+
+  "AuthService.updateInfo" should {
+    inSequence {
+      "update user with values" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1,
+          givenname = "updated_givenname",
+          surname   = "updated_surname"
+        )
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        val result = authService.updateInfo(testUser.id, testUser.version, Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
+        val eitherUser = Await.result(result, Duration.Inf)
+        val \/-(user) = eitherUser
+
+        user.id should be(updatedTestUser.id)
+        user.version should be(updatedTestUser.version)
+        user.email should be(updatedTestUser.email)
+        user.username should be(updatedTestUser.username)
+        user.hash should be(None)
+        user.givenname should be(updatedTestUser.givenname)
+        user.surname should be(updatedTestUser.surname)
+      }
+      "return RepositoryError.OfflineLockFail if version is wrong" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1,
+          givenname = "updated_givenname",
+          surname   = "updated_surname"
+        )
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        val result = authService.updateInfo(testUser.id, 99L, Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.OfflineLockFail))
+      }
+    }
+  }
+
+
+  "AuthService.updatePassword" should {
+    inSequence {
+      "update user with values" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val password = "new pass"
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1
+        )
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        val result = authService.updatePassword(testUser.id, testUser.version, password)
+        val eitherUser = Await.result(result, Duration.Inf)
+        val \/-(user) = eitherUser
+
+        user.id should be(updatedTestUser.id)
+        user.version should be(updatedTestUser.version)
+        user.email should be(updatedTestUser.email)
+        user.username should be(updatedTestUser.username)
+        user.hash should be(None)
+        user.givenname should be(updatedTestUser.givenname)
+        user.surname should be(updatedTestUser.surname)
+      }
+      "return RepositoryError.OfflineLockFail if version is wrong" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val password = "nes pass"
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1
+        )
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        val result = authService.updatePassword(testUser.id, 99L, password)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.OfflineLockFail))
+      }
+      "return RepositoryError.OfflineLockFail if password is short" in {
+        val testUser = TestValues.testUserA.copy(
+          hash = None
+        )
+        val password = "pass ss"
+        val updatedTestUser = testUser.copy(
+          version   = testUser.version + 1
+        )
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+        (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
+
+        val result = authService.updatePassword(testUser.id, testUser.version, password)
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"The password provided must be at least 8 characters.")))
+      }
+    }
+  }
+
+  "AuthService.delete" should {
+    inSequence {
+      "return RepositoryError.OfflineLockFail if versions don't match" in {
+        val testUser = TestValues.testUserA
+
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
+
+        val result = authService.delete(testUser.id, 99L)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.OfflineLockFail))
+      }
+    }
+  }
+
+  "AuthService.updateRole" should {
+    inSequence {
+      "return RepositoryError.OfflineLockFail if versions don't match" in {
+        val testRole = TestValues.testRoleA
+
+        (roleRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testRole.id, *, *) returns(Future.successful(\/-(testRole)))
+
+        val result = authService.updateRole(testRole.id, 99L, testRole.name)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.OfflineLockFail))
+      }
+    }
+  }
+
+  "AuthService.deleteRole" should {
+    inSequence {
+      "return RepositoryError.OfflineLockFail if versions don't match" in {
+        val testRole = TestValues.testRoleA
+
+        (roleRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testRole.id, *, *) returns(Future.successful(\/-(testRole)))
+
+        val result = authService.deleteRole(testRole.id, 99L)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.OfflineLockFail))
+      }
+    }
+  }
 }

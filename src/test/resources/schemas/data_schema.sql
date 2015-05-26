@@ -413,7 +413,7 @@ VALUES ('\xf5f984073a0b4ea5952a575886e90586', '\x599a78ad5bff4246983532fcb41168a
 
 /* longAnswerWorkA -> userC -> longAnswerTaskA -> documentA */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('\x441374e20b1643ecadb96a3251081d24', '\xf5f984073a0b4ea5952a575886e90586', '\xbf1a6ed09f834cb485c1ad456299b3a3', 2, true, 0, '2014-08-01 14:01:19.545-04', '2014-08-03 14:01:19.545-04');
+VALUES ('\x441374e20b1643ecadb96a3251081d24', '\xf5f984073a0b4ea5952a575886e90586', '\xbf1a6ed09f834cb485c1ad456299b3a3', 1, true, 0, '2014-08-01 14:01:19.545-04', '2014-08-03 14:01:19.545-04');
 
 INSERT INTO long_answer_work (work_id, document_id)
 VALUES ('\x441374e20b1643ecadb96a3251081d24', '\xfd923b3f6dc2472e8ce77a8fcc6a1a20');
@@ -421,7 +421,7 @@ VALUES ('\x441374e20b1643ecadb96a3251081d24', '\xfd923b3f6dc2472e8ce77a8fcc6a1a2
 
 /* longAnswerWorkF -> userE -> longAnswerTaskA -> documentB */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('\xf7fcffc37b794de7b6ddcf37aa155fd9', '\x871b525067124e548ab60784cae0bc64', '\xbf1a6ed09f834cb485c1ad456299b3a3', 2, true, 0, '2014-08-03 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
+VALUES ('\xf7fcffc37b794de7b6ddcf37aa155fd9', '\x871b525067124e548ab60784cae0bc64', '\xbf1a6ed09f834cb485c1ad456299b3a3', 1, true, 0, '2014-08-03 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
 
 INSERT INTO long_answer_work (work_id, document_id)
 VALUES ('\xf7fcffc37b794de7b6ddcf37aa155fd9', '\x15173757b881444082854e3d2c03616a');
@@ -429,7 +429,7 @@ VALUES ('\xf7fcffc37b794de7b6ddcf37aa155fd9', '\x15173757b881444082854e3d2c03616
 
 /* ShortAnswerWorkB -> userE -> shortAnswerTask B -> documentC */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('\xcbf452cd915a4b249d0292be013bbba8', '\x871b525067124e548ab60784cae0bc64', '\x10ef05ee7b494352b86e70510adf617f', 2, false, 1, '2014-08-03 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
+VALUES ('\xcbf452cd915a4b249d0292be013bbba8', '\x871b525067124e548ab60784cae0bc64', '\x10ef05ee7b494352b86e70510adf617f', 1, false, 1, '2014-08-03 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
 
 INSERT INTO short_answer_work (work_id, document_id)
 VALUES ('\xcbf452cd915a4b249d0292be013bbba8', '\x462b7f6c8b624c998643a63b2720b2a7');
@@ -437,7 +437,7 @@ VALUES ('\xcbf452cd915a4b249d0292be013bbba8', '\x462b7f6c8b624c998643a63b2720b2a
 
 /* ShortAnswerWorkG -> userC -> shortAnswerTask B -> documentD */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('\xb7bb09c16aca40de81525da483a5c476', '\xf5f984073a0b4ea5952a575886e90586', '\x10ef05ee7b494352b86e70510adf617f', 2, false, 1, '2014-08-05 14:01:19.545-04', '2014-08-07 14:01:19.545-04');
+VALUES ('\xb7bb09c16aca40de81525da483a5c476', '\xf5f984073a0b4ea5952a575886e90586', '\x10ef05ee7b494352b86e70510adf617f', 1, false, 1, '2014-08-05 14:01:19.545-04', '2014-08-07 14:01:19.545-04');
 
 INSERT INTO short_answer_work (work_id, document_id)
 VALUES ('\xb7bb09c16aca40de81525da483a5c476', '\xbd01c98803694ddaada205a9ff3645cf');

@@ -49,7 +49,7 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   def updateOrderingWork(userId: UUID, taskId: UUID, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]]
   def updateMatchingWork(userId: UUID, taskId: UUID, version: Long, answer: IndexedSeq[Match], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]]
 
-  def forceComplete(taskId: UUID, includingPrevious: Boolean = false): Future[\/[ErrorUnion#Fail, Unit]]
+//  def forceComplete(taskId: UUID, includingPrevious: Boolean = false): Future[\/[ErrorUnion#Fail, Unit]]
 
 
   // Task feedbacks

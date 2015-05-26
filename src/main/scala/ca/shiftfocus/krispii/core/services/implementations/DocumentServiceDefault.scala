@@ -94,7 +94,7 @@ class DocumentServiceDefault(val db: DB,
         revertTo <- lift(find(documentId, Some(version)))
         author <- lift(userRepository.find(authorId))
 
-        newDelta = Delete(current.delta.targetLength) +: revertTo.delta
+        newDelta = if (current.delta.isNoOp) revertTo.delta else Delete(current.delta.targetLength) +: revertTo.delta
         newDocument = current.delta.compose(newDelta)
 
         _ <- predicate (newDocument.isDocument) (ServiceError.BadInput("Document Delta must contain only inserts"))

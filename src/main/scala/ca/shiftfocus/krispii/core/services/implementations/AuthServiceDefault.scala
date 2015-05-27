@@ -229,7 +229,7 @@ class AuthServiceDefault(val db: DB,
     transactional { implicit conn =>
       val updated = for {
         existingUser <- lift(userRepository.find(id))
-        _ <- predicate (existingUser.version == version) (RepositoryError.OfflineLockFail)
+        _ <- predicate (existingUser.version == version) (ServiceError.OfflineLockFail)
         u_email <- lift(email.map { someEmail => validateEmail(someEmail, Some(id))}.getOrElse(Future.successful(\/-(existingUser.email))))
         u_username <- lift(username.map { someUsername => validateUsername(someUsername, Some(id))}.getOrElse(Future.successful(\/-(existingUser.username))))
         userToUpdate = existingUser.copy(
@@ -258,7 +258,7 @@ class AuthServiceDefault(val db: DB,
     transactional { implicit conn =>
       val updated = for {
         existingUser <- lift(userRepository.find(id))
-        _ <- predicate (existingUser.version == version) (RepositoryError.OfflineLockFail)
+        _ <- predicate (existingUser.version == version) (ServiceError.OfflineLockFail)
         u_email <- lift(email.map { someEmail => validateEmail(someEmail, Some(id))}.getOrElse(Future.successful(\/-(existingUser.email))))
         u_username <- lift(username.map { someUsername => validateUsername(someUsername, Some(id))}.getOrElse(Future.successful(\/-(existingUser.username))))
         userToUpdate = existingUser.copy(
@@ -284,7 +284,7 @@ class AuthServiceDefault(val db: DB,
     transactional { implicit conn =>
       val updated = for {
         existingUser <- lift(userRepository.find(id))
-        _ <- predicate (existingUser.version == version) (RepositoryError.OfflineLockFail)
+        _ <- predicate (existingUser.version == version) (ServiceError.OfflineLockFail)
         userToUpdate = existingUser.copy(
           givenname = givenname.getOrElse(existingUser.givenname),
           surname = surname.getOrElse(existingUser.surname)
@@ -308,7 +308,7 @@ class AuthServiceDefault(val db: DB,
       val wc = Passwords.scrypt()
       val updated = for {
         existingUser <- lift(userRepository.find(id))
-        _ <- predicate (existingUser.version == version) (RepositoryError.OfflineLockFail)
+        _ <- predicate (existingUser.version == version) (ServiceError.OfflineLockFail)
         u_password <- lift(isValidPassword(password))
         u_hash = wc.crypt(u_password)
         userToUpdate = existingUser.copy(hash = Some(u_hash))
@@ -331,7 +331,7 @@ class AuthServiceDefault(val db: DB,
     transactional { implicit conn =>
       for {
         existingUser <- lift(userRepository.find(id))
-        _ <- predicate (existingUser.version == version) (RepositoryError.OfflineLockFail)
+        _ <- predicate (existingUser.version == version) (ServiceError.OfflineLockFail)
         toDelete = existingUser.copy(version = version)
         deleted <- lift(userRepository.delete(toDelete))
       } yield deleted
@@ -405,7 +405,7 @@ class AuthServiceDefault(val db: DB,
     transactional { implicit conn =>
       val result = for {
         existingRole <- lift(roleRepository.find(id))
-        _ <- predicate (existingRole.version == version) (RepositoryError.OfflineLockFail)
+        _ <- predicate (existingRole.version == version) (ServiceError.OfflineLockFail)
         updatedRole <- lift(roleRepository.update(existingRole.copy(name = name)))
       }
       yield updatedRole
@@ -424,7 +424,7 @@ class AuthServiceDefault(val db: DB,
     transactional { implicit conn =>
       for {
         role <- lift(roleRepository.find(id))
-        _ <- predicate (role.version == version) (RepositoryError.OfflineLockFail)
+        _ <- predicate (role.version == version) (ServiceError.OfflineLockFail)
         wasRemovedFromUsers <- lift(roleRepository.removeFromAllUsers(role))
         deletedRole <- lift(roleRepository.delete(role))
       }

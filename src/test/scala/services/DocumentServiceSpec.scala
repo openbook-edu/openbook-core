@@ -1,4 +1,5 @@
 import ca.shiftfocus.krispii.core.error.ServiceError
+import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models.document.{Document, Revision}
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.DocumentServiceDefault
@@ -28,6 +29,20 @@ class DocumentServiceSpec
 
     override def transactional[A](f: Connection => Future[A]): Future[A] = {
       f(mockConnection)
+    }
+  }
+
+  "DocumentService.update" should {
+    inSequence {
+      "return ServiceError.OfflineLockFail if versions don't match" in {
+        val testDocument = TestValues.testDocumentA
+        val testUser = TestValues.testUserC
+
+        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(testDocument.id, *, *) returns(Future.successful(\/-(testDocument)))
+
+        val result = documentService.update(testDocument.id, testDocument.version + 1, testUser, IndexedSeq(testUser), testDocument.title)
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
+      }
     }
   }
 

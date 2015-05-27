@@ -58,6 +58,7 @@ object ServiceError
   with BadPermissionT
   with BusinessLogicFailT
   with NotScheduledT
+  with OfflineLockFailT
 
 // And an exception for when you don't want to expect particular fails
 case class UnexpectedFailException(fail: ErrorUnion#Fail) extends Exception

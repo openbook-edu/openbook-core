@@ -141,8 +141,9 @@ class ComponentRepositorySpec
         val testProject = TestValues.testProjectA
 
         val testComponentList = TreeMap[Int, Component](
-          0 -> TestValues.testTextComponentA,
-          1 -> TestValues.testVideoComponentB
+          0 -> TestValues.testAudioComponentC,
+          1 -> TestValues.testTextComponentA,
+          2 -> TestValues.testVideoComponentB
         )
 
         val result = componentRepository.list(testProject)
@@ -150,7 +151,7 @@ class ComponentRepositorySpec
         val \/-(components) = eitherComponents
 
         components.size should be(testComponentList.size)
-
+        
         testComponentList.foreach {
           case (key, component: Component) => {
             //Common
@@ -181,6 +182,13 @@ class ComponentRepositorySpec
                   }
                 }
               }
+              case audioComponent: AudioComponent => {
+                component match {
+                  case component: AudioComponent => {
+                    audioComponent.soundcloudId should be(component.soundcloudId)
+                  }
+                }
+              }
             }
           }
         }
@@ -199,7 +207,8 @@ class ComponentRepositorySpec
         val testProject = TestValues.testProjectA
 
         val testComponentList = TreeMap[Int, Component](
-          0 -> TestValues.testTextComponentA
+          0 -> TestValues.testAudioComponentC,
+          1 -> TestValues.testTextComponentA
         )
 
         val result = componentRepository.list(testProject, testUser)
@@ -226,6 +235,13 @@ class ComponentRepositorySpec
                 component match {
                   case component: TextComponent => {
                     textComponent.content should be(component.content)
+                  }
+                }
+              }
+              case audioComponent: AudioComponent => {
+                component match {
+                  case component: AudioComponent => {
+                    audioComponent.soundcloudId should be(component.soundcloudId)
                   }
                 }
               }

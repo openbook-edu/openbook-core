@@ -230,7 +230,7 @@ class AuthServiceSpec
         val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"Your username must be at least 3 characters.")))
       }
-      "return RepositoryError.OfflineLockFail if version is wrong" in {
+      "return ServiceError.OfflineLockFail if version is wrong" in {
         val testUser = TestValues.testUserA.copy(
           hash = None
         )
@@ -250,7 +250,7 @@ class AuthServiceSpec
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.username, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
 
         val result = authService.update(testUser.id, 99L, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.OfflineLockFail))
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
     }
   }
@@ -368,7 +368,7 @@ class AuthServiceSpec
         val result = authService.updateIdentifier(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username))
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"Your username must be at least 3 characters.")))
       }
-      "return RepositoryError.OfflineLockFail if version is wrong" in {
+      "return ServiceError.OfflineLockFail if version is wrong" in {
         val testUser = TestValues.testUserA.copy(
           hash = None
         )
@@ -386,7 +386,7 @@ class AuthServiceSpec
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when(updatedTestUser.username, *, *) returns(Future.successful(-\/(RepositoryError.NoResults)))
 
         val result = authService.updateIdentifier(testUser.id, 99L, Some(updatedTestUser.email), Some(updatedTestUser.username))
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.OfflineLockFail))
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
     }
   }
@@ -418,7 +418,7 @@ class AuthServiceSpec
         user.givenname should be(updatedTestUser.givenname)
         user.surname should be(updatedTestUser.surname)
       }
-      "return RepositoryError.OfflineLockFail if version is wrong" in {
+      "return ServiceError.OfflineLockFail if version is wrong" in {
         val testUser = TestValues.testUserA.copy(
           hash = None
         )
@@ -432,7 +432,7 @@ class AuthServiceSpec
         (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
 
         val result = authService.updateInfo(testUser.id, 99L, Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.OfflineLockFail))
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
     }
   }
@@ -464,7 +464,7 @@ class AuthServiceSpec
         user.givenname should be(updatedTestUser.givenname)
         user.surname should be(updatedTestUser.surname)
       }
-      "return RepositoryError.OfflineLockFail if version is wrong" in {
+      "return ServiceError.OfflineLockFail if version is wrong" in {
         val testUser = TestValues.testUserA.copy(
           hash = None
         )
@@ -477,9 +477,9 @@ class AuthServiceSpec
         (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when(updatedTestUser, *, *) returns(Future.successful(\/-(updatedTestUser)))
 
         val result = authService.updatePassword(testUser.id, 99L, password)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.OfflineLockFail))
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
-      "return RepositoryError.OfflineLockFail if password is short" in {
+      "return ServiceError.OfflineLockFail if password is short" in {
         val testUser = TestValues.testUserA.copy(
           hash = None
         )
@@ -499,39 +499,39 @@ class AuthServiceSpec
 
   "AuthService.delete" should {
     inSequence {
-      "return RepositoryError.OfflineLockFail if versions don't match" in {
+      "return ServiceError.OfflineLockFail if versions don't match" in {
         val testUser = TestValues.testUserA
 
         (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
 
         val result = authService.delete(testUser.id, 99L)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.OfflineLockFail))
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
     }
   }
 
   "AuthService.updateRole" should {
     inSequence {
-      "return RepositoryError.OfflineLockFail if versions don't match" in {
+      "return ServiceError.OfflineLockFail if versions don't match" in {
         val testRole = TestValues.testRoleA
 
         (roleRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testRole.id, *, *) returns(Future.successful(\/-(testRole)))
 
         val result = authService.updateRole(testRole.id, 99L, testRole.name)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.OfflineLockFail))
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
     }
   }
 
   "AuthService.deleteRole" should {
     inSequence {
-      "return RepositoryError.OfflineLockFail if versions don't match" in {
+      "return ServiceError.OfflineLockFail if versions don't match" in {
         val testRole = TestValues.testRoleA
 
         (roleRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testRole.id, *, *) returns(Future.successful(\/-(testRole)))
 
         val result = authService.deleteRole(testRole.id, 99L)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.OfflineLockFail))
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
     }
   }

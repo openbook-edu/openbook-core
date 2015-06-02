@@ -125,6 +125,8 @@ class ComponentServiceDefault(val db: DB,
     transactional { implicit conn =>
       for {
         existingComponent <- lift(componentRepository.find(id))
+        _ <- predicate (existingComponent.version == version) (ServiceError.OfflineLockFail)
+        _ <- predicate (existingComponent.isInstanceOf[AudioComponent]) (ServiceError.BadInput("Component type is not audio"))
         existingAudio = existingComponent.asInstanceOf[AudioComponent]
         componentToUpdate = existingAudio.copy(
           version = version,
@@ -148,6 +150,8 @@ class ComponentServiceDefault(val db: DB,
     transactional { implicit conn =>
       for {
         existingComponent <- lift(componentRepository.find(id))
+        _ <- predicate (existingComponent.version == version) (ServiceError.OfflineLockFail)
+        _ <- predicate (existingComponent.isInstanceOf[TextComponent]) (ServiceError.BadInput("Component type is not text"))
         existingText = existingComponent.asInstanceOf[TextComponent]
         componentToUpdate = existingText.copy(
           version = version,
@@ -173,6 +177,8 @@ class ComponentServiceDefault(val db: DB,
     transactional { implicit conn =>
       for {
         existingComponent <- lift(componentRepository.find(id))
+        _ <- predicate (existingComponent.version == version) (ServiceError.OfflineLockFail)
+        _ <- predicate (existingComponent.isInstanceOf[VideoComponent]) (ServiceError.BadInput("Component type is not video"))
         existingVideo = existingComponent.asInstanceOf[VideoComponent]
         componentToUpdate = existingVideo.copy(
           version = version,
@@ -194,6 +200,7 @@ class ComponentServiceDefault(val db: DB,
     transactional { implicit conn =>
       for {
         component <- lift(componentRepository.find(id))
+        _ <- predicate (component.version == version) (ServiceError.OfflineLockFail)
         toDelete = component match {
           case comp: AudioComponent => comp.copy(version = version)
           case comp: TextComponent => comp.copy(version = version)
@@ -253,6 +260,7 @@ class ComponentServiceDefault(val db: DB,
     }
   }
 
+  // TODO - this method does nothing
   /**
    * Replace "tags" in a text block with the approriate HTML embed code.
    *
@@ -303,7 +311,7 @@ class ComponentServiceDefault(val db: DB,
               // - then list their projects for those courses
               // - then list the components for the enabled parts in those projects
               val fAsStudent: Future[\/[ErrorUnion#Fail, Boolean]] = for {
-                courses <- lift(schoolService.listCoursesByTeacher(user.id))
+                courses <- lift(schoolService.listCoursesByUser(user.id))
                 projects <- liftSeq(courses.map { course => projectService.list(course.id) })
                 components <- liftSeq(projects.flatten.map { project => listByProject(project.id) })
               }
@@ -318,10 +326,9 @@ class ComponentServiceDefault(val db: DB,
         for {
           courses <- lift(schoolService.listCoursesByUser(user.id))
           projects <- liftSeq(courses.map { course => projectService.list(course.id) })
-          parts = projects.flatten.map(_.parts.filter(_.enabled == true)).flatten
-          components <- liftSeq(parts.map { part => listByPart(part.id) })
+          components <- liftSeq(projects.flatten.map { project => listByProject(project.id) })
         }
-        yield components.contains(component)
+        yield components.flatten.contains(component)
       }
       else {
         Future successful \/-(false)

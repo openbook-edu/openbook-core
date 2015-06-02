@@ -566,6 +566,14 @@ VALUES ('\x8cfc608981294c2e9ed145d38077d438', '\xabb84847a3d247a0ae7d8ce04063afc
 INSERT INTO parts_components (component_id, part_id, created_at)
 VALUES ('\x50d07485f33c47559ccf59d823cbb79e', '\xabb84847a3d247a0ae7d8ce04063afc7', '2014-08-03 14:01:19.545-04');
 
+/* testAudioComponentC -> PartA -> project A -> course A -> user A (teacher)*/
+INSERT INTO parts_components (component_id, part_id, created_at)
+VALUES ('\xa51c6b535180416daa771cc620dee9c0', '\x5cd214be6bba47fa9f350eb8bafec397', '2014-08-04 14:01:19.545-04');
+
+/* testAudioComponentE -> PartC -> project B -> course B -> user B (teacher)*/
+INSERT INTO parts_components (component_id, part_id, created_at)
+VALUES ('\x9f2dd973397b4f559618b0ff3af69ecb', '\xfb01f11b7f2341c8877b68410be62aa5', '2014-08-04 14:01:19.545-04');
+
 
 /* ---------------------- SCHEDULES ---------------------- */
 

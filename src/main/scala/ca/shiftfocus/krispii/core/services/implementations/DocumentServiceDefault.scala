@@ -147,6 +147,7 @@ class DocumentServiceDefault(val db: DB,
     transactional { implicit conn =>
       for {
         document <- lift(documentRepository.find(id))
+        _ <- predicate (document.version == version) (ServiceError.OfflineLockFail)
         updated <- lift(documentRepository.update(document.copy(title = title, ownerId = owner.id)))
       } yield updated
     }

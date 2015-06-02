@@ -13,7 +13,7 @@ import play.api.libs.json.Json
 import ws.kahn.ot.exceptions.IncompatibleDeltasException
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
-import play.api.Logger
+
 import ws.kahn.ot.{InsertText, Delta}
 
 import scala.collection.immutable.HashMap

@@ -6,7 +6,7 @@ import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.uuid.UUID
-import play.api.Logger
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scalacache._
 import redis._
@@ -33,7 +33,6 @@ class SessionRepositoryCache extends SessionRepository {
       case _ => \/-(IndexedSeq())
     }.recover {
       case exception => {
-        Logger.error("Could not list sessions")
         \/.left(RepositoryError.DatabaseError("Internal error: could not list sessions", Some(exception)))
       }
     }
@@ -65,7 +64,6 @@ class SessionRepositoryCache extends SessionRepository {
       result => \/-(session)
     }.recover {
       case exception => {
-        Logger.error("Could not create session")
         \/.left(RepositoryError.DatabaseError("Internal error: could not create session", Some(exception)))
       }
     }
@@ -101,7 +99,6 @@ class SessionRepositoryCache extends SessionRepository {
 
     fUpdate.run.recover {
       case exception => {
-        Logger.error("Could not update session")
         \/.left(RepositoryError.DatabaseError("Internal error: could not update session", Some(exception)))
       }
     }
@@ -135,7 +132,6 @@ class SessionRepositoryCache extends SessionRepository {
 
     fRemove.run.recover {
       case exception => {
-        Logger.error("Could not delete session")
         \/.left(RepositoryError.DatabaseError("Internal error: could not delete session", Some(exception)))
       }
     }

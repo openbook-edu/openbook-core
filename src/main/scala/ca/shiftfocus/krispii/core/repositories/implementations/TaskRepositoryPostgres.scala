@@ -13,7 +13,7 @@ import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.uuid.UUID
-import play.api.Logger
+
 import scala.concurrent.Future
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB

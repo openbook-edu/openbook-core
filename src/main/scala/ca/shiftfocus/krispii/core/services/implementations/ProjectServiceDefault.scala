@@ -10,8 +10,6 @@ import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.uuid.UUID
-import play.api.Logger
-import play.api.i18n.Messages
 import scala.concurrent.Future
 import scalacache.ScalaCache
 import scalaz.{EitherT, \/, -\/, \/-}
@@ -630,7 +628,7 @@ class ProjectServiceDefault(val db: DB,
     for {
       task <- lift(taskRepository.find(commonArgs.taskId))
       _ <- predicate (task.version == commonArgs.version) (RepositoryError.OfflineLockFail)
-      _ <- predicate (task.isInstanceOf[LongAnswerTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateLongAnswerTask.wrongTaskType")))
+      _ <- predicate (task.isInstanceOf[LongAnswerTask]) (ServiceError.BadInput("services.ProjectService.updateLongAnswerTask.wrongTaskType"))
       toUpdate = task.asInstanceOf[LongAnswerTask].copy(
         partId = commonArgs.partId.getOrElse(task.partId),
         position = commonArgs.position.getOrElse(task.position),
@@ -661,7 +659,7 @@ class ProjectServiceDefault(val db: DB,
     for {
       task <- lift(taskRepository.find(commonArgs.taskId))
       _ <- predicate (task.version == commonArgs.version) (RepositoryError.OfflineLockFail)
-      _ <- predicate (task.isInstanceOf[ShortAnswerTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateShortAnswerTask.wrongTaskType")))
+      _ <- predicate (task.isInstanceOf[ShortAnswerTask]) (ServiceError.BadInput("services.ProjectService.updateShortAnswerTask.wrongTaskType"))
       shortAnswerTask = task.asInstanceOf[ShortAnswerTask]
       toUpdate = shortAnswerTask.copy(
         partId = commonArgs.partId.getOrElse(task.partId),
@@ -700,7 +698,7 @@ class ProjectServiceDefault(val db: DB,
     for {
       task <- lift(taskRepository.find(commonArgs.taskId))
       _ <- predicate (task.version == commonArgs.version) (RepositoryError.OfflineLockFail)
-      _ <- predicate (task.isInstanceOf[MultipleChoiceTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateMultipleChoiceTask.wrongTaskType")))
+      _ <- predicate (task.isInstanceOf[MultipleChoiceTask]) (ServiceError.BadInput("services.ProjectService.updateMultipleChoiceTask.wrongTaskType"))
       mcTask = task.asInstanceOf[MultipleChoiceTask]
       toUpdate = mcTask.copy(
         partId = commonArgs.partId.getOrElse(task.partId),
@@ -740,7 +738,7 @@ class ProjectServiceDefault(val db: DB,
     for {
       task <- lift(taskRepository.find(commonArgs.taskId))
       _ <- predicate (task.version == commonArgs.version) (RepositoryError.OfflineLockFail)
-      _ <- predicate (task.isInstanceOf[OrderingTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateOrderingTask.wrongTaskType")))
+      _ <- predicate (task.isInstanceOf[OrderingTask]) (ServiceError.BadInput("services.ProjectService.updateOrderingTask.wrongTaskType"))
       orderingTask = task.asInstanceOf[OrderingTask]
       toUpdate = orderingTask.copy(
         partId = commonArgs.partId.getOrElse(task.partId),
@@ -781,7 +779,7 @@ class ProjectServiceDefault(val db: DB,
     for {
       task <- lift(taskRepository.find(commonArgs.taskId))
       _ <- predicate (task.version == commonArgs.version) (RepositoryError.OfflineLockFail)
-      _ <- predicate (task.isInstanceOf[MatchingTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateMatchingTask.wrongTaskType")))
+      _ <- predicate (task.isInstanceOf[MatchingTask]) (ServiceError.BadInput("services.ProjectService.updateMatchingTask.wrongTaskType"))
       matchingTask = task.asInstanceOf[MatchingTask]
       toUpdate = matchingTask.copy(
         partId = commonArgs.partId.getOrElse(task.partId),

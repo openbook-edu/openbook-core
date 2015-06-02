@@ -13,7 +13,7 @@ import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.uuid.UUID
 import play.api.Play.current
 
-import play.api.Logger
+
 import scala.Some
 import scala.concurrent.Future
 import org.joda.time.DateTime

@@ -44,43 +44,43 @@ object JournalEntry {
 
   object JournalEntryConnect extends Action {
     override val entryType = "connect"
-    override val action    = Messages("journalEntry.connect.action")
+    override val action    = "journalEntry.connect.action"
   }
   object JournalEntryDisconnect extends Action {
     override val entryType = "disconnect"
-    override val action    = Messages("journalEntry.Disconnect.action")
+    override val action    = "journalEntry.Disconnect.action"
   }
   object JournalEntryClick extends Action {
     override val entryType = "click"
-    override val action    = Messages("journalEntry.click.action")
+    override val action    = "journalEntry.click.action"
   }
   object JournalEntryView extends Action {
     override val entryType = "view"
-    override val action    = Messages("journalEntry.view.action")
+    override val action    = "journalEntry.view.action"
   }
   object JournalEntryWatch extends Action {
     override val entryType = "watch"
-    override val action    = Messages("journalEntry.watch.action")
+    override val action    = "journalEntry.watch.action"
   }
   object JournalEntryListen extends Action {
     override val entryType = "listen"
-    override val action    = Messages("journalEntry.listen.action")
+    override val action    = "journalEntry.listen.action"
   }
   object JournalEntryWrite extends Action {
     override val entryType = "write"
-    override val action    = Messages("journalEntry.write.action")
+    override val action    = "journalEntry.write.action"
   }
   object JournalEntryCreate extends Action {
     override val entryType = "create"
-    override val action    = Messages("journalEntry.create.action")
+    override val action    = "journalEntry.create.action"
   }
   object JournalEntryUpdate extends Action {
     override val entryType = "update"
-    override val action    = Messages("journalEntry.update.action")
+    override val action    = "journalEntry.update.action"
   }
   object JournalEntryDelete extends Action {
     override val entryType = "delete"
-    override val action    = Messages("journalEntry.delete.action")
+    override val action    = "journalEntry.delete.action"
   }
 
   implicit val journalEntryReads: Reads[JournalEntry] = (

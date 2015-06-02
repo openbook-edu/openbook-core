@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.lib
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import com.typesafe.config.ConfigFactory
-import play.api.Logger
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration

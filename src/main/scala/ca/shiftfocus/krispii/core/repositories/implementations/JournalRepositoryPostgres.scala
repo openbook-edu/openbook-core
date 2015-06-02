@@ -229,7 +229,7 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
       action     = JournalEntry.Action(journalEntry.entryType).action
       formatTime = DateTimeFormat.forPattern("kk:mm:ss")
       formatDate = DateTimeFormat.forPattern("E M d, YYYY")
-      message    = Messages("journalEntry.message", user.givenname, user.surname, action, journalEntry.item, formatTime.print(journalEntry.createdAt), formatDate.print(journalEntry.createdAt))
+      message    = "journalEntry.message" //Messages("journalEntry.message", user.givenname, user.surname, action, journalEntry.item, formatTime.print(journalEntry.createdAt), formatDate.print(journalEntry.createdAt))
       result     = journalEntry.copy(message = message)
     } yield result).run
   }

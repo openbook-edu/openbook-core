@@ -12,7 +12,7 @@ import com.github.mauricio.async.db.{RowData, ResultSet, Connection}
 import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
-import play.api.Logger
+
 import ws.kahn.ot.Delta
 
 import scala.collection.immutable.HashMap

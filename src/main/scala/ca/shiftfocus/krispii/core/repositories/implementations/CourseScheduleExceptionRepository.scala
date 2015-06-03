@@ -4,7 +4,7 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
@@ -22,9 +22,9 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
     val endTime = row("end_time").asInstanceOf[DateTime]
 
     CourseScheduleException(
-      UUID(row("id").asInstanceOf[Array[Byte]]),
-      UUID(row("user_id").asInstanceOf[Array[Byte]]),
-      UUID(row("course_id").asInstanceOf[Array[Byte]]),
+      row("id").asInstanceOf[UUID],
+      row("user_id").asInstanceOf[UUID],
+      row("course_id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
       day.toLocalDate(),
       new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), startTime.getHourOfDay(), startTime.getMinuteOfHour, startTime.getSecondOfMinute()).toLocalTime(),
@@ -106,7 +106,7 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
       case \/-(schedules) => Future successful \/-(schedules)
       case -\/(RepositoryError.NoResults) =>
         for {
-          schedules <- lift(queryList(SelectForUserAndCourse, Array[Any](user.id.bytes, course.id.bytes)))
+          schedules <- lift(queryList(SelectForUserAndCourse, Array[Any](user.id, course.id)))
           _ <- lift(cache.putCache[IndexedSeq[CourseScheduleException]](cacheExceptionsKey(course.id, user.id))(schedules, ttl))
         } yield schedules
       case -\/(error) => Future successful -\/(error)
@@ -121,7 +121,7 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
       case \/-(schedules) => Future successful \/-(schedules)
       case -\/(RepositoryError.NoResults) =>
         for {
-          schedules <- lift(queryList(SelectForCourse, Seq[Any](course.id.bytes)))
+          schedules <- lift(queryList(SelectForCourse, Seq[Any](course.id)))
           _ <- lift(cache.putCache[IndexedSeq[CourseScheduleException]](cacheExceptionsKey(course.id))(schedules, ttl))
         } yield schedules
       case -\/(error) => Future successful -\/(error)
@@ -140,7 +140,7 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
       case \/-(schedules) => Future successful \/-(schedules)
       case -\/(RepositoryError.NoResults) =>
         for {
-          schedule <- lift(queryOne(SelectOne, Seq[Any](id.bytes)))
+          schedule <- lift(queryOne(SelectOne, Seq[Any](id)))
           _ <- lift(cache.putCache[CourseScheduleException](cacheExceptionKey(id))(schedule, ttl))
         } yield schedule
       case -\/(error) => Future successful -\/(error)
@@ -160,12 +160,12 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
 
     for {
       inserted <- lift(queryOne(Insert, Array(
-        courseScheduleException.id.bytes,
+        courseScheduleException.id,
         1L,
         new DateTime,
         new DateTime,
-        courseScheduleException.userId.bytes,
-        courseScheduleException.courseId.bytes,
+        courseScheduleException.userId,
+        courseScheduleException.courseId,
         dayDT,
         startTimeDT,
         endTimeDT,
@@ -189,15 +189,15 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
 
     for {
       updated <- lift(queryOne(Update, Array(
-        courseScheduleException.userId.bytes,
-        courseScheduleException.courseId.bytes,
+        courseScheduleException.userId,
+        courseScheduleException.courseId,
         dayDT,
         startTimeDT,
         endTimeDT,
         courseScheduleException.reason,
         courseScheduleException.version + 1,
         new DateTime,
-        courseScheduleException.id.bytes,
+        courseScheduleException.id,
         courseScheduleException.version
       )))
       _ <- lift(cache.removeCached(cacheExceptionsKey(updated.courseId)))
@@ -213,7 +213,7 @@ class CourseScheduleExceptionRepositoryPostgres(val userRepository: UserReposito
    */
   override def delete(courseScheduleException: CourseScheduleException)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseScheduleException]] = {
     for {
-      deleted <- lift(queryOne(Delete, Array(courseScheduleException.id.bytes, courseScheduleException.version)))
+      deleted <- lift(queryOne(Delete, Array(courseScheduleException.id, courseScheduleException.version)))
       _ <- lift(cache.removeCached(cacheExceptionsKey(deleted.courseId)))
       _ <- lift(cache.removeCached(cacheExceptionsKey(deleted.courseId, deleted.userId)))
     } yield deleted

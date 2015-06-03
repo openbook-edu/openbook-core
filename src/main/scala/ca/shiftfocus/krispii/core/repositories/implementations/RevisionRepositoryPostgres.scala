@@ -7,7 +7,7 @@ import ca.shiftfocus.krispii.core.models.document.Revision
 import ca.shiftfocus.krispii.core.models.document.Document
 import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.{RowData, ResultSet, Connection}
 import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -28,9 +28,9 @@ class RevisionRepositoryPostgres extends RevisionRepository with PostgresReposit
    */
   def constructor(row: RowData): Revision = {
     Revision(
-      documentId = UUID(row("document_id").asInstanceOf[Array[Byte]]),
+      documentId = row("document_id").asInstanceOf[UUID],
       version = row("version").asInstanceOf[Long],
-      authorId = UUID(row("author_id").asInstanceOf[Array[Byte]]),
+      authorId = row("author_id").asInstanceOf[UUID],
       delta = Json.parse(row("delta").asInstanceOf[String]).as[Delta],
       createdAt = row("created_at").asInstanceOf[DateTime]
     )
@@ -105,10 +105,10 @@ class RevisionRepositoryPostgres extends RevisionRepository with PostgresReposit
    */
   override def list(document: Document, afterVersion: Long = 0, toVersion: Long = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Revision]]] = {
     (afterVersion, toVersion) match {
-      case (0, 0) => queryList(ListAllRevisions, Seq[Any](document.id.bytes))
-      case (_, 0) => queryList(ListRevisionsAfter, Seq[Any](document.id.bytes, afterVersion))
-      case (0, _) => queryList(ListRevisionsTo, Seq[Any](document.id.bytes, toVersion))
-      case (_, _) => queryList(ListRevisionsBetween, Seq[Any](document.id.bytes, afterVersion, toVersion))
+      case (0, 0) => queryList(ListAllRevisions, Seq[Any](document.id))
+      case (_, 0) => queryList(ListRevisionsAfter, Seq[Any](document.id, afterVersion))
+      case (0, _) => queryList(ListRevisionsTo, Seq[Any](document.id, toVersion))
+      case (_, _) => queryList(ListRevisionsBetween, Seq[Any](document.id, afterVersion, toVersion))
       case _      => Future.successful(\/-(IndexedSeq.empty[Revision]))
     }
   }
@@ -122,7 +122,7 @@ class RevisionRepositoryPostgres extends RevisionRepository with PostgresReposit
    * @return
    */
   override def find(document: Document, version: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Revision]] = {
-    queryOne(SelectOneRevision, Seq[Any](document.id.bytes, version))
+    queryOne(SelectOneRevision, Seq[Any](document.id, version))
   }
 
   /**
@@ -134,9 +134,9 @@ class RevisionRepositoryPostgres extends RevisionRepository with PostgresReposit
    */
   override def insert(revision: Revision)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Revision]] = {
     queryOne(PushRevision, Seq[Any](
-      revision.documentId.bytes,
+      revision.documentId,
       revision.version,
-      revision.authorId.bytes,
+      revision.authorId,
       Json.toJson(revision.delta).toString(),
       new DateTime
     ))

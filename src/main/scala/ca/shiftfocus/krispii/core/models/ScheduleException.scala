@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.models
 
 import com.github.mauricio.async.db.RowData
 import ca.shiftfocus.krispii.core.lib.{LocalDateTimeJson}
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.joda.time.DateTime
 import org.joda.time.LocalTime
 import org.joda.time.LocalDate
@@ -11,7 +11,7 @@ import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
 case class CourseScheduleException(
-  id: UUID = UUID.random,
+  id: UUID = UUID.randomUUID,
   userId: UUID,
   courseId: UUID,
   version: Long = 1L,

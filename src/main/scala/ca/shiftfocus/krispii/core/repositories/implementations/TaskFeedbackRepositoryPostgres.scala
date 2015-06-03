@@ -4,7 +4,7 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
@@ -17,9 +17,9 @@ class TaskFeedbackRepositoryPostgres (val documentRepository: DocumentRepository
 
   def constructor(row: RowData): TaskFeedback = {
     TaskFeedback(
-      studentId  = UUID(row("student_id").asInstanceOf[Array[Byte]]),
-      taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      documentId = UUID(row("document_id").asInstanceOf[Array[Byte]])
+      studentId  = row("student_id").asInstanceOf[UUID],
+      taskId     = row("task_id").asInstanceOf[UUID],
+      documentId = row("document_id").asInstanceOf[UUID]
     )
   }
 
@@ -82,7 +82,7 @@ class TaskFeedbackRepositoryPostgres (val documentRepository: DocumentRepository
    */
   def list(student: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskFeedback]]] = {
     (for {
-      taskFeedbackList <- lift(queryList(SelectAllForStudentAndProject, Seq[Any](student.id.bytes, project.id.bytes)))
+      taskFeedbackList <- lift(queryList(SelectAllForStudentAndProject, Seq[Any](student.id, project.id)))
       result <- liftSeq(taskFeedbackList.map( taskFeedback =>
         (for {
           document <- lift(documentRepository.find(taskFeedback.documentId))
@@ -104,7 +104,7 @@ class TaskFeedbackRepositoryPostgres (val documentRepository: DocumentRepository
    */
   def list(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskFeedback]]] = {
     (for {
-      taskFeedbackList <- lift(queryList(SelectAllForTask, Seq[Any](task.id.bytes)))
+      taskFeedbackList <- lift(queryList(SelectAllForTask, Seq[Any](task.id)))
       result <- liftSeq(taskFeedbackList.map( taskFeedback =>
         (for {
           document <- lift(documentRepository.find(taskFeedback.documentId))
@@ -127,7 +127,7 @@ class TaskFeedbackRepositoryPostgres (val documentRepository: DocumentRepository
    */
   def find(student: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskFeedback]] = {
     (for {
-      taskFeedback <- lift(queryOne(SelectOneById, Array[Any](student.id.bytes, task.id.bytes)))
+      taskFeedback <- lift(queryOne(SelectOneById, Array[Any](student.id, task.id)))
       document     <- lift(documentRepository.find(taskFeedback.documentId))
     } yield taskFeedback.copy(
         version   = document.version,
@@ -147,9 +147,9 @@ class TaskFeedbackRepositoryPostgres (val documentRepository: DocumentRepository
   def insert(feedback: TaskFeedback)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskFeedback]] = {
     (for {
       taskFeedback <- lift(queryOne(Insert, Array[Any](
-        feedback.studentId.bytes,
-        feedback.taskId.bytes,
-        feedback.documentId.bytes
+        feedback.studentId,
+        feedback.taskId,
+        feedback.documentId
       )))
       document     <- lift(documentRepository.find(taskFeedback.documentId))
     } yield taskFeedback.copy(
@@ -170,8 +170,8 @@ class TaskFeedbackRepositoryPostgres (val documentRepository: DocumentRepository
   def delete(feedback: TaskFeedback)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskFeedback]] = {
     (for {
       taskFeedback <- lift(queryOne(Delete, Array[Any](
-        feedback.studentId.bytes,
-        feedback.taskId.bytes
+        feedback.studentId,
+        feedback.taskId
       )))
       document     <- lift(documentRepository.find(taskFeedback.documentId))
     } yield taskFeedback.copy(
@@ -192,7 +192,7 @@ class TaskFeedbackRepositoryPostgres (val documentRepository: DocumentRepository
   def delete(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskFeedback]]] = {
     (for {
       feedbackList <- lift(list(task))
-      _  <- lift(queryList(DeleteAllForTask, Array[Any](task.id.bytes)))
+      _  <- lift(queryList(DeleteAllForTask, Array[Any](task.id)))
     } yield feedbackList).run
   }
 }

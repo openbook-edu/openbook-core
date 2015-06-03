@@ -4,7 +4,7 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.repositories.{TaskRepository, PartRepository, ProjectRepository}
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import scala.concurrent.Future
 import scalaz.\/
 

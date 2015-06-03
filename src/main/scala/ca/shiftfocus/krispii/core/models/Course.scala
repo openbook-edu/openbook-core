@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models
 
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import java.awt.Color
 import org.joda.time.DateTime
 import play.api.libs.json._
@@ -8,13 +8,15 @@ import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
 case class Course(
-  id: UUID = UUID.random,
+  id: UUID = UUID.randomUUID,
   version: Long = 1L,
   teacherId: UUID,
   name: String,
   color: Color,
   slug: String,
+  enabled: Boolean = true,
   chatEnabled: Boolean = true,
+  schedulingEnabled: Boolean = false,
   projects: Option[IndexedSeq[Project]] = None,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
@@ -52,7 +54,9 @@ object Course {
     (__ \ "name").write[String] and
     (__ \ "color").write[Color] and
     (__ \ "slug").write[String] and
+    (__ \ "enabled").write[Boolean] and
     (__ \ "chatEnabled").write[Boolean] and
+    (__ \ "schedulingEnabled").write[Boolean] and
     (__ \ "projects").writeNullable[IndexedSeq[Project]] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
@@ -83,7 +87,9 @@ case class CoursePut(
   name: Option[String],
   color: Option[Color],
   slug: Option[String],
-  chatEnabled: Option[Boolean]
+  enabled: Option[Boolean],
+  chatEnabled: Option[Boolean],
+  schedulingEnabled: Option[Boolean]
 )
 object CoursePut {
   implicit val colorReads = Course.colorReads
@@ -93,6 +99,8 @@ object CoursePut {
     (__ \ "name").readNullable[String] and
     (__ \ "color").readNullable[Color] and
     (__ \ "slug").readNullable[String] and
-    (__ \ "chatEnabled").readNullable[Boolean]
+    (__ \ "enabled").readNullable[Boolean] and
+    (__ \ "chatEnabled").readNullable[Boolean] and
+    (__ \ "schedulingEnabled").readNullable[Boolean]
   )(CoursePut.apply _)
 }

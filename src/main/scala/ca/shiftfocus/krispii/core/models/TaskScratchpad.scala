@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.models
 
 import ca.shiftfocus.krispii.core.models.document.Document
 import com.github.mauricio.async.db.RowData
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.json.Writes._

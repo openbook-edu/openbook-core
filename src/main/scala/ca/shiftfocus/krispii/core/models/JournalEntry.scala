@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models
 
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.joda.time.DateTime
 import play.api.i18n.Messages
 import play.api.libs.json._
@@ -9,7 +9,7 @@ import play.api.libs.functional.syntax._
 
 
 case class JournalEntry(
-  id: UUID = UUID.random,
+  id: UUID = UUID.randomUUID,
   version: Long = 1L,
   userId: UUID,
   projectId: UUID,

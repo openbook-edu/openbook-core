@@ -7,7 +7,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 
 import org.joda.time.LocalTime
 import org.joda.time.LocalDate
@@ -249,30 +249,37 @@ class ScheduleServiceDefault(val db: DB,
 
   override def isCourseScheduledForUser(course: Course, userId: UUID, today: LocalDate, now: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
     val fCourses = schoolService.listCoursesByUser(userId)
-    for {
-      courses <- lift(fCourses)
-      _ <- predicate (courses.contains(course)) (ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource."))
-      fSchedules = listSchedulesByCourse(course.id)
-      fExceptions = listScheduleExceptionsByCourse(course.id)
-      schedules <- lift(fSchedules)
-      exceptions <- lift(fExceptions)
-      userExceptions = exceptions.filter(_.userId == userId)
-      scheduledForStudent = {
-        schedules.exists({ schedule =>
-          today.equals(schedule.day) && (
-            now.equals(schedule.startTime) ||
-              now.equals(schedule.endTime) ||
-              (now.isBefore(schedule.endTime) && now.isAfter(schedule.startTime))
-            )
-        }) ||
-        userExceptions.exists({ schedule =>
-          today.equals(schedule.day) && (
-            now.equals(schedule.startTime) ||
-              now.equals(schedule.endTime) ||
-              (now.isBefore(schedule.endTime) && now.isAfter(schedule.startTime))
-            )
-        })
-      }
-    } yield scheduledForStudent
+    if (!course.schedulingEnabled) {
+      for {
+        courses <- lift(fCourses)
+        _ <- predicate (courses.contains(course)) (ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource."))
+      } yield course.enabled
+    } else {
+      for {
+        courses <- lift(fCourses)
+        _ <- predicate (courses.contains(course)) (ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource."))
+        fSchedules = listSchedulesByCourse(course.id)
+        fExceptions = listScheduleExceptionsByCourse(course.id)
+        schedules <- lift(fSchedules)
+        exceptions <- lift(fExceptions)
+        userExceptions = exceptions.filter(_.userId == userId)
+        scheduledForStudent = {
+          schedules.exists({ schedule =>
+            today.equals(schedule.day) && (
+              now.equals(schedule.startTime) ||
+                now.equals(schedule.endTime) ||
+                (now.isBefore(schedule.endTime) && now.isAfter(schedule.startTime))
+              )
+          }) ||
+            userExceptions.exists({ schedule =>
+              today.equals(schedule.day) && (
+                now.equals(schedule.startTime) ||
+                  now.equals(schedule.endTime) ||
+                  (now.isBefore(schedule.endTime) && now.isAfter(schedule.startTime))
+                )
+            })
+        }
+      } yield scheduledForStudent
+    }
   }
 }

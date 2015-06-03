@@ -12,7 +12,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 
 import scala.concurrent.Future
 import org.joda.time.DateTime
@@ -381,7 +381,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       case \/-(taskList) => Future successful \/-(taskList)
       case -\/(RepositoryError.NoResults) =>
         for {
-          taskList <- lift(queryList(SelectByPartId, Array[Any](part.id.bytes)))
+          taskList <- lift(queryList(SelectByPartId, Array[Any](part.id)))
           _ <- lift(cache.putCache[IndexedSeq[Task]](cacheTasksKey(part.id))(taskList, ttl))
         } yield taskList
       case -\/(error) => Future successful -\/(error)
@@ -395,7 +395,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
    * @return a vector of the returned tasks
    */
   override def list(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
-    queryList(SelectByProjectId, Array[Any](project.id.bytes))
+    queryList(SelectByProjectId, Array[Any](project.id))
   }
 
   /**
@@ -409,7 +409,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       case \/-(task) => Future successful \/-(task)
       case -\/(RepositoryError.NoResults) =>
         for {
-          task <- lift(queryOne(SelectOne, Seq[Any](id.bytes)))
+          task <- lift(queryOne(SelectOne, Seq[Any](id)))
           _ <- lift(cache.putCache[Task](cacheTaskKey(id))(task, ttl))
         } yield task
       case -\/(error) => Future successful -\/(error)
@@ -430,7 +430,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       case \/-(taskId) => this.find(taskId)
       case -\/(RepositoryError.NoResults) =>
         for {
-          task <- lift(queryOne(SelectByPosition, Seq[Any](part.position, project.id.bytes, taskNum)))
+          task <- lift(queryOne(SelectByPosition, Seq[Any](part.position, project.id, taskNum)))
           _ <- lift(cache.putCache[Task](cacheTaskKey(task.id))(task, ttl))
           _ <- lift(cache.putCache[Task](cacheTaskPosKey(project.id, part.id, taskNum))(task, ttl))
         } yield task
@@ -446,7 +446,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
    * @return
    */
   override def findNow(user: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]] = {
-    queryOne(SelectNowByUserId, Seq[Any](user.id.bytes, project.id.bytes))
+    queryOne(SelectNowByUserId, Seq[Any](user.id, project.id))
   }
 
   /**
@@ -471,13 +471,13 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   override def insert(task: Task)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]] = {
     // All tasks have these properties.
     val commonData = Seq[Any](
-      task.id.bytes,
+      task.id,
       1,
       new DateTime,
       new DateTime,
-      task.partId.bytes,
+      task.partId,
       task.settings.dependencyId match {
-        case Some(id) => Some(id.bytes)
+        case Some(id) => Some(id)
         case None => None
       },
       task.settings.title,
@@ -543,9 +543,9 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   override def update(task: Task)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]] = {
     // Start with the data common to all task types.
     val commonData = Seq[Any](
-      task.partId.bytes,
+      task.partId,
       task.settings.dependencyId match {
-        case Some(id) => Some(id.bytes)
+        case Some(id) => Some(id)
         case None => None
       },
       task.settings.title,
@@ -556,7 +556,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.settings.notesTitle,
       task.version +1,
       new DateTime,
-      task.id.bytes, task.version
+      task.id, task.version
     )
 
     // Throw in the task type-specific data.
@@ -609,7 +609,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
    */
   override def delete(task: Task)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]] = {
     for {
-      deleted <- lift(queryOne(Delete, Seq(task.id.bytes, task.version)))
+      deleted <- lift(queryOne(Delete, Seq(task.id, task.version)))
       _ <- lift(cache.removeCached(cacheTaskKey(task.id)))
       _ <- lift(cache.removeCached(cacheTasksKey(task.partId)))
     } yield deleted
@@ -623,7 +623,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
    */
   override def delete(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
     for {
-      deleted <- lift(queryList(DeleteByPart, Array[Any](part.id.bytes)))
+      deleted <- lift(queryList(DeleteByPart, Array[Any](part.id)))
       _ <- liftSeq(deleted.map({ task => cache.removeCached(cacheTaskKey(task.id)) }))
       _ <- lift(cache.removeCached(cacheTasksKey(part.id)))
     } yield deleted
@@ -639,8 +639,8 @@ trait SpecificTaskConstructors {
    */
   protected def constructLongAnswerTask(row: RowData): LongAnswerTask = {
     LongAnswerTask(
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-      partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
+      id = row("id").asInstanceOf[UUID],
+      partId = row("part_id").asInstanceOf[UUID],
       position = row("position").asInstanceOf[Int],
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
@@ -657,8 +657,8 @@ trait SpecificTaskConstructors {
    */
   protected def constructShortAnswerTask(row: RowData): ShortAnswerTask = {
     ShortAnswerTask(
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-      partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
+      id = row("id").asInstanceOf[UUID],
+      partId = row("part_id").asInstanceOf[UUID],
       position = row("position").asInstanceOf[Int],
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
@@ -676,8 +676,8 @@ trait SpecificTaskConstructors {
    */
   protected def constructMultipleChoiceTask(row: RowData): MultipleChoiceTask = {
     MultipleChoiceTask(
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-      partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
+      id = row("id").asInstanceOf[UUID],
+      partId = row("part_id").asInstanceOf[UUID],
       position = row("position").asInstanceOf[Int],
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
@@ -698,8 +698,8 @@ trait SpecificTaskConstructors {
    */
   protected def constructOrderingTask(row: RowData): OrderingTask = {
     OrderingTask(
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-      partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
+      id = row("id").asInstanceOf[UUID],
+      partId = row("part_id").asInstanceOf[UUID],
       position = row("position").asInstanceOf[Int],
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
@@ -719,8 +719,8 @@ trait SpecificTaskConstructors {
    */
   protected def constructMatchingTask(row: RowData): MatchingTask = {
     MatchingTask(
-      id = UUID(row("id").asInstanceOf[Array[Byte]]),
-      partId = UUID(row("part_id").asInstanceOf[Array[Byte]]),
+      id = row("id").asInstanceOf[UUID],
+      partId = row("part_id").asInstanceOf[UUID],
       position = row("position").asInstanceOf[Int],
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),

@@ -5,7 +5,7 @@ import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.ExecutionContext.Implicits.global
 import play.api.i18n.Messages
@@ -191,7 +191,7 @@ class AuthServiceDefault(val db: DB,
    * @param id The ID to allocate for this user, if left out, it will be random.
    * @return the created user
    */
-  override def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.random): Future[\/[ErrorUnion#Fail, User]] = {
+  override def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.randomUUID): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
       val webcrank = Passwords.scrypt()
 
@@ -388,7 +388,7 @@ class AuthServiceDefault(val db: DB,
    * @param name  the name of the Role to create
    * @return the newly created Role
    */
-  override def createRole(name: String, id: UUID = UUID.random): Future[\/[ErrorUnion#Fail, Role]] = {
+  override def createRole(name: String, id: UUID = UUID.randomUUID): Future[\/[ErrorUnion#Fail, Role]] = {
     val newRole = Role(name = name, id = id)
     roleRepository.insert(newRole)
   }

@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models.tasks
 
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import ca.shiftfocus.krispii.core.models.{VideoComponent, TextComponent, AudioComponent}
 import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
@@ -54,7 +54,7 @@ object Task {
    * @param updatedAt
    * @return
    */
-  def apply(id: UUID = UUID.random,
+  def apply(id: UUID = UUID.randomUUID,
              partId: UUID,
              position: Int,
              version: Long = 1L,

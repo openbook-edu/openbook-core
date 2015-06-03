@@ -8,7 +8,7 @@ import com.github.mauricio.async.db.{RowData, Connection, ResultSet}
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import play.api.i18n.Messages
 import scala.concurrent.Future
 import org.joda.time.DateTime
@@ -26,7 +26,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
 
   override def constructor(row: RowData): User = {
     User(
-      id         = UUID(row("id").asInstanceOf[Array[Byte]]),
+      id         = row("id").asInstanceOf[UUID],
       version    = row("version").asInstanceOf[Long],
       email      = row("email").asInstanceOf[String],
       username   = row("username").asInstanceOf[String],
@@ -168,7 +168,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @return
    */
   override def list(role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    queryList(SelectAllWithRole, Seq[Any](role.id.bytes))
+    queryList(SelectAllWithRole, Seq[Any](role.id))
   }
 
   /**
@@ -181,7 +181,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
       case \/-(userList) => Future successful \/.right[RepositoryError.Fail, IndexedSeq[User]](userList)
       case -\/(RepositoryError.NoResults) =>
         for {
-          userList <- lift(queryList(SelectAllWithCourse, Seq[Any](course.id.bytes)))
+          userList <- lift(queryList(SelectAllWithCourse, Seq[Any](course.id)))
           _ <- lift(cache.putCache[IndexedSeq[User]](cacheUserKey(course.id))(userList, ttl))
         } yield userList
       case -\/(error) => Future successful -\/(error)
@@ -199,7 +199,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
       case \/-(user) => Future successful \/.right[RepositoryError.Fail, User](user)
       case -\/(RepositoryError.NoResults) =>
         for {
-          user <- lift(queryOne(SelectOne, Seq[Any](id.bytes)))
+          user <- lift(queryOne(SelectOne, Seq[Any](id)))
           _ <- lift(cache.putCache[UUID](cacheUsernameKey(user.username))(user.id, ttl))
           _ <- lift(cache.putCache[User](cacheUserKey(user.id))(user, ttl))
         } yield user
@@ -243,7 +243,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    */
   override def insert(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
     val params = Seq[Any](
-      user.id.bytes, 1, new DateTime, new DateTime, user.username, user.email,
+      user.id, 1, new DateTime, new DateTime, user.username, user.email,
       user.hash, user.givenname, user.surname
     )
     queryOne(Insert, params)
@@ -264,11 +264,11 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
       updated <- lift { user.hash match {
         case Some(hash) => queryOne(UpdateWithPass, Seq[Any](
           user.username, user.email, hash, user.givenname, user.surname,
-          user.version + 1, new DateTime, user.id.bytes, user.version
+          user.version + 1, new DateTime, user.id, user.version
         ))
         case None => queryOne(UpdateNoPass, Seq[Any](
           user.username, user.email, user.givenname, user.surname,
-          user.version + 1, new DateTime, user.id.bytes, user.version
+          user.version + 1, new DateTime, user.id, user.version
         ))
       }}
       _ <- lift(cache.removeCached(cacheUserKey(updated.id)))
@@ -284,7 +284,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    */
   override def delete(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]] = {
     for {
-      deleted <- lift(queryOne(Delete, Seq[Any](user.id.bytes, user.version)))
+      deleted <- lift(queryOne(Delete, Seq[Any](user.id, user.version)))
       _ <- lift(cache.removeCached(cacheUserKey(deleted.id)))
       _ <- lift(cache.removeCached(cacheUsernameKey(deleted.username)))
     } yield deleted

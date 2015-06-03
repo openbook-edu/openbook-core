@@ -1,7 +1,7 @@
 package ca.shiftfocus.krispii.core.models
 
 import com.github.mauricio.async.db.RowData
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.json.Writes._
@@ -9,7 +9,7 @@ import play.api.libs.functional.syntax._
 
 
 case class User(
-  id: UUID = UUID.random,
+  id: UUID = UUID.randomUUID,
   version: Long = 1L,
   username: String,
   email: String,
@@ -28,7 +28,7 @@ case class User(
   }
 
   override def toString = {
-    s"User(id: ${id.string}, version: $version, username: $username, email: $email, full name: '$givenname $surname')"
+    s"User(id: ${id.toString}, version: $version, username: $username, email: $email, full name: '$givenname $surname')"
   }
 }
 
@@ -44,7 +44,7 @@ object User {
   implicit val userWrites = new Writes[User] {
     def writes(user: User): JsValue = {
       Json.obj(
-        "id" -> user.id.string,
+        "id" -> user.id.toString,
         "version" -> user.version,
         "username" -> user.username,
         "email" -> user.email,
@@ -67,7 +67,7 @@ object UserInfo {
   implicit val userInfoWrites = new Writes[UserInfo] {
     def writes(userInfo: UserInfo): JsValue = {
       Json.obj(
-        "id" -> userInfo.user.id.string,
+        "id" -> userInfo.user.id.toString,
         "version" -> userInfo.user.version,
         "username" -> userInfo.user.username,
         "email" -> userInfo.user.email,

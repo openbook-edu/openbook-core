@@ -6,7 +6,7 @@ import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.models.document._
 import ca.shiftfocus.krispii.core.repositories.{RevisionRepository, UserRepository, DocumentRepository}
 import ca.shiftfocus.krispii.core.services.datasource.{DB, PostgresDB}
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
@@ -122,7 +122,7 @@ class DocumentServiceDefault(val db: DB,
    * @param initialDelta TODO - can have default value Delta(IndexedSeq.empty[Operation]), if it is not empty it should have record in document_revisions table
    * @return
    */
-  override def create(id: UUID = UUID.random, owner: User, title: String, initialDelta: Delta): Future[\/[ErrorUnion#Fail, Document]] = {
+  override def create(id: UUID = UUID.randomUUID, owner: User, title: String, initialDelta: Delta): Future[\/[ErrorUnion#Fail, Document]] = {
     transactional { implicit conn =>
       documentRepository.insert(
         Document(
@@ -162,7 +162,7 @@ class DocumentServiceDefault(val db: DB,
    * The push operation runs in a transaction so that if any one part fails, the entire
    * operation fails and rolls back.
    *
-   * @param documentId the ca.shiftfocus.uuid.UUID of the document to update
+   * @param documentId the java.util.UUID of the document to update
    * @param version the version of the document to update from
    * @param delta the operation to be performed on the document
    * @return a [[PushResult]] object containing:

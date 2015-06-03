@@ -7,7 +7,7 @@ import ca.shiftfocus.krispii.core.models.document.Revision
 import ca.shiftfocus.krispii.core.models.document.Document
 import ca.shiftfocus.krispii.core.models.{Course, Chat, User}
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.{RowData, ResultSet, Connection}
 import play.api.libs.json.Json
 import ws.kahn.ot.exceptions.IncompatibleDeltasException
@@ -31,9 +31,9 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
    */
   def constructor(row: RowData): Chat = {
     Chat(
-      courseId = UUID(row("course_id").asInstanceOf[Array[Byte]]),
+      courseId = row("course_id").asInstanceOf[UUID],
       messageNum = row("message_num").asInstanceOf[Long],
-      userId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
+      userId = row("user_id").asInstanceOf[UUID],
       message = row("message").asInstanceOf[String],
       hidden = row("hidden").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime]
@@ -115,7 +115,7 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
    * @return
    */
   override def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
-    queryList(SelectAllByCourse, Seq[Any](course.id.bytes))
+    queryList(SelectAllByCourse, Seq[Any](course.id))
   }
 
   /**
@@ -128,7 +128,7 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
    * @return
    */
   override def list(course: Course, num: Long, offset: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
-    queryList(SelectOffsetByCourse, Seq[Any](course.id.bytes, num, offset))
+    queryList(SelectOffsetByCourse, Seq[Any](course.id, num, offset))
   }
 
   /**
@@ -140,7 +140,7 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
    * @return
    */
   override def list(course: Course, user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
-    queryList(SelectAllByCourseAndUser, Seq[Any](course.id.bytes, user.id.bytes))
+    queryList(SelectAllByCourseAndUser, Seq[Any](course.id, user.id))
   }
 
   /**
@@ -154,7 +154,7 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
    * @return
    */
   override def list(course: Course, user: User,  num: Long, offset: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
-    queryList(SelectOffsetByCourseAndUser, Seq[Any](course.id.bytes, user.id.bytes, num, offset))
+    queryList(SelectOffsetByCourseAndUser, Seq[Any](course.id, user.id, num, offset))
   }
 
   /**
@@ -166,7 +166,7 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
    * @return
    */
   override def find(course: Course, messageNum: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]] = {
-    queryOne(SelectOne, Seq[Any](course.id.bytes, messageNum))
+    queryOne(SelectOne, Seq[Any](course.id, messageNum))
   }
 
   /**
@@ -177,7 +177,7 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
    * @return
    */
   override def insert(chat: Chat)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]] = {
-    queryOne(Insert, Seq[Any](chat.courseId.bytes, chat.courseId.bytes, chat.userId.bytes, chat.message, false, new DateTime))
+    queryOne(Insert, Seq[Any](chat.courseId, chat.courseId, chat.userId, chat.message, false, new DateTime))
   }
 
   /**
@@ -187,6 +187,6 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
    * @return
    */
   override def update(chat: Chat)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]] = {
-    queryOne(Update, Seq[Any](chat.hidden, chat.courseId.bytes, chat.messageNum))
+    queryOne(Update, Seq[Any](chat.hidden, chat.courseId, chat.messageNum))
   }
 }

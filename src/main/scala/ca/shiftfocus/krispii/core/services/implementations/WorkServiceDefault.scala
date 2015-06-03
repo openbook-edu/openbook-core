@@ -7,7 +7,7 @@ import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -163,7 +163,7 @@ class WorkServiceDefault(val db: DB,
       for {
         user <- lift(fUser)
         task <- lift(fTask)
-        document <- lift(documentService.create(UUID.random, user, "", Delta(IndexedSeq())))
+        document <- lift(documentService.create(UUID.randomUUID, user, "", Delta(IndexedSeq())))
         newWork = LongAnswerWork(
           studentId = user.id,
           taskId = task.id,
@@ -194,7 +194,7 @@ class WorkServiceDefault(val db: DB,
       for {
         user <- lift(fUser)
         task <- lift(fTask)
-        document <- lift(documentService.create(UUID.random, user, "", Delta(IndexedSeq())))
+        document <- lift(documentService.create(UUID.randomUUID, user, "", Delta(IndexedSeq())))
         newWork = ShortAnswerWork(
           studentId = user.id,
           taskId = task.id,
@@ -226,7 +226,7 @@ class WorkServiceDefault(val db: DB,
       for {
         user <- lift(fUser)
         task <- lift(fTask)
-        document <- lift(documentService.create(UUID.random, user, "", Delta(IndexedSeq())))
+        document <- lift(documentService.create(UUID.randomUUID, user, "", Delta(IndexedSeq())))
         newWork = MultipleChoiceWork(
           studentId = userId,
           taskId = taskId,
@@ -258,7 +258,7 @@ class WorkServiceDefault(val db: DB,
       for {
         user <- lift(fUser)
         task <- lift(fTask)
-        document <- lift(documentService.create(UUID.random, user, "", Delta(IndexedSeq())))
+        document <- lift(documentService.create(UUID.randomUUID, user, "", Delta(IndexedSeq())))
         newWork = OrderingWork(
           studentId = userId,
           taskId = taskId,
@@ -290,7 +290,7 @@ class WorkServiceDefault(val db: DB,
       for {
         user <- lift(fUser)
         task <- lift(fTask)
-        document <- lift(documentService.create(UUID.random, user, "", Delta(IndexedSeq())))
+        document <- lift(documentService.create(UUID.randomUUID, user, "", Delta(IndexedSeq())))
         newWork = MatchingWork(
           studentId = userId,
           taskId = taskId,
@@ -548,7 +548,7 @@ class WorkServiceDefault(val db: DB,
         project <- lift(projectService.find(part.projectId, false))
         course <- lift(schoolService.findCourse(project.courseId))
         teacher <- lift(authService.find(course.teacherId))
-        document <- lift(documentService.create(UUID.random, teacher, "", Delta(IndexedSeq())))
+        document <- lift(documentService.create(UUID.randomUUID, teacher, "", Delta(IndexedSeq())))
         newFeedback = TaskFeedback(
           studentId = student.id,
           taskId = task.id,
@@ -620,7 +620,7 @@ class WorkServiceDefault(val db: DB,
       for {
         student <- lift(fStudent)
         task <- lift(fTask)
-        document <- lift(documentService.create(UUID.random, student, "", Delta(IndexedSeq())))
+        document <- lift(documentService.create(UUID.randomUUID, student, "", Delta(IndexedSeq())))
         newScratchpad = TaskScratchpad(
           userId = student.id,
           taskId = task.id,

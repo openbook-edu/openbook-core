@@ -4,7 +4,7 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
@@ -22,9 +22,9 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
     val endTime = row("end_time").asInstanceOf[DateTime]
 
     CourseSchedule(
-      UUID(row("id").asInstanceOf[Array[Byte]]),
+      row("id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
-      UUID(row("course_id").asInstanceOf[Array[Byte]]),
+      row("course_id").asInstanceOf[UUID],
       day.toLocalDate(),
       new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), startTime.getHourOfDay(), startTime.getMinuteOfHour, startTime.getSecondOfMinute()).toLocalTime(),
       new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), endTime.getHourOfDay(), endTime.getMinuteOfHour, endTime.getSecondOfMinute()).toLocalTime(),
@@ -92,7 +92,7 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
       case \/-(schedules) => Future successful \/-(schedules)
       case -\/(RepositoryError.NoResults) =>
         for {
-          schedules <- lift(queryList(SelectByCourseId, Seq[Any](course.id.bytes)))
+          schedules <- lift(queryList(SelectByCourseId, Seq[Any](course.id)))
           _ <- lift(cache.putCache[IndexedSeq[CourseSchedule]](cacheSchedulesKey(course.id))(schedules, ttl))
         } yield schedules
       case -\/(error) => Future successful -\/(error)
@@ -111,7 +111,7 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
       case \/-(schedules) => Future successful \/-(schedules)
       case -\/(RepositoryError.NoResults) =>
         for {
-          schedule <- lift(queryOne(SelectOne, Seq[Any](id.bytes)))
+          schedule <- lift(queryOne(SelectOne, Seq[Any](id)))
           _ <- lift(cache.putCache[CourseSchedule](cacheScheduleKey(id))(schedule, ttl))
         } yield schedule
       case -\/(error) => Future successful -\/(error)
@@ -132,11 +132,11 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
 
     for {
       newSchedule <- lift(queryOne(Insert, Seq[Any](
-        courseSchedule.id.bytes,
+        courseSchedule.id,
         1L,
         new DateTime,
         new DateTime,
-        courseSchedule.courseId.bytes,
+        courseSchedule.courseId,
         dayDT,
         startTimeDT,
         endTimeDT,
@@ -160,14 +160,14 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
 
     for {
       updated <- lift(queryOne(Update, Seq[Any](
-        courseSchedule.courseId.bytes,
+        courseSchedule.courseId,
         dayDT,
         startTimeDT,
         endTimeDT,
         courseSchedule.description,
         courseSchedule.version + 1,
         new DateTime,
-        courseSchedule.id.bytes,
+        courseSchedule.id,
         courseSchedule.version
       )))
       _ <- lift(cache.removeCached(cacheScheduleKey(updated.id)))
@@ -183,7 +183,7 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
    */
   override def delete(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
     for {
-      deleted <- lift(queryOne(Delete, Seq[Any](courseSchedule.id.bytes, courseSchedule.version)))
+      deleted <- lift(queryOne(Delete, Seq[Any](courseSchedule.id, courseSchedule.version)))
       _ <- lift(cache.removeCached(cacheScheduleKey(deleted.id)))
       _ <- lift(cache.removeCached(cacheSchedulesKey(deleted.courseId)))
     } yield deleted

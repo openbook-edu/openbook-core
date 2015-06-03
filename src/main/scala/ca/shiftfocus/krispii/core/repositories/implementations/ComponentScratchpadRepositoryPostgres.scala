@@ -4,7 +4,7 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
@@ -17,8 +17,8 @@ class ComponentScratchpadRepositoryPostgres(val userRepository: UserRepository,
 
   override def constructor(row: RowData): ComponentScratchpad = {
     ComponentScratchpad(
-      UUID(row("user_id").asInstanceOf[Array[Byte]]),
-      UUID(row("component_id").asInstanceOf[Array[Byte]]),
+      row("user_id").asInstanceOf[UUID],
+      row("component_id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
       row("document_id").asInstanceOf[UUID],
       row("created_at").asInstanceOf[DateTime],
@@ -97,7 +97,7 @@ class ComponentScratchpadRepositoryPostgres(val userRepository: UserRepository,
    * @return an optional RowData object containing the results
    */
   override def list(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[ComponentScratchpad]]] = {
-    queryList(SelectAllForUser, Array[Any](user.id.bytes))
+    queryList(SelectAllForUser, Array[Any](user.id))
   }
 
   /**
@@ -107,7 +107,7 @@ class ComponentScratchpadRepositoryPostgres(val userRepository: UserRepository,
    * @return an optional RowData object containing the results
    */
   override def list(component: Component)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[ComponentScratchpad]]] = {
-    queryList(SelectAllForComponent, Array[Any](component.id.bytes))
+    queryList(SelectAllForComponent, Array[Any](component.id))
   }
 
   /**
@@ -117,7 +117,7 @@ class ComponentScratchpadRepositoryPostgres(val userRepository: UserRepository,
    * @return an optional RowData object containing the results
    */
   override def find(user: User, component: Component)(implicit conn: Connection): Future[\/[RepositoryError.Fail, ComponentScratchpad]] = {
-    queryOne(SelectOne, Array[Any](user.id.bytes, component.id.bytes))
+    queryOne(SelectOne, Array[Any](user.id, component.id))
   }
 
   /**
@@ -131,8 +131,8 @@ class ComponentScratchpadRepositoryPostgres(val userRepository: UserRepository,
    */
   override def insert(componentScratchpad: ComponentScratchpad)(implicit conn: Connection): Future[\/[RepositoryError.Fail, ComponentScratchpad]] = {
     queryOne(Insert, Seq(
-      componentScratchpad.userId.bytes,
-      componentScratchpad.componentId.bytes,
+      componentScratchpad.userId,
+      componentScratchpad.componentId,
       1L,
       new DateTime,
       new DateTime,
@@ -153,8 +153,8 @@ class ComponentScratchpadRepositoryPostgres(val userRepository: UserRepository,
       componentScratchpad.documentId,
       componentScratchpad.version + 1,
       new DateTime,
-      componentScratchpad.userId.bytes,
-      componentScratchpad.componentId.bytes,
+      componentScratchpad.userId,
+      componentScratchpad.componentId,
       componentScratchpad.version
     ))
   }
@@ -167,8 +167,8 @@ class ComponentScratchpadRepositoryPostgres(val userRepository: UserRepository,
    */
   override def delete(componentScratchpad: ComponentScratchpad)(implicit conn: Connection): Future[\/[RepositoryError.Fail, ComponentScratchpad]] = {
     queryOne(Delete, Seq(
-      componentScratchpad.userId.bytes,
-      componentScratchpad.componentId.bytes,
+      componentScratchpad.userId,
+      componentScratchpad.componentId,
       componentScratchpad.version)
     )
   }

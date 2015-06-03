@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask
 import ca.shiftfocus.krispii.core.repositories.{ComponentScratchpadRepository, TaskScratchpadRepository, TaskFeedbackRepository, WorkRepository}
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match

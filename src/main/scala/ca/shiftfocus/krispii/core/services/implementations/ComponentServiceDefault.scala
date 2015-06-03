@@ -7,7 +7,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 
 import scala.concurrent.Future
 import scalacache.ScalaCache

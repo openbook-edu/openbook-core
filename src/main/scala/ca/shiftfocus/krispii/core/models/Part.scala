@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models
 
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import org.joda.time.DateTime
 import play.api.libs.json._
@@ -8,7 +8,7 @@ import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
 case class Part(
-  id: UUID = UUID.random,
+  id: UUID = UUID.randomUUID,
   version: Long = 1L,
   projectId: UUID,
   name: String,
@@ -19,7 +19,7 @@ case class Part(
   updatedAt: DateTime = new DateTime
 ) {
   override def toString = {
-    s"Part(id: '${id.string}', position: '${position.toString}', name: '$name')"
+    s"Part(id: '${id.toString}', position: '${position.toString}', name: '$name')"
   }
   override def equals(other: Any): Boolean = {
     other match {

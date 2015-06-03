@@ -8,7 +8,7 @@ import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import scala.collection.IndexedSeq
 import scala.concurrent.Future
 import scalacache.ScalaCache

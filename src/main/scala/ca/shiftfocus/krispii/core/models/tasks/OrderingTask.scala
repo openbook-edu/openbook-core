@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models.tasks
 
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
@@ -23,7 +23,7 @@ import play.api.libs.json._
  */
 case class OrderingTask(
   // Primary Key
-  id: UUID = UUID.random,
+  id: UUID = UUID.randomUUID,
   // Combination must be unique
   partId: UUID,
   position: Int,

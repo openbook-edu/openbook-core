@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.lib.concurrent.FutureMonad
 import ca.shiftfocus.krispii.core.repositories.{PartRepository, ProjectRepository, ComponentRepository}
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import ca.shiftfocus.krispii.core.models._
 import scala.concurrent.Future
 import scalaz.\/

@@ -4,7 +4,7 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.models.document.{Revision, Document}
 import ca.shiftfocus.krispii.core.repositories.{DocumentRepository, UserRepository}
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.Future
@@ -43,7 +43,7 @@ trait DocumentService extends Service[ErrorUnion#Fail] {
   def revert(documentId: UUID, version: Long, authorId: UUID): Future[\/[ErrorUnion#Fail, Document]]
 
   // Create a new document
-  def create(id: UUID = UUID.random, owner: User, title: String, initialDelta: Delta): Future[\/[ErrorUnion#Fail, Document]]
+  def create(id: UUID = UUID.randomUUID, owner: User, title: String, initialDelta: Delta): Future[\/[ErrorUnion#Fail, Document]]
 
   // Update a document (title only, to update contents, push a new revision)
   def update(id: UUID, version: Long, owner: User, editors: IndexedSeq[User], title: String): Future[\/[ErrorUnion#Fail, Document]]

@@ -1,7 +1,7 @@
 package ca.shiftfocus.krispii.core.models
 
 import com.github.mauricio.async.db.RowData
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.json.Writes._
@@ -9,7 +9,7 @@ import play.api.libs.functional.syntax._
 
 
 case class Project(
-  id: UUID = UUID.random,
+  id: UUID = UUID.randomUUID,
   courseId: UUID,
   version: Long = 1L,
   name: String,
@@ -23,8 +23,8 @@ case class Project(
   override def equals(other: Any): Boolean = {
     other match {
       case otherProject: Project => {
-        this.id == otherProject.id &&
-        this.courseId == otherProject.courseId &&
+        this.id.equals(otherProject.id) &&
+        this.courseId.equals(otherProject.courseId) &&
         this.version == otherProject.version &&
         this.name == otherProject.name &&
         this.slug == otherProject.slug &&

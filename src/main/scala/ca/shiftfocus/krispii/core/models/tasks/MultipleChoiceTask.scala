@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models.tasks
 
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import ca.shiftfocus.krispii.core.models.Part
 import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
@@ -27,7 +27,7 @@ import play.api.libs.functional.syntax._
  */
 case class MultipleChoiceTask(
   // Primary Key
-  id: UUID = UUID.random,
+  id: UUID = UUID.randomUUID,
   // Combination must be unique
   partId: UUID,
   position: Int,

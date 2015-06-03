@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.models.document
 import java.security.MessageDigest
 
 import ca.shiftfocus.krispii.core.models.User
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
@@ -11,7 +11,7 @@ import play.api.libs.json._
 import ws.kahn.ot._
 
 case class Document(
-  id: UUID = UUID.random,
+  id: UUID = UUID.randomUUID,
   version: Long = 1L,
   title: String,
   delta: Delta, // represents the current state of the document, only inserts (text or codes)

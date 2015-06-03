@@ -7,7 +7,7 @@ import ca.shiftfocus.krispii.core.models.document.Revision
 import ca.shiftfocus.krispii.core.models.document.Document
 import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.{RowData, ResultSet, Connection}
 import play.api.libs.json.Json
 import ws.kahn.ot.exceptions.IncompatibleDeltasException
@@ -32,11 +32,11 @@ class DocumentRepositoryPostgres (val revisionRepository: RevisionRepository)
    */
   def constructor(row: RowData): Document = {
     Document(
-      id        = UUID(row("id").asInstanceOf[Array[Byte]]),
+      id        = row("id").asInstanceOf[UUID],
       version   = row("version").asInstanceOf[Long],
       title     = row("title").asInstanceOf[String],
       delta     = Json.parse(row("delta").asInstanceOf[String]).as[Delta],
-      ownerId   = UUID(row("owner_id").asInstanceOf[Array[Byte]]),
+      ownerId   = row("owner_id").asInstanceOf[UUID],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )
@@ -81,7 +81,7 @@ class DocumentRepositoryPostgres (val revisionRepository: RevisionRepository)
    * @return
    */
   override def find(id: UUID, version: Long = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Document]] = {
-    queryOne(FindDocument, Seq[Any](id.bytes)).flatMap {
+    queryOne(FindDocument, Seq[Any](id)).flatMap {
       case \/-(document) => version match {
         case 0 => Future successful \/-(document)
         case _ =>
@@ -120,7 +120,7 @@ class DocumentRepositoryPostgres (val revisionRepository: RevisionRepository)
    */
   override def insert(document: Document)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Document]] = {
     queryOne(CreateDocument, Seq[Any](
-      document.id.bytes, 1, document.title, Json.toJson(document.delta).toString(), document.ownerId.bytes, new DateTime, new DateTime
+      document.id, 1, document.title, Json.toJson(document.delta).toString(), document.ownerId, new DateTime, new DateTime
     ))
   }
 
@@ -133,8 +133,8 @@ class DocumentRepositoryPostgres (val revisionRepository: RevisionRepository)
    */
   override def update(document: Document)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Document]] = {
     queryOne(UpdateDocument, Seq[Any](
-      document.version + 1, document.title, Json.toJson(document.delta).toString(), document.ownerId.bytes,
-      new DateTime, document.id.bytes, document.version
+      document.version + 1, document.title, Json.toJson(document.delta).toString(), document.ownerId,
+      new DateTime, document.id, document.version
     ))
   }
 }

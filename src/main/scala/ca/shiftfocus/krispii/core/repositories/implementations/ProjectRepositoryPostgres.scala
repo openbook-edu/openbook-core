@@ -6,7 +6,7 @@ import com.github.mauricio.async.db.{RowData, Connection}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import scala.concurrent.Future
 import org.joda.time.DateTime
 
@@ -18,8 +18,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
 
   def constructor(row: RowData): Project = {
     Project(
-      UUID(row("id").asInstanceOf[Array[Byte]]),
-      UUID(row("course_id").asInstanceOf[Array[Byte]]),
+      row("id").asInstanceOf[UUID],
+      row("course_id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
       row("name").asInstanceOf[String],
       row("slug").asInstanceOf[String],
@@ -131,7 +131,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
         case \/-(projectList) => Future successful \/-(projectList)
         case -\/(RepositoryError.NoResults) =>
           for {
-            projectList <- lift(queryList(ListByCourse, Seq[Any](course.id.bytes)))
+            projectList <- lift(queryList(ListByCourse, Seq[Any](course.id)))
             _ <- lift(cache.putCache[IndexedSeq[Project]](cacheProjectsKey(course.id))(projectList, ttl))
           } yield projectList
         case -\/(error) => Future successful -\/(error)
@@ -158,7 +158,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
         case \/-(project) => Future successful \/-(project)
         case -\/(RepositoryError.NoResults) =>
           for {
-            project <- lift(queryOne(SelectOne, Array[Any](id.bytes)))
+            project <- lift(queryOne(SelectOne, Array[Any](id)))
             _ <- lift(cache.putCache[Project](cacheProjectKey(project.id))(project, ttl))
             _ <- lift(cache.putCache[UUID](cacheProjectSlugKey(project.slug))(project.id, ttl))
           } yield project
@@ -177,7 +177,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   override def find(projectId: UUID, user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = find(projectId, user, true)
   override def find(projectId: UUID, user: User, fetchParts: Boolean)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
-      project <- lift(queryOne(SelectOneForUser, Array[Any](projectId.bytes, user.id.bytes, user.id.bytes)))
+      project <- lift(queryOne(SelectOneForUser, Array[Any](projectId, user.id, user.id)))
       parts <- lift(if (fetchParts) partRepository.list(project) else Future successful \/-(IndexedSeq()))
       _ <- lift(cache.putCache[Project](cacheProjectKey(project.id))(project, ttl))
       _ <- lift(cache.putCache[UUID](cacheProjectSlugKey(project.slug))(project.id, ttl))
@@ -216,7 +216,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    */
   override def insert(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
-      project.id.bytes, 1, project.courseId.bytes, project.name, project.slug,
+      project.id, 1, project.courseId, project.name, project.slug,
       project.description, project.availability, new DateTime, new DateTime
     )
 
@@ -235,8 +235,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    */
   override def update(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
-      project.courseId.bytes, project.name, project.slug, project.description,
-      project.availability, project.version + 1, new DateTime, project.id.bytes, project.version
+      project.courseId, project.name, project.slug, project.description,
+      project.availability, project.version + 1, new DateTime, project.id, project.version
     )
 
     (for {
@@ -257,7 +257,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    */
   override def delete(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
-      deletedProject <- lift(queryOne(Delete, Array(project.id.bytes, project.version)))
+      deletedProject <- lift(queryOne(Delete, Array(project.id, project.version)))
       oldParts = project.parts
       _ <- lift(cache.removeCached(cacheProjectKey(project.id)))
       _ <- lift(cache.removeCached(cacheProjectSlugKey(project.slug)))

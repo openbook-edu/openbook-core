@@ -1,7 +1,7 @@
 package ca.shiftfocus.krispii.core.models.document
 
 import ca.shiftfocus.krispii.core.models.User
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import java.security.MessageDigest
 import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime

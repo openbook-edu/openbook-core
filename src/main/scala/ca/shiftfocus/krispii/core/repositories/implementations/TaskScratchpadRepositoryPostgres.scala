@@ -4,7 +4,7 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
@@ -16,9 +16,9 @@ class TaskScratchpadRepositoryPostgres(val documentRepository: DocumentRepositor
 
   override def constructor(row: RowData): TaskScratchpad = {
     TaskScratchpad(
-      userId = UUID(row("user_id").asInstanceOf[Array[Byte]]),
-      taskId = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      documentId = UUID(row("document_id").asInstanceOf[Array[Byte]])
+      userId = row("user_id").asInstanceOf[UUID],
+      taskId = row("task_id").asInstanceOf[UUID],
+      documentId = row("document_id").asInstanceOf[UUID]
     )
   }
 
@@ -98,7 +98,7 @@ class TaskScratchpadRepositoryPostgres(val documentRepository: DocumentRepositor
    */
   override def list(user: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskScratchpad]]] = {
     (for {
-      taskScratchpadList <- lift(queryList(SelectAllForProject, Seq[Any](user.id.bytes, project.id.bytes)))
+      taskScratchpadList <- lift(queryList(SelectAllForProject, Seq[Any](user.id, project.id)))
       result <- liftSeq(taskScratchpadList.map( taskScratchpad =>
         (for {
           document <- lift(documentRepository.find(taskScratchpad.documentId))
@@ -120,7 +120,7 @@ class TaskScratchpadRepositoryPostgres(val documentRepository: DocumentRepositor
    */
   override def list(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskScratchpad]]] = {
     (for {
-      taskScratchpadList <- lift(queryList(SelectAllForUser, Seq[Any](user.id.bytes)))
+      taskScratchpadList <- lift(queryList(SelectAllForUser, Seq[Any](user.id)))
       result <- liftSeq(taskScratchpadList.map( taskScratchpad =>
         (for {
           document <- lift(documentRepository.find(taskScratchpad.documentId))
@@ -142,7 +142,7 @@ class TaskScratchpadRepositoryPostgres(val documentRepository: DocumentRepositor
    */
   override def list(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskScratchpad]]] = {
     (for {
-      taskScratchpadList <- lift(queryList(SelectAllForTask, Seq[Any](task.id.bytes)))
+      taskScratchpadList <- lift(queryList(SelectAllForTask, Seq[Any](task.id)))
       result <- liftSeq(taskScratchpadList.map( taskScratchpad =>
         (for {
           document <- lift(documentRepository.find(taskScratchpad.documentId))
@@ -165,7 +165,7 @@ class TaskScratchpadRepositoryPostgres(val documentRepository: DocumentRepositor
    */
   override def find(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskScratchpad]] = {
     (for {
-      taskScratchpad <- lift(queryOne(SelectOne, Seq[Any](user.id.bytes, task.id.bytes)))
+      taskScratchpad <- lift(queryOne(SelectOne, Seq[Any](user.id, task.id)))
       document     <- lift(documentRepository.find(taskScratchpad.documentId))
     } yield taskScratchpad.copy(
         version   = document.version,
@@ -187,9 +187,9 @@ class TaskScratchpadRepositoryPostgres(val documentRepository: DocumentRepositor
   override def insert(scratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskScratchpad]] = {
     (for {
       taskScratchpad <- lift(queryOne(Insert, Array[Any](
-        scratchpad.userId.bytes,
-        scratchpad.taskId.bytes,
-        scratchpad.documentId.bytes
+        scratchpad.userId,
+        scratchpad.taskId,
+        scratchpad.documentId
       )))
       document <- lift(documentRepository.find(taskScratchpad.documentId))
     } yield taskScratchpad.copy(
@@ -208,8 +208,8 @@ class TaskScratchpadRepositoryPostgres(val documentRepository: DocumentRepositor
   override def delete(taskScratchpad: TaskScratchpad)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TaskScratchpad]] = {
     (for {
       taskScratchpad <- lift(queryOne(DeleteOne, Seq(
-        taskScratchpad.userId.bytes,
-        taskScratchpad.taskId.bytes
+        taskScratchpad.userId,
+        taskScratchpad.taskId
       )))
       document <- lift(documentRepository.find(taskScratchpad.documentId))
     } yield taskScratchpad.copy(
@@ -228,7 +228,7 @@ class TaskScratchpadRepositoryPostgres(val documentRepository: DocumentRepositor
   override def delete(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TaskScratchpad]]] = {
     (for {
       currentList <- lift(list(task))
-      _ <- lift(queryList(DeleteAllForTask, Seq[Any](task.id.bytes)))
+      _ <- lift(queryList(DeleteAllForTask, Seq[Any](task.id)))
     } yield currentList).run
   }
 }

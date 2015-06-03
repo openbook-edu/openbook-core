@@ -6,7 +6,7 @@ import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseExcepti
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import scala.concurrent.Future
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
@@ -27,9 +27,9 @@ class ComponentRepositoryPostgres()
 
   private def constructAudio(row: RowData): AudioComponent = {
     AudioComponent(
-      UUID(row("id").asInstanceOf[Array[Byte]]),
+      row("id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
-      UUID(row("owner_id").asInstanceOf[Array[Byte]]),
+      row("owner_id").asInstanceOf[UUID],
       row("title").asInstanceOf[String],
       row("questions").asInstanceOf[String],
       row("things_to_think_about").asInstanceOf[String],
@@ -41,9 +41,9 @@ class ComponentRepositoryPostgres()
 
   private def constructText(row: RowData): TextComponent = {
     TextComponent(
-      UUID(row("id").asInstanceOf[Array[Byte]]),
+      row("id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
-      UUID(row("owner_id").asInstanceOf[Array[Byte]]),
+      row("owner_id").asInstanceOf[UUID],
       row("title").asInstanceOf[String],
       row("questions").asInstanceOf[String],
       row("things_to_think_about").asInstanceOf[String],
@@ -55,9 +55,9 @@ class ComponentRepositoryPostgres()
 
   private def constructVideo(row: RowData): VideoComponent = {
     VideoComponent(
-      UUID(row("id").asInstanceOf[Array[Byte]]),
+      row("id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
-      UUID(row("owner_id").asInstanceOf[Array[Byte]]),
+      row("owner_id").asInstanceOf[UUID],
       row("title").asInstanceOf[String],
       row("questions").asInstanceOf[String],
       row("things_to_think_about").asInstanceOf[String],
@@ -306,7 +306,7 @@ class ComponentRepositoryPostgres()
       case \/-(compList) => Future successful \/-(compList)
       case -\/(RepositoryError.NoResults) =>
         for {
-          compList <- lift(queryList(SelectByPartId, Array[Any](part.id.bytes)))
+          compList <- lift(queryList(SelectByPartId, Array[Any](part.id)))
           _ <- lift(cache.putCache[IndexedSeq[Component]](cacheComponentsKey(part.id))(compList, ttl))
         } yield compList
       case -\/(error) => Future successful -\/(error)
@@ -324,7 +324,7 @@ class ComponentRepositoryPostgres()
       case \/-(compList) => Future successful \/-(compList)
       case -\/(RepositoryError.NoResults) =>
         for {
-          compList <- lift(queryList(SelectByProjectId, Array[Any](project.id.bytes)))
+          compList <- lift(queryList(SelectByProjectId, Array[Any](project.id)))
           _ <- lift(cache.putCache[IndexedSeq[Component]](cacheComponentsKey(project.id))(compList, ttl))
         } yield compList
       case -\/(error) => Future successful -\/(error)
@@ -339,7 +339,7 @@ class ComponentRepositoryPostgres()
    * @return an array of components
    */
   override def list(project: Project, user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
-    queryList(SelectEnabledByProjectId, Array[Any](user.id.bytes, project.id.bytes))
+    queryList(SelectEnabledByProjectId, Array[Any](user.id, project.id))
   }
 
   /**
@@ -353,7 +353,7 @@ class ComponentRepositoryPostgres()
       case \/-(compList) => Future successful \/-(compList)
       case -\/(RepositoryError.NoResults) =>
         for {
-          compList <- lift(queryOne(SelectOne, Array[Any](id.bytes)))
+          compList <- lift(queryOne(SelectOne, Array[Any](id)))
           _ <- lift(cache.putCache[Component](cacheComponentKey(id))(compList, ttl))
         } yield compList
       case -\/(error) => Future successful -\/(error)
@@ -369,7 +369,7 @@ class ComponentRepositoryPostgres()
    */
   override def addToPart(component: Component, part: Part)(implicit conn: Connection, cache: ScalaCachePool):Future[\/[RepositoryError.Fail, Unit]] = {
     for {
-      _ <- lift(queryNumRows(AddToPart, Array[Any](component.id.bytes, part.id.bytes, new DateTime))(1 == _).map {
+      _ <- lift(queryNumRows(AddToPart, Array[Any](component.id, part.id, new DateTime))(1 == _).map {
         case \/-(true) => \/-( () )
         case \/-(false) => -\/(RepositoryError.NoResults)
         case -\/(error) => -\/(error)
@@ -387,7 +387,7 @@ class ComponentRepositoryPostgres()
    */
   override def removeFromPart(component: Component, part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
-      _ <- lift(queryNumRows(RemoveFromPart, Array[Any](component.id.bytes, part.id.bytes))(1 == _).map {
+      _ <- lift(queryNumRows(RemoveFromPart, Array[Any](component.id, part.id))(1 == _).map {
         case \/-(true) => \/-( () )
         case \/-(false) => -\/(RepositoryError.NoResults)
         case -\/(error) => -\/(error)
@@ -407,7 +407,7 @@ class ComponentRepositoryPostgres()
     (for {
       componentsInPart <- lift(list(part))
       deletedComponents <- lift {
-        queryNumRows(RemoveAllFromParts, Array[Any](part.id.bytes))(componentsInPart.length == _).map {
+        queryNumRows(RemoveAllFromParts, Array[Any](part.id))(componentsInPart.length == _).map {
           case \/-(true) => \/-( componentsInPart )
           case \/-(false) => -\/(RepositoryError.NoResults)
           case -\/(error) => -\/(error)
@@ -426,9 +426,9 @@ class ComponentRepositoryPostgres()
   override def insert(component: Component)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Component]] = {
     // Common properties.
     val commonData = Seq[Any](
-      component.id.bytes,
+      component.id,
       1,
-      component.ownerId.bytes,
+      component.ownerId,
       component.title,
       component.questions,
       component.thingsToThinkAbout,
@@ -475,12 +475,12 @@ class ComponentRepositoryPostgres()
     // Common properties.
     val commonData = Seq[Any](
       component.version + 1,
-      component.ownerId.bytes,
+      component.ownerId,
       component.title,
       component.questions,
       component.thingsToThinkAbout,
       new DateTime,
-      component.id.bytes,
+      component.id,
       component.version
     )
 
@@ -522,7 +522,7 @@ class ComponentRepositoryPostgres()
    */
   override def delete(component: Component)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
     for {
-      deleted <- lift(queryOne(Delete, Seq[Any](component.id.bytes, component.version)))
+      deleted <- lift(queryOne(Delete, Seq[Any](component.id, component.version)))
       _ <- lift(cache.removeCached(cacheComponentKey(component.id)))
     } yield deleted
   }

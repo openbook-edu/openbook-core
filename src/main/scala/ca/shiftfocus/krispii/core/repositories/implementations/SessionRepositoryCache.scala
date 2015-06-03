@@ -5,7 +5,7 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scalacache._
@@ -28,7 +28,7 @@ class SessionRepositoryCache extends SessionRepository {
    * @return a list of sessions for this user
    */
   override def list(userId: UUID)(implicit cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Session]]] = {
-    cache.getCached[IndexedSeq[Session]](userId.string).map {
+    cache.getCached[IndexedSeq[Session]](userId.toString).map {
       case \/-(sessions: IndexedSeq[Session]) => \/-(sessions)
       case _ => \/-(IndexedSeq())
     }.recover {
@@ -45,7 +45,7 @@ class SessionRepositoryCache extends SessionRepository {
    * @return an Option[Session] if one was found
    */
   override def find(sessionId: UUID)(implicit cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Session]] = {
-    cache.getCached[Session](sessionId.string)
+    cache.getCached[Session](sessionId.toString)
   }
 
   /**
@@ -60,7 +60,7 @@ class SessionRepositoryCache extends SessionRepository {
       updatedAt = Some(new DateTime)
     )
 
-    cache.putCache[Session](session.id.string)(session, ttl).map {
+    cache.putCache[Session](session.id.toString)(session, ttl).map {
       result => \/-(session)
     }.recover {
       case exception => {
@@ -82,14 +82,14 @@ class SessionRepositoryCache extends SessionRepository {
       existing <- lift(list(session.userId))
       newSessions = existing.filter(_.id != session.id) :+ sessionWithDates
       updatedList <- lift {
-        cache.putCache(session.userId.string)(newSessions).map {
+        cache.putCache(session.userId.toString)(newSessions).map {
           result => \/-(newSessions)
         }.recover {
           case exception => throw exception
         }
       }
       updatedSession <- lift {
-        cache.putCache[Session](session.id.string)(sessionWithDates).map {
+        cache.putCache[Session](session.id.toString)(sessionWithDates).map {
           result => \/-(sessionWithDates)
         }.recover {
           case exception => throw exception
@@ -115,14 +115,14 @@ class SessionRepositoryCache extends SessionRepository {
       userSessions <- lift(list(session.userId))
       updatedList = userSessions.filter(_.id != session.id)
       savedList <- lift {
-        cache.putCache(session.userId.string)(updatedList).map {
+        cache.putCache(session.userId.toString)(updatedList).map {
           result => \/-(updatedList)
         }.recover {
           case exception => throw exception
         }
       }
       deletedSession <- lift {
-        cache.removeCached(session.id.string).map {
+        cache.removeCached(session.id.toString).map {
           result => \/-(session)
         }.recover {
           case exception => throw exception

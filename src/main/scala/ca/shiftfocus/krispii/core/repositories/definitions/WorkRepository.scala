@@ -7,7 +7,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.{MatchingTask, Task}
 import ca.shiftfocus.krispii.core.models.work.{ListWork, DocumentWork, Work}
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import scala.concurrent.Future
 import scalaz.\/
 

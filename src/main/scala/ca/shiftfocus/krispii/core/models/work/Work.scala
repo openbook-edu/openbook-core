@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.models.work
 
 import ca.shiftfocus.krispii.core.models.document.Document
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.joda.time.DateTime
 import play.api.libs.json.{Json, JsValue, Writes}
 
@@ -87,7 +87,7 @@ sealed trait DocumentWork extends Work {
 
 
 case class LongAnswerWork(
-  id: UUID = UUID.random,
+  id: UUID = UUID.randomUUID,
   studentId: UUID,
   taskId: UUID,
   documentId: UUID,
@@ -99,7 +99,7 @@ case class LongAnswerWork(
 ) extends DocumentWork
 
 case class ShortAnswerWork(
-  id: UUID = UUID.random,
+  id: UUID = UUID.randomUUID,
   studentId: UUID,
   taskId: UUID,
   documentId: UUID,
@@ -128,7 +128,7 @@ sealed trait MatchListWork extends ListWork[Match] {
 }
 
 case class MultipleChoiceWork(
-  id: UUID = UUID.random,
+  id: UUID = UUID.randomUUID,
   studentId: UUID,
   taskId: UUID,
   override val version: Long,
@@ -147,7 +147,7 @@ case class MultipleChoiceWork(
 }
 
 case class OrderingWork(
-  id: UUID = UUID.random,
+  id: UUID = UUID.randomUUID,
   studentId: UUID,
   taskId: UUID,
   override val version: Long = 1L,
@@ -164,7 +164,7 @@ case class OrderingWork(
 }
 
 case class MatchingWork(
-   id: UUID = UUID.random,
+   id: UUID = UUID.randomUUID,
    studentId: UUID,
    taskId: UUID,
    override val version: Long,

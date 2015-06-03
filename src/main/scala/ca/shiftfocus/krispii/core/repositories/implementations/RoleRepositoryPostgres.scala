@@ -10,7 +10,7 @@ import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import play.api.Play.current
 
 
@@ -26,7 +26,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
 
   override def constructor(row: RowData): Role = {
     Role(
-      UUID(row("id").asInstanceOf[Array[Byte]]),
+      row("id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
       row("name").asInstanceOf[String],
       row("created_at").asInstanceOf[DateTime],
@@ -159,7 +159,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
       case \/-(roleList) => Future successful \/-(roleList)
       case -\/(RepositoryError.NoResults) =>
         for {
-          roleList <- lift(queryList(ListRoles, Array[Any](user.id.bytes)))
+          roleList <- lift(queryList(ListRoles, Array[Any](user.id)))
           _ <- lift(cache.putCache[IndexedSeq[Role]](cacheRolesKey(user.id))(roleList, ttl))
         } yield roleList
       case -\/(error) => Future successful -\/(error)
@@ -177,7 +177,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
       case \/-(role) => Future successful \/-(role)
       case -\/(RepositoryError.NoResults) =>
         for {
-          role <- lift(queryOne(SelectOne, Array[Any](id.bytes)))
+          role <- lift(queryOne(SelectOne, Array[Any](id)))
           _ <- lift(cache.putCache[UUID](cacheRoleNameKey(role.name))(role.id, ttl))
           _ <- lift(cache.putCache[Role](cacheRoleKey(role.id))(role, ttl))
         } yield role
@@ -218,9 +218,9 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * @return
    */
   override def addUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
-    val cleanRoleId = role.id.string filterNot ("-" contains _)
+    val cleanRoleId = role.id.toString filterNot ("-" contains _)
     val query = AddUsers + userList.map { user =>
-      val cleanUserId = user.id.string filterNot ("-" contains _)
+      val cleanUserId = user.id.toString filterNot ("-" contains _)
       s"('\\x$cleanRoleId', '\\x$cleanUserId', '${new DateTime}')"
     }.mkString(",")
 
@@ -242,9 +242,9 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * @return
    */
   override def removeUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
-    val cleanRoleId = role.id.string filterNot ("-" contains _)
+    val cleanRoleId = role.id.toString filterNot ("-" contains _)
     val arrayString = userList.map { user =>
-      val cleanUserId = user.id.string filterNot ("-" contains _)
+      val cleanUserId = user.id.toString filterNot ("-" contains _)
       s"decode('$cleanUserId', 'hex')"
     }.mkString("ARRAY[", ",", "]")
 
@@ -270,7 +270,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * @return id of the saved/new role.
    */
   override def insert(role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Role]] = {
-    val params = Seq[Any](role.id.bytes, 1, new DateTime, new DateTime, role.name)
+    val params = Seq[Any](role.id, 1, new DateTime, new DateTime, role.name)
 
     queryOne(Insert, params)
   }
@@ -281,7 +281,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * @return id of the saved/new role.
    */
   override def update(role: Role)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Role]] = {
-    val params = Seq[Any](role.name, role.version + 1, new DateTime, role.id.bytes, role.version)
+    val params = Seq[Any](role.name, role.version + 1, new DateTime, role.id, role.version)
 
     for {
       updated <- lift(queryOne(Update, params))
@@ -301,7 +301,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
   override def delete(role: Role)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Role]] = {
     for {
       users <- lift(userRepository.list(role))
-      deleted <- lift(queryOne(Delete, Array(role.id.bytes, role.version)))
+      deleted <- lift(queryOne(Delete, Array(role.id, role.version)))
       _ <- lift(cache.removeCached(cacheRoleKey(role.id)))
       _ <- lift(cache.removeCached(cacheRoleNameKey(role.name)))
       _ <- liftSeq { users.map { user => cache.removeCached(cacheRolesKey(user.id)) } }
@@ -312,7 +312,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * Associate a role to a user by role object.
    */
   override def addToUser(user: User, role: Role)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
-    val params = Seq[Any](user.id.bytes, role.id.bytes, new DateTime)
+    val params = Seq[Any](user.id, role.id, new DateTime)
     val fResult = queryNumRows(AddRole, params)(1 == _)
 
     for {
@@ -332,7 +332,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
     for {
       role   <- lift(find(name))
       _      <- {
-        val params = Seq[Any] (user.id.bytes, new DateTime, name)
+        val params = Seq[Any] (user.id, new DateTime, name)
         val fResult = queryNumRows(AddRoleByName, params) (1 == _)
 
         lift(fResult.map {
@@ -351,7 +351,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    */
   override def removeFromUser(user: User, role: Role)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
-      _ <- lift(queryNumRows(RemoveRole, Seq(user.id.bytes, role.id.bytes))(1 == _).map {
+      _ <- lift(queryNumRows(RemoveRole, Seq(user.id, role.id))(1 == _).map {
         case \/-(true)  => \/-( () )
         case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
         case -\/(error) => -\/(error)
@@ -367,7 +367,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
     for {
       user <- lift(userRepository.find(user.id))
       role <- lift(find(name))
-      _    <- lift(queryNumRows(RemoveRoleByName, Seq(user.id.bytes, name))(1 == _).map {
+      _    <- lift(queryNumRows(RemoveRoleByName, Seq(user.id, name))(1 == _).map {
         case \/-(true) => \/-( () )
         case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
         case -\/(error) => -\/(error)
@@ -382,7 +382,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
   override def removeFromAllUsers(role: Role)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       users <- lift(userRepository.list(role))
-      _ <- lift(queryNumRows(RemoveFromAllUsers, Seq[Any](role.id.bytes))(1 <= _).map {
+      _ <- lift(queryNumRows(RemoveFromAllUsers, Seq[Any](role.id))(1 <= _).map {
         case \/-(true) => \/-( () )
         case \/-(false) => -\/(RepositoryError.DatabaseError("It appears that no users had this role, so it has been removed from no one. But the query was successful, so there's that."))
         case -\/(error) => -\/(error)

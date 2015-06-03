@@ -4,7 +4,7 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories.{SessionRepository, CourseRepository, RoleRepository, UserRepository}
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import scala.concurrent.Future
 import scalacache.ScalaCache
 import scalaz.\/
@@ -75,7 +75,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @param surname  The user's family name.
    * @return a future disjunction containing the created user, or a failure
    */
-  def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.random): Future[\/[ErrorUnion#Fail, User]]
+  def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.randomUUID): Future[\/[ErrorUnion#Fail, User]]
 
   /**
    * Update a user
@@ -170,7 +170,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @param name  the name of the Role to create
    * @return the newly created Role
    */
-  def createRole(name: String, id: UUID = UUID.random): Future[\/[ErrorUnion#Fail, Role]]
+  def createRole(name: String, id: UUID = UUID.randomUUID): Future[\/[ErrorUnion#Fail, Role]]
 
   /**
    * Update a Role

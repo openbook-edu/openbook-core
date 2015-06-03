@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.joda.time.format.DateTimeFormat
 import play.api.i18n.Messages
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -21,10 +21,10 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
 
   override def constructor(row: RowData): JournalEntry = {
     JournalEntry(
-      id        = UUID(row("id").asInstanceOf[Array[Byte]]),
+      id        = row("id").asInstanceOf[UUID],
       version   = row("version").asInstanceOf[Long],
-      userId    = UUID(row("user_id").asInstanceOf[Array[Byte]]),
-      projectId = UUID(row("project_id").asInstanceOf[Array[Byte]]),
+      userId    = row("user_id").asInstanceOf[UUID],
+      projectId = row("project_id").asInstanceOf[UUID],
       entryType = row("entry_type").asInstanceOf[String],
       item      = row("item").asInstanceOf[String],
       createdAt = row("created_at").asInstanceOf[DateTime],
@@ -134,7 +134,7 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
    * @return
    */
   override def list(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
-    queryListJournal(SelectByUser, Seq[Any](user.id.bytes))
+    queryListJournal(SelectByUser, Seq[Any](user.id))
   }
 
   /**
@@ -162,7 +162,7 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
    * @return
    */
   override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, JournalEntry]] = {
-    queryOneJournal(SelectById, Seq[Any](id.bytes))
+    queryOneJournal(SelectById, Seq[Any](id))
   }
 
   /**
@@ -178,8 +178,8 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
     val suffix       = formatSuffix.print(createdDate)
 
     val params = Seq[Any](
-      journalEntry.id.bytes, 1, journalEntry.userId.bytes,
-      journalEntry.projectId.bytes, journalEntry.entryType, journalEntry.item,
+      journalEntry.id, 1, journalEntry.userId,
+      journalEntry.projectId, journalEntry.entryType, journalEntry.item,
       journalEntry.createdAt, journalEntry.updatedAt
     )
 
@@ -194,7 +194,7 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
    * @return
    */
   override def delete(journalEntry: JournalEntry)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, JournalEntry]] = {
-    queryOneJournal(Delete, Seq[Any](journalEntry.id.bytes, journalEntry.version))
+    queryOneJournal(Delete, Seq[Any](journalEntry.id, journalEntry.version))
   }
 
   /**
@@ -216,7 +216,7 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
    * @return
    */
   override def delete(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
-    queryListJournal(DeleteByUser, Seq[Any](user.id.bytes))
+    queryListJournal(DeleteByUser, Seq[Any](user.id))
   }
 
   // --- Common methods -----------------------------------------------------------------------------------------------

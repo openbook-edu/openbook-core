@@ -8,7 +8,7 @@ import ca.shiftfocus.krispii.core.models.tasks.Task._
 import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.{ResultSet, RowData, Connection}
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
@@ -32,10 +32,10 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
 
   private def constructLongAnswerWork(row: RowData): LongAnswerWork = {
     LongAnswerWork(
-      id         = UUID(row("id").asInstanceOf[Array[Byte]]),
-      studentId  = UUID(row("user_id").asInstanceOf[Array[Byte]]),
-      taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      documentId = UUID(row("la_document_id").asInstanceOf[Array[Byte]]),
+      id         = row("id").asInstanceOf[UUID],
+      studentId  = row("user_id").asInstanceOf[UUID],
+      taskId     = row("task_id").asInstanceOf[UUID],
+      documentId = row("la_document_id").asInstanceOf[UUID],
       version    = row("version").asInstanceOf[Long],
       response   = None,
       isComplete = row("is_complete").asInstanceOf[Boolean],
@@ -46,10 +46,10 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
 
   private def constructShortAnswerWork(row: RowData): ShortAnswerWork = {
     ShortAnswerWork(
-      id         = UUID(row("id").asInstanceOf[Array[Byte]]),
-      studentId  = UUID(row("user_id").asInstanceOf[Array[Byte]]),
-      taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
-      documentId = UUID(row("sa_document_id").asInstanceOf[Array[Byte]]),
+      id         = row("id").asInstanceOf[UUID],
+      studentId  = row("user_id").asInstanceOf[UUID],
+      taskId     = row("task_id").asInstanceOf[UUID],
+      documentId = row("sa_document_id").asInstanceOf[UUID],
       version    = row("version").asInstanceOf[Long],
       response   = None,
       isComplete = row("is_complete").asInstanceOf[Boolean],
@@ -60,9 +60,9 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
 
   private def constructMultipleChoiceWork(row: RowData): MultipleChoiceWork = {
     MultipleChoiceWork(
-      id         = UUID(row("id").asInstanceOf[Array[Byte]]),
-      studentId  = UUID(row("user_id").asInstanceOf[Array[Byte]]),
-      taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
+      id         = row("id").asInstanceOf[UUID],
+      studentId  = row("user_id").asInstanceOf[UUID],
+      taskId     = row("task_id").asInstanceOf[UUID],
       version    = row("mc_version").asInstanceOf[Long],
       response   = row("mc_response").asInstanceOf[IndexedSeq[Int]],
       isComplete = row("is_complete").asInstanceOf[Boolean],
@@ -73,9 +73,9 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
 
   private def constructOrderingWork(row: RowData): OrderingWork = {
     OrderingWork(
-      id         = UUID(row("id").asInstanceOf[Array[Byte]]),
-      studentId  = UUID(row("user_id").asInstanceOf[Array[Byte]]),
-      taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
+      id         = row("id").asInstanceOf[UUID],
+      studentId  = row("user_id").asInstanceOf[UUID],
+      taskId     = row("task_id").asInstanceOf[UUID],
       version    = row("ord_version").asInstanceOf[Long],
       response   = row("ord_response").asInstanceOf[IndexedSeq[Int]],
       isComplete = row("is_complete").asInstanceOf[Boolean],
@@ -86,9 +86,9 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
 
   private def constructMatchingWork(row: RowData): MatchingWork = {
     MatchingWork(
-      id         = UUID(row("id").asInstanceOf[Array[Byte]]),
-      studentId  = UUID(row("user_id").asInstanceOf[Array[Byte]]),
-      taskId     = UUID(row("task_id").asInstanceOf[Array[Byte]]),
+      id         = row("id").asInstanceOf[UUID],
+      studentId  = row("user_id").asInstanceOf[UUID],
+      taskId     = row("task_id").asInstanceOf[UUID],
       version    = row("mat_version").asInstanceOf[Long],
       response   = row("mat_response").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element =>
         Match(element(0), element(1))
@@ -372,7 +372,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
    */
   override def list(user: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]] = {
     for {
-      workList <- lift(queryList(SelectForUserProject, Seq[Any](project.id.bytes, user.id.bytes)))
+      workList <- lift(queryList(SelectForUserProject, Seq[Any](project.id, user.id)))
       result   <- lift(serializedT(workList) {
         case documentWork: DocumentWork => {
           for  {
@@ -415,7 +415,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
    */
   private def listDocumentWork(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, DocumentWork]] = {
    (for {
-      work   <- lift(queryOne(SelectAllForUserTask, Seq[Any](user.id.bytes, task.id.bytes)))
+      work   <- lift(queryOne(SelectAllForUserTask, Seq[Any](user.id, task.id)))
       result <- { work match {
         case documentWork: DocumentWork => {
           val res: Future[\/[RepositoryError.Fail, DocumentWork]] = for {
@@ -443,7 +443,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
    */
   private def listListWork(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]] = {
     (for {
-      workList <- lift(queryList(SelectAllForUserTask, Seq[Any](user.id.bytes, task.id.bytes)))
+      workList <- lift(queryList(SelectAllForUserTask, Seq[Any](user.id, task.id)))
       result   <- lift(Future.successful(workList match {
         case IndexedSeq(work, rest @ _ *) => {
           work match {
@@ -465,7 +465,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
    */
   override def list(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]] = {
     for {
-      workList <- lift(queryList(SelectForTask, Seq[Any](task.id.bytes)))
+      workList <- lift(queryList(SelectForTask, Seq[Any](task.id)))
       result <- lift(serializedT(workList){
         case documentWork: DocumentWork => {
           for  {
@@ -488,7 +488,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
    * @return
    */
   override def find(workId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    queryOne(FindById, Seq[Any](workId.bytes)).flatMap {
+    queryOne(FindById, Seq[Any](workId)).flatMap {
       case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId).map {
         case \/-(document) => \/.right(documentWork.copy(
           response = Some(document),
@@ -508,7 +508,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
    * @return
    */
   override def find(workId: UUID, version: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    queryOne(FindById, Seq[Any](workId.bytes)).flatMap {
+    queryOne(FindById, Seq[Any](workId)).flatMap {
       case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId, version).map {
         case \/-(document) => \/.right(documentWork.copy(
           response  = Some(document),
@@ -518,7 +518,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
         ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
-      case \/-(otherWorkTypes) => lift(queryOne(FindByIdVersion, Seq[Any](workId.bytes, version, version, version)))
+      case \/-(otherWorkTypes) => lift(queryOne(FindByIdVersion, Seq[Any](workId, version, version, version)))
       case -\/(error: RepositoryError.Fail) => Future successful \/.left(error)
     }
   }
@@ -531,7 +531,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
    * @return
    */
   override def find(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    queryOne(FindByStudentTask, Seq[Any](user.id.bytes, task.id.bytes)).flatMap {
+    queryOne(FindByStudentTask, Seq[Any](user.id, task.id)).flatMap {
       case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId).map {
         case \/-(document) => \/.right(documentWork.copy(
           version   = document.version,
@@ -552,7 +552,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
    * @return
    */
   override def find(user: User, task: Task, version: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    queryOne(FindByStudentTask, Seq[Any](user.id.bytes, task.id.bytes)).flatMap {
+    queryOne(FindByStudentTask, Seq[Any](user.id, task.id)).flatMap {
       case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId, version).map {
         case \/-(document) => \/.right(documentWork.copy(
           version   = document.version,
@@ -562,7 +562,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
         ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
-      case \/-(otherWorkTypes) => lift(queryOne(FindByStudentTaskVersion, Seq[Any](user.id.bytes, task.id.bytes, version, version, version)))
+      case \/-(otherWorkTypes) => lift(queryOne(FindByStudentTaskVersion, Seq[Any](user.id, task.id, version, version, version)))
       case -\/(error: RepositoryError.Fail) => Future successful \/.left(error)
     }
   }
@@ -604,17 +604,17 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
     }
 
     val baseParams = Seq[Any](
-      work.id.bytes,
-      work.studentId.bytes,
-      work.taskId.bytes,
+      work.id,
+      work.studentId,
+      work.taskId,
       work.isComplete,
       new DateTime,
       new DateTime
     )
 
     val params = work match {
-      case specific: LongAnswerWork => baseParams ++ Array[Any](Task.LongAnswer, specific.documentId.bytes)
-      case specific: ShortAnswerWork => baseParams ++ Array[Any](Task.ShortAnswer, specific.documentId.bytes)
+      case specific: LongAnswerWork => baseParams ++ Array[Any](Task.LongAnswer, specific.documentId)
+      case specific: ShortAnswerWork => baseParams ++ Array[Any](Task.ShortAnswer, specific.documentId)
       case specific: MultipleChoiceWork => baseParams ++ Array[Any](Task.MultipleChoice, specific.response)
       case specific: OrderingWork => baseParams ++ Array[Any](Task.Ordering, specific.response)
       case specific: MatchingWork => baseParams ++ Array[Any](Task.Matching, specific.response.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => IndexedSeq(item.left, item.right)})
@@ -652,7 +652,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
           work.version +1,
           work.isComplete,
           new DateTime,
-          work.id.bytes,
+          work.id,
           work.version,
           work match {
             case specific: MultipleChoiceWork => specific.response
@@ -671,7 +671,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
             1L,
             work.isComplete,
             new DateTime,
-            work.id.bytes,
+            work.id,
             1L
           )).flatMap {
             case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId, documentWork.version).map {
@@ -699,7 +699,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
    * @return
    */
   override def delete(work: Work)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = {
-    queryOne(DeleteAllRevisions, Seq[Any](work.id.bytes)).flatMap {
+    queryOne(DeleteAllRevisions, Seq[Any](work.id)).flatMap {
       case \/-(documentWork: DocumentWork) => documentRepository.find(documentWork.documentId).map {
         case \/-(document) => \/.right(documentWork.copy(
           // TODO - versions should match, DocumentService.push should update a Work version  and updatedAt field also
@@ -728,7 +728,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
   override def delete(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]] = {
     (for {
       works <- lift(list(task))
-      deletedWorks <- lift(queryNumRows(DeleteAllForTask, Seq[Any](task.id.bytes))(0 < _))
+      deletedWorks <- lift(queryNumRows(DeleteAllForTask, Seq[Any](task.id))(0 < _))
     } yield works).run
   }
 }

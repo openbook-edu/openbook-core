@@ -46,7 +46,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-json" % "2.4.0",
   "com.typesafe.play" %% "play-jdbc-evolutions" % "2.4.0",
   // We heavily depend on scalaz's \/ and associated types
-  "org.scalaz" %% "scalaz-core" % "7.1.1",
+  "org.scalaz" %% "scalaz-core" % "7.1.2",
   "com.github.mauricio" %% "postgresql-async" % "0.2.15",
   "joda-time" % "joda-time" % "2.1",
   "net.sf.uadetector" % "uadetector-resources" % "2014.04",
@@ -57,7 +57,6 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-api" % "1.7.5",
   "org.slf4j" % "slf4j-simple" % "1.7.5",
   "org.clapper" %% "grizzled-slf4j" % "1.0.2",
-  "ca.shiftfocus" %% "uuid" % "1.0.2",
   "ca.shiftfocus" %% "sflib" % "1.0.4",
   "ws.kahn" %% "ot" % "1.0-SNAPSHOT"
 )

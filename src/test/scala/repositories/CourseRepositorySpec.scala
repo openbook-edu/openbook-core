@@ -2,7 +2,7 @@ import java.awt.Color
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.{User, Course}
 import ca.shiftfocus.krispii.core.repositories._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.scalatest._
 import Matchers._
 import scala.collection._
@@ -503,7 +503,7 @@ class CourseRepositorySpec
        }
        "return RepositoryError.ForeignKeyConflict if course has unexisting teacher id" in {
          val testCourse = TestValues.testCourseE.copy(
-           teacherId = UUID("9d8ed645-b055-4a69-ab7d-387791c1e064")
+           teacherId = UUID.fromString("9d8ed645-b055-4a69-ab7d-387791c1e064")
          )
 
          val result = courseRepository.insert(testCourse)

@@ -4,7 +4,7 @@ import ca.shiftfocus.krispii.core.models.JournalEntry._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import com.github.mauricio.async.db.Connection
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.joda.time.{DateTimeZone, DateTime}
 import org.joda.time.format.DateTimeFormat
 import org.scalatest._
@@ -299,7 +299,7 @@ extends TestEnvironment {
         journalEntry.updatedAt.toString should be(testJournalEntry.updatedAt.toString)
       }
       "return RepositoryError.NoResults if ID doesn't exist" in {
-        val journalEntryId = UUID("2f27a106-390f-4cbf-bcaf-5341ef987dd7")
+        val journalEntryId = UUID.fromString("2f27a106-390f-4cbf-bcaf-5341ef987dd7")
 
         val result = journalRepository.find(journalEntryId)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))

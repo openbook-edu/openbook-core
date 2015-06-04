@@ -1,5 +1,5 @@
 CREATE TABLE users (
-  id bytea PRIMARY KEY,
+  id uuid PRIMARY KEY,
   version bigint,
   email text UNIQUE,
   username text UNIQUE,
@@ -11,7 +11,7 @@ CREATE TABLE users (
 );
 
 CREATE TABLE roles (
-  id bytea PRIMARY KEY,
+  id uuid PRIMARY KEY,
   version bigint,
   name text,
   created_at timestamp with time zone,
@@ -19,16 +19,16 @@ CREATE TABLE roles (
 );
 
 CREATE TABLE users_roles (
-  user_id bytea REFERENCES users(id) ON DELETE CASCADE,
-  role_id bytea REFERENCES roles(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  role_id uuid REFERENCES roles(id) ON DELETE CASCADE,
   created_at timestamp with time zone,
   PRIMARY KEY (user_id, role_id)
 );
 
 CREATE TABLE courses (
-  id bytea PRIMARY KEY,
+  id uuid PRIMARY KEY,
   version bigint,
-  teacher_id bytea NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  teacher_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   name text,
   color integer,
   slug text,
@@ -38,15 +38,15 @@ CREATE TABLE courses (
 );
 
 CREATE TABLE users_courses (
-  user_id bytea REFERENCES users(id) ON DELETE CASCADE,
-  course_id bytea REFERENCES courses(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  course_id uuid REFERENCES courses(id) ON DELETE CASCADE,
   created_at timestamp with time zone,
   PRIMARY KEY (user_id, course_id)
 );
 
 CREATE TABLE course_schedules (
-  id bytea PRIMARY KEY,
-  course_id bytea NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  id uuid PRIMARY KEY,
+  course_id uuid NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   version bigint,
   day timestamp with time zone,
   start_time timestamp with time zone,
@@ -57,9 +57,9 @@ CREATE TABLE course_schedules (
 );
 
 CREATE TABLE course_schedule_exceptions (
-  id bytea PRIMARY KEY,
-  user_id bytea NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  course_id bytea NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
+  id uuid PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  course_id uuid NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
   version bigint,
   day timestamp with time zone,
   start_time timestamp with time zone,
@@ -70,8 +70,8 @@ CREATE TABLE course_schedule_exceptions (
 );
 
 CREATE TABLE projects (
-  id bytea PRIMARY KEY,
-  course_id bytea NOT NULL REFERENCES courses(id) ON DELETE RESTRICT,
+  id uuid PRIMARY KEY,
+  course_id uuid NOT NULL REFERENCES courses(id) ON DELETE RESTRICT,
   version bigint,
   name text,
   slug text,
@@ -82,9 +82,9 @@ CREATE TABLE projects (
 );
 
 CREATE TABLE parts (
-  id bytea PRIMARY KEY,
+  id uuid PRIMARY KEY,
   version bigint,
-  project_id bytea NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
   name text,
   enabled boolean DEFAULT true,
   position int,
@@ -101,9 +101,9 @@ CREATE TABLE parts (
 */
 
 CREATE TABLE documents (
-  id bytea PRIMARY KEY,
+  id uuid PRIMARY KEY,
   version bigint,
-  owner_id bytea NOT NULL REFERENCES users(id),
+  owner_id uuid NOT NULL REFERENCES users(id),
   title text,
   plaintext text,
   delta json,
@@ -125,19 +125,19 @@ CREATE TABLE documents (
 */
 
 CREATE TABLE document_revisions (
-  document_id bytea NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  document_id uuid NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
   version bigint,
-  author_id bytea NOT NULL REFERENCES users(id),
+  author_id uuid NOT NULL REFERENCES users(id),
   delta json,
   created_at timestamp with time zone,
   PRIMARY KEY (document_id, version)
 );
 
 CREATE TABLE tasks (
-  id bytea PRIMARY KEY,
+  id uuid PRIMARY KEY,
   version bigint,
-  part_id bytea NOT NULL REFERENCES parts(id) ON DELETE CASCADE,
-  dependency_id bytea REFERENCES tasks(id) ON DELETE RESTRICT,
+  part_id uuid NOT NULL REFERENCES parts(id) ON DELETE CASCADE,
+  dependency_id uuid REFERENCES tasks(id) ON DELETE RESTRICT,
   name text,
   description text,
   position int,
@@ -150,16 +150,16 @@ CREATE TABLE tasks (
 );
 
 CREATE TABLE long_answer_tasks (
-  task_id bytea PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE
+  task_id uuid PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE
 );
 
 CREATE TABLE short_answer_tasks (
-  task_id bytea PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+  task_id uuid PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
   max_length int
 );
 
 CREATE TABLE multiple_choice_tasks (
-  task_id bytea PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+  task_id uuid PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
   choices text[],
   answers int[],
   allow_multiple boolean DEFAULT false,
@@ -167,14 +167,14 @@ CREATE TABLE multiple_choice_tasks (
 );
 
 CREATE TABLE ordering_tasks (
-  task_id bytea PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+  task_id uuid PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
   elements text[],
   answers int[],
   randomize boolean DEFAULT true
 );
 
 CREATE TABLE matching_tasks (
-  task_id bytea PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+  task_id uuid PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
   elements_left text[],
   elements_right text[],
   answers int[][2],
@@ -182,24 +182,24 @@ CREATE TABLE matching_tasks (
 );
 
 CREATE TABLE task_feedbacks (
-  task_id    bytea REFERENCES tasks(id) ON DELETE RESTRICT,
-  student_id bytea REFERENCES users(id) ON DELETE CASCADE,
-  document_id bytea REFERENCES documents(id) ON DELETE RESTRICT,
+  task_id    uuid REFERENCES tasks(id) ON DELETE RESTRICT,
+  student_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  document_id uuid REFERENCES documents(id) ON DELETE RESTRICT,
   PRIMARY KEY (task_id, student_id)
 );
 
 CREATE TABLE task_notes (
-  user_id bytea REFERENCES users(id) ON DELETE CASCADE,
-  task_id bytea REFERENCES tasks(id) ON DELETE RESTRICT,
-  document_id bytea REFERENCES documents(id) ON DELETE RESTRICT,
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  task_id uuid REFERENCES tasks(id) ON DELETE RESTRICT,
+  document_id uuid REFERENCES documents(id) ON DELETE RESTRICT,
   PRIMARY KEY (user_id, task_id)
 );
 
 
 CREATE TABLE components (
-  id bytea PRIMARY KEY,
+  id uuid PRIMARY KEY,
   version bigint,
-  owner_id bytea REFERENCES users(id) ON DELETE CASCADE,
+  owner_id uuid REFERENCES users(id) ON DELETE CASCADE,
   title text,
   questions text,
   things_to_think_about text,
@@ -209,33 +209,33 @@ CREATE TABLE components (
 );
 
 CREATE TABLE parts_components (
-  component_id bytea REFERENCES components(id) ON DELETE CASCADE,
-  part_id bytea REFERENCES parts(id) ON DELETE CASCADE,
+  component_id uuid REFERENCES components(id) ON DELETE CASCADE,
+  part_id uuid REFERENCES parts(id) ON DELETE CASCADE,
   created_at timestamp with time zone,
   PRIMARY KEY (component_id, part_id)
 );
 
 CREATE TABLE text_components (
-  component_id bytea PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
+  component_id uuid PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
   content text
 );
 
 CREATE TABLE video_components (
-  component_id bytea PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
+  component_id uuid PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
   vimeo_id text,
   width int,
   height int
 );
 
 CREATE TABLE audio_components (
-  component_id bytea PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
+  component_id uuid PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
   soundcloud_id text
 );
 
 CREATE TABLE component_notes (
-  user_id bytea REFERENCES users(id) ON DELETE CASCADE,
-  component_id bytea REFERENCES components(id) ON DELETE RESTRICT,
-  document_id bytea REFERENCES documents(id) ON DELETE RESTRICT,
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  component_id uuid REFERENCES components(id) ON DELETE RESTRICT,
+  document_id uuid REFERENCES documents(id) ON DELETE RESTRICT,
   PRIMARY KEY (user_id, component_id, document_id)
 );
 
@@ -244,9 +244,9 @@ CREATE TABLE component_notes (
 */
 
 CREATE TABLE work (
-  id bytea PRIMARY KEY,
-  user_id bytea NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  task_id bytea NOT NULL REFERENCES tasks(id) ON DELETE RESTRICT,
+  id uuid PRIMARY KEY,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  task_id uuid NOT NULL REFERENCES tasks(id) ON DELETE RESTRICT,
   version bigint,
   is_complete boolean DEFAULT false,
   work_type int,
@@ -261,14 +261,14 @@ CREATE TABLE work (
 */
 
 CREATE TABLE long_answer_work (
-  work_id bytea REFERENCES work(id) ON DELETE CASCADE,
-  document_id bytea REFERENCES documents(id) ON DELETE RESTRICT,
+  work_id uuid REFERENCES work(id) ON DELETE CASCADE,
+  document_id uuid REFERENCES documents(id) ON DELETE RESTRICT,
   PRIMARY KEY (work_id, document_id)
 );
 
 CREATE TABLE short_answer_work (
-  work_id bytea REFERENCES work(id) ON DELETE CASCADE,
-  document_id bytea REFERENCES documents(id) ON DELETE RESTRICT,
+  work_id uuid REFERENCES work(id) ON DELETE CASCADE,
+  document_id uuid REFERENCES documents(id) ON DELETE RESTRICT,
   PRIMARY KEY (work_id, document_id)
 );
 
@@ -277,7 +277,7 @@ CREATE TABLE short_answer_work (
 */
 
 CREATE TABLE multiple_choice_work (
-  work_id bytea REFERENCES work(id) ON DELETE CASCADE,
+  work_id uuid REFERENCES work(id) ON DELETE CASCADE,
   version bigint,
   response int[],
   created_at timestamp with time zone,
@@ -285,7 +285,7 @@ CREATE TABLE multiple_choice_work (
 );
 
 CREATE TABLE ordering_work (
-  work_id bytea REFERENCES work(id) ON DELETE CASCADE,
+  work_id uuid REFERENCES work(id) ON DELETE CASCADE,
   version bigint,
   response int[],
   created_at timestamp with time zone,
@@ -293,7 +293,7 @@ CREATE TABLE ordering_work (
 );
 
 CREATE TABLE matching_work (
-  work_id bytea REFERENCES work(id) ON DELETE CASCADE,
+  work_id uuid REFERENCES work(id) ON DELETE CASCADE,
   version bigint,
   response int[][2],
   created_at timestamp with time zone,
@@ -301,10 +301,10 @@ CREATE TABLE matching_work (
 );
 
 CREATE TABLE journal (
-  id bytea PRIMARY KEY,
+  id uuid PRIMARY KEY,
   version bigint,
-  user_id bytea REFERENCES users(id) ON DELETE CASCADE,
-  project_id bytea REFERENCES projects(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  project_id uuid REFERENCES projects(id) ON DELETE CASCADE,
   entry_type text,
   item text,
   created_at timestamp with time zone,
@@ -312,9 +312,9 @@ CREATE TABLE journal (
 );
 
 CREATE TABLE chat_logs (
-  course_id bytea REFERENCES courses(id) ON DELETE CASCADE,
+  course_id uuid REFERENCES courses(id) ON DELETE CASCADE,
   message_num bigint,
-  user_id bytea REFERENCES users(id) ON DELETE CASCADE,
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
   message text,
   hidden boolean,
   created_at timestamp with time zone,

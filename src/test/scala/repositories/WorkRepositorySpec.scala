@@ -2,7 +2,7 @@ import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.models.document._
 import ca.shiftfocus.krispii.core.repositories._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.Connection
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 

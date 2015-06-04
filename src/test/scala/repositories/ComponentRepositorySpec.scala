@@ -2,7 +2,7 @@ import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 
 import org.scalatest._
 import Matchers._
@@ -295,7 +295,7 @@ class ComponentRepositorySpec
         (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
-        val id = UUID("024e4bde-282c-4947-a623-81ec11d2d85c")
+        val id = UUID.fromString("024e4bde-282c-4947-a623-81ec11d2d85c")
 
         val result = componentRepository.find(id)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))

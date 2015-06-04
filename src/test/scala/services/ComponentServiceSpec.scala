@@ -6,7 +6,7 @@ import ca.shiftfocus.krispii.core.services._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import org.scalatest.Matchers
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.scalatest._
 import Matchers._
 import scala.collection._

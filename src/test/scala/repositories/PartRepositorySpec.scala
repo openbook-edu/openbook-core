@@ -2,7 +2,7 @@ import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models.Part
 import ca.shiftfocus.krispii.core.repositories.{TaskRepository, PartRepositoryPostgres}
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.Connection
 import org.scalatest._
 import Matchers._
@@ -230,7 +230,7 @@ class PartRepositorySpec
         (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
-        val id = UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
+        val id = UUID.fromString("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
 
         val result = partRepository.find(id)
         Await.result(result, Duration.Inf) should be (-\/(RepositoryError.NoResults))
@@ -319,7 +319,7 @@ class PartRepositorySpec
     }
     "return RepositoryError.ForeignKeyConflict if part contains unexisting project id" in {
       val testPart = TestValues.testPartD.copy(
-        projectId = UUID("ad043c17-d552-4744-890a-6ab8a6778e4c")
+        projectId = UUID.fromString("ad043c17-d552-4744-890a-6ab8a6778e4c")
       )
 
       val result = partRepository.insert(testPart)

@@ -2,7 +2,7 @@ import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.Connection
 import org.scalatest._
 import Matchers._
@@ -169,7 +169,7 @@ class ProjectRepositorySpec
           (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
           (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
-          val projectId = UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
+          val projectId = UUID.fromString("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
 
           val result = projectRepository.find(projectId)
           Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
@@ -262,7 +262,7 @@ class ProjectRepositorySpec
           Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
         }
         "return RepositoryError.NoResults if project ID is wrong" in {
-          val projectId = UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
+          val projectId = UUID.fromString("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
           val testUser = TestValues.testUserB
 
           val result = projectRepository.find(projectId, testUser)
@@ -345,7 +345,7 @@ class ProjectRepositorySpec
         }
         "return RepositoryError.ForeignKeyConflict if project contains unexisting course id" in {
           val testProject = TestValues.testProjectD.copy(
-            courseId = UUID("ad043c17-d552-4744-890a-6ab8a6778e4c")
+            courseId = UUID.fromString("ad043c17-d552-4744-890a-6ab8a6778e4c")
           )
 
           val result = projectRepository.insert(testProject)

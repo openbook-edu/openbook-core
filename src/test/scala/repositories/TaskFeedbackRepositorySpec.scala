@@ -1,7 +1,7 @@
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.document.Document
 import ca.shiftfocus.krispii.core.repositories._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.Connection
 
 import org.scalatest._

@@ -1,6 +1,6 @@
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.{Role, User}
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import scala.collection.immutable.TreeMap
 import scala.concurrent.{Future, Await}
 import scala.concurrent.duration._
@@ -84,7 +84,7 @@ class UserRepositorySpec
 
         val ids = Vector(
           TestValues.testUserA.id,
-          UUID("a5caac60-8fd7-4ecc-8fd3-f84dc11355f1")
+          UUID.fromString("a5caac60-8fd7-4ecc-8fd3-f84dc11355f1")
         )
 
         val result = userRepository.list(ids)
@@ -211,7 +211,7 @@ class UserRepositorySpec
         (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
-        val id = UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
+        val id = UUID.fromString("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
 
         val result = userRepository.find(id)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))

@@ -4,7 +4,7 @@ import scala.collection._
 import scala.collection.immutable.TreeMap
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories.{UserRepositoryPostgres, RoleRepositoryPostgres}
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.scalatest._
 import Matchers._
 import scala.concurrent.{Future, Await}
@@ -114,7 +114,7 @@ class RoleRepositorySpec
         (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
 
-        val result = roleRepository.find(UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477"))
+        val result = roleRepository.find(UUID.fromString("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477"))
 
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }

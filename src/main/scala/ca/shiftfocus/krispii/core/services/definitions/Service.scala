@@ -19,7 +19,7 @@ trait Service[F] extends Lifting[F] {
    * Takes a function that returns a future, and runs it inside a database
    * transaction.
    */
-  def transactional[A](f : Connection => Future[A]) = {
+  def transactional[A](f : Connection => Future[A]): Future[A] = {
     db.pool.inTransaction { conn =>
       conn.sendQuery("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ").flatMap { _ =>
         f(conn)

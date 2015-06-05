@@ -19,7 +19,7 @@ sealed trait Work {
   val isComplete: Boolean
   val createdAt: DateTime
   val updatedAt: DateTime
-  def responseToString:String ={
+  def responseToString:String = {
     "work"
   }
 }
@@ -71,17 +71,18 @@ sealed trait DocumentWork extends Work {
            isComplete: Boolean = this.isComplete,
            createdAt: DateTime = this.createdAt,
            updatedAt: DateTime = this.updatedAt
-  ) = {
+  ): DocumentWork = {
     this match {
       case longAnswerWork: LongAnswerWork   => LongAnswerWork(id, studentId, taskId, documentId, version, response, isComplete, createdAt, updatedAt)
       case shortAnswerWork: ShortAnswerWork => ShortAnswerWork(id, studentId, taskId, documentId, version, response, isComplete, createdAt, updatedAt)
     }
   }
   override def responseToString: String ={
-      if(response.isDefined)
-      response.get.plaintext
-      else
-      "Response is empty"
+      if(response.isDefined) {
+        response.get.plaintext
+      } else {
+        "Response is empty"
+      }
   }
 }
 
@@ -140,8 +141,10 @@ case class MultipleChoiceWork(
 
   override def responseToString: String ={
     var result=""
-    response.zipWithIndex.foreach{case(e,i)=> result=result+ "Question: "+ i + " Answer: "+e.toString+", "}
-    """""""+result.dropRight(2)+"""""""
+    response.zipWithIndex.foreach{ case(e, i) =>
+      result = result + "Question: " + i + " Answer: " + e.toString + ", "
+    }
+    """"""" + result.dropRight(2) + """""""
   }
 
 }
@@ -176,8 +179,8 @@ case class MatchingWork(
 
   override def responseToString: String ={
     var result=""
-    response.zipWithIndex.foreach{case(e,i)=> result=result+i+" = " +e.left.toString + " + " +e.right.toString +", "}
-    '"' +result.dropRight(2)+'"'
+    response.zipWithIndex.foreach{case(e,i)=> result=result + i + " = " +e.left.toString + " + " + e.right.toString + ", "}
+    '"' + result.dropRight(2) + '"'
 
   }
 }

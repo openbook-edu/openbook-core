@@ -19,6 +19,8 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
                              val revisionRepository: RevisionRepository)
   extends WorkRepository with PostgresRepository[Work] {
 
+  override val entityName = "Work"
+
   override def constructor(row: RowData): Work = {
     row("work_type").asInstanceOf[Int] match {
       case LongAnswer => constructLongAnswerWork(row)
@@ -109,14 +111,14 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
 
   val QMarks  = "?, ?, ?, ?, ?, ?, ?, ?"
 
-  val SpecificOrderBy = s"""
+  val SpecificOrderBy = """
      |multiple_choice_work.version DESC,
      |ordering_work.version DESC,
      |matching_work.version DESC
      """.stripMargin
 
   val SpecificFields =
-    s"""
+    """
        |long_answer_work.document_id as la_document_id,
        |short_answer_work.document_id as sa_document_id,
        |multiple_choice_work.response as mc_response,
@@ -395,7 +397,8 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
    * @param user
    * @return
    */
-  override def list(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Either[DocumentWork, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]]] = {
+  override def list(user: User, task: Task)(implicit conn: Connection)
+  : Future[\/[RepositoryError.Fail, Either[DocumentWork, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]]] = {
     task match {
       case longAnswerTask: LongAnswerTask         => listDocumentWork(user, longAnswerTask).map(_.map { documentWork =>  Left(documentWork)})
       case shortAnswerTask: ShortAnswerTask       => listDocumentWork(user, shortAnswerTask).map(_.map { documentWork =>  Left(documentWork)})
@@ -428,7 +431,9 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
           } yield result
           lift(res)
         }
-        case _ => lift[DocumentWork](Future.successful(-\/(RepositoryError.NoResults)))
+        case _ => lift[DocumentWork](Future.successful {
+          -\/(RepositoryError.NoResults(s"Could not find document work for user ${user.id.toString} for task ${task.id.toString}"))
+        })
       }}
     } yield result).run
   }
@@ -441,7 +446,8 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
    * @param conn
    * @return
    */
-  private def listListWork(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]] = {
+  private def listListWork(user: User, task: Task)(implicit conn: Connection)
+  : Future[\/[RepositoryError.Fail, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]] = {
     (for {
       workList <- lift(queryList(SelectAllForUserTask, Seq[Any](user.id, task.id)))
       result   <- lift(Future.successful(workList match {
@@ -449,10 +455,10 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
           work match {
             case intListWork: IntListWork => \/.right(IndexedSeq(intListWork) ++ rest.asInstanceOf[IndexedSeq[IntListWork]])
             case matchListWork: MatchListWork => \/.right(IndexedSeq(matchListWork) ++ rest.asInstanceOf[IndexedSeq[MatchListWork]])
-            case _ => \/.left(RepositoryError.NoResults)
+            case _ => \/.left(RepositoryError.NoResults(s"Could not find list work for user ${user.id.toString} for task ${task.id.toString}"))
           }
         }
-        case _ => \/.left(RepositoryError.NoResults)
+        case _ => \/.left(RepositoryError.NoResults(s"Could not find any work for user ${user.id.toString} for task ${task.id.toString}"))
       }))
     } yield result).run
   }
@@ -578,8 +584,11 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
    * @return
    */
   private def getLatestDate (date1: DateTime, date2: DateTime): DateTime = {
-    if (date1.getMillis >= date2.getMillis) date1
-    else date2
+    if (date1.getMillis >= date2.getMillis) {
+      date1
+    } else {
+      date2
+    }
   }
 
   /**
@@ -612,12 +621,14 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
       new DateTime
     )
 
-    val params = work match {
+    val params: Seq[Any] = work match {
       case specific: LongAnswerWork => baseParams ++ Array[Any](Task.LongAnswer, specific.documentId)
       case specific: ShortAnswerWork => baseParams ++ Array[Any](Task.ShortAnswer, specific.documentId)
       case specific: MultipleChoiceWork => baseParams ++ Array[Any](Task.MultipleChoice, specific.response)
       case specific: OrderingWork => baseParams ++ Array[Any](Task.Ordering, specific.response)
-      case specific: MatchingWork => baseParams ++ Array[Any](Task.Matching, specific.response.asInstanceOf[IndexedSeq[MatchingTask.Match]].map { item => IndexedSeq(item.left, item.right)})
+      case specific: MatchingWork => baseParams ++ Array[Any](Task.Matching, specific.response.asInstanceOf[IndexedSeq[MatchingTask.Match]].map {
+        item => IndexedSeq(item.left, item.right)
+      })
     }
 
     queryOne(query, params)
@@ -647,9 +658,11 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
 
     if (newRevision) {
       tableName match {
-        case "long_answer_work" | "short_answer_work" => Future successful \/.left(RepositoryError.BadParam("Adding new Revisions to a DocumentWork should be done in the Document Repository and Revision Repository"))
+        case "long_answer_work" | "short_answer_work" => Future.successful {
+          \/.left(RepositoryError.BadParam("Adding new Revisions to a DocumentWork should be done in the Document Repository and Revision Repository"))
+        }
         case _ => queryOne(UpdateWithNewRevision(tableName), Seq[Any](
-          work.version +1,
+          work.version + 1,
           work.isComplete,
           new DateTime,
           work.id,
@@ -728,7 +741,7 @@ class WorkRepositoryPostgres(val documentRepository: DocumentRepository,
   override def delete(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]] = {
     (for {
       works <- lift(list(task))
-      deletedWorks <- lift(queryNumRows(DeleteAllForTask, Seq[Any](task.id))(0 < _))
+      deletedWorks <- lift(queryNumRows(DeleteAllForTask, Seq[Any](task.id))(_ > 0))
     } yield works).run
   }
 }

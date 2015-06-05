@@ -24,6 +24,8 @@ import scala.concurrent.duration._
 
 class UserRepositoryPostgres extends UserRepository with PostgresRepository[User] {
 
+  override val entityName = "User"
+
   override def constructor(row: RowData): User = {
     User(
       id         = row("id").asInstanceOf[UUID],
@@ -179,7 +181,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   override def list(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
     cache.getCached[IndexedSeq[User]](cacheStudentsKey(course.id)).flatMap {
       case \/-(userList) => Future successful \/.right[RepositoryError.Fail, IndexedSeq[User]](userList)
-      case -\/(RepositoryError.NoResults) =>
+      case -\/(noResults: RepositoryError.NoResults) =>
         for {
           userList <- lift(queryList(SelectAllWithCourse, Seq[Any](course.id)))
           _ <- lift(cache.putCache[IndexedSeq[User]](cacheUserKey(course.id))(userList, ttl))
@@ -197,7 +199,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]] = {
     cache.getCached[User](cacheUserKey(id)).flatMap {
       case \/-(user) => Future successful \/.right[RepositoryError.Fail, User](user)
-      case -\/(RepositoryError.NoResults) =>
+      case -\/(noResults: RepositoryError.NoResults) =>
         for {
           user <- lift(queryOne(SelectOne, Seq[Any](id)))
           _ <- lift(cache.putCache[UUID](cacheUsernameKey(user.username))(user.id, ttl))
@@ -221,7 +223,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
           user <- lift(find(userId))
         } yield user
       }
-      case -\/(RepositoryError.NoResults) => {
+      case -\/(noResults: RepositoryError.NoResults) => {
         for {
           user <- lift(queryOne(SelectOneByIdentifier, Seq[Any](identifier, identifier)))
           _ <- lift(cache.putCache[UUID](cacheUsernameKey(identifier))(user.id, ttl))

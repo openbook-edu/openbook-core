@@ -304,10 +304,17 @@ class ProjectServiceDefault(val db: DB,
         newPart <- lift {
           // If there is already a part with this position, shift it (and all following parts)
           // back by one to make room for the new one.
+<<<<<<< HEAD
           val positionExists = partList.filter(_.position == truePosition).nonEmpty
           val filteredPartList = positionExists match {
             case true  => partList.filter(_.position < truePosition) ++ partList.filter(_.position >= truePosition).map(part => part.copy(position = part.position + 1))
             case false => partList
+=======
+          val positionExists = partList.exists(_.position == position)
+          if (positionExists) {
+            val filteredPartList = partList.filter(_.position >= position).map(part => part.copy(position = part.position + 1))
+            serializedT(filteredPartList)(partRepository.update)
+>>>>>>> Added scalastyle and fixed reported warnings
           }
 
           val newPart = Part(
@@ -351,12 +358,14 @@ class ProjectServiceDefault(val db: DB,
    *     This will necessarily increment their version numbers. The client should be aware
    *     to update its part list after calling update.
    */
-  override def updatePart(partId: UUID, version: Long, name: Option[String], maybePosition: Option[Int], enabled: Option[Boolean]): Future[\/[ErrorUnion#Fail, Part]] = {
+  override def updatePart(partId: UUID, version: Long, name: Option[String], maybePosition: Option[Int], enabled: Option[Boolean])
+  : Future[\/[ErrorUnion#Fail, Part]] = {
     transactional { implicit conn: Connection =>
       for {
         existingPart <- lift(partRepository.find(partId))
         _ <- predicate (existingPart.version == version) (ServiceError.OfflineLockFail)
         oldPosition = existingPart.position
+<<<<<<< HEAD
         project <- lift(projectRepository.find(existingPart.projectId, false))
         partList <- lift(partRepository.list(project, false))
         _ <- predicate (partList.nonEmpty) (ServiceError.BusinessLogicFail("Weird, part list shouldn't be empty!"))
@@ -391,6 +400,21 @@ class ProjectServiceDefault(val db: DB,
                 val before = partList.filter(_.position < newPosition).map(part => part.copy(position = part.position - 1))
                 val after  = partList.filter(_.position >= newPosition).map(part => part.copy(position = part.position + 1))
                 before ++ after
+=======
+        newPosition = maybePosition.getOrElse(oldPosition)
+        project <- lift(projectRepository.find(existingPart.projectId))
+        partList <- lift(partRepository.list(project))
+        partListUpdated <- lift {
+          if (newPosition != oldPosition) {
+            val filteredPartList = partList.filter(_.id != partId)
+            var temp = IndexedSeq[Part]()
+            for (i <- filteredPartList.indices) {
+              temp = if (i >= newPosition) {
+                temp :+ filteredPartList(i).copy(position = i + 1)
+              }
+              else {
+                temp :+ filteredPartList(i).copy(position = i)
+>>>>>>> Added scalastyle and fixed reported warnings
               }
               else partList
             case false => partList
@@ -444,8 +468,19 @@ class ProjectServiceDefault(val db: DB,
         partList <- lift(partRepository.list(project, false))
         _ <- predicate (partList.nonEmpty) (ServiceError.BusinessLogicFail("Weird, part list shouldn't be empty!"))
         partListUpdated <- lift {
+<<<<<<< HEAD
           val filteredOderedPartList = partList.filter(_.id != partId).sortWith(_.position < _.position)
           serializedT(filteredOderedPartList.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedParts(filteredOderedPartList, partId, _))
+=======
+          val filteredPartList = partList.filter({
+            item => item.id != part.id && item.position > part.position
+          }).map(part => part.copy(position = part.position - 1))
+          if (filteredPartList.nonEmpty) {
+            serializedT(filteredPartList)(partRepository.update)
+          } else {
+            Future.successful(\/-(IndexedSeq()))
+          }
+>>>>>>> Added scalastyle and fixed reported warnings
         }
         tasksDeleted <- lift(taskRepository.delete(part))
         deletedPart <- lift(partRepository.delete(part))
@@ -465,7 +500,10 @@ class ProjectServiceDefault(val db: DB,
     transactional { implicit conn: Connection =>
       for {
         part <- lift(partRepository.find(partId))
+<<<<<<< HEAD
         _ <- predicate (part.version == version) (ServiceError.OfflineLockFail)
+=======
+>>>>>>> Added scalastyle and fixed reported warnings
         toUpdate = part.copy(version = version, enabled = !part.enabled)
         toggled <- lift(partRepository.update(toUpdate))
       } yield toggled
@@ -506,7 +544,8 @@ class ProjectServiceDefault(val db: DB,
    * @param dependencyId optionally make this task dependent on another
    * @return the newly created task
    */
-  override def createTask(partId: UUID, taskType: Int, name: String, description: String, position: Int, dependencyId: Option[UUID]): Future[\/[ErrorUnion#Fail, Task]] = {
+  override def createTask(partId: UUID, taskType: Int, name: String, description: String, position: Int, dependencyId: Option[UUID])
+  : Future[\/[ErrorUnion#Fail, Task]] = {
     transactional { implicit conn: Connection =>
       for {
         part <- lift(partRepository.find(partId))
@@ -522,7 +561,7 @@ class ProjectServiceDefault(val db: DB,
         taskListUpdated <- lift {
           // If there is already a task with this position, shift it (and all following tasks)
           // back by one to make room for the new one.
-          val positionExists = taskList.filter(_.position == position).nonEmpty
+          val positionExists = taskList.exists(_.position == position)
           if (positionExists) {
             val filteredTaskList = taskList.filter(_.position >= position).map {
               case task: LongAnswerTask     => task.copy(position = task.position + 1)
@@ -576,9 +615,9 @@ class ProjectServiceDefault(val db: DB,
       task <- lift { Future successful { project.parts.find(_.position == partNum) match {
         case Some(part) => part.tasks.find(_.position == taskNum) match {
           case Some(task) => \/.right(task)
-          case None => \/.left(RepositoryError.NoResults)
+          case None => \/.left(RepositoryError.NoResults(s"Could not find task $taskNum in part $partNum in project $projectSlug"))
         }
-        case None => \/.left(RepositoryError.NoResults)
+        case None => \/.left(RepositoryError.NoResults(s"Could not find part $partNum in project $projectSlug"))
       }
     }}}
     yield task
@@ -620,10 +659,10 @@ class ProjectServiceDefault(val db: DB,
         newPosition = updatedTask.position
 
         oldListUpdated <- lift {
-          if (existingTask.partId == updatedTask.partId) {
+          if (existingTask.partId == updatedTask.partId || opTasks.isEmpty) {
             Future successful \/-(IndexedSeq.empty[Task])
           }
-          else if (opTasks.nonEmpty) {
+          else {
             // Update old task list to remove this task from the ordering.
             var filteredOrderedTaskList = IndexedSeq.empty[Task]
             for (i <- opTasks.indices) {
@@ -638,7 +677,6 @@ class ProjectServiceDefault(val db: DB,
             }
             serializedT(filteredOrderedTaskList)(taskRepository.update)
           }
-          else { Future successful \/-(IndexedSeq.empty[Task]) }
         }
 
         newListUpdated <- lift {
@@ -651,18 +689,18 @@ class ProjectServiceDefault(val db: DB,
             val filteredTaskList = npTasks.filter(_.id != updatedTask.id)
             var filteredOrderedTaskList = IndexedSeq.empty[Task]
             for (i <- filteredTaskList.indices) {
-              if (i >= newPosition) {
-                filteredOrderedTaskList = filteredOrderedTaskList :+ {filteredTaskList(i) match {
-                  case task: LongAnswerTask => task.copy(position = i+1)
-                  case task: ShortAnswerTask => task.copy(position = i+1)
-                  case task: MultipleChoiceTask => task.copy(position = i+1)
-                  case task: OrderingTask => task.copy(position = i+1)
-                  case task: MatchingTask => task.copy(position = i+1)
+              filteredOrderedTaskList = if (i >= newPosition) {
+                filteredOrderedTaskList :+ {filteredTaskList(i) match {
+                  case task: LongAnswerTask => task.copy(position = i + 1)
+                  case task: ShortAnswerTask => task.copy(position = i + 1)
+                  case task: MultipleChoiceTask => task.copy(position = i + 1)
+                  case task: OrderingTask => task.copy(position = i + 1)
+                  case task: MatchingTask => task.copy(position = i + 1)
                   case _ => throw new Exception("Gold star for epic coding failure.")
                 }}
               }
               else {
-                filteredOrderedTaskList = filteredOrderedTaskList :+ {filteredTaskList(i) match {
+                filteredOrderedTaskList :+ {filteredTaskList(i) match {
                   case task: LongAnswerTask => task.copy(position = i)
                   case task: ShortAnswerTask => task.copy(position = i)
                   case task: MultipleChoiceTask => task.copy(position = i)
@@ -985,7 +1023,7 @@ class ProjectServiceDefault(val db: DB,
       case \/-(project) =>
         if (existingId.isEmpty || (existingId.get != project.id)) -\/(RepositoryError.UniqueKeyConflict("slug", s"The slug $slug is already in use."))
         else \/-(slug)
-      case -\/(RepositoryError.NoResults) => \/-(slug)
+      case -\/(noResults: RepositoryError.NoResults) => \/-(slug)
       case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)
     }
   }

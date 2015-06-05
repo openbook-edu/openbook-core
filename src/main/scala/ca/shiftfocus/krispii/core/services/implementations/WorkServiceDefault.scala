@@ -70,7 +70,8 @@ class WorkServiceDefault(val db: DB,
    * @param taskId the unique id of the task to filter by
    * @return a future disjunction containing either a list of work, or a failure
    */
-  override def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Either[DocumentWork, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]]] = {
+  override def listWorkRevisions(userId: UUID, taskId: UUID)
+  : Future[\/[ErrorUnion#Fail, Either[DocumentWork, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]]] = {
     val fUser = authService.find(userId)
     val fTask = projectService.findTask(taskId)
 
@@ -379,7 +380,8 @@ class WorkServiceDefault(val db: DB,
     }
   }
 
-  override def updateMultipleChoiceWork(userId: UUID, taskId: UUID, version: Long, response: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]] = {
+  override def updateMultipleChoiceWork(userId: UUID, taskId: UUID, version: Long, response: IndexedSeq[Int], isComplete: Boolean)
+  : Future[\/[ErrorUnion#Fail, MultipleChoiceWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -396,7 +398,8 @@ class WorkServiceDefault(val db: DB,
     }
   }
 
-  override def updateOrderingWork(userId: UUID, taskId: UUID, version: Long, response: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]] = {
+  override def updateOrderingWork(userId: UUID, taskId: UUID, version: Long, response: IndexedSeq[Int], isComplete: Boolean)
+  : Future[\/[ErrorUnion#Fail, OrderingWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -413,7 +416,8 @@ class WorkServiceDefault(val db: DB,
     }
   }
 
-  override def updateMatchingWork(userId: UUID, taskId: UUID, version: Long, response: IndexedSeq[Match], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]] = {
+  override def updateMatchingWork(userId: UUID, taskId: UUID, version: Long, response: IndexedSeq[Match], isComplete: Boolean)
+  : Future[\/[ErrorUnion#Fail, MatchingWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)

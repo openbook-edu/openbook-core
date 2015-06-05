@@ -22,6 +22,8 @@ import scalaz.{\/, -\/, \/-}
 
 class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat] {
 
+  override val entityName = "Chat"
+
   /**
    * Instantiate a Document given a row result from the database. Must be provided
    * with the owner and users.

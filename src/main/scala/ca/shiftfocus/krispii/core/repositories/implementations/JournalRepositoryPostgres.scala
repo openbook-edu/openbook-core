@@ -19,6 +19,8 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
                                  val projectRepository: ProjectRepository)
   extends JournalRepository with PostgresRepository[JournalEntry] {
 
+  override val entityName = "Journal"
+
   override def constructor(row: RowData): JournalEntry = {
     JournalEntry(
       id        = row("id").asInstanceOf[UUID],
@@ -84,7 +86,7 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
         |WHERE id = ?
   """.stripMargin
 
-  def Insert(suffix: String) =
+  def Insert(suffix: String): String =
     s"""
       |INSERT INTO ${Table}_${suffix} ($Fields)
       |VALUES ($QMarks)
@@ -145,7 +147,8 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
    * @param conn
    * @return
    */
-  override def list(startDate: Option[DateTime] = None, endDate: Option[DateTime] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
+  override def list(startDate: Option[DateTime] = None, endDate: Option[DateTime] = None)
+                   (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
     (startDate, endDate) match {
       case (Some(startDate), None) => queryListJournal(SelectByStartDate, Seq[Any](startDate))
       case (None, Some(endDate))   => queryListJournal(SelectByEndDate, Seq[Any](endDate))
@@ -222,26 +225,31 @@ class JournalRepositoryPostgres (val userRepository: UserRepository,
   // --- Common methods -----------------------------------------------------------------------------------------------
 
   // TODO - make translation of date format
-  private def buildEntryWithMessage(journalEntry: JournalEntry)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, JournalEntry]] = {
+  private def buildEntryWithMessage(journalEntry: JournalEntry)
+                                   (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, JournalEntry]] = {
     (for {
       user       <- lift(userRepository.find(journalEntry.userId))
       project    <- lift(projectRepository.find(journalEntry.projectId))
       action     = JournalEntry.Action(journalEntry.entryType).action
       formatTime = DateTimeFormat.forPattern("kk:mm:ss")
       formatDate = DateTimeFormat.forPattern("E M d, YYYY")
-      message    = "journalEntry.message" //Messages("journalEntry.message", user.givenname, user.surname, action, journalEntry.item, formatTime.print(journalEntry.createdAt), formatDate.print(journalEntry.createdAt))
+      message    = "journalEntry.message"
+      //Messages("journalEntry.message", user.givenname, user.surname, action, journalEntry.item, formatTime.print(journalEntry.createdAt),
+      //formatDate.print(journalEntry.createdAt))
       result     = journalEntry.copy(message = message)
     } yield result).run
   }
 
-  private def queryListJournal(queryText: String, parameters: Seq[Any] = Seq.empty[Any])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
+  private def queryListJournal(queryText: String, parameters: Seq[Any] = Seq.empty[Any])
+                              (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
     (for {
       entryList <- lift(queryList(queryText, parameters))
       result    <- lift(serializedT(entryList)(buildEntryWithMessage(_)))
     } yield result).run
   }
 
-  private def queryOneJournal(queryText: String, parameters: Seq[Any] = Seq.empty[Any])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, JournalEntry]] = {
+  private def queryOneJournal(queryText: String, parameters: Seq[Any] = Seq.empty[Any])
+                             (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, JournalEntry]] = {
     (for {
       entry  <- lift(queryOne(queryText, parameters))
       result <- lift(buildEntryWithMessage(entry))

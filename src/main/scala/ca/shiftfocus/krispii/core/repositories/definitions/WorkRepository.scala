@@ -16,7 +16,8 @@ trait WorkRepository extends Repository {
   val revisionRepository: RevisionRepository
 
   def list(user: User, project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]]
-  def list(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Either[DocumentWork, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]]]
+  def list(user: User, task: Task)(implicit conn: Connection)
+  : Future[\/[RepositoryError.Fail, Either[DocumentWork, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]]]
 
   def list(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Work]]]
 

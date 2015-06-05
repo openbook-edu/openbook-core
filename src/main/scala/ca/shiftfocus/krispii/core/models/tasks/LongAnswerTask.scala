@@ -47,6 +47,8 @@ case class LongAnswerTask(
       case _ => false
     }
   }
+
+  override def hashCode: Int = 41 * this.id.hashCode
 }
 
 object LongAnswerTask {

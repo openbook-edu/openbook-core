@@ -25,11 +25,11 @@ class JournalServiceDefault (val config: Boolean,
 
   implicit def conn: Connection = db.pool
   implicit def cache: ScalaCachePool = scalaCache
-  
+
   def list(entryType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
     journalRepository.list(entryType)
   }
-  
+
   def list(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
     val fUser = authService.find(userId)
 
@@ -38,7 +38,7 @@ class JournalServiceDefault (val config: Boolean,
       journalEntryList <- lift(journalRepository.list(user))
     } yield journalEntryList
   }
-  
+
   def list(startDate: Option[DateTime], endDate: Option[DateTime]): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
     journalRepository.list(startDate, endDate)
   }
@@ -69,11 +69,11 @@ class JournalServiceDefault (val config: Boolean,
   def delete(journalEntry: JournalEntry): Future[\/[ErrorUnion#Fail, JournalEntry]] = {
     journalRepository.delete(journalEntry)
   }
-  
+
   def delete(entryType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
     journalRepository.delete(entryType)
   }
-  
+
   def delete(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
     journalRepository.delete(user)
   }
@@ -210,5 +210,3 @@ class JournalServiceDefault (val config: Boolean,
     else Future.successful(\/.right( () ))
   }
 }
-
-

@@ -76,7 +76,8 @@ class ComponentServiceDefault(val db: DB,
     componentRepository.find(id)
   }
 
-  override def createAudio(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, soundcloudId: String): Future[\/[ErrorUnion#Fail, Component]] = {
+  override def createAudio(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, soundcloudId: String)
+  : Future[\/[ErrorUnion#Fail, Component]] = {
     val newComponent = AudioComponent(
       ownerId = ownerId,
       title = title,
@@ -89,7 +90,8 @@ class ComponentServiceDefault(val db: DB,
     }
   }
 
-  override def createText(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, content: String): Future[\/[ErrorUnion#Fail, Component]] = {
+  override def createText(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, content: String)
+  : Future[\/[ErrorUnion#Fail, Component]] = {
     val newComponent = TextComponent(
       ownerId = ownerId,
       title = title,
@@ -102,7 +104,8 @@ class ComponentServiceDefault(val db: DB,
     }
   }
 
-  override def createVideo(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, vimeoId: String, height: Int, width: Int): Future[\/[ErrorUnion#Fail, Component]] = {
+  override def createVideo(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, vimeoId: String, height: Int, width: Int)
+  : Future[\/[ErrorUnion#Fail, Component]] = {
     val newComponent = VideoComponent(
       ownerId = ownerId,
       title = title,
@@ -281,11 +284,7 @@ class ComponentServiceDefault(val db: DB,
    */
   override def userCanAccess(component: Component, user: User): Future[\/[ErrorUnion#Fail, Boolean]] = {
     // Admins can view everything
-    if (user.roles.map(_.name).contains("administrator")) {
-      Future successful \/-(true)
-    }
-    // Owners can view anything they create
-    else if (component.ownerId == user.id) {
+    if (user.roles.map(_.name).contains("administrator") || component.ownerId == user.id) {
       Future successful \/-(true)
     }
     else {

@@ -75,7 +75,8 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @param surname  The user's family name.
    * @return a future disjunction containing the created user, or a failure
    */
-  def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.randomUUID): Future[\/[ErrorUnion#Fail, User]]
+  def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.randomUUID)
+  : Future[\/[ErrorUnion#Fail, User]]
 
   /**
    * Update a user
@@ -88,7 +89,8 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @param surname the user's updated family name
    * @return a future disjunction containing the updated user, or a failure
    */
-  def update(id: UUID, version: Long, email: Option[String], username: Option[String], givenname: Option[String], surname: Option[String]): Future[\/[ErrorUnion#Fail, User]]
+  def update(id: UUID, version: Long, email: Option[String], username: Option[String], givenname: Option[String], surname: Option[String])
+  : Future[\/[ErrorUnion#Fail, User]]
 
   /**
    * Update a user's identifiers.

@@ -13,6 +13,8 @@ import scalaz.{-\/, \/-, \/}
 
 trait PostgresRepository[A] {
 
+  val entityName: String
+
   def constructor(row: RowData): A
 
   /**
@@ -39,9 +41,15 @@ trait PostgresRepository[A] {
       case exception: GenericDatabaseException =>
         val fields = exception.errorMessage.fields
         (fields.get('t'), fields.get('n')) match {
-          case (Some(table), Some(nField)) if nField endsWith "_pkey" => \/.left(RepositoryError.PrimaryKeyConflict)
-          case (Some(table), Some(nField)) if nField endsWith "_key" => \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-4).mkString), nField))
-          case (Some(table), Some(nField)) if nField endsWith "_fkey" => \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-5).mkString), nField))
+          case (Some(table), Some(nField)) if nField endsWith "_pkey" =>
+            \/.left(RepositoryError.PrimaryKeyConflict)
+
+          case (Some(table), Some(nField)) if nField endsWith "_key" =>
+            \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-4).mkString), nField))
+
+          case (Some(table), Some(nField)) if nField endsWith "_fkey" =>
+            \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-5).mkString), nField))
+
           case _ => \/.left(RepositoryError.DatabaseError("Unhandled GenericDataabaseException", Some(exception)))
         }
 
@@ -57,7 +65,8 @@ trait PostgresRepository[A] {
    * @param conn
    * @return
    */
-  protected def queryList(queryText: String, parameters: Seq[Any] = Seq.empty[Any])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[A]]] = {
+  protected def queryList(queryText: String, parameters: Seq[Any] = Seq.empty[Any])
+                         (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[A]]] = {
     val fRes = if (parameters.nonEmpty) {
       conn.sendPreparedStatement(queryText, parameters)
     } else {
@@ -73,9 +82,15 @@ trait PostgresRepository[A] {
       case exception: GenericDatabaseException =>
         val fields = exception.errorMessage.fields
         (fields.get('t'), fields.get('n')) match {
-          case (Some(table), Some(nField)) if nField endsWith "_pkey" => \/.left(RepositoryError.PrimaryKeyConflict)
-          case (Some(table), Some(nField)) if nField endsWith "_key" => \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-4).mkString), nField))
-          case (Some(table), Some(nField)) if nField endsWith "_fkey" => \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-5).mkString), nField))
+          case (Some(table), Some(nField)) if nField endsWith "_pkey" =>
+            \/.left(RepositoryError.PrimaryKeyConflict)
+
+          case (Some(table), Some(nField)) if nField endsWith "_key" =>
+            \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-4).mkString), nField))
+
+          case (Some(table), Some(nField)) if nField endsWith "_fkey" =>
+            \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-5).mkString), nField))
+
           case _ => \/.left(RepositoryError.DatabaseError("Unhandled GenericDataabaseException", Some(exception)))
         }
 
@@ -111,9 +126,15 @@ trait PostgresRepository[A] {
       case exception: GenericDatabaseException =>
         val fields = exception.errorMessage.fields
         (fields.get('t'), fields.get('n')) match {
-          case (Some(table), Some(nField)) if nField endsWith "_pkey" => \/.left(RepositoryError.PrimaryKeyConflict)
-          case (Some(table), Some(nField)) if nField endsWith "_key" => \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-4).mkString), nField))
-          case (Some(table), Some(nField)) if nField endsWith "_fkey" => \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-5).mkString), nField))
+          case (Some(table), Some(nField)) if nField endsWith "_pkey" =>
+            \/.left(RepositoryError.PrimaryKeyConflict)
+
+          case (Some(table), Some(nField)) if nField endsWith "_key" =>
+            \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-4).mkString), nField))
+
+          case (Some(table), Some(nField)) if nField endsWith "_fkey" =>
+            \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length-5).mkString), nField))
+
           case _ => \/.left(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
         }
 
@@ -134,9 +155,9 @@ trait PostgresRepository[A] {
     maybeResultSet match {
       case Some(resultSet) => resultSet.headOption match {
         case Some(firstRow) => \/-(build(firstRow))
-        case None => -\/(RepositoryError.NoResults)
+        case None => -\/(RepositoryError.NoResults(s"Could not find entity of type $entityName"))
       }
-      case None => -\/(RepositoryError.NoResults)
+      case None => -\/(RepositoryError.NoResults(s"Could not find entity of type $entityName"))
     }
   }
 
@@ -154,7 +175,7 @@ trait PostgresRepository[A] {
   protected def buildEntityList[B](maybeResultSet: Option[ResultSet], build: RowData => B): \/[RepositoryError.Fail, IndexedSeq[B]] = {
     maybeResultSet match {
       case Some(resultSet) => \/-(resultSet.map(build))
-      case None => -\/(RepositoryError.NoResults)
+      case None => -\/(RepositoryError.NoResults(s"Could not list entity of type $entityName"))
     }
   }
 

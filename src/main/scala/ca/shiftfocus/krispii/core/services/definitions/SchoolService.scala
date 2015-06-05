@@ -6,7 +6,7 @@ import ca.shiftfocus.krispii.core.repositories.{ChatRepository, UserRepository, 
 import java.util.UUID
 import ca.shiftfocus.krispii.core.models._
 import scala.concurrent.Future
-import java.awt.Color
+import java.awt.Color // scalastyle:ignore
 
 import scalaz.\/
 
@@ -26,7 +26,8 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
 
 
   def createCourse(teacherId: UUID, name: String, color: Color, slug: String): Future[\/[ErrorUnion#Fail, Course]]
-  def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: Option[String], color: Option[Color], chatEnabled: Option[Boolean]): Future[\/[ErrorUnion#Fail, Course]]
+  def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: Option[String], color: Option[Color], chatEnabled: Option[Boolean])
+  : Future[\/[ErrorUnion#Fail, Course]]
   def deleteCourse(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Course]]
 
   //def listStudents(course: Course): Future[IndexedSeq[User]]

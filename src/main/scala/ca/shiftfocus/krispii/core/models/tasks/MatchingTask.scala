@@ -56,6 +56,7 @@ case class MatchingTask(
       case _ => false
     }
   }
+  override def hashCode: Int = 41 * this.id.hashCode
 }
 
 object MatchingTask {
@@ -89,5 +90,5 @@ object MatchingTask {
       (__ \ "createdAt").write[DateTime] and
       (__ \ "updatedAt").write[DateTime]
     )(unlift(MatchingTask.unapply))
-  
+
 }

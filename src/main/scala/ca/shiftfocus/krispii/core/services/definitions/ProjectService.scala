@@ -35,7 +35,9 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
   def userHasProject(userId: UUID, projectSlug: String): Future[\/[ErrorUnion#Fail, Boolean]]
 
   def create(courseId: UUID, name: String, slug: String, description: String, availability: String): Future[\/[ErrorUnion#Fail, Project]]
-  def updateInfo(id: UUID, version: Long, courseId: Option[UUID], name: Option[String], description: Option[String], availability: Option[String]): Future[\/[ErrorUnion#Fail, Project]]
+  def updateInfo(id: UUID, version: Long, courseId: Option[UUID], name: Option[String], description: Option[String], availability: Option[String])
+  : Future[\/[ErrorUnion#Fail, Project]]
+
   def updateSlug(id: UUID, version: Long, slug: String): Future[\/[ErrorUnion#Fail, Project]]
   def delete(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Project]]
 
@@ -54,7 +56,8 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
   def findTask(projectSlug: String, partNum: Int, taskNum: Int): Future[\/[ErrorUnion#Fail, Task]]
   def findNowTask(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, Task]]
 
-  def createTask(partId: UUID, taskType: Int, name: String, description: String, position: Int, dependencyId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]]
+  def createTask(partId: UUID, taskType: Int, name: String, description: String, position: Int, dependencyId: Option[UUID] = None)
+  : Future[\/[ErrorUnion#Fail, Task]]
 
   case class CommonTaskArgs(taskId: UUID,
                             version: Long,

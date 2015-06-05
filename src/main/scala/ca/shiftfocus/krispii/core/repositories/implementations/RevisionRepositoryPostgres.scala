@@ -21,6 +21,8 @@ import scalaz.{\/, -\/, \/-}
 
 class RevisionRepositoryPostgres extends RevisionRepository with PostgresRepository[Revision] {
 
+  override val entityName = "Revision"
+
   /**
    *
    * @param row
@@ -103,7 +105,8 @@ class RevisionRepositoryPostgres extends RevisionRepository with PostgresReposit
    * @param conn
    * @return
    */
-  override def list(document: Document, afterVersion: Long = 0, toVersion: Long = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Revision]]] = {
+  override def list(document: Document, afterVersion: Long = 0, toVersion: Long = 0)(implicit conn: Connection)
+  : Future[\/[RepositoryError.Fail, IndexedSeq[Revision]]] = {
     (afterVersion, toVersion) match {
       case (0, 0) => queryList(ListAllRevisions, Seq[Any](document.id))
       case (_, 0) => queryList(ListRevisionsAfter, Seq[Any](document.id, afterVersion))

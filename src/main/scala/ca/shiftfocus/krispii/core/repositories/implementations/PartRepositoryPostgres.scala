@@ -20,6 +20,8 @@ import scalaz.{-\/, \/-, \/}
 
 class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRepository with PostgresRepository[Part] {
 
+  override val entityName = "Part"
+
   override def constructor(row: RowData): Part = {
     Part(
       id          = row("id").asInstanceOf[UUID],
@@ -152,24 +154,31 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
    * @param project The project to return parts from.
    * @return a vector of the returned Projects
    */
-  override def list(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = list(project, true)
-  override def list(project: Project, fetchTasks: Boolean )(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
+  override def list(project: Project)(implicit conn: Connection, cache: ScalaCachePool)
+  : Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = list(project, true)
+
+  override def list(project: Project, fetchTasks: Boolean )(implicit conn: Connection, cache: ScalaCachePool)
+  : Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
     (for {
       partList <- lift(cache.getCached[IndexedSeq[Part]](cachePartsKey(project.id)).flatMap {
         case \/-(partList) => Future successful \/-(partList)
-        case -\/(RepositoryError.NoResults) =>
+        case -\/(noResults: RepositoryError.NoResults) =>
           for {
             partList <- lift(queryList(SelectByProjectId, Seq[Any](project.id)))
             _ <- lift(cache.putCache[IndexedSeq[Part]](cachePartsKey(project.id))(partList, ttl))
           } yield partList
         case -\/(error) => Future successful -\/(error)
       })
-      partsWithTasks <- if (fetchTasks) liftSeq(partList.map{ part =>
-        (for {
-          tasks <- lift(taskRepository.list(part))
-          result = part.copy(tasks = tasks)
-        } yield result).run
-      }) else lift(Future successful \/-(partList))
+      partsWithTasks <- if (fetchTasks) {
+        liftSeq(partList.map{ part =>
+          (for {
+            tasks <- lift(taskRepository.list(part))
+            result = part.copy(tasks = tasks)
+          } yield result).run
+        })
+      } else {
+        lift(Future successful \/-(partList))
+      }
     } yield partsWithTasks).run
   }
 
@@ -199,7 +208,7 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
     (for {
       part <- lift(cache.getCached[Part](cachePartKey(id)).flatMap {
         case \/-(part) => Future successful \/-(part)
-        case -\/(RepositoryError.NoResults) =>
+        case -\/(noResults: RepositoryError.NoResults) =>
           for {
             part <- lift(queryOne(SelectOne, Seq[Any](id)))
             _ <- lift(cache.putCache[Part](cachePartsKey(part.id))(part, ttl))
@@ -217,11 +226,14 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
    * @param position The part's position within the project.
    * @return an optional RowData object containing the results
    */
-  override def find(project: Project, position: Int)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Part]] = find(project, position, true)
-  override def find(project: Project, position: Int, fetchTasks: Boolean)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Part]] = {
+  override def find(project: Project, position: Int)(implicit conn: Connection, cache: ScalaCachePool)
+  : Future[\/[RepositoryError.Fail, Part]] = find(project, position, true)
+
+  override def find(project: Project, position: Int, fetchTasks: Boolean)(implicit conn: Connection, cache: ScalaCachePool)
+  : Future[\/[RepositoryError.Fail, Part]] = {
     cache.getCached[UUID](cachePartPosKey(project.id, position)).flatMap {
       case \/-(partId) => find(partId)
-      case -\/(RepositoryError.NoResults) =>
+      case -\/(noResults: RepositoryError.NoResults) =>
         for {
           part <- lift(queryOne(FindByProjectPosition, Seq[Any](project.id, position)))
           taskList <- lift(if (fetchTasks) taskRepository.list(part) else Future successful \/-(IndexedSeq()))

@@ -55,6 +55,7 @@ case class MultipleChoiceTask(
       case _ => false
     }
   }
+  override def hashCode: Int = 41 * this.id.hashCode
 }
 
 object MultipleChoiceTask {
@@ -75,5 +76,5 @@ object MultipleChoiceTask {
       (__ \ "createdAt").write[DateTime] and
       (__ \ "updatedAt").write[DateTime]
     )(unlift(MultipleChoiceTask.unapply))
-  
+
 }

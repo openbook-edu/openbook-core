@@ -27,7 +27,7 @@ case class User(
     }
   }
 
-  override def toString = {
+  override def toString: String = {
     s"User(id: ${id.toString}, version: $version, username: $username, email: $email, full name: '$givenname $surname')"
   }
 }

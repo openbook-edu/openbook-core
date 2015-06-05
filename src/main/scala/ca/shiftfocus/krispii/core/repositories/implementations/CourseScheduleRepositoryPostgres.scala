@@ -16,6 +16,8 @@ import scalaz.{\/-, \/, -\/}
 
 class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with PostgresRepository[CourseSchedule] {
 
+  override val entityName = "CourseSchedule"
+
   def constructor(row: RowData): CourseSchedule = {
     val day = row("day").asInstanceOf[DateTime]
     val startTime = row("start_time").asInstanceOf[DateTime]
@@ -26,8 +28,10 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
       row("version").asInstanceOf[Long],
       row("course_id").asInstanceOf[UUID],
       day.toLocalDate(),
-      new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), startTime.getHourOfDay(), startTime.getMinuteOfHour, startTime.getSecondOfMinute()).toLocalTime(),
-      new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), endTime.getHourOfDay(), endTime.getMinuteOfHour, endTime.getSecondOfMinute()).toLocalTime(),
+      new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), startTime.getHourOfDay(),
+                   startTime.getMinuteOfHour, startTime.getSecondOfMinute()).toLocalTime(),
+      new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), endTime.getHourOfDay(),
+                   endTime.getMinuteOfHour, endTime.getSecondOfMinute()).toLocalTime(),
       row("description").asInstanceOf[String],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
@@ -90,7 +94,7 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
   override def list(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[CourseSchedule]]] = {
     cache.getCached[IndexedSeq[CourseSchedule]](cacheSchedulesKey(course.id)).flatMap {
       case \/-(schedules) => Future successful \/-(schedules)
-      case -\/(RepositoryError.NoResults) =>
+      case -\/(noResults: RepositoryError.NoResults) =>
         for {
           schedules <- lift(queryList(SelectByCourseId, Seq[Any](course.id)))
           _ <- lift(cache.putCache[IndexedSeq[CourseSchedule]](cacheSchedulesKey(course.id))(schedules, ttl))
@@ -109,7 +113,7 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
   override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
     cache.getCached[CourseSchedule](cacheScheduleKey(id)).flatMap {
       case \/-(schedules) => Future successful \/-(schedules)
-      case -\/(RepositoryError.NoResults) =>
+      case -\/(noResults: RepositoryError.NoResults) =>
         for {
           schedule <- lift(queryOne(SelectOne, Seq[Any](id)))
           _ <- lift(cache.putCache[CourseSchedule](cacheScheduleKey(id))(schedule, ttl))
@@ -127,8 +131,10 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
    */
   override def insert(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
     val dayDT = courseSchedule.day.toDateTimeAtStartOfDay()
-    val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.startTime.getHourOfDay(), courseSchedule.startTime.getMinuteOfHour, courseSchedule.startTime.getSecondOfMinute())
-    val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.endTime.getHourOfDay(), courseSchedule.endTime.getMinuteOfHour, courseSchedule.endTime.getSecondOfMinute())
+    val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.startTime.getHourOfDay(),
+                                   courseSchedule.startTime.getMinuteOfHour, courseSchedule.startTime.getSecondOfMinute())
+    val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.endTime.getHourOfDay(),
+                                 courseSchedule.endTime.getMinuteOfHour, courseSchedule.endTime.getSecondOfMinute())
 
     for {
       newSchedule <- lift(queryOne(Insert, Seq[Any](
@@ -155,8 +161,10 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
    */
   override def update(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
     val dayDT = courseSchedule.day.toDateTimeAtStartOfDay()
-    val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.startTime.getHourOfDay(), courseSchedule.startTime.getMinuteOfHour, courseSchedule.startTime.getSecondOfMinute())
-    val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.endTime.getHourOfDay(), courseSchedule.endTime.getMinuteOfHour, courseSchedule.endTime.getSecondOfMinute())
+    val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.startTime.getHourOfDay(),
+                                   courseSchedule.startTime.getMinuteOfHour, courseSchedule.startTime.getSecondOfMinute())
+    val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseSchedule.endTime.getHourOfDay(),
+                                 courseSchedule.endTime.getMinuteOfHour, courseSchedule.endTime.getSecondOfMinute())
 
     for {
       updated <- lift(queryOne(Update, Seq[Any](

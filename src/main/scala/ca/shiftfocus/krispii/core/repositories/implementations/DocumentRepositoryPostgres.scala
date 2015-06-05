@@ -23,6 +23,8 @@ import scalaz.{\/, -\/, \/-}
 class DocumentRepositoryPostgres (val revisionRepository: RevisionRepository)
   extends DocumentRepository with PostgresRepository[Document] {
 
+  override val entityName = "Document"
+
   /**
    * Instantiate a Document given a row result from the database. Must be provided
    * with the owner and users.
@@ -87,22 +89,21 @@ class DocumentRepositoryPostgres (val revisionRepository: RevisionRepository)
         case _ =>
           (for {
             revisions <- lift(revisionRepository.list(document, toVersion = version))
-            result =
-              if (revisions.nonEmpty) {
-                val deltas = revisions.map(_.delta)
-                val computedDelta =
-                  if (deltas.length == 1)
-                    deltas.head
-                  else deltas.foldLeft(Delta(IndexedSeq(InsertText("")))) {
-                    (left: Delta, right: Delta) => {
-                      left o right
-                    }
-                  }
-                document.copy(version = version, delta = computedDelta)
+            result = if (revisions.nonEmpty) {
+              val deltas = revisions.map(_.delta)
+              val computedDelta = if (deltas.length == 1) { // scalastyle:ignore
+                deltas.head
               }
-              else {
-                document
+              else deltas.foldLeft(Delta(IndexedSeq(InsertText("")))) {
+                (left: Delta, right: Delta) => {
+                  left o right
+                }
               }
+              document.copy(version = version, delta = computedDelta)
+            }
+            else {
+              document
+            }
           } yield result).recover {
             case ex: IncompatibleDeltasException =>
               -\/(RepositoryError.DatabaseError("Incompatible deltas.", Some(ex)))

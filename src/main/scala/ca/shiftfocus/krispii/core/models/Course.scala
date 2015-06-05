@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models
 
-import java.util.UUID
+import java.util.UUID // scalastyle:ignore
 import java.awt.Color
 import org.joda.time.DateTime
 import play.api.libs.json._

@@ -30,7 +30,7 @@ case class ShortAnswerTask(
   // Additional data
   version: Long = 1L,
   settings: CommonTaskSettings = CommonTaskSettings(),
-  maxLength: Int = 50,
+  maxLength: Int = ShortAnswerTask.maxResponseLength,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) extends Task {
@@ -48,9 +48,12 @@ case class ShortAnswerTask(
       case _ => false
     }
   }
+  override def hashCode: Int = 41 * this.id.hashCode
 }
 
 object ShortAnswerTask {
+
+  val maxResponseLength = 50
 
   /**
    * Serialize a ShortAnswerTask to JSON.

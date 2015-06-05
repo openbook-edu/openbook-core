@@ -23,6 +23,8 @@ import scalaz.{\/-, -\/, \/}
 
 class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task] with SpecificTaskConstructors {
 
+  override val entityName = "Task"
+
   override def constructor(row: RowData): Task = {
     row("task_type").asInstanceOf[Int] match {
       case Task.LongAnswer => constructLongAnswerTask(row)
@@ -36,13 +38,14 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   // -- Common query components --------------------------------------------------------------------------------------
 
-  val Table                 = "tasks"
-  val CommonFields          = "id, version, created_at, updated_at, part_id, dependency_id, name, description, position, notes_allowed, response_title, notes_title, task_type"
+  val Table        = "tasks"
+  val CommonFields = "id, version, created_at, updated_at, part_id, dependency_id, name, description," +
+                     " position, notes_allowed, response_title, notes_title, task_type"
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field}).mkString(", ")
   }
   val SpecificFields =
-    s"""
+    """
        |  short_answer_tasks.max_length,
        |  multiple_choice_tasks.choices as mc_choices,
        |  multiple_choice_tasks.answers as mc_answers,
@@ -379,7 +382,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   override def list(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
     cache.getCached[IndexedSeq[Task]](cacheTasksKey(part.id)).flatMap {
       case \/-(taskList) => Future successful \/-(taskList)
-      case -\/(RepositoryError.NoResults) =>
+      case -\/(noResults: RepositoryError.NoResults) =>
         for {
           taskList <- lift(queryList(SelectByPartId, Array[Any](part.id)))
           _ <- lift(cache.putCache[IndexedSeq[Task]](cacheTasksKey(part.id))(taskList, ttl))
@@ -407,7 +410,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]] = {
     cache.getCached[Task](cacheTaskKey(id)).flatMap {
       case \/-(task) => Future successful \/-(task)
-      case -\/(RepositoryError.NoResults) =>
+      case -\/(noResults: RepositoryError.NoResults) =>
         for {
           task <- lift(queryOne(SelectOne, Seq[Any](id)))
           _ <- lift(cache.putCache[Task](cacheTaskKey(id))(task, ttl))
@@ -428,7 +431,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   override def find(project: Project, part: Part, taskNum: Int)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]] = {
     cache.getCached[UUID](cacheTaskPosKey(project.id, part.id, taskNum)).flatMap {
       case \/-(taskId) => this.find(taskId)
-      case -\/(RepositoryError.NoResults) =>
+      case -\/(noResults: RepositoryError.NoResults) =>
         for {
           task <- lift(queryOne(SelectByPosition, Seq[Any](part.position, project.id, taskNum)))
           _ <- lift(cache.putCache[Task](cacheTaskKey(task.id))(task, ttl))
@@ -489,27 +492,27 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     )
 
     // Prepare the additional data to be sent depending on the type of task
-    val dataArray = task match {
-      case longAnswer: LongAnswerTask => commonData ++ Array[Any](Task.LongAnswer)
+    val dataArray: Seq[Any] = task match {
+      case longAnswer: LongAnswerTask => commonData ++ Seq[Any](Task.LongAnswer)
 
-      case shortAnswer: ShortAnswerTask => commonData ++ Array[Any](
+      case shortAnswer: ShortAnswerTask => commonData ++ Seq[Any](
         Task.ShortAnswer,
         shortAnswer.maxLength
       )
-      case multipleChoice: MultipleChoiceTask => commonData ++ Array[Any](
+      case multipleChoice: MultipleChoiceTask => commonData ++ Seq[Any](
         Task.MultipleChoice,
         multipleChoice.choices,
         multipleChoice.answers,
         multipleChoice.allowMultiple,
         multipleChoice.randomizeChoices
       )
-      case ordering: OrderingTask => commonData ++ Array[Any](
+      case ordering: OrderingTask => commonData ++ Seq[Any](
         Task.Ordering,
         ordering.elements,
         ordering.answers,
         ordering.randomizeChoices
       )
-      case matching: MatchingTask => commonData ++ Array[Any](
+      case matching: MatchingTask => commonData ++ Seq[Any](
         Task.Matching,
         matching.elementsLeft,
         matching.elementsRight,
@@ -554,13 +557,13 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.settings.notesAllowed,
       task.settings.responseTitle,
       task.settings.notesTitle,
-      task.version +1,
+      task.version + 1,
       new DateTime,
       task.id, task.version
     )
 
     // Throw in the task type-specific data.
-    val dataArray = task match {
+    val dataArray: Seq[Any] = task match {
       case longAnswer: LongAnswerTask => commonData
       case shortAnswer: ShortAnswerTask => commonData ++ Array[Any](
         shortAnswer.maxLength

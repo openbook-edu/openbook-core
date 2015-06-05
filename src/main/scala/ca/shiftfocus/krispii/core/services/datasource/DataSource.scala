@@ -23,7 +23,7 @@ class PostgresDB(val dbconfig: Configuration, val poolConfig: PoolConfiguration)
   val config = ConfigFactory.load()
   //val cacheExpiry = Option(config.getInt("app.cache.expires")).getOrElse(5)
   lazy val factory = new PostgreSQLConnectionFactory(dbconfig)
-  override def pool = connectionPool
+  override def pool: Connection = connectionPool
 
   private val connectionPool = new ConnectionPool(factory, poolConfig)
 }

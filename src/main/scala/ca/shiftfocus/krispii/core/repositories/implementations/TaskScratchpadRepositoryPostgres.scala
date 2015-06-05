@@ -14,6 +14,8 @@ import scalaz.{\/, \/-, -\/}
 class TaskScratchpadRepositoryPostgres(val documentRepository: DocumentRepository)
   extends TaskScratchpadRepository with PostgresRepository[TaskScratchpad] {
 
+  override val entityName = "TaskScratchpad"
+
   override def constructor(row: RowData): TaskScratchpad = {
     TaskScratchpad(
       userId = row("user_id").asInstanceOf[UUID],

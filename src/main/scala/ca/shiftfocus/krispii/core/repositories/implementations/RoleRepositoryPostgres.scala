@@ -24,6 +24,8 @@ import scalaz.syntax.either._
 
 class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRepository with PostgresRepository[Role] with Lifting[RepositoryError.Fail] {
 
+  override val entityName = "Role"
+
   override def constructor(row: RowData): Role = {
     Role(
       row("id").asInstanceOf[UUID],
@@ -134,12 +136,12 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
     |WHERE roles.id = users_roles.role_id
   """.stripMargin
 
-  val AddUsers = s"""
+  val AddUsers = """
     |INSERT INTO users_roles (role_id, user_id, created_at)
     |VALUES
   """.stripMargin
 
-  val RemoveUsers = s"""
+  val RemoveUsers = """
     |DELETE FROM users_roles
     |WHERE role_id =
   """.stripMargin
@@ -157,7 +159,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
   override def list(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Role]]] = {
     cache.getCached[IndexedSeq[Role]](cacheRolesKey(user.id)).flatMap {
       case \/-(roleList) => Future successful \/-(roleList)
-      case -\/(RepositoryError.NoResults) =>
+      case -\/(noResults: RepositoryError.NoResults) =>
         for {
           roleList <- lift(queryList(ListRoles, Array[Any](user.id)))
           _ <- lift(cache.putCache[IndexedSeq[Role]](cacheRolesKey(user.id))(roleList, ttl))
@@ -175,7 +177,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
   override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Role]] = {
     cache.getCached[Role](cacheCourseKey(id)).flatMap {
       case \/-(role) => Future successful \/-(role)
-      case -\/(RepositoryError.NoResults) =>
+      case -\/(noResults: RepositoryError.NoResults) =>
         for {
           role <- lift(queryOne(SelectOne, Array[Any](id)))
           _ <- lift(cache.putCache[UUID](cacheRoleNameKey(role.name))(role.id, ttl))
@@ -199,7 +201,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
           role <- lift(find(roleId))
         } yield role
       }
-      case -\/(RepositoryError.NoResults) => {
+      case -\/(noResults: RepositoryError.NoResults) => {
         for {
           role <- lift(queryOne(SelectOneByName, Array[Any](name)))
           _ <- lift(cache.putCache[UUID](cacheRoleNameKey(name))(role.id, ttl))
@@ -221,12 +223,12 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
     val cleanRoleId = role.id.toString filterNot ("-" contains _)
     val query = AddUsers + userList.map { user =>
       val cleanUserId = user.id.toString filterNot ("-" contains _)
-      s"('\\x$cleanRoleId', '\\x$cleanUserId', '${new DateTime}')"
+      s"('\\x$cleanRoleId', '\\x$cleanUserId', '${new DateTime()}')"
     }.mkString(",")
 
     for {
       _ <- lift(queryNumRows(query)(userList.length == _).map {
-        case \/-(wasSuccessful) => if (wasSuccessful) \/-( () )
+        case \/-(wasSuccessful) => if (wasSuccessful) { \/-( () ) } // scalastyle:ignore
         else -\/(RepositoryError.DatabaseError("Role couldn't be added to all users."))
         case -\/(error) => -\/(error)
       })
@@ -254,7 +256,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
 
     for {
       _ <- lift(queryNumRows(query)(userList.length == _).map {
-        case \/-(wasSuccessful) => if (wasSuccessful) \/-( () )
+        case \/-(wasSuccessful) => if (wasSuccessful) { \/-( () ) } // scalastyle:ignore
         else -\/(RepositoryError.DatabaseError("Role couldn't be removed from all users."))
         case -\/(error) => -\/(error)
       }.recover {
@@ -313,7 +315,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    */
   override def addToUser(user: User, role: Role)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
     val params = Seq[Any](user.id, role.id, new DateTime)
-    val fResult = queryNumRows(AddRole, params)(1 == _)
+    val fResult = queryNumRows(AddRole, params)(_ == 1)
 
     for {
       _ <- lift(fResult.map {
@@ -333,7 +335,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
       role   <- lift(find(name))
       _      <- {
         val params = Seq[Any] (user.id, new DateTime, name)
-        val fResult = queryNumRows(AddRoleByName, params) (1 == _)
+        val fResult = queryNumRows(AddRoleByName, params) (_ == 1)
 
         lift(fResult.map {
           case \/-(true)  => \/-(())
@@ -351,7 +353,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    */
   override def removeFromUser(user: User, role: Role)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
-      _ <- lift(queryNumRows(RemoveRole, Seq(user.id, role.id))(1 == _).map {
+      _ <- lift(queryNumRows(RemoveRole, Seq(user.id, role.id))(_ == 1).map {
         case \/-(true)  => \/-( () )
         case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
         case -\/(error) => -\/(error)
@@ -367,7 +369,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
     for {
       user <- lift(userRepository.find(user.id))
       role <- lift(find(name))
-      _    <- lift(queryNumRows(RemoveRoleByName, Seq(user.id, name))(1 == _).map {
+      _    <- lift(queryNumRows(RemoveRoleByName, Seq(user.id, name))(_ == 1).map {
         case \/-(true) => \/-( () )
         case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
         case -\/(error) => -\/(error)
@@ -382,9 +384,10 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
   override def removeFromAllUsers(role: Role)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       users <- lift(userRepository.list(role))
-      _ <- lift(queryNumRows(RemoveFromAllUsers, Seq[Any](role.id))(1 <= _).map {
+      _ <- lift(queryNumRows(RemoveFromAllUsers, Seq[Any](role.id))(_ >= 1).map {
         case \/-(true) => \/-( () )
-        case \/-(false) => -\/(RepositoryError.DatabaseError("It appears that no users had this role, so it has been removed from no one. But the query was successful, so there's that."))
+        case \/-(false) => -\/(RepositoryError.DatabaseError("It appears that no users had this role, so it has been removed from no one." +
+                                                             "But the query was successful, so there's that."))
         case -\/(error) => -\/(error)
       })
       _ <- liftSeq { users.map { user => cache.removeCached(cacheRolesKey(user.id)) } }
@@ -398,9 +401,10 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
     for {
       role <- lift(find(name))
       users <- lift(userRepository.list(role))
-      _ <- lift(queryNumRows(RemoveFromAllUsersByName, Seq[Any](name))(1 <= _).map {
+      _ <- lift(queryNumRows(RemoveFromAllUsersByName, Seq[Any](name))(_ >= 1).map {
         case \/-(true) => \/-(())
-        case \/-(false) => -\/(RepositoryError.DatabaseError("It appears that no users had this role, so it has been removed from no one. But the query was successful, so there's that."))
+        case \/-(false) => -\/(RepositoryError.DatabaseError("It appears that no users had this role, so it has been removed from no one." +
+                                                             "But the query was successful, so there's that."))
         case -\/(error) => -\/(error)
       })
       _ <- liftSeq { users.map { user => cache.removeCached(cacheRolesKey(user.id)) } }

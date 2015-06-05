@@ -16,6 +16,10 @@ trait DocumentService extends Service[ErrorUnion#Fail] {
   val userRepository: UserRepository
   val documentRepository: DocumentRepository
 
+  val defaultGranularity = 10
+  val maxGranularity = 100
+  val granularityStep = 5
+
   /**
    * A case class encapsulating the result of a push operation.
    *
@@ -38,7 +42,7 @@ trait DocumentService extends Service[ErrorUnion#Fail] {
   // List revisions of a document
   def listRevisions(documentId: UUID, fromVersion: Long = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[Revision]]]
 
-  def getHistory(documentId: UUID, granularity: Int = 10): Future[\/[ErrorUnion#Fail, IndexedSeq[Revision]]]
+  def getHistory(documentId: UUID, granularity: Int = defaultGranularity): Future[\/[ErrorUnion#Fail, IndexedSeq[Revision]]]
 
   def revert(documentId: UUID, version: Long, authorId: UUID): Future[\/[ErrorUnion#Fail, Document]]
 

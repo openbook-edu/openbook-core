@@ -21,11 +21,15 @@ trait ComponentService extends Service[ErrorUnion#Fail] {
 
   def createAudio(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, soundCloudId: String): Future[\/[ErrorUnion#Fail, Component]]
   def createText(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, content: String): Future[\/[ErrorUnion#Fail, Component]]
-  def createVideo(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, vimeoId: String, height: Int, width: Int): Future[\/[ErrorUnion#Fail, Component]]
+  def createVideo(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String,
+                  vimeoId: String, height: Int, width: Int): Future[\/[ErrorUnion#Fail, Component]]
 
-  def updateAudio(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String], soundCloudId: Option[String]): Future[\/[ErrorUnion#Fail, Component]]
-  def updateText(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String], content: Option[String]): Future[\/[ErrorUnion#Fail, Component]]
-  def updateVideo(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String], vimeoId: Option[String], height: Option[Int], width: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
+  def updateAudio(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
+                  soundCloudId: Option[String]): Future[\/[ErrorUnion#Fail, Component]]
+  def updateText(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
+                 content: Option[String]): Future[\/[ErrorUnion#Fail, Component]]
+  def updateVideo(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
+                  vimeoId: Option[String], height: Option[Int], width: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
 
   def delete(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Component]]
 

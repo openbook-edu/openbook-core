@@ -60,7 +60,8 @@ class ScheduleServiceDefault(val db: DB,
    * @param description a brief description may be entered
    * @return the newly created course schedule
    */
-  override def createSchedule(courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String): Future[\/[ErrorUnion#Fail, CourseSchedule]] = {
+  override def createSchedule(courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String)
+  : Future[\/[ErrorUnion#Fail, CourseSchedule]] = {
     transactional { implicit conn =>
       for {
         course <- lift(schoolService.findCourse(courseId))
@@ -158,7 +159,8 @@ class ScheduleServiceDefault(val db: DB,
    * @param description
    * @return
    */
-  def createScheduleException(userId: UUID, courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String): Future[\/[ErrorUnion#Fail, CourseScheduleException]] = {
+  def createScheduleException(userId: UUID, courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime, description: String)
+  : Future[\/[ErrorUnion#Fail, CourseScheduleException]] = {
     transactional { implicit conn =>
       for {
         course <- lift(schoolService.findCourse(courseId))
@@ -186,7 +188,8 @@ class ScheduleServiceDefault(val db: DB,
    * @param description
    * @return
    */
-  def updateScheduleException(id: UUID, version: Long, day: Option[LocalDate], startTime: Option[LocalTime], endTime: Option[LocalTime], description: Option[String]): Future[\/[ErrorUnion#Fail, CourseScheduleException]] = {
+  def updateScheduleException(id: UUID, version: Long, day: Option[LocalDate], startTime: Option[LocalTime], endTime: Option[LocalTime],
+                              description: Option[String]): Future[\/[ErrorUnion#Fail, CourseScheduleException]] = {
     for {
       existingException <- lift(courseScheduleExceptionRepository.find(id))
       _ <- predicate (existingException.version == version) (RepositoryError.OfflineLockFail)
@@ -225,7 +228,8 @@ class ScheduleServiceDefault(val db: DB,
    * @param currentTime
    * @return
    */
-  override def isCourseScheduledForUser(courseSlug: String, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
+  override def isCourseScheduledForUser(courseSlug: String, userId: UUID, currentDay: LocalDate, currentTime: LocalTime)
+  : Future[\/[ErrorUnion#Fail, Boolean]] = {
     for {
       course <- lift( schoolService.findCourse(courseSlug))
       scheduled <- lift(isCourseScheduledForUser(course, userId, currentDay, currentTime))
@@ -252,12 +256,16 @@ class ScheduleServiceDefault(val db: DB,
     if (!course.schedulingEnabled) {
       for {
         courses <- lift(fCourses)
-        _ <- predicate (courses.contains(course)) (ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource."))
+        _ <- predicate (courses.contains(course)) {
+          ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource.")
+        }
       } yield course.enabled
     } else {
       for {
         courses <- lift(fCourses)
-        _ <- predicate (courses.contains(course)) (ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource."))
+        _ <- predicate (courses.contains(course)) {
+          ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource.")
+        }
         fSchedules = listSchedulesByCourse(course.id)
         fExceptions = listScheduleExceptionsByCourse(course.id)
         schedules <- lift(fSchedules)

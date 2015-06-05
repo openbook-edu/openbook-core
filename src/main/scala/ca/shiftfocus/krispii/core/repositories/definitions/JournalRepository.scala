@@ -17,7 +17,8 @@ trait JournalRepository extends Repository {
 
   def list(entryType: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]]
   def list(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]]
-  def list(startDate: Option[DateTime], endDate: Option[DateTime])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]]
+  def list(startDate: Option[DateTime], endDate: Option[DateTime])(implicit conn: Connection, cache: ScalaCachePool)
+  : Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]]
 
   def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, JournalEntry]]
 

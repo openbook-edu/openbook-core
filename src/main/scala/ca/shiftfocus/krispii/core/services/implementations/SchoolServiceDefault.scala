@@ -1,7 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
-import java.awt.Color
-
+import java.awt.Color // scalastyle:ignore
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.services.datasource.DB
@@ -37,7 +36,7 @@ class SchoolServiceDefault(val db: DB,
   override def listCourses: Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
     courseRepository.list
   }
-  
+
   /**
    * List all courses associated with a specific user.
    *
@@ -127,7 +126,8 @@ class SchoolServiceDefault(val db: DB,
    * @param name the name of this course
    * @return the newly created course
    */
-  override def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: Option[String], color: Option[Color], chatEnabled: Option[Boolean]): Future[\/[ErrorUnion#Fail, Course]] = {
+  override def updateCourse(id: UUID, version: Long, teacherId: Option[UUID], name: Option[String], color: Option[Color], chatEnabled: Option[Boolean])
+  : Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
       for {
         existingCourse <- lift(courseRepository.find(id))
@@ -236,7 +236,7 @@ class SchoolServiceDefault(val db: DB,
       teacher     <- lift(authService.find(teacherId))
       userCourses <- lift(courseRepository.list(user, false))
       filteredCourses = userCourses.filter(_.teacherId == teacherId)
-      _ <- predicate (filteredCourses.nonEmpty) (RepositoryError.NoResults)
+      _ <- predicate (filteredCourses.nonEmpty) (RepositoryError.NoResults(s"User ${userId.toString} is not in any courses wiht teacher ${teacherId.toString}"))
     } yield user
   }
 

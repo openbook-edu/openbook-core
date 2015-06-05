@@ -18,7 +18,7 @@ case class Part(
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) {
-  override def toString = {
+  override def toString: String = {
     s"Part(id: '${id.toString}', position: '${position.toString}', name: '$name')"
   }
   override def equals(other: Any): Boolean = {

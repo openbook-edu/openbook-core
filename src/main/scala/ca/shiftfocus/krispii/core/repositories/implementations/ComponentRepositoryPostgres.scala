@@ -17,6 +17,8 @@ import scalaz.{\/, -\/, \/-}
 class ComponentRepositoryPostgres()
   extends ComponentRepository with PostgresRepository[Component] {
 
+  override val entityName = "Component"
+
   override def constructor(row: RowData): Component = {
     row("type").asInstanceOf[String] match {
       case "audio" => constructAudio(row)
@@ -77,7 +79,7 @@ class ComponentRepositoryPostgres()
     CommonFields.split(", ").map({ field => s"${table}." + field}).mkString(", ")
   }
   val SpecificFields =
-    s"""
+    """
        |  text_components.content,
        |  video_components.vimeo_id,
        |  video_components.width,
@@ -304,7 +306,7 @@ class ComponentRepositoryPostgres()
   override def list(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     cache.getCached[IndexedSeq[Component]](cacheComponentsKey(part.id)).flatMap {
       case \/-(compList) => Future successful \/-(compList)
-      case -\/(RepositoryError.NoResults) =>
+      case -\/(noResults: RepositoryError.NoResults) =>
         for {
           compList <- lift(queryList(SelectByPartId, Array[Any](part.id)))
           _ <- lift(cache.putCache[IndexedSeq[Component]](cacheComponentsKey(part.id))(compList, ttl))
@@ -322,7 +324,7 @@ class ComponentRepositoryPostgres()
   override def list(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     cache.getCached[IndexedSeq[Component]](cacheComponentsKey(project.id)).flatMap {
       case \/-(compList) => Future successful \/-(compList)
-      case -\/(RepositoryError.NoResults) =>
+      case -\/(noResults: RepositoryError.NoResults) =>
         for {
           compList <- lift(queryList(SelectByProjectId, Array[Any](project.id)))
           _ <- lift(cache.putCache[IndexedSeq[Component]](cacheComponentsKey(project.id))(compList, ttl))
@@ -351,7 +353,7 @@ class ComponentRepositoryPostgres()
   override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
     cache.getCached[Component](cacheComponentKey(id)).flatMap {
       case \/-(compList) => Future successful \/-(compList)
-      case -\/(RepositoryError.NoResults) =>
+      case -\/(noResults: RepositoryError.NoResults) =>
         for {
           compList <- lift(queryOne(SelectOne, Array[Any](id)))
           _ <- lift(cache.putCache[Component](cacheComponentKey(id))(compList, ttl))
@@ -369,9 +371,9 @@ class ComponentRepositoryPostgres()
    */
   override def addToPart(component: Component, part: Part)(implicit conn: Connection, cache: ScalaCachePool):Future[\/[RepositoryError.Fail, Unit]] = {
     for {
-      _ <- lift(queryNumRows(AddToPart, Array[Any](component.id, part.id, new DateTime))(1 == _).map {
+      _ <- lift(queryNumRows(AddToPart, Array[Any](component.id, part.id, new DateTime))(_ == 1).map {
         case \/-(true) => \/-( () )
-        case \/-(false) => -\/(RepositoryError.NoResults)
+        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not add component ${component.id.toString} to part ${part.id.toString}"))
         case -\/(error) => -\/(error)
       })
       _ <- lift(cache.removeCached(cacheComponentsKey(part.id)))
@@ -387,9 +389,9 @@ class ComponentRepositoryPostgres()
    */
   override def removeFromPart(component: Component, part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
-      _ <- lift(queryNumRows(RemoveFromPart, Array[Any](component.id, part.id))(1 == _).map {
+      _ <- lift(queryNumRows(RemoveFromPart, Array[Any](component.id, part.id))(_ == 1).map {
         case \/-(true) => \/-( () )
-        case \/-(false) => -\/(RepositoryError.NoResults)
+        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove component ${component.id.toString} to part ${part.id.toString}"))
         case -\/(error) => -\/(error)
       })
       _ <- lift(cache.removeCached(cacheComponentsKey(part.id)))
@@ -409,7 +411,7 @@ class ComponentRepositoryPostgres()
       deletedComponents <- lift {
         queryNumRows(RemoveAllFromParts, Array[Any](part.id))(componentsInPart.length == _).map {
           case \/-(true) => \/-( componentsInPart )
-          case \/-(false) => -\/(RepositoryError.NoResults)
+          case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove components from nonexistant part ${part.id.toString}"))
           case -\/(error) => -\/(error)
         }
       }
@@ -437,7 +439,7 @@ class ComponentRepositoryPostgres()
     )
 
     // Specific properties
-    val dataArray = component match {
+    val dataArray: Seq[Any] = component match {
       case textComponent: TextComponent => commonData ++ Array[Any](
         Component.Text,
         textComponent.content
@@ -485,7 +487,7 @@ class ComponentRepositoryPostgres()
     )
 
     // Specific properties
-    val dataArray = component match {
+    val dataArray: Seq[Any] = component match {
       case textComponent: TextComponent => commonData ++ Array[Any](
         textComponent.content
       )

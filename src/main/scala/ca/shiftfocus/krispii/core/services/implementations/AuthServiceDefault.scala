@@ -23,7 +23,7 @@ class AuthServiceDefault(val db: DB,
 
   implicit def conn: Connection = db.pool
   implicit def cache: ScalaCachePool = scalaCache
-  
+
   /**
    * List all users.
    *
@@ -191,7 +191,8 @@ class AuthServiceDefault(val db: DB,
    * @param id The ID to allocate for this user, if left out, it will be random.
    * @return the created user
    */
-  override def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.randomUUID): Future[\/[ErrorUnion#Fail, User]] = {
+  override def create(username: String, email: String, password: String, givenname: String, surname: String, id: UUID = UUID.randomUUID)
+  : Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
       val webcrank = Passwords.scrypt()
 
@@ -225,7 +226,8 @@ class AuthServiceDefault(val db: DB,
    * @param username optionally update the username
    * @return a future disjunction containing the updated user, or a failure
    */
-  override def update(id: UUID, version: Long, email: Option[String], username: Option[String], givenname: Option[String], surname: Option[String]): Future[\/[ErrorUnion#Fail, User]] = {
+  override def update(id: UUID, version: Long, email: Option[String], username: Option[String], givenname: Option[String], surname: Option[String])
+  : Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
       val updated = for {
         existingUser <- lift(userRepository.find(id))
@@ -564,7 +566,7 @@ class AuthServiceDefault(val db: DB,
    */
   private def isValidUsername(username: String): Future[\/[ErrorUnion#Fail, String]] = Future.successful {
     if (username.length >= 3) \/-(username)
-    else -\/(ServiceError.BadInput(s"Your username must be at least 3 characters."))
+    else -\/(ServiceError.BadInput("Your username must be at least 3 characters."))
   }
 
   /**
@@ -575,7 +577,7 @@ class AuthServiceDefault(val db: DB,
    */
   private def isValidPassword(password: String): Future[\/[ErrorUnion#Fail, String]] = Future.successful {
     if (password.length >= 8) \/-(password)
-    else -\/(ServiceError.BadInput(s"The password provided must be at least 8 characters."))
+    else -\/(ServiceError.BadInput("The password provided must be at least 8 characters."))
   }
 
   /**
@@ -597,7 +599,7 @@ class AuthServiceDefault(val db: DB,
       case \/-(user) =>
         if (existingId.isEmpty || (existingId.get != user.id)) -\/(RepositoryError.UniqueKeyConflict("email", s"The e-mail address $email is already in use."))
         else \/-(email)
-      case -\/(RepositoryError.NoResults) => \/-(email)
+      case -\/(noResults: RepositoryError.NoResults) => \/-(email)
       case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)
     }
   }
@@ -621,7 +623,7 @@ class AuthServiceDefault(val db: DB,
       case \/-(user) =>
         if (existingId.isEmpty || (existingId.get != user.id)) -\/(RepositoryError.UniqueKeyConflict("username", s"The username $username is already in use."))
         else \/-(username)
-      case -\/(RepositoryError.NoResults) => \/-(username)
+      case -\/(noResults: RepositoryError.NoResults) => \/-(username)
       case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)
     }
   }

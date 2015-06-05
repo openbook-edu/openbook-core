@@ -56,19 +56,19 @@ class DocumentServiceDefault(val db: DB,
    * @param granularity
    * @return
    */
-  override def getHistory(documentId: UUID, granularity: Int = 10): Future[\/[ErrorUnion#Fail, IndexedSeq[Revision]]] = {
-    if (granularity > 0 && granularity <= 100 && granularity % 5 == 0) {
+  override def getHistory(documentId: UUID, granularity: Int = maxGranularity): Future[\/[ErrorUnion#Fail, IndexedSeq[Revision]]] = {
+    if (granularity > 0 && granularity <= maxGranularity && granularity % granularityStep == 0) {
       for {
         document <- lift(documentRepository.find(documentId))
-        gran = if (document.version < 10) 1 else granularity
-        interval = if (document.version < 10) 1 else document.version / granularity
+        gran = if (document.version < defaultGranularity) 1 else granularity
+        interval = if (document.version < defaultGranularity) 1 else document.version / granularity
         versions = (1 until granularity).map(_ * interval).filter(_ <= document.version)
         revisions <- liftSeq(versions.map { version => revisionRepository.find(document, version).map {
             case \/-(revision) => \/-(Some(revision))
-            case -\/(RepositoryError.NoResults) => \/-(None)
+            case -\/(noResults: RepositoryError.NoResults) => \/-(None)
             case -\/(error) => -\/(error)
           } })
-      } yield revisions.filter(_.isDefined).map(_.get)
+      } yield revisions.flatten
     } else {
       Future successful \/.left(ServiceError.BadInput("Granularity must be a positive multiple of 5 no greater than 100."))
     }
@@ -191,8 +191,9 @@ class DocumentServiceDefault(val db: DB,
           if (recentRevisions.nonEmpty) {
             val recentDeltas = recentRevisions.map(_.delta)
             val recentServerDelta =
-              if (recentDeltas.length == 1)
+              if (recentDeltas.length == 1) {
                 recentDeltas.head
+              }
               else recentDeltas.tail.foldLeft(recentDeltas.head) {
                 (left: Delta, right: Delta) => {
                   left o right
@@ -201,7 +202,9 @@ class DocumentServiceDefault(val db: DB,
             val transformedDelta = recentServerDelta x delta
             val newDelta = document.delta o transformedDelta
             if (newDelta.targetLength > 1024000) {
-              lift (Future successful \/.left[ErrorUnion#Fail, PushResult](ServiceError.BusinessLogicFail("Document cannot be longer than 1,024,000 characters.")))
+              lift (Future successful \/.left[ErrorUnion#Fail, PushResult] {
+                ServiceError.BusinessLogicFail("Document cannot be longer than 1,024,000 characters.")
+              })
             } else {
               for {
                 _ <- predicate (newDelta.isDocument) (ServiceError.BadInput("Document Delta must contain only inserts"))
@@ -225,7 +228,9 @@ class DocumentServiceDefault(val db: DB,
           else {
             val newDelta = document.delta o delta
             if (newDelta.targetLength > 1024000) {
-              lift(Future successful \/.left[ErrorUnion#Fail, PushResult](ServiceError.BusinessLogicFail("Document cannot be longer than 1,024,000 characters.")))
+              lift(Future successful \/.left[ErrorUnion#Fail, PushResult]{
+                ServiceError.BusinessLogicFail("Document cannot be longer than 1,024,000 characters.")
+              })
             } else {
               for {
                 _ <- predicate (newDelta.isDocument) (ServiceError.BadInput("Document Delta must contain only inserts"))

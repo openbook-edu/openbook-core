@@ -19,7 +19,12 @@ trait CourseScheduleExceptionRepository extends Repository {
 
   def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseScheduleException]]
 
-  def insert(courseSchedule: CourseScheduleException)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseScheduleException]]
-  def update(courseSchedule: CourseScheduleException)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseScheduleException]]
-  def delete(courseSchedule: CourseScheduleException)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseScheduleException]]
+  def insert(courseSchedule: CourseScheduleException)(implicit conn: Connection, cache: ScalaCachePool)
+  : Future[\/[RepositoryError.Fail, CourseScheduleException]]
+
+  def update(courseSchedule: CourseScheduleException)(implicit conn: Connection, cache: ScalaCachePool)
+  : Future[\/[RepositoryError.Fail, CourseScheduleException]]
+
+  def delete(courseSchedule: CourseScheduleException)(implicit conn: Connection, cache: ScalaCachePool)
+  : Future[\/[RepositoryError.Fail, CourseScheduleException]]
 }

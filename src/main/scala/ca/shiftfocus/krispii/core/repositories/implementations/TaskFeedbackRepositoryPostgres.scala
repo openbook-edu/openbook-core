@@ -15,6 +15,8 @@ import scalaz.{\/, -\/, \/-}
 class TaskFeedbackRepositoryPostgres (val documentRepository: DocumentRepository)
   extends TaskFeedbackRepository with PostgresRepository[TaskFeedback] {
 
+  override val entityName = "TaskFeedback"
+
   def constructor(row: RowData): TaskFeedback = {
     TaskFeedback(
       studentId  = row("student_id").asInstanceOf[UUID],

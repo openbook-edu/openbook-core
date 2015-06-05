@@ -149,19 +149,19 @@ VALUES ('\x5099a6b48809400d8e380119184d0f93', '\x94cc65bb45424f628e08d58522e7b5f
 
 /* project A -> course A -> user A (teacher) */
 INSERT INTO projects (id, course_id, version, name, slug, description, availability, created_at, updated_at)
-VALUES ('\xc9b4cfceaed448fd94f5c980763dfddc', '\x217c5622ff9e43728e6a95fb3bae300b', 1, 'test project A', 'test project slug A', 'test project A description', 'any', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
+VALUES ('\xc9b4cfceaed448fd94f5c980763dfddc', '\x217c5622ff9e43728e6a95fb3bae300b', 1, 'test project A', 'test_project_slug_A', 'test project A description', 'any', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
 /* project B -> course B -> user B (teacher) */
 INSERT INTO projects (id, course_id, version, name, slug, description, availability, created_at, updated_at)
-VALUES ('\xe4ae3b9098714339b05c8d39e3aaf65d', '\x404c800a53854e6b867e365a1e6b00de', 2, 'test project B', 'test project slug B', 'test project B description', 'free', '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
+VALUES ('\xe4ae3b9098714339b05c8d39e3aaf65d', '\x404c800a53854e6b867e365a1e6b00de', 2, 'test project B', 'test_project_slug_B', 'test project B description', 'free', '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
 
 /* project C -> course B -> user B (teacher) */
 INSERT INTO projects (id, course_id, version, name, slug, description, availability, created_at, updated_at)
-VALUES ('\x4ac4d872451b4092b13f643d6d5fa930', '\x404c800a53854e6b867e365a1e6b00de', 3, 'test project C', 'test project slug C', 'test project C description', 'course', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+VALUES ('\x4ac4d872451b4092b13f643d6d5fa930', '\x404c800a53854e6b867e365a1e6b00de', 3, 'test project C', 'test_project_slug_C', 'test project C description', 'course', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
 /* project E -> course A -> user A (teacher) */
 INSERT INTO projects (id, course_id, version, name, slug, description, availability, created_at, updated_at)
-VALUES ('\xb36919cb2df043b7bb7f36cae797deaa', '\x217c5622ff9e43728e6a95fb3bae300b', 4, 'test project E', 'test project slug E', 'test project E description', 'course', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+VALUES ('\xb36919cb2df043b7bb7f36cae797deaa', '\x217c5622ff9e43728e6a95fb3bae300b', 4, 'test project E', 'test_project_slug_E', 'test project E description', 'course', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 
 
 /* ---------------------- PARTS ---------------------- */

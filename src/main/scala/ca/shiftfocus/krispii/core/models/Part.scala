@@ -12,7 +12,7 @@ case class Part(
   version: Long = 1L,
   projectId: UUID,
   name: String,
-  position: Int = 0,
+  position: Int = 1,
   enabled: Boolean = true,
   tasks: IndexedSeq[Task] = IndexedSeq(),
   createdAt: DateTime = new DateTime,
@@ -25,6 +25,11 @@ case class Part(
     other match {
       case otherPart: Part =>
         this.id == otherPart.id &&
+        this.version == otherPart.version &&
+        this.projectId == otherPart.projectId &&
+        this.name == otherPart.name &&
+        this.position == otherPart.position &&
+        this.enabled == otherPart.enabled &&
         this.tasks == otherPart.tasks
       case _ => false
     }

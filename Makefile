@@ -5,13 +5,15 @@ all:
 	sbt clean compile dist
 
 clean:
-	sbt clean
+	rm -rf target
+	rm -rf project/target
+	rm -rf project/project
 
 test:
 	sbt test
 
 compile:
-	sbt compile
+	sbt compile scalastyle
 
 dist:
 	sbt dist

@@ -20,7 +20,8 @@ resolvers ++= Seq(
   "ShiftFocus" at "https://maven.shiftfocus.ca/repositories/releases",
   "ShiftFocus Snapshots" at "https://maven.shiftfocus.ca/repositories/snapshots",
   "Sonatype" at "https://oss.sonatype.org/content/repositories/releases",
-  "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"//,
+  "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
+  "Linter Repository" at "https://hairyfotr.github.io/linteRepo/releases"
   //"Kahn's Repo" at "http://repo.kahn.ws/maven/snapshots"
 )
 
@@ -60,6 +61,8 @@ libraryDependencies ++= Seq(
   "ca.shiftfocus" %% "sflib" % "1.0.4",
   "ws.kahn" %% "ot" % "1.0-SNAPSHOT"
 )
+
+addCompilerPlugin("com.foursquare.lint" %% "linter" % "0.1.10")
 
 // -- SBT Publish settings --------
 // Please ensure that your public key is appended to /home/maven/.ssh/authorized_keys for the

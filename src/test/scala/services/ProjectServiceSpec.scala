@@ -745,6 +745,29 @@ class ProjectServiceSpec
         val result = projectService.updatePart(updatedPart.id, 99L, Some(updatedPart.name), Some(updatedPart.position), Some(updatedPart.enabled))
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
+      "return ServiceError.BusinessLogicFail if part list is empty" in {
+        val testProject  = TestValues.testProjectA.copy(parts = Vector(
+          TestValues.testPartA.copy(position = 1),
+          TestValues.testPartB.copy(position = 2),
+          TestValues.testPartC.copy(position = 3)
+        ))
+        val noPartsProject = testProject.copy(parts = IndexedSeq())
+        val testPartList = testProject.parts.map(_.copy(tasks = IndexedSeq()))
+        val updatedPart = testPartList(1).copy(
+          name = "updated " + testPartList(1).name,
+          enabled = !testPartList(1).enabled
+        )
+
+        (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(updatedPart.id, *, *) returns(Future.successful(\/-(testPartList(1))))
+        (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when(testProject.id, false, *, *) returns(Future.successful(\/-(noPartsProject)))
+        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when(noPartsProject, false, *, *) returns(Future.successful(\/-(IndexedSeq.empty[Part])))
+
+        // partB
+        (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when(updatedPart, *, *) returns(Future.successful(\/-(updatedPart)))
+
+        val result = projectService.updatePart(updatedPart.id, updatedPart.version, Some(updatedPart.name), Some(updatedPart.position), Some(updatedPart.enabled))
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BusinessLogicFail("Weird, part list shouldn't be empty!")))
+      }
     }
   }
 
@@ -765,8 +788,10 @@ class ProjectServiceSpec
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when(testProject.id, false, *, *) returns(Future.successful(\/-(noPartsProject)))
         (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when(noPartsProject, false, *, *) returns(Future.successful(\/-(testPartList)))
 
+        // mock partA with changed position
+        (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when(testPartList(0).copy(position = 1), *, *) returns(Future.successful(\/-(testPartList(0).copy(position = 1))))
         // mock partC with changed position
-        (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when(testPartList(2).copy(position = testPartList(2).position - 1), *, *) returns(Future.successful(\/-(testPartList(2))))
+        (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when(testPartList(2).copy(position = 2), *, *) returns(Future.successful(\/-(testPartList(2).copy(position = 2))))
 
         (taskRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when(deletedPart, *, *) returns(Future.successful(\/-(IndexedSeq())))
         (partRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when(deletedPart, *, *) returns(Future.successful(\/-(deletedPart)))
@@ -774,7 +799,7 @@ class ProjectServiceSpec
         val result = projectService.deletePart(deletedPart.id, deletedPart.version)
         Await.result(result, Duration.Inf) should be(\/-(deletedPart))
       }
-      "delete part in the begining" in {
+      "delete part in the beginning" in {
         val testProject  = TestValues.testProjectA.copy(parts = Vector(
           TestValues.testPartA,
           TestValues.testPartB,
@@ -789,10 +814,58 @@ class ProjectServiceSpec
         (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when(noPartsProject, false, *, *) returns(Future.successful(\/-(testPartList)))
 
         // mock partB with changed position
-        (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when(testPartList(1).copy(position = testPartList(1).position - 1), *, *) returns(Future.successful(\/-(testPartList(1))))
+        (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when(testPartList(1).copy(position = 1), *, *) returns(Future.successful(\/-(testPartList(1).copy(position = 1))))
 
         // mock partC with changed position
-        (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when(testPartList(2).copy(position = testPartList(2).position - 1), *, *) returns(Future.successful(\/-(testPartList(2))))
+        (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when(testPartList(2).copy(position = 2), *, *) returns(Future.successful(\/-(testPartList(2).copy(position = 2))))
+
+        (taskRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when(deletedPart, *, *) returns(Future.successful(\/-(IndexedSeq())))
+        (partRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when(deletedPart, *, *) returns(Future.successful(\/-(deletedPart)))
+
+        val result = projectService.deletePart(deletedPart.id, deletedPart.version)
+        Await.result(result, Duration.Inf) should be(\/-(deletedPart))
+      }
+      "delete part between and change position only of parts that go after, even if position starts with 1" in {
+        val testProject  = TestValues.testProjectA.copy(parts = Vector(
+          TestValues.testPartC.copy(position = 1),
+          TestValues.testPartA.copy(position = 2),
+          TestValues.testPartB.copy(position = 3)
+        ))
+        val testPartList = testProject.parts.map(_.copy(tasks = IndexedSeq()))
+        val noPartsProject = testProject.copy(parts = IndexedSeq())
+        val deletedPart = testPartList(1)
+
+        (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(deletedPart.id, *, *) returns(Future.successful(\/-(deletedPart)))
+        (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when(testProject.id, false, *, *) returns(Future.successful(\/-(noPartsProject)))
+        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when(noPartsProject, false, *, *) returns(Future.successful(\/-(testPartList)))
+
+        // mock partB with changed position
+        (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when(testPartList(2).copy(position = 2), *, *) returns(Future.successful(\/-(testPartList(2).copy(position = 2))))
+
+        (taskRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when(deletedPart, *, *) returns(Future.successful(\/-(IndexedSeq())))
+        (partRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when(deletedPart, *, *) returns(Future.successful(\/-(deletedPart)))
+
+        val result = projectService.deletePart(deletedPart.id, deletedPart.version)
+        Await.result(result, Duration.Inf) should be(\/-(deletedPart))
+      }
+      "delete part between and change all parts positions if position starts with 0" in {
+        val testProject  = TestValues.testProjectA.copy(parts = Vector(
+          TestValues.testPartC.copy(position = 0),
+          TestValues.testPartA.copy(position = 1),
+          TestValues.testPartB.copy(position = 2)
+        ))
+        val testPartList = testProject.parts.map(_.copy(tasks = IndexedSeq()))
+        val noPartsProject = testProject.copy(parts = IndexedSeq())
+        val deletedPart = testPartList(1)
+
+        (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(deletedPart.id, *, *) returns(Future.successful(\/-(deletedPart)))
+        (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when(testProject.id, false, *, *) returns(Future.successful(\/-(noPartsProject)))
+        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when(noPartsProject, false, *, *) returns(Future.successful(\/-(testPartList)))
+
+        // mock partC with changed position
+        (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when(testPartList(0).copy(position = 1), *, *) returns(Future.successful(\/-(testPartList(0).copy(position = 1))))
+        // mock partB with changed position
+        (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when(testPartList(2).copy(position = 2), *, *) returns(Future.successful(\/-(testPartList(2).copy(position = 2))))
 
         (taskRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when(deletedPart, *, *) returns(Future.successful(\/-(IndexedSeq())))
         (partRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when(deletedPart, *, *) returns(Future.successful(\/-(deletedPart)))
@@ -812,6 +885,29 @@ class ProjectServiceSpec
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(deletedPart.id, *, *) returns(Future.successful(\/-(deletedPart)))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when(testProject.id, false, *, *) returns(Future.successful(\/-(noPartsProject)))
         (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when(noPartsProject, false, *, *) returns(Future.successful(\/-(testPartList)))
+
+        // mock partA with changed position
+        (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when(testPartList(0).copy(position = 1), *, *) returns(Future.successful(\/-(testPartList(0).copy(position = 1))))
+
+        (taskRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when(deletedPart, *, *) returns(Future.successful(\/-(IndexedSeq())))
+        (partRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when(deletedPart, *, *) returns(Future.successful(\/-(deletedPart)))
+
+        val result = projectService.deletePart(deletedPart.id, deletedPart.version)
+        Await.result(result, Duration.Inf) should be(\/-(deletedPart))
+      }
+      "delete part in the end and do not update rest parts position if position starts with 1" in {
+        val testProject  = TestValues.testProjectA.copy(parts = Vector(
+          TestValues.testPartA.copy(position = 1),
+          TestValues.testPartB.copy(position = 2)
+        ))
+        val testPartList = testProject.parts.map(_.copy(tasks = IndexedSeq()))
+        val noPartsProject = testProject.copy(parts = IndexedSeq())
+        val deletedPart = testPartList(1)
+
+        (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(deletedPart.id, *, *) returns(Future.successful(\/-(deletedPart)))
+        (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when(testProject.id, false, *, *) returns(Future.successful(\/-(noPartsProject)))
+        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when(noPartsProject, false, *, *) returns(Future.successful(\/-(testPartList)))
+
         (taskRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when(deletedPart, *, *) returns(Future.successful(\/-(IndexedSeq())))
         (partRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when(deletedPart, *, *) returns(Future.successful(\/-(deletedPart)))
 
@@ -832,10 +928,37 @@ class ProjectServiceSpec
         val result = projectService.deletePart(testPartList(0).id, 99L)
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
+      "return ServiceError.BusinessLogicFail if part list is empty" in {
+        val testProject  = TestValues.testProjectA.copy(parts = Vector(
+          TestValues.testPartA,
+          TestValues.testPartB,
+          TestValues.testPartC
+        ))
+        val testPartList = testProject.parts.map(_.copy(tasks = IndexedSeq()))
+        val noPartsProject = testProject.copy(parts = IndexedSeq())
+        val deletedPart = testPartList(0)
+
+        (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(deletedPart.id, *, *) returns(Future.successful(\/-(deletedPart)))
+        (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when(testProject.id, false, *, *) returns(Future.successful(\/-(noPartsProject)))
+        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when(noPartsProject, false, *, *) returns(Future.successful(\/-(IndexedSeq.empty[Part])))
+
+        // mock partB with changed position
+        (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when(testPartList(1).copy(position = 1), *, *) returns(Future.successful(\/-(testPartList(1).copy(position = 1))))
+
+        // mock partC with changed position
+        (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when(testPartList(2).copy(position = 2), *, *) returns(Future.successful(\/-(testPartList(2).copy(position = 2))))
+
+        (taskRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when(deletedPart, *, *) returns(Future.successful(\/-(IndexedSeq())))
+        (partRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when(deletedPart, *, *) returns(Future.successful(\/-(deletedPart)))
+
+        val result = projectService.deletePart(deletedPart.id, deletedPart.version)
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BusinessLogicFail("Weird, part list shouldn't be empty!")))
+      }
     }
   }
-
-//  "ProjectService.togglePart" should {
+//
+//
+// "ProjectService.togglePart" should {
 //    inSequence{
 //      "enable a disabled part" in {
 //        val testPart = TestValues.testPartA.copy(enabled = false)

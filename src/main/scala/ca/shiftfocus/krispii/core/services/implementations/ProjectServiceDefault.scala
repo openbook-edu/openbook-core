@@ -398,6 +398,7 @@ class ProjectServiceDefault(val db: DB,
             case false => partList
           }
 
+          // Replace the part for update and order all parts by position
           val orderedParts = updatedPartList.map { part =>
             if (part.id == partId) updatedPart
             else part
@@ -443,18 +444,17 @@ class ProjectServiceDefault(val db: DB,
         _ <- predicate (part.version == version) (ServiceError.OfflineLockFail)
         project <- lift(projectRepository.find(part.projectId, false))
         partList <- lift(partRepository.list(project, false))
+        _ <- predicate (partList.nonEmpty) (ServiceError.BusinessLogicFail("Weird, part list shouldn't be empty!"))
         partListUpdated <- lift {
-          val filteredPartList = partList.filter({ item => item.id != part.id && item.position > part.position}).map(part => part.copy(position = part.position - 1))
-          if (filteredPartList.nonEmpty)
-            serializedT(filteredPartList)(partRepository.update)
-          else
-            Future.successful(\/-(IndexedSeq()))
+          val filteredOderedPartList = partList.filter(_.id != partId).sortWith(_.position < _.position)
+          serializedT(filteredOderedPartList.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedParts(filteredOderedPartList, partId, _))
         }
         tasksDeleted <- lift(taskRepository.delete(part))
         deletedPart <- lift(partRepository.delete(part))
       } yield deletedPart
     }
   }
+
 
   /**
    * Enable a disabled part, and disable an enabled part.

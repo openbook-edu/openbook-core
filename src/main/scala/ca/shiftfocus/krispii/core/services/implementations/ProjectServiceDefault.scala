@@ -482,9 +482,10 @@ class ProjectServiceDefault(val db: DB,
    *                order the parts should have
    * @return a future disjunction containing either the updated project, or a failure
    */
-  override def reorderParts(projectId: UUID, partIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Project]] = {
+  override def reorderParts(projectId: UUID, partIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, IndexedSeq[Part]]] = {
     transactional { implicit conn: Connection =>
       for {
+        _ <- predicate (partIds.nonEmpty) (ServiceError.BadInput("The list of part IDs can not be empty"))
         project <- lift(projectRepository.find(projectId))
         parts <- lift(partRepository.list(project, false))
         reordered <- lift {
@@ -493,8 +494,7 @@ class ProjectServiceDefault(val db: DB,
           }
           serializedT(orderedParts)(partRepository.update)
         }
-        project <- lift(projectRepository.find(projectId))
-      } yield project
+      } yield reordered
     }
   }
 

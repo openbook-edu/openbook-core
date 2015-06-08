@@ -1,12 +1,12 @@
 import java.awt.Color
 import ca.shiftfocus.krispii.core.models.JournalEntry._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.document.{Revision, Document}
+import ca.shiftfocus.krispii.core.models.document.{ Revision, Document }
 import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.models.work._
 import java.util.UUID
-import org.joda.time.{LocalTime, LocalDate, DateTime, DateTimeZone}
+import org.joda.time.{ LocalTime, LocalDate, DateTime, DateTimeZone }
 import webcrank.password.Passwords
 import ws.kahn.ot._
 
@@ -178,7 +178,6 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 20, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-
   /* ---------------------- COURSES ---------------------- */
 
   val testCourseA = Course(
@@ -187,7 +186,7 @@ object TestValues {
     teacherId = testUserA.id,
     name = "test course A",
     color = new Color(24, 6, 8),
-    slug  = "test course A slug",
+    slug = "test course A slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -199,7 +198,7 @@ object TestValues {
     teacherId = testUserB.id,
     name = "test course B",
     color = new Color(34, 8, 16),
-    slug  = "test course B slug",
+    slug = "test course B slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -213,7 +212,7 @@ object TestValues {
     teacherId = testUserA.id,
     name = "unexisting course C",
     color = new Color(24, 6, 8),
-    slug  = "test course C slug",
+    slug = "test course C slug",
     chatEnabled = true
   )
 
@@ -223,7 +222,7 @@ object TestValues {
     teacherId = testUserF.id,
     name = "test course D",
     color = new Color(4, 28, 56),
-    slug  = "test course D slug",
+    slug = "test course D slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -237,7 +236,7 @@ object TestValues {
     teacherId = testUserA.id,
     name = "unexisting course E",
     color = new Color(45, 10, 15),
-    slug  = "test course E slug",
+    slug = "test course E slug",
     chatEnabled = true
   )
 
@@ -247,7 +246,7 @@ object TestValues {
     teacherId = testUserF.id,
     name = "test course F",
     color = new Color(4, 28, 56),
-    slug  = "test course F slug",
+    slug = "test course F slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -262,12 +261,11 @@ object TestValues {
     teacherId = testUserF.id,
     name = "test course G",
     color = new Color(23, 6, 45),
-    slug  = "test course G slug",
+    slug = "test course G slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
-
 
   /* ---------------------- TASKS ---------------------- */
 
@@ -360,7 +358,7 @@ object TestValues {
       responseTitle = Some("test MultipleChoiceTask C response title")
     ),
     choices = Vector("choice 1", "choice 2"),
-    answers  = Vector(1, 2),
+    answers = Vector(1, 2),
     allowMultiple = false,
     randomizeChoices = true,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -382,7 +380,7 @@ object TestValues {
       responseTitle = Some("test MultipleChoiceTask H response title")
     ),
     choices = Vector("choice 3", "choice 4"),
-    answers  = Vector(3, 4),
+    answers = Vector(3, 4),
     allowMultiple = true,
     randomizeChoices = false,
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -404,7 +402,7 @@ object TestValues {
       responseTitle = Some("test OrderingTask D response title")
     ),
     elements = Vector("element 3", "element 4"),
-    answers  = Vector(3, 4),
+    answers = Vector(3, 4),
     randomizeChoices = true,
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -424,7 +422,7 @@ object TestValues {
       responseTitle = Some("test OrderingTask L response title")
     ),
     elements = Vector("element 5", "element 6"),
-    answers  = Vector(5, 6),
+    answers = Vector(5, 6),
     randomizeChoices = true,
     createdAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -444,7 +442,7 @@ object TestValues {
       responseTitle = Some("test OrderingTask N response title")
     ),
     elements = Vector("element 6", "element 7"),
-    answers  = Vector(6, 7),
+    answers = Vector(6, 7),
     randomizeChoices = true,
     createdAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -465,7 +463,7 @@ object TestValues {
       responseTitle = Some("test OrderingTask I response title")
     ),
     elements = Vector("element 5", "element 6"),
-    answers  = Vector(5, 6),
+    answers = Vector(5, 6),
     randomizeChoices = false,
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -487,7 +485,7 @@ object TestValues {
     ),
     elementsLeft = Vector("choice left 5", "choice left 6"),
     elementsRight = Vector("choice right 7", "choice right 8"),
-    answers  = Vector(Match(5, 6), Match(7, 8)),
+    answers = Vector(Match(5, 6), Match(7, 8)),
     randomizeChoices = true,
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -509,7 +507,7 @@ object TestValues {
     ),
     elementsLeft = Vector("choice left 6", "choice left 7"),
     elementsRight = Vector("choice right 8", "choice right 9"),
-    answers  = Vector(Match(6, 7), Match(8, 9)),
+    answers = Vector(Match(6, 7), Match(8, 9)),
     randomizeChoices = true,
     createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -530,7 +528,7 @@ object TestValues {
     ),
     elementsLeft = Vector("choice left 6", "choice left 7"),
     elementsRight = Vector("choice right 8", "choice right 9"),
-    answers  = Vector(Match(6, 7), Match(8, 9)),
+    answers = Vector(Match(6, 7), Match(8, 9)),
     randomizeChoices = true,
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -551,12 +549,11 @@ object TestValues {
     ),
     elementsLeft = Vector("choice left 7", "choice left 8"),
     elementsRight = Vector("choice right 9", "choice right 10"),
-    answers  = Vector(Match(7, 8), Match(9, 10)),
+    answers = Vector(Match(7, 8), Match(9, 10)),
     randomizeChoices = true,
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
-
 
   /* ---------------------- DOCUMENTS ---------------------- */
 
@@ -745,12 +742,11 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 29, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-
   /* ---------------------- REVISIONS---------------------- */
 
   val testCurrentRevisionA = Revision(
     documentId = testDocumentA.id,
-    version =  testDocumentA.version,
+    version = testDocumentA.version,
     authorId = testDocumentA.ownerId,
     delta = Delta(IndexedSeq(
       Delete(7),
@@ -762,7 +758,7 @@ object TestValues {
 
   val testPreviousRevisionA = Revision(
     documentId = testDocumentA.id,
-    version =  testDocumentA.version - 1,
+    version = testDocumentA.version - 1,
     authorId = testDocumentA.ownerId,
     delta = Delta(IndexedSeq(
       InsertText("Goodbye Sam")
@@ -772,7 +768,7 @@ object TestValues {
 
   val testCurrentRevisionB = Revision(
     documentId = testDocumentB.id,
-    version =  testDocumentB.version,
+    version = testDocumentB.version,
     authorId = testDocumentB.ownerId,
     delta = Delta(IndexedSeq(
       Delete(7),
@@ -784,7 +780,7 @@ object TestValues {
 
   val testPreviousRevisionB = Revision(
     documentId = testDocumentB.id,
-    version =  testDocumentB.version - 1,
+    version = testDocumentB.version - 1,
     authorId = testDocumentB.ownerId,
     delta = Delta(IndexedSeq(
       InsertText("Goodbye Dean")
@@ -794,7 +790,7 @@ object TestValues {
 
   val testCurrentRevisionC = Revision(
     documentId = testDocumentC.id,
-    version =  testDocumentC.version,
+    version = testDocumentC.version,
     authorId = testDocumentC.ownerId,
     delta = Delta(IndexedSeq(
       Delete(7),
@@ -806,7 +802,7 @@ object TestValues {
 
   val testPreviousRevisionC = Revision(
     documentId = testDocumentC.id,
-    version =  testDocumentC.version - 1,
+    version = testDocumentC.version - 1,
     authorId = testDocumentC.ownerId,
     delta = Delta(IndexedSeq(
       InsertText("Goodbye Jhonatan")
@@ -816,7 +812,7 @@ object TestValues {
 
   val testCurrentRevisionD = Revision(
     documentId = testDocumentD.id,
-    version =  testDocumentD.version,
+    version = testDocumentD.version,
     authorId = testDocumentD.ownerId,
     delta = Delta(IndexedSeq(
       Delete(7),
@@ -828,7 +824,7 @@ object TestValues {
 
   val testPreviousRevisionD = Revision(
     documentId = testDocumentD.id,
-    version =  testDocumentD.version - 1,
+    version = testDocumentD.version - 1,
     authorId = testDocumentD.ownerId,
     delta = Delta(IndexedSeq(
       InsertText("Goodbye Morgan")
@@ -838,7 +834,7 @@ object TestValues {
 
   val testUnexistingRevisionD = Revision(
     documentId = testDocumentD.id,
-    version =  testDocumentD.version + 1,
+    version = testDocumentD.version + 1,
     authorId = testDocumentD.ownerId,
     delta = Delta(IndexedSeq(
       Retain(6),
@@ -847,7 +843,6 @@ object TestValues {
     )),
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
-
 
   /* ---------------------- DOCUMENT_REVISIONS---------------------- */
 
@@ -863,7 +858,7 @@ object TestValues {
 
   val testDocumentRevisionB = Document(
     id = testDocumentB.id,
-    version =  testPreviousRevisionB.version,
+    version = testPreviousRevisionB.version,
     title = testDocumentB.title,
     delta = testPreviousRevisionB.delta,
     ownerId = testDocumentB.ownerId,
@@ -891,10 +886,9 @@ object TestValues {
     updatedAt = testPreviousRevisionD.createdAt
   )
 
-
   /* ---------------------- TASK_FEEDBACKS ---------------------- */
 
-  val testTaskFeedbackA  = TaskFeedback(
+  val testTaskFeedbackA = TaskFeedback(
     studentId = testUserC.id,
     taskId = testLongAnswerTaskA.id,
     version = testDocumentF.version,
@@ -903,7 +897,7 @@ object TestValues {
     updatedAt = testDocumentF.updatedAt
   )
 
-  val testTaskFeedbackB  = TaskFeedback(
+  val testTaskFeedbackB = TaskFeedback(
     studentId = testUserE.id,
     taskId = testShortAnswerTaskB.id,
     version = testDocumentG.version,
@@ -912,7 +906,7 @@ object TestValues {
     updatedAt = testDocumentG.updatedAt
   )
 
-  val testTaskFeedbackC  = TaskFeedback(
+  val testTaskFeedbackC = TaskFeedback(
     studentId = testUserC.id,
     taskId = testMatchingTaskE.id,
     version = testDocumentH.version,
@@ -921,7 +915,7 @@ object TestValues {
     updatedAt = testDocumentH.updatedAt
   )
 
-  val testTaskFeedbackD  = TaskFeedback(
+  val testTaskFeedbackD = TaskFeedback(
     studentId = testUserE.id,
     taskId = testMatchingTaskE.id,
     version = testDocumentI.version,
@@ -930,7 +924,7 @@ object TestValues {
     updatedAt = testDocumentI.updatedAt
   )
 
-  val testTaskFeedbackE  = TaskFeedback(
+  val testTaskFeedbackE = TaskFeedback(
     studentId = testUserC.id,
     taskId = testOrderingTaskN.id,
     version = testDocumentJ.version,
@@ -940,7 +934,7 @@ object TestValues {
   )
 
   /* No data in DB */
-  val testTaskFeedbackF  = TaskFeedback(
+  val testTaskFeedbackF = TaskFeedback(
     studentId = testUserE.id,
     taskId = testOrderingTaskL.id,
     version = testDocumentA.version,
@@ -948,7 +942,6 @@ object TestValues {
     createdAt = testDocumentA.createdAt,
     updatedAt = testDocumentA.updatedAt
   )
-
 
   /* ---------------------- TASK_SCRATCHPADS ---------------------- */
 
@@ -1007,9 +1000,7 @@ object TestValues {
     updatedAt = testDocumentA.updatedAt
   )
 
-
-
-   /* ---------------------- WORK ---------------------- */
+  /* ---------------------- WORK ---------------------- */
 
   /* LONG_ANSWER_WORK */
   val testLongAnswerWorkA = LongAnswerWork(
@@ -1192,7 +1183,6 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-
   /* ---------------------- WORK REVISIONS ---------------------- */
 
   /* LONG_ANSWER_WORK */
@@ -1296,7 +1286,7 @@ object TestValues {
     id = testMatchingWorkE.id,
     studentId = testMatchingWorkE.studentId,
     taskId = testMatchingWorkE.taskId,
-    version = testMatchingWorkE.version -1,
+    version = testMatchingWorkE.version - 1,
     response = Vector(Match(6, 7), Match(8, 9)),
     isComplete = testMatchingWorkE.isComplete,
     createdAt = testMatchingWorkE.createdAt,
@@ -1313,7 +1303,6 @@ object TestValues {
     createdAt = testMatchingWorkJ.createdAt,
     updatedAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
-
 
   /* ---------------------- COMPONENTS ---------------------- */
 
@@ -1411,7 +1400,6 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-
   /* ---------------------- PARTS ---------------------- */
 
   val testPartA = Part(
@@ -1508,7 +1496,6 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-
   /* ---------------------- PROJECTS ---------------------- */
 
   val testProjectA = Project(
@@ -1579,126 +1566,122 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  /* ---------------------- SCHEDULES ---------------------- */
 
-    /* ---------------------- SCHEDULES ---------------------- */
-  
-    val testCourseScheduleA = CourseSchedule(
-      id = UUID.fromString("308792b2-7a29-43c8-ad51-a5c4f306cdaf"),
-      courseId = testCourseA.id,
-      version = 1L,
-      day = new LocalDate(2015, 1, 15),
-      startTime = new LocalTime(14, 1, 19),
-      endTime = new LocalTime(15, 1, 19),
-      description = "test CourseSchedule A description",
-      createdAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-      updatedAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
-    )
-  
-    val testCourseScheduleB = CourseSchedule(
-      id = UUID.fromString("dc1190c2-b5fd-4bac-95fa-7d67e1f1d445"),
-      courseId = testCourseB.id,
-      version = 2L,
-      day = new LocalDate(2015, 1, 16),
-      startTime = new LocalTime(16, 1, 19),
-      endTime = new LocalTime(17, 1, 19),
-      description = "test CourseSchedule B description",
-      createdAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-      updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
-    )
-  
-    val testCourseScheduleC = CourseSchedule(
-      id = UUID.fromString("6df9d164-b151-4c38-9acd-6b91301a199d"),
-      courseId = testCourseB.id,
-      version = 3L,
-      day = new LocalDate(2015, 1, 17),
-      startTime = new LocalTime(18, 1, 19),
-      endTime = new LocalTime(19, 1, 19),
-      description = "test CourseSchedule C description",
-      createdAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-      updatedAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
-    )
-  
-    /**
-     * No data in DB
-     */
-    val testCourseScheduleD = CourseSchedule(
-      id = UUID.fromString("02eaad44-5f0a-4c75-b05a-c92991903c10"),
-      courseId = testCourseB.id,
-      day = new LocalDate(2015, 1, 18),
-      startTime = new LocalTime(16, 38, 19),
-      endTime = new LocalTime(17, 38, 19),
-      description = "test CourseSchedule D description"
-    )
+  val testCourseScheduleA = CourseSchedule(
+    id = UUID.fromString("308792b2-7a29-43c8-ad51-a5c4f306cdaf"),
+    courseId = testCourseA.id,
+    version = 1L,
+    day = new LocalDate(2015, 1, 15),
+    startTime = new LocalTime(14, 1, 19),
+    endTime = new LocalTime(15, 1, 19),
+    description = "test CourseSchedule A description",
+    createdAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
 
+  val testCourseScheduleB = CourseSchedule(
+    id = UUID.fromString("dc1190c2-b5fd-4bac-95fa-7d67e1f1d445"),
+    courseId = testCourseB.id,
+    version = 2L,
+    day = new LocalDate(2015, 1, 16),
+    startTime = new LocalTime(16, 1, 19),
+    endTime = new LocalTime(17, 1, 19),
+    description = "test CourseSchedule B description",
+    createdAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
 
+  val testCourseScheduleC = CourseSchedule(
+    id = UUID.fromString("6df9d164-b151-4c38-9acd-6b91301a199d"),
+    courseId = testCourseB.id,
+    version = 3L,
+    day = new LocalDate(2015, 1, 17),
+    startTime = new LocalTime(18, 1, 19),
+    endTime = new LocalTime(19, 1, 19),
+    description = "test CourseSchedule C description",
+    createdAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
 
-    /* ---------------------- SCHEDULE EXCEPTIONS ---------------------- */
+  /**
+   * No data in DB
+   */
+  val testCourseScheduleD = CourseSchedule(
+    id = UUID.fromString("02eaad44-5f0a-4c75-b05a-c92991903c10"),
+    courseId = testCourseB.id,
+    day = new LocalDate(2015, 1, 18),
+    startTime = new LocalTime(16, 38, 19),
+    endTime = new LocalTime(17, 38, 19),
+    description = "test CourseSchedule D description"
+  )
 
-    val testCourseScheduleExceptionA = CourseScheduleException(
-      id = UUID.fromString("da17e24a-a545-4d74-94e1-427896e13ebe"),
-      userId = testUserC.id,
-      courseId = testCourseA.id,
-      version = 1L,
-      day = new LocalDate(2014, 8, 1),
-      startTime = new LocalTime(14, 1, 19),
-      endTime = new LocalTime(15, 1, 19),
-      reason = "testCourseScheduleExceptionA reason",
-      createdAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-      updatedAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
-    )
+  /* ---------------------- SCHEDULE EXCEPTIONS ---------------------- */
 
-    val testCourseScheduleExceptionB = CourseScheduleException(
-      id = UUID.fromString("3a285f0c-66d0-41b2-851b-cfcd203550d9"),
-      userId = testUserC.id,
-      courseId = testCourseB.id,
-      version = 2L,
-      day = new LocalDate(2014, 8, 2),
-      startTime = new LocalTime(16, 1, 19),
-      endTime = new LocalTime(17, 1, 19),
-      reason = "testCourseScheduleExceptionB reason",
-      createdAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-      updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
-    )
+  val testCourseScheduleExceptionA = CourseScheduleException(
+    id = UUID.fromString("da17e24a-a545-4d74-94e1-427896e13ebe"),
+    userId = testUserC.id,
+    courseId = testCourseA.id,
+    version = 1L,
+    day = new LocalDate(2014, 8, 1),
+    startTime = new LocalTime(14, 1, 19),
+    endTime = new LocalTime(15, 1, 19),
+    reason = "testCourseScheduleExceptionA reason",
+    createdAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
 
-    val testCourseScheduleExceptionC = CourseScheduleException(
-      id = UUID.fromString("4d7ca313-f216-4f59-85ae-88bcbca70317"),
-      userId = testUserE.id,
-      courseId = testCourseB.id,
-      version = 3L,
-      day = new LocalDate(2014, 8, 3),
-      startTime = new LocalTime(18, 1, 19),
-      endTime = new LocalTime(19, 1, 19),
-      reason = "testCourseScheduleExceptionC reason",
-      createdAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-      updatedAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
-    )
+  val testCourseScheduleExceptionB = CourseScheduleException(
+    id = UUID.fromString("3a285f0c-66d0-41b2-851b-cfcd203550d9"),
+    userId = testUserC.id,
+    courseId = testCourseB.id,
+    version = 2L,
+    day = new LocalDate(2014, 8, 2),
+    startTime = new LocalTime(16, 1, 19),
+    endTime = new LocalTime(17, 1, 19),
+    reason = "testCourseScheduleExceptionB reason",
+    createdAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
 
-    val testCourseScheduleExceptionD = CourseScheduleException(
-      id = UUID.fromString("b9a1cd29-3c04-450e-9b4a-2a63a6871c35"),
-      userId = testUserE.id,
-      courseId = testCourseB.id,
-      version = 4L,
-      day = new LocalDate(2014, 8, 4),
-      startTime = new LocalTime(20, 1, 19),
-      endTime = new LocalTime(21, 1, 19),
-      reason = "testCourseScheduleExceptionD reason",
-      createdAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-      updatedAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))
-    )
+  val testCourseScheduleExceptionC = CourseScheduleException(
+    id = UUID.fromString("4d7ca313-f216-4f59-85ae-88bcbca70317"),
+    userId = testUserE.id,
+    courseId = testCourseB.id,
+    version = 3L,
+    day = new LocalDate(2014, 8, 3),
+    startTime = new LocalTime(18, 1, 19),
+    endTime = new LocalTime(19, 1, 19),
+    reason = "testCourseScheduleExceptionC reason",
+    createdAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
 
-    /**
-     * No data in DB
-     */
-    val testCourseScheduleExceptionE = CourseScheduleException(
-      id = UUID.fromString("848c8b4f-f566-4d7f-8a16-b4a76107778a"),
-      userId = testUserE.id,
-      courseId = testCourseA.id,
-      day = new LocalDate(2014, 8, 5),
-      startTime = new LocalTime(22, 1, 19),
-      endTime = new LocalTime(23, 1, 19),
-      reason = "testCourseScheduleExceptionE reason"
-    )
+  val testCourseScheduleExceptionD = CourseScheduleException(
+    id = UUID.fromString("b9a1cd29-3c04-450e-9b4a-2a63a6871c35"),
+    userId = testUserE.id,
+    courseId = testCourseB.id,
+    version = 4L,
+    day = new LocalDate(2014, 8, 4),
+    startTime = new LocalTime(20, 1, 19),
+    endTime = new LocalTime(21, 1, 19),
+    reason = "testCourseScheduleExceptionD reason",
+    createdAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
 
+  /**
+   * No data in DB
+   */
+  val testCourseScheduleExceptionE = CourseScheduleException(
+    id = UUID.fromString("848c8b4f-f566-4d7f-8a16-b4a76107778a"),
+    userId = testUserE.id,
+    courseId = testCourseA.id,
+    day = new LocalDate(2014, 8, 5),
+    startTime = new LocalTime(22, 1, 19),
+    endTime = new LocalTime(23, 1, 19),
+    reason = "testCourseScheduleExceptionE reason"
+  )
 
   /* ---------------------- JOURNAL ENTRIES ---------------------- */
 
@@ -1820,7 +1803,6 @@ object TestValues {
     item = "item 10",
     message = "journalEntry.message"
   )
-
 
   /* ---------------------- CHAT_LOGS ---------------------- */
 

@@ -7,11 +7,11 @@ import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
 case class Role(
-  id: UUID = UUID.randomUUID,
-  version: Long = 1L,
-  name: String,
-  createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime
+    id: UUID = UUID.randomUUID,
+    version: Long = 1L,
+    name: String,
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
 ) {
   override def equals(that: Any): Boolean = {
     that match {

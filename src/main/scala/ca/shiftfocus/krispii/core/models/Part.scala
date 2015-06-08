@@ -8,15 +8,15 @@ import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
 case class Part(
-  id: UUID = UUID.randomUUID,
-  version: Long = 1L,
-  projectId: UUID,
-  name: String,
-  position: Int = 1,
-  enabled: Boolean = true,
-  tasks: IndexedSeq[Task] = IndexedSeq(),
-  createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime
+    id: UUID = UUID.randomUUID,
+    version: Long = 1L,
+    projectId: UUID,
+    name: String,
+    position: Int = 0,
+    enabled: Boolean = true,
+    tasks: IndexedSeq[Task] = IndexedSeq(),
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
 ) {
   override def toString: String = {
     s"Part(id: '${id.toString}', position: '${position.toString}', name: '$name')"
@@ -54,7 +54,6 @@ object Part {
   val Unlocked = 1
 
 }
-
 
 case class PartPost(
   projectId: UUID,

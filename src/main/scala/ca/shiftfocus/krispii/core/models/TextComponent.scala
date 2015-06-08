@@ -24,7 +24,7 @@ object TextComponent {
   implicit val textComponentWrites: Writes[TextComponent] = (
     (__ \ "id").write[UUID] and
     (__ \ "version").write[Long] and
-      (__ \ "ownerId").write[UUID] and
+    (__ \ "ownerId").write[UUID] and
     (__ \ "title").write[String] and
     (__ \ "questions").write[String] and
     (__ \ "thingsToThinkAbout").write[String] and
@@ -34,7 +34,6 @@ object TextComponent {
   )(unlift(TextComponent.unapply))
 
 }
-
 
 case class TextComponentPost(
   ownerId: UUID,
@@ -52,7 +51,6 @@ object TextComponentPost {
     (__ \ "content").read[String]
   )(TextComponentPost.apply _)
 }
-
 
 case class TextComponentPut(
   version: Long,

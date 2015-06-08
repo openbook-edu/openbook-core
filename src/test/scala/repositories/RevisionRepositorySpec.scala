@@ -7,11 +7,10 @@ import Matchers._
 import scala.collection.immutable.TreeMap
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import scalaz.{-\/, \/-}
+import scalaz.{ -\/, \/- }
 
 class RevisionRepositorySpec
-  extends TestEnvironment
-{
+    extends TestEnvironment {
   val revisionRepository = new RevisionRepositoryPostgres
 
   // TODO - test all testcases

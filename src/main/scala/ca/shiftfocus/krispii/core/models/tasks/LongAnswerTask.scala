@@ -22,16 +22,16 @@ import play.api.libs.functional.syntax._
  * @param updatedAt When the entity was last updated.
  */
 case class LongAnswerTask(
-  // Primary Key
-  id: UUID = UUID.randomUUID,
-  // Combination must be unique
-  partId: UUID,
-  position: Int,
-  // Additional data
-  version: Long = 1L,
-  settings: CommonTaskSettings = CommonTaskSettings(),
-  createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime
+    // Primary Key
+    id: UUID = UUID.randomUUID,
+    // Combination must be unique
+    partId: UUID,
+    position: Int,
+    // Additional data
+    version: Long = 1L,
+    settings: CommonTaskSettings = CommonTaskSettings(),
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
 ) extends Task {
 
   /**
@@ -57,11 +57,11 @@ object LongAnswerTask {
    */
   implicit val taskWrites: Writes[LongAnswerTask] = (
     (__ \ "id").write[UUID] and
-      (__ \ "partId").write[UUID] and
-      (__ \ "position").write[Int] and
-      (__ \ "version").write[Long] and
-      (__ \ "settings").write[CommonTaskSettings] and
-      (__ \ "createdAt").write[DateTime] and
-      (__ \ "updatedAt").write[DateTime]
+    (__ \ "partId").write[UUID] and
+    (__ \ "position").write[Int] and
+    (__ \ "version").write[Long] and
+    (__ \ "settings").write[CommonTaskSettings] and
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
   )(unlift(LongAnswerTask.unapply))
 }

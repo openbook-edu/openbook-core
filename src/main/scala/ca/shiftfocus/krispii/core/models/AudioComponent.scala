@@ -34,7 +34,6 @@ object AudioComponent {
 
 }
 
-
 case class AudioComponentPost(
   ownerId: UUID,
   title: String,
@@ -51,7 +50,6 @@ object AudioComponentPost {
     (__ \ "soundcloudId").read[String]
   )(AudioComponentPost.apply _)
 }
-
 
 case class AudioComponentPut(
   version: Long,

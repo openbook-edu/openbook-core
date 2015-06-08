@@ -7,7 +7,6 @@ import play.api.libs.json._
 import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
-
 case class JournalEntry(
   id: UUID = UUID.randomUUID,
   version: Long = 1L,
@@ -29,58 +28,58 @@ object JournalEntry {
 
   object Action {
     def apply(entryType: String): Action = entryType match {
-      case JournalEntryConnect.entryType    => JournalEntryConnect
+      case JournalEntryConnect.entryType => JournalEntryConnect
       case JournalEntryDisconnect.entryType => JournalEntryDisconnect
-      case JournalEntryClick.entryType      => JournalEntryClick
-      case JournalEntryView.entryType       => JournalEntryView
-      case JournalEntryWatch.entryType      => JournalEntryWatch
-      case JournalEntryListen.entryType     => JournalEntryListen
-      case JournalEntryWrite.entryType      => JournalEntryWrite
-      case JournalEntryCreate.entryType     => JournalEntryCreate
-      case JournalEntryUpdate.entryType     => JournalEntryUpdate
-      case JournalEntryDelete.entryType     => JournalEntryDelete
+      case JournalEntryClick.entryType => JournalEntryClick
+      case JournalEntryView.entryType => JournalEntryView
+      case JournalEntryWatch.entryType => JournalEntryWatch
+      case JournalEntryListen.entryType => JournalEntryListen
+      case JournalEntryWrite.entryType => JournalEntryWrite
+      case JournalEntryCreate.entryType => JournalEntryCreate
+      case JournalEntryUpdate.entryType => JournalEntryUpdate
+      case JournalEntryDelete.entryType => JournalEntryDelete
     }
   }
 
   object JournalEntryConnect extends Action {
     override val entryType = "connect"
-    override val action    = "journalEntry.connect.action"
+    override val action = "journalEntry.connect.action"
   }
   object JournalEntryDisconnect extends Action {
     override val entryType = "disconnect"
-    override val action    = "journalEntry.Disconnect.action"
+    override val action = "journalEntry.Disconnect.action"
   }
   object JournalEntryClick extends Action {
     override val entryType = "click"
-    override val action    = "journalEntry.click.action"
+    override val action = "journalEntry.click.action"
   }
   object JournalEntryView extends Action {
     override val entryType = "view"
-    override val action    = "journalEntry.view.action"
+    override val action = "journalEntry.view.action"
   }
   object JournalEntryWatch extends Action {
     override val entryType = "watch"
-    override val action    = "journalEntry.watch.action"
+    override val action = "journalEntry.watch.action"
   }
   object JournalEntryListen extends Action {
     override val entryType = "listen"
-    override val action    = "journalEntry.listen.action"
+    override val action = "journalEntry.listen.action"
   }
   object JournalEntryWrite extends Action {
     override val entryType = "write"
-    override val action    = "journalEntry.write.action"
+    override val action = "journalEntry.write.action"
   }
   object JournalEntryCreate extends Action {
     override val entryType = "create"
-    override val action    = "journalEntry.create.action"
+    override val action = "journalEntry.create.action"
   }
   object JournalEntryUpdate extends Action {
     override val entryType = "update"
-    override val action    = "journalEntry.update.action"
+    override val action = "journalEntry.update.action"
   }
   object JournalEntryDelete extends Action {
     override val entryType = "delete"
-    override val action    = "journalEntry.delete.action"
+    override val action = "journalEntry.delete.action"
   }
 
   implicit val journalEntryReads: Reads[JournalEntry] = (

@@ -32,6 +32,6 @@ object TaskScratchpad {
     (__ \ "document").writeNullable[Document] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
-   )(unlift(TaskScratchpad.unapply _))
+  )(unlift(TaskScratchpad.unapply _))
 
 }

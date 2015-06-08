@@ -7,18 +7,17 @@ import play.api.libs.json._
 import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
-
 case class User(
-  id: UUID = UUID.randomUUID,
-  version: Long = 1L,
-  username: String,
-  email: String,
-  hash: Option[String] = None,
-  givenname: String,
-  surname: String,
-  roles: IndexedSeq[Role] = IndexedSeq.empty[Role],
-  createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime
+    id: UUID = UUID.randomUUID,
+    version: Long = 1L,
+    username: String,
+    email: String,
+    hash: Option[String] = None,
+    givenname: String,
+    surname: String,
+    roles: IndexedSeq[Role] = IndexedSeq.empty[Role],
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
 ) {
   override def equals(anotherObject: Any): Boolean = {
     anotherObject match {
@@ -76,9 +75,9 @@ object UserInfo {
         "createdAt" -> userInfo.user.createdAt,
         "updatedAt" -> userInfo.user.updatedAt
       ).deepMerge(Json.obj(
-        "roles" -> userInfo.roles.map(_.name.toLowerCase()),
-        "sections" -> userInfo.courses.map(_.name)
-      ))
+          "roles" -> userInfo.roles.map(_.name.toLowerCase()),
+          "sections" -> userInfo.courses.map(_.name)
+        ))
     }
   }
 }

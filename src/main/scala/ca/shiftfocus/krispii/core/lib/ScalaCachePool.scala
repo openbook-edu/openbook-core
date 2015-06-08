@@ -9,7 +9,7 @@ import scala.concurrent.duration.Duration
 import scala.util.Random
 import scalacache.ScalaCache
 import scalacache.redis.RedisCache
-import scalaz.{-\/, \/}
+import scalaz.{ -\/, \/ }
 
 case class ScalaCachePool(master: ScalaCache, slaves: Seq[ScalaCache] = IndexedSeq()) {
   val pool = slaves.toIndexedSeq
@@ -17,7 +17,8 @@ case class ScalaCachePool(master: ScalaCache, slaves: Seq[ScalaCache] = IndexedS
   def randomInstance: ScalaCache = {
     if (slaves.isEmpty) {
       master
-    } else {
+    }
+    else {
       val rand = new Random(System.currentTimeMillis())
       val random_index = rand.nextInt(pool.length)
       pool(random_index)
@@ -36,14 +37,14 @@ case class ScalaCachePool(master: ScalaCache, slaves: Seq[ScalaCache] = IndexedS
   }
 
   def putCache[V](key: String)(value: V, ttl: Option[Duration] = None): Future[\/[RepositoryError.Fail, Unit]] = {
-    master.cache.put[V](key, value, ttl).map({unit => \/.right[RepositoryError.Fail, Unit](unit)}).recover {
+    master.cache.put[V](key, value, ttl).map({ unit => \/.right[RepositoryError.Fail, Unit](unit) }).recover {
       case failed: RuntimeException => -\/(RepositoryError.DatabaseError("Failed to write to cache.", Some(failed)))
       case exception: Throwable => throw exception
     }
   }
 
   def removeCached(key: String): Future[\/[RepositoryError.Fail, Unit]] = {
-    master.cache.remove(key).map({unit => \/.right[RepositoryError.Fail, Unit](unit)}).recover {
+    master.cache.remove(key).map({ unit => \/.right[RepositoryError.Fail, Unit](unit) }).recover {
       case failed: RuntimeException => -\/(RepositoryError.DatabaseError("Failed to remove from cache.", Some(failed)))
       case exception: Throwable => throw exception
     }

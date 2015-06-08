@@ -7,7 +7,6 @@ import play.api.libs.json._
 import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
-
 case class VideoComponent(
   id: UUID = UUID.randomUUID,
   version: Long = 1L,
@@ -40,7 +39,6 @@ object VideoComponent {
 
 }
 
-
 case class VideoComponentPost(
   ownerId: UUID,
   title: String,
@@ -61,7 +59,6 @@ object VideoComponentPost {
     (__ \ "height").read[Int]
   )(VideoComponentPost.apply _)
 }
-
 
 case class VideoComponentPut(
   version: Long,

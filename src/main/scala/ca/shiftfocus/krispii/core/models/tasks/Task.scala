@@ -1,7 +1,7 @@
 package ca.shiftfocus.krispii.core.models.tasks
 
 import java.util.UUID
-import ca.shiftfocus.krispii.core.models.{VideoComponent, TextComponent, AudioComponent}
+import ca.shiftfocus.krispii.core.models.{ VideoComponent, TextComponent, AudioComponent }
 import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
 import play.api.libs.json._
@@ -54,64 +54,66 @@ object Task {
    * @param updatedAt
    * @return
    */
-  def apply(id: UUID = UUID.randomUUID,
-             partId: UUID,
-             position: Int,
-             version: Long = 1L,
-             settings: CommonTaskSettings = CommonTaskSettings(),
-             taskType: Int,
-             createdAt: DateTime = new DateTime,
-             updatedAt: DateTime = new DateTime): Task =
-  {
-    val newTask = taskType match {
-      case Task.LongAnswer => LongAnswerTask(
-        id = id,
-        partId = partId,
-        position = position,
-        version = version,
-        settings = settings,
-        createdAt = createdAt,
-        updatedAt = updatedAt
-      )
-      case Task.ShortAnswer => ShortAnswerTask(
-        id = id,
-        partId = partId,
-        position = position,
-        version = version,
-        settings = settings,
-        createdAt = createdAt,
-        updatedAt = updatedAt
-      )
-      case Task.MultipleChoice => MultipleChoiceTask(
-        id = id,
-        partId = partId,
-        position = position,
-        version = version,
-        settings = settings,
-        createdAt = createdAt,
-        updatedAt = updatedAt
-      )
-      case Task.Ordering => OrderingTask(
-        id = id,
-        partId = partId,
-        position = position,
-        version = version,
-        settings = settings,
-        createdAt = createdAt,
-        updatedAt = updatedAt
-      )
-      case Task.Matching => MatchingTask(
-        id = id,
-        partId = partId,
-        position = position,
-        version = version,
-        settings = settings,
-        createdAt = createdAt,
-        updatedAt = updatedAt
-      )
+  def apply(
+    id: UUID = UUID.randomUUID,
+    partId: UUID,
+    position: Int,
+    version: Long = 1L,
+    settings: CommonTaskSettings = CommonTaskSettings(),
+    taskType: Int,
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
+  ): Task =
+    {
+      val newTask = taskType match {
+        case Task.LongAnswer => LongAnswerTask(
+          id = id,
+          partId = partId,
+          position = position,
+          version = version,
+          settings = settings,
+          createdAt = createdAt,
+          updatedAt = updatedAt
+        )
+        case Task.ShortAnswer => ShortAnswerTask(
+          id = id,
+          partId = partId,
+          position = position,
+          version = version,
+          settings = settings,
+          createdAt = createdAt,
+          updatedAt = updatedAt
+        )
+        case Task.MultipleChoice => MultipleChoiceTask(
+          id = id,
+          partId = partId,
+          position = position,
+          version = version,
+          settings = settings,
+          createdAt = createdAt,
+          updatedAt = updatedAt
+        )
+        case Task.Ordering => OrderingTask(
+          id = id,
+          partId = partId,
+          position = position,
+          version = version,
+          settings = settings,
+          createdAt = createdAt,
+          updatedAt = updatedAt
+        )
+        case Task.Matching => MatchingTask(
+          id = id,
+          partId = partId,
+          position = position,
+          version = version,
+          settings = settings,
+          createdAt = createdAt,
+          updatedAt = updatedAt
+        )
+      }
+      newTask
     }
-    newTask
-  }
 
   /**
    * A writer to serialize Tasks to JSON by detecting task type and calling

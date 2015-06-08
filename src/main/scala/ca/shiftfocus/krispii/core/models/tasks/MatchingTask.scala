@@ -27,20 +27,20 @@ import play.api.libs.json._
  * @param updatedAt When the entity was last updated. Default = None.
  */
 case class MatchingTask(
-  // Primary Key
-  id: UUID = UUID.randomUUID,
-  // Combination must be unique
-  partId: UUID,
-  position: Int,
-  // Additional data
-  version: Long = 1L,
-  settings: CommonTaskSettings = CommonTaskSettings(),
-  elementsLeft: IndexedSeq[String] = IndexedSeq(),
-  elementsRight: IndexedSeq[String] = IndexedSeq(),
-  answers: IndexedSeq[MatchingTask.Match] = IndexedSeq(),
-  randomizeChoices: Boolean = true,
-  createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime
+    // Primary Key
+    id: UUID = UUID.randomUUID,
+    // Combination must be unique
+    partId: UUID,
+    position: Int,
+    // Additional data
+    version: Long = 1L,
+    settings: CommonTaskSettings = CommonTaskSettings(),
+    elementsLeft: IndexedSeq[String] = IndexedSeq(),
+    elementsRight: IndexedSeq[String] = IndexedSeq(),
+    answers: IndexedSeq[MatchingTask.Match] = IndexedSeq(),
+    randomizeChoices: Boolean = true,
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
 ) extends Task {
 
   /**
@@ -65,13 +65,13 @@ object MatchingTask {
   object Match {
     implicit val jsonReads: Reads[Match] = (
       (__ \ "left").read[Int] and
-        (__ \ "right").read[Int]
+      (__ \ "right").read[Int]
     )(Match.apply _)
 
     implicit val jsonWrites: Writes[Match] = (
       (__ \ "left").write[Int] and
-        (__ \ "right").write[Int]
-      )(unlift(Match.unapply))
+      (__ \ "right").write[Int]
+    )(unlift(Match.unapply))
   }
 
   /**
@@ -79,16 +79,16 @@ object MatchingTask {
    */
   implicit val jsonWrites: Writes[MatchingTask] = (
     (__ \ "id").write[UUID] and
-      (__ \ "partId").write[UUID] and
-      (__ \ "position").write[Int] and
-      (__ \ "version").write[Long] and
-      (__ \ "settings").write[CommonTaskSettings] and
-      (__ \ "elements_left").write[IndexedSeq[String]] and
-      (__ \ "elements_right").write[IndexedSeq[String]] and
-      (__ \ "answers").write[IndexedSeq[Match]] and
-      (__ \ "randomizeChoices").write[Boolean] and
-      (__ \ "createdAt").write[DateTime] and
-      (__ \ "updatedAt").write[DateTime]
-    )(unlift(MatchingTask.unapply))
+    (__ \ "partId").write[UUID] and
+    (__ \ "position").write[Int] and
+    (__ \ "version").write[Long] and
+    (__ \ "settings").write[CommonTaskSettings] and
+    (__ \ "elements_left").write[IndexedSeq[String]] and
+    (__ \ "elements_right").write[IndexedSeq[String]] and
+    (__ \ "answers").write[IndexedSeq[Match]] and
+    (__ \ "randomizeChoices").write[Boolean] and
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
+  )(unlift(MatchingTask.unapply))
 
 }

@@ -64,7 +64,6 @@ object Course {
 
 }
 
-
 case class CoursePost(
   teacherId: UUID,
   name: String,

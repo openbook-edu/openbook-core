@@ -8,12 +8,11 @@ import Matchers._
 
 import scala.collection.immutable.TreeMap
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future }
 import scalaz.\/-
 
 class TaskScratchpadRepositorySpec
-  extends TestEnvironment
-{
+    extends TestEnvironment {
   val documentRepository = stub[DocumentRepository]
   val taskScratchpadRepository = new TaskScratchpadRepositoryPostgres(documentRepository)
 
@@ -36,7 +35,7 @@ class TaskScratchpadRepositorySpec
 
         testDocumentList.foreach {
           case (key, document: Document) => {
-            (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(document.id, *, *) returns(Future.successful(\/-(document)))
+            (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (document.id, *, *) returns (Future.successful(\/-(document)))
           }
         }
 
@@ -74,7 +73,7 @@ class TaskScratchpadRepositorySpec
 
         testDocumentList.foreach {
           case (key, document: Document) => {
-            (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(document.id, *, *) returns(Future.successful(\/-(document)))
+            (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (document.id, *, *) returns (Future.successful(\/-(document)))
           }
         }
 
@@ -110,7 +109,7 @@ class TaskScratchpadRepositorySpec
 
         testDocumentList.foreach {
           case (key, document: Document) => {
-            (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(document.id, *, *) returns(Future.successful(\/-(document)))
+            (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (document.id, *, *) returns (Future.successful(\/-(document)))
           }
         }
 
@@ -142,7 +141,7 @@ class TaskScratchpadRepositorySpec
         val testTaskScratchpad = TestValues.testTaskScratchpadD
         val testDocument = TestValues.testDocumentO
 
-        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(testDocument.id, *, *) returns(Future.successful(\/-(testDocument)))
+        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (testDocument.id, *, *) returns (Future.successful(\/-(testDocument)))
 
         val result = taskScratchpadRepository.find(testUser, testTask)
         val eitherTaskScratchpad = Await.result(result, Duration.Inf)
@@ -164,7 +163,7 @@ class TaskScratchpadRepositorySpec
         val testTaskScratchpad = TestValues.testTaskScratchpadF
         val testDocument = TestValues.testDocumentA
 
-        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(testDocument.id, *, *) returns(Future.successful(\/-(testDocument)))
+        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (testDocument.id, *, *) returns (Future.successful(\/-(testDocument)))
 
         val result = taskScratchpadRepository.insert(testTaskScratchpad)
         val eitherTaskScratchpad = Await.result(result, Duration.Inf)
@@ -186,7 +185,7 @@ class TaskScratchpadRepositorySpec
         val testTaskScratchpad = TestValues.testTaskScratchpadC
         val testDocument = TestValues.testDocumentN
 
-        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(testDocument.id, *, *) returns(Future.successful(\/-(testDocument)))
+        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (testDocument.id, *, *) returns (Future.successful(\/-(testDocument)))
 
         val result = taskScratchpadRepository.delete(testTaskScratchpad)
         val eitherTaskScratchpad = Await.result(result, Duration.Inf)
@@ -214,7 +213,7 @@ class TaskScratchpadRepositorySpec
 
         testDocumentList.foreach {
           case (key, document: Document) => {
-            (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(document.id, *, *) returns(Future.successful(\/-(document)))
+            (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (document.id, *, *) returns (Future.successful(\/-(document)))
           }
         }
 

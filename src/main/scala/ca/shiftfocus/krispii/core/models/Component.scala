@@ -20,7 +20,7 @@ abstract class Component {
 object Component {
 
   val Audio = "audio"
-  val Text  = "text"
+  val Text = "text"
   val Video = "video"
 
   implicit val componentReads = new Reads[Component] {
@@ -73,7 +73,7 @@ object Component {
       case component: AudioComponent => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
         "type" -> Component.Audio
       ))
-      case component: TextComponent  => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
+      case component: TextComponent => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
         "type" -> Component.Text
       ))
     }

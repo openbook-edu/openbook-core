@@ -22,17 +22,17 @@ import play.api.libs.functional.syntax._
  * @param updatedAt When the entity was last updated. Default = None.
  */
 case class ShortAnswerTask(
-  // Primary Key
-  id: UUID = UUID.randomUUID,
-  // Combination must be unique
-  partId: UUID,
-  position: Int,
-  // Additional data
-  version: Long = 1L,
-  settings: CommonTaskSettings = CommonTaskSettings(),
-  maxLength: Int = ShortAnswerTask.maxResponseLength,
-  createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime
+    // Primary Key
+    id: UUID = UUID.randomUUID,
+    // Combination must be unique
+    partId: UUID,
+    position: Int,
+    // Additional data
+    version: Long = 1L,
+    settings: CommonTaskSettings = CommonTaskSettings(),
+    maxLength: Int = ShortAnswerTask.maxResponseLength,
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
 ) extends Task {
 
   /**
@@ -60,13 +60,13 @@ object ShortAnswerTask {
    */
   implicit val taskWrites: Writes[ShortAnswerTask] = (
     (__ \ "id").write[UUID] and
-      (__ \ "partId").write[UUID] and
-      (__ \ "position").write[Int] and
-      (__ \ "version").write[Long] and
-      (__ \ "settings").write[CommonTaskSettings] and
-      (__ \ "maxLength").write[Int] and
-      (__ \ "createdAt").write[DateTime] and
-      (__ \ "updatedAt").write[DateTime]
-    )(unlift(ShortAnswerTask.unapply))
+    (__ \ "partId").write[UUID] and
+    (__ \ "position").write[Int] and
+    (__ \ "version").write[Long] and
+    (__ \ "settings").write[CommonTaskSettings] and
+    (__ \ "maxLength").write[Int] and
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
+  )(unlift(ShortAnswerTask.unapply))
 
 }

@@ -9,20 +9,22 @@ import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import scala.concurrent.Future
 import scalacache.ScalaCache
-import scalaz.{EitherT, \/, -\/, \/-}
+import scalaz.{ EitherT, \/, -\/, \/- }
 
-class ProjectServiceDefault(val db: DB,
-                            val scalaCache: ScalaCachePool,
-                            val authService: AuthService,
-                            val schoolService: SchoolService,
-                            val courseRepository: CourseRepository,
-                            val projectRepository: ProjectRepository,
-                            val partRepository: PartRepository,
-                            val taskRepository: TaskRepository)
-  extends ProjectService {
+class ProjectServiceDefault(
+  val db: DB,
+  val scalaCache: ScalaCachePool,
+  val authService: AuthService,
+  val schoolService: SchoolService,
+  val courseRepository: CourseRepository,
+  val projectRepository: ProjectRepository,
+  val partRepository: PartRepository,
+  val taskRepository: TaskRepository
+)
+    extends ProjectService {
 
   implicit def conn: Connection = db.pool
   implicit def cache: ScalaCachePool = scalaCache
@@ -107,8 +109,7 @@ class ProjectServiceDefault(val db: DB,
     for {
       user <- lift(authService.find(userId))
       project <- lift(projectRepository.find(projectId, user, fetchParts))
-    }
-    yield project
+    } yield project
   }
 
   /**
@@ -122,8 +123,7 @@ class ProjectServiceDefault(val db: DB,
       user <- lift(authService.find(userId))
       project <- lift(projectRepository.find(projectSlug, false))
       projectFiltered <- lift(projectRepository.find(project.id, user, fetchParts))
-    }
-    yield projectFiltered
+    } yield projectFiltered
   }
 
   /**
@@ -154,12 +154,11 @@ class ProjectServiceDefault(val db: DB,
     // in a transaction such that either all three are created, or none.
     transactional { implicit conn: Connection =>
       for {
-        _              <- lift(validateSlug(slug))
+        _ <- lift(validateSlug(slug))
         createdProject <- lift(projectRepository.insert(newProject))
-        createdPart    <- lift(partRepository.insert(newPart))
-        createdTask    <- lift(taskRepository.insert(newTask))
-      }
-      yield {
+        createdPart <- lift(partRepository.insert(newPart))
+        createdTask <- lift(taskRepository.insert(newTask))
+      } yield {
         val tasks = IndexedSeq(createdTask)
         val parts = IndexedSeq(createdPart.copy(tasks = tasks))
         val completeProject = createdProject.copy(parts = parts)
@@ -178,23 +177,22 @@ class ProjectServiceDefault(val db: DB,
    * @return the updated project.
    */
   override def updateInfo(id: UUID, version: Long,
-                          courseId: Option[UUID],
-                          name: Option[String],
-                          description: Option[String],
-                          availability: Option[String]): Future[\/[ErrorUnion#Fail, Project]] = {
+    courseId: Option[UUID],
+    name: Option[String],
+    description: Option[String],
+    availability: Option[String]): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
       for {
         existingProject <- lift(projectRepository.find(id))
-        _ <- predicate (existingProject.version == version) (ServiceError.OfflineLockFail)
+        _ <- predicate(existingProject.version == version)(RepositoryError.OfflineLockFail)
         toUpdate = existingProject.copy(
-          courseId     = courseId.getOrElse(existingProject.courseId),
-          name         = name.getOrElse(existingProject.name),
-          description  = description.getOrElse(existingProject.description),
+          courseId = courseId.getOrElse(existingProject.courseId),
+          name = name.getOrElse(existingProject.name),
+          description = description.getOrElse(existingProject.description),
           availability = availability.getOrElse(existingProject.availability)
         )
         updatedProject <- lift(projectRepository.update(toUpdate))
-      }
-      yield updatedProject
+      } yield updatedProject
     }
   }
 
@@ -210,7 +208,7 @@ class ProjectServiceDefault(val db: DB,
     transactional { implicit conn: Connection =>
       for {
         existingProject <- lift(projectRepository.find(id))
-        _ <- predicate (existingProject.version == version) (ServiceError.OfflineLockFail)
+        _ <- predicate(existingProject.version == version)(RepositoryError.OfflineLockFail)
         validSlug <- lift(validateSlug(slug))
         toUpdate = existingProject.copy(slug = validSlug)
         updatedProject <- lift(projectRepository.update(toUpdate))
@@ -231,12 +229,11 @@ class ProjectServiceDefault(val db: DB,
   override def delete(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
       for {
-        project <- lift(projectRepository.find(id, false))
-        _ <- predicate (project.version == version) (ServiceError.OfflineLockFail)
+        project <- lift(find(id))
+        _ <- predicate(project.version == version)(RepositoryError.OfflineLockFail)
         partsDeleted <- lift(partRepository.delete(project))
         projectDeleted <- lift(projectRepository.delete(project))
-      }
-      yield projectDeleted
+      } yield projectDeleted
     }
   }
 
@@ -246,16 +243,16 @@ class ProjectServiceDefault(val db: DB,
    * @param componentId the UUID of the component to filter by
    */
   override def listPartsInComponent(componentId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Part]]] = ???
-//    {
-//      val fPartList = for {
-//        component <- componentRepository.find(componentId).map(_.get)
-//        partList <- partRepository.list(component)
-//      } yield partList
-//
-//      fPartList.recover {
-//        case exception => throw exception
-//      }
-//    }
+  //    {
+  //      val fPartList = for {
+  //        component <- componentRepository.find(componentId).map(_.get)
+  //        partList <- partRepository.list(component)
+  //      } yield partList
+  //
+  //      fPartList.recover {
+  //        case exception => throw exception
+  //      }
+  //    }
 
   /**
    * Find a single part.
@@ -277,71 +274,33 @@ class ProjectServiceDefault(val db: DB,
    *
    * @param projectId the unique ID of the project to attach this part to
    * @param name the part's name
+   * @param description a brief description of the part
    * @param position this part's position in the project. If this position has already
    *                 been taken, the existing parts will be shifted down.
    */
-  override def createPart(projectId: UUID, name: String, position: Int, id: UUID = UUID.random): Future[\/[ErrorUnion#Fail, Part]] = {
+  override def createPart(projectId: UUID, name: String, position: Int): Future[\/[ErrorUnion#Fail, Part]] = {
     transactional { implicit conn: Connection =>
       for {
-        project <- lift(projectRepository.find(projectId, false))
-        partList <- lift(partRepository.list(project, false))
-        truePosition <- lift {
-          val positionMax = partList.nonEmpty match {
-            case true  => partList.map(_.position).max
-            case false => 1
-          }
-          val positionMin = partList.nonEmpty match {
-            case true  => partList.map(_.position).min
-            case false => 1
-          }
-
-          if (position == 1 && positionMin == 0) Future.successful(\/-(positionMin))
-          else if (position < positionMin) Future.successful(\/-(positionMin))
-          else if (position > positionMax && partList.nonEmpty) Future.successful(\/-(positionMax + 1))
-          else if (position > positionMax && partList.isEmpty) Future.successful(\/-(positionMax))
-          else Future.successful(\/-(position))
-        }
-        newPart <- lift {
+        project <- lift(projectRepository.find(projectId))
+        partList <- lift(partRepository.list(project))
+        partListUpdated <- lift {
           // If there is already a part with this position, shift it (and all following parts)
           // back by one to make room for the new one.
-          val positionExists = partList.filter(_.position == truePosition).nonEmpty
-          val filteredPartList = positionExists match {
-            case true  => partList.filter(_.position < truePosition) ++ partList.filter(_.position >= truePosition).map(part => part.copy(position = part.position + 1))
-            case false => partList
+          val positionExists = partList.exists(_.position == position)
+          if (positionExists) {
+            val filteredPartList = partList.filter(_.position >= position).map(part => part.copy(position = part.position + 1))
+            serializedT(filteredPartList)(partRepository.update)
           }
-
-          val newPart = Part(
-            id = id,
-            projectId = project.id,
-            name = name,
-            position = truePosition
-          )
-          // Add newPart and order parts by position
-          val orderedParts = (filteredPartList :+ newPart).sortWith(_.position < _.position)
-
-          val newPartIndex = orderedParts.indexOf(newPart)
-          // Save and update parts
-          serializedT(orderedParts.indices.asInstanceOf[IndexedSeq[Int]])(createOrderedParts(orderedParts, newPart.id, _)).map {
-            case -\/(error) => -\/(error)
-            case \/-(parts) => \/-(parts(newPartIndex))
+          else {
+            // Otherwise do nothing, return the existing part list.
+            Future.successful(\/-(partList))
           }
         }
-      } yield newPart
+        newPart = Part(projectId = project.id, name = name, position = position)
+        createdPart <- lift(partRepository.insert(newPart))
+      } yield createdPart
     }
   }
-
-  def createOrderedParts(orderedParts: IndexedSeq[Part], newPartId: UUID, i: Int): Future[\/[RepositoryError.Fail, Part]] = {
-    if (orderedParts(i).id == newPartId) {
-      partRepository.insert(orderedParts(i).copy(position = i + 1))
-    }
-    else if (orderedParts(i).position != i + 1) {
-      partRepository.update(orderedParts(i).copy(position = i + 1))
-    }
-    else {
-      Future.successful(\/-(orderedParts(i)))
-    }
-  }
-
 
   /**
    * Update an existing part.
@@ -351,76 +310,52 @@ class ProjectServiceDefault(val db: DB,
    *     This will necessarily increment their version numbers. The client should be aware
    *     to update its part list after calling update.
    */
-  override def updatePart(partId: UUID, version: Long, name: Option[String], maybePosition: Option[Int], enabled: Option[Boolean]): Future[\/[ErrorUnion#Fail, Part]] = {
+  override def updatePart(
+    partId: UUID,
+    version: Long,
+    name: Option[String],
+    maybePosition: Option[Int],
+    enabled: Option[Boolean]
+  ): Future[\/[ErrorUnion#Fail, Part]] = {
     transactional { implicit conn: Connection =>
       for {
         existingPart <- lift(partRepository.find(partId))
-        _ <- predicate (existingPart.version == version) (ServiceError.OfflineLockFail)
+        _ <- predicate(existingPart.version == version)(RepositoryError.OfflineLockFail)
         oldPosition = existingPart.position
-        project <- lift(projectRepository.find(existingPart.projectId, false))
-        partList <- lift(partRepository.list(project, false))
-        _ <- predicate (partList.nonEmpty) (ServiceError.BusinessLogicFail("Weird, part list shouldn't be empty!"))
-        newPosition <- lift {
-          val position = maybePosition.getOrElse(oldPosition)
-          val positionMax = partList.map(_.position).max
-          val positionMin = partList.map(_.position).min
-
-          if (position == 1 && positionMin == 0) Future.successful(\/-(positionMin))
-          else if (position < positionMin) Future.successful(\/-(positionMin))
-          else if (position > positionMax) Future.successful(\/-(positionMax))
-          else Future.successful(\/-(position))
-        }
-        updatedPart <- lift {
-          val updatedPart = partList.filter(_.id == partId).head.copy(
-            name = name.getOrElse(existingPart.name),
-            position = newPosition,
-            enabled = enabled.getOrElse(existingPart.enabled)
-          )
-
-          val positionExists = partList.filter(_.position == newPosition).nonEmpty
-          val updatedPartList = positionExists match {
-            case true  =>
-              if (newPosition > oldPosition) {
-                // Move Right
-                val before = partList.filter(_.position <= newPosition).map(part => part.copy(position = part.position - 1))
-                val after  = partList.filter(_.position > newPosition).map(part => part.copy(position = part.position + 1))
-                before ++ after
+        newPosition = maybePosition.getOrElse(oldPosition)
+        project <- lift(projectRepository.find(existingPart.projectId))
+        partList <- lift(partRepository.list(project))
+        partListUpdated <- lift {
+          if (newPosition != oldPosition) {
+            val filteredPartList = partList.filter(_.id != partId)
+            var temp = IndexedSeq[Part]()
+            for (i <- filteredPartList.indices) {
+              temp = if (i >= newPosition) {
+                temp :+ filteredPartList(i).copy(position = i + 1)
               }
-              else if (newPosition < oldPosition) {
-                // Move Left
-                val before = partList.filter(_.position < newPosition).map(part => part.copy(position = part.position - 1))
-                val after  = partList.filter(_.position >= newPosition).map(part => part.copy(position = part.position + 1))
-                before ++ after
+              else {
+                temp :+ filteredPartList(i).copy(position = i)
               }
-              else partList
-            case false => partList
-          }
+            }
+            val filteredOrderedPartList = temp
 
-          // Replace the part for update and order all parts by position
-          val orderedParts = updatedPartList.map { part =>
-            if (part.id == partId) updatedPart
-            else part
-          }.sortWith(_.position < _.position)
-
-          val updatedPartIndex = orderedParts.indexOf(updatedPart)
-          serializedT(orderedParts.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedParts(orderedParts, partId, _)).map {
-            case -\/(error) => -\/(error)
-            case \/-(parts) => \/-(parts(updatedPartIndex))
+            if (filteredOrderedPartList.nonEmpty) {
+              serializedT(filteredOrderedPartList)(partRepository.update)
+            }
+            else {
+              Future.successful(\/-(IndexedSeq()))
+            }
           }
+          else Future.successful(\/-(partList))
         }
+        toUpdate = existingPart.copy(
+          name = name.getOrElse(existingPart.name),
+          position = newPosition,
+          enabled = enabled.getOrElse(existingPart.enabled)
+        )
+        // Now we insert the new part
+        updatedPart <- lift(partRepository.update(toUpdate))
       } yield updatedPart
-    }
-  }
-
-  def updateOrderedParts(orderedParts: IndexedSeq[Part], updatedPartId: UUID, i: Int): Future[\/[RepositoryError.Fail, Part]] = {
-    if (orderedParts(i).id == updatedPartId) {
-      partRepository.update(orderedParts(i).copy(position = i + 1))
-    }
-    else if (orderedParts(i).position != i + 1) {
-      partRepository.update(orderedParts(i).copy(position = i + 1))
-    }
-    else {
-      Future.successful(\/-(orderedParts(i)))
     }
   }
 
@@ -439,20 +374,24 @@ class ProjectServiceDefault(val db: DB,
     transactional { implicit conn: Connection =>
       for {
         part <- lift(partRepository.find(partId))
-        _ <- predicate (part.version == version) (ServiceError.OfflineLockFail)
-        project <- lift(projectRepository.find(part.projectId, false))
-        partList <- lift(partRepository.list(project, false))
-        _ <- predicate (partList.nonEmpty) (ServiceError.BusinessLogicFail("Weird, part list shouldn't be empty!"))
+        project <- lift(projectRepository.find(part.projectId))
+        partList <- lift(partRepository.list(project))
         partListUpdated <- lift {
-          val filteredOderedPartList = partList.filter(_.id != partId).sortWith(_.position < _.position)
-          serializedT(filteredOderedPartList.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedParts(filteredOderedPartList, partId, _))
+          val filteredPartList = partList.filter({
+            item => item.id != part.id && item.position > part.position
+          }).map(part => part.copy(position = part.position - 1))
+          if (filteredPartList.nonEmpty) {
+            serializedT(filteredPartList)(partRepository.update)
+          }
+          else {
+            Future.successful(\/-(IndexedSeq()))
+          }
         }
         tasksDeleted <- lift(taskRepository.delete(part))
         deletedPart <- lift(partRepository.delete(part))
       } yield deletedPart
     }
   }
-
 
   /**
    * Enable a disabled part, and disable an enabled part.
@@ -465,7 +404,6 @@ class ProjectServiceDefault(val db: DB,
     transactional { implicit conn: Connection =>
       for {
         part <- lift(partRepository.find(partId))
-        _ <- predicate (part.version == version) (ServiceError.OfflineLockFail)
         toUpdate = part.copy(version = version, enabled = !part.enabled)
         toggled <- lift(partRepository.update(toUpdate))
       } yield toggled
@@ -480,19 +418,19 @@ class ProjectServiceDefault(val db: DB,
    *                order the parts should have
    * @return a future disjunction containing either the updated project, or a failure
    */
-  override def reorderParts(projectId: UUID, partIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, IndexedSeq[Part]]] = {
+  override def reorderParts(projectId: UUID, partIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
       for {
-        _ <- predicate (partIds.nonEmpty) (ServiceError.BadInput("The list of part IDs can not be empty"))
         project <- lift(projectRepository.find(projectId))
-        parts <- lift(partRepository.list(project, false))
+        parts <- lift(partRepository.list(project))
         reordered <- lift {
           val orderedParts = parts.map { part =>
             part.copy(position = partIds.indexOf(part.id) + 1)
           }
           serializedT(orderedParts)(partRepository.update)
         }
-      } yield reordered
+        project <- lift(projectRepository.find(projectId))
+      } yield project
     }
   }
 
@@ -506,7 +444,14 @@ class ProjectServiceDefault(val db: DB,
    * @param dependencyId optionally make this task dependent on another
    * @return the newly created task
    */
-  override def createTask(partId: UUID, taskType: Int, name: String, description: String, position: Int, dependencyId: Option[UUID]): Future[\/[ErrorUnion#Fail, Task]] = {
+  override def createTask(
+    partId: UUID,
+    taskType: Int,
+    name: String,
+    description: String,
+    position: Int,
+    dependencyId: Option[UUID]
+  ): Future[\/[ErrorUnion#Fail, Task]] = {
     transactional { implicit conn: Connection =>
       for {
         part <- lift(partRepository.find(partId))
@@ -522,14 +467,14 @@ class ProjectServiceDefault(val db: DB,
         taskListUpdated <- lift {
           // If there is already a task with this position, shift it (and all following tasks)
           // back by one to make room for the new one.
-          val positionExists = taskList.filter(_.position == position).nonEmpty
+          val positionExists = taskList.exists(_.position == position)
           if (positionExists) {
             val filteredTaskList = taskList.filter(_.position >= position).map {
-              case task: LongAnswerTask     => task.copy(position = task.position + 1)
-              case task: ShortAnswerTask    => task.copy(position = task.position + 1)
+              case task: LongAnswerTask => task.copy(position = task.position + 1)
+              case task: ShortAnswerTask => task.copy(position = task.position + 1)
               case task: MultipleChoiceTask => task.copy(position = task.position + 1)
-              case task: OrderingTask       => task.copy(position = task.position + 1)
-              case task: MatchingTask       => task.copy(position = task.position + 1)
+              case task: OrderingTask => task.copy(position = task.position + 1)
+              case task: MatchingTask => task.copy(position = task.position + 1)
             }
             serializedT(filteredTaskList)(taskRepository.update)
           }
@@ -549,8 +494,7 @@ class ProjectServiceDefault(val db: DB,
           )
         )
         createdTask <- lift(taskRepository.insert(newTask))
-      }
-      yield newTask
+      } yield newTask
     }
   }
 
@@ -573,15 +517,18 @@ class ProjectServiceDefault(val db: DB,
   override def findTask(projectSlug: String, partNum: Int, taskNum: Int): Future[\/[ErrorUnion#Fail, Task]] = {
     for {
       project <- lift(projectRepository.find(projectSlug))
-      task <- lift { Future successful { project.parts.find(_.position == partNum) match {
-        case Some(part) => part.tasks.find(_.position == taskNum) match {
-          case Some(task) => \/.right(task)
-          case None => \/.left(RepositoryError.NoResults)
+      task <- lift {
+        Future successful {
+          project.parts.find(_.position == partNum) match {
+            case Some(part) => part.tasks.find(_.position == taskNum) match {
+              case Some(task) => \/.right(task)
+              case None => \/.left(RepositoryError.NoResults(s"Could not find task $taskNum in part $partNum in project $projectSlug"))
+            }
+            case None => \/.left(RepositoryError.NoResults(s"Could not find part $partNum in project $projectSlug"))
+          }
         }
-        case None => \/.left(RepositoryError.NoResults)
       }
-    }}}
-    yield task
+    } yield task
   }
 
   /**
@@ -596,8 +543,7 @@ class ProjectServiceDefault(val db: DB,
       student <- lift(authService.find(userId))
       project <- lift(projectRepository.find(projectId))
       taskOption <- lift(taskRepository.findNow(student, project))
-    }
-    yield taskOption
+    } yield taskOption
   }
 
   /**
@@ -620,25 +566,26 @@ class ProjectServiceDefault(val db: DB,
         newPosition = updatedTask.position
 
         oldListUpdated <- lift {
-          if (existingTask.partId == updatedTask.partId) {
+          if (existingTask.partId == updatedTask.partId || opTasks.isEmpty) {
             Future successful \/-(IndexedSeq.empty[Task])
           }
-          else if (opTasks.nonEmpty) {
+          else {
             // Update old task list to remove this task from the ordering.
             var filteredOrderedTaskList = IndexedSeq.empty[Task]
             for (i <- opTasks.indices) {
-              filteredOrderedTaskList = filteredOrderedTaskList :+ {opTasks(i) match {
-                case task: LongAnswerTask => task.copy(position = i)
-                case task: ShortAnswerTask => task.copy(position = i)
-                case task: MultipleChoiceTask => task.copy(position = i)
-                case task: OrderingTask => task.copy(position = i)
-                case task: MatchingTask => task.copy(position = i)
-                case _ => throw new Exception("Gold star for epic coding failure.")
-              }}
+              filteredOrderedTaskList = filteredOrderedTaskList :+ {
+                opTasks(i) match {
+                  case task: LongAnswerTask => task.copy(position = i)
+                  case task: ShortAnswerTask => task.copy(position = i)
+                  case task: MultipleChoiceTask => task.copy(position = i)
+                  case task: OrderingTask => task.copy(position = i)
+                  case task: MatchingTask => task.copy(position = i)
+                  case _ => throw new Exception("Gold star for epic coding failure.")
+                }
+              }
             }
             serializedT(filteredOrderedTaskList)(taskRepository.update)
           }
-          else { Future successful \/-(IndexedSeq.empty[Task]) }
         }
 
         newListUpdated <- lift {
@@ -646,30 +593,34 @@ class ProjectServiceDefault(val db: DB,
           // moved or not. If the task has changed parts, or if it hasn't changed
           // parts but its position number has changed, then the "new" list's ordering
           // must be updated.
-          if (existingTask.partId   != updatedTask.partId ||
-              existingTask.position != updatedTask.position) {
+          if (existingTask.partId != updatedTask.partId ||
+            existingTask.position != updatedTask.position) {
             val filteredTaskList = npTasks.filter(_.id != updatedTask.id)
             var filteredOrderedTaskList = IndexedSeq.empty[Task]
             for (i <- filteredTaskList.indices) {
-              if (i >= newPosition) {
-                filteredOrderedTaskList = filteredOrderedTaskList :+ {filteredTaskList(i) match {
-                  case task: LongAnswerTask => task.copy(position = i+1)
-                  case task: ShortAnswerTask => task.copy(position = i+1)
-                  case task: MultipleChoiceTask => task.copy(position = i+1)
-                  case task: OrderingTask => task.copy(position = i+1)
-                  case task: MatchingTask => task.copy(position = i+1)
-                  case _ => throw new Exception("Gold star for epic coding failure.")
-                }}
+              filteredOrderedTaskList = if (i >= newPosition) {
+                filteredOrderedTaskList :+ {
+                  filteredTaskList(i) match {
+                    case task: LongAnswerTask => task.copy(position = i + 1)
+                    case task: ShortAnswerTask => task.copy(position = i + 1)
+                    case task: MultipleChoiceTask => task.copy(position = i + 1)
+                    case task: OrderingTask => task.copy(position = i + 1)
+                    case task: MatchingTask => task.copy(position = i + 1)
+                    case _ => throw new Exception("Gold star for epic coding failure.")
+                  }
+                }
               }
               else {
-                filteredOrderedTaskList = filteredOrderedTaskList :+ {filteredTaskList(i) match {
-                  case task: LongAnswerTask => task.copy(position = i)
-                  case task: ShortAnswerTask => task.copy(position = i)
-                  case task: MultipleChoiceTask => task.copy(position = i)
-                  case task: OrderingTask => task.copy(position = i)
-                  case task: MatchingTask => task.copy(position = i)
-                  case _ => throw new Exception("Gold star for epic coding failure.")
-                }}
+                filteredOrderedTaskList :+ {
+                  filteredTaskList(i) match {
+                    case task: LongAnswerTask => task.copy(position = i)
+                    case task: ShortAnswerTask => task.copy(position = i)
+                    case task: MultipleChoiceTask => task.copy(position = i)
+                    case task: OrderingTask => task.copy(position = i)
+                    case task: MatchingTask => task.copy(position = i)
+                    case _ => throw new Exception("Gold star for epic coding failure.")
+                  }
+                }
               }
             }
 
@@ -694,27 +645,27 @@ class ProjectServiceDefault(val db: DB,
    * @return
    */
   override def updateLongAnswerTask(commonArgs: CommonTaskArgs): Future[\/[ErrorUnion#Fail, Task]] =
-  {
-    for {
-      task <- lift(taskRepository.find(commonArgs.taskId))
-      _ <- predicate (task.version == commonArgs.version) (ServiceError.OfflineLockFail)
-      _ <- predicate (task.isInstanceOf[LongAnswerTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateLongAnswerTask.wrongTaskType")))
-      toUpdate = task.asInstanceOf[LongAnswerTask].copy(
-        partId = commonArgs.partId.getOrElse(task.partId),
-        position = commonArgs.position.getOrElse(task.position),
-        settings = task.settings.copy(
-          title = commonArgs.name.getOrElse(task.settings.title),
-          description = commonArgs.description.getOrElse(task.settings.description),
-          notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
-          dependencyId = commonArgs.dependencyId match {
-            case Some(newDepId) => Some(newDepId)
-            case None => task.settings.dependencyId
-          }
+    {
+      for {
+        task <- lift(taskRepository.find(commonArgs.taskId))
+        _ <- predicate(task.version == commonArgs.version)(RepositoryError.OfflineLockFail)
+        _ <- predicate(task.isInstanceOf[LongAnswerTask])(ServiceError.BadInput("services.ProjectService.updateLongAnswerTask.wrongTaskType"))
+        toUpdate = task.asInstanceOf[LongAnswerTask].copy(
+          partId = commonArgs.partId.getOrElse(task.partId),
+          position = commonArgs.position.getOrElse(task.position),
+          settings = task.settings.copy(
+            title = commonArgs.name.getOrElse(task.settings.title),
+            description = commonArgs.description.getOrElse(task.settings.description),
+            notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+            dependencyId = commonArgs.dependencyId match {
+              case Some(newDepId) => Some(newDepId)
+              case None => task.settings.dependencyId
+            }
+          )
         )
-      )
-      updatedTask <- lift(updateTask(task, toUpdate))
-    } yield updatedTask
-  }
+        updatedTask <- lift(updateTask(task, toUpdate))
+      } yield updatedTask
+    }
 
   /**
    * Update a ShortAnswerTask
@@ -723,31 +674,33 @@ class ProjectServiceDefault(val db: DB,
    * @param maxLength
    * @return
    */
-  def updateShortAnswerTask(commonArgs: CommonTaskArgs,
-                            maxLength: Option[Int]): Future[\/[ErrorUnion#Fail, Task]] =
-  {
-    for {
-      task <- lift(taskRepository.find(commonArgs.taskId))
-      _ <- predicate (task.version == commonArgs.version) (ServiceError.OfflineLockFail)
-      _ <- predicate (task.isInstanceOf[ShortAnswerTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateShortAnswerTask.wrongTaskType")))
-      shortAnswerTask = task.asInstanceOf[ShortAnswerTask]
-      toUpdate = shortAnswerTask.copy(
-        partId = commonArgs.partId.getOrElse(task.partId),
-        position = commonArgs.position.getOrElse(task.position),
-        settings = task.settings.copy(
-          title = commonArgs.name.getOrElse(task.settings.title),
-          description = commonArgs.description.getOrElse(task.settings.description),
-          notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
-          dependencyId = commonArgs.dependencyId match {
-            case Some(newDepId) => Some(newDepId)
-            case None => task.settings.dependencyId
-          }
-        ),
-        maxLength = maxLength.getOrElse(shortAnswerTask.maxLength)
-      )
-      updatedTask <- lift(updateTask(task, toUpdate))
-    } yield updatedTask
-  }
+  def updateShortAnswerTask(
+    commonArgs: CommonTaskArgs,
+    maxLength: Option[Int]
+  ): Future[\/[ErrorUnion#Fail, Task]] =
+    {
+      for {
+        task <- lift(taskRepository.find(commonArgs.taskId))
+        _ <- predicate(task.version == commonArgs.version)(RepositoryError.OfflineLockFail)
+        _ <- predicate(task.isInstanceOf[ShortAnswerTask])(ServiceError.BadInput("services.ProjectService.updateShortAnswerTask.wrongTaskType"))
+        shortAnswerTask = task.asInstanceOf[ShortAnswerTask]
+        toUpdate = shortAnswerTask.copy(
+          partId = commonArgs.partId.getOrElse(task.partId),
+          position = commonArgs.position.getOrElse(task.position),
+          settings = task.settings.copy(
+            title = commonArgs.name.getOrElse(task.settings.title),
+            description = commonArgs.description.getOrElse(task.settings.description),
+            notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+            dependencyId = commonArgs.dependencyId match {
+              case Some(newDepId) => Some(newDepId)
+              case None => task.settings.dependencyId
+            }
+          ),
+          maxLength = maxLength.getOrElse(shortAnswerTask.maxLength)
+        )
+        updatedTask <- lift(updateTask(task, toUpdate))
+      } yield updatedTask
+    }
 
   /**
    * Update a MultipleChoiceTask
@@ -759,37 +712,39 @@ class ProjectServiceDefault(val db: DB,
    * @param randomizeChoices
    * @return
    */
-  def updateMultipleChoiceTask(commonArgs: CommonTaskArgs,
-                               choices: Option[IndexedSeq[String]] = Some(IndexedSeq()),
-                               answer: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
-                               allowMultiple: Option[Boolean] = Some(false),
-                               randomizeChoices: Option[Boolean] = Some(true)): Future[\/[ErrorUnion#Fail, Task]] =
-  {
-    for {
-      task <- lift(taskRepository.find(commonArgs.taskId))
-      _ <- predicate (task.version == commonArgs.version) (ServiceError.OfflineLockFail)
-      _ <- predicate (task.isInstanceOf[MultipleChoiceTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateMultipleChoiceTask.wrongTaskType")))
-      mcTask = task.asInstanceOf[MultipleChoiceTask]
-      toUpdate = mcTask.copy(
-        partId = commonArgs.partId.getOrElse(task.partId),
-        position = commonArgs.position.getOrElse(task.position),
-        settings = task.settings.copy(
-          title = commonArgs.name.getOrElse(task.settings.title),
-          description = commonArgs.description.getOrElse(task.settings.description),
-          notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
-          dependencyId = commonArgs.dependencyId match {
-            case Some(newDepId) => Some(newDepId)
-            case None => mcTask.settings.dependencyId
-          }
-        ),
-        choices = choices.getOrElse(mcTask.choices),
-        answers = answer.getOrElse(mcTask.answers),
-        allowMultiple = allowMultiple.getOrElse(mcTask.allowMultiple),
-        randomizeChoices = randomizeChoices.getOrElse(mcTask.randomizeChoices)
-      )
-      updatedTask <- lift(updateTask(task, toUpdate))
-    } yield updatedTask
-  }
+  def updateMultipleChoiceTask(
+    commonArgs: CommonTaskArgs,
+    choices: Option[IndexedSeq[String]] = Some(IndexedSeq()),
+    answer: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
+    allowMultiple: Option[Boolean] = Some(false),
+    randomizeChoices: Option[Boolean] = Some(true)
+  ): Future[\/[ErrorUnion#Fail, Task]] =
+    {
+      for {
+        task <- lift(taskRepository.find(commonArgs.taskId))
+        _ <- predicate(task.version == commonArgs.version)(RepositoryError.OfflineLockFail)
+        _ <- predicate(task.isInstanceOf[MultipleChoiceTask])(ServiceError.BadInput("services.ProjectService.updateMultipleChoiceTask.wrongTaskType"))
+        mcTask = task.asInstanceOf[MultipleChoiceTask]
+        toUpdate = mcTask.copy(
+          partId = commonArgs.partId.getOrElse(task.partId),
+          position = commonArgs.position.getOrElse(task.position),
+          settings = task.settings.copy(
+            title = commonArgs.name.getOrElse(task.settings.title),
+            description = commonArgs.description.getOrElse(task.settings.description),
+            notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+            dependencyId = commonArgs.dependencyId match {
+              case Some(newDepId) => Some(newDepId)
+              case None => mcTask.settings.dependencyId
+            }
+          ),
+          choices = choices.getOrElse(mcTask.choices),
+          answers = answer.getOrElse(mcTask.answers),
+          allowMultiple = allowMultiple.getOrElse(mcTask.allowMultiple),
+          randomizeChoices = randomizeChoices.getOrElse(mcTask.randomizeChoices)
+        )
+        updatedTask <- lift(updateTask(task, toUpdate))
+      } yield updatedTask
+    }
 
   /**
    * Update an OrderingTask
@@ -800,35 +755,37 @@ class ProjectServiceDefault(val db: DB,
    * @param randomizeChoices
    * @return
    */
-  def updateOrderingTask(commonArgs: CommonTaskArgs,
-                         elements: Option[IndexedSeq[String]] = Some(IndexedSeq()),
-                         answer: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
-                         randomizeChoices: Option[Boolean] = Some(true)): Future[\/[ErrorUnion#Fail, Task]] =
-  {
-    for {
-      task <- lift(taskRepository.find(commonArgs.taskId))
-      _ <- predicate (task.version == commonArgs.version) (ServiceError.OfflineLockFail)
-      _ <- predicate (task.isInstanceOf[OrderingTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateOrderingTask.wrongTaskType")))
-      orderingTask = task.asInstanceOf[OrderingTask]
-      toUpdate = orderingTask.copy(
-        partId = commonArgs.partId.getOrElse(task.partId),
-        position = commonArgs.position.getOrElse(task.position),
-        settings = task.settings.copy(
-          title = commonArgs.name.getOrElse(task.settings.title),
-          description = commonArgs.description.getOrElse(task.settings.description),
-          notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
-          dependencyId = commonArgs.dependencyId match {
-            case Some(newDepId) => Some(newDepId)
-            case None => task.settings.dependencyId
-          }
-        ),
-        elements = elements.getOrElse(orderingTask.elements),
-        answers = answer.getOrElse(orderingTask.answers),
-        randomizeChoices = randomizeChoices.getOrElse(orderingTask.randomizeChoices)
-      )
-      updatedTask <- lift(updateTask(task, toUpdate))
-    } yield updatedTask
-  }
+  def updateOrderingTask(
+    commonArgs: CommonTaskArgs,
+    elements: Option[IndexedSeq[String]] = Some(IndexedSeq()),
+    answer: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
+    randomizeChoices: Option[Boolean] = Some(true)
+  ): Future[\/[ErrorUnion#Fail, Task]] =
+    {
+      for {
+        task <- lift(taskRepository.find(commonArgs.taskId))
+        _ <- predicate(task.version == commonArgs.version)(RepositoryError.OfflineLockFail)
+        _ <- predicate(task.isInstanceOf[OrderingTask])(ServiceError.BadInput("services.ProjectService.updateOrderingTask.wrongTaskType"))
+        orderingTask = task.asInstanceOf[OrderingTask]
+        toUpdate = orderingTask.copy(
+          partId = commonArgs.partId.getOrElse(task.partId),
+          position = commonArgs.position.getOrElse(task.position),
+          settings = task.settings.copy(
+            title = commonArgs.name.getOrElse(task.settings.title),
+            description = commonArgs.description.getOrElse(task.settings.description),
+            notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+            dependencyId = commonArgs.dependencyId match {
+              case Some(newDepId) => Some(newDepId)
+              case None => task.settings.dependencyId
+            }
+          ),
+          elements = elements.getOrElse(orderingTask.elements),
+          answers = answer.getOrElse(orderingTask.answers),
+          randomizeChoices = randomizeChoices.getOrElse(orderingTask.randomizeChoices)
+        )
+        updatedTask <- lift(updateTask(task, toUpdate))
+      } yield updatedTask
+    }
 
   /**
    * Update a MatchingTask
@@ -840,38 +797,39 @@ class ProjectServiceDefault(val db: DB,
    * @param randomizeChoices
    * @return
    */
-  def updateMatchingTask(commonArgs: CommonTaskArgs,
-                         elementsLeft: Option[IndexedSeq[String]] = Some(IndexedSeq()),
-                         elementsRight: Option[IndexedSeq[String]] = Some(IndexedSeq()),
-                         answer: Option[IndexedSeq[MatchingTask.Match]] = Some(IndexedSeq()),
-                         randomizeChoices: Option[Boolean] = Some(true)): Future[\/[ErrorUnion#Fail, Task]] =
-  {
-    for {
-      task <- lift(taskRepository.find(commonArgs.taskId))
-      _ <- predicate (task.version == commonArgs.version) (ServiceError.OfflineLockFail)
-      _ <- predicate (task.isInstanceOf[MatchingTask]) (ServiceError.BadInput(Messages("services.ProjectService.updateMatchingTask.wrongTaskType")))
-      matchingTask = task.asInstanceOf[MatchingTask]
-      toUpdate = matchingTask.copy(
-        partId = commonArgs.partId.getOrElse(task.partId),
-        position = commonArgs.position.getOrElse(task.position),
-        settings = task.settings.copy(
-          title = commonArgs.name.getOrElse(task.settings.title),
-          description = commonArgs.description.getOrElse(task.settings.description),
-          notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
-          dependencyId = commonArgs.dependencyId match {
-            case Some(newDepId) => Some(newDepId)
-            case None => task.settings.dependencyId
-          }
-        ),
-        elementsLeft = elementsLeft.getOrElse(matchingTask.elementsLeft),
-        elementsRight = elementsRight.getOrElse(matchingTask.elementsRight),
-        answers = answer.getOrElse(matchingTask.answers),
-        randomizeChoices = randomizeChoices.getOrElse(matchingTask.randomizeChoices)
-      )
-      updatedTask <- lift(updateTask(task, toUpdate))
-    } yield updatedTask
-  }
-
+  def updateMatchingTask(
+    commonArgs: CommonTaskArgs,
+    elementsLeft: Option[IndexedSeq[String]] = Some(IndexedSeq()),
+    elementsRight: Option[IndexedSeq[String]] = Some(IndexedSeq()),
+    answer: Option[IndexedSeq[MatchingTask.Match]] = Some(IndexedSeq()),
+    randomizeChoices: Option[Boolean] = Some(true)
+  ): Future[\/[ErrorUnion#Fail, Task]] =
+    {
+      for {
+        task <- lift(taskRepository.find(commonArgs.taskId))
+        _ <- predicate(task.version == commonArgs.version)(RepositoryError.OfflineLockFail)
+        _ <- predicate(task.isInstanceOf[MatchingTask])(ServiceError.BadInput("services.ProjectService.updateMatchingTask.wrongTaskType"))
+        matchingTask = task.asInstanceOf[MatchingTask]
+        toUpdate = matchingTask.copy(
+          partId = commonArgs.partId.getOrElse(task.partId),
+          position = commonArgs.position.getOrElse(task.position),
+          settings = task.settings.copy(
+            title = commonArgs.name.getOrElse(task.settings.title),
+            description = commonArgs.description.getOrElse(task.settings.description),
+            notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+            dependencyId = commonArgs.dependencyId match {
+              case Some(newDepId) => Some(newDepId)
+              case None => task.settings.dependencyId
+            }
+          ),
+          elementsLeft = elementsLeft.getOrElse(matchingTask.elementsLeft),
+          elementsRight = elementsRight.getOrElse(matchingTask.elementsRight),
+          answers = answer.getOrElse(matchingTask.answers),
+          randomizeChoices = randomizeChoices.getOrElse(matchingTask.randomizeChoices)
+        )
+        updatedTask <- lift(updateTask(task, toUpdate))
+      } yield updatedTask
+    }
 
   /**
    * Delete a task.
@@ -888,7 +846,7 @@ class ProjectServiceDefault(val db: DB,
     transactional { implicit conn: Connection =>
       for {
         genericTask <- lift(taskRepository.find(taskId))
-        _ <- predicate (genericTask.version == version) (ServiceError.OfflineLockFail)
+        _ <- predicate(genericTask.version == version)(RepositoryError.OfflineLockFail)
         task = genericTask match {
           case task: LongAnswerTask => task.copy(version = version)
           case task: ShortAnswerTask => task.copy(version = version)
@@ -929,11 +887,11 @@ class ProjectServiceDefault(val db: DB,
       for {
         task <- lift(taskRepository.find(taskId))
         toUpdate = task match {
-          case task: LongAnswerTask =>     task.copy(position = newPosition, partId = partId)
-          case task: ShortAnswerTask =>    task.copy(position = newPosition, partId = partId)
+          case task: LongAnswerTask => task.copy(position = newPosition, partId = partId)
+          case task: ShortAnswerTask => task.copy(position = newPosition, partId = partId)
           case task: MultipleChoiceTask => task.copy(position = newPosition, partId = partId)
-          case task: OrderingTask =>       task.copy(position = newPosition, partId = partId)
-          case task: MatchingTask =>       task.copy(position = newPosition, partId = partId)
+          case task: OrderingTask => task.copy(position = newPosition, partId = partId)
+          case task: MatchingTask => task.copy(position = newPosition, partId = partId)
           case _ => throw new Exception("Gold star for epic coding failure.")
         }
         movedTask <- lift(this.updateTask(task, toUpdate))
@@ -953,8 +911,7 @@ class ProjectServiceDefault(val db: DB,
       user <- lift(authService.find(userId))
       project <- lift(find(projectSlug))
       hasProject <- lift(courseRepository.hasProject(user, project))
-    }
-    yield hasProject
+    } yield hasProject
   }
 
   /**
@@ -965,7 +922,7 @@ class ProjectServiceDefault(val db: DB,
    */
   private def isValidSlug(slug: String): Future[\/[ErrorUnion#Fail, String]] = Future successful {
     if ("""[A-Za-z0-9\_\-]+""".r.unapplySeq(slug).isDefined) \/-(slug)
-    else -\/(ServiceError.BadInput(s"$slug is not a valid slug format."))
+    else -\/(ServiceError.BadInput(s"$slug is not a valid e-mail format."))
   }
 
   /**
@@ -985,7 +942,7 @@ class ProjectServiceDefault(val db: DB,
       case \/-(project) =>
         if (existingId.isEmpty || (existingId.get != project.id)) -\/(RepositoryError.UniqueKeyConflict("slug", s"The slug $slug is already in use."))
         else \/-(slug)
-      case -\/(RepositoryError.NoResults) => \/-(slug)
+      case -\/(noResults: RepositoryError.NoResults) => \/-(slug)
       case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)
     }
   }

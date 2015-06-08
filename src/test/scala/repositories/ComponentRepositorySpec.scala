@@ -151,7 +151,7 @@ class ComponentRepositorySpec
         val \/-(components) = eitherComponents
 
         components.size should be(testComponentList.size)
-        
+
         testComponentList.foreach {
           case (key, component: Component) => {
             //Common

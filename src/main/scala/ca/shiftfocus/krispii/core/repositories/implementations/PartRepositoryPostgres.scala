@@ -37,12 +37,14 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
   val Fields          = "id, version, created_at, updated_at, project_id, name, position, enabled"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field}).mkString(", ")
   val QMarks          = "?, ?, ?, ?, ?, ?, ?, ?"
+  val OrderBy         = s"position ASC"
 
   // CRUD operations
   val SelectAll =
     s"""
        |SELECT $Fields
        |FROM $Table
+       |ORDER BY $OrderBy
      """.stripMargin
 
   val SelectOne =
@@ -70,9 +72,12 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
 
   val DeleteByProject =
     s"""
-       |DELETE FROM $Table
+       |WITH deleted AS (DELETE FROM $Table
        |WHERE project_id = ?
-       |RETURNING $Fields
+       |RETURNING $Fields)
+       |SELECT $Fields
+       |FROM deleted
+       |ORDER BY $OrderBy
      """.stripMargin
 
   val Delete =
@@ -88,7 +93,7 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
       |SELECT $Fields
       |FROM $Table
       |WHERE project_id = ?
-      |ORDER BY position ASC
+      |ORDER BY $OrderBy
     """.stripMargin
 
   val FindByProjectPosition =
@@ -107,6 +112,7 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
       |INNER JOIN parts_components
       |  ON $Table.id = parts_components.part_id
       |WHERE parts_components.component_id = ?
+      |ORDER BY $Table.$OrderBy
     """.stripMargin
 
   // TODO - not used

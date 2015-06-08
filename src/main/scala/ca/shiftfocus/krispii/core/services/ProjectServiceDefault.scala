@@ -277,7 +277,12 @@ class ProjectServiceDefault(
    * @param position this part's position in the project. If this position has already
    *                 been taken, the existing parts will be shifted down.
    */
-  override def createPart(projectId: UUID, name: String, position: Int, id: UUID = UUID.randomUUID): Future[\/[ErrorUnion#Fail, Part]] = {
+  override def createPart(
+    projectId: UUID,
+    name: String,
+    position: Int,
+    id: UUID = UUID.randomUUID
+  ): Future[\/[ErrorUnion#Fail, Part]] = {
     transactional { implicit conn: Connection =>
       for {
         project <- lift(projectRepository.find(projectId, false))
@@ -303,7 +308,9 @@ class ProjectServiceDefault(
           // back by one to make room for the new one.
           val positionExists = partList.filter(_.position == truePosition).nonEmpty
           val filteredPartList = positionExists match {
-            case true => partList.filter(_.position < truePosition) ++ partList.filter(_.position >= truePosition).map(part => part.copy(position = part.position + 1))
+            case true => partList.filter(_.position < truePosition) ++ partList.filter(_.position >= truePosition).map(
+              part => part.copy(position = part.position + 1)
+            )
             case false => partList
           }
 
@@ -501,7 +508,14 @@ class ProjectServiceDefault(
    * @param dependencyId optionally make this task dependent on another
    * @return the newly created task
    */
-  override def createTask(partId: UUID, taskType: Int, name: String, description: String, position: Int, dependencyId: Option[UUID]): Future[\/[ErrorUnion#Fail, Task]] = {
+  override def createTask(
+    partId: UUID,
+    taskType: Int,
+    name: String,
+    description: String,
+    position: Int,
+    dependencyId: Option[UUID]
+  ): Future[\/[ErrorUnion#Fail, Task]] = {
     transactional { implicit conn: Connection =>
       for {
         part <- lift(partRepository.find(partId))

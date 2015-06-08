@@ -34,18 +34,11 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
     )
   }
 
-<<<<<<< HEAD:src/main/scala/ca/shiftfocus/krispii/core/repositories/implementations/PartRepositoryPostgres.scala
-  val Table           = "parts"
-  val Fields          = "id, version, created_at, updated_at, project_id, name, position, enabled"
-  val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field}).mkString(", ")
-  val QMarks          = "?, ?, ?, ?, ?, ?, ?, ?"
-  val OrderBy         = s"position ASC"
-=======
   val Table = "parts"
   val Fields = "id, version, created_at, updated_at, project_id, name, position, enabled"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?"
->>>>>>> Added scalastyle and scalariform formatter:src/main/scala/ca/shiftfocus/krispii/core/repositories/PartRepositoryPostgres.scala
+  val OrderBy = s"position ASC"
 
   // CRUD operations
   val SelectAll =

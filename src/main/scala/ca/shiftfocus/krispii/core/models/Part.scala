@@ -25,12 +25,12 @@ case class Part(
     other match {
       case otherPart: Part =>
         this.id == otherPart.id &&
-        this.version == otherPart.version &&
-        this.projectId == otherPart.projectId &&
-        this.name == otherPart.name &&
-        this.position == otherPart.position &&
-        this.enabled == otherPart.enabled &&
-        this.tasks == otherPart.tasks
+          this.version == otherPart.version &&
+          this.projectId == otherPart.projectId &&
+          this.name == otherPart.name &&
+          this.position == otherPart.position &&
+          this.enabled == otherPart.enabled &&
+          this.tasks == otherPart.tasks
       case _ => false
     }
   }

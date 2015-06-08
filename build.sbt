@@ -20,7 +20,8 @@ resolvers ++= Seq(
   "ShiftFocus" at "https://maven.shiftfocus.ca/repositories/releases",
   "ShiftFocus Snapshots" at "https://maven.shiftfocus.ca/repositories/snapshots",
   "Sonatype" at "https://oss.sonatype.org/content/repositories/releases",
-  "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases"//,
+  "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
+  "Linter Repository" at "https://hairyfotr.github.io/linteRepo/releases"
   //"Kahn's Repo" at "http://repo.kahn.ws/maven/snapshots"
 )
 
@@ -46,8 +47,8 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-json" % "2.4.0",
   "com.typesafe.play" %% "play-jdbc-evolutions" % "2.4.0",
   // We heavily depend on scalaz's \/ and associated types
-  "org.scalaz" %% "scalaz-core" % "7.1.1",
-  "com.github.mauricio" %% "postgresql-async" % "0.2.15",
+  "org.scalaz" %% "scalaz-core" % "7.1.2",
+  "com.github.mauricio" %% "postgresql-async" % "0.2.17-SNAPSHOT",
   "joda-time" % "joda-time" % "2.1",
   "net.sf.uadetector" % "uadetector-resources" % "2014.04",
   "com.github.cb372" %% "scalacache-redis" % "0.6.1",
@@ -57,10 +58,19 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-api" % "1.7.5",
   "org.slf4j" % "slf4j-simple" % "1.7.5",
   "org.clapper" %% "grizzled-slf4j" % "1.0.2",
-  "ca.shiftfocus" %% "uuid" % "1.0.2",
   "ca.shiftfocus" %% "sflib" % "1.0.4",
   "ws.kahn" %% "ot" % "1.0-SNAPSHOT"
 )
+
+addCompilerPlugin("com.foursquare.lint" %% "linter" % "0.1.10")
+
+import scalariform.formatter.preferences._
+scalariformSettings
+
+ScalariformKeys.preferences := ScalariformKeys.preferences.value
+  .setPreference(CompactControlReadability, true)
+  .setPreference(DoubleIndentClassDeclaration, true)
+  .setPreference(RewriteArrowSymbols, false)
 
 // -- SBT Publish settings --------
 // Please ensure that your public key is appended to /home/maven/.ssh/authorized_keys for the

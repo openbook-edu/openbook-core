@@ -6,7 +6,7 @@ import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.scalatest._
 import Matchers._
 
@@ -1199,74 +1199,4 @@ class ProjectServiceSpec
       }
     }
   }
-
-//  "ProjectService.createTask" should {
-//    inSequence{
-//      "create task" in {
-//      }
-//    }
-//  }
-//
-//  "ProjectService.updateLongAnswerTask" should {
-//    inSequence{
-//      "throw an exception if task is not instance of LongAnswerTask" in {
-//      }
-//      "update LongAnswerTask" in {
-//      }
-//    }
-//  }
-//
-//  "ProjectService.updateShortAnswerTask" should {
-//    inSequence{
-//      "throw an exception if task is not instance of ShortAnswerTask" in {
-//      }
-//      "update ShortAnswerTask" in {
-//      }
-//    }
-//  }
-//
-//  "ProjectService.updateMultipleChoiceTask" should {
-//    inSequence{
-//      "throw an exception if task is not instance of MultipleChoiceTask" in {
-//      }
-//      "update MultipleChoiceTask" in {
-//      }
-//    }
-//  }
-//
-//  "ProjectService.updateOrderingTask" should {
-//    inSequence{
-//      "throw an exception if task is not instance of OrderingTask" in {
-//      }
-//      "update OrderingTask" in {
-//      }
-//    }
-//  }
-//
-//  "ProjectService.updateMatchingTask" should {
-//    inSequence{
-//      "throw an exception if task is not instance of MatchingTask" in {
-//      }
-//      "update MatchingTask" in {
-//      }
-//    }
-//  }
-//
-//  "ProjectService.deleteTask" should {
-//    inSequence{
-//      "throw an exception if task is not found" in {
-//      }
-//      "delete task" in {
-//      }
-//    }
-//  }
-//
-//  "ProjectService.moveTask" should {
-//    inSequence{
-//      "throw an exception if task is not found" in {
-//      }
-//      "move task" in {
-//      }
-//    }
-//  }
 }

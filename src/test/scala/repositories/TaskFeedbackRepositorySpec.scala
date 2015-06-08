@@ -1,19 +1,18 @@
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.document.Document
 import ca.shiftfocus.krispii.core.repositories._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.Connection
 
 import org.scalatest._
 import Matchers._
 import scala.collection.immutable.TreeMap
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{ Future, Await }
 import scala.concurrent.duration.Duration
 import scalaz.\/-
 
 class TaskFeedbackRepositorySpec
-  extends TestEnvironment
-{
+    extends TestEnvironment {
   val documentRepository = stub[DocumentRepository]
   val taskFeedbackRepository = new TaskFeedbackRepositoryPostgres(documentRepository)
 
@@ -36,7 +35,7 @@ class TaskFeedbackRepositorySpec
 
         testDocumentList.foreach {
           case (key, document: Document) => {
-            (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(document.id, *, *) returns(Future.successful(\/-(document)))
+            (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (document.id, *, *) returns (Future.successful(\/-(document)))
           }
         }
 
@@ -72,7 +71,7 @@ class TaskFeedbackRepositorySpec
 
         testDocumentList.foreach {
           case (key, document: Document) => {
-            (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(document.id, *, *) returns(Future.successful(\/-(document)))
+            (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (document.id, *, *) returns (Future.successful(\/-(document)))
           }
         }
 
@@ -104,7 +103,7 @@ class TaskFeedbackRepositorySpec
         val testTaskFeedback = TestValues.testTaskFeedbackD
         val testDocument = TestValues.testDocumentI
 
-        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(testDocument.id, *, *) returns(Future.successful(\/-(testDocument)))
+        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (testDocument.id, *, *) returns (Future.successful(\/-(testDocument)))
 
         val result = taskFeedbackRepository.find(testUser, testTask)
         val eitherTaskFeedback = Await.result(result, Duration.Inf)
@@ -126,7 +125,7 @@ class TaskFeedbackRepositorySpec
         val testTaskFeedback = TestValues.testTaskFeedbackF
         val testDocument = TestValues.testDocumentA
 
-        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(testDocument.id, *, *) returns(Future.successful(\/-(testDocument)))
+        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (testDocument.id, *, *) returns (Future.successful(\/-(testDocument)))
 
         val result = taskFeedbackRepository.insert(testTaskFeedback)
         val eitherTaskFeedback = Await.result(result, Duration.Inf)
@@ -149,7 +148,7 @@ class TaskFeedbackRepositorySpec
         val testTaskFeedback = TestValues.testTaskFeedbackC
         val testDocument = TestValues.testDocumentH
 
-        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(testDocument.id, *, *) returns(Future.successful(\/-(testDocument)))
+        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (testDocument.id, *, *) returns (Future.successful(\/-(testDocument)))
 
         val result = taskFeedbackRepository.delete(testTaskFeedback)
         val eitherTaskFeedback = Await.result(result, Duration.Inf)
@@ -177,7 +176,7 @@ class TaskFeedbackRepositorySpec
 
         testDocumentList.foreach {
           case (key, document: Document) => {
-            (documentRepository.find(_: UUID, _: Long)(_: Connection)) when(document.id, *, *) returns(Future.successful(\/-(document)))
+            (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (document.id, *, *) returns (Future.successful(\/-(document)))
           }
         }
 

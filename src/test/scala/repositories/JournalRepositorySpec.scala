@@ -4,22 +4,21 @@ import ca.shiftfocus.krispii.core.models.JournalEntry._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import com.github.mauricio.async.db.Connection
-import ca.shiftfocus.uuid.UUID
-import org.joda.time.{DateTimeZone, DateTime}
+import java.util.UUID
+import org.joda.time.{ DateTimeZone, DateTime }
 import org.joda.time.format.DateTimeFormat
 import org.scalatest._
 import Matchers._
 
 import scala.collection.immutable.TreeMap
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{ Future, Await }
 import scala.concurrent.duration.Duration
 import scalacache.ScalaCache
 import scalaz._
 
-
 class JournalRepositorySpec
-extends TestEnvironment {
-  val userRepository    = stub[UserRepository]
+    extends TestEnvironment {
+  val userRepository = stub[UserRepository]
   val projectRepository = stub[ProjectRepository]
   val journalRepository = new JournalRepositoryPostgres(userRepository, projectRepository)
 
@@ -27,16 +26,16 @@ extends TestEnvironment {
   "JournalRepository.list" should {
     inSequence {
       "list Journal Entries by type" in {
-        val testUser         = TestValues.testUserA
-        val testProject      = TestValues.testProjectA
+        val testUser = TestValues.testUserA
+        val testProject = TestValues.testProjectA
         val journalEntryType = JournalEntryView.entryType
 
         val testJournalEntryList = TreeMap[Int, JournalEntry](
           0 -> TestValues.testJournalEntryA
         )
 
-        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
-        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testProject.id, *, *) returns(Future.successful(\/-(testProject)))
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testUser.id, *, *) returns (Future.successful(\/-(testUser)))
+        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(\/-(testProject)))
 
         val result = journalRepository.list(journalEntryType)
         val eitherJournalEntryList = Await.result(result, Duration.Inf)
@@ -59,8 +58,8 @@ extends TestEnvironment {
         }
       }
       "list Journal Entries by user" in {
-        val testUser         = TestValues.testUserA
-        val testProject      = TestValues.testProjectA
+        val testUser = TestValues.testUserA
+        val testProject = TestValues.testProjectA
 
         val testJournalEntryList = TreeMap[Int, JournalEntry](
           0 -> TestValues.testJournalEntryA,
@@ -70,8 +69,8 @@ extends TestEnvironment {
           4 -> TestValues.testJournalEntryI
         )
 
-        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
-        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testProject.id, *, *) returns(Future.successful(\/-(testProject)))
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testUser.id, *, *) returns (Future.successful(\/-(testUser)))
+        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(\/-(testProject)))
 
         val result = journalRepository.list(testUser)
         val eitherJournalEntryList = Await.result(result, Duration.Inf)
@@ -94,10 +93,10 @@ extends TestEnvironment {
         }
       }
       "return empty Vector() if user ID doesn't exist" in {
-        val testUser         = TestValues.testUserD
+        val testUser = TestValues.testUserD
 
         val result = journalRepository.list(testUser)
-        Await.result(result, Duration.Inf) should be(\/-( Vector() ))
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
       "list Journal Entries by start date" in {
         val startDate = Option(TestValues.testJournalEntryC.createdAt)
@@ -106,7 +105,7 @@ extends TestEnvironment {
           0 -> TestValues.testUserA,
           1 -> TestValues.testUserB
         )
-        val testProjectList  = TreeMap[Int, Project](
+        val testProjectList = TreeMap[Int, Project](
           0 -> TestValues.testProjectA,
           1 -> TestValues.testProjectB
         )
@@ -123,13 +122,13 @@ extends TestEnvironment {
 
         testUserList.foreach {
           case (key, user: User) => {
-            (userRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(user.id, *, *) returns(Future.successful(\/-(user)))
+            (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (user.id, *, *) returns (Future.successful(\/-(user)))
           }
         }
 
         testProjectList.foreach {
           case (key, project: Project) => {
-            (projectRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(project.id, *, *) returns(Future.successful(\/-(project)))
+            (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (project.id, *, *) returns (Future.successful(\/-(project)))
           }
         }
 
@@ -160,7 +159,7 @@ extends TestEnvironment {
           0 -> TestValues.testUserA,
           1 -> TestValues.testUserB
         )
-        val testProjectList  = TreeMap[Int, Project](
+        val testProjectList = TreeMap[Int, Project](
           0 -> TestValues.testProjectA,
           1 -> TestValues.testProjectB
         )
@@ -175,13 +174,13 @@ extends TestEnvironment {
 
         testUserList.foreach {
           case (key, user: User) => {
-            (userRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(user.id, *, *) returns(Future.successful(\/-(user)))
+            (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (user.id, *, *) returns (Future.successful(\/-(user)))
           }
         }
 
         testProjectList.foreach {
           case (key, project: Project) => {
-            (projectRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(project.id, *, *) returns(Future.successful(\/-(project)))
+            (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (project.id, *, *) returns (Future.successful(\/-(project)))
           }
         }
 
@@ -207,12 +206,12 @@ extends TestEnvironment {
       }
       "list Journal Entries between start and end date" in {
         val startDate = Option(TestValues.testJournalEntryD.createdAt)
-        val endDate   = Option(TestValues.testJournalEntryH.createdAt)
+        val endDate = Option(TestValues.testJournalEntryH.createdAt)
         val testUserList = TreeMap[Int, User](
           0 -> TestValues.testUserA,
           1 -> TestValues.testUserB
         )
-        val testProjectList  = TreeMap[Int, Project](
+        val testProjectList = TreeMap[Int, Project](
           0 -> TestValues.testProjectA,
           1 -> TestValues.testProjectB
         )
@@ -227,13 +226,13 @@ extends TestEnvironment {
 
         testUserList.foreach {
           case (key, user: User) => {
-            (userRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(user.id, *, *) returns(Future.successful(\/-(user)))
+            (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (user.id, *, *) returns (Future.successful(\/-(user)))
           }
         }
 
         testProjectList.foreach {
           case (key, project: Project) => {
-            (projectRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(project.id, *, *) returns(Future.successful(\/-(project)))
+            (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (project.id, *, *) returns (Future.successful(\/-(project)))
           }
         }
 
@@ -259,17 +258,17 @@ extends TestEnvironment {
       }
       "return empty Vector() if start and end dates are None" in {
         val startDate = None
-        val endDate   = None
+        val endDate = None
 
         val result = journalRepository.list(startDate, endDate)
-        Await.result(result, Duration.Inf) should be(\/-( Vector() ))
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
       "return empty Vector() if start date is greater than end date" in {
         val startDate = Option(TestValues.testJournalEntryH.createdAt)
-        val endDate   = Option(TestValues.testJournalEntryD.createdAt)
+        val endDate = Option(TestValues.testJournalEntryD.createdAt)
 
         val result = journalRepository.list(startDate, endDate)
-        Await.result(result, Duration.Inf) should be(\/-( Vector() ))
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
     }
   }
@@ -277,12 +276,12 @@ extends TestEnvironment {
   "JournalRepository.find" should {
     inSequence {
       "find JournalEntry by ID" in {
-        val testUser     = TestValues.testUserA
-        val testProject  = TestValues.testProjectA
+        val testUser = TestValues.testUserA
+        val testProject = TestValues.testProjectA
         val testJournalEntry = TestValues.testJournalEntryB
 
-        (userRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
-        (projectRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(testProject.id, *, *) returns(Future.successful(\/-(testProject)))
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testUser.id, *, *) returns (Future.successful(\/-(testUser)))
+        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(\/-(testProject)))
 
         val result = journalRepository.find(testJournalEntry.id)
         val eitherJournalEntry = Await.result(result, Duration.Inf)
@@ -299,7 +298,7 @@ extends TestEnvironment {
         journalEntry.updatedAt.toString should be(testJournalEntry.updatedAt.toString)
       }
       "return RepositoryError.NoResults if ID doesn't exist" in {
-        val journalEntryId = UUID("2f27a106-390f-4cbf-bcaf-5341ef987dd7")
+        val journalEntryId = UUID.fromString("2f27a106-390f-4cbf-bcaf-5341ef987dd7")
 
         val result = journalRepository.find(journalEntryId)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
@@ -310,12 +309,12 @@ extends TestEnvironment {
   "JournalRepository.insert" should {
     inSequence {
       "insert new Journal Entry" in {
-        val testUser     = TestValues.testUserC
-        val testProject  = TestValues.testProjectC
+        val testUser = TestValues.testUserC
+        val testProject = TestValues.testProjectC
         val testJournalEntry = TestValues.testJournalEntryJ
 
-        (userRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
-        (projectRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(testProject.id, *, *) returns(Future.successful(\/-(testProject)))
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testUser.id, *, *) returns (Future.successful(\/-(testUser)))
+        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(\/-(testProject)))
 
         val result = journalRepository.insert(testJournalEntry)
         val eitherJournalEntry = Await.result(result, Duration.Inf)
@@ -330,12 +329,12 @@ extends TestEnvironment {
         journalEntry.message should be(testJournalEntry.message)
       }
       "reutrn RepositoryError.PrimaryKeyConflict if Journal Entry already exists" in {
-        val testUser     = TestValues.testUserA
-        val testProject  = TestValues.testProjectA
+        val testUser = TestValues.testUserA
+        val testProject = TestValues.testProjectA
         val testJournalEntry = TestValues.testJournalEntryA
 
-        (userRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
-        (projectRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(testProject.id, *, *) returns(Future.successful(\/-(testProject)))
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testUser.id, *, *) returns (Future.successful(\/-(testUser)))
+        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(\/-(testProject)))
 
         val result = journalRepository.insert(testJournalEntry)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
@@ -346,17 +345,16 @@ extends TestEnvironment {
   "JournalRepository.delete" should {
     inSequence {
       "delete a Journal Entry" in {
-        val testUser     = TestValues.testUserA
-        val testProject  = TestValues.testProjectA
+        val testUser = TestValues.testUserA
+        val testProject = TestValues.testProjectA
         val testJournalEntry = TestValues.testJournalEntryB
 
-        (userRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
-        (projectRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(testProject.id, *, *) returns(Future.successful(\/-(testProject)))
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testUser.id, *, *) returns (Future.successful(\/-(testUser)))
+        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(\/-(testProject)))
 
         val result = journalRepository.delete(testJournalEntry)
         val eitherJournalEntry = Await.result(result, Duration.Inf)
         val \/-(journalEntry) = eitherJournalEntry
-
 
         journalEntry.id should be(testJournalEntry.id)
         journalEntry.version should be(testJournalEntry.version)
@@ -379,7 +377,7 @@ extends TestEnvironment {
           0 -> TestValues.testUserA,
           1 -> TestValues.testUserB
         )
-        val testProjectList  = TreeMap[Int, Project](
+        val testProjectList = TreeMap[Int, Project](
           0 -> TestValues.testProjectA,
           1 -> TestValues.testProjectB
         )
@@ -391,13 +389,13 @@ extends TestEnvironment {
 
         testUserList.foreach {
           case (key, user: User) => {
-            (userRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(user.id, *, *) returns(Future.successful(\/-(user)))
+            (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (user.id, *, *) returns (Future.successful(\/-(user)))
           }
         }
 
         testProjectList.foreach {
           case (key, project: Project) => {
-            (projectRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(project.id, *, *) returns(Future.successful(\/-(project)))
+            (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (project.id, *, *) returns (Future.successful(\/-(project)))
           }
         }
 
@@ -425,11 +423,11 @@ extends TestEnvironment {
         val unexistingEntryType = "unexisting type"
 
         val result = journalRepository.delete(unexistingEntryType)
-        Await.result(result, Duration.Inf) should be(\/-( Vector() ))
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
       "delete all Journal Entries that belong to the specific user" in {
-        val testUser         = TestValues.testUserB
-        val testProject      = TestValues.testProjectB
+        val testUser = TestValues.testUserB
+        val testProject = TestValues.testProjectB
 
         val testJournalEntryList = TreeMap[Int, JournalEntry](
           0 -> TestValues.testJournalEntryE,
@@ -438,8 +436,8 @@ extends TestEnvironment {
           3 -> TestValues.testJournalEntryH
         )
 
-        (userRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(testUser.id, *, *) returns(Future.successful(\/-(testUser)))
-        (projectRepository.find(_: UUID)(_: Connection,  _: ScalaCachePool)) when(testProject.id, *, *) returns(Future.successful(\/-(testProject)))
+        (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testUser.id, *, *) returns (Future.successful(\/-(testUser)))
+        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(\/-(testProject)))
 
         val result = journalRepository.delete(testUser)
         val eitherJournalEntryList = Await.result(result, Duration.Inf)
@@ -465,7 +463,7 @@ extends TestEnvironment {
         val unexistingUser = TestValues.testUserD
 
         val result = journalRepository.delete(unexistingUser)
-        Await.result(result, Duration.Inf) should be(\/-( Vector() ))
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
     }
   }

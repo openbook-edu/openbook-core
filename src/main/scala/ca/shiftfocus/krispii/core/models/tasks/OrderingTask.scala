@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models.tasks
 
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
@@ -22,19 +22,19 @@ import play.api.libs.json._
  * @param updatedAt
  */
 case class OrderingTask(
-  // Primary Key
-  id: UUID = UUID.random,
-  // Combination must be unique
-  partId: UUID,
-  position: Int,
-  // Additional data
-  version: Long = 1L,
-  settings: CommonTaskSettings = CommonTaskSettings(),
-  elements: IndexedSeq[String] = IndexedSeq(),
-  answers: IndexedSeq[Int] = IndexedSeq(),
-  randomizeChoices: Boolean = true,
-  createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime
+    // Primary Key
+    id: UUID = UUID.randomUUID,
+    // Combination must be unique
+    partId: UUID,
+    position: Int,
+    // Additional data
+    version: Long = 1L,
+    settings: CommonTaskSettings = CommonTaskSettings(),
+    elements: IndexedSeq[String] = IndexedSeq(),
+    answers: IndexedSeq[Int] = IndexedSeq(),
+    randomizeChoices: Boolean = true,
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
 ) extends Task {
 
   /**
@@ -50,6 +50,7 @@ case class OrderingTask(
       case _ => false
     }
   }
+  override def hashCode: Int = 41 * this.id.hashCode
 }
 
 object OrderingTask {
@@ -59,15 +60,15 @@ object OrderingTask {
    */
   implicit val taskWrites: Writes[OrderingTask] = (
     (__ \ "id").write[UUID] and
-      (__ \ "partId").write[UUID] and
-      (__ \ "position").write[Int] and
-      (__ \ "version").write[Long] and
-      (__ \ "settings").write[CommonTaskSettings] and
-      (__ \ "elements").write[IndexedSeq[String]] and
-      (__ \ "answers").write[IndexedSeq[Int]] and
-      (__ \ "randomizeChoices").write[Boolean] and
-      (__ \ "createdAt").write[DateTime] and
-      (__ \ "updatedAt").write[DateTime]
-    )(unlift(OrderingTask.unapply))
+    (__ \ "partId").write[UUID] and
+    (__ \ "position").write[Int] and
+    (__ \ "version").write[Long] and
+    (__ \ "settings").write[CommonTaskSettings] and
+    (__ \ "elements").write[IndexedSeq[String]] and
+    (__ \ "answers").write[IndexedSeq[Int]] and
+    (__ \ "randomizeChoices").write[Boolean] and
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
+  )(unlift(OrderingTask.unapply))
 
 }

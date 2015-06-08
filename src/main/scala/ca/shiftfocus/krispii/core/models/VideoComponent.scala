@@ -1,15 +1,14 @@
 package ca.shiftfocus.krispii.core.models
 
 import com.github.mauricio.async.db.RowData
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
-
 case class VideoComponent(
-  id: UUID = UUID.random,
+  id: UUID = UUID.randomUUID,
   version: Long = 1L,
   ownerId: UUID,
   title: String,
@@ -40,7 +39,6 @@ object VideoComponent {
 
 }
 
-
 case class VideoComponentPost(
   ownerId: UUID,
   title: String,
@@ -61,7 +59,6 @@ object VideoComponentPost {
     (__ \ "height").read[Int]
   )(VideoComponentPost.apply _)
 }
-
 
 case class VideoComponentPut(
   version: Long,

@@ -1,4 +1,4 @@
-import ca.shiftfocus.krispii.core.error.{RepositoryError, ServiceError}
+import ca.shiftfocus.krispii.core.error.{ RepositoryError, ServiceError }
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
@@ -6,28 +6,27 @@ import ca.shiftfocus.krispii.core.services._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import org.scalatest.Matchers
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.scalatest._
 import Matchers._
 import scala.collection._
 import scala.collection.immutable.TreeMap
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{ Future, Await }
 import scala.concurrent.duration.Duration
 import scala.language.postfixOps
-import scalaz.{-\/, \/-}
+import scalaz.{ -\/, \/- }
 
 class ComponentServiceSpec
-  extends TestEnvironment(writeToDb = false)
-{
+    extends TestEnvironment(writeToDb = false) {
   // Create stubs of AuthService's dependencies
   val db = stub[DB]
-  val mockConnection      = stub[Connection]
-  val authService         = stub[AuthService]
-  val projectService      = stub[ProjectService]
-  val schoolService       = stub[SchoolService]
+  val mockConnection = stub[Connection]
+  val authService = stub[AuthService]
+  val projectService = stub[ProjectService]
+  val schoolService = stub[SchoolService]
   val componentRepository = stub[ComponentRepository]
 
-  val componentService    = new ComponentServiceDefault(db, cache, authService, projectService, schoolService, componentRepository) {
+  val componentService = new ComponentServiceDefault(db, cache, authService, projectService, schoolService, componentRepository) {
     override implicit def conn: Connection = mockConnection
 
     override def transactional[A](f: Connection => Future[A]): Future[A] = {
@@ -35,115 +34,115 @@ class ComponentServiceSpec
     }
   }
 
-   "ComponentService.listByProject" should {
-     inSequence {
-       "list components by project and user, thus listing \"enabled\" components (forceAll = TRUE)" in {
-         val testProject = TestValues.testProjectA
+  "ComponentService.listByProject" should {
+    inSequence {
+      "list components by project and user, thus listing \"enabled\" components (forceAll = TRUE)" in {
+        val testProject = TestValues.testProjectA
 
-         val testPartList = TreeMap[Int, Part](
-           0 -> TestValues.testPartA,
-           1 -> TestValues.testPartB,
-           2 -> TestValues.testPartG
-         )
+        val testPartList = TreeMap[Int, Part](
+          0 -> TestValues.testPartA,
+          1 -> TestValues.testPartB,
+          2 -> TestValues.testPartG
+        )
 
-         val testComponentList = Map[UUID, Vector[Component]](
-           testPartList(0).id -> Vector(
-             TestValues.testTextComponentA,
-             TestValues.testAudioComponentC
-           ),
-           testPartList(1).id -> Vector(
+        val testComponentList = Map[UUID, Vector[Component]](
+          testPartList(0).id -> Vector(
+            TestValues.testTextComponentA,
+            TestValues.testAudioComponentC
+          ),
+          testPartList(1).id -> Vector(
             TestValues.testTextComponentA,
             TestValues.testVideoComponentB
-           ),
-           testPartList(2).id -> Vector()
-         )
+          ),
+          testPartList(2).id -> Vector()
+        )
 
-         (projectService.find(_: UUID)) when(testProject.id) returns(Future.successful(\/-(testProject)))
-         (componentRepository.list(_: Project)(_: Connection, _: ScalaCachePool)) when(testProject, *, *) returns(Future.successful(\/-(testComponentList.flatMap(_._2)(breakOut).distinct)))
+        (projectService.find(_: UUID)) when (testProject.id) returns (Future.successful(\/-(testProject)))
+        (componentRepository.list(_: Project)(_: Connection, _: ScalaCachePool)) when (testProject, *, *) returns (Future.successful(\/-(testComponentList.flatMap(_._2)(breakOut).distinct)))
 
-         val result = componentService.listByProject(testProject.id, true)
-         val eitherComponents = Await.result(result, Duration.Inf)
-         val \/-(components) = eitherComponents
+        val result = componentService.listByProject(testProject.id, true)
+        val eitherComponents = Await.result(result, Duration.Inf)
+        val \/-(components) = eitherComponents
 
-         components.size should be(testComponentList.flatMap(_._2)(breakOut).distinct.size)
+        components.size should be(testComponentList.flatMap(_._2)(breakOut).distinct.size)
 
-         var key: Int = 0
-         testComponentList.flatMap(_._2)(breakOut).distinct.foreach { component =>
-           components(key).id should be(component.id)
-           components(key).version should be(component.version)
-           components(key).ownerId should be(component.ownerId)
-           components(key).title should be(component.title)
-           components(key).questions should be(component.questions)
-           components(key).thingsToThinkAbout should be(component.thingsToThinkAbout)
-           components(key).createdAt.toString should be(component.createdAt.toString)
-           components(key).updatedAt.toString should be(component.updatedAt.toString)
-           key += 1
-         }
-       }
-       "list components by project and user, thus listing \"enabled\" components (forceAll = FALSE)" in {
-         val testProject = TestValues.testProjectA
+        var key: Int = 0
+        testComponentList.flatMap(_._2)(breakOut).distinct.foreach { component =>
+          components(key).id should be(component.id)
+          components(key).version should be(component.version)
+          components(key).ownerId should be(component.ownerId)
+          components(key).title should be(component.title)
+          components(key).questions should be(component.questions)
+          components(key).thingsToThinkAbout should be(component.thingsToThinkAbout)
+          components(key).createdAt.toString should be(component.createdAt.toString)
+          components(key).updatedAt.toString should be(component.updatedAt.toString)
+          key += 1
+        }
+      }
+      "list components by project and user, thus listing \"enabled\" components (forceAll = FALSE)" in {
+        val testProject = TestValues.testProjectA
 
-         val testPartList = TreeMap[Int, Part](
-           0 -> TestValues.testPartA,
-           1 -> TestValues.testPartB,
-           2 -> TestValues.testPartG
-         )
+        val testPartList = TreeMap[Int, Part](
+          0 -> TestValues.testPartA,
+          1 -> TestValues.testPartB,
+          2 -> TestValues.testPartG
+        )
 
-         // Return all Components for all Parts, even for disabled Parts
-         val testAllComponentList = Map[UUID, Vector[Component]](
-           testPartList(0).id -> Vector(
-             TestValues.testTextComponentA,
-             TestValues.testAudioComponentC
-           ),
-           testPartList(1).id -> Vector(
+        // Return all Components for all Parts, even for disabled Parts
+        val testAllComponentList = Map[UUID, Vector[Component]](
+          testPartList(0).id -> Vector(
+            TestValues.testTextComponentA,
+            TestValues.testAudioComponentC
+          ),
+          testPartList(1).id -> Vector(
             TestValues.testTextComponentA,
             TestValues.testVideoComponentB
-           ),
-           testPartList(2).id -> Vector()
-         )
+          ),
+          testPartList(2).id -> Vector()
+        )
 
-         // As PartB is disabled and PartG doesn't have components, as result we should have components only for PartA
-         val testResultComponentList = TreeMap[Int, Component](
-           0 -> testAllComponentList(testPartList(0).id)(0),
-           1 -> testAllComponentList(testPartList(0).id)(1)
-         )
+        // As PartB is disabled and PartG doesn't have components, as result we should have components only for PartA
+        val testResultComponentList = TreeMap[Int, Component](
+          0 -> testAllComponentList(testPartList(0).id)(0),
+          1 -> testAllComponentList(testPartList(0).id)(1)
+        )
 
-         (projectService.find(_: UUID)) when(testProject.id) returns(Future.successful(\/-(testProject)))
+        (projectService.find(_: UUID)) when (testProject.id) returns (Future.successful(\/-(testProject)))
 
-         testPartList.foreach {
-           case (key, part: Part) => {
-             (componentRepository.list(_: Part)(_: Connection, _: ScalaCachePool)) when(part, *, *) returns(Future.successful(\/-(testAllComponentList(part.id))))
-           }
-         }
+        testPartList.foreach {
+          case (key, part: Part) => {
+            (componentRepository.list(_: Part)(_: Connection, _: ScalaCachePool)) when (part, *, *) returns (Future.successful(\/-(testAllComponentList(part.id))))
+          }
+        }
 
-         val result = componentService.listByProject(testProject.id, false)
-         val eitherComponents = Await.result(result, Duration.Inf)
-         val \/-(components) = eitherComponents
+        val result = componentService.listByProject(testProject.id, false)
+        val eitherComponents = Await.result(result, Duration.Inf)
+        val \/-(components) = eitherComponents
 
-         components.size should be(testResultComponentList.size)
+        components.size should be(testResultComponentList.size)
 
-         testResultComponentList.foreach {
-           case (key, component: Component) => {
-             components(key).id should be(component.id)
-             components(key).version should be(component.version)
-             components(key).ownerId should be(component.ownerId)
-             components(key).title should be(component.title)
-             components(key).questions should be(component.questions)
-             components(key).thingsToThinkAbout should be(component.thingsToThinkAbout)
-             components(key).createdAt.toString should be(component.createdAt.toString)
-             components(key).updatedAt.toString should be(component.updatedAt.toString)
-           }
-         }
-       }
-     }
-   }
+        testResultComponentList.foreach {
+          case (key, component: Component) => {
+            components(key).id should be(component.id)
+            components(key).version should be(component.version)
+            components(key).ownerId should be(component.ownerId)
+            components(key).title should be(component.title)
+            components(key).questions should be(component.questions)
+            components(key).thingsToThinkAbout should be(component.thingsToThinkAbout)
+            components(key).createdAt.toString should be(component.createdAt.toString)
+            components(key).updatedAt.toString should be(component.updatedAt.toString)
+          }
+        }
+      }
+    }
+  }
 
   "ComponentService.updateAudio" should {
     inSequence {
       "return ServiceError.OfflineLockFail if versions don't match" in {
         val testComponent = TestValues.testAudioComponentC
 
-        (componentRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testComponent.id, *, *) returns(Future.successful(\/-(testComponent)))
+        (componentRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testComponent.id, *, *) returns (Future.successful(\/-(testComponent)))
 
         val result = componentService.updateAudio(
           testComponent.id,
@@ -159,7 +158,7 @@ class ComponentServiceSpec
       "return ServiceError.BadInput if a wrong type of component was found by ID" in {
         val testComponent = TestValues.testVideoComponentB
 
-        (componentRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testComponent.id, *, *) returns(Future.successful(\/-(testComponent)))
+        (componentRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testComponent.id, *, *) returns (Future.successful(\/-(testComponent)))
 
         val result = componentService.updateAudio(
           testComponent.id,
@@ -180,7 +179,7 @@ class ComponentServiceSpec
       "return ServiceError.OfflineLockFail if versions don't match" in {
         val testComponent = TestValues.testTextComponentA
 
-        (componentRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testComponent.id, *, *) returns(Future.successful(\/-(testComponent)))
+        (componentRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testComponent.id, *, *) returns (Future.successful(\/-(testComponent)))
 
         val result = componentService.updateText(
           testComponent.id,
@@ -196,7 +195,7 @@ class ComponentServiceSpec
       "return ServiceError.BadInput if a wrong type of component was found by ID" in {
         val testComponent = TestValues.testVideoComponentB
 
-        (componentRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testComponent.id, *, *) returns(Future.successful(\/-(testComponent)))
+        (componentRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testComponent.id, *, *) returns (Future.successful(\/-(testComponent)))
 
         val result = componentService.updateText(
           testComponent.id,
@@ -217,7 +216,7 @@ class ComponentServiceSpec
       "return ServiceError.OfflineLockFail if versions don't match" in {
         val testComponent = TestValues.testVideoComponentB
 
-        (componentRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testComponent.id, *, *) returns(Future.successful(\/-(testComponent)))
+        (componentRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testComponent.id, *, *) returns (Future.successful(\/-(testComponent)))
 
         val result = componentService.updateVideo(
           testComponent.id,
@@ -235,7 +234,7 @@ class ComponentServiceSpec
       "return ServiceError.BadInput if a wrong type of component was found by ID" in {
         val testComponent = TestValues.testTextComponentA
 
-        (componentRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testComponent.id, *, *) returns(Future.successful(\/-(testComponent)))
+        (componentRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testComponent.id, *, *) returns (Future.successful(\/-(testComponent)))
 
         val result = componentService.updateVideo(
           testComponent.id,
@@ -258,7 +257,7 @@ class ComponentServiceSpec
       "return ServiceError.OfflineLockFail if versions don't match" in {
         val testComponent = TestValues.testVideoComponentB
 
-        (componentRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when(testComponent.id, *, *) returns (Future.successful(\/-(testComponent)))
+        (componentRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testComponent.id, *, *) returns (Future.successful(\/-(testComponent)))
 
         val result = componentService.delete(
           testComponent.id,
@@ -287,7 +286,7 @@ class ComponentServiceSpec
           testUser
         )
 
-        testComponent.ownerId should not be(testUser.id)
+        testComponent.ownerId should not be (testUser.id)
         Await.result(result, Duration.Inf) should be(\/-(true))
       }
       "give access if user is owner" in {
@@ -348,25 +347,25 @@ class ComponentServiceSpec
           testPartList(2).id -> Vector()
         )
 
-        (schoolService.listCoursesByTeacher(_: UUID)) when(testUser.id) returns(Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByTeacher(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
 
         testCourseList.foreach { course =>
-          (projectService.list(_: UUID)) when(course.id) returns(Future.successful(\/-(testProjectList)))
+          (projectService.list(_: UUID)) when (course.id) returns (Future.successful(\/-(testProjectList)))
         }
 
         testProjectList.foreach { project =>
-          (projectService.find(_: UUID)) when(project.id) returns(Future.successful(\/-(project)))
+          (projectService.find(_: UUID)) when (project.id) returns (Future.successful(\/-(project)))
         }
 
         testPartList.foreach {
           case (key, part: Part) => {
-            (componentRepository.list(_: Part)(_: Connection, _: ScalaCachePool)) when(part, *, *) returns(Future.successful(\/-(testAllComponentList(part.id))))
+            (componentRepository.list(_: Part)(_: Connection, _: ScalaCachePool)) when (part, *, *) returns (Future.successful(\/-(testAllComponentList(part.id))))
           }
         }
 
         val result = componentService.userCanAccess(testComponent, testUser)
 
-        testComponent.ownerId should not be(testUser.id)
+        testComponent.ownerId should not be (testUser.id)
         Await.result(result, Duration.Inf) should be(\/-(true))
       }
       "give access if it's in one of their projects (user - has role teacher, user is a STUDENT of the course)" in {
@@ -410,26 +409,26 @@ class ComponentServiceSpec
           testPartList(2).id -> Vector()
         )
 
-        (schoolService.listCoursesByTeacher(_: UUID)) when(testUser.id) returns(Future.successful(\/-(IndexedSeq.empty[Course])))
-        (schoolService.listCoursesByUser(_: UUID)) when(testUser.id) returns(Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByTeacher(_: UUID)) when (testUser.id) returns (Future.successful(\/-(IndexedSeq.empty[Course])))
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
 
         testCourseList.foreach { course =>
-          (projectService.list(_: UUID)) when(course.id) returns(Future.successful(\/-(testProjectList)))
+          (projectService.list(_: UUID)) when (course.id) returns (Future.successful(\/-(testProjectList)))
         }
 
         testProjectList.foreach { project =>
-          (projectService.find(_: UUID)) when(project.id) returns(Future.successful(\/-(project)))
+          (projectService.find(_: UUID)) when (project.id) returns (Future.successful(\/-(project)))
         }
 
         testPartList.foreach {
           case (key, part: Part) => {
-            (componentRepository.list(_: Part)(_: Connection, _: ScalaCachePool)) when(part, *, *) returns(Future.successful(\/-(testAllComponentList(part.id))))
+            (componentRepository.list(_: Part)(_: Connection, _: ScalaCachePool)) when (part, *, *) returns (Future.successful(\/-(testAllComponentList(part.id))))
           }
         }
 
         val result = componentService.userCanAccess(testComponent, testUser)
 
-        testComponent.ownerId should not be(testUser.id)
+        testComponent.ownerId should not be (testUser.id)
         Await.result(result, Duration.Inf) should be(\/-(true))
       }
       "give access if it's in one of their projects (user - student)" in {
@@ -471,25 +470,25 @@ class ComponentServiceSpec
           testPartList(2).id -> Vector()
         )
 
-        (schoolService.listCoursesByUser(_: UUID)) when(testUser.id) returns(Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
 
         testCourseList.foreach { course =>
-          (projectService.list(_: UUID)) when(course.id) returns(Future.successful(\/-(testProjectList)))
+          (projectService.list(_: UUID)) when (course.id) returns (Future.successful(\/-(testProjectList)))
         }
 
         testProjectList.foreach { project =>
-          (projectService.find(_: UUID)) when(project.id) returns(Future.successful(\/-(project)))
+          (projectService.find(_: UUID)) when (project.id) returns (Future.successful(\/-(project)))
         }
 
         testPartList.foreach {
           case (key, part: Part) => {
-            (componentRepository.list(_: Part)(_: Connection, _: ScalaCachePool)) when(part, *, *) returns(Future.successful(\/-(testAllComponentList(part.id))))
+            (componentRepository.list(_: Part)(_: Connection, _: ScalaCachePool)) when (part, *, *) returns (Future.successful(\/-(testAllComponentList(part.id))))
           }
         }
 
         val result = componentService.userCanAccess(testComponent, testUser)
 
-        testComponent.ownerId should not be(testUser.id)
+        testComponent.ownerId should not be (testUser.id)
         Await.result(result, Duration.Inf) should be(\/-(true))
       }
       "restrict access if user is not administrator, owner, teacher or student" in {
@@ -505,7 +504,7 @@ class ComponentServiceSpec
 
         val result = componentService.userCanAccess(testComponent, testUser)
 
-        testComponent.ownerId should not be(testUser.id)
+        testComponent.ownerId should not be (testUser.id)
         Await.result(result, Duration.Inf) should be(\/-(false))
       }
       "restrict access if user - has role teacher, user is a TEACHER of the courses that do not contain the component" in {
@@ -547,26 +546,26 @@ class ComponentServiceSpec
           testPartList(2).id -> Vector()
         )
 
-        (schoolService.listCoursesByTeacher(_: UUID)) when(testUser.id) returns(Future.successful(\/-(testCourseList)))
-        (schoolService.listCoursesByUser(_: UUID)) when(testUser.id) returns(Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByTeacher(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
 
         testCourseList.foreach { course =>
-          (projectService.list(_: UUID)) when(course.id) returns(Future.successful(\/-(testProjectList)))
+          (projectService.list(_: UUID)) when (course.id) returns (Future.successful(\/-(testProjectList)))
         }
 
         testProjectList.foreach { project =>
-          (projectService.find(_: UUID)) when(project.id) returns(Future.successful(\/-(project)))
+          (projectService.find(_: UUID)) when (project.id) returns (Future.successful(\/-(project)))
         }
 
         testPartList.foreach {
           case (key, part: Part) => {
-            (componentRepository.list(_: Part)(_: Connection, _: ScalaCachePool)) when(part, *, *) returns(Future.successful(\/-(testAllComponentList(part.id))))
+            (componentRepository.list(_: Part)(_: Connection, _: ScalaCachePool)) when (part, *, *) returns (Future.successful(\/-(testAllComponentList(part.id))))
           }
         }
 
         val result = componentService.userCanAccess(testComponent, testUser)
 
-        testComponent.ownerId should not be(testUser.id)
+        testComponent.ownerId should not be (testUser.id)
         Await.result(result, Duration.Inf) should be(\/-(false))
       }
       "restrict access if user - has role teacher, user is a STUDENT of the course that do not contain the component" in {
@@ -608,26 +607,26 @@ class ComponentServiceSpec
           testPartList(2).id -> Vector()
         )
 
-        (schoolService.listCoursesByTeacher(_: UUID)) when(testUser.id) returns(Future.successful(\/-(IndexedSeq.empty[Course])))
-        (schoolService.listCoursesByUser(_: UUID)) when(testUser.id) returns(Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByTeacher(_: UUID)) when (testUser.id) returns (Future.successful(\/-(IndexedSeq.empty[Course])))
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
 
         testCourseList.foreach { course =>
-          (projectService.list(_: UUID)) when(course.id) returns(Future.successful(\/-(testProjectList)))
+          (projectService.list(_: UUID)) when (course.id) returns (Future.successful(\/-(testProjectList)))
         }
 
         testProjectList.foreach { project =>
-          (projectService.find(_: UUID)) when(project.id) returns(Future.successful(\/-(project)))
+          (projectService.find(_: UUID)) when (project.id) returns (Future.successful(\/-(project)))
         }
 
         testPartList.foreach {
           case (key, part: Part) => {
-            (componentRepository.list(_: Part)(_: Connection, _: ScalaCachePool)) when(part, *, *) returns(Future.successful(\/-(testAllComponentList(part.id))))
+            (componentRepository.list(_: Part)(_: Connection, _: ScalaCachePool)) when (part, *, *) returns (Future.successful(\/-(testAllComponentList(part.id))))
           }
         }
 
         val result = componentService.userCanAccess(testComponent, testUser)
 
-        testComponent.ownerId should not be(testUser.id)
+        testComponent.ownerId should not be (testUser.id)
         Await.result(result, Duration.Inf) should be(\/-(false))
       }
     }

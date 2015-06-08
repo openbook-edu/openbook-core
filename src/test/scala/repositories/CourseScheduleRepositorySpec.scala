@@ -4,21 +4,20 @@ import ca.shiftfocus.krispii.core.repositories.CourseScheduleRepositoryPostgres
 import org.scalatest._
 import Matchers._
 import scala.collection.immutable.TreeMap
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{ Future, Await }
 import scala.concurrent.duration.Duration
-import scalaz.{-\/, \/-}
+import scalaz.{ -\/, \/- }
 
 class CourseScheduleRepositorySpec
-  extends TestEnvironment
-{
-  val courseScheduleRepository = new  CourseScheduleRepositoryPostgres
+    extends TestEnvironment {
+  val courseScheduleRepository = new CourseScheduleRepositoryPostgres
 
   // TODO - test all testcases
   "CourseScheduleRepository.list" should {
     inSequence {
       "list all schedules for a given class" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseB
 
@@ -53,8 +52,8 @@ class CourseScheduleRepositorySpec
   "CourseScheduleRepository.find" should {
     inSequence {
       "find a single entry by ID" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testCourseSchedule = TestValues.testCourseScheduleB
 
@@ -78,7 +77,7 @@ class CourseScheduleRepositorySpec
   "CourseScheduleRepository.insert" should {
     inSequence {
       "create a new schedule" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testCourseSchedule = TestValues.testCourseScheduleD
 
@@ -100,7 +99,7 @@ class CourseScheduleRepositorySpec
   "CourseScheduleRepository.update" should {
     inSequence {
       "update a schedule" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testCourseSchedule = TestValues.testCourseScheduleA
         val testUpdatedCourseSchedule = testCourseSchedule.copy(
@@ -122,7 +121,7 @@ class CourseScheduleRepositorySpec
         courseSchedule.startTime should be(testUpdatedCourseSchedule.startTime)
         courseSchedule.endTime should be(testUpdatedCourseSchedule.endTime)
         courseSchedule.description should be(testUpdatedCourseSchedule.description)
-        courseSchedule.updatedAt.toString should not be(testUpdatedCourseSchedule.updatedAt.toString)
+        courseSchedule.updatedAt.toString should not be (testUpdatedCourseSchedule.updatedAt.toString)
         courseSchedule.createdAt.toString should be(testUpdatedCourseSchedule.createdAt.toString)
       }
     }
@@ -131,7 +130,7 @@ class CourseScheduleRepositorySpec
   "CourseScheduleRepository.delete" should {
     inSequence {
       "delete a schedule" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testCourseSchedule = TestValues.testCourseScheduleA
 

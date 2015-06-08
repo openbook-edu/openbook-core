@@ -1,36 +1,35 @@
 package ca.shiftfocus.krispii.core.models
 
 import com.github.mauricio.async.db.RowData
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
-
 case class Project(
-  id: UUID = UUID.random,
-  courseId: UUID,
-  version: Long = 1L,
-  name: String,
-  slug: String,
-  description: String,
-  availability: String = Project.Availability.AnyTime,
-  parts: IndexedSeq[Part],
-  createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime
+    id: UUID = UUID.randomUUID,
+    courseId: UUID,
+    version: Long = 1L,
+    name: String,
+    slug: String,
+    description: String,
+    availability: String = Project.Availability.AnyTime,
+    parts: IndexedSeq[Part],
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
 ) {
   override def equals(other: Any): Boolean = {
     other match {
       case otherProject: Project => {
-        this.id == otherProject.id &&
-        this.courseId == otherProject.courseId &&
-        this.version == otherProject.version &&
-        this.name == otherProject.name &&
-        this.slug == otherProject.slug &&
-        this.description == otherProject.description &&
-        this.availability == otherProject.availability &&
-        this.parts == otherProject.parts
+        this.id.equals(otherProject.id) &&
+          this.courseId.equals(otherProject.courseId) &&
+          this.version == otherProject.version &&
+          this.name == otherProject.name &&
+          this.slug == otherProject.slug &&
+          this.description == otherProject.description &&
+          this.availability == otherProject.availability &&
+          this.parts == otherProject.parts
       }
       case _ => false
     }

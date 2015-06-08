@@ -1,19 +1,17 @@
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.{Role, User}
-import ca.shiftfocus.uuid.UUID
+import ca.shiftfocus.krispii.core.models.{ Role, User }
+import java.util.UUID
 import scala.collection.immutable.TreeMap
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{ Future, Await }
 import scala.concurrent.duration._
 import ca.shiftfocus.krispii.core.repositories.UserRepositoryPostgres
 import org.scalatest._
 import Matchers._
 import collection.breakOut
-import scalaz.{-\/, \/-}
-
+import scalaz.{ -\/, \/- }
 
 class UserRepositorySpec
-  extends TestEnvironment
-{
+    extends TestEnvironment {
   val userRepository = new UserRepositoryPostgres
 
   "UserRepository.list" should {
@@ -50,8 +48,8 @@ class UserRepositorySpec
         }
       }
       "list users with a specified set of user Ids" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testUserList = TreeMap[Int, User](
           0 -> TestValues.testUserC.copy(hash = None),
@@ -79,12 +77,12 @@ class UserRepositorySpec
         }
       }
       "return RepositoryError.NoResults if set contains unexisting user ID" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val ids = Vector(
           TestValues.testUserA.id,
-          UUID("a5caac60-8fd7-4ecc-8fd3-f84dc11355f1")
+          UUID.fromString("a5caac60-8fd7-4ecc-8fd3-f84dc11355f1")
         )
 
         val result = userRepository.list(ids)
@@ -125,17 +123,17 @@ class UserRepositorySpec
         )
 
         val result = userRepository.list(unexistingRole)
-        Await.result(result, Duration.Inf) should be (\/- (Vector()))
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
       "return empty Vector() if there are no users that have this role" in {
         val testRole = TestValues.testRoleH
 
         val result = userRepository.list(testRole)
-        Await.result(result, Duration.Inf) should be (\/- (Vector()))
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
       "list users in a given course" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseB
 
@@ -165,22 +163,22 @@ class UserRepositorySpec
         }
       }
       "return empty Vector() if course doesn't exist" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseC
 
         val result = userRepository.list(testCourse)
-        Await.result(result, Duration.Inf) should be(\/- (Vector()))
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
       "return empty Vector() if there are no users in the course" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseG
 
         val result = userRepository.list(testCourse)
-        Await.result(result, Duration.Inf) should be(\/- (Vector()))
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
     }
   }
@@ -188,8 +186,8 @@ class UserRepositorySpec
   "UserRepository.find" should {
     inSequence {
       "find a user by ID" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testUser = TestValues.testUserA
 
@@ -204,21 +202,21 @@ class UserRepositorySpec
         user.hash should be(testUser.hash)
         user.givenname should be(testUser.givenname)
         user.surname should be(testUser.surname)
-        user.createdAt.toString() should be (testUser.createdAt.toString())
-        user.updatedAt.toString() should be (testUser.updatedAt.toString())
+        user.createdAt.toString() should be(testUser.createdAt.toString())
+        user.updatedAt.toString() should be(testUser.updatedAt.toString())
       }
       "return RepositoryError.NoResults if user wasn't found by ID" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
-        val id = UUID("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
+        val id = UUID.fromString("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
 
         val result = userRepository.find(id)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
       "find a user by their identifier - email" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testUser = TestValues.testUserA
 
@@ -233,12 +231,12 @@ class UserRepositorySpec
         user.hash should be(testUser.hash)
         user.givenname should be(testUser.givenname)
         user.surname should be(testUser.surname)
-        user.createdAt.toString() should be (testUser.createdAt.toString())
-        user.updatedAt.toString() should be (testUser.updatedAt.toString())
+        user.createdAt.toString() should be(testUser.createdAt.toString())
+        user.updatedAt.toString() should be(testUser.updatedAt.toString())
       }
       "find a user by their identifier - username" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testUser = TestValues.testUserB
 
@@ -253,12 +251,12 @@ class UserRepositorySpec
         user.hash should be(testUser.hash)
         user.givenname should be(testUser.givenname)
         user.surname should be(testUser.surname)
-        user.createdAt.toString() should be (testUser.createdAt.toString())
-        user.updatedAt.toString() should be (testUser.updatedAt.toString())
+        user.createdAt.toString() should be(testUser.createdAt.toString())
+        user.updatedAt.toString() should be(testUser.updatedAt.toString())
       }
       "reutrn RepositoryError.NoResults if identifier - email that doesn't exist" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val email = "unexisting_email@example.com"
 
@@ -266,8 +264,8 @@ class UserRepositorySpec
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
       "reutrn RepositoryError.NoResults if identifier - username that doesn't exist" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val username = "unexisting_username"
 
@@ -280,15 +278,15 @@ class UserRepositorySpec
   "UserRepository.update" should {
     inSequence {
       "update an existing user with pass" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
-        val testUser        = TestValues.testUserA
+        val testUser = TestValues.testUserA
         val updatedTestUser = testUser.copy(
-          email     = "updated_user@example.com",
-          username  = "updated_username",
-          hash      = Some("$s0$100801$SIZ9lgHz0kPMgtLB37Uyhw==$wyKhNrg/MmUvlYuVygDctBE5LHBjLB91nyaiTpjbeyL="), // New hash
+          email = "updated_user@example.com",
+          username = "updated_username",
+          hash = Some("$s0$100801$SIZ9lgHz0kPMgtLB37Uyhw==$wyKhNrg/MmUvlYuVygDctBE5LHBjLB91nyaiTpjbeyL="), // New hash
           givenname = "updated_givenname",
-          surname   = "updated_surname"
+          surname = "updated_surname"
         )
 
         val result = userRepository.update(updatedTestUser)
@@ -302,19 +300,19 @@ class UserRepositorySpec
         user.hash should be(None)
         user.givenname should be(updatedTestUser.givenname)
         user.surname should be(updatedTestUser.surname)
-        user.createdAt.toString() should be (updatedTestUser.createdAt.toString())
+        user.createdAt.toString() should be(updatedTestUser.createdAt.toString())
         user.updatedAt.toString() should not be (updatedTestUser.updatedAt.toString())
       }
       "update an existing user without pass" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
-        val testUser        = TestValues.testUserA
+        val testUser = TestValues.testUserA
         val updatedTestUser = testUser.copy(
-          email     = "updated_user@example.com",
-          username  = "updated_username",
+          email = "updated_user@example.com",
+          username = "updated_username",
           givenname = "updated_givenname",
-          surname   = "updated_surname",
-          hash      = None
+          surname = "updated_surname",
+          hash = None
         )
 
         val result = userRepository.update(updatedTestUser)
@@ -328,24 +326,24 @@ class UserRepositorySpec
         user.hash should be(None)
         user.givenname should be(updatedTestUser.givenname)
         user.surname should be(updatedTestUser.surname)
-        user.createdAt.toString() should be (updatedTestUser.createdAt.toString())
+        user.createdAt.toString() should be(updatedTestUser.createdAt.toString())
         user.updatedAt.toString() should not be (updatedTestUser.updatedAt.toString())
       }
       "reutrn RepositoryError.NoResults when update an existing user with wrong version" in {
-        val testUser        = TestValues.testUserA
+        val testUser = TestValues.testUserA
         val updatedTestUser = testUser.copy(
-          email     = "updated_user@example.com",
-          username  = "updated_username",
+          email = "updated_user@example.com",
+          username = "updated_username",
           givenname = "updated_givenname",
-          surname   = "updated_surname",
-          version   = 99L
+          surname = "updated_surname",
+          version = 99L
         )
 
         val result = userRepository.update(updatedTestUser)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
       }
       "reutrn RepositoryError.UniqueKeyConflict when update an existing user with username that already exists" in {
-        val testUser        = TestValues.testUserA
+        val testUser = TestValues.testUserA
         val updatedTestUser = testUser.copy(
           username = TestValues.testUserB.username
         )
@@ -354,7 +352,7 @@ class UserRepositorySpec
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("username", "users_username_key")))
       }
       "reutrn RepositoryError.UniqueKeyConflict when update an existing user with email that already exists" in {
-        val testUser        = TestValues.testUserA
+        val testUser = TestValues.testUserA
         val updatedTestUser = testUser.copy(
           email = TestValues.testUserB.email
         )
@@ -364,10 +362,10 @@ class UserRepositorySpec
       }
       "reutrn RepositoryError.NoResults when update an unexisting user" in {
         val unexistingUser = User(
-          email     = "unexisting_email@example.com",
-          username  = "unexisting_username",
+          email = "unexisting_email@example.com",
+          username = "unexisting_username",
           givenname = "unexisting_givenname",
-          surname   = "unexisting_surname"
+          surname = "unexisting_surname"
         )
 
         val result = userRepository.update(unexistingUser)
@@ -436,7 +434,7 @@ class UserRepositorySpec
   "UserRepository.delete" should {
     inSequence {
       "delete a user from the database if user has no references in other tables" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testUser = TestValues.testUserH.copy(hash = None)
 
@@ -451,8 +449,8 @@ class UserRepositorySpec
         user.hash should be(testUser.hash)
         user.givenname should be(testUser.givenname)
         user.surname should be(testUser.surname)
-        user.createdAt.toString() should be (testUser.createdAt.toString())
-        user.updatedAt.toString() should be (testUser.updatedAt.toString())
+        user.createdAt.toString() should be(testUser.createdAt.toString())
+        user.updatedAt.toString() should be(testUser.updatedAt.toString())
       }
       "return ForeignKeyConflict if user is teacher and has references in other tables" in {
         val testUser = TestValues.testUserB
@@ -462,10 +460,10 @@ class UserRepositorySpec
       }
       "return RepositoryError.NoResults if User hasn't been found" in {
         val unexistingUser = User(
-          email     = "unexisting_email@example.com",
-          username  = "unexisting_username",
+          email = "unexisting_email@example.com",
+          username = "unexisting_username",
           givenname = "unexisting_givenname",
-          surname   = "unexisting_surname"
+          surname = "unexisting_surname"
         )
 
         val result = userRepository.delete(unexistingUser)

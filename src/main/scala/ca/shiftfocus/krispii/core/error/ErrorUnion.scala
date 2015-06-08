@@ -10,7 +10,7 @@ sealed trait DatabaseErrorT extends ErrorUnion {
   case class DatabaseError(message: String, exception: Option[Throwable] = None) extends Fail
 }
 sealed trait NoResultsT extends ErrorUnion {
-  object NoResults extends Fail
+  case class NoResults(message: String) extends Fail
 }
 sealed trait PrimaryKeyConflictT extends ErrorUnion {
   object PrimaryKeyConflict extends Fail

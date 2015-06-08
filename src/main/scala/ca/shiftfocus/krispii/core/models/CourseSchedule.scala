@@ -1,8 +1,8 @@
 package ca.shiftfocus.krispii.core.models
 
 import com.github.mauricio.async.db.RowData
-import ca.shiftfocus.krispii.core.lib.{LocalDateTimeJson}
-import ca.shiftfocus.uuid.UUID
+import ca.shiftfocus.krispii.core.lib.{ LocalDateTimeJson }
+import java.util.UUID
 import org.joda.time.DateTime
 import org.joda.time.LocalTime
 import org.joda.time.LocalDate
@@ -13,7 +13,7 @@ import org.joda.time.LocalDate
 import org.joda.time.LocalTime
 
 case class CourseSchedule(
-  id: UUID = UUID.random,
+  id: UUID = UUID.randomUUID,
   version: Long = 1L,
   courseId: UUID,
   day: LocalDate,
@@ -63,10 +63,10 @@ case class CourseSchedulePost(
 object CourseSchedulePost extends LocalDateTimeJson {
   implicit val sectionScheduleReads: Reads[CourseSchedulePost] = (
     (__ \ "day").read[LocalDate] and
-      (__ \ "startTime").read[LocalTime] and
-      (__ \ "endTime").read[LocalTime] and
-      (__ \ "description").read[String]
-    )(CourseSchedulePost.apply _)
+    (__ \ "startTime").read[LocalTime] and
+    (__ \ "endTime").read[LocalTime] and
+    (__ \ "description").read[String]
+  )(CourseSchedulePost.apply _)
 }
 
 case class CourseSchedulePut(
@@ -80,10 +80,10 @@ case class CourseSchedulePut(
 object CourseSchedulePut extends LocalDateTimeJson {
   implicit val sectionScheduleReads: Reads[CourseSchedulePut] = (
     (__ \ "version").read[Long] and
-      (__ \ "courseId").readNullable[UUID] and
-      (__ \ "day").readNullable[LocalDate] and
-      (__ \ "startTime").readNullable[LocalTime] and
-      (__ \ "endTime").readNullable[LocalTime] and
-      (__ \ "description").readNullable[String]
-    )(CourseSchedulePut.apply _)
+    (__ \ "courseId").readNullable[UUID] and
+    (__ \ "day").readNullable[LocalDate] and
+    (__ \ "startTime").readNullable[LocalTime] and
+    (__ \ "endTime").readNullable[LocalTime] and
+    (__ \ "description").readNullable[String]
+  )(CourseSchedulePut.apply _)
 }

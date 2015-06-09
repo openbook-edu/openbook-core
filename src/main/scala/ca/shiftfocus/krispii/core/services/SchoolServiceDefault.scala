@@ -131,6 +131,7 @@ class SchoolServiceDefault(
     version: Long,
     teacherId: Option[UUID],
     name: Option[String],
+    slug: Option[String],
     color: Option[Color],
     chatEnabled: Option[Boolean]
   ): Future[\/[ErrorUnion#Fail, Course]] = {
@@ -143,6 +144,7 @@ class SchoolServiceDefault(
         toUpdate = existingCourse.copy(
           teacherId = teacherId.getOrElse(existingCourse.teacherId),
           name = name.getOrElse(existingCourse.name),
+          slug = slug.getOrElse(existingCourse.slug),
           color = color.getOrElse(existingCourse.color),
           chatEnabled = chatEnabled.getOrElse(existingCourse.chatEnabled)
         )

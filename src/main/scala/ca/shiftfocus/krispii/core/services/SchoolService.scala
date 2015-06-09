@@ -30,6 +30,7 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
     version: Long,
     teacherId: Option[UUID],
     name: Option[String],
+    slug: Option[String],
     color: Option[Color],
     chatEnabled: Option[Boolean]
   ): Future[\/[ErrorUnion#Fail, Course]]

@@ -38,7 +38,7 @@ class DocumentRepositorySpec
         val testDocument = TestValues.testDocumentE
 
         val result = documentRepository.find(testDocument.id)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Document")))
       }
       "find an individual document (RepositoryError.NoResults)" in {
         val testDocument = TestValues.testDocumentD
@@ -148,7 +148,7 @@ class DocumentRepositorySpec
         )
 
         val result = documentRepository.update(updatedDocument)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Document")))
       }
     }
   }

@@ -70,7 +70,7 @@ class CourseRepositorySpec
         Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
       "select courses if user is a student (has record in 'users_courses' table) and (asTeacher = FALSE)" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testStudent = TestValues.testUserH
@@ -95,7 +95,7 @@ class CourseRepositorySpec
         courses.size should be(testCoursesList.size)
       }
       "return empty Vector() if user is a student (has record in 'users_courses' table) and (asTeacher = TRUE)" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testStudent = TestValues.testUserE
@@ -104,7 +104,7 @@ class CourseRepositorySpec
         Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
       "select courses if user is a teacher (hasn't record in 'users_courses' table) and (asTeacher = TRUE)" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testTeacher = TestValues.testUserF
@@ -130,7 +130,7 @@ class CourseRepositorySpec
         courses.size should be(testCoursesList.size)
       }
       "return empty Vector() if user is a teacher (hasn't a record in 'users_courses' table) and (asTeacher = FALSE)" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testTeacher = TestValues.testUserA
@@ -139,7 +139,7 @@ class CourseRepositorySpec
         Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
       "return empty Vector() if user doesn't exist and (asTeacher = FALSE)" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val unexistingUser = User(
@@ -153,7 +153,7 @@ class CourseRepositorySpec
         Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
       "return empty Vector() if user doesn't exist and (asTeacher = TRUE)" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val unexistingUser = User(
@@ -233,7 +233,7 @@ class CourseRepositorySpec
   "CourseRepository.find" should {
     inSequence {
       "find a single entry by ID" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseA
@@ -251,13 +251,13 @@ class CourseRepositorySpec
         course.updatedAt.toString should be(testCourse.updatedAt.toString)
       }
       "return RepositoryError.NoResults if entry wasn't found by ID" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseC
 
         val result = courseRepository.find(testCourse.id)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Course")))
       }
     }
   }
@@ -422,9 +422,29 @@ class CourseRepositorySpec
           TestValues.testUserE,
           TestValues.testUserC
         )
+        val testUserDeleteList = Vector(
+          testUserList(0)
+        )
 
-        val result = courseRepository.removeUsers(testCourse, testUserList)
+        // Check if users are in the course
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+
+        testUserList.foreach(user => {
+          var \/-(courseList) = Await.result(courseRepository.list(user), Duration.Inf)
+          courseList.exists(_.id == testCourse.id) should be(true)
+        })
+
+        val result = courseRepository.removeUsers(testCourse, testUserDeleteList)
         Await.result(result, Duration.Inf) should be(\/-(()))
+
+        // Check if users where deleted from the course
+        testUserList.foreach(user => {
+          if (testUserDeleteList.contains(user)) {
+            var \/-(courseList) = Await.result(courseRepository.list(user), Duration.Inf)
+            courseList.exists(_.id == testCourse.id) should be(false)
+          }
+        })
       }
       "return RepositoryError.DatabaseError if one of the users is not in the course" in {
         val testCourse = TestValues.testCourseB
@@ -519,7 +539,7 @@ class CourseRepositorySpec
   "CourseRepository.update" should {
     inSequence {
       "update existing course" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
         (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
@@ -550,7 +570,7 @@ class CourseRepositorySpec
         )
 
         val result = courseRepository.update(updatedCourse)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Course")))
       }
       "return RepositoryError.NoResults when update a Course that doesn't exist" in {
         val testCourse = TestValues.testCourseC
@@ -561,7 +581,7 @@ class CourseRepositorySpec
         )
 
         val result = courseRepository.update(updatedCourse)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Course")))
       }
     }
   }
@@ -569,7 +589,7 @@ class CourseRepositorySpec
   "CourseRepository.delete" should {
     inSequence {
       "delete course if course has no references" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
         (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
@@ -586,7 +606,7 @@ class CourseRepositorySpec
         course.color should be(testCourse.color)
       }
       "delete course if course has references only in users_courses table" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
         (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
@@ -612,7 +632,7 @@ class CourseRepositorySpec
         val testCourse = TestValues.testCourseE
 
         val result = courseRepository.delete(testCourse)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Course")))
       }
     }
   }

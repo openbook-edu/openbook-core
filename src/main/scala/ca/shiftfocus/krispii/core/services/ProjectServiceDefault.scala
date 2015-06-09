@@ -486,8 +486,8 @@ class ProjectServiceDefault(
     transactional { implicit conn: Connection =>
       for {
         _ <- predicate(partIds.nonEmpty)(ServiceError.BadInput("The list of part IDs can not be empty"))
-        project <- lift(projectRepository.find(projectId))
-        parts <- lift(partRepository.list(project, false))
+        project <- lift(projectRepository.find(projectId, false))
+        parts <- lift(partRepository.list(project))
         reordered <- lift {
           val orderedParts = parts.map { part =>
             part.copy(position = partIds.indexOf(part.id) + 1)
@@ -502,6 +502,7 @@ class ProjectServiceDefault(
    * Create a new task.
    *
    * @param partId the unique ID of the part this task belongs to
+   * @param taskType the type of the task
    * @param name the name of this task
    * @param description a brief description of this task
    * @param position the position of this task in the part
@@ -514,12 +515,13 @@ class ProjectServiceDefault(
     name: String,
     description: String,
     position: Int,
-    dependencyId: Option[UUID]
+    dependencyId: Option[UUID],
+    id: UUID = UUID.randomUUID
   ): Future[\/[ErrorUnion#Fail, Task]] = {
     transactional { implicit conn: Connection =>
       for {
         part <- lift(partRepository.find(partId))
-        taskList <- lift(taskRepository.list(part))
+        taskList = part.tasks
         // If the dependency id is given, ensure the depended-upon task exists
         dependency <- lift(dependencyId match {
           case Some(depId) => taskRepository.find(depId).map {
@@ -528,10 +530,26 @@ class ProjectServiceDefault(
           }
           case None => Future.successful(\/-(None))
         })
+        truePosition <- lift {
+          val positionMax = taskList.nonEmpty match {
+            case true => taskList.map(_.position).max
+            case false => 1
+          }
+          val positionMin = taskList.nonEmpty match {
+            case true => taskList.map(_.position).min
+            case false => 1
+          }
+
+          if (position == 1 && positionMin == 0) Future.successful(\/-(positionMin))
+          else if (position < positionMin) Future.successful(\/-(positionMin))
+          else if (position > positionMax && taskList.nonEmpty) Future.successful(\/-(positionMax + 1))
+          else if (position > positionMax && taskList.isEmpty) Future.successful(\/-(positionMax))
+          else Future.successful(\/-(position))
+        }
         taskListUpdated <- lift {
           // If there is already a task with this position, shift it (and all following tasks)
           // back by one to make room for the new one.
-          val positionExists = taskList.filter(_.position == position).nonEmpty
+          val positionExists = taskList.exists(_.position == position)
           if (positionExists) {
             val filteredTaskList = taskList.filter(_.position >= position).map {
               case task: LongAnswerTask => task.copy(position = task.position + 1)

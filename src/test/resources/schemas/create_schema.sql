@@ -32,7 +32,9 @@ CREATE TABLE courses (
   name text,
   color integer,
   slug text,
+  enabled boolean DEFAULT true,
   chat_enabled boolean DEFAULT true,
+  scheduling_enabled boolean DEFAULT false,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );

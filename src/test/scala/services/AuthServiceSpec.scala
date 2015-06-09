@@ -69,11 +69,11 @@ class AuthServiceSpec
           TestValues.testRoleA
         )
 
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (testUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (testUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (roleRepository.list(_: User)(_: Connection, _: ScalaCachePool)) when (testUser, *, *) returns (Future.successful(\/.right(testRoleList)))
 
         val fSomeUser = authService.authenticate(testUser.username, password)
-        Await.result(fSomeUser, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(fSomeUser, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
       }
     }
   }
@@ -96,8 +96,8 @@ class AuthServiceSpec
         (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when (updatedTestUser, *, *) returns (Future.successful(\/-(updatedTestUser)))
 
         // Conflicting user
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
         val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
         val eitherUser = Await.result(result, Duration.Inf)
@@ -157,7 +157,7 @@ class AuthServiceSpec
         (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when (updatedTestUser, *, *) returns (Future.successful(\/-(updatedTestUser)))
 
         // Conflicting user
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(\/-(conflictingUser)))
 
         val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
@@ -181,7 +181,7 @@ class AuthServiceSpec
 
         // Conflicting user
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(\/-(conflictingUser)))
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
         val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("email", s"The e-mail address ${updatedTestUser.email} is already in use.")))
@@ -202,8 +202,8 @@ class AuthServiceSpec
         (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when (updatedTestUser, *, *) returns (Future.successful(\/-(updatedTestUser)))
 
         // Conflicting user
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
         val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"'${updatedTestUser.email}' is not a valid format")))
@@ -224,8 +224,8 @@ class AuthServiceSpec
         (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when (updatedTestUser, *, *) returns (Future.successful(\/-(updatedTestUser)))
 
         // Conflicting user
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
         val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"Your username must be at least 3 characters.")))
@@ -246,8 +246,8 @@ class AuthServiceSpec
         (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when (updatedTestUser, *, *) returns (Future.successful(\/-(updatedTestUser)))
 
         // Conflicting user
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
         val result = authService.update(testUser.id, 99L, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
@@ -271,8 +271,8 @@ class AuthServiceSpec
         (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when (updatedTestUser, *, *) returns (Future.successful(\/-(updatedTestUser)))
 
         // Conflicting user
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
         val result = authService.updateIdentifier(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username))
         val eitherUser = Await.result(result, Duration.Inf)
@@ -301,7 +301,7 @@ class AuthServiceSpec
         (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when (updatedTestUser, *, *) returns (Future.successful(\/-(updatedTestUser)))
 
         // Conflicting user
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(\/-(conflictingUser)))
 
         val result = authService.updateIdentifier(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username))
@@ -323,7 +323,7 @@ class AuthServiceSpec
 
         // Conflicting user
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(\/-(conflictingUser)))
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
         val result = authService.updateIdentifier(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username))
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("email", s"The e-mail address ${updatedTestUser.email} is already in use.")))
@@ -342,8 +342,8 @@ class AuthServiceSpec
         (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when (updatedTestUser, *, *) returns (Future.successful(\/-(updatedTestUser)))
 
         // Conflicting user
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
         val result = authService.updateIdentifier(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username))
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"'${updatedTestUser.email}' is not a valid format")))
@@ -362,8 +362,8 @@ class AuthServiceSpec
         (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when (updatedTestUser, *, *) returns (Future.successful(\/-(updatedTestUser)))
 
         // Conflicting user
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
         val result = authService.updateIdentifier(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username))
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"Your username must be at least 3 characters.")))
@@ -382,8 +382,8 @@ class AuthServiceSpec
         (userRepository.update(_: User)(_: Connection, _: ScalaCachePool)) when (updatedTestUser, *, *) returns (Future.successful(\/-(updatedTestUser)))
 
         // Conflicting user
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
-        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
         val result = authService.updateIdentifier(testUser.id, 99L, Some(updatedTestUser.email), Some(updatedTestUser.username))
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))

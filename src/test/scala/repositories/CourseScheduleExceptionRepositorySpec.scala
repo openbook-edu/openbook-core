@@ -17,7 +17,7 @@ class CourseScheduleExceptionRepositorySpec
   "CourseScheduleExceptionRepository.list" should {
     inSequence {
       "find all scheduling exceptions for one student in one course" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseB
@@ -49,7 +49,7 @@ class CourseScheduleExceptionRepositorySpec
         }
       }
       "find all schedule exceptions for a given course" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseB
@@ -86,7 +86,7 @@ class CourseScheduleExceptionRepositorySpec
   "CourseScheduleExceptionRepository.find" should {
     inSequence {
       "find a single entry by ID" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testCourseScheduleException = TestValues.testCourseScheduleExceptionA

@@ -10,7 +10,7 @@ clean:
 	rm -rf project/project
 
 test:
-	sbt test
+	sbt test:compile test:scalastyle test
 
 compile:
 	sbt compile scalastyle

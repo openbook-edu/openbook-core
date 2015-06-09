@@ -390,7 +390,7 @@ class ComponentRepositoryPostgres()
     for {
       _ <- lift(queryNumRows(RemoveFromPart, Array[Any](component.id, part.id))(_ == 1).map {
         case \/-(true) => \/-(())
-        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove component ${component.id.toString} to part ${part.id.toString}"))
+        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove component ${component.id.toString} from part ${part.id.toString}"))
         case -\/(error) => -\/(error)
       })
       _ <- lift(cache.removeCached(cacheComponentsKey(part.id)))
@@ -407,10 +407,11 @@ class ComponentRepositoryPostgres()
   override def removeFromPart(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     (for {
       componentsInPart <- lift(list(part))
+      _ <- predicate(componentsInPart.nonEmpty)(RepositoryError.NoResults(s"Either the part ${part.id} doesn't have components or the part doesn't exist"))
       deletedComponents <- lift {
         queryNumRows(RemoveAllFromParts, Array[Any](part.id))(componentsInPart.length == _).map {
           case \/-(true) => \/-(componentsInPart)
-          case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove components from nonexistant part ${part.id.toString}"))
+          case \/-(false) => -\/(RepositoryError.NoResults(s"The number of components in the part ${part.id} is not equal to number of the components to delete"))
           case -\/(error) => -\/(error)
         }
       }

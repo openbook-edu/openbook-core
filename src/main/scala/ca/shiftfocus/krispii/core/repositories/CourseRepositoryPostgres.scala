@@ -5,6 +5,7 @@ import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import ca.shiftfocus.lib.exceptions.ExceptionWriter
+import com.github.mauricio.async.db.exceptions.ConnectionStillRunningQueryException
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{ ResultSet, RowData, Connection }
 import java.awt.Color // scalastyle:ignore
@@ -164,12 +165,14 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
        |SELECT user_id, $FieldsWithTable
        |FROM $Table, users_courses
        |WHERE $Table.id = users_courses.course_id
+       | AND ARRAY[users_courses.user_id] <@ ?
      """.stripMargin
 
   val RemoveUsers =
     """
        |DELETE FROM users_courses
-       |WHERE course_id =
+       |WHERE course_id = ?
+       |  AND ARRAY[user_id] <@ ?
      """.stripMargin
 
   val RemoveAllUsers =
@@ -247,19 +250,11 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
    * List the courses associated with a user.
    */
   override def list(users: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Map[UUID, IndexedSeq[Course]]]] = {
-    val arrayString = users.map { user =>
-      val userId = user.id.toString
-      val cleanUserId = // scalastyle:off magic.number
-        userId.slice(0, 8) +
-          userId.slice(9, 13) +
-          userId.slice(14, 18) +
-          userId.slice(19, 23) +
-          userId.slice(24, 36)
-      s"decode('$cleanUserId', 'hex')" // scalastyle:on magic.number
-    }.mkString("ARRAY[", ",", "]")
-    val query = s"""${ListCoursesForUserList} AND ARRAY[users_courses.user_id] <@ $arrayString"""
+    val cleanUsersId = users.map { user =>
+      user.id.toString filterNot ("-" contains _)
+    }
 
-    conn.sendQuery(query).map { queryResult =>
+    conn.sendPreparedStatement(ListCoursesForUserList, Array[Any](cleanUsersId)).map { queryResult =>
       try {
         queryResult.rows match {
           case Some(resultSet) => {
@@ -272,14 +267,20 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
             }
             \/-(tupledWithUsers.toMap)
           }
-          case None => -\/(RepositoryError.NoResults(s"Could list all courses for users in ${users.map(_.id).toString}"))
+          case None => -\/(RepositoryError.NoResults(s"Could not list all courses for users in ${users.map(_.id).toString}"))
         }
       }
       catch {
         case exception: NoSuchElementException => throw exception
       }
     }.recover {
-      case exception: Throwable => throw exception
+      case exception: ConnectionStillRunningQueryException =>
+        -\/(RepositoryError.DatabaseError("Attempted to send concurrent queries in the same transaction.", Some(exception)))
+
+      case exception: GenericDatabaseException =>
+        \/.left(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
+
+      case exception => throw exception
     }
   }
 
@@ -388,7 +389,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
     val cleanCourseId = course.id.toString filterNot ("-" contains _)
     val query = AddUsers + users.map { user =>
       val cleanUserId = user.id.toString filterNot ("-" contains _)
-      s"('\\x$cleanCourseId', '\\x$cleanUserId', '${new DateTime()}')"
+      s"('$cleanCourseId', '$cleanUserId', '${new DateTime()}')"
     }.mkString(",")
 
     for {
@@ -412,14 +413,12 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   override def removeUsers(course: Course, users: IndexedSeq[User]) // format: OFF
                           (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = { // format: ON
     val cleanCourseId = course.id.toString filterNot ("-" contains _)
-    val arrayString = users.map { user =>
-      val cleanUserId = user.id.toString filterNot ("-" contains _)
-      s"decode('$cleanUserId', 'hex')"
-    }.mkString("ARRAY[", ",", "]")
-    val query = s"""${RemoveUsers} '\\x$cleanCourseId' AND ARRAY[user_id] <@ $arrayString"""
+    val cleanUsersId = users.map { user =>
+      user.id.toString filterNot ("-" contains _)
+    }
 
     for {
-      _ <- lift(queryNumRows(query)(users.length == _).map {
+      _ <- lift(queryNumRows(RemoveUsers, Seq[Any](cleanCourseId, cleanUsersId))(users.length == _).map {
         case \/-(true) => \/-(())
         case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the users could not be removed from the course."))
         case -\/(error) => -\/(error)

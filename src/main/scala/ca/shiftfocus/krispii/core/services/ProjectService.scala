@@ -67,7 +67,8 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     name: String,
     description: String,
     position: Int,
-    dependencyId: Option[UUID] = None
+    dependencyId: Option[UUID] = None,
+    id: UUID = UUID.randomUUID
   ): Future[\/[ErrorUnion#Fail, Task]]
 
   case class CommonTaskArgs(

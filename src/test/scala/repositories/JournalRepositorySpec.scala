@@ -301,7 +301,7 @@ class JournalRepositorySpec
         val journalEntryId = UUID.fromString("2f27a106-390f-4cbf-bcaf-5341ef987dd7")
 
         val result = journalRepository.find(journalEntryId)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Journal")))
       }
     }
   }
@@ -370,7 +370,7 @@ class JournalRepositorySpec
         val unexistingEntry = TestValues.testJournalEntryJ
 
         val result = journalRepository.delete(unexistingEntry)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Journal")))
       }
       "delete all Journal Entries by type" in {
         val testUserList = TreeMap[Int, User](

@@ -69,7 +69,7 @@ class ProjectRepositorySpec
         }
       }
       "find all projects belonging to a given course" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseB
@@ -114,7 +114,7 @@ class ProjectRepositorySpec
         }
       }
       "return empty Vector() if there are no projects within indicated course" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseD
@@ -123,7 +123,7 @@ class ProjectRepositorySpec
         Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
       "return empty Vector() if course doesn't exist" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseE
@@ -137,7 +137,7 @@ class ProjectRepositorySpec
   "ProjectRepository.find" should {
     inSequence {
       "find project by ID" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testProject = TestValues.testProjectA
@@ -165,16 +165,16 @@ class ProjectRepositorySpec
         project.updatedAt.toString should be(testProject.updatedAt.toString)
       }
       "return RepositoryError.NoResults if project wasn't found by ID" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val projectId = UUID.fromString("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
 
         val result = projectRepository.find(projectId)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
       }
       "find project by ID and User (teacher)" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testUser = TestValues.testUserB
@@ -203,7 +203,7 @@ class ProjectRepositorySpec
         project.updatedAt.toString should be(testProject.updatedAt.toString)
       }
       "find project by ID and User (student)" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testUser = TestValues.testUserC
@@ -244,7 +244,7 @@ class ProjectRepositorySpec
         (partRepository.list(_: Project)(_: Connection, _: ScalaCachePool)) when (testProject.copy(parts = Vector()), *, *) returns (Future.successful(\/-(testPartList)))
 
         val result = projectRepository.find(testProject.id, testUser)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
       }
       "return RepositoryError.NoResults if user (student) is not connected with a project" in {
         val testUser = TestValues.testUserG
@@ -258,7 +258,7 @@ class ProjectRepositorySpec
         (partRepository.list(_: Project)(_: Connection, _: ScalaCachePool)) when (testProject.copy(parts = Vector()), *, *) returns (Future.successful(\/-(testPartList)))
 
         val result = projectRepository.find(testProject.id, testUser)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
       }
       "return RepositoryError.NoResults if project ID is wrong" in {
         val projectId = UUID.fromString("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
@@ -266,7 +266,7 @@ class ProjectRepositorySpec
 
         val result = projectRepository.find(projectId, testUser)
 
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
       }
       "return RepositoryError.NoResults if User doesn't exist" in {
         val testUser = TestValues.testUserD
@@ -280,10 +280,10 @@ class ProjectRepositorySpec
         (partRepository.list(_: Project)(_: Connection, _: ScalaCachePool)) when (testProject.copy(parts = Vector()), *, *) returns (Future.successful(\/-(testPartList)))
 
         val result = projectRepository.find(testProject.id, testUser)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
       }
       "find project by slug" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testProject = TestValues.testProjectA
@@ -311,13 +311,13 @@ class ProjectRepositorySpec
         project.updatedAt.toString should be(testProject.updatedAt.toString)
       }
       "return RepositoryError.NoResults if slug doesn't exist" in {
-        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults)))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val projectSlug = "unexisting project slug"
 
         val result = projectRepository.find(projectSlug)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
       }
     }
   }
@@ -398,7 +398,7 @@ class ProjectRepositorySpec
         )
 
         val result = projectRepository.update(updatedProject)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
       }
       "return RepositoryError.NoResults when update an unexisting Project" in {
         val testProject = TestValues.testProjectD
@@ -411,7 +411,7 @@ class ProjectRepositorySpec
         )
 
         val result = projectRepository.update(updatedProject)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
       }
     }
   }
@@ -461,7 +461,7 @@ class ProjectRepositorySpec
         val testProject = TestValues.testProjectD
 
         val result = projectRepository.delete(testProject)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
       }
     }
   }

@@ -231,7 +231,7 @@ class PartRepositorySpec
         val id = UUID.fromString("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
 
         val result = partRepository.find(id)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Part")))
       }
       "find a single entry by its position within a project" in {
         (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
@@ -271,7 +271,7 @@ class PartRepositorySpec
         val partPosition = 10
 
         val result = partRepository.find(unexistingProject, partPosition)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Part")))
       }
       "return RepositoryError.NoResults if position is wrong" in {
         (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
@@ -290,7 +290,7 @@ class PartRepositorySpec
         (taskRepository.list(_: Part)(_: Connection, _: ScalaCachePool)) when (testPart.copy(tasks = Vector()), *, *) returns (Future.successful(\/-(testTaskList)))
 
         val result = partRepository.find(testProject, partPosition)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Part")))
       }
     }
   }
@@ -369,7 +369,7 @@ class PartRepositorySpec
 
         val result = partRepository.update(updatedPart)
         val eitherPart = Await.result(result, Duration.Inf)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Part")))
       }
       "return RepositoryError.NoResults when update an unexisting Part" in {
         val testPart = TestValues.testPartD
@@ -383,7 +383,7 @@ class PartRepositorySpec
 
         val result = partRepository.update(updatedPart)
         val eitherPart = Await.result(result, Duration.Inf)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Part")))
       }
     }
   }
@@ -419,7 +419,7 @@ class PartRepositorySpec
         val testPart = TestValues.testPartD
 
         val result = partRepository.delete(testPart)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Part")))
       }
       "delete all parts in a project" in {
         (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))

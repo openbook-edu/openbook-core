@@ -141,7 +141,8 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
 
   val RemoveUsers = """
     |DELETE FROM users_roles
-    |WHERE role_id =
+    |WHERE role_id = ?
+    | AND ARRAY[user_id] <@ ?
   """.stripMargin
 
   /**
@@ -221,7 +222,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
     val cleanRoleId = role.id.toString filterNot ("-" contains _)
     val query = AddUsers + userList.map { user =>
       val cleanUserId = user.id.toString filterNot ("-" contains _)
-      s"('\\x$cleanRoleId', '\\x$cleanUserId', '${new DateTime()}')"
+      s"('$cleanRoleId', '$cleanUserId', '${new DateTime()}')"
     }.mkString(",")
 
     for {
@@ -243,15 +244,12 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    */
   override def removeUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
     val cleanRoleId = role.id.toString filterNot ("-" contains _)
-    val arrayString = userList.map { user =>
-      val cleanUserId = user.id.toString filterNot ("-" contains _)
-      s"decode('$cleanUserId', 'hex')"
-    }.mkString("ARRAY[", ",", "]")
-
-    val query = s"""${RemoveUsers} '\\x$cleanRoleId' AND ARRAY[user_id] <@ $arrayString"""
+    val cleanUsersId = userList.map { user =>
+      user.id.toString filterNot ("-" contains _)
+    }
 
     for {
-      _ <- lift(queryNumRows(query)(userList.length == _).map {
+      _ <- lift(queryNumRows(RemoveUsers, Array[Any](cleanRoleId, cleanUsersId))(userList.length == _).map {
         case \/-(wasSuccessful) => if (wasSuccessful) { \/-(()) } // scalastyle:ignore
         else -\/(RepositoryError.DatabaseError("Role couldn't be removed from all users."))
         case -\/(error) => -\/(error)

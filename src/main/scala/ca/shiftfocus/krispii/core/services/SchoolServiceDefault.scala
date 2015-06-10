@@ -133,6 +133,8 @@ class SchoolServiceDefault(
     name: Option[String],
     slug: Option[String],
     color: Option[Color],
+    enabled: Option[Boolean],
+    schedulingEnabled: Option[Boolean],
     chatEnabled: Option[Boolean]
   ): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
@@ -140,12 +142,15 @@ class SchoolServiceDefault(
         existingCourse <- lift(courseRepository.find(id))
         tId = teacherId.getOrElse(existingCourse.teacherId)
         teacher <- lift(authService.find(tId))
+        _ <- predicate(slug.isEmpty || !existingCourse.enabled)(ServiceError.BusinessLogicFail("You can only change the slug for disabled courses."))
         _ <- predicate(teacher.roles.map(_.name).contains("teacher"))(ServiceError.BadPermissions("Tried to update a course for a user who isn't a teacher."))
         toUpdate = existingCourse.copy(
           teacherId = teacherId.getOrElse(existingCourse.teacherId),
           name = name.getOrElse(existingCourse.name),
           slug = slug.getOrElse(existingCourse.slug),
           color = color.getOrElse(existingCourse.color),
+          enabled = enabled.getOrElse(existingCourse.enabled),
+          schedulingEnabled = schedulingEnabled.getOrElse(existingCourse.schedulingEnabled),
           chatEnabled = chatEnabled.getOrElse(existingCourse.chatEnabled)
         )
         updatedCourse <- lift(courseRepository.update(toUpdate))

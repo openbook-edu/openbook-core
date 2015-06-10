@@ -21,7 +21,7 @@ trait CourseRepository extends Repository {
   def find(courseId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Course]]
   def find(slug: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Course]]
 
-  def insert(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]]
+  def insert(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Course]]
   def update(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Course]]
   def delete(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Course]]
 

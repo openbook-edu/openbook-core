@@ -36,8 +36,7 @@ object Work {
         "response" -> {
           work match {
             case specific: DocumentWork if specific.response.isDefined => Json.toJson(specific.response.get)
-            case specific: QuestionWork if specific.response.isDefined => Json.toJson(specific.response.get)
-            case _ => JsNull
+            case specific: QuestionWork => Json.toJson(specific.response)
           }
         },
         "isComplete" -> work.isComplete,
@@ -76,7 +75,7 @@ final case class QuestionWork(
     studentId: UUID,
     taskId: UUID,
     version: Long = 1L,
-    response: Map[Int, Answer[_]] = Map(),
+    response: Map[Int, Answer] = Map(),
     isComplete: Boolean = false,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
@@ -102,19 +101,96 @@ object Match {
   )(unlift(Match.unapply))
 }
 
-//case class Answers(map: Map[Int, Answer[_]]) {
+//case class Answers(map: Map[Int, Answer]) {
 //  implicit val reads = new Reads[Answers] {
 //    def reads(json: JsValue) = {
-//
+//      json.
 //    }
 //  }
 //}
 
-sealed trait Answer[Q] {
-  def answers(question: Question): Boolean = question.isInstanceOf[Q]
+trait Answer {
+  val questionType: Int
+  def answers(question: Question): Boolean = question.questionType == questionType
 }
-final case class ShortAnswerAnswer(answer: String) extends Answer[ShortAnswerQuestion]
-final case class BlanksAnswer(answer: IndexedSeq[String]) extends Answer[BlanksQuestion]
-final case class MultipleChoiceAnswer(answer: IndexedSeq[Int]) extends Answer[MultipleChoiceQuestion]
-final case class OrderingAnswer(answer: IndexedSeq[Int]) extends Answer[OrderingQuestion]
-final case class MatchingAnswer(answer: IndexedSeq[Match]) extends Answer[MatchingQuestion]
+object Answer {
+  implicit val reads = new Reads[Answer] {
+    def reads(json: JsValue) = {
+      (json \ "answerType").asOpt[Int] match {
+        case Some(t) if t == Question.ShortAnswer => ShortAnswerAnswer.reads.reads(json)
+        case Some(t) if t == Question.Blanks => BlanksAnswer.reads.reads(json)
+        case Some(t) if t == Question.MultipleChoice => MultipleChoiceAnswer.reads.reads(json)
+        case Some(t) if t == Question.Ordering => OrderingAnswer.reads.reads(json)
+        case Some(t) if t == Question.Matching => MatchingAnswer.reads.reads(json)
+        case _ => JsError("Invalid answer type")
+      }
+    }
+  }
+  implicit val writes = new Writes[Answer] {
+    def writes(answer: Answer) = {
+      answer match {
+        case shortAnswer: ShortAnswerAnswer => ShortAnswerAnswer.writes.writes(shortAnswer)
+        case blanks: BlanksAnswer => BlanksAnswer.writes.writes(blanks)
+        case multipleChoice: MultipleChoiceAnswer => MultipleChoiceAnswer.writes.writes(multipleChoice)
+        case ordering: OrderingAnswer => OrderingAnswer.writes.writes(ordering)
+        case matching: MatchingAnswer => MatchingAnswer.writes.writes(matching)
+      }
+    }
+  }
+}
+
+final case class ShortAnswerAnswer(answer: String) extends Answer { override val questionType = Question.ShortAnswer }
+final case class BlanksAnswer(answer: IndexedSeq[String]) extends Answer { override val questionType = Question.Blanks }
+final case class MultipleChoiceAnswer(answer: IndexedSeq[Int]) extends Answer { override val questionType = Question.MultipleChoice }
+final case class OrderingAnswer(answer: IndexedSeq[Int]) extends Answer { override val questionType = Question.Ordering }
+final case class MatchingAnswer(answer: IndexedSeq[Match]) extends Answer { override val questionType = Question.Matching }
+
+object ShortAnswerAnswer {
+  implicit val reads = new Reads[ShortAnswerAnswer] {
+    def reads(json: JsValue) = (json \ "answer").asOpt[String] match {
+      case Some(answer) => JsSuccess(ShortAnswerAnswer(answer))
+      case None => JsError("'answer' parameter not given")
+    }
+  }
+  implicit val writes = new Writes[ShortAnswerAnswer] {
+    def writes(answer: ShortAnswerAnswer) = Json.obj(
+      "answerTye"
+    )
+  }
+}
+
+object BlanksAnswer {
+  implicit val reads = new Reads[BlanksAnswer] {
+    def reads(json: JsValue) = (json \ "answer").asOpt[IndexedSeq[String]] match {
+      case Some(answer) => JsSuccess(BlanksAnswer(answer))
+      case None => JsError("'answer' parameter not given")
+    }
+  }
+}
+
+object MultipleChoiceAnswer {
+  implicit val reads = new Reads[MultipleChoiceAnswer] {
+    def reads(json: JsValue) = (json \ "answer").asOpt[IndexedSeq[Int]] match {
+      case Some(answer) => JsSuccess(MultipleChoiceAnswer(answer))
+      case None => JsError("'answer' parameter not given")
+    }
+  }
+}
+
+object OrderingAnswer {
+  implicit val reads = new Reads[OrderingAnswer] {
+    def reads(json: JsValue) = (json \ "answer").asOpt[IndexedSeq[Int]] match {
+      case Some(answer) => JsSuccess(OrderingAnswer(answer))
+      case None => JsError("'answer' parameter not given")
+    }
+  }
+}
+
+object MatchingAnswer {
+  implicit val reads = new Reads[MatchingAnswer] {
+    def reads(json: JsValue) = (json \ "answer").asOpt[IndexedSeq[Match]] match {
+      case Some(answer) => JsSuccess(MatchingAnswer(answer))
+      case None => JsError("'answer' parameter not given")
+    }
+  }
+}

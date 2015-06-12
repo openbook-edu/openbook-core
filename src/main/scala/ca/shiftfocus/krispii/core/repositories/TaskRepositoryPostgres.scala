@@ -28,7 +28,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   override def constructor(row: RowData): Task = {
     row("task_type").asInstanceOf[Int] match {
-      case Task.Document => constructLongAnswerTask(row)
+      case Task.Document => constructDocumentTask(row)
       case Task.Question => constructQuestionTask(row)
       case _ => throw new Exception("Invalid task type.")
     }

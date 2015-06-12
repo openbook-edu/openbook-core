@@ -232,7 +232,7 @@ class WorkServiceDefault(
     userId: UUID,
     taskId: UUID,
     version: Long,
-    response: Option[Map[Int, Answer[_]]],
+    response: Option[Map[Int, Answer]],
     isComplete: Option[Boolean]
   ): Future[\/[ErrorUnion#Fail, QuestionWork]] = {
     transactional { implicit conn =>
@@ -253,7 +253,7 @@ class WorkServiceDefault(
     }
   }
 
-  override def updateAnswer(workId: UUID, version: Long, position: Int, answer: Answer[_]): Future[\/[ErrorUnion#Fail, QuestionWork]] = {
+  override def updateAnswer(workId: UUID, version: Long, position: Int, answer: Answer): Future[\/[ErrorUnion#Fail, QuestionWork]] = {
     transactional { implicit conn =>
       for {
         work <- lift(findWork(workId))

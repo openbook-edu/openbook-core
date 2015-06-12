@@ -49,7 +49,7 @@ class WorkRepositoryPostgres(
       studentId = row("user_id").asInstanceOf[UUID],
       taskId = row("task_id").asInstanceOf[UUID],
       version = row("mat_version").asInstanceOf[Long],
-      response = Json.parse(row("answers").asInstanceOf[String]).as[Map[Int, Answer[_]]],
+      response = Json.parse(row("answers").asInstanceOf[String]).as[Map[Int, Answer]],
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("mat_created_at").asInstanceOf[DateTime]

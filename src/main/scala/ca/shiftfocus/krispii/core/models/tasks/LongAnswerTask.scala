@@ -42,7 +42,11 @@ case class LongAnswerTask(
   override def equals(other: Any): Boolean = {
     other match {
       case otherLongAnswerTask: LongAnswerTask => {
-        this.id == otherLongAnswerTask.id
+        this.id == otherLongAnswerTask.id &&
+          this.partId == otherLongAnswerTask.partId &&
+          this.position == otherLongAnswerTask.position &&
+          this.version == otherLongAnswerTask.version &&
+          this.settings.toString == otherLongAnswerTask.settings.toString
       }
       case _ => false
     }

@@ -171,7 +171,7 @@ class ProjectRepositorySpec
         val projectId = UUID.fromString("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
 
         val result = projectRepository.find(projectId)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Project")))
       }
       "find project by ID and User (teacher)" in {
         (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
@@ -244,7 +244,7 @@ class ProjectRepositorySpec
         (partRepository.list(_: Project)(_: Connection, _: ScalaCachePool)) when (testProject.copy(parts = Vector()), *, *) returns (Future.successful(\/-(testPartList)))
 
         val result = projectRepository.find(testProject.id, testUser)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Project")))
       }
       "return RepositoryError.NoResults if user (student) is not connected with a project" in {
         val testUser = TestValues.testUserG
@@ -258,7 +258,7 @@ class ProjectRepositorySpec
         (partRepository.list(_: Project)(_: Connection, _: ScalaCachePool)) when (testProject.copy(parts = Vector()), *, *) returns (Future.successful(\/-(testPartList)))
 
         val result = projectRepository.find(testProject.id, testUser)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Project")))
       }
       "return RepositoryError.NoResults if project ID is wrong" in {
         val projectId = UUID.fromString("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
@@ -266,7 +266,7 @@ class ProjectRepositorySpec
 
         val result = projectRepository.find(projectId, testUser)
 
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Project")))
       }
       "return RepositoryError.NoResults if User doesn't exist" in {
         val testUser = TestValues.testUserD
@@ -280,7 +280,7 @@ class ProjectRepositorySpec
         (partRepository.list(_: Project)(_: Connection, _: ScalaCachePool)) when (testProject.copy(parts = Vector()), *, *) returns (Future.successful(\/-(testPartList)))
 
         val result = projectRepository.find(testProject.id, testUser)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Project")))
       }
       "find project by slug" in {
         (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
@@ -317,7 +317,7 @@ class ProjectRepositorySpec
         val projectSlug = "unexisting project slug"
 
         val result = projectRepository.find(projectSlug)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Project")))
       }
     }
   }
@@ -398,7 +398,7 @@ class ProjectRepositorySpec
         )
 
         val result = projectRepository.update(updatedProject)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Project")))
       }
       "return RepositoryError.NoResults when update an unexisting Project" in {
         val testProject = TestValues.testProjectD
@@ -411,7 +411,7 @@ class ProjectRepositorySpec
         )
 
         val result = projectRepository.update(updatedProject)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Project")))
       }
     }
   }
@@ -461,7 +461,7 @@ class ProjectRepositorySpec
         val testProject = TestValues.testProjectD
 
         val result = projectRepository.delete(testProject)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Project")))
       }
     }
   }

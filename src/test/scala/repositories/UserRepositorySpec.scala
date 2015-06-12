@@ -87,7 +87,7 @@ class UserRepositorySpec
 
         val result = userRepository.list(ids)
 
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type User")))
       }
       "List all users who have a role" in {
         val testRole = TestValues.testRoleA
@@ -212,7 +212,7 @@ class UserRepositorySpec
         val id = UUID.fromString("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477")
 
         val result = userRepository.find(id)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type User")))
       }
       "find a user by their identifier - email" in {
         (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
@@ -261,7 +261,7 @@ class UserRepositorySpec
         val email = "unexisting_email@example.com"
 
         val result = userRepository.find(email)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type User")))
       }
       "reutrn RepositoryError.NoResults if identifier - username that doesn't exist" in {
         (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
@@ -270,7 +270,7 @@ class UserRepositorySpec
         val username = "unexisting_username"
 
         val result = userRepository.find(username)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type User")))
       }
     }
   }
@@ -340,7 +340,7 @@ class UserRepositorySpec
         )
 
         val result = userRepository.update(updatedTestUser)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type User")))
       }
       "reutrn RepositoryError.UniqueKeyConflict when update an existing user with username that already exists" in {
         val testUser = TestValues.testUserA
@@ -369,7 +369,7 @@ class UserRepositorySpec
         )
 
         val result = userRepository.update(unexistingUser)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type User")))
       }
     }
   }
@@ -468,7 +468,7 @@ class UserRepositorySpec
 
         val result = userRepository.delete(unexistingUser)
 
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type User")))
       }
     }
   }

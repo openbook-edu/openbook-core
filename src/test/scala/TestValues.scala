@@ -294,7 +294,7 @@ object TestValues {
     partId = UUID.fromString("5cd214be-6bba-47fa-9f35-0eb8bafec397"), // testPartA.id
     position = 11,
     settings = CommonTaskSettings(
-      dependencyId = None,
+      dependencyId = Some(UUID.fromString("bf1a6ed0-9f83-4cb4-85c1-ad456299b3a3")),
       title = "test longAnswerTask F",
       description = "test longAnswerTask F description",
       notesAllowed = false,

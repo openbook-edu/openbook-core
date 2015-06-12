@@ -50,7 +50,15 @@ case class MultipleChoiceTask(
   override def equals(other: Any): Boolean = {
     other match {
       case otherMultipleChoiceTask: MultipleChoiceTask => {
-        this.id == otherMultipleChoiceTask.id
+        this.id == otherMultipleChoiceTask.id &&
+          this.partId == otherMultipleChoiceTask.partId &&
+          this.position == otherMultipleChoiceTask.position &&
+          this.version == otherMultipleChoiceTask.version &&
+          this.settings.toString == otherMultipleChoiceTask.settings.toString &&
+          this.choices.toString == otherMultipleChoiceTask.choices.toString &&
+          this.answers.toString == otherMultipleChoiceTask.answers.toString &&
+          this.allowMultiple == otherMultipleChoiceTask.allowMultiple &&
+          this.randomizeChoices == otherMultipleChoiceTask.randomizeChoices
       }
       case _ => false
     }

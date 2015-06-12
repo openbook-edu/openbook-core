@@ -52,7 +52,6 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
   def createPart(projectId: UUID, name: String, position: Int, id: UUID = UUID.randomUUID): Future[\/[ErrorUnion#Fail, Part]]
   def updatePart(partId: UUID, version: Long, name: Option[String], position: Option[Int], enabled: Option[Boolean]): Future[\/[ErrorUnion#Fail, Part]]
   def deletePart(partId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Part]]
-  def reorderParts(projectId: UUID, partIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, IndexedSeq[Part]]]
 
   def togglePart(partId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Part]]
 
@@ -78,8 +77,10 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     description: Option[String],
     position: Option[Int],
     notesAllowed: Option[Boolean],
-    dependencyId: Option[UUID] = None,
-    partId: Option[UUID] = None
+    dependencyId: Option[Option[UUID]] = None,
+    partId: Option[UUID] = None,
+    notesTitle: Option[Option[String]] = None,
+    responseTitle: Option[Option[String]] = None
   )
 
   def updateLongAnswerTask(commonArgs: CommonTaskArgs): Future[\/[ErrorUnion#Fail, Task]]
@@ -114,5 +115,5 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
 
   def deleteTask(taskId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Task]]
 
-  def moveTask(partId: UUID, taskId: UUID, newPosition: Int): Future[\/[ErrorUnion#Fail, Task]]
+  def moveTask(taskId: UUID, version: Long, newPosition: Int, partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]]
 }

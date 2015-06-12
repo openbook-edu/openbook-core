@@ -51,7 +51,15 @@ case class MatchingTask(
   override def equals(other: Any): Boolean = {
     other match {
       case otherMatchingTask: MatchingTask => {
-        this.id == otherMatchingTask.id
+        this.id == otherMatchingTask.id &&
+          this.partId == otherMatchingTask.partId &&
+          this.position == otherMatchingTask.position &&
+          this.version == otherMatchingTask.version &&
+          this.settings.toString == otherMatchingTask.settings.toString &&
+          this.elementsLeft.toString == otherMatchingTask.elementsLeft.toString &&
+          this.elementsRight.toString == otherMatchingTask.elementsRight.toString &&
+          this.answers == otherMatchingTask.answers &&
+          this.randomizeChoices == otherMatchingTask.randomizeChoices
       }
       case _ => false
     }

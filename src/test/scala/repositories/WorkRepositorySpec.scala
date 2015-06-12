@@ -324,28 +324,28 @@ class WorkRepositorySpec
         val testTask = TestValues.testMatchingTaskE
 
         val result = workRepository.list(testUser, testTask)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults(s"Could not find any work for user ${testUser.id} for task ${testTask.id}")))
       }
       "return RepositoryError.NoResults if the task doesn't exist for a user" in {
         val testUser = TestValues.testUserE
         val testTask = TestValues.testMatchingTaskJ
 
         val result = workRepository.list(testUser, testTask)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults(s"Could not find any work for user ${testUser.id} for task ${testTask.id}")))
       }
       "return RepositoryError.NoResults if the user is not connected with this task" in {
         val testUser = TestValues.testUserG
         val testTask = TestValues.testMatchingTaskE
 
         val result = workRepository.list(testUser, testTask)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults(s"Could not find any work for user ${testUser.id} for task ${testTask.id}")))
       }
       "return RepositoryError.NoResults if the user doesn't have any work within this task" in {
         val testUser = TestValues.testUserC
         val testTask = TestValues.testOrderingTaskD
 
         val result = workRepository.list(testUser, testTask)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults(s"Could not find any work for user ${testUser.id} for task ${testTask.id}")))
       }
 
       /* --- list(testTask) --- */
@@ -664,7 +664,7 @@ class WorkRepositorySpec
         val testWork = TestValues.testMatchingWorkO
 
         val result = workRepository.find(testWork.id)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Work")))
       }
 
       /* --- find(workId, version) --- */
@@ -758,7 +758,7 @@ class WorkRepositorySpec
         val testWork = TestValues.testMatchingWorkO
 
         val result = workRepository.find(testWork.id, testWork.version)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Work")))
       }
 
       /* --- find(user, task) --- */
@@ -863,28 +863,28 @@ class WorkRepositorySpec
         val testTask = TestValues.testMatchingTaskE
 
         val result = workRepository.find(testUser, testTask)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Work")))
       }
       "return RepositoryError.NoResults if task doesn't exist" in {
         val testUser = TestValues.testUserE
         val testTask = TestValues.testMatchingTaskJ
 
         val result = workRepository.find(testUser, testTask)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Work")))
       }
       "return RepositoryError.NoResults if user is not connected with a task" in {
         val testUser = TestValues.testUserG
         val testTask = TestValues.testMatchingTaskE
 
         val result = workRepository.find(testUser, testTask)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Work")))
       }
       "return RepositoryError.NoResults if user doesn't have work within a task" in {
         val testUser = TestValues.testUserE
         val testTask = TestValues.testMatchingTaskM
 
         val result = workRepository.find(testUser, testTask)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Work")))
       }
 
       /* --- find(user, task, version) --- */
@@ -990,7 +990,7 @@ class WorkRepositorySpec
         val testWork = TestValues.testMatchingWorkRevisionE
 
         val result = workRepository.find(testUser, testTask, testWork.version)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Work")))
       }
       "return RepositoryError.NoResults if task doesn't exist (with version)" in {
         val testUser = TestValues.testUserC
@@ -998,7 +998,7 @@ class WorkRepositorySpec
         val testWork = TestValues.testMatchingWorkRevisionE
 
         val result = workRepository.find(testUser, testTask, testWork.version)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Work")))
       }
       "return RepositoryError.NoResults if user is not connected with a task (with version)" in {
         val testUser = TestValues.testUserG
@@ -1006,7 +1006,7 @@ class WorkRepositorySpec
         val testWork = TestValues.testMatchingWorkRevisionE
 
         val result = workRepository.find(testUser, testTask, testWork.version)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Work")))
       }
       "return RepositoryError.NoResults if user doesn't have work within a task (with version)" in {
         val testUser = TestValues.testUserE
@@ -1014,7 +1014,7 @@ class WorkRepositorySpec
         val testWork = TestValues.testMatchingWorkRevisionE
 
         val result = workRepository.find(testUser, testTask, testWork.version)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Work")))
       }
       "return RepositoryError.NoResults if version is wrong" in {
         val testUser = TestValues.testUserC
@@ -1022,7 +1022,7 @@ class WorkRepositorySpec
         val testWork = TestValues.testMatchingWorkRevisionE
 
         val result = workRepository.find(testUser, testTask, testWork.version + 99)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Work")))
       }
     }
   }
@@ -1337,7 +1337,7 @@ class WorkRepositorySpec
         (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (testDocument.id, *, *) returns (Future.successful(\/-(testDocument)))
 
         val result = workRepository.update(updatedWork)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Work")))
       }
 
       /* Update aka create new revision */
@@ -1465,7 +1465,7 @@ class WorkRepositorySpec
         )
 
         val result = workRepository.update(updatedWork, true)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Work")))
       }
       "return RepositoryError.NoResults if work doesn't exist (newRevision = TRUE)" in {
         val testWork = TestValues.testMatchingWorkO
@@ -1483,7 +1483,7 @@ class WorkRepositorySpec
         )
 
         val result = workRepository.update(updatedWork, true)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Work")))
       }
       "return RepositoryError.NoResults if try to update work previous revision (newRevision = TRUE)" in {
         val testWork = TestValues.testMatchingWorkRevisionJ
@@ -1501,7 +1501,7 @@ class WorkRepositorySpec
         )
 
         val result = workRepository.update(updatedWork, true)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Work")))
       }
     }
   }
@@ -1599,7 +1599,7 @@ class WorkRepositorySpec
         val testWork = TestValues.testMatchingWorkO
 
         val result = workRepository.delete(testWork)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Work")))
       }
 
       /* --- delete(Task) --- */

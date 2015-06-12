@@ -30,7 +30,10 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
     version: Long,
     teacherId: Option[UUID],
     name: Option[String],
+    slug: Option[String],
     color: Option[Color],
+    enabled: Option[Boolean],
+    schedulingEnabled: Option[Boolean],
     chatEnabled: Option[Boolean]
   ): Future[\/[ErrorUnion#Fail, Course]]
   def deleteCourse(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Course]]

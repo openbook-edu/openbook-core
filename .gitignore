@@ -33,3 +33,5 @@ tmp
 # Scala-IDE specific
 .scala_dependencies
 .worksheet
+
+src/main/scala/ca/shiftfocus/krispii/core/models/work/Work.scala

@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks._
+import ca.shiftfocus.krispii.core.models.work.Answer
 import ca.shiftfocus.krispii.core.repositories.{ TaskRepository, PartRepository, ProjectRepository }
 import java.util.UUID
 import scala.concurrent.Future
@@ -67,7 +68,6 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     name: String,
     description: String,
     position: Int,
-    dependencyId: Option[UUID] = None,
     id: UUID = UUID.randomUUID
   ): Future[\/[ErrorUnion#Fail, Task]]
 
@@ -78,41 +78,12 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     description: Option[String],
     position: Option[Int],
     notesAllowed: Option[Boolean],
-    dependencyId: Option[UUID] = None,
     partId: Option[UUID] = None
   )
 
-  def updateLongAnswerTask(commonArgs: CommonTaskArgs): Future[\/[ErrorUnion#Fail, Task]]
-
-  def updateShortAnswerTask(
-    commonArgs: CommonTaskArgs,
-    maxLength: Option[Int]
-  ): Future[\/[ErrorUnion#Fail, Task]]
-
-  def updateMultipleChoiceTask(
-    commonArgs: CommonTaskArgs,
-    choices: Option[IndexedSeq[String]] = Some(IndexedSeq()),
-    answer: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
-    allowMultiple: Option[Boolean] = Some(false),
-    randomizeChoices: Option[Boolean] = Some(true)
-  ): Future[\/[ErrorUnion#Fail, Task]]
-
-  def updateOrderingTask(
-    commonArgs: CommonTaskArgs,
-    elements: Option[IndexedSeq[String]] = Some(IndexedSeq()),
-    answer: Option[IndexedSeq[Int]] = Some(IndexedSeq()),
-    randomizeChoices: Option[Boolean] = Some(true)
-  ): Future[\/[ErrorUnion#Fail, Task]]
-
-  def updateMatchingTask(
-    commonArgs: CommonTaskArgs,
-    elementsLeft: Option[IndexedSeq[String]] = Some(IndexedSeq()),
-    elementsRight: Option[IndexedSeq[String]] = Some(IndexedSeq()),
-    answer: Option[IndexedSeq[MatchingTask.Match]] = Some(IndexedSeq()),
-    randomizeChoices: Option[Boolean] = Some(true)
-  ): Future[\/[ErrorUnion#Fail, Task]]
+  def updateDocumentTask(commonArgs: CommonTaskArgs, depId: Option[Option[UUID]] = None): Future[\/[ErrorUnion#Fail, Task]]
+  def updateQuestionTask(commonArgs: CommonTaskArgs, answers: IndexedSeq[Answer]): Future[\/[ErrorUnion#Fail, Task]]
 
   def deleteTask(taskId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Task]]
-
   def moveTask(partId: UUID, taskId: UUID, newPosition: Int): Future[\/[ErrorUnion#Fail, Task]]
 }

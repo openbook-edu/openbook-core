@@ -23,37 +23,24 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   // Finder methods for work
   def listWork(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]]
   def listWork(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]]
-  def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Either[DocumentWork, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]]]
+  def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Either[DocumentWork, QuestionWork]]]
   def findWork(workId: UUID): Future[\/[ErrorUnion#Fail, Work]]
   def findWork(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Work]]
   def findWork(userId: UUID, taskId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Work]]
 
-  // Create methods for the textual work types
-  def createLongAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, DocumentWork]]
-  def createShortAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, ShortAnswerWork]]
+  def createDocumentWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, DocumentWork]]
+  def createQuestionWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, QuestionWork]]
 
-  // Create methods for the other work types
-  def createMultipleChoiceWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]]
-  def createOrderingWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]]
-  def createMatchingWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]]
-
-  // Update methods for the textual work types
-  def updateLongAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, DocumentWork]]
-  def updateShortAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, ShortAnswerWork]]
-
-  // Update methods for the other work types
-  def updateMultipleChoiceWork(
+  def updateDocumentWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, DocumentWork]]
+  def updateQuestionWork(
     userId: UUID,
     taskId: UUID,
     version: Long,
-    answer: IndexedSeq[Int],
-    isComplete: Boolean
-  ): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]]
+    answers: Option[Map[Int, Answer[_]]] = None,
+    isComplete: Option[Boolean] = None
+  ): Future[\/[ErrorUnion#Fail, QuestionWork]]
 
-  def updateOrderingWork(userId: UUID, taskId: UUID, version: Long, answer: IndexedSeq[Int], isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]]
-  def updateMatchingWork(userId: UUID, taskId: UUID, version: Long, answer: IndexedSeq[Match], isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]]
-
-  //  def forceComplete(taskId: UUID, includingPrevious: Boolean = false): Future[\/[ErrorUnion#Fail, Unit]]
+  def updateAnswer(workId: UUID, version: Long, position: Int, answer: Answer[_]): Future[\/[ErrorUnion#Fail, QuestionWork]]
 
   // Task feedbacks
   def listFeedbacks(studentId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[TaskFeedback]]]

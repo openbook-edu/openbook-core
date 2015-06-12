@@ -7,8 +7,6 @@ import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
-
-
 sealed trait Question {
   val title: String
   val description: String
@@ -33,7 +31,6 @@ object Question {
     }
   }
 }
-
 
 case class ShortAnswerQuestion(
   title: String,
@@ -68,80 +65,78 @@ case class MatchingQuestion(
   choices: IndexedSeq[(String, String)]
 ) extends Question
 
-
-
 object ShortAnswerQuestion {
   implicit val reads: Reads[ShortAnswerQuestion] = (
     (__ \ "title").read[String] and
-      (__ \ "description").read[String] and
-      (__ \ "maxLength").read[String]
-    )(ShortAnswerQuestion.apply _)
+    (__ \ "description").read[String] and
+    (__ \ "maxLength").read[String]
+  )(ShortAnswerQuestion.apply _)
 
   implicit val writes: Writes[ShortAnswerQuestion] = (
     (__ \ "title").write[String] and
-      (__ \ "description").write[String] and
-      (__ \ "maxLength").write[String]
+    (__ \ "description").write[String] and
+    (__ \ "maxLength").write[String]
   )(unlift(ShortAnswerQuestion.unapply))
 }
 
 object BlanksQuestion {
   implicit val reads: Reads[BlanksQuestion] = (
     (__ \ "title").read[String] and
-      (__ \ "description").read[String] and
-      (__ \ "text").read[String] and
-      (__ \ "inputs").read[IndexedSeq[(Int, Int)]]
-    )(BlanksQuestion.apply _)
+    (__ \ "description").read[String] and
+    (__ \ "text").read[String] and
+    (__ \ "inputs").read[IndexedSeq[(Int, Int)]]
+  )(BlanksQuestion.apply _)
 
   implicit val writes: Writes[BlanksQuestion] = (
     (__ \ "title").write[String] and
-      (__ \ "description").write[String] and
-      (__ \ "text").write[String] and
-      (__ \ "inputs").write[IndexedSeq[(Int, Int)]]
-    )(unlift(BlanksQuestion.unapply))
+    (__ \ "description").write[String] and
+    (__ \ "text").write[String] and
+    (__ \ "inputs").write[IndexedSeq[(Int, Int)]]
+  )(unlift(BlanksQuestion.unapply))
 }
 
 object MultipleChoiceQuestion {
   implicit val reads: Reads[MultipleChoiceQuestion] = (
     (__ \ "title").read[String] and
-      (__ \ "description").read[String] and
-      (__ \ "choices").read[IndexedSeq[String]] and
-      (__ \ "correct").read[IndexedSeq[Int]] and
-      (__ \ "singleAnswer").read[Boolean]
-    )(MultipleChoiceQuestion.apply _)
+    (__ \ "description").read[String] and
+    (__ \ "choices").read[IndexedSeq[String]] and
+    (__ \ "correct").read[IndexedSeq[Int]] and
+    (__ \ "singleAnswer").read[Boolean]
+  )(MultipleChoiceQuestion.apply _)
 
   implicit val writes: Writes[MultipleChoiceQuestion] = (
     (__ \ "title").write[String] and
-      (__ \ "description").write[String] and
-      (__ \ "choices").write[IndexedSeq[String]] and
-      (__ \ "correct").write[IndexedSeq[Int]] and
-      (__ \ "singleAnswer").write[Boolean]
-    )(unlift(MultipleChoiceQuestion.unapply))
+    (__ \ "description").write[String] and
+    (__ \ "choices").write[IndexedSeq[String]] and
+    (__ \ "correct").write[IndexedSeq[Int]] and
+    (__ \ "singleAnswer").write[Boolean]
+  )(unlift(MultipleChoiceQuestion.unapply))
 }
 
 object OrderingQuestion {
   implicit val reads: Reads[OrderingQuestion] = (
     (__ \ "title").read[String] and
-      (__ \ "description").read[String] and
-      (__ \ "choices").read[IndexedSeq[String]]
-    )(OrderingQuestion.apply _)
+    (__ \ "description").read[String] and
+    (__ \ "choices").read[IndexedSeq[String]]
+  )(OrderingQuestion.apply _)
 
   implicit val writes: Writes[OrderingQuestion] = (
     (__ \ "title").write[String] and
-      (__ \ "description").write[String] and
-      (__ \ "choices").write[IndexedSeq[String]]
-    )(unlift(OrderingQuestion.unapply))
+    (__ \ "description").write[String] and
+    (__ \ "choices").write[IndexedSeq[String]]
+  )(unlift(OrderingQuestion.unapply))
 }
 
 object MatchingQuestion {
   implicit val reads: Reads[MatchingQuestion] = (
     (__ \ "title").read[String] and
-      (__ \ "description").read[String] and
-      (__ \ "choices").read[IndexedSeq[(String, String)]]
-    )(MatchingQuestion.apply _)
+    (__ \ "description").read[String] and
+    (__ \ "choices").read[IndexedSeq[(String, String)]]
+  )(MatchingQuestion.apply _)
 
   implicit val writes: Writes[MatchingQuestion] = (
     (__ \ "title").write[String] and
-      (__ \ "description").write[String] and
-      (__ \ "choices").write[IndexedSeq[(String, String)]]
-    )(unlift(MatchingQuestion.unapply))
+    (__ \ "description").write[String] and
+    (__ \ "choices").write[IndexedSeq[(String, String)]]
+  )(unlift(MatchingQuestion.unapply))
 }

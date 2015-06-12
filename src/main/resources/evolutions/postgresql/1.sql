@@ -34,6 +34,8 @@ CREATE TABLE courses (
   name text,
   color integer,
   slug text,
+  enabled boolean DEFAULT false,
+  scheduling_enabled boolean DEFAULT false,
   chat_enabled boolean DEFAULT true,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
@@ -337,11 +339,8 @@ DROP TABLE IF EXISTS parts CASCADE;
 DROP TABLE IF EXISTS documents CASCADE;
 DROP TABLE IF EXISTS document_revisions CASCADE;
 DROP TABLE IF EXISTS tasks CASCADE;
-DROP TABLE IF EXISTS long_answer_tasks CASCADE;
-DROP TABLE IF EXISTS short_answer_tasks CASCADE;
-DROP TABLE IF EXISTS multiple_choice_tasks CASCADE;
-DROP TABLE IF EXISTS ordering_tasks CASCADE;
-DROP TABLE IF EXISTS matching_tasks CASCADE;
+DROP TABLE IF EXISTS document_tasks CASCADE;
+DROP TABLE IF EXISTS question_tasks CASCADE;
 DROP TABLE IF EXISTS task_feedbacks CASCADE;
 DROP TABLE IF EXISTS task_notes CASCADE;
 DROP TABLE IF EXISTS components CASCADE;
@@ -351,11 +350,9 @@ DROP TABLE IF EXISTS video_components CASCADE;
 DROP TABLE IF EXISTS audio_components CASCADE;
 DROP TABLE IF EXISTS component_notes CASCADE;
 DROP TABLE IF EXISTS work CASCADE;
-DROP TABLE IF EXISTS long_answer_work CASCADE;
-DROP TABLE IF EXISTS short_answer_work CASCADE;
-DROP TABLE IF EXISTS multiple_choice_work CASCADE;
-DROP TABLE IF EXISTS ordering_work CASCADE;
-DROP TABLE IF EXISTS matching_work CASCADE;
+DROP TABLE IF EXISTS document_work CASCADE;
+DROP TABLE IF EXISTS question_work CASCADE;
+DROP TABLE IF EXISTS question_work_answers CASCADE;
 DROP TABLE IF EXISTS journal_201505 CASCADE;
 DROP TABLE IF EXISTS journal_201506 CASCADE;
 DROP TABLE IF EXISTS journal_201507 CASCADE;

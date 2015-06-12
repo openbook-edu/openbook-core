@@ -2,8 +2,6 @@ package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
-import ca.shiftfocus.krispii.core.models.tasks.Task.Ordering
 import ca.shiftfocus.krispii.core.models.tasks.Task._
 import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.models.work._
@@ -17,8 +15,8 @@ import scala.concurrent.Future
 import scalaz.{ \/, -\/, \/- }
 
 class WorkRepositoryPostgres(
-  val documentRepository: DocumentRepository,
-  val revisionRepository: RevisionRepository
+    val documentRepository: DocumentRepository,
+    val revisionRepository: RevisionRepository
 ) extends WorkRepository with PostgresRepository[Work] {
 
   override val entityName = "Work"
@@ -51,7 +49,7 @@ class WorkRepositoryPostgres(
       studentId = row("user_id").asInstanceOf[UUID],
       taskId = row("task_id").asInstanceOf[UUID],
       version = row("mat_version").asInstanceOf[Long],
-      response = Json.parse(row("answers").asInstanceOf[String]).asOpt[IndexedSeq[Answer]],
+      response = Json.parse(row("answers").asInstanceOf[String]).as[Map[Int, Answer[_]]],
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("mat_created_at").asInstanceOf[DateTime]
@@ -291,7 +289,6 @@ class WorkRepositoryPostgres(
     s"""
        |SELECT
      """.stripMargin
-
 
   /**
    * List the latest revision of work for each task in a project for a user.

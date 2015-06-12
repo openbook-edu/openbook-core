@@ -176,7 +176,6 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |FROM task, q_task
      """.stripMargin
 
-
   // -- Update queries -----------------------------------------------------------------------------------------------
 
   val Update =

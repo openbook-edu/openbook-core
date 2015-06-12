@@ -118,17 +118,17 @@ object Task {
  * @param updatedAt When the entity was last updated.
  */
 final case class DocumentTask(
-  // Primary Key
-  id: UUID = UUID.randomUUID,
-  // Combination must be unique
-  partId: UUID,
-  position: Int,
-  // Additional data
-  version: Long = 1L,
-  settings: CommonTaskSettings = CommonTaskSettings(),
-  dependencyId: Option[UUID] = None,
-  createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime
+    // Primary Key
+    id: UUID = UUID.randomUUID,
+    // Combination must be unique
+    partId: UUID,
+    position: Int,
+    // Additional data
+    version: Long = 1L,
+    settings: CommonTaskSettings = CommonTaskSettings(),
+    dependencyId: Option[UUID] = None,
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
 ) extends Task {
 
   /**
@@ -154,14 +154,14 @@ object DocumentTask {
    */
   implicit val taskWrites: Writes[DocumentTask] = (
     (__ \ "id").write[UUID] and
-      (__ \ "partId").write[UUID] and
-      (__ \ "position").write[Int] and
-      (__ \ "version").write[Long] and
-      (__ \ "settings").write[CommonTaskSettings] and
-      (__ \ "dependencyId").writeNullable[UUID] and
-      (__ \ "createdAt").write[DateTime] and
-      (__ \ "updatedAt").write[DateTime]
-    )(unlift(DocumentTask.unapply))
+    (__ \ "partId").write[UUID] and
+    (__ \ "position").write[Int] and
+    (__ \ "version").write[Long] and
+    (__ \ "settings").write[CommonTaskSettings] and
+    (__ \ "dependencyId").writeNullable[UUID] and
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
+  )(unlift(DocumentTask.unapply))
 }
 
 /**
@@ -178,17 +178,17 @@ object DocumentTask {
  * @param updatedAt
  */
 final case class QuestionTask(
-  // Primary Key
-  id: UUID = UUID.randomUUID,
-  // Combination must be unique
-  partId: UUID,
-  position: Int,
-  // Additional data
-  version: Long = 1L,
-  settings: CommonTaskSettings = CommonTaskSettings(),
-  questions: IndexedSeq[Question],
-  createdAt: DateTime = new DateTime(),
-  updatedAt: DateTime = new DateTime()
+    // Primary Key
+    id: UUID = UUID.randomUUID,
+    // Combination must be unique
+    partId: UUID,
+    position: Int,
+    // Additional data
+    version: Long = 1L,
+    settings: CommonTaskSettings = CommonTaskSettings(),
+    questions: IndexedSeq[Question],
+    createdAt: DateTime = new DateTime(),
+    updatedAt: DateTime = new DateTime()
 ) extends Task {
   override val taskType = Task.Question
 }
@@ -196,23 +196,23 @@ final case class QuestionTask(
 object QuestionTask {
   implicit val taskReads: Reads[QuestionTask] = (
     (__ \ "id").read[UUID] and
-      (__ \ "partId").read[UUID] and
-      (__ \ "position").read[Int] and
-      (__ \ "version").read[Long] and
-      (__ \ "settings").read[CommonTaskSettings] and
-      (__ \ "questions").read[IndexedSeq[Question]] and
-      (__ \ "createdAt").read[DateTime] and
-      (__ \ "updatedAt").read[DateTime]
-    )(QuestionTask.apply _)
+    (__ \ "partId").read[UUID] and
+    (__ \ "position").read[Int] and
+    (__ \ "version").read[Long] and
+    (__ \ "settings").read[CommonTaskSettings] and
+    (__ \ "questions").read[IndexedSeq[Question]] and
+    (__ \ "createdAt").read[DateTime] and
+    (__ \ "updatedAt").read[DateTime]
+  )(QuestionTask.apply _)
 
   implicit val taskWrites: Writes[QuestionTask] = (
     (__ \ "id").write[UUID] and
-      (__ \ "partId").write[UUID] and
-      (__ \ "position").write[Int] and
-      (__ \ "version").write[Long] and
-      (__ \ "settings").write[CommonTaskSettings] and
-      (__ \ "questions").write[IndexedSeq[Question]] and
-      (__ \ "createdAt").write[DateTime] and
-      (__ \ "updatedAt").write[DateTime]
-    )(unlift(QuestionTask.unapply))
+    (__ \ "partId").write[UUID] and
+    (__ \ "position").write[Int] and
+    (__ \ "version").write[Long] and
+    (__ \ "settings").write[CommonTaskSettings] and
+    (__ \ "questions").write[IndexedSeq[Question]] and
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
+  )(unlift(QuestionTask.unapply))
 }

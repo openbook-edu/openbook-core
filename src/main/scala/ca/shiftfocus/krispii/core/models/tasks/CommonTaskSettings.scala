@@ -29,13 +29,13 @@ object CommonTaskSettings {
       description = row("description").asInstanceOf[String],
       notesAllowed = row("notes_allowed").asInstanceOf[Boolean],
       notesTitle = Option(row("notes_title").asInstanceOf[String]) match {
-        case Some(notesTitle) => Some(notesTitle)
-        case _ => None
-      },
+      case Some(notesTitle) => Some(notesTitle)
+      case _ => None
+    },
       responseTitle = Option(row("response_title").asInstanceOf[String]) match {
-        case Some(responseTitle) => Some(responseTitle)
-        case _ => None
-      }
+      case Some(responseTitle) => Some(responseTitle)
+      case _ => None
+    }
     )
   }
 

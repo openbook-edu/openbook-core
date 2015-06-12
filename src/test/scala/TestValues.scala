@@ -270,7 +270,7 @@ object TestValues {
   /* ---------------------- TASKS ---------------------- */
 
   /* LONG ANSWER TASKS */
-  val testLongAnswerTaskA = LongAnswerTask(
+  val testLongAnswerTaskA = DocumentTask(
     id = UUID.fromString("bf1a6ed0-9f83-4cb4-85c1-ad456299b3a3"),
     version = 1L,
     partId = UUID.fromString("5cd214be-6bba-47fa-9f35-0eb8bafec397"), // testPartA.id
@@ -288,7 +288,7 @@ object TestValues {
   )
 
   /* No data in DB */
-  val testLongAnswerTaskF = LongAnswerTask(
+  val testLongAnswerTaskF = DocumentTask(
     id = UUID.fromString("6a50a2f1-0138-4d5c-abdd-fe85a7a520a4"),
     version = 2L,
     partId = UUID.fromString("5cd214be-6bba-47fa-9f35-0eb8bafec397"), // testPartA.id
@@ -1003,7 +1003,7 @@ object TestValues {
   /* ---------------------- WORK ---------------------- */
 
   /* LONG_ANSWER_WORK */
-  val testLongAnswerWorkA = LongAnswerWork(
+  val testLongAnswerWorkA = DocumentWork(
     id = UUID.fromString("441374e2-0b16-43ec-adb9-6a3251081d24"),
     studentId = testUserC.id,
     taskId = testLongAnswerTaskA.id,
@@ -1015,7 +1015,7 @@ object TestValues {
     updatedAt = testDocumentA.updatedAt
   )
 
-  val testLongAnswerWorkF = LongAnswerWork(
+  val testLongAnswerWorkF = DocumentWork(
     id = UUID.fromString("f7fcffc3-7b79-4de7-b6dd-cf37aa155fd9"),
     studentId = testUserE.id,
     taskId = testLongAnswerTaskA.id,
@@ -1028,7 +1028,7 @@ object TestValues {
   )
 
   /* No data in DB */
-  val testLongAnswerWorkK = LongAnswerWork(
+  val testLongAnswerWorkK = DocumentWork(
     id = UUID.fromString("db4f6062-0cb6-4b0d-87db-e7dcb7ab8ffc"),
     studentId = testUserG.id,
     taskId = testLongAnswerTaskA.id,
@@ -1186,7 +1186,7 @@ object TestValues {
   /* ---------------------- WORK REVISIONS ---------------------- */
 
   /* LONG_ANSWER_WORK */
-  val testLongAnswerWorkRevisionA = LongAnswerWork(
+  val testLongAnswerWorkRevisionA = DocumentWork(
     id = testLongAnswerWorkA.id,
     studentId = testLongAnswerWorkA.studentId,
     taskId = testLongAnswerWorkA.taskId,
@@ -1198,7 +1198,7 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-  val testLongAnswerWorkRevisionF = LongAnswerWork(
+  val testLongAnswerWorkRevisionF = DocumentWork(
     id = testLongAnswerWorkF.id,
     studentId = testLongAnswerWorkF.studentId,
     taskId = testLongAnswerWorkF.taskId,

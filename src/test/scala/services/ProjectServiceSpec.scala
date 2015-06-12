@@ -58,7 +58,7 @@ class ProjectServiceSpec
           name = ""
         )
 
-        val emptyTask = LongAnswerTask(
+        val emptyTask = DocumentTask(
           partId = emptyPart.id,
           position = 1
         )
@@ -113,7 +113,7 @@ class ProjectServiceSpec
           name = ""
         )
 
-        val emptyTask = LongAnswerTask(
+        val emptyTask = DocumentTask(
           partId = emptyPart.id,
           position = 1
         )
@@ -155,7 +155,7 @@ class ProjectServiceSpec
           name = ""
         )
 
-        val emptyTask = LongAnswerTask(
+        val emptyTask = DocumentTask(
           partId = emptyPart.id,
           position = 1
         )

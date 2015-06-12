@@ -1034,7 +1034,7 @@ class WorkRepositorySpec
 
         val result = workRepository.insert(testWork)
         val eitherWork = Await.result(result, Duration.Inf)
-        val \/-(work: LongAnswerWork) = eitherWork
+        val \/-(work: DocumentWork) = eitherWork
 
         work.id should be(testWork.id)
         work.studentId should be(testWork.studentId)
@@ -1140,7 +1140,7 @@ class WorkRepositorySpec
 
         val result = workRepository.update(updatedWork)
         val eitherWork = Await.result(result, Duration.Inf)
-        val \/-(work: LongAnswerWork) = eitherWork
+        val \/-(work: DocumentWork) = eitherWork
 
         // This values should remain unchanged
         work.id should be(testWork.id)
@@ -1266,7 +1266,7 @@ class WorkRepositorySpec
 
         val result = workRepository.update(updatedWork)
         val eitherWork = Await.result(result, Duration.Inf)
-        val \/-(work: LongAnswerWork) = eitherWork
+        val \/-(work: DocumentWork) = eitherWork
 
         // This values should remain unchanged
         work.id should be(testWork.id)
@@ -1517,7 +1517,7 @@ class WorkRepositorySpec
 
         val result = workRepository.delete(testWork)
         val eitherWork = Await.result(result, Duration.Inf)
-        val \/-(work: LongAnswerWork) = eitherWork
+        val \/-(work: DocumentWork) = eitherWork
 
         work.id should be(testWork.id)
         work.studentId should be(testWork.studentId)

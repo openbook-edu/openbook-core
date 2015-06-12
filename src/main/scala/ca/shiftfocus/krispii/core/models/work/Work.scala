@@ -1,10 +1,10 @@
 package ca.shiftfocus.krispii.core.models.work
 
 import ca.shiftfocus.krispii.core.models.document.Document
-import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import java.util.UUID
 import org.joda.time.DateTime
-import play.api.libs.json.{ Json, JsValue, Writes }
+import play.api.libs.json._
+import play.api.libs.functional.syntax._
 
 /**
  * The "work" trait is the supertype for work that students have done.
@@ -25,7 +25,6 @@ sealed trait Work {
 }
 
 object Work {
-
   implicit val jsonWrites = new Writes[Work] {
     def writes(work: Work): JsValue = {
       val jsVal = Json.obj(
@@ -33,13 +32,11 @@ object Work {
         "studentId" -> work.studentId,
         "taskId" -> work.taskId,
         "version" -> work.version,
-        "response" -> {
-          work match {
-            case specific: IntListWork => specific.response
-            case specific: MatchListWork => specific.response
-            case specific: DocumentWork => specific.response
-          }
-        },
+        "response" -> {work match {
+          case specific: DocumentWork if specific.response.isDefined => Json.toJson(specific.response.get)
+          case specific: QuestionWork if specific.response.isDefined => Json.toJson(specific.response.get)
+          case _ => JsNull
+        }},
         "isComplete" -> work.isComplete,
         "createdAt" -> work.createdAt,
         "updatedAt" -> work.updatedAt
@@ -50,45 +47,9 @@ object Work {
       }
     }
   }
-
 }
 
-/**
- * DocumentWork are types of work whose storage is backed by the DocumentService and use
- * operational-transformation to synchronize between multiple clients. Eventually all
- * types of work should move to ot-based DocumentWork.
- */
-sealed trait DocumentWork extends Work {
-  val documentId: UUID
-  val response: Option[Document]
-
-  def copy(
-    id: UUID = this.id,
-    studentId: UUID = this.studentId,
-    taskId: UUID = this.taskId,
-    documentId: UUID = this.documentId,
-    version: Long = this.version,
-    response: Option[Document] = this.response,
-    isComplete: Boolean = this.isComplete,
-    createdAt: DateTime = this.createdAt,
-    updatedAt: DateTime = this.updatedAt
-  ): DocumentWork = {
-    this match {
-      case longAnswerWork: LongAnswerWork => LongAnswerWork(id, studentId, taskId, documentId, version, response, isComplete, createdAt, updatedAt)
-      case shortAnswerWork: ShortAnswerWork => ShortAnswerWork(id, studentId, taskId, documentId, version, response, isComplete, createdAt, updatedAt)
-    }
-  }
-  override def responseToString: String = {
-    if (response.isDefined) {
-      response.get.plaintext
-    }
-    else {
-      "Response is empty"
-    }
-  }
-}
-
-case class LongAnswerWork(
+final case class DocumentWork(
   id: UUID = UUID.randomUUID,
   studentId: UUID,
   taskId: UUID,
@@ -98,90 +59,49 @@ case class LongAnswerWork(
   isComplete: Boolean = false,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
-) extends DocumentWork
+) extends Work {
+  override def responseToString: String = {
+    response match {
+      case Some(document) => document.plaintext
+      case None => ""
+    }
+  }
+}
 
-case class ShortAnswerWork(
+final case class QuestionWork(
   id: UUID = UUID.randomUUID,
   studentId: UUID,
   taskId: UUID,
-  documentId: UUID,
   version: Long = 1L,
-  response: Option[Document] = None,
+  response: Option[IndexedSeq[Answer]] = None,
   isComplete: Boolean = false,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
-) extends DocumentWork
-
-/**
- * ListWork are types of work that store lists of things and map to arrays in the database storage
- * layer.
- *
- * @tparam A the thing that the work is a list of
- */
-sealed trait ListWork[A] extends Work {
-  val response: IndexedSeq[A]
-}
-sealed trait IntListWork extends ListWork[Int] {
-  override val response: IndexedSeq[Int]
-}
-sealed trait MatchListWork extends ListWork[Match] {
-  override val response: IndexedSeq[Match]
-}
-
-case class MultipleChoiceWork(
-    id: UUID = UUID.randomUUID,
-    studentId: UUID,
-    taskId: UUID,
-    override val version: Long,
-    response: IndexedSeq[Int],
-    isComplete: Boolean = false,
-    createdAt: DateTime = new DateTime,
-    updatedAt: DateTime = new DateTime
-) extends IntListWork {
-
+) extends Work {
   override def responseToString: String = {
-    var result = ""
-    response.zipWithIndex.foreach {
-      case (e, i) =>
-        result = result + "Question: " + i + " Answer: " + e.toString + ", "
+    response match {
+      case Some(answers) => answers.toString
+      case None => ""
     }
-    """"""" + result.dropRight(2) + """""""
-  }
-
-}
-
-case class OrderingWork(
-    id: UUID = UUID.randomUUID,
-    studentId: UUID,
-    taskId: UUID,
-    override val version: Long = 1L,
-    response: IndexedSeq[Int],
-    isComplete: Boolean = false,
-    createdAt: DateTime = new DateTime,
-    updatedAt: DateTime = new DateTime
-) extends IntListWork {
-
-  override def responseToString: String = {
-    response.mkString(" -> ")
-  }
-
-}
-
-case class MatchingWork(
-    id: UUID = UUID.randomUUID,
-    studentId: UUID,
-    taskId: UUID,
-    override val version: Long,
-    response: IndexedSeq[Match],
-    isComplete: Boolean = false,
-    createdAt: DateTime = new DateTime,
-    updatedAt: DateTime = new DateTime
-) extends MatchListWork {
-
-  override def responseToString: String = {
-    var result = ""
-    response.zipWithIndex.foreach { case (e, i) => result = result + i + " = " + e.left.toString + " + " + e.right.toString + ", " }
-    '"' + result.dropRight(2) + '"'
-
   }
 }
+
+case class Match(left: Int, right: Int)
+object Match {
+  implicit val reads: Reads[Match] = (
+    (__ \ "left").read[Int] and
+      (__ \ "right").read[Int]
+    )(Match.apply _)
+
+  implicit val writes: Writes[Match] = (
+    (__ \ "left").write[Int] and
+      (__ \ "right").write[Int]
+    )(unlift(Match.unapply))
+}
+
+sealed trait Answer
+final case class ShortAnswerAnswer(answer: String) extends Answer
+final case class BlanksAnswer(answer: IndexedSeq[String]) extends Answer
+final case class MultipleChoiceAnswer(answer: IndexedSeq[Int]) extends Answer
+final case class OrderingAnswer(answer: IndexedSeq[Int]) extends Answer
+final case class MatchingAnswer(answer: IndexedSeq[Match]) extends Answer

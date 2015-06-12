@@ -148,7 +148,7 @@ class ProjectServiceDefault(
       parts = IndexedSeq.empty[Part]
     )
     val newPart = Part(projectId = newProject.id, name = "")
-    val newTask = LongAnswerTask(partId = newPart.id, position = 1)
+    val newTask = DocumentTask(partId = newPart.id, position = 1)
 
     // Then insert the new project, part and task into the database, wrapped
     // in a transaction such that either all three are created, or none.
@@ -552,7 +552,7 @@ class ProjectServiceDefault(
           val positionExists = taskList.exists(_.position == position)
           if (positionExists) {
             val filteredTaskList = taskList.filter(_.position >= position).map {
-              case task: LongAnswerTask => task.copy(position = task.position + 1)
+              case task: DocumentTask => task.copy(position = task.position + 1)
               case task: ShortAnswerTask => task.copy(position = task.position + 1)
               case task: MultipleChoiceTask => task.copy(position = task.position + 1)
               case task: OrderingTask => task.copy(position = task.position + 1)
@@ -657,7 +657,7 @@ class ProjectServiceDefault(
             for (i <- opTasks.indices) {
               filteredOrderedTaskList = filteredOrderedTaskList :+ {
                 opTasks(i) match {
-                  case task: LongAnswerTask => task.copy(position = i)
+                  case task: DocumentTask => task.copy(position = i)
                   case task: ShortAnswerTask => task.copy(position = i)
                   case task: MultipleChoiceTask => task.copy(position = i)
                   case task: OrderingTask => task.copy(position = i)
@@ -684,7 +684,7 @@ class ProjectServiceDefault(
               if (i >= newPosition) {
                 filteredOrderedTaskList = filteredOrderedTaskList :+ {
                   filteredTaskList(i) match {
-                    case task: LongAnswerTask => task.copy(position = i + 1)
+                    case task: DocumentTask => task.copy(position = i + 1)
                     case task: ShortAnswerTask => task.copy(position = i + 1)
                     case task: MultipleChoiceTask => task.copy(position = i + 1)
                     case task: OrderingTask => task.copy(position = i + 1)
@@ -696,7 +696,7 @@ class ProjectServiceDefault(
               else {
                 filteredOrderedTaskList = filteredOrderedTaskList :+ {
                   filteredTaskList(i) match {
-                    case task: LongAnswerTask => task.copy(position = i)
+                    case task: DocumentTask => task.copy(position = i)
                     case task: ShortAnswerTask => task.copy(position = i)
                     case task: MultipleChoiceTask => task.copy(position = i)
                     case task: OrderingTask => task.copy(position = i)
@@ -732,8 +732,8 @@ class ProjectServiceDefault(
       for {
         task <- lift(taskRepository.find(commonArgs.taskId))
         _ <- predicate(task.version == commonArgs.version)(ServiceError.OfflineLockFail)
-        _ <- predicate(task.isInstanceOf[LongAnswerTask])(ServiceError.BadInput("services.ProjectService.updateLongAnswerTask.wrongTaskType"))
-        toUpdate = task.asInstanceOf[LongAnswerTask].copy(
+        _ <- predicate(task.isInstanceOf[DocumentTask])(ServiceError.BadInput("services.ProjectService.updateLongAnswerTask.wrongTaskType"))
+        toUpdate = task.asInstanceOf[DocumentTask].copy(
           partId = commonArgs.partId.getOrElse(task.partId),
           position = commonArgs.position.getOrElse(task.position),
           settings = task.settings.copy(
@@ -931,7 +931,7 @@ class ProjectServiceDefault(
         genericTask <- lift(taskRepository.find(taskId))
         _ <- predicate(genericTask.version == version)(ServiceError.OfflineLockFail)
         task = genericTask match {
-          case task: LongAnswerTask => task.copy(version = version)
+          case task: DocumentTask => task.copy(version = version)
           case task: ShortAnswerTask => task.copy(version = version)
           case task: MultipleChoiceTask => task.copy(version = version)
           case task: OrderingTask => task.copy(version = version)
@@ -944,7 +944,7 @@ class ProjectServiceDefault(
           // If there is already a part with this position, shift it (and all following parts)
           // back by one to make room for the new one.
           val filteredTaskList = taskList.filter(_.position > task.position).map {
-            case task: LongAnswerTask => task.copy(position = task.position - 1)
+            case task: DocumentTask => task.copy(position = task.position - 1)
             case task: ShortAnswerTask => task.copy(position = task.position - 1)
             case task: MultipleChoiceTask => task.copy(position = task.position - 1)
             case task: OrderingTask => task.copy(position = task.position - 1)
@@ -970,7 +970,7 @@ class ProjectServiceDefault(
       for {
         task <- lift(taskRepository.find(taskId))
         toUpdate = task match {
-          case task: LongAnswerTask => task.copy(position = newPosition, partId = partId)
+          case task: DocumentTask => task.copy(position = newPosition, partId = partId)
           case task: ShortAnswerTask => task.copy(position = newPosition, partId = partId)
           case task: MultipleChoiceTask => task.copy(position = newPosition, partId = partId)
           case task: OrderingTask => task.copy(position = newPosition, partId = partId)

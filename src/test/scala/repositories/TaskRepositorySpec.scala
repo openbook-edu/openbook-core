@@ -48,9 +48,9 @@ class TaskRepositorySpec
 
             //Specific
             tasks(key) match {
-              case longAnswer: LongAnswerTask => {
+              case longAnswer: DocumentTask => {
                 task match {
-                  case task: LongAnswerTask => {
+                  case task: DocumentTask => {
                     longAnswer.id should be(task.id)
                   }
                 }
@@ -190,9 +190,9 @@ class TaskRepositorySpec
             tasks(key).updatedAt.toString should be(task.updatedAt.toString)
 
             tasks(key) match {
-              case longAnswer: LongAnswerTask => {
+              case longAnswer: DocumentTask => {
                 task match {
-                  case task: LongAnswerTask => {
+                  case task: DocumentTask => {
                     longAnswer.id should be(task.id)
                   }
                 }
@@ -445,7 +445,7 @@ class TaskRepositorySpec
 
         val result = taskRepository.insert(testTask)
         val eitherTask = Await.result(result, Duration.Inf)
-        val \/-(task: LongAnswerTask) = eitherTask
+        val \/-(task: DocumentTask) = eitherTask
 
         task.id should be(testTask.id)
         task.version should be(1L)
@@ -584,7 +584,7 @@ class TaskRepositorySpec
 
         val result = taskRepository.update(updatedTask)
         val eitherTask = Await.result(result, Duration.Inf)
-        val \/-(task: LongAnswerTask) = eitherTask
+        val \/-(task: DocumentTask) = eitherTask
 
         task.id should be(updatedTask.id)
         task.version should be(updatedTask.version + 1)

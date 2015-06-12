@@ -156,7 +156,7 @@ class WorkServiceDefault(
    * @param isComplete whether the student is finished with the task
    * @return a future disjunction containing either a work, or a failure
    */
-  override def createLongAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, LongAnswerWork]] = {
+  override def createLongAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, DocumentWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -165,7 +165,7 @@ class WorkServiceDefault(
         user <- lift(fUser)
         task <- lift(fTask)
         document <- lift(documentService.create(UUID.randomUUID, user, "", Delta(IndexedSeq())))
-        newWork = LongAnswerWork(
+        newWork = DocumentWork(
           studentId = user.id,
           taskId = task.id,
           documentId = document.id,
@@ -173,7 +173,7 @@ class WorkServiceDefault(
           response = Some(document)
         )
         work <- lift(workRepository.insert(newWork))
-      } yield work.asInstanceOf[LongAnswerWork]
+      } yield work.asInstanceOf[DocumentWork]
     }
   }
 
@@ -340,7 +340,7 @@ class WorkServiceDefault(
    * Because the contents of the work are handled by the Document service, this method only
    * serves to update the work's completed status.
    */
-  def updateLongAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, LongAnswerWork]] = {
+  def updateLongAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, DocumentWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -349,10 +349,10 @@ class WorkServiceDefault(
         user <- lift(fUser)
         task <- lift(fTask)
         existingWork <- lift(workRepository.find(user, task))
-        existingLAWork = existingWork.asInstanceOf[LongAnswerWork]
+        existingLAWork = existingWork.asInstanceOf[DocumentWork]
         workToUpdate = existingLAWork.copy(isComplete = isComplete)
         updatedWork <- lift(workRepository.update(workToUpdate))
-      } yield updatedWork.asInstanceOf[LongAnswerWork]
+      } yield updatedWork.asInstanceOf[DocumentWork]
     }
   }
 

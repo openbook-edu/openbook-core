@@ -29,7 +29,7 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   def findWork(userId: UUID, taskId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Work]]
 
   // Create methods for the textual work types
-  def createLongAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, LongAnswerWork]]
+  def createLongAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, DocumentWork]]
   def createShortAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, ShortAnswerWork]]
 
   // Create methods for the other work types
@@ -38,7 +38,7 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   def createMatchingWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]]
 
   // Update methods for the textual work types
-  def updateLongAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, LongAnswerWork]]
+  def updateLongAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, DocumentWork]]
   def updateShortAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, ShortAnswerWork]]
 
   // Update methods for the other work types

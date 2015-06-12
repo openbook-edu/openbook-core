@@ -1,7 +1,6 @@
 package ca.shiftfocus.krispii.core.lib
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import com.typesafe.config.ConfigFactory
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -23,6 +22,18 @@ case class ScalaCachePool(master: ScalaCache, slaves: Seq[ScalaCache] = IndexedS
       val random_index = rand.nextInt(pool.length)
       pool(random_index)
     }
+  }
+
+  def get[V](key: String): Future[Option[V]] = {
+    randomInstance.cache.get[V](key)
+  }
+
+  def put[V](key: String)(value: V, ttl: Option[Duration] = None): Future[Unit] = {
+    master.cache.put[V](key, value, ttl)
+  }
+
+  def remove(key: String): Future[Unit] = {
+    master.cache.remove(key)
   }
 
   def getCached[V](key: String): Future[\/[RepositoryError.Fail, V]] = {

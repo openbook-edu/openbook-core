@@ -7,11 +7,10 @@ import Matchers._
 import scala.collection.immutable.TreeMap
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import scalaz.{-\/, \/-}
+import scalaz.{ -\/, \/- }
 
 class ChatRepositorySpec
-  extends TestEnvironment
-{
+    extends TestEnvironment {
   val chatRepository = new ChatRepositoryPostgres
 
   "ChatRepository.list" should {
@@ -47,8 +46,8 @@ class ChatRepositorySpec
       }
       "list only an indicated portion of chat logs for a course" in {
         val testCourse = TestValues.testCourseA
-        val num        = 2
-        val offset     = 2
+        val num = 2
+        val offset = 2
 
         val testChatLogList = TreeMap[Int, Chat](
           0 -> TestValues.testChatC,
@@ -74,7 +73,7 @@ class ChatRepositorySpec
       }
       "list all chat logs for a course for a user" in {
         val testCourse = TestValues.testCourseA
-        val testUser   = TestValues.testUserE
+        val testUser = TestValues.testUserE
 
         val testChatLogList = TreeMap[Int, Chat](
           0 -> TestValues.testChatA,
@@ -100,9 +99,9 @@ class ChatRepositorySpec
       }
       "list only an indicated portion of chat logs for a course for a user" in {
         val testCourse = TestValues.testCourseA
-        val testUser   = TestValues.testUserC
-        val num        = 2
-        val offset     = 1
+        val testUser = TestValues.testUserC
+        val num = 2
+        val offset = 1
 
         val testChatLogList = TreeMap[Int, Chat](
           0 -> TestValues.testChatC,
@@ -132,7 +131,7 @@ class ChatRepositorySpec
   "ChatRepository.find" should {
     inSequence {
       "find a chat log for a course by number" in {
-        val testCourse  = TestValues.testCourseA
+        val testCourse = TestValues.testCourseA
         val testChatLog = TestValues.testChatC
 
         val result = chatRepository.find(testCourse, testChatLog.messageNum)
@@ -186,9 +185,9 @@ class ChatRepositorySpec
         chatLog.messageNum should be(updatedChatLog.messageNum)
         // User id is not changed
         chatLog.userId should be(testChatLog.userId)
-        chatLog.userId should not be(updatedChatLog.userId)
+        chatLog.userId should not be (updatedChatLog.userId)
         // Message is not changed
-        chatLog.message should not be(updatedChatLog.message)
+        chatLog.message should not be (updatedChatLog.message)
         chatLog.message should be(testChatLog.message)
         chatLog.hidden should be(updatedChatLog.hidden)
         chatLog.createdAt.toString should be(updatedChatLog.createdAt.toString)
@@ -204,7 +203,7 @@ class ChatRepositorySpec
         )
 
         val result = chatRepository.update(updatedChatLog)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Chat")))
       }
     }
   }

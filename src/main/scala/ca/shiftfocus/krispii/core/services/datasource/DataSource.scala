@@ -3,10 +3,10 @@ package ca.shiftfocus.krispii.core.services.datasource
 import com.github.mauricio.async.db.Configuration
 import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.postgresql.pool.PostgreSQLConnectionFactory
-import com.github.mauricio.async.db.pool.{PoolConfiguration, ConnectionPool}
+import com.github.mauricio.async.db.pool.{ PoolConfiguration, ConnectionPool }
 import com.typesafe.config._
 import scalacache.ScalaCache
-import scalaz.{\/, -\/, \/-}
+import scalaz.{ \/, -\/, \/- }
 
 trait DB {
   val dbconfig: Configuration
@@ -23,7 +23,7 @@ class PostgresDB(val dbconfig: Configuration, val poolConfig: PoolConfiguration)
   val config = ConfigFactory.load()
   //val cacheExpiry = Option(config.getInt("app.cache.expires")).getOrElse(5)
   lazy val factory = new PostgreSQLConnectionFactory(dbconfig)
-  override def pool = connectionPool
+  override def pool: Connection = connectionPool
 
   private val connectionPool = new ConnectionPool(factory, poolConfig)
 }

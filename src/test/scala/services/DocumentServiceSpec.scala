@@ -1,8 +1,9 @@
 import ca.shiftfocus.krispii.core.error.ServiceError
-import ca.shiftfocus.krispii.core.models.document.{Document, Revision}
+import ca.shiftfocus.krispii.core.lib.ScalaCachePool
+import ca.shiftfocus.krispii.core.models.document.{ Document, Revision }
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.DocumentServiceDefault
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.Connection
 import org.joda.time.DateTime
 import org.scalatest._
@@ -10,12 +11,12 @@ import Matchers._
 import ws.kahn.ot._
 import ws.kahn.ot.exceptions._
 import ca.shiftfocus.krispii.core.services.datasource.DB
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future }
 import scala.concurrent.duration.Duration
 import scalaz._
 
 class DocumentServiceSpec
-  extends TestEnvironment(writeToDb = false) {
+    extends TestEnvironment(writeToDb = false) {
 
   val db = stub[DB]
   val mockConnection = stub[Connection]
@@ -28,6 +29,20 @@ class DocumentServiceSpec
 
     override def transactional[A](f: Connection => Future[A]): Future[A] = {
       f(mockConnection)
+    }
+  }
+
+  "DocumentService.update" should {
+    inSequence {
+      "return ServiceError.OfflineLockFail if versions don't match" in {
+        val testDocument = TestValues.testDocumentA
+        val testUser = TestValues.testUserC
+
+        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (testDocument.id, *, *) returns (Future.successful(\/-(testDocument)))
+
+        val result = documentService.update(testDocument.id, testDocument.version + 1, testUser, IndexedSeq(testUser), testDocument.title)
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
+      }
     }
   }
 
@@ -58,9 +73,9 @@ class DocumentServiceSpec
         val testPushResult = documentService.PushResult(updatedDocument, pushedRevision, IndexedSeq.empty[Revision])
 
         (documentRepository.find(_: UUID, _: Long)(_: Connection)).when(testDocument.id, 0L, *).returns(Future.successful(\/-(testDocument)))
-        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when(testDocument, (testDocument.version - 1), *, *) returns (Future.successful(\/-(IndexedSeq.empty[Revision])))
-        (documentRepository.update(_: Document)(_: Connection)) when(updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
-        (revisionRepository.insert(_: Revision)(_: Connection)) when(pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
+        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when (testDocument, (testDocument.version - 1), *, *) returns (Future.successful(\/-(IndexedSeq.empty[Revision])))
+        (documentRepository.update(_: Document)(_: Connection)) when (updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
+        (revisionRepository.insert(_: Revision)(_: Connection)) when (pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
 
         val result = documentService.push(testDocument.id, (testDocument.version - 1), testAuthor, pushedDelta)
         val \/-(pushResult) = Await.result(result, Duration.Inf)
@@ -107,9 +122,9 @@ class DocumentServiceSpec
         val testPushResult = documentService.PushResult(updatedDocument, pushedRevision, IndexedSeq(recentRevision))
 
         (documentRepository.find(_: UUID, _: Long)(_: Connection)).when(testDocument.id, 0L, *).returns(Future.successful(\/-(testDocument)))
-        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when(testDocument, (testDocument.version - 1), *, *) returns (Future.successful(\/-(IndexedSeq(recentRevision))))
-        (documentRepository.update(_: Document)(_: Connection)) when(updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
-        (revisionRepository.insert(_: Revision)(_: Connection)) when(pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
+        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when (testDocument, (testDocument.version - 1), *, *) returns (Future.successful(\/-(IndexedSeq(recentRevision))))
+        (documentRepository.update(_: Document)(_: Connection)) when (updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
+        (revisionRepository.insert(_: Revision)(_: Connection)) when (pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
 
         val result = documentService.push(testDocument.id, (testDocument.version - 1), testAuthor, pushedDelta)
         val \/-(pushResult) = Await.result(result, Duration.Inf)
@@ -163,9 +178,9 @@ class DocumentServiceSpec
         val testPushResult = documentService.PushResult(updatedDocument, pushedRevision, IndexedSeq(recentRevision))
 
         (documentRepository.find(_: UUID, _: Long)(_: Connection)).when(testDocument.id, 0L, *).returns(Future.successful(\/-(testDocument)))
-        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when(testDocument, (testDocument.version - 1), *, *) returns (Future.successful(\/-(IndexedSeq(recentRevision))))
-        (documentRepository.update(_: Document)(_: Connection)) when(updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
-        (revisionRepository.insert(_: Revision)(_: Connection)) when(pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
+        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when (testDocument, (testDocument.version - 1), *, *) returns (Future.successful(\/-(IndexedSeq(recentRevision))))
+        (documentRepository.update(_: Document)(_: Connection)) when (updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
+        (revisionRepository.insert(_: Revision)(_: Connection)) when (pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
 
         val result = documentService.push(testDocument.id, (testDocument.version - 1), testAuthor, pushedDelta)
         val \/-(pushResult) = Await.result(result, Duration.Inf)
@@ -228,9 +243,9 @@ class DocumentServiceSpec
         val testPushResult = documentService.PushResult(updatedDocument, pushedRevision, IndexedSeq(recentRevision1, recentRevision2))
 
         (documentRepository.find(_: UUID, _: Long)(_: Connection)).when(testDocument.id, 0L, *).returns(Future.successful(\/-(testDocument)))
-        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when(testDocument, (testDocument.version - 2), *, *) returns (Future.successful(\/-(IndexedSeq(recentRevision1, recentRevision2))))
-        (documentRepository.update(_: Document)(_: Connection)) when(updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
-        (revisionRepository.insert(_: Revision)(_: Connection)) when(pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
+        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when (testDocument, (testDocument.version - 2), *, *) returns (Future.successful(\/-(IndexedSeq(recentRevision1, recentRevision2))))
+        (documentRepository.update(_: Document)(_: Connection)) when (updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
+        (revisionRepository.insert(_: Revision)(_: Connection)) when (pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
 
         val result = documentService.push(testDocument.id, (testDocument.version - 2), testAuthor, pushedDelta)
         val \/-(pushResult) = Await.result(result, Duration.Inf)
@@ -289,9 +304,9 @@ class DocumentServiceSpec
         val testPushResult = documentService.PushResult(updatedDocument, pushedRevision, IndexedSeq(recentRevision1, recentRevision2))
 
         (documentRepository.find(_: UUID, _: Long)(_: Connection)).when(testDocument.id, 0L, *).returns(Future.successful(\/-(testDocument)))
-        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when(testDocument, (testDocument.version - 2), *, *) returns (Future.successful(\/-(IndexedSeq(recentRevision1, recentRevision2))))
-        (documentRepository.update(_: Document)(_: Connection)) when(updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
-        (revisionRepository.insert(_: Revision)(_: Connection)) when(pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
+        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when (testDocument, (testDocument.version - 2), *, *) returns (Future.successful(\/-(IndexedSeq(recentRevision1, recentRevision2))))
+        (documentRepository.update(_: Document)(_: Connection)) when (updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
+        (revisionRepository.insert(_: Revision)(_: Connection)) when (pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
 
         val result = documentService.push(testDocument.id, (testDocument.version - 2), testAuthor, pushedDelta)
         an[IncompatibleDeltasException] should be thrownBy (Await.result(result, Duration.Inf))
@@ -329,7 +344,7 @@ class DocumentServiceSpec
         val pushedDelta = Delta(IndexedSeq(
           Delete(4),
           InsertText("Dear")
-          //          Retain(1) // Commented to throw an Exception
+        //          Retain(1) // Commented to throw an Exception
         ))
 
         val transformedDelta = Delta(IndexedSeq(
@@ -349,9 +364,9 @@ class DocumentServiceSpec
         val testPushResult = documentService.PushResult(updatedDocument, pushedRevision, IndexedSeq(recentRevision1, recentRevision2))
 
         (documentRepository.find(_: UUID, _: Long)(_: Connection)).when(testDocument.id, 0L, *).returns(Future.successful(\/-(testDocument)))
-        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when(testDocument, (testDocument.version - 2), *, *) returns (Future.successful(\/-(IndexedSeq(recentRevision1, recentRevision2))))
-        (documentRepository.update(_: Document)(_: Connection)) when(updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
-        (revisionRepository.insert(_: Revision)(_: Connection)) when(pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
+        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when (testDocument, (testDocument.version - 2), *, *) returns (Future.successful(\/-(IndexedSeq(recentRevision1, recentRevision2))))
+        (documentRepository.update(_: Document)(_: Connection)) when (updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
+        (revisionRepository.insert(_: Revision)(_: Connection)) when (pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
 
         val result = documentService.push(testDocument.id, (testDocument.version - 2), testAuthor, pushedDelta)
         an[java.lang.IndexOutOfBoundsException] should be thrownBy (Await.result(result, Duration.Inf))
@@ -384,9 +399,9 @@ class DocumentServiceSpec
         val testPushResult = documentService.PushResult(updatedDocument, pushedRevision, IndexedSeq())
 
         (documentRepository.find(_: UUID, _: Long)(_: Connection)).when(testDocument.id, 0L, *).returns(Future.successful(\/-(testDocument)))
-        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when(testDocument, (testDocument.version - 2), *, *) returns (Future.successful(\/-(IndexedSeq())))
-        (documentRepository.update(_: Document)(_: Connection)) when(updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
-        (revisionRepository.insert(_: Revision)(_: Connection)) when(pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
+        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when (testDocument, (testDocument.version - 2), *, *) returns (Future.successful(\/-(IndexedSeq())))
+        (documentRepository.update(_: Document)(_: Connection)) when (updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
+        (revisionRepository.insert(_: Revision)(_: Connection)) when (pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
 
         val result = documentService.push(testDocument.id, (testDocument.version - 2), testAuthor, pushedDelta)
         an[IncompatibleDeltasException] should be thrownBy (Await.result(result, Duration.Inf))
@@ -414,9 +429,9 @@ class DocumentServiceSpec
         val testPushResult = documentService.PushResult(updatedDocument, pushedRevision, IndexedSeq.empty[Revision])
 
         (documentRepository.find(_: UUID, _: Long)(_: Connection)).when(testDocument.id, 0L, *).returns(Future.successful(\/-(testDocument)))
-        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when(testDocument, (testDocument.version - 1), *, *) returns (Future.successful(\/-(IndexedSeq.empty[Revision])))
-        (documentRepository.update(_: Document)(_: Connection)) when(updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
-        (revisionRepository.insert(_: Revision)(_: Connection)) when(pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
+        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when (testDocument, (testDocument.version - 1), *, *) returns (Future.successful(\/-(IndexedSeq.empty[Revision])))
+        (documentRepository.update(_: Document)(_: Connection)) when (updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
+        (revisionRepository.insert(_: Revision)(_: Connection)) when (pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
 
         val result = documentService.push(testDocument.id, (testDocument.version - 1), testAuthor, pushedDelta)
         Await.result(result, Duration.Inf) shouldBe a[-\/[ServiceError.BadInput]]
@@ -457,9 +472,9 @@ class DocumentServiceSpec
         val testPushResult = documentService.PushResult(updatedDocument, pushedRevision, IndexedSeq(recentRevision))
 
         (documentRepository.find(_: UUID, _: Long)(_: Connection)).when(testDocument.id, 0L, *).returns(Future.successful(\/-(testDocument)))
-        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when(testDocument, (testDocument.version - 1), *, *) returns (Future.successful(\/-(IndexedSeq(recentRevision))))
-        (documentRepository.update(_: Document)(_: Connection)) when(updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
-        (revisionRepository.insert(_: Revision)(_: Connection)) when(pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
+        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when (testDocument, (testDocument.version - 1), *, *) returns (Future.successful(\/-(IndexedSeq(recentRevision))))
+        (documentRepository.update(_: Document)(_: Connection)) when (updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
+        (revisionRepository.insert(_: Revision)(_: Connection)) when (pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
 
         val result = documentService.push(testDocument.id, (testDocument.version - 1), testAuthor, pushedDelta)
         Await.result(result, Duration.Inf) shouldBe a[-\/[ServiceError.BadInput]]
@@ -512,9 +527,9 @@ class DocumentServiceSpec
         val testPushResult = documentService.PushResult(updatedDocument, pushedRevision, IndexedSeq(recentRevision))
 
         (documentRepository.find(_: UUID, _: Long)(_: Connection)).when(testDocument.id, 0L, *).returns(Future.successful(\/-(testDocument)))
-        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when(testDocument, (testDocument.version - 1), *, *) returns (Future.successful(\/-(IndexedSeq(recentRevision))))
-        (documentRepository.update(_: Document)(_: Connection)) when(updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
-        (revisionRepository.insert(_: Revision)(_: Connection)) when(pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
+        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when (testDocument, (testDocument.version - 1), *, *) returns (Future.successful(\/-(IndexedSeq(recentRevision))))
+        (documentRepository.update(_: Document)(_: Connection)) when (updatedDocument, *) returns (Future.successful(\/-(updatedDocument)))
+        (revisionRepository.insert(_: Revision)(_: Connection)) when (pushedRevision, *) returns (Future.successful(\/-(pushedRevision)))
 
         val result = documentService.push(testDocument.id, (testDocument.version - 1), testAuthor, pushedDelta)
         Await.result(result, Duration.Inf) shouldBe a[-\/[ServiceError.BadInput]]

@@ -1,14 +1,14 @@
 package ca.shiftfocus.krispii.core.models
 
 import com.github.mauricio.async.db.RowData
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
 case class TextComponent(
-  id: UUID = UUID.random,
+  id: UUID = UUID.randomUUID,
   version: Long = 1L,
   ownerId: UUID,
   title: String,
@@ -24,7 +24,7 @@ object TextComponent {
   implicit val textComponentWrites: Writes[TextComponent] = (
     (__ \ "id").write[UUID] and
     (__ \ "version").write[Long] and
-      (__ \ "ownerId").write[UUID] and
+    (__ \ "ownerId").write[UUID] and
     (__ \ "title").write[String] and
     (__ \ "questions").write[String] and
     (__ \ "thingsToThinkAbout").write[String] and
@@ -34,7 +34,6 @@ object TextComponent {
   )(unlift(TextComponent.unapply))
 
 }
-
 
 case class TextComponentPost(
   ownerId: UUID,
@@ -52,7 +51,6 @@ object TextComponentPost {
     (__ \ "content").read[String]
   )(TextComponentPost.apply _)
 }
-
 
 case class TextComponentPut(
   version: Long,

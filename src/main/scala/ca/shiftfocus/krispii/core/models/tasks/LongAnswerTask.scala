@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models.tasks
 
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import ca.shiftfocus.krispii.core.models.Part
 import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
@@ -22,16 +22,16 @@ import play.api.libs.functional.syntax._
  * @param updatedAt When the entity was last updated.
  */
 case class LongAnswerTask(
-  // Primary Key
-  id: UUID = UUID.random,
-  // Combination must be unique
-  partId: UUID,
-  position: Int,
-  // Additional data
-  version: Long = 1L,
-  settings: CommonTaskSettings = CommonTaskSettings(),
-  createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime
+    // Primary Key
+    id: UUID = UUID.randomUUID,
+    // Combination must be unique
+    partId: UUID,
+    position: Int,
+    // Additional data
+    version: Long = 1L,
+    settings: CommonTaskSettings = CommonTaskSettings(),
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
 ) extends Task {
 
   /**
@@ -42,11 +42,17 @@ case class LongAnswerTask(
   override def equals(other: Any): Boolean = {
     other match {
       case otherLongAnswerTask: LongAnswerTask => {
-        this.id == otherLongAnswerTask.id
+        this.id == otherLongAnswerTask.id &&
+          this.partId == otherLongAnswerTask.partId &&
+          this.position == otherLongAnswerTask.position &&
+          this.version == otherLongAnswerTask.version &&
+          this.settings.toString == otherLongAnswerTask.settings.toString
       }
       case _ => false
     }
   }
+
+  override def hashCode: Int = 41 * this.id.hashCode
 }
 
 object LongAnswerTask {
@@ -55,11 +61,11 @@ object LongAnswerTask {
    */
   implicit val taskWrites: Writes[LongAnswerTask] = (
     (__ \ "id").write[UUID] and
-      (__ \ "partId").write[UUID] and
-      (__ \ "position").write[Int] and
-      (__ \ "version").write[Long] and
-      (__ \ "settings").write[CommonTaskSettings] and
-      (__ \ "createdAt").write[DateTime] and
-      (__ \ "updatedAt").write[DateTime]
+    (__ \ "partId").write[UUID] and
+    (__ \ "position").write[Int] and
+    (__ \ "version").write[Long] and
+    (__ \ "settings").write[CommonTaskSettings] and
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
   )(unlift(LongAnswerTask.unapply))
 }

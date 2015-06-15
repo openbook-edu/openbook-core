@@ -1,17 +1,17 @@
 package ca.shiftfocus.krispii.core.models
 
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
 case class Role(
-  id: UUID = UUID.random,
-  version: Long = 1L,
-  name: String,
-  createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime
+    id: UUID = UUID.randomUUID,
+    version: Long = 1L,
+    name: String,
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
 ) {
   override def equals(that: Any): Boolean = {
     that match {

@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models
 
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import org.joda.time.DateTime
 import play.api.libs.json._
@@ -8,24 +8,29 @@ import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
 case class Part(
-  id: UUID = UUID.random,
-  version: Long = 1L,
-  projectId: UUID,
-  name: String,
-  position: Int = 0,
-  enabled: Boolean = true,
-  tasks: IndexedSeq[Task] = IndexedSeq(),
-  createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime
+    id: UUID = UUID.randomUUID,
+    version: Long = 1L,
+    projectId: UUID,
+    name: String,
+    position: Int = 0,
+    enabled: Boolean = true,
+    tasks: IndexedSeq[Task] = IndexedSeq(),
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
 ) {
-  override def toString = {
-    s"Part(id: '${id.string}', position: '${position.toString}', name: '$name')"
+  override def toString: String = {
+    s"Part(id: '${id.toString}', position: '${position.toString}', name: '$name')"
   }
   override def equals(other: Any): Boolean = {
     other match {
       case otherPart: Part =>
         this.id == otherPart.id &&
-        this.tasks == otherPart.tasks
+          this.version == otherPart.version &&
+          this.projectId == otherPart.projectId &&
+          this.name == otherPart.name &&
+          this.position == otherPart.position &&
+          this.enabled == otherPart.enabled &&
+          this.tasks == otherPart.tasks
       case _ => false
     }
   }
@@ -49,7 +54,6 @@ object Part {
   val Unlocked = 1
 
 }
-
 
 case class PartPost(
   projectId: UUID,

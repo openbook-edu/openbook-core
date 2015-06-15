@@ -2,18 +2,17 @@ import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 
 import org.scalatest._
 import Matchers._
 import scala.collection.immutable.TreeMap
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{ Future, Await }
 import scala.concurrent.duration.Duration
 import scalaz._
 
 class ComponentRepositorySpec
-  extends TestEnvironment
-{
+    extends TestEnvironment {
   val componentRepository = new ComponentRepositoryPostgres()
 
   // TODO - test all test cases (update and delete)
@@ -75,8 +74,8 @@ class ComponentRepositorySpec
         }
       }
       "find all components belonging to a specific part" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testPart = TestValues.testPartB
 
@@ -126,8 +125,8 @@ class ComponentRepositorySpec
         }
       }
       "return empty Vector() if Part doesn't exist" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testPart = TestValues.testPartD
 
@@ -135,14 +134,15 @@ class ComponentRepositorySpec
         Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
       "find all components in a specific project" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testProject = TestValues.testProjectA
 
         val testComponentList = TreeMap[Int, Component](
-          0 -> TestValues.testTextComponentA,
-          1 -> TestValues.testVideoComponentB
+          0 -> TestValues.testAudioComponentC,
+          1 -> TestValues.testTextComponentA,
+          2 -> TestValues.testVideoComponentB
         )
 
         val result = componentRepository.list(testProject)
@@ -181,13 +181,20 @@ class ComponentRepositorySpec
                   }
                 }
               }
+              case audioComponent: AudioComponent => {
+                component match {
+                  case component: AudioComponent => {
+                    audioComponent.soundcloudId should be(component.soundcloudId)
+                  }
+                }
+              }
             }
           }
         }
       }
       "return empty Vector() if Project doesn't exist" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testProject = TestValues.testProjectD
 
@@ -199,7 +206,8 @@ class ComponentRepositorySpec
         val testProject = TestValues.testProjectA
 
         val testComponentList = TreeMap[Int, Component](
-          0 -> TestValues.testTextComponentA
+          0 -> TestValues.testAudioComponentC,
+          1 -> TestValues.testTextComponentA
         )
 
         val result = componentRepository.list(testProject, testUser)
@@ -229,6 +237,13 @@ class ComponentRepositorySpec
                   }
                 }
               }
+              case audioComponent: AudioComponent => {
+                component match {
+                  case component: AudioComponent => {
+                    audioComponent.soundcloudId should be(component.soundcloudId)
+                  }
+                }
+              }
             }
           }
         }
@@ -253,8 +268,8 @@ class ComponentRepositorySpec
   "ComponentRepository.find" should {
     inSequence {
       "find a single entry by ID" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testComponent = TestValues.testAudioComponentC
 
@@ -276,13 +291,13 @@ class ComponentRepositorySpec
         component.soundcloudId should be(testComponent.soundcloudId)
       }
       "return RepositoryError.NoResults if id is wrong" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
-        val id = UUID("024e4bde-282c-4947-a623-81ec11d2d85c")
+        val id = UUID.fromString("024e4bde-282c-4947-a623-81ec11d2d85c")
 
         val result = componentRepository.find(id)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Component")))
       }
     }
   }
@@ -290,13 +305,13 @@ class ComponentRepositorySpec
   "ComponentRepository.addToPart" should {
     inSequence {
       "add a component to a Part" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testComponent = TestValues.testAudioComponentC
         val testPart = TestValues.testPartC
 
         val result = componentRepository.addToPart(testComponent, testPart)
-        Await.result(result, Duration.Inf) should be(\/-( () ))
+        Await.result(result, Duration.Inf) should be(\/-(()))
       }
       "return RepositoryError.ForeignKeyConflict if Part doesn't exist" in {
         val testComponent = TestValues.testAudioComponentC
@@ -318,32 +333,32 @@ class ComponentRepositorySpec
   "ComponentRepository.removeFromPart" should {
     inSequence {
       "remove a component from a Part" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testComponent = TestValues.testTextComponentA
         val testPart = TestValues.testPartA
 
         val result = componentRepository.removeFromPart(testComponent, testPart)
-        Await.result(result, Duration.Inf) should be(\/-( () ))
+        Await.result(result, Duration.Inf) should be(\/-(()))
       }
       "return RepositoryError.NoResults if Part doesn't exist" in {
         val testComponent = TestValues.testTextComponentA
         val testPart = TestValues.testPartD
 
         val result = componentRepository.removeFromPart(testComponent, testPart)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults(s"Could not remove component ${testComponent.id} from part ${testPart.id}")))
       }
       "return RepositoryError.NoResults if Component doesn't exist" in {
         val testComponent = TestValues.testAudioComponentD
         val testPart = TestValues.testPartA
 
         val result = componentRepository.removeFromPart(testComponent, testPart)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults(s"Could not remove component ${testComponent.id} from part ${testPart.id}")))
       }
       "remove all Components from a Part" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testPart = TestValues.testPartB
 
@@ -393,14 +408,14 @@ class ComponentRepositorySpec
         }
       }
       "return empty Vector() when try to remove all Components if Part doesn't exist" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testPart = TestValues.testPartD
 
         val result = componentRepository.removeFromPart(testPart)
-        Await.result(result, Duration.Inf) should be(\/-(Vector()))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults(s"Either the part ${testPart.id} doesn't have components or the part doesn't exist")))
       }
     }
   }
@@ -487,7 +502,7 @@ class ComponentRepositorySpec
   "ComponentRepository.update" should {
     inSequence {
       "update TextComponent" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testComponent = TestValues.testTextComponentA
         val updatedComponent = testComponent.copy(
@@ -510,14 +525,14 @@ class ComponentRepositorySpec
         component.questions should be(updatedComponent.questions)
         component.thingsToThinkAbout should be(updatedComponent.thingsToThinkAbout)
         component.createdAt.toString should be(updatedComponent.createdAt.toString)
-        component.updatedAt.toString should not be(updatedComponent.updatedAt.toString)
+        component.updatedAt.toString should not be (updatedComponent.updatedAt.toString)
 
         //Specific
         component.content should be(updatedComponent.content)
       }
 
       "update VideoComponent" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testComponent = TestValues.testVideoComponentB
         val updatedComponent = testComponent.copy(
@@ -542,7 +557,7 @@ class ComponentRepositorySpec
         component.questions should be(updatedComponent.questions)
         component.thingsToThinkAbout should be(updatedComponent.thingsToThinkAbout)
         component.createdAt.toString should be(updatedComponent.createdAt.toString)
-        component.updatedAt.toString should not be(updatedComponent.updatedAt.toString)
+        component.updatedAt.toString should not be (updatedComponent.updatedAt.toString)
 
         //Specific
         component.vimeoId should be(updatedComponent.vimeoId)
@@ -550,7 +565,7 @@ class ComponentRepositorySpec
         component.height should be(updatedComponent.height)
       }
       "update AudioComponent" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testComponent = TestValues.testAudioComponentC
         val updatedComponent = testComponent.copy(
@@ -573,7 +588,7 @@ class ComponentRepositorySpec
         component.questions should be(updatedComponent.questions)
         component.thingsToThinkAbout should be(updatedComponent.thingsToThinkAbout)
         component.createdAt.toString should be(updatedComponent.createdAt.toString)
-        component.updatedAt.toString should not be(updatedComponent.updatedAt.toString)
+        component.updatedAt.toString should not be (updatedComponent.updatedAt.toString)
 
         //Specific
         component.soundcloudId should be(updatedComponent.soundcloudId)
@@ -584,7 +599,7 @@ class ComponentRepositorySpec
   "ComponentRepository.delete" should {
     inSequence {
       "delete TextComponent" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testComponent = TestValues.testTextComponentA
 
@@ -606,7 +621,7 @@ class ComponentRepositorySpec
         component.content should be(testComponent.content)
       }
       "delete VideoComponent" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testComponent = TestValues.testVideoComponentB
 
@@ -628,7 +643,7 @@ class ComponentRepositorySpec
         component.height should be(testComponent.height)
       }
       "delete AudioComponent" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testComponent = TestValues.testAudioComponentC
 

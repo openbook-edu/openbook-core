@@ -1,21 +1,19 @@
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.document._
-import ca.shiftfocus.krispii.core.repositories.{RevisionRepository, DocumentRepositoryPostgres}
+import ca.shiftfocus.krispii.core.repositories.{ RevisionRepository, DocumentRepositoryPostgres }
 import com.github.mauricio.async.db.Connection
 import ws.kahn.ot.exceptions.IncompatibleDeltasException
-import ws.kahn.ot.{Retain, InsertText, Delete, Delta}
+import ws.kahn.ot.{ Retain, InsertText, Delete, Delta }
 
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{ Future, Await }
 import scala.concurrent.duration.Duration
-import scalaz.{-\/, \/-}
+import scalaz.{ -\/, \/- }
 
 import org.scalatest._
 import Matchers._
 
-
 class DocumentRepositorySpec
-  extends TestEnvironment
-{
+    extends TestEnvironment {
   val revisionRepository = stub[RevisionRepository]
   val documentRepository = new DocumentRepositoryPostgres(revisionRepository)
 
@@ -40,7 +38,7 @@ class DocumentRepositorySpec
         val testDocument = TestValues.testDocumentE
 
         val result = documentRepository.find(testDocument.id)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Document")))
       }
       "find an individual document (RepositoryError.NoResults)" in {
         val testDocument = TestValues.testDocumentD
@@ -50,7 +48,7 @@ class DocumentRepositorySpec
           TestValues.testCurrentRevisionD
         )
 
-        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when(testDocument.copy(), *, testDocument.version, *) returns(Future.successful(\/-(revisionList)))
+        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when (testDocument.copy(), *, testDocument.version, *) returns (Future.successful(\/-(revisionList)))
 
         val result = documentRepository.find(testDocument.id, testDocument.version)
         val eitherDocument = Await.result(result, Duration.Inf)
@@ -78,7 +76,7 @@ class DocumentRepositorySpec
           )
         )
 
-        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when(testDocument.copy(), *, testDocument.version, *) returns(Future.successful(\/-(revisionList)))
+        (revisionRepository.list(_: Document, _: Long, _: Long)(_: Connection)) when (testDocument.copy(), *, testDocument.version, *) returns (Future.successful(\/-(revisionList)))
 
         val result = documentRepository.find(testDocument.id, testDocument.version)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("Incompatible deltas.", Some(IncompatibleDeltasException(revisionList(0).delta, revisionList(1).delta)))))
@@ -134,7 +132,7 @@ class DocumentRepositorySpec
         document.title should be(updatedDocument.title)
         document.delta should be(updatedDocument.delta)
         document.createdAt.toString should be(updatedDocument.createdAt.toString)
-        document.updatedAt.toString should not be(updatedDocument.updatedAt.toString)
+        document.updatedAt.toString should not be (updatedDocument.updatedAt.toString)
       }
       "return RepositoryError.NoResults if version is worng" in {
         val testDocument = TestValues.testDocumentB
@@ -150,7 +148,7 @@ class DocumentRepositorySpec
         )
 
         val result = documentRepository.update(updatedDocument)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Document")))
       }
     }
   }

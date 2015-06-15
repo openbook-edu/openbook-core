@@ -4,20 +4,20 @@ import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import com.github.mauricio.async.db.{Connection, Configuration}
+import com.github.mauricio.async.db.{ Connection, Configuration }
 import com.github.mauricio.async.db.pool.PoolConfiguration
 import com.typesafe.config.ConfigFactory
 import grizzled.slf4j.Logger
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{BeforeAndAfter, Suite, MustMatchers, WordSpec}
+import org.scalatest.{ BeforeAndAfter, Suite, MustMatchers, WordSpec }
 import scala.concurrent.duration.Duration
 import scalacache.ScalaCache
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{ Future, Await }
 import ca.shiftfocus.krispii.core.repositories._
 
-import scalaz.{\/-, -\/}
+import scalaz.{ \/-, -\/ }
 
 /**
  * Test Environment
@@ -25,12 +25,11 @@ import scalaz.{\/-, -\/}
  * @param writeToDb Populate test DB with tables and values
  */
 abstract class TestEnvironment(writeToDb: Boolean = true)
-  extends WordSpec
-  with MustMatchers
-  with MockFactory
-  with Suite
-  with BeforeAndAfter
-{
+    extends WordSpec
+    with MustMatchers
+    with MockFactory
+    with Suite
+    with BeforeAndAfter {
   val logger = Logger[this.type]
 
   //--------------------
@@ -40,10 +39,10 @@ abstract class TestEnvironment(writeToDb: Boolean = true)
 
   private val dbConfig = new Configuration(
     username = config.getString("db.postgresql.username"), //"test_user",
-    host     = config.getString("db.postgresql.host"), //"localhost",
+    host = config.getString("db.postgresql.host"), //"localhost",
     password = Some(config.getString("db.postgresql.password")), //"test_user"),
     database = Some(config.getString("db.postgresql.database")), //"testdb")
-    port     = config.getInt("db.postgresql.port")
+    port = config.getInt("db.postgresql.port")
   )
 
   private val poolConfig = new PoolConfiguration(
@@ -92,15 +91,15 @@ abstract class TestEnvironment(writeToDb: Boolean = true)
 
   // CREATE Journal table in database with current month
   val journalTable = "journal"
-  val currentDate  = new DateTime
-  val lastDayDate  = currentDate.dayOfMonth().withMaximumValue()
+  val currentDate = new DateTime
+  val lastDayDate = currentDate.dayOfMonth().withMaximumValue()
 
-  val formatSuffix  = DateTimeFormat.forPattern("YYYYMM")
-  val formatDate    = DateTimeFormat.forPattern("YYYY-MM-")
+  val formatSuffix = DateTimeFormat.forPattern("YYYYMM")
+  val formatDate = DateTimeFormat.forPattern("YYYY-MM-")
   val formatLastDay = DateTimeFormat.forPattern("dd")
 
-  val suffix       = formatSuffix.print(currentDate)
-  val checkDate    = formatDate.print(currentDate)
+  val suffix = formatSuffix.print(currentDate)
+  val checkDate = formatDate.print(currentDate)
   val checkDateDay = formatLastDay.print(lastDayDate)
 
   val createJournalQuery =
@@ -141,6 +140,6 @@ abstract class TestEnvironment(writeToDb: Boolean = true)
   def console_log(print: Any): Unit = {
     val debug = Console.GREEN + Console.BOLD + "[DEBUG] " + Console.RESET
     val value = Console.RED + Console.BOLD + print + Console.RESET
-    println (debug + value)
+    println(debug + value)
   }
 }

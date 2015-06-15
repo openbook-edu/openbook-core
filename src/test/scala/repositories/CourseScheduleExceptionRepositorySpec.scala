@@ -4,13 +4,12 @@ import ca.shiftfocus.krispii.core.repositories._
 import org.scalatest._
 import Matchers._
 import scala.collection.immutable.TreeMap
-import scala.concurrent.{Future, Await}
+import scala.concurrent.{ Future, Await }
 import scala.concurrent.duration.Duration
-import scalaz.{-\/, \/-}
+import scalaz.{ -\/, \/- }
 
 class CourseScheduleExceptionRepositorySpec
-  extends TestEnvironment
-{
+    extends TestEnvironment {
   val userRepository = stub[UserRepository]
   val courseScheduleRepository = stub[CourseScheduleRepository]
   val courseScheduleExceptionRepository = new CourseScheduleExceptionRepositoryPostgres(userRepository, courseScheduleRepository)
@@ -18,11 +17,11 @@ class CourseScheduleExceptionRepositorySpec
   "CourseScheduleExceptionRepository.list" should {
     inSequence {
       "find all scheduling exceptions for one student in one course" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseB
-        val testUser   = TestValues.testUserE
+        val testUser = TestValues.testUserE
 
         val testCourseScheduleExceptionList = TreeMap[Int, CourseScheduleException](
           0 -> TestValues.testCourseScheduleExceptionC,
@@ -50,8 +49,8 @@ class CourseScheduleExceptionRepositorySpec
         }
       }
       "find all schedule exceptions for a given course" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testCourse = TestValues.testCourseB
 
@@ -87,8 +86,8 @@ class CourseScheduleExceptionRepositorySpec
   "CourseScheduleExceptionRepository.find" should {
     inSequence {
       "find a single entry by ID" in {
-        (cache.getCached(_: String)) when(*) returns(Future.successful(-\/(RepositoryError.NoResults)))
-        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when(*, *, *) returns(Future.successful(\/-(())))
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val testCourseScheduleException = TestValues.testCourseScheduleExceptionA
 
@@ -112,7 +111,7 @@ class CourseScheduleExceptionRepositorySpec
   "CourseScheduleExceptionRepository.insert" should {
     inSequence {
       "create a new course schedule exception" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testCourseScheduleException = TestValues.testCourseScheduleExceptionE
 
@@ -134,7 +133,7 @@ class CourseScheduleExceptionRepositorySpec
   "CourseScheduleExceptionRepository.update" should {
     inSequence {
       "update a course schedule exception" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testCourseScheduleException = TestValues.testCourseScheduleExceptionA
         val testUpdatedCourseScheduleException = testCourseScheduleException.copy(
@@ -158,7 +157,7 @@ class CourseScheduleExceptionRepositorySpec
         courseSchedulesException.endTime should be(testUpdatedCourseScheduleException.endTime)
         courseSchedulesException.reason should be(testUpdatedCourseScheduleException.reason)
         courseSchedulesException.createdAt.toString should be(testUpdatedCourseScheduleException.createdAt.toString)
-        courseSchedulesException.updatedAt.toString should not be(testUpdatedCourseScheduleException.updatedAt.toString)
+        courseSchedulesException.updatedAt.toString should not be (testUpdatedCourseScheduleException.updatedAt.toString)
       }
     }
   }
@@ -166,7 +165,7 @@ class CourseScheduleExceptionRepositorySpec
   "CourseScheduleExceptionRepository.delete" should {
     inSequence {
       "delete a course schedule exception" in {
-        (cache.removeCached(_: String)) when(*) returns(Future.successful(\/-( () )))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
         val testCourseScheduleException = TestValues.testCourseScheduleExceptionA
 

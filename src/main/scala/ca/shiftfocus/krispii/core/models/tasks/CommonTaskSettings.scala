@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models.tasks
 
-import ca.shiftfocus.uuid.UUID
+import java.util.UUID
 import com.github.mauricio.async.db.RowData
 import play.api.libs.json._
 import play.api.libs.json.Writes._
@@ -26,10 +26,7 @@ object CommonTaskSettings {
    */
   def apply(row: RowData): CommonTaskSettings = {
     CommonTaskSettings(
-      dependencyId = Option(row("dependency_id").asInstanceOf[Array[Byte]]) match {
-        case Some(bytes) => Some(UUID(bytes))
-        case _ => None
-      },
+      dependencyId = Option(row("dependency_id").asInstanceOf[UUID]),
       title = row("name").asInstanceOf[String],
       description = row("description").asInstanceOf[String],
       notesAllowed = row("notes_allowed").asInstanceOf[Boolean],

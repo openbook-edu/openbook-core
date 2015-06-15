@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
+import ca.shiftfocus.krispii.core.models.tasks.questions.Question
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error._
@@ -15,16 +16,15 @@ import scalacache.ScalaCache
 import scalaz.{ EitherT, \/, -\/, \/- }
 
 class ProjectServiceDefault(
-  val db: DB,
-  val scalaCache: ScalaCachePool,
-  val authService: AuthService,
-  val schoolService: SchoolService,
-  val courseRepository: CourseRepository,
-  val projectRepository: ProjectRepository,
-  val partRepository: PartRepository,
-  val taskRepository: TaskRepository
-)
-    extends ProjectService {
+    val db: DB,
+    val scalaCache: ScalaCachePool,
+    val authService: AuthService,
+    val schoolService: SchoolService,
+    val courseRepository: CourseRepository,
+    val projectRepository: ProjectRepository,
+    val partRepository: PartRepository,
+    val taskRepository: TaskRepository
+) extends ProjectService {
 
   implicit def conn: Connection = db.pool
   implicit def cache: ScalaCachePool = scalaCache
@@ -148,7 +148,7 @@ class ProjectServiceDefault(
       parts = IndexedSeq.empty[Part]
     )
     val newPart = Part(projectId = newProject.id, name = "")
-    val newTask = LongAnswerTask(partId = newPart.id, position = 1)
+    val newTask = DocumentTask(partId = newPart.id, position = 1)
 
     // Then insert the new project, part and task into the database, wrapped
     // in a transaction such that either all three are created, or none.
@@ -487,7 +487,6 @@ class ProjectServiceDefault(
    * @param name the name of this task
    * @param description a brief description of this task
    * @param position the position of this task in the part
-   * @param dependencyId optionally make this task dependent on another
    * @return the newly created task
    */
   override def createTask(
@@ -496,21 +495,12 @@ class ProjectServiceDefault(
     name: String,
     description: String,
     position: Int,
-    dependencyId: Option[UUID],
     id: UUID = UUID.randomUUID
   ): Future[\/[ErrorUnion#Fail, Task]] = {
     transactional { implicit conn: Connection =>
       for {
         part <- lift(partRepository.find(partId))
         taskList = part.tasks
-        // If the dependency id is given, ensure the depended-upon task exists
-        dependency <- lift(dependencyId match {
-          case Some(depId) => taskRepository.find(depId).map {
-            case \/-(depTask) => \/-(Some(depTask))
-            case -\/(error) => -\/(error)
-          }
-          case None => Future.successful(\/-(None))
-        })
         truePosition <- lift {
           val positionMax = taskList.nonEmpty match {
             case true => taskList.map(_.position).max
@@ -533,11 +523,8 @@ class ProjectServiceDefault(
           val positionExists = taskList.filter(_.position == truePosition).nonEmpty
           val filteredTaskList = positionExists match {
             case true => taskList.filter(_.position < truePosition) ++ taskList.filter(_.position >= truePosition).map {
-              case task: LongAnswerTask => task.copy(position = task.position + 1)
-              case task: ShortAnswerTask => task.copy(position = task.position + 1)
-              case task: MultipleChoiceTask => task.copy(position = task.position + 1)
-              case task: OrderingTask => task.copy(position = task.position + 1)
-              case task: MatchingTask => task.copy(position = task.position + 1)
+              case task: DocumentTask => task.copy(position = task.position + 1)
+              case task: QuestionTask => task.copy(position = task.position + 1)
             }
             case false => taskList
           }
@@ -549,8 +536,7 @@ class ProjectServiceDefault(
             position = truePosition,
             settings = CommonTaskSettings(
               title = name,
-              description = description,
-              dependencyId = dependencyId
+              description = description
             )
           )
           // Add newTask and order tasks by position
@@ -570,21 +556,14 @@ class ProjectServiceDefault(
   private def createOrderedTasks(orderedTasks: IndexedSeq[Task], newTaskId: UUID, i: Int): Future[\/[RepositoryError.Fail, Task]] = {
     if (orderedTasks(i).id == newTaskId) {
       orderedTasks(i) match {
-        case task: LongAnswerTask => taskRepository.insert(task.copy(position = i + 1))
-        case task: ShortAnswerTask => taskRepository.insert(task.copy(position = i + 1))
-        case task: MultipleChoiceTask => taskRepository.insert(task.copy(position = i + 1))
-        case task: OrderingTask => taskRepository.insert(task.copy(position = i + 1))
-        case task: MatchingTask => taskRepository.insert(task.copy(position = i + 1))
+        case task: DocumentTask => taskRepository.insert(task.copy(position = i + 1))
+        case task: QuestionTask => taskRepository.insert(task.copy(position = i + 1))
       }
     }
     else if (orderedTasks(i).position != i + 1) {
       orderedTasks(i) match {
-        case task: LongAnswerTask => taskRepository.update(task.copy(position = i + 1))
-        case task: ShortAnswerTask => taskRepository.update(task.copy(position = i + 1))
-        case task: MultipleChoiceTask => taskRepository.update(task.copy(position = i + 1))
-        case task: OrderingTask => taskRepository.update(task.copy(position = i + 1))
-        case task: MatchingTask => taskRepository.update(task.copy(position = i + 1))
-        case _ => throw new Exception("Gold star for epic coding failure.")
+        case task: DocumentTask => taskRepository.update(task.copy(position = i + 1))
+        case task: QuestionTask => taskRepository.update(task.copy(position = i + 1))
       }
     }
     else {
@@ -653,12 +632,8 @@ class ProjectServiceDefault(
         movedTask <- lift(moveTask(updatedTask.id, updatedTask.version, updatedTask.position, Some(updatedTask.partId)))
         updatedTask <- {
           updatedTask match {
-            case task: LongAnswerTask => lift(taskRepository.update(task.copy(position = movedTask.position)))
-            case task: ShortAnswerTask => lift(taskRepository.update(task.copy(position = movedTask.position)))
-            case task: MultipleChoiceTask => lift(taskRepository.update(task.copy(position = movedTask.position)))
-            case task: OrderingTask => lift(taskRepository.update(task.copy(position = movedTask.position)))
-            case task: MatchingTask => lift(taskRepository.update(task.copy(position = movedTask.position)))
-            case _ => throw new Exception("Gold star for epic coding failure.")
+            case task: DocumentTask => lift(taskRepository.update(task.copy(position = movedTask.position)))
+            case task: QuestionTask => lift(taskRepository.update(task.copy(position = movedTask.position)))
           }
         }
       } yield updatedTask
@@ -693,7 +668,6 @@ class ProjectServiceDefault(
             val orderedTasks = otList.filter(_.id != taskId).sortWith(_.position < _.position)
             serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, oldPart.id, _))
           }
-
           // Update task and taskList
           for {
             truePosition <- lift {
@@ -719,7 +693,6 @@ class ProjectServiceDefault(
                 if (oldPart.id != newPart.id) ntList :+ oldTask
                 // otherwise, the task stays in the part
                 else ntList
-
               val positionExists = taskList.iterator.filter(_.id != taskId).filter(_.position == truePosition).nonEmpty
               val taskListPositions = positionExists match {
                 case true => taskList.map { task =>
@@ -738,11 +711,8 @@ class ProjectServiceDefault(
               }
 
               val updatedTasks = taskList.map {
-                case task: LongAnswerTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
-                case task: ShortAnswerTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
-                case task: MultipleChoiceTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
-                case task: OrderingTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
-                case task: MatchingTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
+                case task: DocumentTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
+                case task: QuestionTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
                 case _ => throw new Exception("Gold star for epic coding failure.")
               }
 
@@ -761,12 +731,8 @@ class ProjectServiceDefault(
   private def updateOrderedTasks(orderedTasks: IndexedSeq[Task], updatedPartId: UUID, i: Int): Future[\/[RepositoryError.Fail, Task]] = {
     if (orderedTasks(i).position != i + 1 || orderedTasks(i).partId != updatedPartId) {
       orderedTasks(i) match {
-        case task: LongAnswerTask => taskRepository.update(task.copy(position = i + 1))
-        case task: ShortAnswerTask => taskRepository.update(task.copy(position = i + 1))
-        case task: MultipleChoiceTask => taskRepository.update(task.copy(position = i + 1))
-        case task: OrderingTask => taskRepository.update(task.copy(position = i + 1))
-        case task: MatchingTask => taskRepository.update(task.copy(position = i + 1))
-        case _ => throw new Exception("Gold star for epic coding failure.")
+        case task: DocumentTask => taskRepository.update(task.copy(position = i + 1))
+        case task: QuestionTask => taskRepository.update(task.copy(position = i + 1))
       }
     }
     else {
@@ -775,74 +741,25 @@ class ProjectServiceDefault(
   }
 
   /**
-   * Update a LongAnswerTask.
+   * Update a DocumentTask.
    *
    * @param commonArgs
    * @return
    */
-  override def updateLongAnswerTask(commonArgs: CommonTaskArgs): Future[\/[ErrorUnion#Fail, Task]] =
+  override def updateDocumentTask(commonArgs: CommonTaskArgs, dependencyId: Option[Option[UUID]]): Future[\/[ErrorUnion#Fail, Task]] =
     {
       for {
         task <- lift(taskRepository.find(commonArgs.taskId))
-        _ <- predicate(task.isInstanceOf[LongAnswerTask])(ServiceError.BadInput("services.ProjectService.updateLongAnswerTask.wrongTaskType"))
+        _ <- predicate(task.isInstanceOf[DocumentTask])(ServiceError.BadInput("services.ProjectService.updateDocumentTask.wrongTaskType"))
         _ <- predicate(task.version == commonArgs.version)(ServiceError.OfflineLockFail)
-        toUpdate = task.asInstanceOf[LongAnswerTask].copy(
+        documentTask = task.asInstanceOf[DocumentTask]
+        toUpdate = documentTask.copy(
           partId = commonArgs.partId.getOrElse(task.partId),
           position = commonArgs.position.getOrElse(task.position),
           settings = task.settings.copy(
             title = commonArgs.name.getOrElse(task.settings.title),
             description = commonArgs.description.getOrElse(task.settings.description),
             notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
-            dependencyId = commonArgs.dependencyId match {
-              case Some(Some(newDepId)) => Some(newDepId)
-              case Some(None) => None
-              case None => task.settings.dependencyId
-            },
-            notesTitle = commonArgs.notesTitle match {
-              case Some(Some(newNotesTitle)) => Some(newNotesTitle)
-              case Some(None) => None
-              case None => task.settings.notesTitle
-            },
-            responseTitle = commonArgs.responseTitle match {
-              case Some(Some(newResponseTitle)) => Some(newResponseTitle)
-              case Some(None) => None
-              case None => task.settings.responseTitle
-            }
-          )
-        )
-        updatedTask <- lift(updateTask(toUpdate))
-      } yield updatedTask
-    }
-
-  /**
-   * Update a ShortAnswerTask
-   *
-   * @param commonArgs
-   * @param maxLength
-   * @return
-   */
-  def updateShortAnswerTask(
-    commonArgs: CommonTaskArgs,
-    maxLength: Option[Int] = None
-  ): Future[\/[ErrorUnion#Fail, Task]] =
-    {
-      for {
-        task <- lift(taskRepository.find(commonArgs.taskId))
-        _ <- predicate(task.isInstanceOf[ShortAnswerTask])(ServiceError.BadInput("services.ProjectService.updateShortAnswerTask.wrongTaskType"))
-        _ <- predicate(task.version == commonArgs.version)(ServiceError.OfflineLockFail)
-        shortAnswerTask = task.asInstanceOf[ShortAnswerTask]
-        toUpdate = shortAnswerTask.copy(
-          partId = commonArgs.partId.getOrElse(task.partId),
-          position = commonArgs.position.getOrElse(task.position),
-          settings = task.settings.copy(
-            title = commonArgs.name.getOrElse(task.settings.title),
-            description = commonArgs.description.getOrElse(task.settings.description),
-            notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
-            dependencyId = commonArgs.dependencyId match {
-              case Some(Some(newDepId)) => Some(newDepId)
-              case Some(None) => None
-              case None => task.settings.dependencyId
-            },
             notesTitle = commonArgs.notesTitle match {
               case Some(Some(newNotesTitle)) => Some(newNotesTitle)
               case Some(None) => None
@@ -854,7 +771,10 @@ class ProjectServiceDefault(
               case None => task.settings.responseTitle
             }
           ),
-          maxLength = maxLength.getOrElse(shortAnswerTask.maxLength)
+          dependencyId = dependencyId match {
+            case Some(newDepId) => newDepId
+            case None => documentTask.dependencyId
+          }
         )
         updatedTask <- lift(updateTask(toUpdate))
       } yield updatedTask
@@ -864,161 +784,30 @@ class ProjectServiceDefault(
    * Update a MultipleChoiceTask
    *
    * @param commonArgs
-   * @param choices
-   * @param answer
-   * @param allowMultiple
-   * @param randomizeChoices
+   * @param questions
    * @return
    */
-  def updateMultipleChoiceTask(
+  def updateQuestionTask(
     commonArgs: CommonTaskArgs,
-    choices: Option[IndexedSeq[String]] = None,
-    answer: Option[IndexedSeq[Int]] = None,
-    allowMultiple: Option[Boolean] = Some(false),
-    randomizeChoices: Option[Boolean] = Some(true)
+    questions: Option[IndexedSeq[Question]] = Some(IndexedSeq())
   ): Future[\/[ErrorUnion#Fail, Task]] =
     {
       for {
         task <- lift(taskRepository.find(commonArgs.taskId))
-        _ <- predicate(task.isInstanceOf[MultipleChoiceTask])(ServiceError.BadInput("services.ProjectService.updateMultipleChoiceTask.wrongTaskType"))
         _ <- predicate(task.version == commonArgs.version)(ServiceError.OfflineLockFail)
-        mcTask = task.asInstanceOf[MultipleChoiceTask]
-        toUpdate = mcTask.copy(
+        _ <- predicate(task.isInstanceOf[QuestionTask])(ServiceError.BadInput("services.ProjectService.updateMultipleChoiceTask.wrongTaskType"))
+        questionTask = task.asInstanceOf[QuestionTask]
+        toUpdate = questionTask.copy(
           partId = commonArgs.partId.getOrElse(task.partId),
           position = commonArgs.position.getOrElse(task.position),
-          settings = task.settings.copy(
+          settings = questionTask.settings.copy(
             title = commonArgs.name.getOrElse(task.settings.title),
             description = commonArgs.description.getOrElse(task.settings.description),
-            notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
-            dependencyId = commonArgs.dependencyId match {
-              case Some(Some(newDepId)) => Some(newDepId)
-              case Some(None) => None
-              case None => task.settings.dependencyId
-            },
-            notesTitle = commonArgs.notesTitle match {
-              case Some(Some(newNotesTitle)) => Some(newNotesTitle)
-              case Some(None) => None
-              case None => task.settings.notesTitle
-            },
-            responseTitle = commonArgs.responseTitle match {
-              case Some(Some(newResponseTitle)) => Some(newResponseTitle)
-              case Some(None) => None
-              case None => task.settings.responseTitle
-            }
+            notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed)
           ),
-          choices = choices.getOrElse(mcTask.choices),
-          answers = answer.getOrElse(mcTask.answers),
-          allowMultiple = allowMultiple.getOrElse(mcTask.allowMultiple),
-          randomizeChoices = randomizeChoices.getOrElse(mcTask.randomizeChoices)
+          questions = questions.getOrElse(questionTask.questions)
         )
-        updatedTask <- lift(updateTask(toUpdate))
-      } yield updatedTask
-    }
-
-  /**
-   * Update an OrderingTask
-   *
-   * @param commonArgs
-   * @param elements
-   * @param answer
-   * @param randomizeChoices
-   * @return
-   */
-  def updateOrderingTask(
-    commonArgs: CommonTaskArgs,
-    elements: Option[IndexedSeq[String]] = None,
-    answer: Option[IndexedSeq[Int]] = None,
-    randomizeChoices: Option[Boolean] = Some(true)
-  ): Future[\/[ErrorUnion#Fail, Task]] =
-    {
-      for {
-        task <- lift(taskRepository.find(commonArgs.taskId))
-        _ <- predicate(task.isInstanceOf[OrderingTask])(ServiceError.BadInput("services.ProjectService.updateOrderingTask.wrongTaskType"))
-        _ <- predicate(task.version == commonArgs.version)(ServiceError.OfflineLockFail)
-        orderingTask = task.asInstanceOf[OrderingTask]
-        toUpdate = orderingTask.copy(
-          partId = commonArgs.partId.getOrElse(task.partId),
-          position = commonArgs.position.getOrElse(task.position),
-          settings = task.settings.copy(
-            title = commonArgs.name.getOrElse(task.settings.title),
-            description = commonArgs.description.getOrElse(task.settings.description),
-            notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
-            dependencyId = commonArgs.dependencyId match {
-              case Some(Some(newDepId)) => Some(newDepId)
-              case Some(None) => None
-              case None => task.settings.dependencyId
-            },
-            notesTitle = commonArgs.notesTitle match {
-              case Some(Some(newNotesTitle)) => Some(newNotesTitle)
-              case Some(None) => None
-              case None => task.settings.notesTitle
-            },
-            responseTitle = commonArgs.responseTitle match {
-              case Some(Some(newResponseTitle)) => Some(newResponseTitle)
-              case Some(None) => None
-              case None => task.settings.responseTitle
-            }
-          ),
-          elements = elements.getOrElse(orderingTask.elements),
-          answers = answer.getOrElse(orderingTask.answers),
-          randomizeChoices = randomizeChoices.getOrElse(orderingTask.randomizeChoices)
-        )
-        updatedTask <- lift(updateTask(toUpdate))
-      } yield updatedTask
-    }
-
-  /**
-   * Update a MatchingTask
-   *
-   * @param commonArgs
-   * @param elementsLeft
-   * @param elementsRight
-   * @param answer
-   * @param randomizeChoices
-   * @return
-   */
-  def updateMatchingTask(
-    commonArgs: CommonTaskArgs,
-    elementsLeft: Option[IndexedSeq[String]] = None,
-    elementsRight: Option[IndexedSeq[String]] = None,
-    answer: Option[IndexedSeq[MatchingTask.Match]] = None,
-    randomizeChoices: Option[Boolean] = Some(true)
-  ): Future[\/[ErrorUnion#Fail, Task]] =
-    {
-      for {
-        task <- lift(taskRepository.find(commonArgs.taskId))
-        _ <- predicate(task.isInstanceOf[MatchingTask])(ServiceError.BadInput("services.ProjectService.updateMatchingTask.wrongTaskType"))
-        _ <- predicate(task.version == commonArgs.version)(ServiceError.OfflineLockFail)
-        matchingTask = task.asInstanceOf[MatchingTask]
-        toUpdate = matchingTask.copy(
-          partId = commonArgs.partId.getOrElse(task.partId),
-          position = commonArgs.position.getOrElse(task.position),
-          settings = task.settings.copy(
-            title = commonArgs.name.getOrElse(task.settings.title),
-            description = commonArgs.description.getOrElse(task.settings.description),
-            notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
-            dependencyId = commonArgs.dependencyId match {
-              case Some(Some(newDepId)) => Some(newDepId)
-              case Some(None) => None
-              case None => task.settings.dependencyId
-            },
-            notesTitle = commonArgs.notesTitle match {
-              case Some(Some(newNotesTitle)) => Some(newNotesTitle)
-              case Some(None) => None
-              case None => task.settings.notesTitle
-            },
-            responseTitle = commonArgs.responseTitle match {
-              case Some(Some(newResponseTitle)) => Some(newResponseTitle)
-              case Some(None) => None
-              case None => task.settings.responseTitle
-            }
-          ),
-          elementsLeft = elementsLeft.getOrElse(matchingTask.elementsLeft),
-          elementsRight = elementsRight.getOrElse(matchingTask.elementsRight),
-          answers = answer.getOrElse(matchingTask.answers),
-          randomizeChoices = randomizeChoices.getOrElse(matchingTask.randomizeChoices)
-        )
-        updatedTask <- lift(updateTask(toUpdate))
+        updatedTask <- lift(updateTask(task))
       } yield updatedTask
     }
 
@@ -1079,7 +868,7 @@ class ProjectServiceDefault(
   /**
    * Validate a slug for use in a project.
    *
-   * @param slug the slug to be checked
+   * @param slug the slug to be checked.....!
    * @param existingId an optional unique id for an existing project to exclude
    * @return a future disjunction containing either the slug, or a failure
    */

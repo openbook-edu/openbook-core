@@ -1,9 +1,11 @@
 package ca.shiftfocus.krispii.core.models.tasks
 
 import java.util.UUID
+import ca.shiftfocus.krispii.core.models.tasks.questions.Question
 import ca.shiftfocus.krispii.core.models.{ VideoComponent, TextComponent, AudioComponent }
 import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
+import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
 /**
@@ -12,7 +14,7 @@ import play.api.libs.json._
  * a project.
  *
  */
-trait Task {
+sealed trait Task {
   val id: UUID
   val partId: UUID
   val position: Int
@@ -28,11 +30,8 @@ object Task {
   /*
    * Defining the available task types.
    */
-  val LongAnswer = 0
-  val ShortAnswer = 1
-  val MultipleChoice = 2
-  val Ordering = 3
-  val Matching = 4
+  val Document = 0
+  val Question = 1
 
   val NotStarted = 0
   val Incomplete = 1
@@ -66,7 +65,7 @@ object Task {
   ): Task =
     {
       val newTask = taskType match {
-        case Task.LongAnswer => LongAnswerTask(
+        case Task.Document => DocumentTask(
           id = id,
           partId = partId,
           position = position,
@@ -75,39 +74,13 @@ object Task {
           createdAt = createdAt,
           updatedAt = updatedAt
         )
-        case Task.ShortAnswer => ShortAnswerTask(
+        case Task.Question => QuestionTask(
           id = id,
           partId = partId,
           position = position,
           version = version,
           settings = settings,
-          createdAt = createdAt,
-          updatedAt = updatedAt
-        )
-        case Task.MultipleChoice => MultipleChoiceTask(
-          id = id,
-          partId = partId,
-          position = position,
-          version = version,
-          settings = settings,
-          createdAt = createdAt,
-          updatedAt = updatedAt
-        )
-        case Task.Ordering => OrderingTask(
-          id = id,
-          partId = partId,
-          position = position,
-          version = version,
-          settings = settings,
-          createdAt = createdAt,
-          updatedAt = updatedAt
-        )
-        case Task.Matching => MatchingTask(
-          id = id,
-          partId = partId,
-          position = position,
-          version = version,
-          settings = settings,
+          questions = IndexedSeq(),
           createdAt = createdAt,
           updatedAt = updatedAt
         )
@@ -121,22 +94,125 @@ object Task {
    */
   implicit val jsonWrites = new Writes[Task] {
     def writes(aTask: Task): JsValue = aTask match {
-      case task: LongAnswerTask => Json.toJson(task).as[JsObject].deepMerge(Json.obj(
-        "taskType" -> LongAnswer
+      case task: DocumentTask => Json.toJson(task).as[JsObject].deepMerge(Json.obj(
+        "taskType" -> Document
       ))
-      case task: ShortAnswerTask => Json.toJson(task).as[JsObject].deepMerge(Json.obj(
-        "taskType" -> ShortAnswer
+      case task: QuestionTask => Json.toJson(task).as[JsObject].deepMerge(Json.obj(
+        "taskType" -> Question
       ))
-      case task: MultipleChoiceTask => Json.toJson(task).as[JsObject].deepMerge(Json.obj(
-        "taskType" -> MultipleChoice
-      ))
-      case task: OrderingTask => Json.toJson(task).as[JsObject].deepMerge(Json.obj(
-        "taskType" -> Ordering
-      ))
-      case task: MatchingTask => Json.toJson(task).as[JsObject].deepMerge(Json.obj(
-        "taskType" -> Matching
-      ))
-      case _ => throw new Exception("Tried to write an invalid task. I'm not sure how you even did this, but you get a gold star. A gold star for failure.")
     }
   }
+}
+
+/**
+ * A long answer task is one in which the student is expected to write more than
+ * a few words in response. This task type gives them free reign to enter as much
+ * text as they desire.
+ *
+ * @param id The task's UUID.
+ * @param partId The part to which this task belongs.
+ * @param position The order in the part in which this task falls.
+ * @param version The version of the task entity, for offline locking.
+ * @param settings An object containing common settings for tasks.
+ * @param createdAt When the entity was created.
+ * @param updatedAt When the entity was last updated.
+ */
+final case class DocumentTask(
+    // Primary Key
+    id: UUID = UUID.randomUUID,
+    // Combination must be unique
+    partId: UUID,
+    position: Int,
+    // Additional data
+    version: Long = 1L,
+    settings: CommonTaskSettings = CommonTaskSettings(),
+    dependencyId: Option[UUID] = None,
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
+) extends Task {
+
+  /**
+   * Which type of task this is. Hard-coded value per class!
+   */
+  override val taskType: Int = Task.Document
+
+  override def equals(other: Any): Boolean = {
+    other match {
+      case otherLongAnswerTask: DocumentTask => {
+        this.id == otherLongAnswerTask.id
+      }
+      case _ => false
+    }
+  }
+
+  override def hashCode: Int = 41 * this.id.hashCode
+}
+
+object DocumentTask {
+  /**
+   * Serialize a LongAnswerTask to JSON.
+   */
+  implicit val taskWrites: Writes[DocumentTask] = (
+    (__ \ "id").write[UUID] and
+    (__ \ "partId").write[UUID] and
+    (__ \ "position").write[Int] and
+    (__ \ "version").write[Long] and
+    (__ \ "settings").write[CommonTaskSettings] and
+    (__ \ "dependencyId").writeNullable[UUID] and
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
+  )(unlift(DocumentTask.unapply))
+}
+
+/**
+ * Question Tasks are tasks comprising several small questions. Short answers, fill-in-the-blanks, multiple
+ * choice, etc.
+ *
+ * @param id
+ * @param partId
+ * @param position
+ * @param version
+ * @param settings
+ * @param questions
+ * @param createdAt
+ * @param updatedAt
+ */
+final case class QuestionTask(
+    // Primary Key
+    id: UUID = UUID.randomUUID,
+    // Combination must be unique
+    partId: UUID,
+    position: Int,
+    // Additional data
+    version: Long = 1L,
+    settings: CommonTaskSettings = CommonTaskSettings(),
+    questions: IndexedSeq[Question],
+    createdAt: DateTime = new DateTime(),
+    updatedAt: DateTime = new DateTime()
+) extends Task {
+  override val taskType = Task.Question
+}
+
+object QuestionTask {
+  implicit val taskReads: Reads[QuestionTask] = (
+    (__ \ "id").read[UUID] and
+    (__ \ "partId").read[UUID] and
+    (__ \ "position").read[Int] and
+    (__ \ "version").read[Long] and
+    (__ \ "settings").read[CommonTaskSettings] and
+    (__ \ "questions").read[IndexedSeq[Question]] and
+    (__ \ "createdAt").read[DateTime] and
+    (__ \ "updatedAt").read[DateTime]
+  )(QuestionTask.apply _)
+
+  implicit val taskWrites: Writes[QuestionTask] = (
+    (__ \ "id").write[UUID] and
+    (__ \ "partId").write[UUID] and
+    (__ \ "position").write[Int] and
+    (__ \ "version").write[Long] and
+    (__ \ "settings").write[CommonTaskSettings] and
+    (__ \ "questions").write[IndexedSeq[Question]] and
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
+  )(unlift(QuestionTask.unapply))
 }

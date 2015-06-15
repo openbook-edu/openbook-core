@@ -3,11 +3,12 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.NoSuchElementException
 
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
-import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.models.tasks.questions.Question
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{ ResultSet, RowData, Connection }
+import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
@@ -27,11 +28,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   override def constructor(row: RowData): Task = {
     row("task_type").asInstanceOf[Int] match {
-      case Task.LongAnswer => constructLongAnswerTask(row)
-      case Task.ShortAnswer => constructShortAnswerTask(row)
-      case Task.MultipleChoice => constructMultipleChoiceTask(row)
-      case Task.Ordering => constructOrderingTask(row)
-      case Task.Matching => constructMatchingTask(row)
+      case Task.Document => constructDocumentTask(row)
+      case Task.Question => constructQuestionTask(row)
       case _ => throw new Exception("Invalid task type.")
     }
   }
@@ -39,36 +37,23 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   // -- Common query components --------------------------------------------------------------------------------------
 
   val Table = "tasks"
-  val CommonFields = "id, version, created_at, updated_at, part_id, dependency_id, name, description," +
+  val CommonFields = "id, version, created_at, updated_at, part_id, name, description," +
     " position, notes_allowed, response_title, notes_title, task_type"
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
   }
   val SpecificFields =
     """
-       |  short_answer_tasks.max_length,
-       |  multiple_choice_tasks.choices as mc_choices,
-       |  multiple_choice_tasks.answers as mc_answers,
-       |  multiple_choice_tasks.allow_multiple,
-       |  multiple_choice_tasks.randomize as mc_randomize,
-       |  ordering_tasks.elements as ord_elements,
-       |  ordering_tasks.answers as ord_answers,
-       |  ordering_tasks.randomize as ord_randomize,
-       |  matching_tasks.elements_left,
-       |  matching_tasks.elements_right,
-       |  matching_Tasks.answers as mat_answers,
-       |  matching_Tasks.randomize as mat_randomize
+       |  document_tasks.dependency_id as dependency_id
+       |  question_tasks.questions as questions
      """.stripMargin
 
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.position ASC"
   val Join =
     s"""
-       |LEFT JOIN long_answer_tasks ON $Table.id = long_answer_tasks.task_id
-       |LEFT JOIN short_answer_tasks ON $Table.id = short_answer_tasks.task_id
-       |LEFT JOIN multiple_choice_tasks ON $Table.id = multiple_choice_tasks.task_id
-       |LEFT JOIN ordering_tasks ON $Table.id = ordering_tasks.task_id
-       |LEFT JOIN matching_tasks ON $Table.id = matching_tasks.task_id
+       |LEFT JOIN document_tasks ON $Table.id = document_tasks.task_id
+       |LEFT JOIN question_tasks ON $Table.id = question_tasks.task_id
      """.stripMargin
 
   // -- Select queries -----------------------------------------------------------------------------------------------
@@ -98,18 +83,6 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |ORDER BY $OrderBy
      """.stripMargin
 
-  // TODO - not used
-  //  val SelectByProjectIdPartNum =
-  //    s"""
-  //       |SELECT $CommonFields, $SpecificFields
-  //       |FROM $Table, parts, projects
-  //       |WHERE projects.id = ?
-  //       |  AND projects.id = parts.project_id
-  //       |  AND parts.position = ?
-  //       |  AND parts.id = $Table.part_id
-  //       |ORDER BY parts.position ASC, $Table.position ASC
-  //     """.stripMargin
-
   val SelectByProjectId =
     s"""
       |SELECT ${CommonFieldsWithTable()}, $SpecificFields
@@ -122,19 +95,6 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       | AND parts.project_id = projects.id
       |ORDER BY parts.position ASC, $OrderBy
   """.stripMargin
-
-  // TODO - not used
-  //  val SelectActiveByProjectId = s"""
-  //    $Select
-  //    $From, parts, projects, classes, courses_projects, users_courses
-  //    WHERE projects.id = ?
-  //      AND projects.id = parts.project_id
-  //      AND parts.id = tasks.part_id
-  //      AND users_courses.user_id = ?
-  //      AND users_courses.course_id = courses_projects.course_id
-  //      AND courses_projects.project_id = projects.id
-  //    ORDER BY parts.position ASC, tasks.position ASC
-  //  """
 
   val SelectByPosition =
     s"""
@@ -196,7 +156,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   val InsertLongAnswer =
     s"""
        |WITH task AS (${Insert}),
-       |     la_task AS (INSERT INTO long_answer_tasks (task_id)
+       |     la_task AS (INSERT INTO document_tasks (task_id)
        |                 SELECT task.id as task_id
        |                 FROM task
        |                 RETURNING task_id)
@@ -204,55 +164,16 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |FROM task, la_task
      """.stripMargin
 
-  val InsertShortAnswer =
+  val InsertQuestion =
     s"""
        |WITH task AS (${Insert}),
-       |     sa_task AS (INSERT INTO short_answer_tasks (task_id, max_length)
-       |                 SELECT task.id as task_id, ? as max_length
-       |                 FROM task
-       |                 RETURNING max_length)
+       |     q_task AS (INSERT INTO question_tasks (task_id, questions)
+       |                SELECT task.id as task_id, ? as questions
+       |                FROM task
+       |                RETURNING questions)
        |SELECT ${CommonFieldsWithTable("task")},
-       |       sa_task.max_length
-       |FROM task, sa_task
-     """.stripMargin
-
-  val InsertMultipleChoice =
-    s"""
-       |WITH task AS (${Insert}),
-       |     mc_task AS (INSERT INTO multiple_choice_tasks (task_id, choices, answers, allow_multiple, randomize)
-       |                 SELECT task.id as task_id, ? as choices, ? as answers, ? as allow_multiple, ? as randomize
-       |                 FROM task
-       |                 RETURNING *)
-       |SELECT ${CommonFieldsWithTable("task")},
-       |       mc_task.choices as mc_choices, mc_task.answers as mc_answers,
-       |       mc_task.allow_multiple, mc_task.randomize as mc_randomize
-       |FROM task, mc_task
-     """.stripMargin
-
-  val InsertOrdering =
-    s"""
-       |WITH task AS (${Insert}),
-       |     ord_task AS (INSERT INTO ordering_tasks (task_id, elements, answers, randomize)
-       |                  SELECT task.id as task_id, ? as elements, ? as answers, ? as randomize
-       |                  FROM task
-       |                  RETURNING *)
-       |SELECT ${CommonFieldsWithTable("task")},
-       |       ord_task.elements as ord_elements, ord_task.answers as ord_answers,
-       |       ord_task.randomize as ord_randomize
-       |FROM task, ord_task
-     """.stripMargin
-
-  val InsertMatching =
-    s"""
-       |WITH task AS (${Insert}),
-       |     mat_task AS (INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, randomize)
-       |               SELECT task.id as task_id, ? as elements_left, ? as elements_right, ? as answers, ? as randomize
-       |               FROM task
-       |               RETURNING *)
-       |SELECT ${CommonFieldsWithTable("task")},
-       |       mat_task.elements_left, mat_task.elements_right,
-       |       mat_task.answers as mat_answers, mat_task.randomize as mat_randomize
-       |FROM task, mat_task
+       |       q_task.questions
+       |FROM task, q_task
      """.stripMargin
 
   // -- Update queries -----------------------------------------------------------------------------------------------
@@ -260,8 +181,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   val Update =
     s"""
        |UPDATE $Table
-       |SET part_id = ?, dependency_id = ?,
-       |    name = ?, description = ?,
+       |SET part_id = ?, name = ?, description = ?,
        |    position = ?, notes_allowed = ?,
        |    response_title = ?, notes_title = ?,
        |    version = ?, updated_at = ?
@@ -272,76 +192,38 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   val UpdateLongAnswer =
     s"""
-       |${Update}
-     """.stripMargin
-
-  val UpdateShortAnswer =
-    s"""
        |WITH task AS (${Update})
-       |UPDATE short_answer_tasks AS sa_task
-       |SET max_length = ?
+       |UPDATE document_tasks AS l_task
+       |SET dependency_id = ?
        |FROM task
        |WHERE task_id = task.id
-       |RETURNING $CommonFields,
-       |          sa_task.max_length
+       |RETURNING $CommonFields, l_task.dependency_id
      """.stripMargin
 
-  val UpdateMultipleChoice =
+  val UpdateQuestion =
     s"""
        |WITH task AS (${Update})
-       |UPDATE multiple_choice_tasks AS mc_task
-       |SET choices = ?, answers = ?, allow_multiple = ?, randomize = ?
+       |UPDATE question_tasks AS q_task
+       |SET questions = ?
        |FROM task
        |WHERE task_id = task.id
-       |RETURNING $CommonFields,
-       |          mc_task.choices as mc_choices, mc_task.answers as mc_answers,
-       |          mc_task.allow_multiple, mc_task.randomize as mc_randomize
-     """.stripMargin
-
-  val UpdateOrdering =
-    s"""
-       |WITH task AS (${Update})
-       |UPDATE ordering_tasks AS ord_task
-       |SET elements = ?, answers = ?, randomize = ?
-       |FROM task
-       |WHERE task_id = task.id
-       |RETURNING $CommonFields,
-       |          ord_task.elements as ord_elements, ord_task.answers as ord_answers,
-       |          ord_task.randomize as ord_randomize
-     """.stripMargin
-
-  val UpdateMatching =
-    s"""
-       |WITH task AS (${Update})
-       |UPDATE matching_tasks AS mat_task
-       |SET  elements_left = ?, elements_right = ?, answers = ?, randomize = ?
-       |FROM task
-       |WHERE task_id = task.id
-       |RETURNING $CommonFields,
-       |          mat_task.elements_left, mat_task.elements_right,
-       |          mat_task.answers as mat_answers, mat_task.randomize as mat_randomize
+       |RETURNING $CommonFields, q_task.questions
      """.stripMargin
 
   // -- Delete queries -----------------------------------------------------------------------------------------------
 
   val DeleteWhere =
     s"""
-      |long_answer_tasks.task_id = $Table.id
-      | OR short_answer_tasks.task_id = $Table.id
-      | OR multiple_choice_tasks.task_id = $Table.id
-      | OR ordering_tasks.task_id = $Table.id
-      | OR matching_tasks.task_id = $Table.id
+      |document_tasks.task_id = $Table.id
+      | OR question_tasks.task_id = $Table.id
      """.stripMargin
 
   val DeleteByPart =
     s"""
       |DELETE FROM $Table
       |USING
-      | long_answer_tasks,
-      | short_answer_tasks,
-      | multiple_choice_tasks,
-      | ordering_tasks,
-      | matching_tasks
+      | document_tasks,
+      | question_tasks
       |WHERE part_id = ?
       | AND ($DeleteWhere)
       |RETURNING $CommonFields, $SpecificFields
@@ -351,11 +233,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     s"""
       |DELETE FROM $Table
       |USING
-      | long_answer_tasks,
-      | short_answer_tasks,
-      | multiple_choice_tasks,
-      | ordering_tasks,
-      | matching_tasks
+      | document_tasks,
+      | question_tasks
       |WHERE $Table.id = ?
       | AND $Table.version = ?
       | AND ($DeleteWhere)
@@ -478,10 +357,6 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       new DateTime,
       new DateTime,
       task.partId,
-      task.settings.dependencyId match {
-        case Some(id) => Some(id)
-        case None => None
-      },
       task.settings.title,
       task.settings.description,
       task.position,
@@ -492,41 +367,13 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
     // Prepare the additional data to be sent depending on the type of task
     val dataArray: Seq[Any] = task match {
-      case longAnswer: LongAnswerTask => commonData ++ Seq[Any](Task.LongAnswer)
-
-      case shortAnswer: ShortAnswerTask => commonData ++ Seq[Any](
-        Task.ShortAnswer,
-        shortAnswer.maxLength
-      )
-      case multipleChoice: MultipleChoiceTask => commonData ++ Seq[Any](
-        Task.MultipleChoice,
-        multipleChoice.choices,
-        multipleChoice.answers,
-        multipleChoice.allowMultiple,
-        multipleChoice.randomizeChoices
-      )
-      case ordering: OrderingTask => commonData ++ Seq[Any](
-        Task.Ordering,
-        ordering.elements,
-        ordering.answers,
-        ordering.randomizeChoices
-      )
-      case matching: MatchingTask => commonData ++ Seq[Any](
-        Task.Matching,
-        matching.elementsLeft,
-        matching.elementsRight,
-        matching.answers.map { element => IndexedSeq(element.left, element.right) },
-        matching.randomizeChoices
-      )
-      case _ => throw new Exception("I don't know how you did this, but you sent me a task type that doesn't exist.")
+      case longAnswer: DocumentTask => commonData ++ Seq[Any](Task.Document, longAnswer.dependencyId)
+      case question: QuestionTask => commonData ++ Seq[Any](Task.Question, question.questions)
     }
 
     val query = task match {
-      case longAnswer: LongAnswerTask => InsertLongAnswer
-      case shortAnswer: ShortAnswerTask => InsertShortAnswer
-      case multipleChoice: MultipleChoiceTask => InsertMultipleChoice
-      case ordering: OrderingTask => InsertOrdering
-      case matching: MatchingTask => InsertMatching
+      case longAnswer: DocumentTask => InsertLongAnswer
+      case question: QuestionTask => InsertQuestion
     }
 
     // Send the query
@@ -546,10 +393,6 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     // Start with the data common to all task types.
     val commonData = Seq[Any](
       task.partId,
-      task.settings.dependencyId match {
-        case Some(id) => Some(id)
-        case None => None
-      },
       task.settings.title,
       task.settings.description,
       task.position,
@@ -563,36 +406,13 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
     // Throw in the task type-specific data.
     val dataArray: Seq[Any] = task match {
-      case longAnswer: LongAnswerTask => commonData
-      case shortAnswer: ShortAnswerTask => commonData ++ Array[Any](
-        shortAnswer.maxLength
-      )
-      case multipleChoice: MultipleChoiceTask => commonData ++ Array[Any](
-        multipleChoice.choices,
-        multipleChoice.answers,
-        multipleChoice.allowMultiple,
-        multipleChoice.randomizeChoices
-      )
-      case ordering: OrderingTask => commonData ++ Array[Any](
-        ordering.elements,
-        ordering.answers,
-        ordering.randomizeChoices
-      )
-      case matching: MatchingTask => commonData ++ Array[Any](
-        matching.elementsLeft,
-        matching.elementsRight,
-        matching.answers.map { element => IndexedSeq(element.left, element.right) },
-        matching.randomizeChoices
-      )
-      case _ => throw new Exception("I don't know how you did this, but you sent me a task type that doesn't exist.")
+      case longAnswer: DocumentTask => commonData ++ Seq[Any](longAnswer.dependencyId)
+      case question: QuestionTask => commonData ++ Seq[Any](question.questions)
     }
 
     val query = task match {
-      case longAnswer: LongAnswerTask => UpdateLongAnswer
-      case shortAnswer: ShortAnswerTask => UpdateShortAnswer
-      case multipleChoice: MultipleChoiceTask => UpdateMultipleChoice
-      case ordering: OrderingTask => UpdateOrdering
-      case matching: MatchingTask => UpdateMatching
+      case longAnswer: DocumentTask => UpdateLongAnswer
+      case shortAnswer: QuestionTask => UpdateQuestion
     }
 
     // Send the query
@@ -633,14 +453,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 }
 
 trait SpecificTaskConstructors {
-  /**
-   * Create a LongAnswerTask from a row returned by the database.
-   *
-   * @param row a RowData object returned from the db.
-   * @return a LongAnswerTask object
-   */
-  protected def constructLongAnswerTask(row: RowData): LongAnswerTask = {
-    LongAnswerTask(
+  protected def constructDocumentTask(row: RowData): DocumentTask = {
+    DocumentTask(
       id = row("id").asInstanceOf[UUID],
       partId = row("part_id").asInstanceOf[UUID],
       position = row("position").asInstanceOf[Int],
@@ -651,85 +465,14 @@ trait SpecificTaskConstructors {
     )
   }
 
-  /**
-   * Create a ShortAnswerTask from a row returned by the database.
-   *
-   * @param row a RowData object returned from the db.
-   * @return a ShortAnswerTask object
-   */
-  protected def constructShortAnswerTask(row: RowData): ShortAnswerTask = {
-    ShortAnswerTask(
+  protected def constructQuestionTask(row: RowData): QuestionTask = {
+    QuestionTask(
       id = row("id").asInstanceOf[UUID],
       partId = row("part_id").asInstanceOf[UUID],
       position = row("position").asInstanceOf[Int],
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
-      maxLength = row("max_length").asInstanceOf[Int],
-      createdAt = row("created_at").asInstanceOf[DateTime],
-      updatedAt = row("updated_at").asInstanceOf[DateTime]
-    )
-  }
-
-  /**
-   * Create a MultipleChoiceTask from a row returned by the database.
-   *
-   * @param row a RowData object returned from the db.
-   * @return a MultipleChoiceTask object
-   */
-  protected def constructMultipleChoiceTask(row: RowData): MultipleChoiceTask = {
-    MultipleChoiceTask(
-      id = row("id").asInstanceOf[UUID],
-      partId = row("part_id").asInstanceOf[UUID],
-      position = row("position").asInstanceOf[Int],
-      version = row("version").asInstanceOf[Long],
-      settings = CommonTaskSettings(row),
-      choices = Option(row("mc_choices").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      answers = Option(row("mc_answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
-      allowMultiple = row("allow_multiple").asInstanceOf[Boolean],
-      randomizeChoices = row("mc_randomize").asInstanceOf[Boolean],
-      createdAt = row("created_at").asInstanceOf[DateTime],
-      updatedAt = row("updated_at").asInstanceOf[DateTime]
-    )
-  }
-
-  /**
-   * Create a OrderingTask from a row returned by the database.
-   *
-   * @param row a RowData object returned from the db.
-   * @return a OrderingTask object
-   */
-  protected def constructOrderingTask(row: RowData): OrderingTask = {
-    OrderingTask(
-      id = row("id").asInstanceOf[UUID],
-      partId = row("part_id").asInstanceOf[UUID],
-      position = row("position").asInstanceOf[Int],
-      version = row("version").asInstanceOf[Long],
-      settings = CommonTaskSettings(row),
-      elements = Option(row("ord_elements").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      answers = Option(row("ord_answers").asInstanceOf[IndexedSeq[Int]]).getOrElse(IndexedSeq.empty[Int]),
-      randomizeChoices = row("ord_randomize").asInstanceOf[Boolean],
-      createdAt = row("created_at").asInstanceOf[DateTime],
-      updatedAt = row("updated_at").asInstanceOf[DateTime]
-    )
-  }
-
-  /**
-   * Create a MatchingTask from a row returned by the database.
-   *
-   * @param row a RowData object returned from the db.
-   * @return a MatchingTask object
-   */
-  protected def constructMatchingTask(row: RowData): MatchingTask = {
-    MatchingTask(
-      id = row("id").asInstanceOf[UUID],
-      partId = row("part_id").asInstanceOf[UUID],
-      position = row("position").asInstanceOf[Int],
-      version = row("version").asInstanceOf[Long],
-      settings = CommonTaskSettings(row),
-      elementsLeft = Option(row("elements_left").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      elementsRight = Option(row("elements_right").asInstanceOf[IndexedSeq[String]]).getOrElse(IndexedSeq.empty[String]),
-      answers = row("mat_answers").asInstanceOf[IndexedSeq[IndexedSeq[Int]]].map { element => Match(element.head, element.tail.head) },
-      randomizeChoices = row("mat_randomize").asInstanceOf[Boolean],
+      questions = Json.parse(row("questions").asInstanceOf[String]).as[IndexedSeq[Question]],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )

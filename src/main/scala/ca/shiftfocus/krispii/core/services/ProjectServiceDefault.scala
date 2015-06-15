@@ -868,7 +868,7 @@ class ProjectServiceDefault(
   /**
    * Validate a slug for use in a project.
    *
-   * @param slug the slug to be checked.....!
+   * @param slug the slug to be checked.....!!
    * @param existingId an optional unique id for an existing project to exclude
    * @return a future disjunction containing either the slug, or a failure
    */

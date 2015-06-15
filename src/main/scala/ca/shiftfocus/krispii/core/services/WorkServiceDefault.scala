@@ -196,7 +196,7 @@ class WorkServiceDefault(
           studentId = userId,
           taskId = taskId,
           version = 1L,
-          response = Map(),
+          response = Answers(Map()),
           isComplete = isComplete
         )
         work <- lift(workRepository.insert(newWork))
@@ -232,7 +232,7 @@ class WorkServiceDefault(
     userId: UUID,
     taskId: UUID,
     version: Long,
-    response: Option[Map[Int, Answer]],
+    response: Option[Answers],
     isComplete: Option[Boolean]
   ): Future[\/[ErrorUnion#Fail, QuestionWork]] = {
     transactional { implicit conn =>

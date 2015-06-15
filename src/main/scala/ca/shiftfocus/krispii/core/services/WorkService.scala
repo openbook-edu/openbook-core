@@ -1,12 +1,10 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models.tasks.MatchingTask
 import ca.shiftfocus.krispii.core.repositories.{ ComponentScratchpadRepository, TaskScratchpadRepository, TaskFeedbackRepository, WorkRepository }
-import java.util.UUID
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.work._
-import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
+import java.util.UUID
 import scala.concurrent.Future
 import scalaz.\/
 
@@ -23,7 +21,7 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   // Finder methods for work
   def listWork(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]]
   def listWork(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]]
-  def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Either[DocumentWork, QuestionWork]]]
+  def listWorkRevisions(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Either[DocumentWork, IndexedSeq[QuestionWork]]]]
   def findWork(workId: UUID): Future[\/[ErrorUnion#Fail, Work]]
   def findWork(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, Work]]
   def findWork(userId: UUID, taskId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Work]]
@@ -36,7 +34,7 @@ trait WorkService extends Service[ErrorUnion#Fail] {
     userId: UUID,
     taskId: UUID,
     version: Long,
-    answers: Option[Map[Int, Answer]] = None,
+    answers: Option[Answers] = None,
     isComplete: Option[Boolean] = None
   ): Future[\/[ErrorUnion#Fail, QuestionWork]]
 

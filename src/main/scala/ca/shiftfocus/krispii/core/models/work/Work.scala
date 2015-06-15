@@ -7,11 +7,6 @@ import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 
-/**
- * The "work" trait is the supertype for work that students have done.
- *
- * Sealed so that all possible sub-types must be defined here.
- */
 sealed trait Work {
   val id: UUID
   val studentId: UUID
@@ -36,7 +31,7 @@ object Work {
         "response" -> {
           work match {
             case specific: DocumentWork if specific.response.isDefined => Json.toJson(specific.response.get)
-            case specific: QuestionWork => Json.toJson(specific.response)
+            case specific: QuestionWork => Answers.writes.writes(specific.response)
           }
         },
         "isComplete" -> work.isComplete,
@@ -75,16 +70,13 @@ final case class QuestionWork(
     studentId: UUID,
     taskId: UUID,
     version: Long = 1L,
-    response: Map[Int, Answer] = Map(),
+    response: Answers = Answers(),
     isComplete: Boolean = false,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) extends Work {
   override def responseToString: String = {
-    response match {
-      case Some(answers) => answers.toString
-      case None => ""
-    }
+    response.toString
   }
 }
 
@@ -101,20 +93,43 @@ object Match {
   )(unlift(Match.unapply))
 }
 
-//case class Answers(map: Map[Int, Answer]) {
-//  implicit val reads = new Reads[Answers] {
-//    def reads(json: JsValue) = {
-//      json.
-//    }
-//  }
-//}
+case class Answers(underlying: Map[Int, Answer] = Map()) {
+  def updated(key: Int, value: Answer): Answers = Answers(underlying.updated(key, value))
+}
+object Answers {
+  implicit val reads = new Reads[Answers] {
+    def reads(json: JsValue) = {
+      json.asOpt[Map[String, Answer]] match {
+        case Some(answerMap) => {
+          val maybeTuples = answerMap.map {
+            case ((key, value)) => Option(key.toInt) match {
+              case Some(intKey) => Some((intKey, value))
+              case None => None
+            }
+          }
+          val answers = maybeTuples.flatten.toMap
+          JsSuccess(Answers(answers))
+        }
+        case None => JsError("JSON had invalid format.")
+      }
+    }
+  }
+  implicit val writes = new Writes[Answers] {
+    def writes(answers: Answers) = {
+      JsObject(answers.underlying.map {
+        case ((key, answer)) =>
+          (key.toString, Answer.writes.writes(answer))
+      })
+    }
+  }
+}
 
 trait Answer {
   val questionType: Int
   def answers(question: Question): Boolean = question.questionType == questionType
 }
 object Answer {
-  implicit val reads = new Reads[Answer] {
+  implicit val reads: Reads[Answer] = new Reads[Answer] {
     def reads(json: JsValue) = {
       (json \ "answerType").asOpt[Int] match {
         case Some(t) if t == Question.ShortAnswer => ShortAnswerAnswer.reads.reads(json)
@@ -126,7 +141,7 @@ object Answer {
       }
     }
   }
-  implicit val writes = new Writes[Answer] {
+  implicit val writes: Writes[Answer] = new Writes[Answer] {
     def writes(answer: Answer) = {
       answer match {
         case shortAnswer: ShortAnswerAnswer => ShortAnswerAnswer.writes.writes(shortAnswer)
@@ -153,8 +168,9 @@ object ShortAnswerAnswer {
     }
   }
   implicit val writes = new Writes[ShortAnswerAnswer] {
-    def writes(answer: ShortAnswerAnswer) = Json.obj(
-      "answerTye"
+    def writes(shortAnswer: ShortAnswerAnswer) = Json.obj(
+      "questionType" -> shortAnswer.questionType,
+      "answer" -> shortAnswer.answer
     )
   }
 }
@@ -166,6 +182,12 @@ object BlanksAnswer {
       case None => JsError("'answer' parameter not given")
     }
   }
+  implicit val writes = new Writes[BlanksAnswer] {
+    def writes(blanksAnswer: BlanksAnswer) = Json.obj(
+      "questionType" -> blanksAnswer.questionType,
+      "answer" -> blanksAnswer.answer
+    )
+  }
 }
 
 object MultipleChoiceAnswer {
@@ -174,6 +196,12 @@ object MultipleChoiceAnswer {
       case Some(answer) => JsSuccess(MultipleChoiceAnswer(answer))
       case None => JsError("'answer' parameter not given")
     }
+  }
+  implicit val writes = new Writes[MultipleChoiceAnswer] {
+    def writes(multipleChoiceAnswer: MultipleChoiceAnswer) = Json.obj(
+      "questionType" -> multipleChoiceAnswer.questionType,
+      "answer" -> multipleChoiceAnswer.answer
+    )
   }
 }
 
@@ -184,6 +212,12 @@ object OrderingAnswer {
       case None => JsError("'answer' parameter not given")
     }
   }
+  implicit val writes = new Writes[OrderingAnswer] {
+    def writes(orderingAnswer: OrderingAnswer) = Json.obj(
+      "questionType" -> orderingAnswer.questionType,
+      "answer" -> orderingAnswer.answer
+    )
+  }
 }
 
 object MatchingAnswer {
@@ -192,5 +226,11 @@ object MatchingAnswer {
       case Some(answer) => JsSuccess(MatchingAnswer(answer))
       case None => JsError("'answer' parameter not given")
     }
+  }
+  implicit val writes = new Writes[MatchingAnswer] {
+    def writes(matchingAnswer: MatchingAnswer) = Json.obj(
+      "questionType" -> matchingAnswer.questionType,
+      "answer" -> matchingAnswer.answer
+    )
   }
 }

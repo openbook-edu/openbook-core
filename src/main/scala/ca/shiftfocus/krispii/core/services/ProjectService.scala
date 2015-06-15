@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks._
-import ca.shiftfocus.krispii.core.models.work.Answer
+import ca.shiftfocus.krispii.core.models.tasks.questions._
 import ca.shiftfocus.krispii.core.repositories.{ TaskRepository, PartRepository, ProjectRepository }
 import java.util.UUID
 import scala.concurrent.Future
@@ -82,7 +82,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
   )
 
   def updateDocumentTask(commonArgs: CommonTaskArgs, depId: Option[Option[UUID]] = None): Future[\/[ErrorUnion#Fail, Task]]
-  def updateQuestionTask(commonArgs: CommonTaskArgs, answers: IndexedSeq[Answer]): Future[\/[ErrorUnion#Fail, Task]]
+  def updateQuestionTask(commonArgs: CommonTaskArgs, questions: Option[IndexedSeq[Question]]): Future[\/[ErrorUnion#Fail, Task]]
 
   def deleteTask(taskId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Task]]
   def moveTask(partId: UUID, taskId: UUID, newPosition: Int): Future[\/[ErrorUnion#Fail, Task]]

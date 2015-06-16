@@ -95,6 +95,7 @@ class SchoolServiceDefault(
     courseRepository.find(slug)
   }
 
+  // TODO validate slug
   /**
    * Create a new course.
    *

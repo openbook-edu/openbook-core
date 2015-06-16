@@ -7,7 +7,10 @@ import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
+<<<<<<< HEAD
 import org.joda.time.{ LocalTime, LocalDate }
+=======
+>>>>>>> aa4238e7e925ded712eb1a7f0142a3739a81bf9b
 
 import org.scalatest._
 import Matchers._

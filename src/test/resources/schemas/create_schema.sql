@@ -31,10 +31,10 @@ CREATE TABLE courses (
   teacher_id uuid NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
   name text,
   color integer,
-  slug text,
-  enabled boolean DEFAULT true,
-  chat_enabled boolean DEFAULT true,
+  slug text UNIQUE,
+  enabled boolean DEFAULT false,
   scheduling_enabled boolean DEFAULT false,
+  chat_enabled boolean DEFAULT true,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
@@ -76,7 +76,7 @@ CREATE TABLE projects (
   course_id uuid NOT NULL REFERENCES courses(id) ON DELETE RESTRICT,
   version bigint,
   name text,
-  slug text,
+  slug text UNIQUE,
   description text,
   availability text,
   created_at timestamp with time zone,

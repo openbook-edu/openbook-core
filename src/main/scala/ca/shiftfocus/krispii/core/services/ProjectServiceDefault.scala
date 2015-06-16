@@ -237,6 +237,7 @@ class ProjectServiceDefault(
     }
   }
 
+  // TODO - method does nothing
   /**
    * List the parts that have a component.
    *
@@ -377,50 +378,52 @@ class ProjectServiceDefault(
    * @return
    */
   def movePart(partId: UUID, version: Long, newPosition: Int): Future[\/[ErrorUnion#Fail, Part]] = {
-    for {
-      existingPart <- lift(partRepository.find(partId))
-      _ <- predicate(existingPart.version == version)(ServiceError.OfflineLockFail)
-      oldPosition = existingPart.position
-      project <- lift(projectRepository.find(existingPart.projectId, false))
-      partList <- lift(partRepository.list(project, false))
-      _ <- predicate(partList.nonEmpty)(ServiceError.BusinessLogicFail("Weird, part list shouldn't be empty!"))
-      truePosition <- lift {
-        val position = newPosition
-        val positionMax = partList.map(_.position).max
-        val positionMin = partList.map(_.position).min
+    transactional { implicit conn: Connection =>
+      for {
+        existingPart <- lift(partRepository.find(partId))
+        _ <- predicate(existingPart.version == version)(ServiceError.OfflineLockFail)
+        oldPosition = existingPart.position
+        project <- lift(projectRepository.find(existingPart.projectId, false))
+        partList <- lift(partRepository.list(project, false))
+        _ <- predicate(partList.nonEmpty)(ServiceError.BusinessLogicFail("Weird, part list shouldn't be empty!"))
+        truePosition <- lift {
+          val position = newPosition
+          val positionMax = partList.map(_.position).max
+          val positionMin = partList.map(_.position).min
 
-        if (position == 1 && positionMin == 0) Future.successful(\/-(positionMin))
-        else if (position < positionMin) Future.successful(\/-(positionMin))
-        else if (position > positionMax) Future.successful(\/-(positionMax + 1))
-        else Future.successful(\/-(position))
-      }
-      movedPart <- lift {
-        val positionExists = partList.iterator.filter(_.id != partId).filter(_.position == truePosition).nonEmpty
-        val updatedPartList = positionExists match {
-          case true => partList.map { part =>
-            {
-              if (part.id == partId) part.copy(position = truePosition)
-              else if (part.position < truePosition) part.copy(position = part.position - 1)
-              else part.copy(position = part.position + 1)
+          if (position == 1 && positionMin == 0) Future.successful(\/-(positionMin))
+          else if (position < positionMin) Future.successful(\/-(positionMin))
+          else if (position > positionMax) Future.successful(\/-(positionMax + 1))
+          else Future.successful(\/-(position))
+        }
+        movedPart <- lift {
+          val positionExists = partList.iterator.filter(_.id != partId).filter(_.position == truePosition).nonEmpty
+          val updatedPartList = positionExists match {
+            case true => partList.map { part =>
+              {
+                if (part.id == partId) part.copy(position = truePosition)
+                else if (part.position < truePosition) part.copy(position = part.position - 1)
+                else part.copy(position = part.position + 1)
+              }
+            }
+            case false => partList.map { part =>
+              {
+                if (part.id == partId) part.copy(position = truePosition)
+                else part
+              }
             }
           }
-          case false => partList.map { part =>
-            {
-              if (part.id == partId) part.copy(position = truePosition)
-              else part
-            }
+
+          // Order all parts by position
+          val orderedParts = updatedPartList.sortWith(_.position < _.position)
+
+          serializedT(orderedParts.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedParts(orderedParts, _)).map {
+            case -\/(error) => -\/(error)
+            case \/-(parts) => \/-(parts.filter(_.id == partId).head)
           }
         }
-
-        // Order all parts by position
-        val orderedParts = updatedPartList.sortWith(_.position < _.position)
-
-        serializedT(orderedParts.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedParts(orderedParts, _)).map {
-          case -\/(error) => -\/(error)
-          case \/-(parts) => \/-(parts.filter(_.id == partId).head)
-        }
-      }
-    } yield movedPart
+      } yield movedPart
+    }
   }
 
   private def updateOrderedParts(orderedParts: IndexedSeq[Part], i: Int): Future[\/[RepositoryError.Fail, Part]] = {

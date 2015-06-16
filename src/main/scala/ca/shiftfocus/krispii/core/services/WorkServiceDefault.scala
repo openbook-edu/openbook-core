@@ -52,8 +52,7 @@ class WorkServiceDefault(
    * List the latest revision of all of a user's work in a project for a specific
    * course.
    *
-   * @param userId the unique id of the user to filter by
-   * @param projectId the unique id of the project to filter by
+   * @param taskId
    * @return a future disjunction containing either a list of work, or a failure
    */
   override def listWork(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]] = {

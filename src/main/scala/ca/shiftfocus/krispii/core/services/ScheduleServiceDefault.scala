@@ -102,6 +102,7 @@ class ScheduleServiceDefault(
     transactional { implicit conn =>
       for {
         courseSchedule <- lift(courseScheduleRepository.find(id))
+        _ <- predicate(courseSchedule.version == version)(ServiceError.OfflineLockFail)
         toUpdate = courseSchedule.copy(
           version = version,
           courseId = courseId.getOrElse(courseSchedule.courseId),
@@ -126,6 +127,7 @@ class ScheduleServiceDefault(
     transactional { implicit conn =>
       for {
         courseSchedule <- lift(courseScheduleRepository.find(id))
+        _ <- predicate(courseSchedule.version == version)(ServiceError.OfflineLockFail)
         toDelete = courseSchedule.copy(version = version)
         isDeleted <- lift(courseScheduleRepository.delete(toDelete))
       } yield isDeleted
@@ -202,18 +204,20 @@ class ScheduleServiceDefault(
    */
   def updateScheduleException(id: UUID, version: Long, day: Option[LocalDate], startTime: Option[LocalTime], endTime: Option[LocalTime],
     description: Option[String]): Future[\/[ErrorUnion#Fail, CourseScheduleException]] = {
-    for {
-      existingException <- lift(courseScheduleExceptionRepository.find(id))
-      _ <- predicate(existingException.version == version)(RepositoryError.OfflineLockFail)
-      toUpdate = existingException.copy(
-        version = version,
-        day = day.getOrElse(existingException.day),
-        startTime = startTime.getOrElse(existingException.startTime),
-        endTime = endTime.getOrElse(existingException.endTime),
-        reason = description.getOrElse(existingException.reason)
-      )
-      updatedSchedule <- lift(courseScheduleExceptionRepository.update(toUpdate))
-    } yield updatedSchedule
+    transactional { implicit conn =>
+      for {
+        existingException <- lift(courseScheduleExceptionRepository.find(id))
+        _ <- predicate(existingException.version == version)(ServiceError.OfflineLockFail)
+        toUpdate = existingException.copy(
+          version = version,
+          day = day.getOrElse(existingException.day),
+          startTime = startTime.getOrElse(existingException.startTime),
+          endTime = endTime.getOrElse(existingException.endTime),
+          reason = description.getOrElse(existingException.reason)
+        )
+        updatedSchedule <- lift(courseScheduleExceptionRepository.update(toUpdate))
+      } yield updatedSchedule
+    }
   }
 
   /**
@@ -226,6 +230,7 @@ class ScheduleServiceDefault(
     transactional { implicit conn =>
       for {
         courseScheduleException <- lift(courseScheduleExceptionRepository.find(id))
+        _ <- predicate(courseScheduleException.version == version)(ServiceError.OfflineLockFail)
         toDelete = courseScheduleException.copy(version = version)
         isDeleted <- lift(courseScheduleExceptionRepository.delete(toDelete))
       } yield isDeleted

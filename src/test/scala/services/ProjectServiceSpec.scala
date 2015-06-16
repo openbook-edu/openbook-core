@@ -9,9 +9,7 @@ import com.github.mauricio.async.db.Connection
 import java.util.UUID
 import org.scalatest._
 import Matchers._
-import scala.util.Random
 
-// Is used for "should be and etc."
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, Future }
 import scalaz.{ -\/, \/- }
@@ -35,17 +33,6 @@ class ProjectServiceSpec
       f(mockConnection)
     }
   }
-
-  //  case class CommonTaskArgs(
-  //    taskId: UUID,
-  //    version: Long,
-  //    name: Option[String],
-  //    description: Option[String],
-  //    position: Option[Int],
-  //    notesAllowed: Option[Boolean],
-  //    dependencyId: Option[UUID] = None,
-  //    partId: Option[UUID] = None
-  //  )
 
   "ProjectService.create" should {
     inSequence {

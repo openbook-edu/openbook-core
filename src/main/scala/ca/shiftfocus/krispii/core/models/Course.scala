@@ -14,7 +14,7 @@ case class Course(
   name: String,
   color: Color,
   slug: String,
-  enabled: Boolean = true,
+  enabled: Boolean = false,
   chatEnabled: Boolean = true,
   schedulingEnabled: Boolean = false,
   projects: Option[IndexedSeq[Project]] = None,

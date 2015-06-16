@@ -2,7 +2,7 @@ name := "krispii-core"
 
 organization := "ca.shiftfocus"
 
-version := {scala.io.Source.fromFile("VERSION").mkString("").trim}
+version := scala.io.Source.fromFile("VERSION").mkString("").trim
 
 scalaVersion := "2.11.6"
 

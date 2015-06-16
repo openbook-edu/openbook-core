@@ -294,20 +294,25 @@ class ScheduleServiceDefault(
         exceptions <- lift(fExceptions)
         userExceptions = exceptions.filter(_.userId == userId)
         scheduledForStudent = {
-          schedules.exists({ schedule =>
-            today.equals(schedule.day) && (
-              now.equals(schedule.startTime) ||
-              now.equals(schedule.endTime) ||
-              (now.isBefore(schedule.endTime) && now.isAfter(schedule.startTime))
-            )
-          }) ||
-            userExceptions.exists({ schedule =>
-              today.equals(schedule.day) && (
-                now.equals(schedule.startTime) ||
-                now.equals(schedule.endTime) ||
-                (now.isBefore(schedule.endTime) && now.isAfter(schedule.startTime))
-              )
-            })
+          if (!course.enabled) false
+          else {
+            schedules.exists({ schedule =>
+              {
+                today.equals(schedule.day) && (
+                  now.equals(schedule.startTime) ||
+                  now.equals(schedule.endTime) ||
+                  (now.isBefore(schedule.endTime) && now.isAfter(schedule.startTime))
+                )
+              }
+            }) ||
+              userExceptions.exists({ schedule =>
+                today.equals(schedule.day) && (
+                  now.equals(schedule.startTime) ||
+                  now.equals(schedule.endTime) ||
+                  (now.isBefore(schedule.endTime) && now.isAfter(schedule.startTime))
+                )
+              })
+          }
         }
       } yield scheduledForStudent
     }

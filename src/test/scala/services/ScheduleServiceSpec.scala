@@ -109,11 +109,287 @@ class ScheduleServiceSpec
 
   "ScheduleService.isCourseScheduledForUser" should {
     inSequence {
-      "be TRUE if course is scheduled" in {
+      // shcedule
+      "be TRUE if course has only schedules for today and now = startTime (schedulingEnabled = TRUE)" in {
         val testUser = TestValues.testUserE
         val testCourseList = Vector(
-          TestValues.testCourseA,
-          TestValues.testCourseB
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = true)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector(
+          TestValues.testCourseScheduleB,
+          TestValues.testCourseScheduleC
+        )
+        val testScheduleExceptionList = Vector()
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleList(0).day,
+          testScheduleList(0).startTime
+        )
+        Await.result(result, Duration.Inf) should be(\/-(true))
+      }
+      "be TRUE if course has only schedules for today and now = endTime (schedulingEnabled = TRUE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = true)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector(
+          TestValues.testCourseScheduleB,
+          TestValues.testCourseScheduleC
+        )
+        val testScheduleExceptionList = Vector()
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleList(0).day,
+          testScheduleList(0).endTime
+        )
+        Await.result(result, Duration.Inf) should be(\/-(true))
+      }
+      "be TRUE if course has only schedules for today and startTime < now < endTime (schedulingEnabled = TRUE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = true)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector(
+          TestValues.testCourseScheduleB,
+          TestValues.testCourseScheduleC
+        )
+        val testScheduleExceptionList = Vector()
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleList(0).day,
+          testScheduleList(0).startTime.plusMinutes(1)
+        )
+        Await.result(result, Duration.Inf) should be(\/-(true))
+      }
+      "be FALSE if course is scheduled not for today and there are no scheduleExceptions for today too (schedulingEnabled = TRUE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = true)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector(
+          TestValues.testCourseScheduleB,
+          TestValues.testCourseScheduleC
+        )
+        val testScheduleExceptionList = Vector()
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleList(0).day.plusDays(1),
+          testScheduleList(0).startTime
+        )
+        Await.result(result, Duration.Inf) should be(\/-(false))
+      }
+      "be false if course has only schedules for today and now > endTime (schedulingEnabled = TRUE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = true)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector(
+          TestValues.testCourseScheduleB,
+          TestValues.testCourseScheduleC
+        )
+        val testScheduleExceptionList = Vector()
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleList(0).day,
+          testScheduleList(0).endTime.plusMinutes(1)
+        )
+        Await.result(result, Duration.Inf) should be(\/-(false))
+      }
+      "be FALSE if course has only schedules for today and now < startTime (schedulingEnabled = TRUE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = true)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector(
+          TestValues.testCourseScheduleB,
+          TestValues.testCourseScheduleC
+        )
+        val testScheduleExceptionList = Vector()
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleList(0).day,
+          testScheduleList(0).startTime.minusMinutes(1)
+        )
+        Await.result(result, Duration.Inf) should be(\/-(false))
+      }
+      "be FALSE if courses are disabled (schedulingEnabled = TRUE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = false, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = false, schedulingEnabled = true)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector(
+          TestValues.testCourseScheduleB,
+          TestValues.testCourseScheduleC
+        )
+        val testScheduleExceptionList = Vector()
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleList(0).day,
+          testScheduleList(0).startTime
+        )
+        Await.result(result, Duration.Inf) should be(\/-(false))
+      }
+
+      // ShceduleException -------------------
+      "be TRUE if course has only scheduleExceptions for user for today and now = startTime (schedulingEnabled = TRUE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = true)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector()
+        val testScheduleExceptionList = Vector(
+          TestValues.testCourseScheduleExceptionB,
+          TestValues.testCourseScheduleExceptionC,
+          TestValues.testCourseScheduleExceptionD
+        )
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleExceptionList(2).day,
+          testScheduleExceptionList(2).startTime
+        )
+        Await.result(result, Duration.Inf) should be(\/-(true))
+      }
+      "be TRUE if course has only scheduleExceptions for user for today and now = endTime (schedulingEnabled = TRUE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = true)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector()
+        val testScheduleExceptionList = Vector(
+          TestValues.testCourseScheduleExceptionB,
+          TestValues.testCourseScheduleExceptionC,
+          TestValues.testCourseScheduleExceptionD
+        )
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleExceptionList(2).day,
+          testScheduleExceptionList(2).endTime
+        )
+        Await.result(result, Duration.Inf) should be(\/-(true))
+      }
+      "be TRUE if course has only scheduleExceptions for user for today startTime < now < endTime (schedulingEnabled = TRUE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = true)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector()
+        val testScheduleExceptionList = Vector(
+          TestValues.testCourseScheduleExceptionB,
+          TestValues.testCourseScheduleExceptionC,
+          TestValues.testCourseScheduleExceptionD
+        )
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleExceptionList(2).day,
+          testScheduleExceptionList(2).startTime.plusMinutes(1)
+        )
+        Await.result(result, Duration.Inf) should be(\/-(true))
+      }
+      "be FALSE if course has only scheduleExceptions not for today and there are no schedules for today too (schedulingEnabled = TRUE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = true)
         )
         val testCourse = testCourseList(1)
         val testScheduleList = Vector(
@@ -135,10 +411,210 @@ class ScheduleServiceSpec
         val result = scheduleService.isCourseScheduledForUser(
           testCourse,
           testUser.id,
-          new LocalDate(2015, 1, 15),
-          new LocalTime(14, 1, 19)
+          testScheduleExceptionList(2).day.plusDays(999),
+          testScheduleExceptionList(2).startTime
+        )
+        Await.result(result, Duration.Inf) should be(\/-(false))
+      }
+      "be false if course has scheduleExceptions for today and now > endTime (schedulingEnabled = TRUE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = true)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector(
+          TestValues.testCourseScheduleB,
+          TestValues.testCourseScheduleC
+        )
+        val testScheduleExceptionList = Vector(
+          TestValues.testCourseScheduleExceptionB,
+          TestValues.testCourseScheduleExceptionC,
+          TestValues.testCourseScheduleExceptionD
+        )
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleExceptionList(2).day,
+          testScheduleExceptionList(2).endTime.plusMinutes(1)
+        )
+        Await.result(result, Duration.Inf) should be(\/-(false))
+      }
+      "be FALSE if course has scheduleExceptions for today and now < startTime (schedulingEnabled = TRUE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = true)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector(
+          TestValues.testCourseScheduleB,
+          TestValues.testCourseScheduleC
+        )
+        val testScheduleExceptionList = Vector(
+          TestValues.testCourseScheduleExceptionB,
+          TestValues.testCourseScheduleExceptionC,
+          TestValues.testCourseScheduleExceptionD
+        )
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleExceptionList(2).day,
+          testScheduleExceptionList(2).startTime.minusMinutes(1)
+        )
+        Await.result(result, Duration.Inf) should be(\/-(false))
+      }
+      "be FALSE if course has only scheduleExceptions for user and today = scheduleExceptions.day for another user and now = scheduleExceptions.startTime for another user (schedulingEnabled = TRUE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = true)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector()
+        val testScheduleExceptionList = Vector(
+          TestValues.testCourseScheduleExceptionB,
+          TestValues.testCourseScheduleExceptionC,
+          TestValues.testCourseScheduleExceptionD
+        )
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleExceptionList(0).day,
+          testScheduleExceptionList(0).startTime
+        )
+        Await.result(result, Duration.Inf) should be(\/-(false))
+      }
+      "return ServiceError.BadPermissions if user doesn't have the course (schedulingEnabled = TRUE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = true)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector(
+          TestValues.testCourseScheduleB,
+          TestValues.testCourseScheduleC
+        )
+        val testScheduleExceptionList = Vector()
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList.filter(_.id != testCourse.id))))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleList(0).day,
+          testScheduleList(0).startTime
+        )
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource.")))
+      }
+
+      // schedulingEnabled = FALSE
+      "be TRUE if user has course (schedulingEnabled = FALSE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = false),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = false)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector(
+          TestValues.testCourseScheduleB,
+          TestValues.testCourseScheduleC
+        )
+        val testScheduleExceptionList = Vector()
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleList(0).day,
+          testScheduleList(0).startTime
         )
         Await.result(result, Duration.Inf) should be(\/-(true))
+      }
+      "be FALSE if user has course but course is disabled (schedulingEnabled = FALSE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = false, schedulingEnabled = false),
+          TestValues.testCourseB.copy(enabled = false, schedulingEnabled = false)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector(
+          TestValues.testCourseScheduleB,
+          TestValues.testCourseScheduleC
+        )
+        val testScheduleExceptionList = Vector()
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleList(0).day,
+          testScheduleList(0).startTime
+        )
+        Await.result(result, Duration.Inf) should be(\/-(false))
+      }
+      "return ServiceError.BadPermissions if user doesn't have the course (schedulingEnabled = FALSE)" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = false),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = false)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector(
+          TestValues.testCourseScheduleB,
+          TestValues.testCourseScheduleC
+        )
+        val testScheduleExceptionList = Vector()
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList.filter(_.id != testCourse.id))))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleList(0).day,
+          testScheduleList(0).startTime
+        )
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource.")))
       }
     }
   }

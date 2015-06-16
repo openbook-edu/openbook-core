@@ -115,7 +115,7 @@ class ScheduleServiceSpec
           TestValues.testCourseA,
           TestValues.testCourseB
         )
-        val testCourse = testCourseList(0)
+        val testCourse = testCourseList(1)
         val testScheduleList = Vector(
           TestValues.testCourseScheduleB,
           TestValues.testCourseScheduleC

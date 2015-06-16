@@ -42,13 +42,9 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
   }
-  val SpecificFields =
-    """
-       |  document_tasks.dependency_id as dependency_id
-       |  question_tasks.questions as questions
-     """.stripMargin
+  val SpecificFields = "document_tasks.dependency_id as dependency_id, question_tasks.questions as questions"
 
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.position ASC"
   val Join =
     s"""
@@ -156,8 +152,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   val InsertLongAnswer =
     s"""
        |WITH task AS (${Insert}),
-       |     la_task AS (INSERT INTO document_tasks (task_id)
-       |                 SELECT task.id as task_id
+       |     la_task AS (INSERT INTO document_tasks (task_id, dependency_id)
+       |                 SELECT task.id as task_id, ? as dependency_id
        |                 FROM task
        |                 RETURNING task_id)
        |SELECT ${CommonFieldsWithTable("task")}

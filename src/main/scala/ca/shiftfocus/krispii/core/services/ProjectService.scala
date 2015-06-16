@@ -78,12 +78,14 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     description: Option[String],
     position: Option[Int],
     notesAllowed: Option[Boolean],
-    partId: Option[UUID] = None
+    partId: Option[UUID] = None,
+    responseTitle: Option[Option[String]] = None,
+    notesTitle: Option[Option[String]] = None
   )
 
   def updateDocumentTask(commonArgs: CommonTaskArgs, depId: Option[Option[UUID]] = None): Future[\/[ErrorUnion#Fail, Task]]
   def updateQuestionTask(commonArgs: CommonTaskArgs, questions: Option[IndexedSeq[Question]]): Future[\/[ErrorUnion#Fail, Task]]
 
   def deleteTask(taskId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Task]]
-  def moveTask(partId: UUID, taskId: UUID, newPosition: Int): Future[\/[ErrorUnion#Fail, Task]]
+  def moveTask(taskId: UUID, version: Long, newPosition: Int, partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]]
 }

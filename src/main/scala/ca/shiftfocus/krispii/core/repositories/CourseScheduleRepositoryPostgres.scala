@@ -89,7 +89,7 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
   """.stripMargin
 
   /**
-   * List all schedules for a given class
+   * List all schedules for a given course
    */
   override def list(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[CourseSchedule]]] = {
     cache.getCached[IndexedSeq[CourseSchedule]](cacheSchedulesKey(course.id)).flatMap {

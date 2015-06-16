@@ -405,8 +405,10 @@ class AuthServiceDefault(
    * @return the newly created Role
    */
   override def createRole(name: String, id: UUID = UUID.randomUUID): Future[\/[ErrorUnion#Fail, Role]] = {
-    val newRole = Role(name = name, id = id)
-    roleRepository.insert(newRole)
+    transactional { implicit conn =>
+      val newRole = Role(name = name, id = id)
+      roleRepository.insert(newRole)
+    }
   }
 
   /**

@@ -191,6 +191,7 @@ class SchoolServiceDefault(
     userRepository.list(course)
   }
 
+  // TODO - to remove
   //  /**
   //   * List all projects belonging to a course.
   //   */

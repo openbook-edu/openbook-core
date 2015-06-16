@@ -56,28 +56,35 @@ class JournalServiceDefault(
    * @param projectId Project where action was made
    * @param action Action that was made. Is declared in JournalEntry object.
    * @param item What object was affected. ex: a task, a button, some video etc.
-   * @param conn
    * @return
    */
   private def create(userId: UUID, projectId: UUID, action: Action, item: String): Future[\/[ErrorUnion#Fail, JournalEntry]] = {
-    journalRepository.insert(JournalEntry(
-      userId = userId,
-      projectId = projectId,
-      entryType = action.entryType,
-      item = item
-    ))
+    transactional { implicit conn =>
+      journalRepository.insert(JournalEntry(
+        userId = userId,
+        projectId = projectId,
+        entryType = action.entryType,
+        item = item
+      ))
+    }
   }
 
   def delete(journalEntry: JournalEntry): Future[\/[ErrorUnion#Fail, JournalEntry]] = {
-    journalRepository.delete(journalEntry)
+    transactional { implicit conn =>
+      journalRepository.delete(journalEntry)
+    }
   }
 
   def delete(entryType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
-    journalRepository.delete(entryType)
+    transactional { implicit conn =>
+      journalRepository.delete(entryType)
+    }
   }
 
   def delete(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[JournalEntry]]] = {
-    journalRepository.delete(user)
+    transactional { implicit conn =>
+      journalRepository.delete(user)
+    }
   }
 
   // --- LOG METHODS --------------------------------------------------------------------------------------------------

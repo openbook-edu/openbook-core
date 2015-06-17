@@ -2,14 +2,7 @@ name := "krispii-core"
 
 organization := "ca.shiftfocus"
 
-version := {sys.env.get("BUILD_NUMBER") match {
-  case Some(buildNum) => {
-    val currentVersion = scala.io.Source.fromFile("VERSION").mkString("").split("\\.").toIndexedSeq
-    val (major,minor,patch) = (currentVersion(0).toInt, currentVersion(1).toInt, currentVersion(2).toInt)
-    s"$major.$minor.${patch-1}+$buildNum"
-  }
-  case None => scala.io.Source.fromFile("VERSION").mkString("")
-}}
+version := {scala.io.Source.fromFile("VERSION").mkString("").trim}
 
 scalaVersion := "2.11.6"
 
@@ -81,7 +74,7 @@ publishMavenStyle := true
 //publishArtifact in (Compile, packageDoc) := false
 
 publishTo := {
-  val privateKeyFile = new java.io.File(sys.env("HOME") + "/.ssh/id_rsa")
+  val privateKeyFile = new java.io.File(sys.env("HOME") + "/.ssh/shiftfocus.rsa")
   Some(Resolver.sftp(
     "ShiftFocus Maven Repository",
     "maven.shiftfocus.ca",

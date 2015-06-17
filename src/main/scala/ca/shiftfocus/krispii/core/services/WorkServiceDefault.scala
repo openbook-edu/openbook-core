@@ -2,8 +2,7 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.tasks.MatchingTask
-import ca.shiftfocus.krispii.core.models.tasks.MatchingTask.Match
+import ca.shiftfocus.krispii.core.models.tasks.QuestionTask
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
@@ -70,7 +69,7 @@ class WorkServiceDefault(
    * @return a future disjunction containing either a list of work, or a failure
    */
   override def listWorkRevisions(userId: UUID, taskId: UUID) // format: OFF
-  : Future[\/[ErrorUnion#Fail, Either[DocumentWork, IndexedSeq[ListWork[_ >: Int with MatchingTask.Match]]]]] = { // format: ON
+  : Future[\/[ErrorUnion#Fail, Either[DocumentWork, IndexedSeq[QuestionWork]]]] = { // format: ON
     val fUser = authService.find(userId)
     val fTask = projectService.findTask(taskId)
 
@@ -155,7 +154,7 @@ class WorkServiceDefault(
    * @param isComplete whether the student is finished with the task
    * @return a future disjunction containing either a work, or a failure
    */
-  override def createLongAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, LongAnswerWork]] = {
+  override def createDocumentWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, DocumentWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -164,7 +163,7 @@ class WorkServiceDefault(
         user <- lift(fUser)
         task <- lift(fTask)
         document <- lift(documentService.create(UUID.randomUUID, user, "", Delta(IndexedSeq())))
-        newWork = LongAnswerWork(
+        newWork = DocumentWork(
           studentId = user.id,
           taskId = task.id,
           documentId = document.id,
@@ -172,102 +171,7 @@ class WorkServiceDefault(
           response = Some(document)
         )
         work <- lift(workRepository.insert(newWork))
-      } yield work.asInstanceOf[LongAnswerWork]
-    }
-  }
-
-  /**
-   * Create a short-answer work item.
-   *
-   * Use this method when entering student work on a task for the first time (in a given course).
-   *
-   * @param userId the id of the student whose work is being entered
-   * @param taskId the task for which the work was done
-   * @param isComplete whether the student is finished with the task
-   * @return the newly created work
-   */
-  override def createShortAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, ShortAnswerWork]] = {
-    transactional { implicit conn =>
-      val fUser = authService.find(userId)
-      val fTask = projectService.findTask(taskId)
-
-      for {
-        user <- lift(fUser)
-        task <- lift(fTask)
-        document <- lift(documentService.create(UUID.randomUUID, user, "", Delta(IndexedSeq())))
-        newWork = ShortAnswerWork(
-          studentId = user.id,
-          taskId = task.id,
-          documentId = document.id,
-          isComplete = isComplete,
-          response = Some(document)
-        )
-        work <- lift(workRepository.insert(newWork))
-      } yield work.asInstanceOf[ShortAnswerWork]
-    }
-  }
-
-  /**
-   * Create a multiple-choice work item.
-   *
-   * Use this method when entering student work on a task for the first time (in a given course).
-   *
-   * @param userId the id of the student whose work is being entered
-   * @param taskId the task for which the work was done
-   * @param response the student's response to the task (this is the actual "work")
-   * @param isComplete whether the student is finished with the task
-   * @return the newly created work
-   */
-  override def createMultipleChoiceWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]] = {
-    transactional { implicit conn =>
-      val fUser = authService.find(userId)
-      val fTask = projectService.findTask(taskId)
-
-      for {
-        user <- lift(fUser)
-        task <- lift(fTask)
-        document <- lift(documentService.create(UUID.randomUUID, user, "", Delta(IndexedSeq())))
-        newWork = MultipleChoiceWork(
-          studentId = userId,
-          taskId = taskId,
-          version = 1,
-          response = IndexedSeq.empty[Int],
-          isComplete = isComplete
-        )
-        work <- lift(workRepository.insert(newWork))
-      } yield work.asInstanceOf[MultipleChoiceWork]
-    }
-  }
-
-  /**
-   * Create an ordering work item.
-   *
-   * Use this method when entering student work on a task for the first time (in a given course).
-   *
-   * @param userId the id of the student whose work is being entered
-   * @param taskId the task for which the work was done
-   * @param response the student's response to the task (this is the actual "work")
-   * @param isComplete whether the student is finished with the task
-   * @return the newly created work
-   */
-  override def createOrderingWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, OrderingWork]] = {
-    transactional { implicit conn =>
-      val fUser = authService.find(userId)
-      val fTask = projectService.findTask(taskId)
-
-      for {
-        user <- lift(fUser)
-        task <- lift(fTask)
-        document <- lift(documentService.create(UUID.randomUUID, user, "", Delta(IndexedSeq())))
-        newWork = OrderingWork(
-          studentId = userId,
-          taskId = taskId,
-          version = 1,
-          response = IndexedSeq.empty[Int],
-          isComplete = isComplete
-        )
-        work <- lift(workRepository.insert(newWork))
-      } yield work.asInstanceOf[OrderingWork]
+      } yield work.asInstanceOf[DocumentWork]
     }
   }
 
@@ -278,11 +182,10 @@ class WorkServiceDefault(
    *
    * @param userId the id of the student whose work is being entered
    * @param taskId the task for which the work was done
-   * @param response the student's response to the task (this is the actual "work")
    * @param isComplete whether the student is finished with the task
    * @return the newly created work
    */
-  override def createMatchingWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MatchingWork]] = {
+  override def createQuestionWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, QuestionWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -291,15 +194,15 @@ class WorkServiceDefault(
         user <- lift(fUser)
         task <- lift(fTask)
         document <- lift(documentService.create(UUID.randomUUID, user, "", Delta(IndexedSeq())))
-        newWork = MatchingWork(
+        newWork = QuestionWork(
           studentId = userId,
           taskId = taskId,
           version = 1,
-          response = IndexedSeq.empty[Match],
+          response = Answers(Map()),
           isComplete = isComplete
         )
         work <- lift(workRepository.insert(newWork))
-      } yield work.asInstanceOf[MatchingWork]
+      } yield work.asInstanceOf[QuestionWork]
     }
   }
 
@@ -327,7 +230,7 @@ class WorkServiceDefault(
       user <- lift(fUser)
       task <- lift(fTask)
       latestRevision <- lift(workRepository.find(user, task))
-      updatedWork <- lift(workRepository.update(newerWork, newRevision))
+      updatedWork <- lift(workRepository.update(newerWork))
     } yield updatedWork
   }
 
@@ -339,7 +242,7 @@ class WorkServiceDefault(
    * Because the contents of the work are handled by the Document service, this method only
    * serves to update the work's completed status.
    */
-  def updateLongAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, LongAnswerWork]] = {
+  def updateDocumentWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, DocumentWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -348,20 +251,20 @@ class WorkServiceDefault(
         user <- lift(fUser)
         task <- lift(fTask)
         existingWork <- lift(workRepository.find(user, task))
-        existingLAWork = existingWork.asInstanceOf[LongAnswerWork]
+        existingLAWork = existingWork.asInstanceOf[DocumentWork]
         workToUpdate = existingLAWork.copy(isComplete = isComplete)
         updatedWork <- lift(workRepository.update(workToUpdate))
-      } yield updatedWork.asInstanceOf[LongAnswerWork]
+      } yield updatedWork.asInstanceOf[DocumentWork]
     }
   }
 
-  /**
-   * Update a short answer work.
-   *
-   * Because the contents of the work are handled by the Document service, this method only
-   * serves to update the work's completed status.
-   */
-  def updateShortAnswerWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, ShortAnswerWork]] = {
+  override def updateQuestionWork(
+    userId: UUID,
+    taskId: UUID,
+    version: Long,
+    response: Option[Answers],
+    isComplete: Option[Boolean]
+  ): Future[\/[ErrorUnion#Fail, QuestionWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -370,76 +273,35 @@ class WorkServiceDefault(
         user <- lift(fUser)
         task <- lift(fTask)
         existingWork <- lift(workRepository.find(user, task))
-        existingSAWork = existingWork.asInstanceOf[ShortAnswerWork]
-        workToUpdate = existingSAWork.copy(isComplete = isComplete)
+        existingQuestionWork = existingWork.asInstanceOf[QuestionWork]
+        workToUpdate = existingQuestionWork.copy(
+          response = response.getOrElse(existingQuestionWork.response),
+          isComplete = isComplete.getOrElse(existingQuestionWork.isComplete)
+        )
         updatedWork <- lift(workRepository.update(workToUpdate))
-      } yield updatedWork.asInstanceOf[ShortAnswerWork]
+      } yield updatedWork.asInstanceOf[QuestionWork]
     }
   }
 
-  override def updateMultipleChoiceWork(
-    userId: UUID,
-    taskId: UUID,
-    version: Long,
-    response: IndexedSeq[Int],
-    isComplete: Boolean
-  ): Future[\/[ErrorUnion#Fail, MultipleChoiceWork]] = {
+  override def updateAnswer(workId: UUID, version: Long, position: Int, answer: Answer): Future[\/[ErrorUnion#Fail, QuestionWork]] = {
     transactional { implicit conn =>
-      val fUser = authService.find(userId)
-      val fTask = projectService.findTask(taskId)
-
       for {
-        user <- lift(fUser)
-        task <- lift(fTask)
-        existingWork <- lift(workRepository.find(user, task))
-        existingMCWork = existingWork.asInstanceOf[MultipleChoiceWork]
-        workToUpdate = existingMCWork.copy(response = response, isComplete = isComplete)
-        updatedWork <- lift(workRepository.update(workToUpdate, true))
-      } yield updatedWork.asInstanceOf[MultipleChoiceWork]
-    }
-  }
+        work <- lift(findWork(workId))
+        _ <- predicate(work.isInstanceOf[QuestionWork])(ServiceError.BadInput("Attempted to update the answer for a document work"))
+        questionWork = work.asInstanceOf[QuestionWork]
 
-  override def updateOrderingWork(
-    userId: UUID,
-    taskId: UUID,
-    version: Long,
-    response: IndexedSeq[Int],
-    isComplete: Boolean
-  ): Future[\/[ErrorUnion#Fail, OrderingWork]] = {
-    transactional { implicit conn =>
-      val fUser = authService.find(userId)
-      val fTask = projectService.findTask(taskId)
+        task <- lift(projectService.findTask(questionWork.taskId))
+        _ <- predicate(task.isInstanceOf[QuestionTask])(ServiceError.BadInput("Retrieved a QuestionWork that points to a DocumentTask. Kindly curl up into a ball and cry."))
+        questionTask = task.asInstanceOf[QuestionTask]
+        _ <- predicate(questionTask.questions.isDefinedAt(position))(ServiceError.BadInput(s"There is no Question as position $position."))
+        question = questionTask.questions(position)
 
-      for {
-        user <- lift(fUser)
-        task <- lift(fTask)
-        existingWork <- lift(workRepository.find(user, task))
-        existingOrdWork = existingWork.asInstanceOf[OrderingWork]
-        workToUpdate = existingOrdWork.copy(response = response, isComplete = isComplete)
-        updatedWork <- lift(workRepository.update(workToUpdate, true))
-      } yield updatedWork.asInstanceOf[OrderingWork]
-    }
-  }
+        // Verify that the updated answer actually corresponds to the right question
+        _ <- predicate(answer.answers(question))(ServiceError.BadInput(s"The provided answer does not match the question type as position $position"))
 
-  override def updateMatchingWork(
-    userId: UUID,
-    taskId: UUID,
-    version: Long,
-    response: IndexedSeq[Match],
-    isComplete: Boolean
-  ): Future[\/[ErrorUnion#Fail, MatchingWork]] = {
-    transactional { implicit conn =>
-      val fUser = authService.find(userId)
-      val fTask = projectService.findTask(taskId)
-
-      for {
-        user <- lift(fUser)
-        task <- lift(fTask)
-        existingWork <- lift(workRepository.find(user, task))
-        existingMatchingWork = existingWork.asInstanceOf[MatchingWork]
-        workToUpdate = existingMatchingWork.copy(response = response, isComplete = isComplete)
-        updatedWork <- lift(workRepository.update(workToUpdate, true))
-      } yield updatedWork.asInstanceOf[MatchingWork]
+        toUpdate = questionWork.copy(response = questionWork.response.updated(position, answer))
+        updated <- lift(workRepository.update(toUpdate))
+      } yield updated.asInstanceOf[QuestionWork]
     }
   }
 
@@ -450,7 +312,7 @@ class WorkServiceDefault(
   //          task <- lift(projectService.findTask(taskId))
   //          works <- lift(listWork(task.id))
   //          worksToUpdate = works.map {
-  //            case work: LongAnswerWork => work.copy(isComplete = true)
+  //            case work: DocumentWork => work.copy(isComplete = true)
   //            case work: ShortAnswerWork => work.copy(isComplete = true)
   //            case work: MultipleChoiceWork => work.copy(isComplete = true)
   //            case work: OrderingWork => work.copy(isComplete = true)
@@ -469,7 +331,7 @@ class WorkServiceDefault(
   //                               .filter { task => task.partId != part.id || task.position <= task.position }
   //          worksLists <- liftSeq(tasks.map { task => workRepository.list(task) })
   //          worksToUpdate = worksLists.flatten.map {
-  //            case work: LongAnswerWork => work.copy(isComplete = true)
+  //            case work: DocumentWork => work.copy(isComplete = true)
   //            case work: ShortAnswerWork => work.copy(isComplete = true)
   //            case work: MultipleChoiceWork => work.copy(isComplete = true)
   //            case work: OrderingWork => work.copy(isComplete = true)
@@ -542,7 +404,6 @@ class WorkServiceDefault(
    *
    * @param studentId
    * @param taskId
-   * @param content
    * @return
    */
   def createFeedback(studentId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, TaskFeedback]] = {

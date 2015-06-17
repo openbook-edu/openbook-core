@@ -38,7 +38,7 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
   val Fields = "id, version, created_at, updated_at, project_id, name, position, enabled"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?"
-  val OrderBy = s"position ASC"
+  val OrderBy = "position ASC"
 
   // CRUD operations
   val SelectAll =

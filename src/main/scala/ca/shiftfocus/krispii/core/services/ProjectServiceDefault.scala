@@ -299,7 +299,7 @@ class ProjectServiceDefault(
             case false => 1
           }
 
-          if (position == 1 && positionMin == 0) Future.successful(\/-(positionMin))
+          if (position == 1 && positionMin == 0) Future.successful(\/-(positionMin)) // linter:ignore
           else if (position < positionMin) Future.successful(\/-(positionMin))
           else if (position > positionMax && partList.nonEmpty) Future.successful(\/-(positionMax + 1))
           else if (position > positionMax && partList.isEmpty) Future.successful(\/-(positionMax))
@@ -308,7 +308,7 @@ class ProjectServiceDefault(
         newPart <- lift {
           // If there is already a part with this position, shift it (and all following parts)
           // back by one to make room for the new one.
-          val positionExists = partList.filter(_.position == truePosition).nonEmpty
+          val positionExists = partList.exists(_.position == truePosition)
           val filteredPartList = positionExists match {
             case true => partList.filter(_.position < truePosition) ++ partList.filter(_.position >= truePosition).map(
               part => part.copy(position = part.position + 1)
@@ -392,13 +392,13 @@ class ProjectServiceDefault(
           val positionMax = partList.map(_.position).max
           val positionMin = partList.map(_.position).min
 
-          if (position == 1 && positionMin == 0) Future.successful(\/-(positionMin))
+          if (position == 1 && positionMin == 0) Future.successful(\/-(positionMin)) // linter:ignore
           else if (position < positionMin) Future.successful(\/-(positionMin))
           else if (position > positionMax) Future.successful(\/-(positionMax + 1))
           else Future.successful(\/-(position))
         }
         movedPart <- lift {
-          val positionExists = partList.iterator.filter(_.id != partId).filter(_.position == truePosition).nonEmpty
+          val positionExists = partList.iterator.filter(_.id != partId).filter(_.position == truePosition).nonEmpty // linter:ignore
           val updatedPartList = positionExists match {
             case true => partList.map { part =>
               {
@@ -515,7 +515,7 @@ class ProjectServiceDefault(
             case false => 1
           }
 
-          if (position == 1 && positionMin == 0) Future.successful(\/-(positionMin))
+          if (position == 1 && positionMin == 0) Future.successful(\/-(positionMin)) // linter:ignore
           else if (position < positionMin) Future.successful(\/-(positionMin))
           else if (position > positionMax && taskList.nonEmpty) Future.successful(\/-(positionMax + 1))
           else if (position > positionMax && taskList.isEmpty) Future.successful(\/-(positionMax))
@@ -524,7 +524,7 @@ class ProjectServiceDefault(
         newTask <- lift {
           // If there is already a task with this position, shift it (and all following tasks)
           // back by one to make room for the new one.
-          val positionExists = taskList.filter(_.position == truePosition).nonEmpty
+          val positionExists = taskList.exists(_.position == truePosition)
           val filteredTaskList = positionExists match {
             case true => taskList.filter(_.position < truePosition) ++ taskList.filter(_.position >= truePosition).map {
               case task: DocumentTask => task.copy(position = task.position + 1)
@@ -686,7 +686,7 @@ class ProjectServiceDefault(
                 case false => 1
               }
 
-              if (position == 1 && positionMin == 0) Future.successful(\/-(positionMin))
+              if (position == 1 && positionMin == 0) Future.successful(\/-(positionMin)) // linter:ignore
               else if (position < positionMin) Future.successful(\/-(positionMin))
               else if (position > positionMax && ntList.nonEmpty) Future.successful(\/-(positionMax + 1))
               else if (position > positionMax && ntList.isEmpty) Future.successful(\/-(positionMax))
@@ -699,7 +699,7 @@ class ProjectServiceDefault(
                 // otherwise, the task stays in the part
                 else ntList
 
-              val positionExists = taskList.iterator.filter(_.id != taskId).filter(_.position == truePosition).nonEmpty
+              val positionExists = taskList.iterator.filter(_.id != taskId).filter(_.position == truePosition).nonEmpty // linter:ignore
               val taskListPositions = positionExists match {
                 case true => taskList.map { task =>
                   {

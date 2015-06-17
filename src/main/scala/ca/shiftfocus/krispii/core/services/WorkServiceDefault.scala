@@ -207,7 +207,7 @@ class WorkServiceDefault(
   }
 
   // --------- Update ------------------------------------------------------------------------------------------
-
+  // TODO remove
   /**
    * Internal method for updating work.
    *
@@ -222,17 +222,17 @@ class WorkServiceDefault(
    * @param conn
    * @return
    */
-  private def updateWork(newerWork: Work, newRevision: Boolean = true)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Work]] = {
-    val fUser = authService.find(newerWork.studentId)
-    val fTask = projectService.findTask(newerWork.taskId)
-
-    for {
-      user <- lift(fUser)
-      task <- lift(fTask)
-      latestRevision <- lift(workRepository.find(user, task))
-      updatedWork <- lift(workRepository.update(newerWork))
-    } yield updatedWork
-  }
+  //  private def updateWork(newerWork: Work, newRevision: Boolean = true)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Work]] = {
+  //    val fUser = authService.find(newerWork.studentId)
+  //    val fTask = projectService.findTask(newerWork.taskId)
+  //
+  //    for {
+  //      user <- lift(fUser)
+  //      task <- lift(fTask)
+  //      latestRevision <- lift(workRepository.find(user, task))
+  //      updatedWork <- lift(workRepository.update(newerWork))
+  //    } yield updatedWork
+  //  }
 
   // --------- Update methods for each work type --------------------------------------------------------------------
 

@@ -32,7 +32,8 @@ scalacOptions in ThisBuild ++= Seq(
   "-Ywarn-adapted-args",
   "-Ywarn-value-discard",
   "-Ywarn-inaccessible",
-  "-Ywarn-dead-code"
+  "-Ywarn-dead-code",
+  "-P:linter:disable:OptionOfOption+PreferIfToBooleanMatch"
 )
 
 libraryDependencies ++= Seq(

@@ -198,75 +198,102 @@ VALUES ('45a146b3fd9a4cab9d1d3e9b0b15e12c', 7, '4ac4d872451b4092b13f643d6d5fa930
 /* ---------------------- TASKS ---------------------- */
 
 /* longAnswerTask A -> part A -> project A -> course A -> user A (teacher)*/
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
-VALUES ('bf1a6ed09f834cb485c1ad456299b3a3', 1, '5cd214be6bba47fa9f350eb8bafec397', null, 'test longAnswerTask A', 'test longAnswerTask A description', 10, 0, true, 'test longAnswerTask A response title', 'test longAnswerTask A notes title', '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('bf1a6ed09f834cb485c1ad456299b3a3', 1, '5cd214be6bba47fa9f350eb8bafec397', 'test longAnswerTask A', 'test longAnswerTask A description', 10, 0, true, 'test longAnswerTask A response title', 'test longAnswerTask A notes title', '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
 
-INSERT INTO long_answer_tasks (task_id)
-VALUES ('bf1a6ed09f834cb485c1ad456299b3a3');
+INSERT INTO document_tasks (task_id, dependency_id)
+VALUES ('bf1a6ed09f834cb485c1ad456299b3a3', null);
 
+/* longAnswerTask N -> part A -> project A -> course A -> user A (teacher)*/
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('73b75cd0c796429fa73402fabca367aa', 2, '5cd214be6bba47fa9f350eb8bafec397', 'test longAnswerTask N', 'test longAnswerTask N description', 26, 0, true, 'test longAnswerTask N response title', 'test longAnswerTask N notes title', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
-/* shortAnswerTask B -> part A (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
-VALUES ('10ef05ee7b494352b86e70510adf617f', 2, '5cd214be6bba47fa9f350eb8bafec397', 'bf1a6ed09f834cb485c1ad456299b3a3', 'test shortAnswerTask B', 'test shortAnswerTask B description', 11, 1, true, 'test shortAnswerTask B response title', 'test shortAnswerTask B notes title', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
+INSERT INTO document_tasks (task_id, dependency_id)
+VALUES ('73b75cd0c796429fa73402fabca367aa', null);
 
-INSERT INTO short_answer_tasks (task_id, max_length)
-VALUES ('10ef05ee7b494352b86e70510adf617f', 51);
+/* longAnswerTask O -> part A -> project A -> course A -> user A (teacher)*/
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('b807dbf4b4fe4b7bb1b711083899470d', 3, '5cd214be6bba47fa9f350eb8bafec397', 'test longAnswerTask O', 'test longAnswerTask O description', 27, 0, true, 'test longAnswerTask O response title', 'test longAnswerTask O notes title', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
 
-
-/* multipleChoiceTask C -> part A (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
-VALUES ('76cc2ed7611b4dafaa3f20efe42a65a0', 3, '5cd214be6bba47fa9f350eb8bafec397', 'bf1a6ed09f834cb485c1ad456299b3a3', 'test MultipleChoiceTask C', 'test MultipleChoiceTask C description', 12, 2, true, 'test MultipleChoiceTask C response title', 'test MultipleChoiceTask C notes title', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
-
-INSERT INTO multiple_choice_tasks (task_id, choices, answers, allow_multiple, randomize)
-VALUES ('76cc2ed7611b4dafaa3f20efe42a65a0', '{choice 1, choice 2}', '{1, 2}', false, true);
+INSERT INTO document_tasks (task_id, dependency_id)
+VALUES ('b807dbf4b4fe4b7bb1b711083899470d', '73b75cd0c796429fa73402fabca367aa');
 
 
-/* orderingTask D -> part B (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
-VALUES ('808400838923476fa8738ba6c55e30c8', 4, 'abb84847a3d247a0ae7d8ce04063afc7', 'bf1a6ed09f834cb485c1ad456299b3a3', 'test OrderingTask D', 'test OrderingTask D description', 13, 3, true, 'test OrderingTask D response title', 'test OrderingTask D notes title', '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
+/* shortAnswerTask B -> part A -> project A -> course A -> user A (teacher) */
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('10ef05ee7b494352b86e70510adf617f', 2, '5cd214be6bba47fa9f350eb8bafec397', 'test shortAnswerTask B', 'test shortAnswerTask B description', 14, 1, true, 'test shortAnswerTask B response title', 'test shortAnswerTask B notes title', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
-INSERT INTO ordering_tasks (task_id, elements, answers, randomize)
-VALUES ('808400838923476fa8738ba6c55e30c8', '{element 3, element 4}', '{3, 4}', true);
-
-
-/* orderingTask L -> part B (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
-VALUES ('3d3578bd60d34aeabe070359dad2fecb', 6, 'abb84847a3d247a0ae7d8ce04063afc7', 'bf1a6ed09f834cb485c1ad456299b3a3', 'test OrderingTask L', 'test OrderingTask L description', 17, 3, true, 'test OrderingTask L response title', 'test OrderingTask L notes title', '2014-08-08 14:01:19.545-04', '2014-08-09 14:01:19.545-04');
-
-INSERT INTO ordering_tasks (task_id, elements, answers, randomize)
-VALUES ('3d3578bd60d34aeabe070359dad2fecb', '{element 5, element 6}', '{5, 6}', true);
+INSERT INTO question_tasks (task_id, questions)
+VALUES ('10ef05ee7b494352b86e70510adf617f', '[{"type": 1, "title": "testShortAnswerQuestionA title", "description": "testShortAnswerQuestionA description", "maxLength": 51}]');
 
 
-/* orderingTask N -> part G (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
-VALUES ('599a78ad5bff4246983532fcb41168a6', 7, '8e080c002b204e7bb18c2582d79e7e68', 'bf1a6ed09f834cb485c1ad456299b3a3', 'test OrderingTask N', 'test OrderingTask N description', 18, 3, true, 'test OrderingTask N response title', 'test OrderingTask N notes title', '2014-08-10 14:01:19.545-04', '2014-08-11 14:01:19.545-04');
+/* multipleChoiceTask C -> part A -> project A -> course A -> user A (teacher) */
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('76cc2ed7611b4dafaa3f20efe42a65a0', 3, '5cd214be6bba47fa9f350eb8bafec397', 'test MultipleChoiceTask C', 'test MultipleChoiceTask C description', 16, 1, true, 'test MultipleChoiceTask C response title', 'test MultipleChoiceTask C notes title', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
 
-INSERT INTO ordering_tasks (task_id, elements, answers, randomize)
-VALUES ('599a78ad5bff4246983532fcb41168a6', '{element 6, element 7}', '{6, 7}', true);
-
-
-/* matchingTask E -> part C (dependency_id -> longAnswerTask A) -> project B -> course B -> user B (teacher) */
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
-VALUES ('468a35bfbaf84045aa184688f4d0721f', 5, 'fb01f11b7f2341c8877b68410be62aa5', 'bf1a6ed09f834cb485c1ad456299b3a3', 'test MatchingTask E', 'test MatchingTask E description', 14, 4, true, 'test MatchingTask E response title', 'test MatchingTask E notes title', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
-
-INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, randomize)
-VALUES ('468a35bfbaf84045aa184688f4d0721f', '{choice left 5, choice left 6}', '{choice right 7, choice right 8}', '{{5, 6}, {7, 8}}', true);
+INSERT INTO question_tasks (task_id, questions)
+VALUES ('76cc2ed7611b4dafaa3f20efe42a65a0', '[{"type": 3, "title": "testMultipleChoiceQuestionB title", "description": "testMultipleChoiceQuestionB description", "choices": ["choice 1", "choice 2"], "correct": [1, 2], "singleAnswer": true}]');
 
 
-/* matchingTask K -> partB (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
-VALUES ('337fa73136854ba38668280c0096514c', 7, 'abb84847a3d247a0ae7d8ce04063afc7', 'bf1a6ed09f834cb485c1ad456299b3a3', 'test MatchingTask K', 'test MatchingTask K description', 16, 4, true, 'test MatchingTask K response title', 'test MatchingTask K notes title', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+/* orderingTask D -> part B -> project A -> course A -> user A (teacher) */
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('808400838923476fa8738ba6c55e30c8', 4, 'abb84847a3d247a0ae7d8ce04063afc7', 'test OrderingTask D', 'test OrderingTask D description', 18, 1, true, 'test OrderingTask D response title', 'test OrderingTask D notes title', '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
 
-INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, randomize)
-VALUES ('337fa73136854ba38668280c0096514c', '{choice left 6, choice left 7}', '{choice right 8, choice right 9}', '{{6, 7}, {8, 9}}', true);
+INSERT INTO question_tasks (task_id, questions)
+VALUES ('808400838923476fa8738ba6c55e30c8', '[{"type": 4, "title": "testOrderingQuestionC title", "description": "testOrderingQuestionC description", "choices": ["choice 3", "choice 4"]}]');
 
 
-/* matchingTask M -> partB (dependency_id -> longAnswerTask A) -> project A -> course A -> user A (teacher) */
-INSERT INTO tasks (id, version, part_id, dependency_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
-VALUES ('129f2b0856d34e14aa5b659f53f71e39', 8, 'abb84847a3d247a0ae7d8ce04063afc7', 'bf1a6ed09f834cb485c1ad456299b3a3', 'test MatchingTask M', 'test MatchingTask M description', 17, 4, true, 'test MatchingTask M response title', 'test MatchingTask M notes title', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+/* orderingTask L -> part B  -> project A -> course A -> user A (teacher) */
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('3d3578bd60d34aeabe070359dad2fecb', 6, 'abb84847a3d247a0ae7d8ce04063afc7', 'test OrderingTask L', 'test OrderingTask L description', 19, 1, true, 'test OrderingTask L response title', 'test OrderingTask L notes title', '2014-08-08 14:01:19.545-04', '2014-08-09 14:01:19.545-04');
 
-INSERT INTO matching_tasks (task_id, elements_left, elements_right, answers, randomize)
-VALUES ('129f2b0856d34e14aa5b659f53f71e39', '{choice left 7, choice left 8}', '{choice right 9, choice right 10}', '{{7, 8}, {9, 10}}', true);
+INSERT INTO question_tasks (task_id, questions)
+VALUES ('3d3578bd60d34aeabe070359dad2fecb','[{"type": 4, "title": "testOrderingQuestionC title", "description": "testOrderingQuestionC description", "choices": ["choice 3", "choice 4"]}]');
+
+
+/* orderingTask N -> part G -> project A -> course A -> user A (teacher) */
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('599a78ad5bff4246983532fcb41168a6', 7, '8e080c002b204e7bb18c2582d79e7e68', 'test OrderingTask N', 'test OrderingTask N description', 20, 1, true, 'test OrderingTask N response title', 'test OrderingTask N notes title', '2014-08-10 14:01:19.545-04', '2014-08-11 14:01:19.545-04');
+
+INSERT INTO question_tasks (task_id, questions)
+VALUES ('599a78ad5bff4246983532fcb41168a6', '[{"type": 4, "title": "testOrderingQuestionC title", "description": "testOrderingQuestionC description", "choices": ["choice 3", "choice 4"]}]');
+
+
+/* matchingTask E -> part C -> project B -> course B -> user B (teacher) */
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('468a35bfbaf84045aa184688f4d0721f', 5, 'fb01f11b7f2341c8877b68410be62aa5', 'test MatchingTask E', 'test MatchingTask E description', 1, 1, true, 'test MatchingTask E response title', 'test MatchingTask E notes title', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
+
+INSERT INTO question_tasks (task_id, questions)
+VALUES ('468a35bfbaf84045aa184688f4d0721f', '[{"type": 5, "title": "testMatchingQuestionD title", "description": "testMatchingQuestionD description", "choices": [{"left": "choice left 5", "right": "choice right 6"}, {"left": "choice left 7", "right": "choice right 8"}]}]');
+
+
+/* matchingTask K -> partB -> project A -> course A -> user A (teacher) */
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('337fa73136854ba38668280c0096514c', 7, 'abb84847a3d247a0ae7d8ce04063afc7', 'test MatchingTask K', 'test MatchingTask K description', 24, 1, true, 'test MatchingTask K response title', 'test MatchingTask K notes title', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+
+INSERT INTO question_tasks (task_id, questions)
+VALUES ('337fa73136854ba38668280c0096514c', '[{"type": 5, "title": "testMatchingQuestionD title", "description": "testMatchingQuestionD description", "choices": [{"left": "choice left 5", "right": "choice right 6"}, {"left": "choice left 7", "right": "choice right 8"}]}]');
+
+
+/* matchingTask M -> partB -> project A -> course A -> user A (teacher) */
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('129f2b0856d34e14aa5b659f53f71e39', 8, 'abb84847a3d247a0ae7d8ce04063afc7', 'test MatchingTask M', 'test MatchingTask M description', 25, 1, true, 'test MatchingTask M response title', 'test MatchingTask M notes title', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+
+INSERT INTO question_tasks (task_id, questions)
+VALUES ('129f2b0856d34e14aa5b659f53f71e39', '[
+{"type": 5, "title": "testMatchingQuestionD title", "description": "testMatchingQuestionD description", "choices": [{"left": "choice left 5", "right": "choice right 6"}, {"left": "choice left 7", "right": "choice right 8"}]}
+]');
+
+
+/* blanksTask P -> part G -> project A -> course A -> user A (teacher) */
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('9a258f444ee84bab855b53966e53ca10', 9, '8e080c002b204e7bb18c2582d79e7e68', 'test BlanksTask P', 'test BlanksTask P description', 28, 1, true, 'test BlanksTask P response title', 'test BlanksTask P notes title', '2014-08-17 14:01:19.545-04', '2014-08-18 14:01:19.545-04');
+
+INSERT INTO question_tasks (task_id, questions)
+VALUES ('9a258f444ee84bab855b53966e53ca10', '[
+{"type": 2, "title": "testBlanksQuestionE title", "description": "testBlanksQuestionE description", "text": "testBlanksQuestionE text", "inputs": [{"position": 5, "maxLength": 50}, {"position": 6, "maxLength": 60}] },
+{"type": 5, "title": "testMatchingQuestionD title", "description": "testMatchingQuestionD description", "choices": [{"left": "choice left 5", "right": "choice right 6"}, {"left": "choice left 7", "right": "choice right 8"}]}
+]');
 
 
 /* ---------------------- DOCUMENTS ---------------------- */
@@ -365,23 +392,23 @@ VALUES ('bd01c98803694ddaada205a9ff3645cf', 1, 'f5f984073a0b4ea5952a575886e90586
 
 /* ---------------------- TASK_FEEDBACKS ---------------------- */
 
-/* taskFeedbackA */
+/* taskFeedbackA -> longAnswerTaskA */
 INSERT INTO task_feedbacks (student_id, task_id, document_id)
 VALUES ('f5f984073a0b4ea5952a575886e90586', 'bf1a6ed09f834cb485c1ad456299b3a3', '1a9d5407b3c444a18e7e1d7e9578eabc');
 
-/* taskFeedbackB */
+/* taskFeedbackB -> shortAnswerTaskB */
 INSERT INTO task_feedbacks (student_id, task_id, document_id)
 VALUES ('871b525067124e548ab60784cae0bc64', '10ef05ee7b494352b86e70510adf617f', '300ddfb7f9bf47fea0b226f332828fff');
 
-/* taskFeedbackC */
+/* taskFeedbackC -> matchingTaskE */
 INSERT INTO task_feedbacks (student_id, task_id, document_id)
 VALUES ('f5f984073a0b4ea5952a575886e90586', '468a35bfbaf84045aa184688f4d0721f', 'eb8ef353d22f48a4a356351e0de3ed16');
 
-/* taskFeedbackD */
+/* taskFeedbackD -> matchingTaskE */
 INSERT INTO task_feedbacks (student_id, task_id, document_id)
 VALUES ('871b525067124e548ab60784cae0bc64', '468a35bfbaf84045aa184688f4d0721f', '9110c16f45fd42119e39b15ab8b6f9ee');
 
-/* taskFeedbackE */
+/* taskFeedbackE -> orderingTaskN */
 INSERT INTO task_feedbacks (student_id, task_id, document_id)
 VALUES ('f5f984073a0b4ea5952a575886e90586', '599a78ad5bff4246983532fcb41168a6', '30739c6d43774a2f8aa3d1240dfb0740');
 
@@ -415,10 +442,10 @@ VALUES ('f5f984073a0b4ea5952a575886e90586', '599a78ad5bff4246983532fcb41168a6', 
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
 VALUES ('441374e20b1643ecadb96a3251081d24', 'f5f984073a0b4ea5952a575886e90586', 'bf1a6ed09f834cb485c1ad456299b3a3', 1, true, 0, '2014-08-01 14:01:19.545-04', '2014-08-03 14:01:19.545-04');
 
-INSERT INTO long_answer_work (work_id, document_id)
+INSERT INTO document_work (work_id, document_id)
 VALUES ('441374e20b1643ecadb96a3251081d24', 'fd923b3f6dc2472e8ce77a8fcc6a1a20');
 
-
+/*
 /* longAnswerWorkF -> userE -> longAnswerTaskA -> documentB */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
 VALUES ('f7fcffc37b794de7b6ddcf37aa155fd9', '871b525067124e548ab60784cae0bc64', 'bf1a6ed09f834cb485c1ad456299b3a3', 1, true, 0, '2014-08-03 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
@@ -433,16 +460,16 @@ VALUES ('cbf452cd915a4b249d0292be013bbba8', '871b525067124e548ab60784cae0bc64', 
 
 INSERT INTO short_answer_work (work_id, document_id)
 VALUES ('cbf452cd915a4b249d0292be013bbba8', '462b7f6c8b624c998643a63b2720b2a7');
-
+*/
 
 /* ShortAnswerWorkG -> userC -> shortAnswerTask B -> documentD */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
 VALUES ('b7bb09c16aca40de81525da483a5c476', 'f5f984073a0b4ea5952a575886e90586', '10ef05ee7b494352b86e70510adf617f', 1, false, 1, '2014-08-05 14:01:19.545-04', '2014-08-07 14:01:19.545-04');
 
-INSERT INTO short_answer_work (work_id, document_id)
-VALUES ('b7bb09c16aca40de81525da483a5c476', 'bd01c98803694ddaada205a9ff3645cf');
+INSERT INTO question_work (work_id, answers)
+VALUES ('b7bb09c16aca40de81525da483a5c476', '[{ "answerType": 1, "questionType": 1, "answer": "ShortAnswerWorkG answer" }]');
 
-
+/*
 /* MultipleChoiceWorkC -> userC -> multipleChoiceTask C */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
 VALUES ('edfd619897b04f219e15fbe4ed051970', 'f5f984073a0b4ea5952a575886e90586', '76cc2ed7611b4dafaa3f20efe42a65a0', 3, true, 2, '2014-08-05 14:01:19.545-04', '2014-08-07 14:01:19.545-04');
@@ -506,19 +533,23 @@ VALUES ('e47442dd8ac94d06ad6fef62720d4ed3', 5, '{{5, 6}, {7, 8}}', '2014-08-11 1
 /* Previous revision */
 INSERT INTO matching_work (work_id, version, response, created_at)
 VALUES ('e47442dd8ac94d06ad6fef62720d4ed3', 4, '{{6, 7}, {8, 9}}', '2014-08-10 14:01:19.545-04');
-
+*/
 
 /* testMatchingWorkJ -> userE -> testMatchingTaskE */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('c57e033551da41449dfcdfa97f5f1a7c', '871b525067124e548ab60784cae0bc64', '468a35bfbaf84045aa184688f4d0721f', 6, false, 4, '2014-08-10 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
+VALUES ('c57e033551da41449dfcdfa97f5f1a7c', '871b525067124e548ab60784cae0bc64', '468a35bfbaf84045aa184688f4d0721f', 6, false, 1, '2014-08-10 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
 
 /* Latest revision */
-INSERT INTO matching_work (work_id, version, response, created_at)
-VALUES ('c57e033551da41449dfcdfa97f5f1a7c', 6, '{{6, 7}, {8, 9}}', '2014-08-12 14:01:19.545-04');
+INSERT INTO question_work (work_id, answers)
+VALUES ('c57e033551da41449dfcdfa97f5f1a7c', '[{ "answerType": 5, "questionType": 5, "answer": [[6, 7], [8, 9]] }]');
 
 /* Previous revision */
-INSERT INTO matching_work (work_id, version, response, created_at)
-VALUES ('c57e033551da41449dfcdfa97f5f1a7c', 5, '{{7, 8}, {9, 10}}', '2014-08-11 14:01:19.545-04');
+INSERT INTO question_work_answers (work_id, answers, version)
+VALUES ('c57e033551da41449dfcdfa97f5f1a7c', '[{ "answerType": 5, "questionType": 5, "answer": [[6, 7], [8, 9]] }]', 6);
+
+/* Previous revision */
+INSERT INTO question_work_answers (work_id, answers, version)
+VALUES ('c57e033551da41449dfcdfa97f5f1a7c', '[{ "answerType": 5, "questionType": 5, "answer": [[2, 3], [4, 5]] }]', 5);
 
 
 /* ---------------------- COMPONENTS ---------------------- */

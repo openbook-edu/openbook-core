@@ -73,9 +73,9 @@ abstract class TestEnvironment(writeToDb: Boolean = true)
   //------------------
 
   val project_path = new File(".").getAbsolutePath()
-  val create_schema_path = s"${project_path}/src/test/resources/schemas/create_schema_new.sql"
-  val drop_schema_path = s"${project_path}/src/test/resources/schemas/drop_schema_new.sql"
-  val data_schema_path = s"${project_path}/src/test/resources/schemas/data_schema_new.sql"
+  val create_schema_path = s"${project_path}/src/test/resources/schemas/create_schema.sql"
+  val drop_schema_path = s"${project_path}/src/test/resources/schemas/drop_schema.sql"
+  val data_schema_path = s"${project_path}/src/test/resources/schemas/data_schema.sql"
 
   /**
    * Implements query from schema file

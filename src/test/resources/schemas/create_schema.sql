@@ -139,7 +139,6 @@ CREATE TABLE tasks (
   id uuid PRIMARY KEY,
   version bigint,
   part_id uuid NOT NULL REFERENCES parts(id) ON DELETE CASCADE,
-  dependency_id uuid REFERENCES tasks(id) ON DELETE RESTRICT,
   name text,
   description text,
   position int,
@@ -151,37 +150,17 @@ CREATE TABLE tasks (
   updated_at timestamp with time zone
 );
 
-CREATE TABLE long_answer_tasks (
-  task_id uuid PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE
+CREATE TABLE document_tasks (
+  task_id uuid PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+  dependency_id uuid REFERENCES tasks(id) ON DELETE RESTRICT
 );
 
-CREATE TABLE short_answer_tasks (
+CREATE TABLE question_tasks (
   task_id uuid PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
-  max_length int
+  questions jsonb
 );
 
-CREATE TABLE multiple_choice_tasks (
-  task_id uuid PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
-  choices text[],
-  answers int[],
-  allow_multiple boolean DEFAULT false,
-  randomize boolean DEFAULT true
-);
 
-CREATE TABLE ordering_tasks (
-  task_id uuid PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
-  elements text[],
-  answers int[],
-  randomize boolean DEFAULT true
-);
-
-CREATE TABLE matching_tasks (
-  task_id uuid PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
-  elements_left text[],
-  elements_right text[],
-  answers int[][2],
-  randomize boolean DEFAULT true
-);
 
 CREATE TABLE task_feedbacks (
   task_id    uuid REFERENCES tasks(id) ON DELETE RESTRICT,
@@ -258,49 +237,29 @@ CREATE TABLE work (
 );
 
 /*
-  Long Answer and Short Answer work just are versioned using the OT document system. Thus
-  their tables merely hold pointers to Documents.
+  Long Answer answer work is versioned with the document system.
+  Question work is versioned in an answers table.
 */
 
-CREATE TABLE long_answer_work (
+CREATE TABLE document_work (
   work_id uuid REFERENCES work(id) ON DELETE CASCADE,
   document_id uuid REFERENCES documents(id) ON DELETE RESTRICT,
   PRIMARY KEY (work_id, document_id)
 );
 
-CREATE TABLE short_answer_work (
+CREATE TABLE question_work (
   work_id uuid REFERENCES work(id) ON DELETE CASCADE,
-  document_id uuid REFERENCES documents(id) ON DELETE RESTRICT,
-  PRIMARY KEY (work_id, document_id)
+  answers jsonb,
+  PRIMARY KEY (work_id)
 );
 
-/*
-  Multiple choice, ordering and matching are versioned using their own tables.
-*/
-
-CREATE TABLE multiple_choice_work (
-  work_id uuid REFERENCES work(id) ON DELETE CASCADE,
+CREATE TABLE question_work_answers (
+  work_id uuid REFERENCES question_work(work_id) ON DELETE CASCADE,
   version bigint,
-  response int[],
-  created_at timestamp with time zone,
+  answers jsonb,
   PRIMARY KEY (work_id, version)
 );
 
-CREATE TABLE ordering_work (
-  work_id uuid REFERENCES work(id) ON DELETE CASCADE,
-  version bigint,
-  response int[],
-  created_at timestamp with time zone,
-  PRIMARY KEY (work_id, version)
-);
-
-CREATE TABLE matching_work (
-  work_id uuid REFERENCES work(id) ON DELETE CASCADE,
-  version bigint,
-  response int[][2],
-  created_at timestamp with time zone,
-  PRIMARY KEY (work_id, version)
-);
 
 CREATE TABLE journal (
   id uuid PRIMARY KEY,

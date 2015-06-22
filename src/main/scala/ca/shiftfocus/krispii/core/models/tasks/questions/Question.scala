@@ -48,7 +48,7 @@ object Question {
 case class ShortAnswerQuestion(
     title: String,
     description: String,
-    maxLength: String
+    maxLength: Int
 ) extends Question {
   override val questionType = Question.ShortAnswer
 }
@@ -92,14 +92,19 @@ object ShortAnswerQuestion {
   implicit val reads: Reads[ShortAnswerQuestion] = (
     (__ \ "title").read[String] and
     (__ \ "description").read[String] and
-    (__ \ "maxLength").read[String]
+    (__ \ "maxLength").read[Int]
   )(ShortAnswerQuestion.apply _)
 
-  implicit val writes: Writes[ShortAnswerQuestion] = (
-    (__ \ "title").write[String] and
-    (__ \ "description").write[String] and
-    (__ \ "maxLength").write[String]
-  )(unlift(ShortAnswerQuestion.unapply))
+  implicit val writes = new Writes[ShortAnswerQuestion] {
+    def writes(question: ShortAnswerQuestion) = {
+      Json.obj(
+        "title" -> question.title,
+        "description" -> question.description,
+        "maxLength" -> question.maxLength,
+        "type" -> question.questionType
+      )
+    }
+  }
 }
 
 object BlanksQuestion {
@@ -123,12 +128,17 @@ object BlanksQuestion {
     (__ \ "inputs").read[IndexedSeq[Blank]]
   )(BlanksQuestion.apply _)
 
-  implicit val writes: Writes[BlanksQuestion] = (
-    (__ \ "title").write[String] and
-    (__ \ "description").write[String] and
-    (__ \ "text").write[String] and
-    (__ \ "inputs").write[IndexedSeq[Blank]]
-  )(unlift(BlanksQuestion.unapply))
+  implicit val writes = new Writes[BlanksQuestion] {
+    def writes(question: BlanksQuestion) = {
+      Json.obj(
+        "title" -> question.title,
+        "description" -> question.description,
+        "text" -> question.text,
+        "inputs" -> question.inputs,
+        "type" -> question.questionType
+      )
+    }
+  }
 }
 
 object MultipleChoiceQuestion {
@@ -140,13 +150,18 @@ object MultipleChoiceQuestion {
     (__ \ "singleAnswer").read[Boolean]
   )(MultipleChoiceQuestion.apply _)
 
-  implicit val writes: Writes[MultipleChoiceQuestion] = (
-    (__ \ "title").write[String] and
-    (__ \ "description").write[String] and
-    (__ \ "choices").write[IndexedSeq[String]] and
-    (__ \ "correct").write[IndexedSeq[Int]] and
-    (__ \ "singleAnswer").write[Boolean]
-  )(unlift(MultipleChoiceQuestion.unapply))
+  implicit val writes = new Writes[MultipleChoiceQuestion] {
+    def writes(question: MultipleChoiceQuestion) = {
+      Json.obj(
+        "title" -> question.title,
+        "description" -> question.description,
+        "choices" -> question.choices,
+        "correct" -> question.correct,
+        "singleAnswer" -> question.singleAnswer,
+        "type" -> question.questionType
+      )
+    }
+  }
 }
 
 object OrderingQuestion {
@@ -156,11 +171,16 @@ object OrderingQuestion {
     (__ \ "choices").read[IndexedSeq[String]]
   )(OrderingQuestion.apply _)
 
-  implicit val writes: Writes[OrderingQuestion] = (
-    (__ \ "title").write[String] and
-    (__ \ "description").write[String] and
-    (__ \ "choices").write[IndexedSeq[String]]
-  )(unlift(OrderingQuestion.unapply))
+  implicit val writes = new Writes[OrderingQuestion] {
+    def writes(question: OrderingQuestion) = {
+      Json.obj(
+        "title" -> question.title,
+        "description" -> question.description,
+        "choices" -> question.choices,
+        "type" -> question.questionType
+      )
+    }
+  }
 }
 
 object MatchingQuestion {
@@ -183,9 +203,14 @@ object MatchingQuestion {
     (__ \ "choices").read[IndexedSeq[Match]]
   )(MatchingQuestion.apply _)
 
-  implicit val writes: Writes[MatchingQuestion] = (
-    (__ \ "title").write[String] and
-    (__ \ "description").write[String] and
-    (__ \ "choices").write[IndexedSeq[Match]]
-  )(unlift(MatchingQuestion.unapply))
+  implicit val writes = new Writes[MatchingQuestion] {
+    def writes(question: MatchingQuestion) = {
+      Json.obj(
+        "title" -> question.title,
+        "description" -> question.description,
+        "choices" -> question.choices,
+        "type" -> question.questionType
+      )
+    }
+  }
 }

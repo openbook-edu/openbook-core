@@ -33,9 +33,10 @@ object Task {
   val Document = 0
   val Question = 1
 
-  val NotStarted = 0
-  val Incomplete = 1
-  val Complete = 2
+  // TODO - not used => remove
+  //  val NotStarted = 0
+  //  val Incomplete = 1
+  //  val Complete = 2
 
   /**
    * An apply method that allows instantiation of empty tasks.

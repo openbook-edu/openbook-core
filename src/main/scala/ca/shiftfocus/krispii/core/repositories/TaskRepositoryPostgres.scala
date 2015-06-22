@@ -19,6 +19,7 @@ import scala.concurrent.Future
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
+import scala.util.Try
 import scalacache.ScalaCache
 import scalaz.{ \/-, -\/, \/ }
 
@@ -37,8 +38,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   // -- Common query components --------------------------------------------------------------------------------------
 
   val Table = "tasks"
-  val CommonFields = "id, version, created_at, updated_at, part_id, name, description," +
-    " position, notes_allowed, response_title, notes_title, task_type"
+  val CommonFields = "id, version, part_id, name, description, position, notes_allowed, response_title, notes_title, created_at, updated_at, task_type"
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
   }
@@ -155,8 +155,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |     la_task AS (INSERT INTO document_tasks (task_id, dependency_id)
        |                 SELECT task.id as task_id, ? as dependency_id
        |                 FROM task
-       |                 RETURNING task_id)
-       |SELECT ${CommonFieldsWithTable("task")}
+       |                 RETURNING dependency_id)
+       |SELECT ${CommonFieldsWithTable("task")}, la_task.dependency_id
        |FROM task, la_task
      """.stripMargin
 
@@ -350,21 +350,23 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     val commonData = Seq[Any](
       task.id,
       1,
-      new DateTime,
-      new DateTime,
       task.partId,
       task.settings.title,
       task.settings.description,
       task.position,
       task.settings.notesAllowed,
       task.settings.responseTitle,
-      task.settings.notesTitle
+      task.settings.notesTitle,
+      new DateTime,
+      new DateTime
     )
 
     // Prepare the additional data to be sent depending on the type of task
     val dataArray: Seq[Any] = task match {
       case longAnswer: DocumentTask => commonData ++ Seq[Any](Task.Document, longAnswer.dependencyId)
-      case question: QuestionTask => commonData ++ Seq[Any](Task.Question, question.questions)
+      case question: QuestionTask => {
+        commonData ++ Seq[Any](Task.Question, Json.toJson(question.questions.map(Question.writes.writes)).toString) // TODO replace with some method like question.getJsonString
+      }
     }
 
     val query = task match {
@@ -403,7 +405,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     // Throw in the task type-specific data.
     val dataArray: Seq[Any] = task match {
       case longAnswer: DocumentTask => commonData ++ Seq[Any](longAnswer.dependencyId)
-      case question: QuestionTask => commonData ++ Seq[Any](question.questions)
+      case question: QuestionTask => commonData ++ Seq[Any](Json.toJson(question.questions.map(Question.writes.writes)).toString) // TODO replace with some method like question.getJsonString
     }
 
     val query = task match {
@@ -456,6 +458,7 @@ trait SpecificTaskConstructors {
       position = row("position").asInstanceOf[Int],
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
+      dependencyId = Option(row("dependency_id")).map(_.asInstanceOf[UUID]),
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )

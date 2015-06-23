@@ -658,12 +658,12 @@ class ProjectServiceDefault(
    * 'domain logic' is ensuring that the tasks in a part remain in the
    * correct order.
    */
-  private def updateTask(updatedTask: Task): Future[\/[ErrorUnion#Fail, Task]] = {
+  private def updateTask(taskToUpdate: Task): Future[\/[ErrorUnion#Fail, Task]] = {
     transactional { implicit conn: Connection =>
       for {
-        movedTask <- lift(moveTask(updatedTask.id, updatedTask.version, updatedTask.position, Some(updatedTask.partId)))
+        movedTask <- lift(moveTask(taskToUpdate.id, taskToUpdate.version, taskToUpdate.position, Some(taskToUpdate.partId)))
         updatedTask <- {
-          updatedTask match {
+          movedTask match {
             case task: DocumentTask => lift(taskRepository.update(task.copy(position = movedTask.position)))
             case task: QuestionTask => lift(taskRepository.update(task.copy(position = movedTask.position)))
           }
@@ -698,7 +698,7 @@ class ProjectServiceDefault(
           // If moved to another part, reorder tasks in the origin part
           if (oldPart.id != newPart.id) {
             val orderedTasks = otList.filter(_.id != taskId).sortWith(_.position < _.position)
-            serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, oldPart.id, _))
+            serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, otList, oldPart.id, _))
           }
 
           // Update task and taskList
@@ -751,7 +751,7 @@ class ProjectServiceDefault(
               }
 
               val orderedTasks = updatedTasks.sortWith(_.position < _.position)
-              serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, newPart.id, _)).map {
+              serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, otList, newPart.id, _)).map {
                 case -\/(error) => -\/(error)
                 case \/-(tasks) => \/-(tasks.filter(_.id == taskId).head)
               }
@@ -762,15 +762,25 @@ class ProjectServiceDefault(
     }
   }
 
-  private def updateOrderedTasks(orderedTasks: IndexedSeq[Task], updatedPartId: UUID, i: Int): Future[\/[RepositoryError.Fail, Task]] = {
-    if (orderedTasks(i).position != i + 1 || orderedTasks(i).partId != updatedPartId) {
-      orderedTasks(i) match {
-        case task: DocumentTask => taskRepository.update(task.copy(position = i + 1))
-        case task: QuestionTask => taskRepository.update(task.copy(position = i + 1))
+  private def updateOrderedTasks(orderedTasks: IndexedSeq[Task], originalTasks: IndexedSeq[Task], updatedPartId: UUID, i: Int): Future[\/[RepositoryError.Fail, Task]] = {
+    val taskTuple = for {
+      orderedTask <- orderedTasks.lift(i)
+      originalTask <- originalTasks.find(_.id == orderedTask.id)
+    } yield (orderedTask, originalTask)
+
+    taskTuple match {
+      case Some((orderedTask, originalTask)) => {
+        if (originalTask.position != i + 1 || originalTask.partId != updatedPartId) {
+          orderedTask match {
+            case task: DocumentTask => taskRepository.update(task.copy(position = i + 1))
+            case task: QuestionTask => taskRepository.update(task.copy(position = i + 1))
+          }
+        }
+        else {
+          Future.successful(\/-(orderedTask))
+        }
       }
-    }
-    else {
-      Future.successful(\/-(orderedTasks(i)))
+      case None => Future successful -\/(RepositoryError.DatabaseError("Something screwed up"))
     }
   }
 
@@ -877,7 +887,7 @@ class ProjectServiceDefault(
         _ <- predicate(taskList.nonEmpty)(ServiceError.BusinessLogicFail("Weird, task list shouldn't be empty!"))
         taskListUpdated <- lift {
           val filteredOderedTaskList = taskList.filter(_.id != taskId).sortWith(_.position < _.position)
-          serializedT(filteredOderedTaskList.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(filteredOderedTaskList, task.partId, _))
+          serializedT(filteredOderedTaskList.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(filteredOderedTaskList, taskList, task.partId, _))
         }
         deletedTask <- lift(taskRepository.delete(task))
       } yield deletedTask

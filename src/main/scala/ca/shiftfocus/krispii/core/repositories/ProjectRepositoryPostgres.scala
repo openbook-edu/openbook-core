@@ -174,7 +174,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
           } yield project
         case -\/(error) => Future successful -\/(error)
       })
-      parts <- lift(if (fetchParts) partRepository.list(project) else Future successful \/-(IndexedSeq()))
+      parts <- lift(if (fetchParts) partRepository.list(project, true) else Future successful \/-(IndexedSeq()))
     } yield project.copy(parts = parts)).run
   }
 

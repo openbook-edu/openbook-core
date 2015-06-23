@@ -162,6 +162,7 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
     (for {
       partList <- lift(cache.getCached[IndexedSeq[Part]](cachePartsKey(project.id)).flatMap {
         case \/-(partList) => Future successful \/-(partList)
+
         case -\/(noResults: RepositoryError.NoResults) =>
           for {
             partList <- lift(queryList(SelectByProjectId, Seq[Any](project.id)))

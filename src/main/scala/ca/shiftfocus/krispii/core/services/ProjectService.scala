@@ -16,6 +16,9 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
   val partRepository: PartRepository
   val taskRepository: TaskRepository
 
+  val maxPartsInProject = 50
+  val maxTasksInPart = 100
+
   // Projects
   def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
   def list(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]

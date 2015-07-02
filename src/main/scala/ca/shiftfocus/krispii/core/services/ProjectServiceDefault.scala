@@ -24,8 +24,7 @@ class ProjectServiceDefault(
   val projectRepository: ProjectRepository,
   val partRepository: PartRepository,
   val taskRepository: TaskRepository
-)
-    extends ProjectService {
+) extends ProjectService {
 
   implicit def conn: Connection = db.pool
   implicit def cache: ScalaCachePool = scalaCache
@@ -307,6 +306,7 @@ class ProjectServiceDefault(
     transactional { implicit conn: Connection =>
       for {
         project <- lift(projectRepository.find(projectId, false))
+        _ <- predicate (project.parts.size < maxPartsInProject) (ServiceError.BusinessLogicFail("Maximum number of parts reached"))
         partList <- lift(partRepository.list(project, false))
         truePosition <- lift {
           val positionMax = partList.nonEmpty match {
@@ -532,6 +532,7 @@ class ProjectServiceDefault(
     transactional { implicit conn: Connection =>
       for {
         part <- lift(partRepository.find(partId))
+        _ <- predicate (part.tasks.size < maxTasksInPart) (ServiceError.BusinessLogicFail("Maximum number of tasks in a part reached"))
         taskList = part.tasks
         truePosition <- lift {
           val positionMax = taskList.nonEmpty match {
@@ -688,6 +689,8 @@ class ProjectServiceDefault(
         oldPart <- lift(partRepository.find(oldTask.partId))
         newPart <- lift(partRepository.find(partId.getOrElse(oldTask.partId)))
 
+        _ <- predicate (newPart.tasks.size < maxTasksInPart) (ServiceError.BusinessLogicFail("Maximum number of tasks in a part reached"))
+
         otList = oldPart.tasks
         ntList = newPart.tasks
 
@@ -727,31 +730,29 @@ class ProjectServiceDefault(
                 // otherwise, the task stays in the part
                 else ntList
 
-              val positionExists = taskList.iterator.filter(_.id != taskId).filter(_.position == truePosition).nonEmpty // linter:ignore
+              val positionExists = taskList.iterator.filter(_.id != taskId).exists(_.position == truePosition) // linter:ignore
               val taskListPositions = positionExists match {
                 case true => taskList.map { task =>
-                  {
-                    if (task.id == taskId) task.id -> truePosition
-                    else if (task.position < truePosition) task.id -> (task.position - 1)
-                    else task.id -> (task.position + 1)
-                  }
+                  if (task.id == taskId) task.id -> truePosition
+                  else if (task.position < truePosition) task.id -> task.position
+                  else task.id -> (task.position + 1)
                 }.toMap
                 case false => taskList.map { task =>
-                  {
-                    if (task.id == taskId) task.id -> truePosition
-                    else task.id -> task.position
-                  }
+                  if (task.id == taskId) task.id -> truePosition
+                  else task.id -> task.position
                 }.toMap
               }
 
               val updatedTasks = taskList.map {
                 case task: DocumentTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
                 case task: QuestionTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
-                case _ => throw new Exception("Gold star for epic coding failure.")
               }
 
               val orderedTasks = updatedTasks.sortWith(_.position < _.position)
-              serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, otList, newPart.id, _)).map {
+              println("Going to re-order them thar tasks")
+              println(ntList.map({ task => s"Task(${task.settings.title}, ${task.position})" }).mkString(", "))
+              println(orderedTasks.map({ task => s"Task(${task.settings.title}, ${task.position})" }).mkString(", "))
+              serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, ntList, newPart.id, _)).map {
                 case -\/(error) => -\/(error)
                 case \/-(tasks) => \/-(tasks.filter(_.id == taskId).head)
               }

@@ -16,14 +16,14 @@ import scalacache.ScalaCache
 import scalaz.{ EitherT, \/, -\/, \/- }
 
 class ProjectServiceDefault(
-  val db: DB,
-  val scalaCache: ScalaCachePool,
-  val authService: AuthService,
-  val schoolService: SchoolService,
-  val courseRepository: CourseRepository,
-  val projectRepository: ProjectRepository,
-  val partRepository: PartRepository,
-  val taskRepository: TaskRepository
+    val db: DB,
+    val scalaCache: ScalaCachePool,
+    val authService: AuthService,
+    val schoolService: SchoolService,
+    val courseRepository: CourseRepository,
+    val projectRepository: ProjectRepository,
+    val partRepository: PartRepository,
+    val taskRepository: TaskRepository
 ) extends ProjectService {
 
   implicit def conn: Connection = db.pool
@@ -306,8 +306,8 @@ class ProjectServiceDefault(
     transactional { implicit conn: Connection =>
       for {
         project <- lift(projectRepository.find(projectId, false))
-        _ <- predicate (project.parts.size < maxPartsInProject) (ServiceError.BusinessLogicFail("Maximum number of parts reached"))
         partList <- lift(partRepository.list(project, false))
+        _ <- predicate(partList.size < maxPartsInProject)(ServiceError.BusinessLogicFail("Maximum number of parts reached"))
         truePosition <- lift {
           val positionMax = partList.nonEmpty match {
             case true => partList.map(_.position).max
@@ -480,6 +480,7 @@ class ProjectServiceDefault(
       for {
         part <- lift(partRepository.find(partId))
         _ <- predicate(part.version == version)(ServiceError.OfflineLockFail)
+        //_ <- predicate(part.tasks.isEmpty) (ServiceError.BusinessLogicFail("Cannot delete a part that still has tasks"))
         project <- lift(projectRepository.find(part.projectId, false))
         partList <- lift(partRepository.list(project, false))
         _ <- predicate(partList.nonEmpty)(ServiceError.BusinessLogicFail("Weird, part list shouldn't be empty!"))
@@ -532,7 +533,7 @@ class ProjectServiceDefault(
     transactional { implicit conn: Connection =>
       for {
         part <- lift(partRepository.find(partId))
-        _ <- predicate (part.tasks.size < maxTasksInPart) (ServiceError.BusinessLogicFail("Maximum number of tasks in a part reached"))
+        _ <- predicate(part.tasks.size < maxTasksInPart)(ServiceError.BusinessLogicFail("Maximum number of tasks in a part reached"))
         taskList = part.tasks
         truePosition <- lift {
           val positionMax = taskList.nonEmpty match {
@@ -689,7 +690,7 @@ class ProjectServiceDefault(
         oldPart <- lift(partRepository.find(oldTask.partId))
         newPart <- lift(partRepository.find(partId.getOrElse(oldTask.partId)))
 
-        _ <- predicate (newPart.tasks.size < maxTasksInPart) (ServiceError.BusinessLogicFail("Maximum number of tasks in a part reached"))
+        _ <- predicate(newPart.tasks.size < maxTasksInPart)(ServiceError.BusinessLogicFail("Maximum number of tasks in a part reached"))
 
         otList = oldPart.tasks
         ntList = newPart.tasks

@@ -16,16 +16,15 @@ import scalacache.ScalaCache
 import scalaz.{ EitherT, \/, -\/, \/- }
 
 class ProjectServiceDefault(
-  val db: DB,
-  val scalaCache: ScalaCachePool,
-  val authService: AuthService,
-  val schoolService: SchoolService,
-  val courseRepository: CourseRepository,
-  val projectRepository: ProjectRepository,
-  val partRepository: PartRepository,
-  val taskRepository: TaskRepository
-)
-    extends ProjectService {
+    val db: DB,
+    val scalaCache: ScalaCachePool,
+    val authService: AuthService,
+    val schoolService: SchoolService,
+    val courseRepository: CourseRepository,
+    val projectRepository: ProjectRepository,
+    val partRepository: PartRepository,
+    val taskRepository: TaskRepository
+) extends ProjectService {
 
   implicit def conn: Connection = db.pool
   implicit def cache: ScalaCachePool = scalaCache
@@ -308,6 +307,7 @@ class ProjectServiceDefault(
       for {
         project <- lift(projectRepository.find(projectId, false))
         partList <- lift(partRepository.list(project, false))
+        _ <- predicate(partList.size < maxPartsInProject)(ServiceError.BusinessLogicFail("Maximum number of parts reached"))
         truePosition <- lift {
           val positionMax = partList.nonEmpty match {
             case true => partList.map(_.position).max
@@ -480,6 +480,7 @@ class ProjectServiceDefault(
       for {
         part <- lift(partRepository.find(partId))
         _ <- predicate(part.version == version)(ServiceError.OfflineLockFail)
+        //_ <- predicate(part.tasks.isEmpty) (ServiceError.BusinessLogicFail("Cannot delete a part that still has tasks"))
         project <- lift(projectRepository.find(part.projectId, false))
         partList <- lift(partRepository.list(project, false))
         _ <- predicate(partList.nonEmpty)(ServiceError.BusinessLogicFail("Weird, part list shouldn't be empty!"))
@@ -532,6 +533,7 @@ class ProjectServiceDefault(
     transactional { implicit conn: Connection =>
       for {
         part <- lift(partRepository.find(partId))
+        _ <- predicate(part.tasks.size < maxTasksInPart)(ServiceError.BusinessLogicFail("Maximum number of tasks in a part reached"))
         taskList = part.tasks
         truePosition <- lift {
           val positionMax = taskList.nonEmpty match {
@@ -658,12 +660,12 @@ class ProjectServiceDefault(
    * 'domain logic' is ensuring that the tasks in a part remain in the
    * correct order.
    */
-  private def updateTask(updatedTask: Task): Future[\/[ErrorUnion#Fail, Task]] = {
+  private def updateTask(taskToUpdate: Task): Future[\/[ErrorUnion#Fail, Task]] = {
     transactional { implicit conn: Connection =>
       for {
-        movedTask <- lift(moveTask(updatedTask.id, updatedTask.version, updatedTask.position, Some(updatedTask.partId)))
+        movedTask <- lift(moveTask(taskToUpdate.id, taskToUpdate.version, taskToUpdate.position, Some(taskToUpdate.partId)))
         updatedTask <- {
-          updatedTask match {
+          movedTask match {
             case task: DocumentTask => lift(taskRepository.update(task.copy(position = movedTask.position)))
             case task: QuestionTask => lift(taskRepository.update(task.copy(position = movedTask.position)))
           }
@@ -688,6 +690,8 @@ class ProjectServiceDefault(
         oldPart <- lift(partRepository.find(oldTask.partId))
         newPart <- lift(partRepository.find(partId.getOrElse(oldTask.partId)))
 
+        _ <- predicate(newPart.tasks.size < maxTasksInPart)(ServiceError.BusinessLogicFail("Maximum number of tasks in a part reached"))
+
         otList = oldPart.tasks
         ntList = newPart.tasks
 
@@ -698,7 +702,7 @@ class ProjectServiceDefault(
           // If moved to another part, reorder tasks in the origin part
           if (oldPart.id != newPart.id) {
             val orderedTasks = otList.filter(_.id != taskId).sortWith(_.position < _.position)
-            serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, oldPart.id, _))
+            serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, otList, oldPart.id, _))
           }
 
           // Update task and taskList
@@ -727,31 +731,29 @@ class ProjectServiceDefault(
                 // otherwise, the task stays in the part
                 else ntList
 
-              val positionExists = taskList.iterator.filter(_.id != taskId).filter(_.position == truePosition).nonEmpty // linter:ignore
+              val positionExists = taskList.iterator.filter(_.id != taskId).exists(_.position == truePosition) // linter:ignore
               val taskListPositions = positionExists match {
                 case true => taskList.map { task =>
-                  {
-                    if (task.id == taskId) task.id -> truePosition
-                    else if (task.position < truePosition) task.id -> (task.position - 1)
-                    else task.id -> (task.position + 1)
-                  }
+                  if (task.id == taskId) task.id -> truePosition
+                  else if (task.position < truePosition) task.id -> task.position
+                  else task.id -> (task.position + 1)
                 }.toMap
                 case false => taskList.map { task =>
-                  {
-                    if (task.id == taskId) task.id -> truePosition
-                    else task.id -> task.position
-                  }
+                  if (task.id == taskId) task.id -> truePosition
+                  else task.id -> task.position
                 }.toMap
               }
 
               val updatedTasks = taskList.map {
                 case task: DocumentTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
                 case task: QuestionTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
-                case _ => throw new Exception("Gold star for epic coding failure.")
               }
 
               val orderedTasks = updatedTasks.sortWith(_.position < _.position)
-              serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, newPart.id, _)).map {
+              println("Going to re-order them thar tasks")
+              println(ntList.map({ task => s"Task(${task.settings.title}, ${task.position})" }).mkString(", "))
+              println(orderedTasks.map({ task => s"Task(${task.settings.title}, ${task.position})" }).mkString(", "))
+              serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, ntList, newPart.id, _)).map {
                 case -\/(error) => -\/(error)
                 case \/-(tasks) => \/-(tasks.filter(_.id == taskId).head)
               }
@@ -762,15 +764,25 @@ class ProjectServiceDefault(
     }
   }
 
-  private def updateOrderedTasks(orderedTasks: IndexedSeq[Task], updatedPartId: UUID, i: Int): Future[\/[RepositoryError.Fail, Task]] = {
-    if (orderedTasks(i).position != i + 1 || orderedTasks(i).partId != updatedPartId) {
-      orderedTasks(i) match {
-        case task: DocumentTask => taskRepository.update(task.copy(position = i + 1))
-        case task: QuestionTask => taskRepository.update(task.copy(position = i + 1))
+  private def updateOrderedTasks(orderedTasks: IndexedSeq[Task], originalTasks: IndexedSeq[Task], updatedPartId: UUID, i: Int): Future[\/[RepositoryError.Fail, Task]] = {
+    val taskTuple = for {
+      orderedTask <- orderedTasks.lift(i)
+      originalTask <- originalTasks.find(_.id == orderedTask.id)
+    } yield (orderedTask, originalTask)
+
+    taskTuple match {
+      case Some((orderedTask, originalTask)) => {
+        if (originalTask.position != i + 1 || originalTask.partId != updatedPartId) {
+          orderedTask match {
+            case task: DocumentTask => taskRepository.update(task.copy(position = i + 1))
+            case task: QuestionTask => taskRepository.update(task.copy(position = i + 1))
+          }
+        }
+        else {
+          Future.successful(\/-(orderedTask))
+        }
       }
-    }
-    else {
-      Future.successful(\/-(orderedTasks(i)))
+      case None => Future successful -\/(RepositoryError.DatabaseError("Something screwed up"))
     }
   }
 
@@ -877,7 +889,7 @@ class ProjectServiceDefault(
         _ <- predicate(taskList.nonEmpty)(ServiceError.BusinessLogicFail("Weird, task list shouldn't be empty!"))
         taskListUpdated <- lift {
           val filteredOderedTaskList = taskList.filter(_.id != taskId).sortWith(_.position < _.position)
-          serializedT(filteredOderedTaskList.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(filteredOderedTaskList, task.partId, _))
+          serializedT(filteredOderedTaskList.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(filteredOderedTaskList, taskList, task.partId, _))
         }
         deletedTask <- lift(taskRepository.delete(task))
       } yield deletedTask

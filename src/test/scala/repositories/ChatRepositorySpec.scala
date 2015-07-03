@@ -203,7 +203,7 @@ class ChatRepositorySpec
         )
 
         val result = chatRepository.update(updatedChatLog)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Chat")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Chat")))
       }
     }
   }

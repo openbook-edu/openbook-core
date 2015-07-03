@@ -95,23 +95,23 @@ VALUES ('4d01347ec5924e5fb09fdd281b3d9b87', '31a4c2e6762a4303bbb8e64c24048920', 
 
 /* course A -> user A (teacher) */
 INSERT INTO courses (id, version, teacher_id, name, color, slug, enabled, chat_enabled, scheduling_enabled, created_at, updated_at)
-VALUES ('217c5622ff9e43728e6a95fb3bae300b', 1, '36c8c0ca50aa4806afa5916a5e33a81f', 'test course A', 1574408, 'test course A slug', true, true, false, '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
+VALUES ('217c5622ff9e43728e6a95fb3bae300b', 1, '36c8c0ca50aa4806afa5916a5e33a81f', 'test course A', 1574408, 'test course A slug', false, true, false, '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
 /* course B -> user B (teacher) */
 INSERT INTO courses (id, version, teacher_id, name, color, slug, enabled, chat_enabled, scheduling_enabled, created_at, updated_at)
-VALUES ('404c800a53854e6b867e365a1e6b00de', 2, '6c0e29bdd05b4b2981156be93e936c59', 'test course B', 2230288, 'test course B slug', true, true, false, '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
+VALUES ('404c800a53854e6b867e365a1e6b00de', 2, '6c0e29bdd05b4b2981156be93e936c59', 'test course B', 2230288, 'test course B slug', false, true, false, '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
 
 /* course D -> user F (teacher) */
 INSERT INTO courses (id, version, teacher_id, name, color, slug, enabled, chat_enabled, scheduling_enabled, created_at, updated_at)
-VALUES ('94cc65bb45424f628e08d58522e7b5f1', 3, '4d01347ec5924e5fb09fdd281b3d9b87', 'test course D', 269368, 'test course D slug', true, true, false, '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+VALUES ('94cc65bb45424f628e08d58522e7b5f1', 3, '4d01347ec5924e5fb09fdd281b3d9b87', 'test course D', 269368, 'test course D slug', false, true, false, '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
 /* course F -> user F (teacher) */
 INSERT INTO courses (id, version, teacher_id, name, color, slug, enabled, chat_enabled, scheduling_enabled, created_at, updated_at)
-VALUES ('287b61f5da6b4de785353bc500cffac7', 4, '4d01347ec5924e5fb09fdd281b3d9b87', 'test course F', 269368, 'test course F slug', true, true, false, '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+VALUES ('287b61f5da6b4de785353bc500cffac7', 4, '4d01347ec5924e5fb09fdd281b3d9b87', 'test course F', 269368, 'test course F slug', false, true, false, '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 
 /* course G -> user F (teacher) */
 INSERT INTO courses (id, version, teacher_id, name, color, slug, enabled, chat_enabled, scheduling_enabled, created_at, updated_at)
-VALUES ('b24abba8e6c74700900ce66ed0185a70', 5, '4d01347ec5924e5fb09fdd281b3d9b87', 'test course G', 1508909, 'test course G slug', true, true, false, '2014-08-17 14:01:19.545-04', '2014-08-18 14:01:19.545-04');
+VALUES ('b24abba8e6c74700900ce66ed0185a70', 5, '4d01347ec5924e5fb09fdd281b3d9b87', 'test course G', 1508909, 'test course G slug', false, true, false, '2014-08-17 14:01:19.545-04', '2014-08-18 14:01:19.545-04');
 
 
 /* ---------------------- USERS_COURSES ---------------------- */
@@ -224,7 +224,7 @@ INSERT INTO tasks (id, version, part_id, name, description, position, task_type,
 VALUES ('10ef05ee7b494352b86e70510adf617f', 2, '5cd214be6bba47fa9f350eb8bafec397', 'test shortAnswerTask B', 'test shortAnswerTask B description', 14, 1, true, 'test shortAnswerTask B response title', 'test shortAnswerTask B notes title', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
 INSERT INTO question_tasks (task_id, questions)
-VALUES ('10ef05ee7b494352b86e70510adf617f', '[{"type": 1, "title": "testShortAnswerQuestionA title", "description": "testShortAnswerQuestionA description", "maxLength": 51}]');
+VALUES ('10ef05ee7b494352b86e70510adf617f', '[{"id": "9d2ed6e8-ccdd-474f-9583-4d10eafaa2a6", "type": 1, "title": "testShortQuestionA title", "description": "testShortQuestionA description", "maxLength": 51}]');
 
 
 /* multipleChoiceTask C -> part A -> project A -> course A -> user A (teacher) */
@@ -232,7 +232,7 @@ INSERT INTO tasks (id, version, part_id, name, description, position, task_type,
 VALUES ('76cc2ed7611b4dafaa3f20efe42a65a0', 3, '5cd214be6bba47fa9f350eb8bafec397', 'test MultipleChoiceTask C', 'test MultipleChoiceTask C description', 16, 1, true, 'test MultipleChoiceTask C response title', 'test MultipleChoiceTask C notes title', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
 
 INSERT INTO question_tasks (task_id, questions)
-VALUES ('76cc2ed7611b4dafaa3f20efe42a65a0', '[{"type": 3, "title": "testMultipleChoiceQuestionB title", "description": "testMultipleChoiceQuestionB description", "choices": ["choice 1", "choice 2"], "correct": [1, 2], "singleAnswer": true}]');
+VALUES ('76cc2ed7611b4dafaa3f20efe42a65a0', '[{"id": "d7a0c042-4d4b-4f31-bc19-59a2b6659e3c", "type": 3, "title": "testMultipleChoiceQuestionB title", "description": "testMultipleChoiceQuestionB description", "choices": ["choice 1", "choice 2"], "correct": [1, 2], "singleAnswer": true}]');
 
 
 /* orderingTask D -> part B -> project A -> course A -> user A (teacher) */
@@ -240,7 +240,7 @@ INSERT INTO tasks (id, version, part_id, name, description, position, task_type,
 VALUES ('808400838923476fa8738ba6c55e30c8', 4, 'abb84847a3d247a0ae7d8ce04063afc7', 'test OrderingTask D', 'test OrderingTask D description', 18, 1, true, 'test OrderingTask D response title', 'test OrderingTask D notes title', '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
 
 INSERT INTO question_tasks (task_id, questions)
-VALUES ('808400838923476fa8738ba6c55e30c8', '[{"type": 4, "title": "testOrderingQuestionC title", "description": "testOrderingQuestionC description", "choices": ["choice 3", "choice 4"]}]');
+VALUES ('808400838923476fa8738ba6c55e30c8', '[{"id": "667a8b1c-3230-43d4-bd7b-2b150205b109", "type": 4, "title": "testOrderingQuestionC title", "description": "testOrderingQuestionC description", "choices": ["choice 3", "choice 4"]}]');
 
 
 /* orderingTask L -> part B  -> project A -> course A -> user A (teacher) */
@@ -248,7 +248,7 @@ INSERT INTO tasks (id, version, part_id, name, description, position, task_type,
 VALUES ('3d3578bd60d34aeabe070359dad2fecb', 6, 'abb84847a3d247a0ae7d8ce04063afc7', 'test OrderingTask L', 'test OrderingTask L description', 19, 1, true, 'test OrderingTask L response title', 'test OrderingTask L notes title', '2014-08-08 14:01:19.545-04', '2014-08-09 14:01:19.545-04');
 
 INSERT INTO question_tasks (task_id, questions)
-VALUES ('3d3578bd60d34aeabe070359dad2fecb','[{"type": 4, "title": "testOrderingQuestionC title", "description": "testOrderingQuestionC description", "choices": ["choice 3", "choice 4"]}]');
+VALUES ('3d3578bd60d34aeabe070359dad2fecb','[{"id": "667a8b1c-3230-43d4-bd7b-2b150205b109", "type": 4, "title": "testOrderingQuestionC title", "description": "testOrderingQuestionC description", "choices": ["choice 3", "choice 4"]}]');
 
 
 /* orderingTask N -> part G -> project A -> course A -> user A (teacher) */
@@ -256,7 +256,7 @@ INSERT INTO tasks (id, version, part_id, name, description, position, task_type,
 VALUES ('599a78ad5bff4246983532fcb41168a6', 7, '8e080c002b204e7bb18c2582d79e7e68', 'test OrderingTask N', 'test OrderingTask N description', 20, 1, true, 'test OrderingTask N response title', 'test OrderingTask N notes title', '2014-08-10 14:01:19.545-04', '2014-08-11 14:01:19.545-04');
 
 INSERT INTO question_tasks (task_id, questions)
-VALUES ('599a78ad5bff4246983532fcb41168a6', '[{"type": 4, "title": "testOrderingQuestionC title", "description": "testOrderingQuestionC description", "choices": ["choice 3", "choice 4"]}]');
+VALUES ('599a78ad5bff4246983532fcb41168a6', '[{"id": "667a8b1c-3230-43d4-bd7b-2b150205b109", "type": 4, "title": "testOrderingQuestionC title", "description": "testOrderingQuestionC description", "choices": ["choice 3", "choice 4"]}]');
 
 
 /* matchingTask E -> part C -> project B -> course B -> user B (teacher) */
@@ -264,7 +264,7 @@ INSERT INTO tasks (id, version, part_id, name, description, position, task_type,
 VALUES ('468a35bfbaf84045aa184688f4d0721f', 5, 'fb01f11b7f2341c8877b68410be62aa5', 'test MatchingTask E', 'test MatchingTask E description', 1, 1, true, 'test MatchingTask E response title', 'test MatchingTask E notes title', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
 INSERT INTO question_tasks (task_id, questions)
-VALUES ('468a35bfbaf84045aa184688f4d0721f', '[{"type": 5, "title": "testMatchingQuestionD title", "description": "testMatchingQuestionD description", "choices": [{"left": "choice left 5", "right": "choice right 6"}, {"left": "choice left 7", "right": "choice right 8"}]}]');
+VALUES ('468a35bfbaf84045aa184688f4d0721f', '[{"id": "1646f580-2347-4cdd-8b7d-fd43588a3a50", "type": 5, "title": "testMatchingQuestionD title", "description": "testMatchingQuestionD description", "choices": [{"left": "choice left 5", "right": "choice right 6"}, {"left": "choice left 7", "right": "choice right 8"}]}]');
 
 
 /* matchingTask K -> partB -> project A -> course A -> user A (teacher) */
@@ -272,7 +272,7 @@ INSERT INTO tasks (id, version, part_id, name, description, position, task_type,
 VALUES ('337fa73136854ba38668280c0096514c', 7, 'abb84847a3d247a0ae7d8ce04063afc7', 'test MatchingTask K', 'test MatchingTask K description', 24, 1, true, 'test MatchingTask K response title', 'test MatchingTask K notes title', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
 INSERT INTO question_tasks (task_id, questions)
-VALUES ('337fa73136854ba38668280c0096514c', '[{"type": 5, "title": "testMatchingQuestionD title", "description": "testMatchingQuestionD description", "choices": [{"left": "choice left 5", "right": "choice right 6"}, {"left": "choice left 7", "right": "choice right 8"}]}]');
+VALUES ('337fa73136854ba38668280c0096514c', '[{"id": "1646f580-2347-4cdd-8b7d-fd43588a3a50", "type": 5, "title": "testMatchingQuestionD title", "description": "testMatchingQuestionD description", "choices": [{"left": "choice left 5", "right": "choice right 6"}, {"left": "choice left 7", "right": "choice right 8"}]}]');
 
 
 /* matchingTask M -> partB -> project A -> course A -> user A (teacher) */
@@ -281,7 +281,7 @@ VALUES ('129f2b0856d34e14aa5b659f53f71e39', 8, 'abb84847a3d247a0ae7d8ce04063afc7
 
 INSERT INTO question_tasks (task_id, questions)
 VALUES ('129f2b0856d34e14aa5b659f53f71e39', '[
-{"type": 5, "title": "testMatchingQuestionD title", "description": "testMatchingQuestionD description", "choices": [{"left": "choice left 5", "right": "choice right 6"}, {"left": "choice left 7", "right": "choice right 8"}]}
+{"id": "1646f580-2347-4cdd-8b7d-fd43588a3a50", "type": 5, "title": "testMatchingQuestionD title", "description": "testMatchingQuestionD description", "choices": [{"left": "choice left 5", "right": "choice right 6"}, {"left": "choice left 7", "right": "choice right 8"}]}
 ]');
 
 
@@ -291,8 +291,8 @@ VALUES ('9a258f444ee84bab855b53966e53ca10', 9, '8e080c002b204e7bb18c2582d79e7e68
 
 INSERT INTO question_tasks (task_id, questions)
 VALUES ('9a258f444ee84bab855b53966e53ca10', '[
-{"type": 2, "title": "testBlanksQuestionE title", "description": "testBlanksQuestionE description", "text": "testBlanksQuestionE text", "inputs": [{"position": 5, "maxLength": 50}, {"position": 6, "maxLength": 60}] },
-{"type": 5, "title": "testMatchingQuestionD title", "description": "testMatchingQuestionD description", "choices": [{"left": "choice left 5", "right": "choice right 6"}, {"left": "choice left 7", "right": "choice right 8"}]}
+{"id": "67a68639-0172-4948-88f0-57e77a7502d7", "type": 2, "title": "testBlanksQuestionE title", "description": "testBlanksQuestionE description", "text": "testBlanksQuestionE text", "inputs": [{"position": 5, "maxLength": 50}, {"position": 6, "maxLength": 60}] },
+{"id": "1646f580-2347-4cdd-8b7d-fd43588a3a50", "type": 5, "title": "testMatchingQuestionD title", "description": "testMatchingQuestionD description", "choices": [{"left": "choice left 5", "right": "choice right 6"}, {"left": "choice left 7", "right": "choice right 8"}]}
 ]');
 
 
@@ -445,95 +445,133 @@ VALUES ('441374e20b1643ecadb96a3251081d24', 'f5f984073a0b4ea5952a575886e90586', 
 INSERT INTO document_work (work_id, document_id)
 VALUES ('441374e20b1643ecadb96a3251081d24', 'fd923b3f6dc2472e8ce77a8fcc6a1a20');
 
-/*
+
 /* longAnswerWorkF -> userE -> longAnswerTaskA -> documentB */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
 VALUES ('f7fcffc37b794de7b6ddcf37aa155fd9', '871b525067124e548ab60784cae0bc64', 'bf1a6ed09f834cb485c1ad456299b3a3', 1, true, 0, '2014-08-03 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
 
-INSERT INTO long_answer_work (work_id, document_id)
+INSERT INTO document_work (work_id, document_id)
 VALUES ('f7fcffc37b794de7b6ddcf37aa155fd9', '15173757b881444082854e3d2c03616a');
 
 
 /* ShortAnswerWorkB -> userE -> shortAnswerTask B -> documentC */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('cbf452cd915a4b249d0292be013bbba8', '871b525067124e548ab60784cae0bc64', '10ef05ee7b494352b86e70510adf617f', 1, false, 1, '2014-08-03 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
+VALUES ('cbf452cd915a4b249d0292be013bbba8', '871b525067124e548ab60784cae0bc64', '10ef05ee7b494352b86e70510adf617f', 2, false, 1, '2014-08-03 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
 
-INSERT INTO short_answer_work (work_id, document_id)
-VALUES ('cbf452cd915a4b249d0292be013bbba8', '462b7f6c8b624c998643a63b2720b2a7');
-*/
+/* Latest revision */
+INSERT INTO question_work (work_id, answers)
+VALUES ('cbf452cd915a4b249d0292be013bbba8', '{ "9d2ed6e8-ccdd-474f-9583-4d10eafaa2a6": {"questionType": 1, "answer": "testShortAnswerA answer"} }');
+
+/* Previous revision */
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('cbf452cd915a4b249d0292be013bbba8', '{ "9d2ed6e8-ccdd-474f-9583-4d10eafaa2a6": {"questionType": 1, "answer": "testShortAnswerA answer"} }', 2, '2014-08-05 14:01:19.545-04');
+
+/* Previous revision */
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('cbf452cd915a4b249d0292be013bbba8', '{ "9d2ed6e8-ccdd-474f-9583-4d10eafaa2a6": {"questionType": 1, "answer": "testShortAnswerRevisionA answer"} }', 1, '2014-08-03 14:01:19.545-04');
+
 
 /* ShortAnswerWorkG -> userC -> shortAnswerTask B -> documentD */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('b7bb09c16aca40de81525da483a5c476', 'f5f984073a0b4ea5952a575886e90586', '10ef05ee7b494352b86e70510adf617f', 1, false, 1, '2014-08-05 14:01:19.545-04', '2014-08-07 14:01:19.545-04');
-
-INSERT INTO question_work (work_id, answers)
-VALUES ('b7bb09c16aca40de81525da483a5c476', '[{ "answerType": 1, "questionType": 1, "answer": "ShortAnswerWorkG answer" }]');
-
-/*
-/* MultipleChoiceWorkC -> userC -> multipleChoiceTask C */
-INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('edfd619897b04f219e15fbe4ed051970', 'f5f984073a0b4ea5952a575886e90586', '76cc2ed7611b4dafaa3f20efe42a65a0', 3, true, 2, '2014-08-05 14:01:19.545-04', '2014-08-07 14:01:19.545-04');
+VALUES ('b7bb09c16aca40de81525da483a5c476', 'f5f984073a0b4ea5952a575886e90586', '10ef05ee7b494352b86e70510adf617f', 2, false, 1, '2014-08-05 14:01:19.545-04', '2014-08-07 14:01:19.545-04');
 
 /* Latest revision */
-INSERT INTO multiple_choice_work (work_id, version, response, created_at)
-VALUES ('edfd619897b04f219e15fbe4ed051970', 3, '{1, 2}', '2014-08-07 14:01:19.545-04');
+INSERT INTO question_work (work_id, answers)
+VALUES ('b7bb09c16aca40de81525da483a5c476', '{ "9d2ed6e8-ccdd-474f-9583-4d10eafaa2a6": {"questionType": 1, "answer": "testShortAnswerA answer"} }');
 
 /* Previous revision */
-INSERT INTO multiple_choice_work (work_id, version, response, created_at)
-VALUES ('edfd619897b04f219e15fbe4ed051970', 2, '{3, 4}', '2014-08-06 14:01:19.545-04');
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('b7bb09c16aca40de81525da483a5c476', '{ "9d2ed6e8-ccdd-474f-9583-4d10eafaa2a6": {"questionType": 1, "answer": "testShortAnswerA answer"} }', 2 ,'2014-08-07 14:01:19.545-04');
+
+/* Previous revision */
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('b7bb09c16aca40de81525da483a5c476', '{ "9d2ed6e8-ccdd-474f-9583-4d10eafaa2a6": {"questionType": 1, "answer": "testShortAnswerRevisionA answer"} }', 1 ,'2014-08-05 14:01:19.545-04');
+
+
+/* MultipleChoiceWorkC -> userC -> multipleChoiceTask C */
+INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
+VALUES ('edfd619897b04f219e15fbe4ed051970', 'f5f984073a0b4ea5952a575886e90586', '76cc2ed7611b4dafaa3f20efe42a65a0', 3, true, 1, '2014-08-05 14:01:19.545-04', '2014-08-07 14:01:19.545-04');
+
+/* Latest revision */
+INSERT INTO question_work (work_id, answers)
+VALUES ('edfd619897b04f219e15fbe4ed051970', '{"d7a0c042-4d4b-4f31-bc19-59a2b6659e3c": {"questionType": 3, "answer": [1, 2]} }');
+
+/* Previous revision */
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('edfd619897b04f219e15fbe4ed051970', '{"d7a0c042-4d4b-4f31-bc19-59a2b6659e3c": {"questionType": 3, "answer": [1, 2]} }', 3, '2014-08-07 14:01:19.545-04');
+
+/* Previous revision */
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('edfd619897b04f219e15fbe4ed051970', '{"d7a0c042-4d4b-4f31-bc19-59a2b6659e3c": {"questionType": 3, "answer": [3, 4]} }', 2, '2014-08-05 14:01:19.545-04');
 
 
 /* MultipleChoiceWorkH -> userE -> multipleChoiceTask C */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('8f3b9f09db434670b1590763eb4eaecd', '871b525067124e548ab60784cae0bc64', '76cc2ed7611b4dafaa3f20efe42a65a0', 8, true, 2, '2014-08-07 14:01:19.545-04', '2014-08-09 14:01:19.545-04');
+VALUES ('8f3b9f09db434670b1590763eb4eaecd', '871b525067124e548ab60784cae0bc64', '76cc2ed7611b4dafaa3f20efe42a65a0', 8, true, 1, '2014-08-07 14:01:19.545-04', '2014-08-09 14:01:19.545-04');
 
 /* Latest revision */
-INSERT INTO multiple_choice_work (work_id, version, response, created_at)
-VALUES ('8f3b9f09db434670b1590763eb4eaecd', 8, '{3, 4}', '2014-08-09 14:01:19.545-04');
+INSERT INTO question_work (work_id, answers)
+VALUES ('8f3b9f09db434670b1590763eb4eaecd', '{ "d7a0c042-4d4b-4f31-bc19-59a2b6659e3c": {"questionType": 3, "answer": [1, 2]} }');
 
 /* Previous revision */
-INSERT INTO multiple_choice_work (work_id, version, response, created_at)
-VALUES ('8f3b9f09db434670b1590763eb4eaecd', 7, '{5, 6}', '2014-08-08 14:01:19.545-04');
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('8f3b9f09db434670b1590763eb4eaecd', '{ "d7a0c042-4d4b-4f31-bc19-59a2b6659e3c": {"questionType": 3, "answer": [1, 2]} }', 8, '2014-08-09 14:01:19.545-04');
+
+/* Previous revision */
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('8f3b9f09db434670b1590763eb4eaecd', '{ "d7a0c042-4d4b-4f31-bc19-59a2b6659e3c": {"questionType": 3, "answer": [3, 4]} }', 7, '2014-08-08 14:01:19.545-04');
 
 
 /* OrderingWorkD -> userC -> orderingTaskN */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('125eef5a7e89441cb138c1803bafdc03', 'f5f984073a0b4ea5952a575886e90586', '599a78ad5bff4246983532fcb41168a6', 4, true, 3, '2014-08-07 14:01:19.545-04', '2014-08-09 14:01:19.545-04');
+VALUES ('125eef5a7e89441cb138c1803bafdc03', 'f5f984073a0b4ea5952a575886e90586', '599a78ad5bff4246983532fcb41168a6', 4, true, 1, '2014-08-07 14:01:19.545-04', '2014-08-09 14:01:19.545-04');
 
 /* Latest revision */
-INSERT INTO ordering_work (work_id, version, response, created_at)
-VALUES ('125eef5a7e89441cb138c1803bafdc03', 4, '{3, 4}', '2014-08-09 14:01:19.545-04');
+INSERT INTO question_work (work_id, answers)
+VALUES ('125eef5a7e89441cb138c1803bafdc03', '{ "667a8b1c-3230-43d4-bd7b-2b150205b109": {"questionType": 4, "answer": [2, 3]} }');
 
 /* Previous revision */
-INSERT INTO ordering_work (work_id, version, response, created_at)
-VALUES ('125eef5a7e89441cb138c1803bafdc03', 3, '{5, 6}', '2014-08-08 14:01:19.545-04');
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('125eef5a7e89441cb138c1803bafdc03', '{ "667a8b1c-3230-43d4-bd7b-2b150205b109": {"questionType": 4, "answer": [2, 3]} }', 5, '2014-08-09 14:01:19.545-04');
+
+/* Previous revision */
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('125eef5a7e89441cb138c1803bafdc03', '{ "667a8b1c-3230-43d4-bd7b-2b150205b109": {"questionType": 4, "answer": [5, 6]} }', 3, '2014-08-08 14:01:19.545-04');
 
 
 /* OrderingWorkI -> userE -> orderingTaskN */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('db5165f44d4840079191beecd77763c7', '871b525067124e548ab60784cae0bc64', '599a78ad5bff4246983532fcb41168a6', 5, true, 3, '2014-08-09 14:01:19.545-04', '2014-08-11 14:01:19.545-04');
+VALUES ('db5165f44d4840079191beecd77763c7', '871b525067124e548ab60784cae0bc64', '599a78ad5bff4246983532fcb41168a6', 5, true, 1, '2014-08-09 14:01:19.545-04', '2014-08-11 14:01:19.545-04');
 
 /* Latest revision */
-INSERT INTO ordering_work (work_id, version, response, created_at)
-VALUES ('db5165f44d4840079191beecd77763c7', 5, '{4, 5}', '2014-08-11 14:01:19.545-04');
+INSERT INTO question_work (work_id, answers)
+VALUES ('db5165f44d4840079191beecd77763c7', '{ "667a8b1c-3230-43d4-bd7b-2b150205b109": {"questionType": 4, "answer": [2, 3]} }');
 
 /* Previous revision */
-INSERT INTO ordering_work (work_id, version, response, created_at)
-VALUES ('db5165f44d4840079191beecd77763c7', 4, '{6, 7}', '2014-08-10 14:01:19.545-04');
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('db5165f44d4840079191beecd77763c7', '{ "667a8b1c-3230-43d4-bd7b-2b150205b109": {"questionType": 4, "answer": [2, 3]} }', 5, '2014-08-11 14:01:19.545-04');
+
+/* Previous revision */
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('db5165f44d4840079191beecd77763c7', '{ "667a8b1c-3230-43d4-bd7b-2b150205b109": {"questionType": 4, "answer": [5, 6]} }', 4, '2014-08-10 14:01:19.545-04');
 
 
 /* testMatchingWorkE -> userC -> testMatchingTaskE */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
-VALUES ('e47442dd8ac94d06ad6fef62720d4ed3', 'f5f984073a0b4ea5952a575886e90586', '468a35bfbaf84045aa184688f4d0721f', 5, true, 4, '2014-08-09 14:01:19.545-04', '2014-08-11 14:01:19.545-04');
+VALUES ('e47442dd8ac94d06ad6fef62720d4ed3', 'f5f984073a0b4ea5952a575886e90586', '468a35bfbaf84045aa184688f4d0721f', 5, true, 1, '2014-08-09 14:01:19.545-04', '2014-08-11 14:01:19.545-04');
 
 /* Latest revision */
-INSERT INTO matching_work (work_id, version, response, created_at)
-VALUES ('e47442dd8ac94d06ad6fef62720d4ed3', 5, '{{5, 6}, {7, 8}}', '2014-08-11 14:01:19.545-04');
+INSERT INTO question_work (work_id, answers)
+VALUES ('e47442dd8ac94d06ad6fef62720d4ed3', '{ "1646f580-2347-4cdd-8b7d-fd43588a3a50": {"questionType": 5, "answer": [ {"left": 2, "right": 3}, {"left": 4, "right": 5} ]} }');
 
 /* Previous revision */
-INSERT INTO matching_work (work_id, version, response, created_at)
-VALUES ('e47442dd8ac94d06ad6fef62720d4ed3', 4, '{{6, 7}, {8, 9}}', '2014-08-10 14:01:19.545-04');
-*/
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('e47442dd8ac94d06ad6fef62720d4ed3', '{ "1646f580-2347-4cdd-8b7d-fd43588a3a50": {"questionType": 5, "answer": [ {"left": 2, "right": 3}, {"left": 4, "right": 5} ]} }', 5, '2014-08-11 14:01:19.545-04');
+
+/* Previous revision */
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('e47442dd8ac94d06ad6fef62720d4ed3', '{ "1646f580-2347-4cdd-8b7d-fd43588a3a50": {"questionType": 5, "answer": [ {"left": 6, "right": 7}, {"left": 8, "right": 9} ]} }', 4, '2014-08-10 14:01:19.545-04');
+
 
 /* testMatchingWorkJ -> userE -> testMatchingTaskE */
 INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
@@ -541,15 +579,49 @@ VALUES ('c57e033551da41449dfcdfa97f5f1a7c', '871b525067124e548ab60784cae0bc64', 
 
 /* Latest revision */
 INSERT INTO question_work (work_id, answers)
-VALUES ('c57e033551da41449dfcdfa97f5f1a7c', '[{ "answerType": 5, "questionType": 5, "answer": [[6, 7], [8, 9]] }]');
+VALUES ('c57e033551da41449dfcdfa97f5f1a7c', '{ "1646f580-2347-4cdd-8b7d-fd43588a3a50": {"questionType": 5, "answer": [ {"left": 2, "right": 3}, {"left": 4, "right": 5} ]} }');
 
 /* Previous revision */
-INSERT INTO question_work_answers (work_id, answers, version)
-VALUES ('c57e033551da41449dfcdfa97f5f1a7c', '[{ "answerType": 5, "questionType": 5, "answer": [[6, 7], [8, 9]] }]', 6);
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('c57e033551da41449dfcdfa97f5f1a7c', '{ "1646f580-2347-4cdd-8b7d-fd43588a3a50": {"questionType": 5, "answer": [ {"left": 2, "right": 3}, {"left": 4, "right": 5} ]} }', 6, '2014-08-12 14:01:19.545-04');
 
 /* Previous revision */
-INSERT INTO question_work_answers (work_id, answers, version)
-VALUES ('c57e033551da41449dfcdfa97f5f1a7c', '[{ "answerType": 5, "questionType": 5, "answer": [[2, 3], [4, 5]] }]', 5);
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('c57e033551da41449dfcdfa97f5f1a7c', '{ "1646f580-2347-4cdd-8b7d-fd43588a3a50": {"questionType": 5, "answer": [ {"left": 6, "right": 7}, {"left": 8, "right": 9} ]} }', 5, '2014-08-11 14:01:19.545-04');
+
+
+/* testBlanksWorkK -> userC -> testBlanksTaskP */
+INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
+VALUES ('507cd2f2486948f1ab19812c6a1ef5ed', 'f5f984073a0b4ea5952a575886e90586', '9a258f444ee84bab855b53966e53ca10', 4, true, 1, '2014-08-09 14:01:19.545-04', '2014-08-11 14:01:19.545-04');
+
+/* Latest revision */
+INSERT INTO question_work (work_id, answers)
+VALUES ('507cd2f2486948f1ab19812c6a1ef5ed', '{ "67a68639-0172-4948-88f0-57e77a7502d7": {"questionType": 2, "answer": [ "testBlanksAnswerE answer one", "testBlanksAnswerE answer two" ]} }');
+
+/* Previous revision */
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('507cd2f2486948f1ab19812c6a1ef5ed', '{ "67a68639-0172-4948-88f0-57e77a7502d7": {"questionType": 2, "answer": [ "testBlanksAnswerE answer one", "testBlanksAnswerE answer two" ]} }', 4, '2014-08-11 14:01:19.545-04');
+
+/* Previous revision */
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('507cd2f2486948f1ab19812c6a1ef5ed', '{ "67a68639-0172-4948-88f0-57e77a7502d7": {"questionType": 2, "answer": [ "testBlanksAnswerRevisionE answer one", "testBlanksAnswerRevisionE answer two" ]} }', 3, '2014-08-09 14:01:19.545-04');
+
+
+/* testBlanksWorkL -> userE -> testBlanksTaskP */
+INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
+VALUES ('f92938721eb04523869705898ebc8746', '871b525067124e548ab60784cae0bc64', '9a258f444ee84bab855b53966e53ca10', 5, true, 1, '2014-08-12 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+
+/* Latest revision */
+INSERT INTO question_work (work_id, answers)
+VALUES ('f92938721eb04523869705898ebc8746', '{ "67a68639-0172-4948-88f0-57e77a7502d7": {"questionType": 2, "answer": [ "testBlanksAnswerE answer one", "testBlanksAnswerE answer two" ]} }');
+
+/* Previous revision */
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('f92938721eb04523869705898ebc8746', '{ "67a68639-0172-4948-88f0-57e77a7502d7": {"questionType": 2, "answer": [ "testBlanksAnswerE answer one", "testBlanksAnswerE answer two" ]} }', 5, '2014-08-14 14:01:19.545-04');
+
+/* Previous revision */
+INSERT INTO question_work_answers (work_id, answers, version, created_at)
+VALUES ('f92938721eb04523869705898ebc8746', '{ "67a68639-0172-4948-88f0-57e77a7502d7": {"questionType": 2, "answer": [ "testBlanksAnswerRevisionE answer one", "testBlanksAnswerRevisionE answer two" ]} }', 4, '2014-08-12 14:01:19.545-04');
 
 
 /* ---------------------- COMPONENTS ---------------------- */

@@ -283,7 +283,7 @@ class WorkServiceDefault(
     }
   }
 
-  override def updateAnswer(workId: UUID, version: Long, position: Int, answer: Answer): Future[\/[ErrorUnion#Fail, QuestionWork]] = {
+  override def updateAnswer(workId: UUID, version: Long, questionId: UUID, answer: Answer): Future[\/[ErrorUnion#Fail, QuestionWork]] = {
     transactional { implicit conn =>
       for {
         work <- lift(findWork(workId))
@@ -293,13 +293,13 @@ class WorkServiceDefault(
         task <- lift(projectService.findTask(questionWork.taskId))
         _ <- predicate(task.isInstanceOf[QuestionTask])(ServiceError.BadInput("Retrieved a QuestionWork that points to a DocumentTask. Kindly curl up into a ball and cry."))
         questionTask = task.asInstanceOf[QuestionTask]
-        _ <- predicate(questionTask.questions.isDefinedAt(position))(ServiceError.BadInput(s"There is no Question as position $position."))
-        question = questionTask.questions(position)
+        _ <- predicate(questionTask.questions.exists(_.id == questionId))(ServiceError.BadInput(s"There is no Question for answer."))
+        question = questionTask.questions.filter(_.id == questionId).head
 
         // Verify that the updated answer actually corresponds to the right question
-        _ <- predicate(answer.answers(question))(ServiceError.BadInput(s"The provided answer does not match the question type as position $position"))
+        _ <- predicate(answer.answers(question))(ServiceError.BadInput(s"The provided answer does not match the question type"))
 
-        toUpdate = questionWork.copy(response = questionWork.response.updated(position, answer))
+        toUpdate = questionWork.copy(response = questionWork.response.updated(questionId, answer))
         updated <- lift(workRepository.update(toUpdate))
       } yield updated.asInstanceOf[QuestionWork]
     }

@@ -9,6 +9,7 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
 sealed trait Question {
+  val id: UUID
   val title: String
   val description: String
   val questionType: Int
@@ -23,7 +24,7 @@ object Question {
   implicit val reads = new Reads[Question] {
     def reads(json: JsValue) = {
       (json \ "type").asOpt[Int] match {
-        case Some(t) if t == ShortAnswer => ShortAnswerQuestion.reads.reads(json)
+        case Some(t) if t == ShortAnswer => ShortQuestion.reads.reads(json)
         case Some(t) if t == Blanks => BlanksQuestion.reads.reads(json)
         case Some(t) if t == MultipleChoice => MultipleChoiceQuestion.reads.reads(json)
         case Some(t) if t == Ordering => OrderingQuestion.reads.reads(json)
@@ -35,7 +36,7 @@ object Question {
   implicit val writes = new Writes[Question] {
     def writes(question: Question) = {
       question match {
-        case shortAnswer: ShortAnswerQuestion => ShortAnswerQuestion.writes.writes(shortAnswer)
+        case shortAnswer: ShortQuestion => ShortQuestion.writes.writes(shortAnswer)
         case blanks: BlanksQuestion => BlanksQuestion.writes.writes(blanks)
         case multipleChoice: MultipleChoiceQuestion => MultipleChoiceQuestion.writes.writes(multipleChoice)
         case ordering: OrderingQuestion => OrderingQuestion.writes.writes(ordering)
@@ -45,7 +46,8 @@ object Question {
   }
 }
 
-case class ShortAnswerQuestion(
+case class ShortQuestion(
+    id: UUID = UUID.randomUUID,
     title: String,
     description: String,
     maxLength: Int
@@ -54,6 +56,7 @@ case class ShortAnswerQuestion(
 }
 
 case class BlanksQuestion(
+    id: UUID = UUID.randomUUID,
     title: String,
     description: String,
     text: String,
@@ -63,6 +66,7 @@ case class BlanksQuestion(
 }
 
 case class MultipleChoiceQuestion(
+    id: UUID = UUID.randomUUID,
     title: String,
     description: String,
     choices: IndexedSeq[String],
@@ -73,6 +77,7 @@ case class MultipleChoiceQuestion(
 }
 
 case class OrderingQuestion(
+    id: UUID = UUID.randomUUID,
     title: String,
     description: String,
     choices: IndexedSeq[String]
@@ -81,6 +86,7 @@ case class OrderingQuestion(
 }
 
 case class MatchingQuestion(
+    id: UUID = UUID.randomUUID,
     title: String,
     description: String,
     choices: IndexedSeq[MatchingQuestion.Match]
@@ -88,16 +94,18 @@ case class MatchingQuestion(
   override val questionType = Question.Matching
 }
 
-object ShortAnswerQuestion {
-  implicit val reads: Reads[ShortAnswerQuestion] = (
+object ShortQuestion {
+  implicit val reads: Reads[ShortQuestion] = (
+    (__ \ "id").read[UUID] and
     (__ \ "title").read[String] and
     (__ \ "description").read[String] and
     (__ \ "maxLength").read[Int]
-  )(ShortAnswerQuestion.apply _)
+  )(ShortQuestion.apply _)
 
-  implicit val writes = new Writes[ShortAnswerQuestion] {
-    def writes(question: ShortAnswerQuestion) = {
+  implicit val writes = new Writes[ShortQuestion] {
+    def writes(question: ShortQuestion) = {
       Json.obj(
+        "id" -> question.id,
         "title" -> question.title,
         "description" -> question.description,
         "maxLength" -> question.maxLength,
@@ -122,6 +130,7 @@ object BlanksQuestion {
   }
 
   implicit val reads: Reads[BlanksQuestion] = (
+    (__ \ "id").read[UUID] and
     (__ \ "title").read[String] and
     (__ \ "description").read[String] and
     (__ \ "text").read[String] and
@@ -131,6 +140,7 @@ object BlanksQuestion {
   implicit val writes = new Writes[BlanksQuestion] {
     def writes(question: BlanksQuestion) = {
       Json.obj(
+        "id" -> question.id,
         "title" -> question.title,
         "description" -> question.description,
         "text" -> question.text,
@@ -143,6 +153,7 @@ object BlanksQuestion {
 
 object MultipleChoiceQuestion {
   implicit val reads: Reads[MultipleChoiceQuestion] = (
+    (__ \ "id").read[UUID] and
     (__ \ "title").read[String] and
     (__ \ "description").read[String] and
     (__ \ "choices").read[IndexedSeq[String]] and
@@ -153,6 +164,7 @@ object MultipleChoiceQuestion {
   implicit val writes = new Writes[MultipleChoiceQuestion] {
     def writes(question: MultipleChoiceQuestion) = {
       Json.obj(
+        "id" -> question.id,
         "title" -> question.title,
         "description" -> question.description,
         "choices" -> question.choices,
@@ -166,6 +178,7 @@ object MultipleChoiceQuestion {
 
 object OrderingQuestion {
   implicit val reads: Reads[OrderingQuestion] = (
+    (__ \ "id").read[UUID] and
     (__ \ "title").read[String] and
     (__ \ "description").read[String] and
     (__ \ "choices").read[IndexedSeq[String]]
@@ -174,6 +187,7 @@ object OrderingQuestion {
   implicit val writes = new Writes[OrderingQuestion] {
     def writes(question: OrderingQuestion) = {
       Json.obj(
+        "id" -> question.id,
         "title" -> question.title,
         "description" -> question.description,
         "choices" -> question.choices,
@@ -198,6 +212,7 @@ object MatchingQuestion {
   }
 
   implicit val reads: Reads[MatchingQuestion] = (
+    (__ \ "id").read[UUID] and
     (__ \ "title").read[String] and
     (__ \ "description").read[String] and
     (__ \ "choices").read[IndexedSeq[Match]]
@@ -206,6 +221,7 @@ object MatchingQuestion {
   implicit val writes = new Writes[MatchingQuestion] {
     def writes(question: MatchingQuestion) = {
       Json.obj(
+        "id" -> question.id,
         "title" -> question.title,
         "description" -> question.description,
         "choices" -> question.choices,

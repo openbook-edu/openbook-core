@@ -110,6 +110,16 @@ class ProjectServiceDefault(
     for {
       user <- lift(authService.find(userId))
       project <- lift(projectRepository.find(projectId, user, fetchParts))
+      course <- lift(schoolService.findCourse(project.courseId))
+      projectFiltered <- lift {
+        if (userId == course.teacherId) {
+          if (fetchParts) projectRepository.find(project.id)
+          else Future.successful(\/-(project))
+        }
+        else {
+          projectRepository.find(project.id, user, fetchParts)
+        }
+      }
     } yield project
   }
 
@@ -123,7 +133,16 @@ class ProjectServiceDefault(
     for {
       user <- lift(authService.find(userId))
       project <- lift(projectRepository.find(projectSlug, false))
-      projectFiltered <- lift(projectRepository.find(project.id, user, fetchParts))
+      course <- lift(schoolService.findCourse(project.courseId))
+      projectFiltered <- lift {
+        if (userId == course.teacherId) {
+          if (fetchParts) projectRepository.find(project.id)
+          else Future.successful(\/-(project))
+        }
+        else {
+          projectRepository.find(project.id, user, fetchParts)
+        }
+      }
     } yield projectFiltered
   }
 
@@ -362,10 +381,15 @@ class ProjectServiceDefault(
         existingPart <- lift(partRepository.find(partId))
         _ <- predicate(existingPart.version == version)(ServiceError.OfflineLockFail)
         movedPart <- lift(movePart(partId, version, maybePosition.getOrElse(existingPart.position)))
-        updatedPart <- lift(partRepository.update(movedPart.copy(
-          name = name.getOrElse(existingPart.name),
-          enabled = enabled.getOrElse(existingPart.enabled)
-        )))
+        updatedPart <- lift(if (name.isDefined || enabled.isDefined) {
+          partRepository.update(movedPart.copy(
+            name = name.getOrElse(existingPart.name),
+            enabled = enabled.getOrElse(existingPart.enabled)
+          ))
+        }
+        else {
+          Future.successful(\/-(movedPart))
+        })
       } yield updatedPart
     }
   }
@@ -398,12 +422,12 @@ class ProjectServiceDefault(
           else Future.successful(\/-(position))
         }
         movedPart <- lift {
-          val positionExists = partList.iterator.filter(_.id != partId).filter(_.position == truePosition).nonEmpty // linter:ignore
+          val positionExists = partList.filter(_.id != partId).filter(_.position == truePosition).nonEmpty // linter:ignore
           val updatedPartList = positionExists match {
             case true => partList.map { part =>
               {
                 if (part.id == partId) part.copy(position = truePosition)
-                else if (part.position < truePosition) part.copy(position = part.position - 1)
+                else if (part.position < truePosition) part.copy(position = part.position)
                 else part.copy(position = part.position + 1)
               }
             }
@@ -417,8 +441,7 @@ class ProjectServiceDefault(
 
           // Order all parts by position
           val orderedParts = updatedPartList.sortWith(_.position < _.position)
-
-          serializedT(orderedParts.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedParts(orderedParts, _)).map {
+          serializedT(orderedParts.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedParts(orderedParts, partList, _)).map {
             case -\/(error) => -\/(error)
             case \/-(parts) => \/-(parts.filter(_.id == partId).head)
           }
@@ -427,12 +450,17 @@ class ProjectServiceDefault(
     }
   }
 
-  private def updateOrderedParts(orderedParts: IndexedSeq[Part], i: Int): Future[\/[RepositoryError.Fail, Part]] = {
-    if (orderedParts(i).position != i + 1) {
-      partRepository.update(orderedParts(i).copy(position = i + 1))
-    }
-    else {
-      Future.successful(\/-(orderedParts(i)))
+  private def updateOrderedParts(orderedParts: IndexedSeq[Part], originalParts: IndexedSeq[Part], i: Int): Future[\/[ErrorUnion#Fail, Part]] = {
+    (orderedParts.lift(i), originalParts.find(_.id == orderedParts(i).id)) match {
+      case (Some(reorderedPart), Some(originalPart)) => {
+        if (originalPart.position != i + 1) {
+          partRepository.update(reorderedPart.copy(position = i + 1))
+        }
+        else {
+          Future.successful(\/-(reorderedPart))
+        }
+      }
+      case _ => Future successful -\/(ServiceError.BusinessLogicFail("Tried to re-order a part that doesn't exist???"))
     }
   }
 
@@ -457,7 +485,7 @@ class ProjectServiceDefault(
         _ <- predicate(partList.nonEmpty)(ServiceError.BusinessLogicFail("Weird, part list shouldn't be empty!"))
         partListUpdated <- lift {
           val filteredOderedPartList = partList.filter(_.id != partId).sortWith(_.position < _.position)
-          serializedT(filteredOderedPartList.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedParts(filteredOderedPartList, _))
+          serializedT(filteredOderedPartList.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedParts(filteredOderedPartList, partList, _))
         }
         tasksDeleted <- lift(taskRepository.delete(part))
         deletedPart <- lift(partRepository.delete(part))

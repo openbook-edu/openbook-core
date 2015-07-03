@@ -156,9 +156,9 @@ trait PostgresRepository[A] {
     maybeResultSet match {
       case Some(resultSet) => resultSet.headOption match {
         case Some(firstRow) => \/-(build(firstRow))
-        case None => -\/(RepositoryError.NoResults(s"Could not find entity of type $entityName"))
+        case None => -\/(RepositoryError.NoResults(s"ResultSet returned no rows. Could not build entity of type $entityName"))
       }
-      case None => -\/(RepositoryError.NoResults(s"Could not find entity of type $entityName"))
+      case None => -\/(RepositoryError.NoResults(s"No ResultSet was returned. Could not build entity of type $entityName"))
     }
   }
 

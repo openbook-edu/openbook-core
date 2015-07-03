@@ -36,6 +36,8 @@ class TaskRepositorySpec
         val eitherTasks = Await.result(result, Duration.Inf)
         val \/-(tasks) = eitherTasks
 
+        tasks.size should be(testTaskList.size)
+
         tasks.foreach { task =>
           var testTask = if (testTaskList.exists(_.id == task.id)) testTaskList.filter(_.id == task.id).head
           else fail("There is no task with such ID in testTaskList: " + task.id)
@@ -76,6 +78,8 @@ class TaskRepositorySpec
         val result = taskRepository.list(testPart)
         val eitherTasks = Await.result(result, Duration.Inf)
         val \/-(tasks) = eitherTasks
+
+        tasks.size should be(testTaskList.size)
 
         tasks.foreach { task =>
           var testTask = if (testTaskList.exists(_.id == task.id)) testTaskList.filter(_.id == task.id).head
@@ -130,6 +134,8 @@ class TaskRepositorySpec
         val result = taskRepository.list(testProject)
         val eitherTasks = Await.result(result, Duration.Inf)
         val \/-(tasks) = eitherTasks
+
+        tasks.size should be(testTaskList.size)
 
         tasks.foreach { task =>
           var testTask = if (testTaskList.exists(_.id == task.id)) testTaskList.filter(_.id == task.id).head
@@ -956,6 +962,8 @@ class TaskRepositorySpec
         val result = taskRepository.delete(testPart)
         val eitherTasks = Await.result(result, Duration.Inf)
         val \/-(tasks) = eitherTasks
+
+        tasks.size should be(testTaskList.size)
 
         tasks.foreach { task =>
           var testTask = if (testTaskList.exists(_.id == task.id)) testTaskList.filter(_.id == task.id).head

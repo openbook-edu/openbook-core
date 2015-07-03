@@ -38,7 +38,7 @@ trait WorkService extends Service[ErrorUnion#Fail] {
     isComplete: Option[Boolean] = None
   ): Future[\/[ErrorUnion#Fail, QuestionWork]]
 
-  def updateAnswer(workId: UUID, version: Long, position: Int, answer: Answer): Future[\/[ErrorUnion#Fail, QuestionWork]]
+  def updateAnswer(workId: UUID, version: Long, questionId: UUID, answer: Answer): Future[\/[ErrorUnion#Fail, QuestionWork]]
 
   // Task feedbacks
   def listFeedbacks(studentId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[TaskFeedback]]]

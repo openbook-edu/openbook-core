@@ -297,7 +297,7 @@ class ComponentRepositorySpec
         val id = UUID.fromString("024e4bde-282c-4947-a623-81ec11d2d85c")
 
         val result = componentRepository.find(id)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Component")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Component")))
       }
     }
   }

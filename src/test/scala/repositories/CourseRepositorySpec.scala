@@ -257,7 +257,7 @@ class CourseRepositorySpec
         val testCourse = TestValues.testCourseC
 
         val result = courseRepository.find(testCourse.id)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Course")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Course")))
       }
     }
   }
@@ -576,7 +576,7 @@ class CourseRepositorySpec
         )
 
         val result = courseRepository.update(updatedCourse)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Course")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Course")))
       }
       "return RepositoryError.NoResults when update a Course that doesn't exist" in {
         val testCourse = TestValues.testCourseC
@@ -587,7 +587,7 @@ class CourseRepositorySpec
         )
 
         val result = courseRepository.update(updatedCourse)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Course")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Course")))
       }
     }
   }
@@ -638,7 +638,7 @@ class CourseRepositorySpec
         val testCourse = TestValues.testCourseE
 
         val result = courseRepository.delete(testCourse)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Course")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Course")))
       }
     }
   }

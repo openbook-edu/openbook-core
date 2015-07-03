@@ -114,7 +114,7 @@ class RoleRepositorySpec
 
         val result = roleRepository.find(UUID.fromString("f9aadc67-5e8b-48f3-b0a2-20a0d7d88477"))
 
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Role")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Role")))
       }
       "find a single entry by name" in {
         (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
@@ -138,7 +138,7 @@ class RoleRepositorySpec
 
         val result = roleRepository.find("unexisting_role_name")
 
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Role")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Role")))
       }
     }
   }
@@ -283,7 +283,7 @@ class RoleRepositorySpec
         )
 
         val result = roleRepository.update(updatedRole)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Role")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Role")))
       }
       "reutrn RepositoryError.NoResults when update an unexisting Role" in {
         val testRole = TestValues.testRoleD
@@ -292,7 +292,7 @@ class RoleRepositorySpec
         )
 
         val result = roleRepository.update(updatedRole)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Role")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Role")))
       }
     }
   }
@@ -323,7 +323,7 @@ class RoleRepositorySpec
         )
 
         val result = roleRepository.delete(testRole)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Role")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Role")))
       }
     }
   }
@@ -373,7 +373,7 @@ class RoleRepositorySpec
         val testUser = TestValues.testUserA
 
         val result = roleRepository.addToUser(testUser, testRole.name)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Role")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Role")))
       }
       "return RepositoryError.PrimaryKeyConflict if user has already this role (object)" in {
         val testRole = TestValues.testRoleF
@@ -435,7 +435,7 @@ class RoleRepositorySpec
         val testUser = TestValues.testUserA
 
         val result = roleRepository.removeFromUser(testUser, testRole.name)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Role")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Role")))
       }
       "return RepositoryError.NoResults if user doesn't exist" in {
         // User is an object, we should have it when we call this method
@@ -504,7 +504,7 @@ class RoleRepositorySpec
         val testRole = TestValues.testRoleE
 
         val result = roleRepository.removeFromAllUsers(testRole.name)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Role")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Role")))
       }
       "return RepositoryError.NoResults if no one from users doesn't have this role (object)" in {
         val testRole = TestValues.testRoleH

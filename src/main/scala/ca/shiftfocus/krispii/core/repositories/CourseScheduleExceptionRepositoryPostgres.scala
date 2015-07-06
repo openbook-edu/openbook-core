@@ -7,7 +7,7 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import java.util.UUID
 import com.github.mauricio.async.db.{ ResultSet, RowData, Connection }
 import scala.concurrent.ExecutionContext.Implicits.global
-import org.joda.time.DateTime
+import org.joda.time.{LocalTime, LocalDate, DateTime}
 import scala.concurrent.Future
 import scalacache.ScalaCache
 import scalaz.{ -\/, \/-, \/ }
@@ -21,20 +21,14 @@ class CourseScheduleExceptionRepositoryPostgres(
   override val entityName = "CourseScheduleException"
 
   def constructor(row: RowData): CourseScheduleException = {
-    val day = row("day").asInstanceOf[DateTime]
-    val startTime = row("start_time").asInstanceOf[DateTime]
-    val endTime = row("end_time").asInstanceOf[DateTime]
-
     CourseScheduleException(
       row("id").asInstanceOf[UUID],
       row("user_id").asInstanceOf[UUID],
       row("course_id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
-      day.toLocalDate(),
-      new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), startTime.getHourOfDay(),
-        startTime.getMinuteOfHour, startTime.getSecondOfMinute()).toLocalTime(),
-      new DateTime(day.getYear(), day.getMonthOfYear(), day.getDayOfMonth(), endTime.getHourOfDay(),
-        endTime.getMinuteOfHour, endTime.getSecondOfMinute()).toLocalTime(),
+      row("day").asInstanceOf[LocalDate],
+      row("start_time").asInstanceOf[LocalTime],
+      row("end_time").asInstanceOf[LocalTime],
       row("reason").asInstanceOf[String],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
@@ -162,12 +156,6 @@ class CourseScheduleExceptionRepositoryPostgres(
    */
   override def insert(courseScheduleException: CourseScheduleException) // format: OFF
                      (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseScheduleException]] = { // format: ON
-    val dayDT = courseScheduleException.day.toDateTimeAtStartOfDay()
-    val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.startTime.getHourOfDay(),
-      courseScheduleException.startTime.getMinuteOfHour, courseScheduleException.startTime.getSecondOfMinute())
-    val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.endTime.getHourOfDay(),
-      courseScheduleException.endTime.getMinuteOfHour, courseScheduleException.endTime.getSecondOfMinute())
-
     for {
       inserted <- lift(queryOne(Insert, Array(
         courseScheduleException.id,
@@ -176,9 +164,9 @@ class CourseScheduleExceptionRepositoryPostgres(
         new DateTime,
         courseScheduleException.userId,
         courseScheduleException.courseId,
-        dayDT,
-        startTimeDT,
-        endTimeDT,
+        courseScheduleException.day,
+        courseScheduleException.startTime,
+        courseScheduleException.endTime,
         courseScheduleException.reason
       )))
       _ <- lift(cache.removeCached(cacheExceptionsKey(inserted.courseId)))
@@ -194,19 +182,13 @@ class CourseScheduleExceptionRepositoryPostgres(
    */
   override def update(courseScheduleException: CourseScheduleException) // format: OFF
                      (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseScheduleException]] = { // format: ON
-    val dayDT = courseScheduleException.day.toDateTimeAtStartOfDay()
-    val startTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.startTime.getHourOfDay(),
-      courseScheduleException.startTime.getMinuteOfHour, courseScheduleException.startTime.getSecondOfMinute())
-    val endTimeDT = new DateTime(dayDT.getYear(), dayDT.getMonthOfYear(), dayDT.getDayOfMonth(), courseScheduleException.endTime.getHourOfDay(),
-      courseScheduleException.endTime.getMinuteOfHour, courseScheduleException.endTime.getSecondOfMinute())
-
     for {
       updated <- lift(queryOne(Update, Array(
         courseScheduleException.userId,
         courseScheduleException.courseId,
-        dayDT,
-        startTimeDT,
-        endTimeDT,
+        courseScheduleException.day,
+        courseScheduleException.startTime,
+        courseScheduleException.endTime,
         courseScheduleException.reason,
         courseScheduleException.version + 1,
         new DateTime,

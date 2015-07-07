@@ -145,7 +145,7 @@ class WorkServiceDefault(
 
   // TODO - verify if user already has work for this task
   /**
-   * Create a long-answer work item.
+   * Create a document work item.
    *
    * Use this method when entering student work on a task for the first time (in a given course).
    *
@@ -176,7 +176,7 @@ class WorkServiceDefault(
   }
 
   /**
-   * Create a matching work item.
+   * Create a question work item.
    *
    * Use this method when entering student work on a task for the first time (in a given course).
    *
@@ -251,8 +251,9 @@ class WorkServiceDefault(
         user <- lift(fUser)
         task <- lift(fTask)
         existingWork <- lift(workRepository.find(user, task))
-        existingLAWork = existingWork.asInstanceOf[DocumentWork]
-        workToUpdate = existingLAWork.copy(isComplete = isComplete)
+        _ <- predicate(existingWork.isInstanceOf[DocumentWork])(ServiceError.BadInput("Attempted to update the answer for a question work"))
+        existingDocWork = existingWork.asInstanceOf[DocumentWork]
+        workToUpdate = existingDocWork.copy(isComplete = isComplete)
         updatedWork <- lift(workRepository.update(workToUpdate))
       } yield updatedWork.asInstanceOf[DocumentWork]
     }
@@ -273,6 +274,8 @@ class WorkServiceDefault(
         user <- lift(fUser)
         task <- lift(fTask)
         existingWork <- lift(workRepository.find(user, task))
+        _ <- predicate(existingWork.isInstanceOf[QuestionWork])(ServiceError.BadInput("Attempted to update the answer for a document work"))
+        _ <- predicate(existingWork.version == version)(ServiceError.OfflineLockFail)
         existingQuestionWork = existingWork.asInstanceOf[QuestionWork]
         workToUpdate = existingQuestionWork.copy(
           response = response.getOrElse(existingQuestionWork.response),
@@ -288,6 +291,7 @@ class WorkServiceDefault(
       for {
         work <- lift(findWork(workId))
         _ <- predicate(work.isInstanceOf[QuestionWork])(ServiceError.BadInput("Attempted to update the answer for a document work"))
+        _ <- predicate(work.version == version)(ServiceError.OfflineLockFail)
         questionWork = work.asInstanceOf[QuestionWork]
 
         task <- lift(projectService.findTask(questionWork.taskId))

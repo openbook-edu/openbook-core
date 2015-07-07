@@ -1095,6 +1095,10 @@ object TestValues {
     answer = IndexedSeq(MatchingAnswer.Match(2, 3), MatchingAnswer.Match(4, 5))
   )
 
+  val testMatchingAnswerF = MatchingAnswer(
+    answer = IndexedSeq(MatchingAnswer.Match(6, 7), MatchingAnswer.Match(8, 9))
+  )
+
   val testBlanksAnswerE = BlanksAnswer(
     answer = IndexedSeq(
       "testBlanksAnswerE answer one",

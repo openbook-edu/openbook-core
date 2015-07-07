@@ -151,6 +151,7 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
     for {
       updated <- lift(queryOne(Update, Seq[Any](
         courseSchedule.courseId,
+        courseSchedule.day,
         courseSchedule.startTime,
         courseSchedule.endTime,
         courseSchedule.description,

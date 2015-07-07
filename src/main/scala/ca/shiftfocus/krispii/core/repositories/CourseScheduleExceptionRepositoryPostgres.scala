@@ -7,7 +7,7 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import java.util.UUID
 import com.github.mauricio.async.db.{ ResultSet, RowData, Connection }
 import scala.concurrent.ExecutionContext.Implicits.global
-import org.joda.time.{LocalTime, LocalDate, DateTime}
+import org.joda.time.{ LocalTime, LocalDate, DateTime }
 import scala.concurrent.Future
 import scalacache.ScalaCache
 import scalaz.{ -\/, \/-, \/ }

@@ -259,6 +259,7 @@ CREATE TABLE question_work_answers (
   work_id uuid REFERENCES question_work(work_id) ON DELETE CASCADE,
   version bigint,
   answers jsonb,
+  created_at timestamp with time zone,
   PRIMARY KEY (work_id, version)
 );
 

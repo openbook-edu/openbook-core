@@ -80,37 +80,48 @@ final case class QuestionWork(
   }
 }
 
-case class Match(left: Int, right: Int)
-object Match {
-  implicit val reads: Reads[Match] = (
-    (__ \ "left").read[Int] and
-    (__ \ "right").read[Int]
-  )(Match.apply _)
+/*
 
-  implicit val writes: Writes[Match] = (
-    (__ \ "left").write[Int] and
-    (__ \ "right").write[Int]
-  )(unlift(Match.unapply))
-}
+  {
+    "idA": {"questionType": 2, "answer": "hello},
+    "idB": {...}
+  }
 
-case class Answers(underlying: Map[Int, Answer] = Map()) {
-  def updated(key: Int, value: Answer): Answers = Answers(underlying.updated(key, value))
+ */
+
+case class Answers(underlying: Map[UUID, Answer] = Map()) {
+  def updated(key: UUID, value: Answer): Answers = Answers(underlying.updated(key, value))
 }
 object Answers {
   implicit val reads = new Reads[Answers] {
     def reads(json: JsValue) = {
-      json.asOpt[Map[String, Answer]] match {
-        case Some(answerMap) => {
-          val maybeTuples = answerMap.map {
-            case ((key, value)) => Option(key.toInt) match {
-              case Some(intKey) => Some((intKey, value))
-              case None => None
+      json.validate[JsObject] match {
+        case jsSuccess: JsSuccess[JsObject] => {
+          val jsObj = jsSuccess.get
+          val answers = jsObj.value.map {
+            case (key, value) => {
+              val id = UUID.fromString(key)
+              val answerResult = Answer.reads.reads(value)
+
+              if (answerResult.isError) {
+                answerResult.asInstanceOf[JsError]
+              }
+              else {
+                JsSuccess((id, answerResult.get))
+              }
             }
           }
-          val answers = maybeTuples.flatten.toMap
-          JsSuccess(Answers(answers))
+
+          if (answers.exists({ item => item.isError })) {
+            val errors = answers.filter({ item => item.isError }).mkString("; ")
+            // return error
+            JsError(errors)
+          }
+          else {
+            JsSuccess(Answers(answers.map(_.get).toMap))
+          }
         }
-        case None => JsError("JSON had invalid format.")
+        case error: JsError => JsError("JSON had invalid format.")
       }
     }
   }
@@ -131,8 +142,8 @@ trait Answer {
 object Answer {
   implicit val reads: Reads[Answer] = new Reads[Answer] {
     def reads(json: JsValue) = {
-      (json \ "answerType").asOpt[Int] match {
-        case Some(t) if t == Question.ShortAnswer => ShortAnswerAnswer.reads.reads(json)
+      (json \ "questionType").asOpt[Int] match {
+        case Some(t) if t == Question.ShortAnswer => ShortAnswer.reads.reads(json)
         case Some(t) if t == Question.Blanks => BlanksAnswer.reads.reads(json)
         case Some(t) if t == Question.MultipleChoice => MultipleChoiceAnswer.reads.reads(json)
         case Some(t) if t == Question.Ordering => OrderingAnswer.reads.reads(json)
@@ -144,7 +155,7 @@ object Answer {
   implicit val writes: Writes[Answer] = new Writes[Answer] {
     def writes(answer: Answer) = {
       answer match {
-        case shortAnswer: ShortAnswerAnswer => ShortAnswerAnswer.writes.writes(shortAnswer)
+        case shortAnswer: ShortAnswer => ShortAnswer.writes.writes(shortAnswer)
         case blanks: BlanksAnswer => BlanksAnswer.writes.writes(blanks)
         case multipleChoice: MultipleChoiceAnswer => MultipleChoiceAnswer.writes.writes(multipleChoice)
         case ordering: OrderingAnswer => OrderingAnswer.writes.writes(ordering)
@@ -154,21 +165,21 @@ object Answer {
   }
 }
 
-final case class ShortAnswerAnswer(answer: String) extends Answer { override val questionType = Question.ShortAnswer }
+final case class ShortAnswer(answer: String) extends Answer { override val questionType = Question.ShortAnswer }
 final case class BlanksAnswer(answer: IndexedSeq[String]) extends Answer { override val questionType = Question.Blanks }
 final case class MultipleChoiceAnswer(answer: IndexedSeq[Int]) extends Answer { override val questionType = Question.MultipleChoice }
 final case class OrderingAnswer(answer: IndexedSeq[Int]) extends Answer { override val questionType = Question.Ordering }
-final case class MatchingAnswer(answer: IndexedSeq[Match]) extends Answer { override val questionType = Question.Matching }
+final case class MatchingAnswer(answer: IndexedSeq[MatchingAnswer.Match]) extends Answer { override val questionType = Question.Matching }
 
-object ShortAnswerAnswer {
-  implicit val reads = new Reads[ShortAnswerAnswer] {
+object ShortAnswer {
+  implicit val reads = new Reads[ShortAnswer] {
     def reads(json: JsValue) = (json \ "answer").asOpt[String] match {
-      case Some(answer) => JsSuccess(ShortAnswerAnswer(answer))
+      case Some(answer) => JsSuccess(ShortAnswer(answer))
       case None => JsError("'answer' parameter not given")
     }
   }
-  implicit val writes = new Writes[ShortAnswerAnswer] {
-    def writes(shortAnswer: ShortAnswerAnswer) = Json.obj(
+  implicit val writes = new Writes[ShortAnswer] {
+    def writes(shortAnswer: ShortAnswer) = Json.obj(
       "questionType" -> shortAnswer.questionType,
       "answer" -> shortAnswer.answer
     )
@@ -221,6 +232,19 @@ object OrderingAnswer {
 }
 
 object MatchingAnswer {
+  case class Match(left: Int, right: Int)
+  object Match {
+    implicit val reads: Reads[Match] = (
+      (__ \ "left").read[Int] and
+      (__ \ "right").read[Int]
+    )(Match.apply _)
+
+    implicit val writes: Writes[Match] = (
+      (__ \ "left").write[Int] and
+      (__ \ "right").write[Int]
+    )(unlift(Match.unapply))
+  }
+
   implicit val reads = new Reads[MatchingAnswer] {
     def reads(json: JsValue) = (json \ "answer").asOpt[IndexedSeq[Match]] match {
       case Some(answer) => JsSuccess(MatchingAnswer(answer))

@@ -597,7 +597,7 @@ class ProjectServiceDefault(
     else if (orderedTasks(i).position != i + 1) {
       orderedTasks(i) match {
         case task: DocumentTask => taskRepository.update(task.copy(position = i + 1))
-        case task: QuestionTask => taskRepository.insert(task.copy(position = i + 1))
+        case task: QuestionTask => taskRepository.update(task.copy(position = i + 1))
       }
     }
     else {
@@ -836,13 +836,13 @@ class ProjectServiceDefault(
    */
   def updateQuestionTask(
     commonArgs: CommonTaskArgs,
-    questions: Option[IndexedSeq[Question]] = Some(IndexedSeq())
+    questions: Option[IndexedSeq[Question]] = None
   ): Future[\/[ErrorUnion#Fail, Task]] =
     {
       for {
         task <- lift(taskRepository.find(commonArgs.taskId))
+        _ <- predicate(task.isInstanceOf[QuestionTask])(ServiceError.BadInput("services.ProjectService.updateQuestionTask.wrongTaskType"))
         _ <- predicate(task.version == commonArgs.version)(ServiceError.OfflineLockFail)
-        _ <- predicate(task.isInstanceOf[QuestionTask])(ServiceError.BadInput("services.ProjectService.updateMultipleChoiceTask.wrongTaskType"))
         questionTask = task.asInstanceOf[QuestionTask]
         toUpdate = questionTask.copy(
           partId = commonArgs.partId.getOrElse(task.partId),

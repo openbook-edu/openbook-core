@@ -12,6 +12,7 @@ import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
 import scala.concurrent.Future
+import scala.util.{ Success, Try }
 import scalaz.{ \/, -\/, \/- }
 
 class WorkRepositoryPostgres(
@@ -34,7 +35,7 @@ class WorkRepositoryPostgres(
       id = row("id").asInstanceOf[UUID],
       studentId = row("user_id").asInstanceOf[UUID],
       taskId = row("task_id").asInstanceOf[UUID],
-      documentId = row("la_document_id").asInstanceOf[UUID],
+      documentId = row("document_id").asInstanceOf[UUID],
       version = row("version").asInstanceOf[Long],
       response = None,
       isComplete = row("is_complete").asInstanceOf[Boolean],
@@ -44,15 +45,25 @@ class WorkRepositoryPostgres(
   }
 
   private def constructQuestionWork(row: RowData): QuestionWork = {
+    val version = Try(row("q_version")).toOption match {
+      case Some(version) => version.asInstanceOf[Long]
+      case _ => row("version").asInstanceOf[Long]
+    }
+
+    val updated_at = Try(row("q_created_at")).toOption match {
+      case Some(created_at) => created_at.asInstanceOf[DateTime]
+      case _ => row("updated_at").asInstanceOf[DateTime]
+    }
+
     QuestionWork(
       id = row("id").asInstanceOf[UUID],
       studentId = row("user_id").asInstanceOf[UUID],
       taskId = row("task_id").asInstanceOf[UUID],
-      version = row("mat_version").asInstanceOf[Long],
+      version = version,
       response = Json.parse(row("answers").asInstanceOf[String]).as[Answers],
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
-      updatedAt = row("mat_created_at").asInstanceOf[DateTime]
+      updatedAt = updated_at
     )
   }
 
@@ -66,31 +77,42 @@ class WorkRepositoryPostgres(
 
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?"
 
-  val SpecificFields =
-    """
-       |document_work.document_id as document_id,
-       |question_work.answers as answers
-     """.stripMargin
+  object LastWork {
+    val SpecificFields =
+      """
+        |document_work.document_id as document_id,
+        |question_work.answers as answers
+      """.stripMargin
 
-  val Join =
-    s"""
-      |LEFT JOIN document_work ON $Table.id = document_work.work_id
-      |LEFT JOIN question_work ON $Table.id = question_work.work_id
+    val Join =
+      s"""
+         |LEFT JOIN document_work ON $Table.id = document_work.work_id
+         |LEFT JOIN question_work ON $Table.id = question_work.work_id
      """.stripMargin
+  }
 
-  def JoinMatchVersion(table: String = Table): String = {
-    s"""
-      |LEFT JOIN document_work ON $table.id = document_work.work_id
-      |LEFT JOIN question_work ON $table.id = question_work.work_id AND $table.id
+  object AllWork {
+    val SpecificFields =
+      """
+        |document_work.document_id as document_id,
+        |question_work_answers.answers as answers,
+        |question_work_answers.version as q_version,
+        |question_work_answers.created_at as q_created_at
+      """.stripMargin
+
+    val Join =
+      s"""
+         |LEFT JOIN document_work ON $Table.id = document_work.work_id
+         |LEFT JOIN question_work_answers ON $Table.id = question_work_answers.work_id
      """.stripMargin
   }
 
   // -- Select queries -----------------------------------------------------------------------------------------------
   val SelectForUserProject =
     s"""
-        |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+        |SELECT ${CommonFieldsWithTable()}, ${LastWork.SpecificFields}
         |FROM $Table
-        |${JoinMatchVersion()}
+        |${LastWork.Join}
         |INNER JOIN projects
         | ON projects.id = ?
         |INNER JOIN parts
@@ -103,9 +125,9 @@ class WorkRepositoryPostgres(
 
   val SelectForTask =
     s"""
-        |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+        |SELECT ${CommonFieldsWithTable()}, ${LastWork.SpecificFields}
         |FROM $Table
-        |${JoinMatchVersion()}
+        |${LastWork.Join}
         |INNER JOIN tasks
         | ON tasks.id = ?
         |WHERE $Table.task_id = tasks.id
@@ -113,28 +135,29 @@ class WorkRepositoryPostgres(
 
   val SelectAllForUserTask =
     s"""
-      |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+      |SELECT ${CommonFieldsWithTable()}, ${AllWork.SpecificFields}
       |FROM $Table
-      |$Join
+      |${AllWork.Join}
       |WHERE $Table.user_id = ?
       | AND $Table.task_id = ?
      """.stripMargin
 
-  val SelectAllQuestionWorksForTask =
-    s"""
-       |SELECT ${CommonFieldsWithTable()}, question_work_answers.answers AS answers
-       |FROM work
-       |INNER JOIN question_work ON work.id = question_work.work_id
-       |INNER JOIN question_work_answers ON work.id = question_work_answers.work_id
-       |WHERE work.user_id = ?
-       |  AND work.task_id = ?
-     """.stripMargin
+  // TODO - not used
+  //  val SelectAllQuestionWorksForTask =
+  //    s"""
+  //       |SELECT ${CommonFieldsWithTable()}, question_work_answers.answers AS answers
+  //       |FROM work
+  //       |INNER JOIN question_work ON work.id = question_work.work_id
+  //       |INNER JOIN question_work_answers ON work.id = question_work_answers.work_id
+  //       |WHERE work.user_id = ?
+  //       |  AND work.task_id = ?
+  //     """.stripMargin
 
   val FindByStudentTask =
     s"""
-       |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+       |SELECT ${CommonFieldsWithTable()}, ${LastWork.SpecificFields}
        |FROM $Table
-       |${JoinMatchVersion()}
+       |${LastWork.Join}
        |WHERE user_id = ?
        |  AND task_id = ?
        |LIMIT 1
@@ -142,35 +165,31 @@ class WorkRepositoryPostgres(
 
   val FindByStudentTaskVersion =
     s"""
-       |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+       |SELECT ${CommonFieldsWithTable()},${AllWork.SpecificFields}
        |FROM $Table
-       |$Join
+       |${AllWork.Join}
        |WHERE user_id = ?
        |  AND task_id = ?
-       |  AND (multiple_choice_work.version = ?
-       |       OR ordering_work.version = ?
-       |       OR matching_work.version = ?)
+       |  AND question_work_answers.version = ?
        |LIMIT 1
      """.stripMargin
 
   val FindById =
     s"""
-      |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+      |SELECT ${CommonFieldsWithTable()}, ${LastWork.SpecificFields}
       |FROM $Table
-      |${JoinMatchVersion()}
+      |${LastWork.Join}
       |WHERE id = ?
       |LIMIT 1
      """.stripMargin
 
   val FindByIdVersion =
     s"""
-      |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+      |SELECT ${CommonFieldsWithTable()}, ${AllWork.SpecificFields}
       |FROM $Table
-      |$Join
+      |${AllWork.Join}
       |WHERE id = ?
-      | AND (multiple_choice_work.version = ?
-      |      OR ordering_work.version = ?
-      |      OR matching_work.version = ?)
+      | AND question_work_answers.version = ?
       |LIMIT 1
      """.stripMargin
 
@@ -198,8 +217,8 @@ class WorkRepositoryPostgres(
   val InsertIntoQuestionWork = {
     s"""
        |WITH w AS ($Insert),
-       |     x AS (INSERT INTO question_work (work_id, ?)
-       |           SELECT w.id as work_id, w.answers as answers
+       |     x AS (INSERT INTO question_work (work_id, answers)
+       |           SELECT w.id as work_id, '{}' as answers
        |           FROM w
        |           RETURNING *)
        |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.created_at, w.updated_at, w.work_type, x.answers
@@ -226,7 +245,7 @@ class WorkRepositoryPostgres(
        |     x AS (SELECT *
        |           FROM document_work, w
        |           WHERE work_id = w.id)
-       |SELECT w.id, w.user_id, w.task_id, w.version, w.document_id, w.is_complete, w.work_type, w.created_at, w.updated_at
+       |SELECT w.id, w.user_id, w.task_id, w.version, x.document_id, w.is_complete, w.work_type, w.created_at, w.updated_at
        |FROM w, x
      """.stripMargin
   }
@@ -234,13 +253,13 @@ class WorkRepositoryPostgres(
   val UpdateQuestionWork = {
     s"""
        |WITH w AS ($Update),
-       |     x AS (UPDATE question_work SET answers = ? WHERE work_id = w.id RETURNING *)
+       |     x AS (UPDATE question_work SET answers = ? WHERE work_id = ? RETURNING *),
        |     y AS (INSERT INTO question_work_answers (work_id, version, answers, created_at)
        |           SELECT w.id as work_id,
        |                  w.version as version,
-       |                  ? as answers,
-       |                  created_at
-       |           FROM w
+       |                  x.answers as answers,
+       |                  w.updated_at as created_at
+       |           FROM w, x
        |           RETURNING *)
        |SELECT w.id, w.user_id, w.task_id, w.version, x.answers, w.is_complete, w.work_type, w.created_at, w.updated_at
        |FROM w,x,y
@@ -251,30 +270,16 @@ class WorkRepositoryPostgres(
   // NB: the delete queries should never be used unless you know what you're doing. Due to work revisioning, the
   //     proper way to "clear" a work is to create an empty revision.
 
-  val DeleteWhere =
-    s"""
-      |document_work.work_id = $Table.id
-      | OR question_work.work_id = $Table.id
-      | OR (multiple_choice_work.work_id = $Table.id
-      |     AND $Table.version = multiple_choice_work.version)
-      | OR (ordering_work.work_id = $Table.id
-      |     AND $Table.version = ordering_work.version)
-      | OR (matching_work.work_id = $Table.id
-      |     AND $Table.version = matching_work.version)
-     """.stripMargin
-
   val DeleteAllRevisions =
     s"""
        |DELETE FROM $Table
        |USING
        |  document_work,
-       |  question_work,
-       |  multiple_choice_work,
-       |  ordering_work,
-       |  matching_work
+       |  question_work
        |WHERE id = ?
-       | AND ($DeleteWhere)
-       |RETURNING ${CommonFieldsWithTable()}, $SpecificFields
+       | AND (document_work.work_id = $Table.id
+       |      OR question_work.work_id = $Table.id)
+       |RETURNING ${CommonFieldsWithTable()}, ${LastWork.SpecificFields}
      """.stripMargin
 
   val DeleteAllForTask =
@@ -285,10 +290,11 @@ class WorkRepositoryPostgres(
 
   // -- Answer queries ---------
 
-  val SelectLatestAnswer =
-    s"""
-       |SELECT
-     """.stripMargin
+  // TODO not used
+  //  val SelectLatestAnswer =
+  //    s"""
+  //       |SELECT
+  //     """.stripMargin
 
   /**
    * List the latest revision of work for each task in a project for a user.
@@ -370,12 +376,20 @@ class WorkRepositoryPostgres(
    * @return
    */
   private def listQuestionWork(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[QuestionWork]]] = { // scalastyle:ignore
-    queryList(SelectAllForUserTask, Seq[Any](user.id, task.id)).map(_.map { workList =>
-      workList.map {
-        case questionWork: QuestionWork => questionWork
-        case documentWork: DocumentWork => throw new Exception("Somehow instantiated a DocumentWork when selecting QuestionWork")
+    for {
+      questionWorkList <- lift(queryList(SelectAllForUserTask, Seq[Any](user.id, task.id)).map(_.map { workList =>
+        workList.map {
+          case questionWork: QuestionWork => questionWork
+          case documentWork: DocumentWork => throw new Exception("Somehow instantiated a DocumentWork when selecting QuestionWork")
+        }
+      }))
+      result <- lift(Future successful (if (questionWorkList.nonEmpty) {
+        \/-(questionWorkList)
       }
-    })
+      else {
+        -\/(RepositoryError.NoResults(s"Could not find question work for user ${user.id.toString} for task ${task.id.toString}"))
+      }))
+    } yield result
   }
 
   /**
@@ -439,7 +453,7 @@ class WorkRepositoryPostgres(
         ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
-      case \/-(otherWorkTypes) => lift(queryOne(FindByIdVersion, Seq[Any](workId, version, version, version)))
+      case \/-(otherWorkTypes) => lift(queryOne(FindByIdVersion, Seq[Any](workId, version)))
       case -\/(error: RepositoryError.Fail) => Future successful \/.left(error)
     }
   }
@@ -483,7 +497,7 @@ class WorkRepositoryPostgres(
         ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
-      case \/-(otherWorkTypes) => lift(queryOne(FindByStudentTaskVersion, Seq[Any](user.id, task.id, version, version, version)))
+      case \/-(otherWorkTypes) => lift(queryOne(FindByStudentTaskVersion, Seq[Any](user.id, task.id, version)))
       case -\/(error: RepositoryError.Fail) => Future successful \/.left(error)
     }
   }
@@ -580,8 +594,8 @@ class WorkRepositoryPostgres(
       new DateTime,
       work.id,
       work.version,
-      work.response,
-      work.response
+      Json.toJson(work.response),
+      work.id
     )).map(_.map(_.asInstanceOf[QuestionWork]))
   }
 

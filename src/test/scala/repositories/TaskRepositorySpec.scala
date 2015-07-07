@@ -36,6 +36,8 @@ class TaskRepositorySpec
         val eitherTasks = Await.result(result, Duration.Inf)
         val \/-(tasks) = eitherTasks
 
+        tasks.size should be(testTaskList.size)
+
         tasks.foreach { task =>
           var testTask = if (testTaskList.exists(_.id == task.id)) testTaskList.filter(_.id == task.id).head
           else fail("There is no task with such ID in testTaskList: " + task.id)
@@ -76,6 +78,8 @@ class TaskRepositorySpec
         val result = taskRepository.list(testPart)
         val eitherTasks = Await.result(result, Duration.Inf)
         val \/-(tasks) = eitherTasks
+
+        tasks.size should be(testTaskList.size)
 
         tasks.foreach { task =>
           var testTask = if (testTaskList.exists(_.id == task.id)) testTaskList.filter(_.id == task.id).head
@@ -130,6 +134,8 @@ class TaskRepositorySpec
         val result = taskRepository.list(testProject)
         val eitherTasks = Await.result(result, Duration.Inf)
         val \/-(tasks) = eitherTasks
+
+        tasks.size should be(testTaskList.size)
 
         tasks.foreach { task =>
           var testTask = if (testTaskList.exists(_.id == task.id)) testTaskList.filter(_.id == task.id).head
@@ -203,7 +209,7 @@ class TaskRepositorySpec
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val result = taskRepository.find(testTask.id)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Task")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
       }
       "find a task given its position within a part, its part's position within a project, and its project" in {
         val testProject = TestValues.testProjectA
@@ -248,7 +254,7 @@ class TaskRepositorySpec
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val result = taskRepository.find(testProject, testPart, taskPosition)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Task")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
       }
       "return RepositoryError.NoResults if part is wrong" in {
         val testProject = TestValues.testProjectA
@@ -260,7 +266,7 @@ class TaskRepositorySpec
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val result = taskRepository.find(testProject, testPart, taskPosition)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Task")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
       }
       "return RepositoryError.NoResults if task position is wrong" in {
         val testProject = TestValues.testProjectA
@@ -272,7 +278,7 @@ class TaskRepositorySpec
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
         val result = taskRepository.find(testProject, testPart, taskPosition)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Task")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
       }
     }
   }
@@ -343,21 +349,21 @@ class TaskRepositorySpec
         val testProject = TestValues.testProjectB
 
         val result = taskRepository.findNow(testUser, testProject)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Task")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
       }
       "return RepositoryError.NoResults if project doesn't have any task" in {
         val testUser = TestValues.testUserC
         val testProject = TestValues.testProjectE
 
         val result = taskRepository.findNow(testUser, testProject)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Task")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
       }
       "return RepositoryError.NoResults if part is not enabled" in {
         val testUser = TestValues.testUserC
         val testProject = TestValues.testProjectC
 
         val result = taskRepository.findNow(testUser, testProject)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Task")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
       }
     }
   }
@@ -862,7 +868,7 @@ class TaskRepositorySpec
         )
 
         val result = taskRepository.update(updatedTask)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Task")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
       }
       "reutrn RepositoryError.NoResults when update a Task that doesn't exist" in {
         val testTask = TestValues.testMatchingTaskJ
@@ -880,7 +886,7 @@ class TaskRepositorySpec
         )
 
         val result = taskRepository.update(updatedTask)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Task")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
       }
     }
   }
@@ -933,13 +939,13 @@ class TaskRepositorySpec
         )
 
         val result = taskRepository.delete(testTask)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Task")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
       }
       "return RepositoryError.NoResults if task doesn't exist" in {
         val testTask = TestValues.testMatchingTaskJ
 
         val result = taskRepository.delete(testTask)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not find entity of type Task")))
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
       }
       "delete all tasks belonging to a part" in {
         val testPart = TestValues.testPartB
@@ -956,6 +962,8 @@ class TaskRepositorySpec
         val result = taskRepository.delete(testPart)
         val eitherTasks = Await.result(result, Duration.Inf)
         val \/-(tasks) = eitherTasks
+
+        tasks.size should be(testTaskList.size)
 
         tasks.foreach { task =>
           var testTask = if (testTaskList.exists(_.id == task.id)) testTaskList.filter(_.id == task.id).head

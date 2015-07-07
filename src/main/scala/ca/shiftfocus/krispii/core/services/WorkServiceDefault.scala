@@ -145,7 +145,7 @@ class WorkServiceDefault(
 
   // TODO - verify if user already has work for this task
   /**
-   * Create a long-answer work item.
+   * Create a document work item.
    *
    * Use this method when entering student work on a task for the first time (in a given course).
    *
@@ -176,7 +176,7 @@ class WorkServiceDefault(
   }
 
   /**
-   * Create a matching work item.
+   * Create a question work item.
    *
    * Use this method when entering student work on a task for the first time (in a given course).
    *
@@ -251,8 +251,9 @@ class WorkServiceDefault(
         user <- lift(fUser)
         task <- lift(fTask)
         existingWork <- lift(workRepository.find(user, task))
-        existingLAWork = existingWork.asInstanceOf[DocumentWork]
-        workToUpdate = existingLAWork.copy(isComplete = isComplete)
+        _ <- predicate(existingWork.isInstanceOf[DocumentWork])(ServiceError.BadInput("Attempted to update the answer for a question work"))
+        existingDocWork = existingWork.asInstanceOf[DocumentWork]
+        workToUpdate = existingDocWork.copy(isComplete = isComplete)
         updatedWork <- lift(workRepository.update(workToUpdate))
       } yield updatedWork.asInstanceOf[DocumentWork]
     }
@@ -273,6 +274,8 @@ class WorkServiceDefault(
         user <- lift(fUser)
         task <- lift(fTask)
         existingWork <- lift(workRepository.find(user, task))
+        _ <- predicate(existingWork.isInstanceOf[QuestionWork])(ServiceError.BadInput("Attempted to update the answer for a document work"))
+        _ <- predicate(existingWork.version == version)(ServiceError.OfflineLockFail)
         existingQuestionWork = existingWork.asInstanceOf[QuestionWork]
         workToUpdate = existingQuestionWork.copy(
           response = response.getOrElse(existingQuestionWork.response),
@@ -283,23 +286,24 @@ class WorkServiceDefault(
     }
   }
 
-  override def updateAnswer(workId: UUID, version: Long, position: Int, answer: Answer): Future[\/[ErrorUnion#Fail, QuestionWork]] = {
+  override def updateAnswer(workId: UUID, version: Long, questionId: UUID, answer: Answer): Future[\/[ErrorUnion#Fail, QuestionWork]] = {
     transactional { implicit conn =>
       for {
         work <- lift(findWork(workId))
         _ <- predicate(work.isInstanceOf[QuestionWork])(ServiceError.BadInput("Attempted to update the answer for a document work"))
+        _ <- predicate(work.version == version)(ServiceError.OfflineLockFail)
         questionWork = work.asInstanceOf[QuestionWork]
 
         task <- lift(projectService.findTask(questionWork.taskId))
         _ <- predicate(task.isInstanceOf[QuestionTask])(ServiceError.BadInput("Retrieved a QuestionWork that points to a DocumentTask. Kindly curl up into a ball and cry."))
         questionTask = task.asInstanceOf[QuestionTask]
-        _ <- predicate(questionTask.questions.isDefinedAt(position))(ServiceError.BadInput(s"There is no Question as position $position."))
-        question = questionTask.questions(position)
+        _ <- predicate(questionTask.questions.exists(_.id == questionId))(ServiceError.BadInput(s"There is no Question for answer."))
+        question = questionTask.questions.filter(_.id == questionId).head
 
         // Verify that the updated answer actually corresponds to the right question
-        _ <- predicate(answer.answers(question))(ServiceError.BadInput(s"The provided answer does not match the question type as position $position"))
+        _ <- predicate(answer.answers(question))(ServiceError.BadInput(s"The provided answer does not match the question type"))
 
-        toUpdate = questionWork.copy(response = questionWork.response.updated(position, answer))
+        toUpdate = questionWork.copy(response = questionWork.response.updated(questionId, answer))
         updated <- lift(workRepository.update(toUpdate))
       } yield updated.asInstanceOf[QuestionWork]
     }

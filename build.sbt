@@ -15,7 +15,6 @@ resolvers ++= Seq(
   "Sonatype" at "https://oss.sonatype.org/content/repositories/releases",
   "Scalaz Bintray Repo" at "http://dl.bintray.com/scalaz/releases",
   "Linter Repository" at "https://hairyfotr.github.io/linteRepo/releases"
-  //"Kahn's Repo" at "http://repo.kahn.ws/maven/snapshots"
 )
 
 // Scala compiler options

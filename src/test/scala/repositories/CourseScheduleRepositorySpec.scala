@@ -1,3 +1,5 @@
+import java.util.UUID
+
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.CourseSchedule
 import ca.shiftfocus.krispii.core.repositories.CourseScheduleRepositoryPostgres
@@ -12,10 +14,9 @@ class CourseScheduleRepositorySpec
     extends TestEnvironment {
   val courseScheduleRepository = new CourseScheduleRepositoryPostgres
 
-  // TODO - test all testcases
   "CourseScheduleRepository.list" should {
     inSequence {
-      "list all schedules for a given class" in {
+      "list all schedules for a given course" in {
         (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
@@ -46,6 +47,20 @@ class CourseScheduleRepositorySpec
           }
         }
       }
+      "return empty Vector() if course doesn't exist" in {
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+
+        val testCourse = TestValues.testCourseC
+
+        val testCourseScheduleList = TreeMap[Int, CourseSchedule](
+          0 -> TestValues.testCourseScheduleB,
+          1 -> TestValues.testCourseScheduleC
+        )
+
+        val result = courseScheduleRepository.list(testCourse)
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
+      }
     }
   }
 
@@ -71,6 +86,15 @@ class CourseScheduleRepositorySpec
         courseSchedule.createdAt.toString should be(testCourseSchedule.createdAt.toString)
         courseSchedule.updatedAt.toString should be(testCourseSchedule.updatedAt.toString)
       }
+      "return RepositoryError.NoResults if ID is wrong" in {
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+
+        val testCourseScheduleId = UUID.randomUUID()
+
+        val result = courseScheduleRepository.find(testCourseScheduleId)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type CourseSchedule")))
+      }
     }
   }
 
@@ -92,6 +116,14 @@ class CourseScheduleRepositorySpec
         courseSchedule.startTime should be(testCourseSchedule.startTime)
         courseSchedule.endTime should be(testCourseSchedule.endTime)
         courseSchedule.description should be(testCourseSchedule.description)
+      }
+      "reutrn RepositoryError.PrimaryKeyConflict if courseSchedule already exists" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val testCourseSchedule = TestValues.testCourseScheduleA
+
+        val result = courseScheduleRepository.insert(testCourseSchedule)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
       }
     }
   }
@@ -124,6 +156,37 @@ class CourseScheduleRepositorySpec
         courseSchedule.updatedAt.toString should not be (testUpdatedCourseSchedule.updatedAt.toString)
         courseSchedule.createdAt.toString should be(testUpdatedCourseSchedule.createdAt.toString)
       }
+      "reutrn RepositoryError.NoResults if version is wrong" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val testCourseSchedule = TestValues.testCourseScheduleA
+        val testUpdatedCourseSchedule = testCourseSchedule.copy(
+          version = testCourseSchedule.version + 1,
+          courseId = TestValues.testCourseF.id,
+          day = testCourseSchedule.day.plusDays(1),
+          startTime = testCourseSchedule.startTime.plusHours(1),
+          endTime = testCourseSchedule.endTime.plusHours(1),
+          description = "new " + testCourseSchedule.description
+        )
+
+        val result = courseScheduleRepository.update(testUpdatedCourseSchedule)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type CourseSchedule")))
+      }
+      "reutrn RepositoryError.NoResults if courseSchedule doesn't exist" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val testCourseSchedule = TestValues.testCourseScheduleD
+        val testUpdatedCourseSchedule = testCourseSchedule.copy(
+          courseId = TestValues.testCourseF.id,
+          day = testCourseSchedule.day.plusDays(1),
+          startTime = testCourseSchedule.startTime.plusHours(1),
+          endTime = testCourseSchedule.endTime.plusHours(1),
+          description = "new " + testCourseSchedule.description
+        )
+
+        val result = courseScheduleRepository.update(testUpdatedCourseSchedule)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type CourseSchedule")))
+      }
     }
   }
 
@@ -147,6 +210,24 @@ class CourseScheduleRepositorySpec
         courseSchedule.description should be(testCourseSchedule.description)
         courseSchedule.createdAt.toString should be(testCourseSchedule.createdAt.toString)
         courseSchedule.updatedAt.toString should be(testCourseSchedule.updatedAt.toString)
+      }
+      "reutrn RepositoryError.NoResults if courseSchedule doesn't exist" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val testCourseSchedule = TestValues.testCourseScheduleD
+
+        val result = courseScheduleRepository.delete(testCourseSchedule)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type CourseSchedule")))
+      }
+      "reutrn RepositoryError.NoResults if courseSchedule version is wrong" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val testCourseSchedule = TestValues.testCourseScheduleA.copy(
+          version = 99L
+        )
+
+        val result = courseScheduleRepository.delete(testCourseSchedule)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type CourseSchedule")))
       }
     }
   }

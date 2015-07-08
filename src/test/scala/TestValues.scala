@@ -1185,7 +1185,6 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-  // TODO isComplete doesn't match with DB
   val testShortAnswerWorkG = QuestionWork(
     id = UUID.fromString("b7bb09c1-6aca-40de-8152-5da483a5c476"),
     studentId = testUserC.id,

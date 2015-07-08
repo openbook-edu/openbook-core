@@ -603,8 +603,6 @@ class TaskRepositorySpec
     }
   }
 
-  // TODO - Add (updatedAt should not be) in all tests
-  // TODO to finish specific fields
   "TaskRepository.update" should {
     inSequence {
       "update LongAnswer task" in {
@@ -891,7 +889,6 @@ class TaskRepositorySpec
     }
   }
 
-  // TODO delete with wrong version in all tests
   "TaskRepository.delete" should {
     inSequence {
       "delete a task that doesn't have references in work table" in {

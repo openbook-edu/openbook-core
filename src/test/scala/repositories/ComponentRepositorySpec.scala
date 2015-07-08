@@ -15,7 +15,6 @@ class ComponentRepositorySpec
     extends TestEnvironment {
   val componentRepository = new ComponentRepositoryPostgres()
 
-  // TODO - test all test cases (update and delete)
   "ComponentRepository.list" should {
     inSequence {
       "find all components" in {
@@ -313,6 +312,15 @@ class ComponentRepositorySpec
         val result = componentRepository.addToPart(testComponent, testPart)
         Await.result(result, Duration.Inf) should be(\/-(()))
       }
+      "return RepositoryError.PrimaryKeyConflict if part already has the component" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val testComponent = TestValues.testTextComponentA
+        val testPart = TestValues.testPartA
+
+        val result = componentRepository.addToPart(testComponent, testPart)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+      }
       "return RepositoryError.ForeignKeyConflict if Part doesn't exist" in {
         val testComponent = TestValues.testAudioComponentC
         val testPart = TestValues.testPartD
@@ -530,7 +538,21 @@ class ComponentRepositorySpec
         //Specific
         component.content should be(updatedComponent.content)
       }
+      "return RepositoryError.NoResults if TextComponent doesn't exist" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
+        val testComponent = TestValues.testTextComponentG
+        val updatedComponent = testComponent.copy(
+          ownerId = TestValues.testUserF.id,
+          title = "updated title",
+          questions = "updated questions",
+          thingsToThinkAbout = "updated thingsToThinkAbout",
+          content = "updated content"
+        )
+
+        val result = componentRepository.update(updatedComponent)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Component")))
+      }
       "update VideoComponent" in {
         (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
@@ -564,6 +586,23 @@ class ComponentRepositorySpec
         component.width should be(updatedComponent.width)
         component.height should be(updatedComponent.height)
       }
+      "return RepositoryError.NoResults if VideoComponent doesn't exist" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val testComponent = TestValues.testVideoComponentF
+        val updatedComponent = testComponent.copy(
+          ownerId = TestValues.testUserF.id,
+          title = "updated title",
+          questions = "updated questions",
+          thingsToThinkAbout = "updated thingsToThinkAbout",
+          vimeoId = "bla bla",
+          width = 128,
+          height = 128
+        )
+
+        val result = componentRepository.update(updatedComponent)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Component")))
+      }
       "update AudioComponent" in {
         (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
@@ -593,6 +632,21 @@ class ComponentRepositorySpec
         //Specific
         component.soundcloudId should be(updatedComponent.soundcloudId)
       }
+      "return RepositoryError.NoResults if AudioComponent doesn't exist" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val testComponent = TestValues.testAudioComponentD
+        val updatedComponent = testComponent.copy(
+          ownerId = TestValues.testUserF.id,
+          title = "updated title",
+          questions = "updated questions",
+          thingsToThinkAbout = "updated thingsToThinkAbout",
+          soundcloudId = "bla bla bla"
+        )
+
+        val result = componentRepository.update(updatedComponent)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Component")))
+      }
     }
   }
 
@@ -620,6 +674,24 @@ class ComponentRepositorySpec
         //Specific
         component.content should be(testComponent.content)
       }
+      "return RepositoryError.NoResults if TextComponent doesn't exist" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val testComponent = TestValues.testTextComponentG
+
+        val result = componentRepository.delete(testComponent)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Component")))
+      }
+      "return RepositoryError.NoResults if TextComponent version is wrong" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val testComponent = TestValues.testTextComponentA.copy(
+          version = 99L
+        )
+
+        val result = componentRepository.delete(testComponent)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Component")))
+      }
       "delete VideoComponent" in {
         (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
@@ -642,6 +714,24 @@ class ComponentRepositorySpec
         component.width should be(testComponent.width)
         component.height should be(testComponent.height)
       }
+      "return RepositoryError.NoResults if VideoComponent doesn't exist" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val testComponent = TestValues.testVideoComponentF
+
+        val result = componentRepository.delete(testComponent)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Component")))
+      }
+      "return RepositoryError.NoResults if VideoComponent version is wrong" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val testComponent = TestValues.testVideoComponentB.copy(
+          version = 99L
+        )
+
+        val result = componentRepository.delete(testComponent)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Component")))
+      }
       "delete AudioComponent" in {
         (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
@@ -661,6 +751,24 @@ class ComponentRepositorySpec
 
         //Specific
         component.soundcloudId should be(testComponent.soundcloudId)
+      }
+      "return RepositoryError.NoResults if AudioComponent doesn't exist" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val testComponent = TestValues.testAudioComponentD
+
+        val result = componentRepository.delete(testComponent)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Component")))
+      }
+      "return RepositoryError.NoResults if AudioComponent version is wrong" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val testComponent = TestValues.testAudioComponentC.copy(
+          version = 99L
+        )
+
+        val result = componentRepository.delete(testComponent)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Component")))
       }
     }
   }

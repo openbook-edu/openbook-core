@@ -228,7 +228,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
     for {
       _ <- lift(queryNumRows(query)(userList.length == _).map {
         case \/-(wasSuccessful) => if (wasSuccessful) { \/-(()) } // scalastyle:ignore
-        else -\/(RepositoryError.DatabaseError("Role couldn't be added to all users."))
+        else -\/(RepositoryError.DatabaseError("Role couldn't be added to all users.")) // TODO unreachable
         case -\/(error) => -\/(error)
       })
       _ <- liftSeq { userList.map { user => cache.removeCached(cacheRolesKey(user.id)) } }

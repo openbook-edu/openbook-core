@@ -1,7 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
+import ca.shiftfocus.krispii.core.lib.{InputUtils, ScalaCachePool}
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
@@ -209,7 +209,7 @@ class AuthServiceDefault(
       for {
         validEmail <- lift(validateEmail(email.trim))
         validUsername <- lift(validateUsername(username.trim))
-        validPassword <- lift(isValidPassword(password.trim))
+        validPassword <- lift(InputUtils.isValidPassword(password.trim))
         passwordHash = Some(webcrank.crypt(password.trim))
         newUser <- lift {
           val newUser = User(
@@ -325,7 +325,7 @@ class AuthServiceDefault(
       val updated = for {
         existingUser <- lift(userRepository.find(id))
         _ <- predicate(existingUser.version == version)(ServiceError.OfflineLockFail)
-        u_password <- lift(isValidPassword(password))
+        u_password <- lift(InputUtils.isValidPassword(password))
         u_hash = wc.crypt(u_password)
         userToUpdate = existingUser.copy(hash = Some(u_hash))
         updatedUser <- lift(userRepository.update(userToUpdate))
@@ -548,48 +548,6 @@ class AuthServiceDefault(
   // ---------- private utility methods ----------
 
   /**
-   * Validate e-mail address.
-   *
-   * @param email
-   * @return
-   */
-  private def isValidEmail(email: String): Future[\/[ErrorUnion#Fail, String]] = Future.successful {
-    val parts = email.split("@")
-    if (parts.length != 2 ||
-      !parts(0).charAt(0).isLetter ||
-      !parts(1).charAt(parts(1).length - 1).isLetter ||
-      parts(1).indexOf("..") != -1 ||
-      !"""([\w\._-]+)@([\w\._-]+)""".r.unapplySeq(email.trim).isDefined) {
-      \/.left(ServiceError.BadInput(s"'$email' is not a valid format"))
-    }
-    else {
-      \/.right(email.trim)
-    }
-  }
-
-  /**
-   * Validate username.
-   *
-   * @param username
-   * @return
-   */
-  private def isValidUsername(username: String): Future[\/[ErrorUnion#Fail, String]] = Future.successful {
-    if (username.length >= 3) \/-(username)
-    else -\/(ServiceError.BadInput("Your username must be at least 3 characters."))
-  }
-
-  /**
-   * Validate password.
-   *
-   * @param password
-   * @return
-   */
-  private def isValidPassword(password: String): Future[\/[ErrorUnion#Fail, String]] = Future.successful {
-    if (password.length >= 8) \/-(password)
-    else -\/(ServiceError.BadInput("The password provided must be at least 8 characters."))
-  }
-
-  /**
    * Validate whether a given identifier can be used. Checks its format, and then checks
    * whether it is in use by another user. For updates, an existingId can be passed in so that
    * a false positive isn't received for updating an existing user.
@@ -600,7 +558,7 @@ class AuthServiceDefault(
    */
   private def validateEmail(email: String, existingId: Option[UUID] = None)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, String]] = {
     val existing = for {
-      validEmail <- lift(isValidEmail(email))
+      validEmail <- lift(InputUtils.isValidEmail(email))
       existingUser <- lift(userRepository.find(validEmail))
     } yield existingUser
 
@@ -624,7 +582,7 @@ class AuthServiceDefault(
    */
   private def validateUsername(username: String, existingId: Option[UUID] = None)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, String]] = {
     val existing = for {
-      validUsername <- lift(isValidUsername(username))
+      validUsername <- lift(InputUtils.isValidUsername(username))
       existingUser <- lift(userRepository.find(validUsername))
     } yield existingUser
 

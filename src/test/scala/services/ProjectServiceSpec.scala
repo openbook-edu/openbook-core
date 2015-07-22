@@ -2263,8 +2263,7 @@ class ProjectServiceSpec
     }
   }
 
-  // TODO - update Matching Tasks
-  // TODO - update Blanks Tasks
+  // TODO - update Matching Tasks and update Blanks Tasks are included in UpdateQuestionTask
 
   "ProjectService.moveTask" should {
     inSequence {

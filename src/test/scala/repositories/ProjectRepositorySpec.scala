@@ -241,7 +241,6 @@ class ProjectRepositorySpec
         project.createdAt.toString should be(testProject.createdAt.toString)
         project.updatedAt.toString should be(testProject.updatedAt.toString)
       }
-      // TODO user student
       "return RepositoryError.NoResults if user (teacher) is not connected with a project" in {
         val testUser = TestValues.testUserA
 
@@ -397,6 +396,7 @@ class ProjectRepositorySpec
         project.availability should be(updatedProject.availability)
         project.parts should be(updatedProject.parts)
         project.createdAt.toString should be(testProject.createdAt.toString)
+        project.updatedAt.toString should not be (testProject.updatedAt.toString)
       }
       "return RepositoryError.NoResults when update an existing Project with wrong version" in {
         val testProject = TestValues.testProjectA
@@ -470,6 +470,14 @@ class ProjectRepositorySpec
       }
       "return RepositoryError.NoResults if Project hasn't been found" in {
         val testProject = TestValues.testProjectD
+
+        val result = projectRepository.delete(testProject)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Project")))
+      }
+      "return RepositoryError.NoResults if Project version is wrong" in {
+        val testProject = TestValues.testProjectE.copy(
+          version = 99L
+        )
 
         val result = projectRepository.delete(testProject)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Project")))

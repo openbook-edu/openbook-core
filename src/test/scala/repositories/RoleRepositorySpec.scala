@@ -11,7 +11,6 @@ import scala.concurrent.{ Future, Await }
 import scala.concurrent.duration.Duration
 import scalaz.{ -\/, \/- }
 
-//TODO check fields in users_roles if user already has this role, file PostgresRepository method queryOne println(val fields)
 class RoleRepositorySpec
     extends TestEnvironment {
   val userRepository = new UserRepositoryPostgres
@@ -143,7 +142,6 @@ class RoleRepositorySpec
     }
   }
 
-  // TODO - find out the way to test -\/(RepositoryError.DatabaseError("Role couldn't be added to all users."))
   "RoleRepository.addUsers" should {
     inSequence {
       "add role to users" in {
@@ -274,6 +272,7 @@ class RoleRepositorySpec
         role.version should be(updatedRole.version + 1)
         role.name should be(updatedRole.name)
         role.createdAt.toString should be(updatedRole.createdAt.toString)
+        role.updatedAt.toString should not be (updatedRole.updatedAt.toString)
       }
       "reutrn RepositoryError.NoResults when update an existing Role with wrong version" in {
         val testRole = TestValues.testRoleC
@@ -320,6 +319,16 @@ class RoleRepositorySpec
 
         val testRole = Role(
           name = "unexisting role"
+        )
+
+        val result = roleRepository.delete(testRole)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Role")))
+      }
+      "return RepositoryError.NoResults if Role version is wrong" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val testRole = TestValues.testRoleB.copy(
+          version = 99L
         )
 
         val result = roleRepository.delete(testRole)
@@ -446,7 +455,6 @@ class RoleRepositorySpec
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified.", None)))
       }
       "return RepositoryError.DatabaseError if user doesn't have this role (object)" in {
-        // TODO - should be updated, should be another type of error
         val testRole = TestValues.testRoleH
         val testUser = TestValues.testUserF
 
@@ -454,7 +462,6 @@ class RoleRepositorySpec
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified.", None)))
       }
       "return RepositoryError.DatabaseError if user doesn't have this role (name)" in {
-        // TODO - should be updated, should be another type of error
         (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
         (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))

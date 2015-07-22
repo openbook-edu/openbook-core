@@ -13,7 +13,6 @@ class RevisionRepositorySpec
     extends TestEnvironment {
   val revisionRepository = new RevisionRepositoryPostgres
 
-  // TODO - test all testcases
   "RevisionRepository.list" should {
     inSequence {
       "list ALL revisions for a document" in {
@@ -39,6 +38,17 @@ class RevisionRepositorySpec
             revisions(key).createdAt.toString should be(revision.createdAt.toString)
           }
         }
+      }
+      "return empty Vector() if Document doesn't exist" in {
+        val testDocument = TestValues.testDocumentE
+
+        val testRevisionList = TreeMap[Int, Revision](
+          0 -> TestValues.testPreviousRevisionB,
+          1 -> TestValues.testCurrentRevisionB
+        )
+
+        val result = revisionRepository.list(testDocument)
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
       "list revisions AFTER version (>) for a document" in {
         val testDocument = TestValues.testDocumentB
@@ -71,6 +81,30 @@ class RevisionRepositorySpec
         )
 
         val result = revisionRepository.list(testDocument, toVersion = testRevisionList(0).version)
+        val eitherRevisions = Await.result(result, Duration.Inf)
+        val \/-(revisions) = eitherRevisions
+
+        revisions.size should be(testRevisionList.size)
+
+        testRevisionList.foreach {
+          case (key, revision: Revision) => {
+            revisions(key).documentId should be(revision.documentId)
+            revisions(key).version should be(revision.version)
+            revisions(key).authorId should be(revision.authorId)
+            revisions(key).delta should be(revision.delta)
+            revisions(key).createdAt.toString should be(revision.createdAt.toString)
+          }
+        }
+      }
+      "list all revisions TO version (<=) for a document if version is very big" in {
+        val testDocument = TestValues.testDocumentB
+
+        val testRevisionList = TreeMap[Int, Revision](
+          0 -> TestValues.testPreviousRevisionB,
+          1 -> TestValues.testCurrentRevisionB
+        )
+
+        val result = revisionRepository.list(testDocument, toVersion = 99L)
         val eitherRevisions = Await.result(result, Duration.Inf)
         val \/-(revisions) = eitherRevisions
 
@@ -129,6 +163,12 @@ class RevisionRepositorySpec
         revision.delta should be(testRevision.delta)
         revision.createdAt.toString should be(testRevision.createdAt.toString)
       }
+      "return RepositoryError.NoResults if Document doesn't exist" in {
+        val testDocument = TestValues.testDocumentE
+
+        val result = revisionRepository.find(testDocument, testDocument.version)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Revision")))
+      }
     }
   }
 
@@ -146,7 +186,7 @@ class RevisionRepositorySpec
         revision.authorId should be(testRevision.authorId)
         revision.delta should be(testRevision.delta)
       }
-      "return RepositoryError if document id and version already exist" in {
+      "return RepositoryError.PrimaryKeyConflict if document id and version already exist" in {
         val testRevision = TestValues.testCurrentRevisionA
 
         val result = revisionRepository.insert(testRevision)

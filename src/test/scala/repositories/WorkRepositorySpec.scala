@@ -19,7 +19,6 @@ class WorkRepositorySpec
   val revisionRepository = stub[RevisionRepository]
   val workRepository = new WorkRepositoryPostgres(documentRepository, revisionRepository)
 
-  // TODO test JSON errors
   "WorkRepository.list" should {
     inSequence {
       /* --- list(testUser, testProject) --- */

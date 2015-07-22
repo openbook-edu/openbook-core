@@ -565,6 +565,8 @@ class CourseRepositorySpec
         course.version should be(updatedCourse.version + 1)
         course.name should be(updatedCourse.name)
         course.color should be(updatedCourse.color)
+        course.createdAt.toString should be(updatedCourse.createdAt.toString)
+        course.updatedAt.toString should not be (updatedCourse.updatedAt.toString)
       }
       "return RepositoryError.NoResults when update an existing Course with wrong version" in {
         val testCourse = TestValues.testCourseA
@@ -636,6 +638,14 @@ class CourseRepositorySpec
       }
       "return RepositoryError.NoResults if Course hasn't been found" in {
         val testCourse = TestValues.testCourseE
+
+        val result = courseRepository.delete(testCourse)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Course")))
+      }
+      "return RepositoryError.NoResults if Course version is wrong" in {
+        val testCourse = TestValues.testCourseG.copy(
+          version = 99L
+        )
 
         val result = courseRepository.delete(testCourse)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Course")))

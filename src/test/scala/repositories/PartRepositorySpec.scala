@@ -17,7 +17,6 @@ class PartRepositorySpec
   val taskRepository = stub[TaskRepository]
   val partRepository = new PartRepositoryPostgres(taskRepository)
 
-  // TODO - check parts_components primary_key
   "PartRepository.list" should {
     inSequence {
       "list all parts" in {
@@ -356,6 +355,7 @@ class PartRepositorySpec
         part.position should be(updatedPart.position)
         part.tasks should be(updatedPart.tasks)
         part.createdAt.toString should be(updatedPart.createdAt.toString)
+        part.updatedAt.toString should not be (updatedPart.updatedAt.toString)
       }
       "return RepositoryError.NoResults when update an existing Part with wrong version" in {
         val testPart = TestValues.testPartA
@@ -415,8 +415,16 @@ class PartRepositorySpec
         val result = partRepository.delete(testPart)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("task_id", "task_feedbacks_task_id_fkey")))
       }
-      "return RepositoryError.NoResults if project doesn't exist" in {
+      "return RepositoryError.NoResults if part doesn't exist" in {
         val testPart = TestValues.testPartD
+
+        val result = partRepository.delete(testPart)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Part")))
+      }
+      "return RepositoryError.NoResults if part version is wrong" in {
+        val testPart = TestValues.testPartB.copy(
+          version = 99L
+        )
 
         val result = partRepository.delete(testPart)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Part")))

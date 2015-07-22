@@ -32,7 +32,6 @@ class DocumentServiceSpec
     }
   }
 
-  // TODO - add testcases with predicate
   "DocumentService.update" should {
     inSequence {
       "return ServiceError.OfflineLockFail if versions don't match" in {

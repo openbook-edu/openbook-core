@@ -470,6 +470,15 @@ class UserRepositorySpec
 
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type User")))
       }
+      "return RepositoryError.NoResults if User version is wrong" in {
+        val testUser = TestValues.testUserH.copy(
+          version = 99L
+        )
+
+        val result = userRepository.delete(testUser)
+
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type User")))
+      }
     }
   }
 }

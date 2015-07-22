@@ -150,7 +150,6 @@ class ChatRepositorySpec
 
   "ChatRepository.insert" should {
     inSequence {
-      // TODO insert new DateTime instead of created_at
       "create a new chat log" in {
         val testChatLog = TestValues.testChatG
 
@@ -192,7 +191,6 @@ class ChatRepositorySpec
         chatLog.hidden should be(updatedChatLog.hidden)
         chatLog.createdAt.toString should be(updatedChatLog.createdAt.toString)
       }
-      // TODO - may be some how restrict changing course id
       "return RepositoryError.NoResults if course_id is wrong" in {
         val testChatLog = TestValues.testChatC
         val updatedChatLog = testChatLog.copy(

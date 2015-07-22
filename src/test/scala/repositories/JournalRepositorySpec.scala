@@ -372,6 +372,14 @@ class JournalRepositorySpec
         val result = journalRepository.delete(unexistingEntry)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Journal")))
       }
+      "return RepositoryError.NoResults if Journal Entry version is wrong" in {
+        val unexistingEntry = TestValues.testJournalEntryB.copy(
+          version = 99L
+        )
+
+        val result = journalRepository.delete(unexistingEntry)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Journal")))
+      }
       "delete all Journal Entries by type" in {
         val testUserList = TreeMap[Int, User](
           0 -> TestValues.testUserA,

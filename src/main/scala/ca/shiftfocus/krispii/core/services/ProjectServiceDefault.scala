@@ -665,9 +665,9 @@ class ProjectServiceDefault(
       for {
         movedTask <- lift(moveTask(taskToUpdate.id, taskToUpdate.version, taskToUpdate.position, Some(taskToUpdate.partId)))
         updatedTask <- {
-          movedTask match {
-            case task: DocumentTask => lift(taskRepository.update(task.copy(position = movedTask.position)))
-            case task: QuestionTask => lift(taskRepository.update(task.copy(position = movedTask.position)))
+          taskToUpdate match {
+            case task: DocumentTask => lift(taskRepository.update(task.copy(position = movedTask.position, version = movedTask.version)))
+            case task: QuestionTask => lift(taskRepository.update(task.copy(position = movedTask.position, version = movedTask.version)))
           }
         }
       } yield updatedTask
@@ -702,7 +702,7 @@ class ProjectServiceDefault(
           // If moved to another part, reorder tasks in the origin part
           if (oldPart.id != newPart.id) {
             val orderedTasks = otList.filter(_.id != taskId).sortWith(_.position < _.position)
-            serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, otList, oldPart.id, _))
+            serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, otList, _))
           }
 
           // Update task and taskList
@@ -753,7 +753,7 @@ class ProjectServiceDefault(
               println("Going to re-order them thar tasks")
               println(ntList.map({ task => s"Task(${task.settings.title}, ${task.position})" }).mkString(", "))
               println(orderedTasks.map({ task => s"Task(${task.settings.title}, ${task.position})" }).mkString(", "))
-              serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, ntList, newPart.id, _)).map {
+              serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, taskList, _)).map {
                 case -\/(error) => -\/(error)
                 case \/-(tasks) => \/-(tasks.filter(_.id == taskId).head)
               }
@@ -764,7 +764,7 @@ class ProjectServiceDefault(
     }
   }
 
-  private def updateOrderedTasks(orderedTasks: IndexedSeq[Task], originalTasks: IndexedSeq[Task], updatedPartId: UUID, i: Int): Future[\/[RepositoryError.Fail, Task]] = {
+  private def updateOrderedTasks(orderedTasks: IndexedSeq[Task], originalTasks: IndexedSeq[Task], i: Int): Future[\/[RepositoryError.Fail, Task]] = {
     val taskTuple = for {
       orderedTask <- orderedTasks.lift(i)
       originalTask <- originalTasks.find(_.id == orderedTask.id)
@@ -772,7 +772,7 @@ class ProjectServiceDefault(
 
     taskTuple match {
       case Some((orderedTask, originalTask)) => {
-        if (originalTask.position != i + 1 || originalTask.partId != updatedPartId) {
+        if (originalTask.position != i + 1 || originalTask.partId != orderedTask.partId) {
           orderedTask match {
             case task: DocumentTask => taskRepository.update(task.copy(position = i + 1))
             case task: QuestionTask => taskRepository.update(task.copy(position = i + 1))
@@ -889,7 +889,7 @@ class ProjectServiceDefault(
         _ <- predicate(taskList.nonEmpty)(ServiceError.BusinessLogicFail("Weird, task list shouldn't be empty!"))
         taskListUpdated <- lift {
           val filteredOderedTaskList = taskList.filter(_.id != taskId).sortWith(_.position < _.position)
-          serializedT(filteredOderedTaskList.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(filteredOderedTaskList, taskList, task.partId, _))
+          serializedT(filteredOderedTaskList.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(filteredOderedTaskList, taskList, _))
         }
         deletedTask <- lift(taskRepository.delete(task))
       } yield deletedTask

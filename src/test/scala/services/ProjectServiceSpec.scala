@@ -1481,7 +1481,7 @@ class ProjectServiceSpec
 
         // Move
         // task A
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1))))
         // task B
         (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 2))))
         // task C
@@ -1493,7 +1493,7 @@ class ProjectServiceSpec
         val result = projectService.updateDocumentTask(commonTaskArgs, Some(updatedTask.dependencyId))
         Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1)))
       }
-      "update DocumentTask and update dependencyId, notesTitle, responseTitle to None (aka erase)" in {
+      "update DocumentTask and update dependencyId, notesTitle, responseTitle to None (if commonTaskArgs value is Some(None))(aka erase)" in {
         val testPart = TestValues.testPartA.copy(tasks = Vector(
           TestValues.testLongAnswerTaskF.copy(position = 10),
           TestValues.testShortAnswerTaskB.copy(position = 11),
@@ -1524,7 +1524,54 @@ class ProjectServiceSpec
           responseTitle = Some(updatedTask.settings.responseTitle)
         )
 
+        (taskRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (originTask.id, *, *) returns (Future.successful(\/-(originTask)))
+        (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(\/-(testPart)))
+
+        // Move
+        // task A
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1))))
+        // task B
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 2))))
+        // task C
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(2).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(2).asInstanceOf[QuestionTask].copy(position = 3))))
+
+        // update task A
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1))))
+
+        val result = projectService.updateDocumentTask(commonTaskArgs, Some(None))
         originTask.dependencyId should not be (None)
+        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1)))
+      }
+      "update DocumentTask and don't update dependencyId, notesTitle, responseTitle (if commonTaskArgs value is None)" in {
+        val testPart = TestValues.testPartA.copy(tasks = Vector(
+          TestValues.testLongAnswerTaskF.copy(position = 10),
+          TestValues.testShortAnswerTaskB.copy(position = 11),
+          TestValues.testMultipleChoiceTaskC.copy(position = 12)
+        ))
+        val testTaskList = testPart.tasks
+        val originTask = testTaskList(0).asInstanceOf[DocumentTask]
+        val updatedTask = originTask.copy(
+          position = testTaskList.map(_.position).min,
+          settings = originTask.settings.copy(
+            title = "New task name",
+            description = "New task description",
+            notesAllowed = !originTask.settings.notesAllowed,
+            notesTitle = originTask.settings.notesTitle,
+            responseTitle = originTask.settings.responseTitle
+          ),
+          dependencyId = originTask.dependencyId
+        )
+        val commonTaskArgs = new projectService.CommonTaskArgs(
+          taskId = updatedTask.id,
+          version = updatedTask.version,
+          name = Some(updatedTask.settings.title),
+          description = Some(updatedTask.settings.description),
+          position = Some(updatedTask.position),
+          notesAllowed = Some(updatedTask.settings.notesAllowed),
+          partId = Some(updatedTask.partId),
+          notesTitle = None,
+          responseTitle = None
+        )
 
         (taskRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (originTask.id, *, *) returns (Future.successful(\/-(originTask)))
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(\/-(testPart)))
@@ -1541,6 +1588,7 @@ class ProjectServiceSpec
         (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1))))
 
         val result = projectService.updateDocumentTask(commonTaskArgs, None)
+        originTask.dependencyId should not be (None)
         Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1)))
       }
       "return ServiceError.BadInput if task has wrong type" in {
@@ -1660,13 +1708,13 @@ class ProjectServiceSpec
         (taskRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).id, *, *) returns (Future.successful(\/-(testTaskList(1))))
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(\/-(testPart)))
 
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2))))
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 1), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 1))))
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(2).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(2).asInstanceOf[QuestionTask].copy(position = 3))))
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2, version = testTaskList(0).version + 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 1), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 1, version = testTaskList(1).version + 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(2).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(2).asInstanceOf[QuestionTask].copy(position = 3, version = testTaskList(2).version + 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1, version = updatedTask.version + 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2))))
 
         val result = projectService.updateQuestionTask(commonTaskArgs, Some(updatedTask.questions))
-        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1)))
+        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2)))
       }
       "update QuestionTask and leave specific values unchanged if we don't pass them as parameters" in {
         val testPart = TestValues.testPartA.copy(tasks = Vector(
@@ -1700,13 +1748,13 @@ class ProjectServiceSpec
         (taskRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).id, *, *) returns (Future.successful(\/-(testTaskList(1))))
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(\/-(testPart)))
 
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2))))
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 1), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 1))))
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(2).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(2).asInstanceOf[QuestionTask].copy(position = 3))))
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2, version = testTaskList(0).version + 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 1), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 1, version = testTaskList(1).version + 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(2).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(2).asInstanceOf[QuestionTask].copy(position = 3, version = testTaskList(2).version + 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1, version = updatedTask.version + 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2))))
 
         val result = projectService.updateQuestionTask(commonTaskArgs)
-        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1)))
+        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2)))
       }
       "update QuestionTask and update notesTitle, responseTitle to None (aka erase)" in {
         val testPart = TestValues.testPartA.copy(tasks = Vector(
@@ -1741,13 +1789,13 @@ class ProjectServiceSpec
         (taskRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (originTask.id, *, *) returns (Future.successful(\/-(originTask)))
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(\/-(testPart)))
 
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2))))
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 1), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 1))))
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(2).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(2).asInstanceOf[QuestionTask].copy(position = 3))))
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2, version = testTaskList(0).version + 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 1), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 1, version = testTaskList(1).version + 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(2).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(2).asInstanceOf[QuestionTask].copy(position = 3, version = testTaskList(2).version + 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1, version = updatedTask.version + 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2))))
 
         val result = projectService.updateQuestionTask(commonTaskArgs, Some(updatedTask.questions))
-        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1)))
+        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2)))
       }
       "return ServiceError.BadInput if task has wrong type" in {
         val testPart = TestValues.testPartA.copy(tasks = Vector(
@@ -1863,17 +1911,17 @@ class ProjectServiceSpec
 
         // Move
         // task A
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2, version = testTaskList(0).version + 1))))
         // task B
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3, version = testTaskList(1).version + 1))))
         // task C
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1, version = originTask.version + 1))))
 
         // update task C
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1, version = updatedTask.version + 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2))))
 
         val result = projectService.updateQuestionTask(commonTaskArgs, Some(updatedTask.questions))
-        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1)))
+        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2)))
       }
       "update QuestionTask and leave specific values unchanged if we don't pass them as parameters" in {
         val testPart = TestValues.testPartA.copy(tasks = Vector(
@@ -1910,17 +1958,17 @@ class ProjectServiceSpec
 
         // Move
         // task A
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2, version = testTaskList(0).version + 1))))
         // task B
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3, version = testTaskList(1).version + 1))))
         // task C
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1, version = originTask.version + 1))))
 
         // update task C
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1, version = updatedTask.version + 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2))))
 
         val result = projectService.updateQuestionTask(commonTaskArgs)
-        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1)))
+        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2)))
       }
       "update QuestionTask and update notesTitle, responseTitle to None (aka erase)" in {
         val testPart = TestValues.testPartA.copy(tasks = Vector(
@@ -1957,17 +2005,17 @@ class ProjectServiceSpec
 
         // Move
         // task A
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2, version = testTaskList(0).version + 1))))
         // task B
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3, version = testTaskList(1).version + 1))))
         // task C
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1, version = originTask.version + 1))))
 
         // update task C
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1, version = updatedTask.version + 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2))))
 
         val result = projectService.updateQuestionTask(commonTaskArgs, Some(updatedTask.questions))
-        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1)))
+        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2)))
       }
       "return ServiceError.BadInput if task has wrong type" in {
         val testPart = TestValues.testPartA.copy(tasks = Vector(
@@ -2083,17 +2131,17 @@ class ProjectServiceSpec
 
         // Move
         // task D
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[QuestionTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[QuestionTask].copy(position = 2))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[QuestionTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[QuestionTask].copy(position = 2, version = testTaskList(0).version + 1))))
         // task K
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3, version = testTaskList(1).version + 1))))
         // task L
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1, version = originTask.version + 1))))
 
         // update task L
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1, version = updatedTask.version + 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2))))
 
         val result = projectService.updateQuestionTask(commonTaskArgs, Some(updatedTask.questions))
-        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1)))
+        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2)))
       }
       "update OrderingTask and leave specific values unchanged if we don't pass them as parameters" in {
         val testPart = TestValues.testPartB.copy(tasks = Vector(
@@ -2128,19 +2176,19 @@ class ProjectServiceSpec
         (taskRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (originTask.id, *, *) returns (Future.successful(\/-(originTask)))
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(\/-(testPart)))
 
-        // Move
+        /// Move
         // task D
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[QuestionTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[QuestionTask].copy(position = 2))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[QuestionTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[QuestionTask].copy(position = 2, version = testTaskList(0).version + 1))))
         // task K
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3, version = testTaskList(1).version + 1))))
         // task L
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1, version = originTask.version + 1))))
 
         // update task L
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1, version = updatedTask.version + 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2))))
 
         val result = projectService.updateQuestionTask(commonTaskArgs)
-        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1)))
+        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2)))
       }
       "update OrderingTask and update notesTitle, responseTitle to None (aka erase)" in {
         val testPart = TestValues.testPartB.copy(tasks = Vector(
@@ -2177,17 +2225,17 @@ class ProjectServiceSpec
 
         // Move
         // task D
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[QuestionTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[QuestionTask].copy(position = 2))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[QuestionTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[QuestionTask].copy(position = 2, version = testTaskList(0).version + 1))))
         // task K
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3, version = testTaskList(1).version + 1))))
         // task L
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1, version = originTask.version + 1))))
 
         // update task L
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1, version = updatedTask.version + 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2))))
 
         val result = projectService.updateQuestionTask(commonTaskArgs, Some(updatedTask.questions))
-        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1)))
+        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 2)))
       }
       "return ServiceError.BadInput if task has wrong type" in {
         val testPart = TestValues.testPartB.copy(tasks = Vector(
@@ -2284,14 +2332,14 @@ class ProjectServiceSpec
 
         // Move
         // task A
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2, version = testTaskList(0).version + 1))))
         // task B
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3, version = testTaskList(1).version + 1))))
         // task C
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1, version = originTask.version + 1))))
 
         val result = projectService.moveTask(updatedTask.id, updatedTask.version, updatedTask.position)
-        Await.result(result, Duration.Inf) should be(\/-(originTask.copy(position = 1)))
+        Await.result(result, Duration.Inf) should be(\/-(originTask.copy(position = 1, version = originTask.version + 1)))
       }
       "move QuestionTask and update old part tasks positions and new part tasks positions if task new position = min position within another part" in {
         val testPart = TestValues.testPartA.copy(tasks = Vector(
@@ -2317,20 +2365,20 @@ class ProjectServiceSpec
 
         // Move part A
         // task A
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 1), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 1), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 1, version = testTaskList(0).version + 1))))
         // task B
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 2))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 2, version = testTaskList(1).version + 1))))
 
         // Move part B
         // task C
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 1))))
         // task D
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testAnotherTaskList(0).asInstanceOf[QuestionTask].copy(position = 2), *, *) returns (Future.successful(\/-(testAnotherTaskList(0).asInstanceOf[QuestionTask].copy(position = 2))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testAnotherTaskList(0).asInstanceOf[QuestionTask].copy(position = 2), *, *) returns (Future.successful(\/-(testAnotherTaskList(0).asInstanceOf[QuestionTask].copy(position = 2, version = testAnotherTaskList(0).version + 1))))
         // task K
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testAnotherTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testAnotherTaskList(1).asInstanceOf[QuestionTask].copy(position = 3))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testAnotherTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testAnotherTaskList(1).asInstanceOf[QuestionTask].copy(position = 3, version = testAnotherTaskList(1).version + 1))))
 
         val result = projectService.moveTask(updatedTask.id, updatedTask.version, updatedTask.position, Some(updatedTask.partId))
-        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1)))
+        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 1)))
       }
       "move QuestionTask and update existing tasks if task new position < min position within same part" in {
         val testPart = TestValues.testPartA.copy(tasks = Vector(
@@ -2349,14 +2397,14 @@ class ProjectServiceSpec
 
         // Move
         // task A
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 2, version = testTaskList(0).version + 1))))
         // task B
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 3, version = testTaskList(1).version + 1))))
         // task C
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (originTask.copy(position = 1), *, *) returns (Future.successful(\/-(originTask.copy(position = 1, version = originTask.version + 1))))
 
         val result = projectService.moveTask(updatedTask.id, updatedTask.version, updatedTask.position)
-        Await.result(result, Duration.Inf) should be(\/-(originTask.copy(position = 1)))
+        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 1)))
       }
       "move QuestionTask and update old part tasks positions and new part tasks positions if task new position < min position within another part" in {
         val testPart = TestValues.testPartA.copy(tasks = Vector(
@@ -2382,20 +2430,20 @@ class ProjectServiceSpec
 
         // Move part A
         // task A
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 1), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 1), *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 1, version = testTaskList(0).version + 1))))
         // task B
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 2))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testTaskList(1).asInstanceOf[QuestionTask].copy(position = 2), *, *) returns (Future.successful(\/-(testTaskList(1).asInstanceOf[QuestionTask].copy(position = 2, version = testTaskList(1).version + 1))))
 
         // Move part B
         // task C
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (updatedTask.copy(position = 1), *, *) returns (Future.successful(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 1))))
         // task D
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testAnotherTaskList(0).asInstanceOf[QuestionTask].copy(position = 2), *, *) returns (Future.successful(\/-(testAnotherTaskList(0).asInstanceOf[QuestionTask].copy(position = 2))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testAnotherTaskList(0).asInstanceOf[QuestionTask].copy(position = 2), *, *) returns (Future.successful(\/-(testAnotherTaskList(0).asInstanceOf[QuestionTask].copy(position = 2, version = testAnotherTaskList(0).version + 1))))
         // task K
-        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testAnotherTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testAnotherTaskList(1).asInstanceOf[QuestionTask].copy(position = 3))))
+        (taskRepository.update(_: Task)(_: Connection, _: ScalaCachePool)) when (testAnotherTaskList(1).asInstanceOf[QuestionTask].copy(position = 3), *, *) returns (Future.successful(\/-(testAnotherTaskList(1).asInstanceOf[QuestionTask].copy(position = 3, version = testAnotherTaskList(1).version + 1))))
 
         val result = projectService.moveTask(updatedTask.id, updatedTask.version, updatedTask.position, Some(updatedTask.partId))
-        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1)))
+        Await.result(result, Duration.Inf) should be(\/-(updatedTask.copy(position = 1, version = updatedTask.version + 1)))
       }
       "NOT move QuestionTask if newPosition != oldPosition, but position is next task position (taskList positions are unsorted) within same part" in {
         val testPart = TestValues.testPartA.copy(tasks = Vector(

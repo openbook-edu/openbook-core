@@ -140,7 +140,12 @@ final case class DocumentTask(
   override def equals(other: Any): Boolean = {
     other match {
       case otherLongAnswerTask: DocumentTask => {
-        this.id == otherLongAnswerTask.id
+        this.id == otherLongAnswerTask.id &&
+          this.partId == otherLongAnswerTask.partId &&
+          this.position == otherLongAnswerTask.position &&
+          this.version == otherLongAnswerTask.version &&
+          this.settings.toString == otherLongAnswerTask.settings.toString &&
+          this.dependencyId == otherLongAnswerTask.dependencyId
       }
       case _ => false
     }
@@ -192,6 +197,20 @@ final case class QuestionTask(
     updatedAt: DateTime = new DateTime()
 ) extends Task {
   override val taskType = Task.Question
+
+  override def equals(other: Any): Boolean = {
+    other match {
+      case otherLongAnswerTask: QuestionTask => {
+        this.id == otherLongAnswerTask.id &&
+          this.partId == otherLongAnswerTask.partId &&
+          this.position == otherLongAnswerTask.position &&
+          this.version == otherLongAnswerTask.version &&
+          this.settings.toString == otherLongAnswerTask.settings.toString &&
+          this.questions.toString == otherLongAnswerTask.questions.toString
+      }
+      case _ => false
+    }
+  }
 }
 
 object QuestionTask {

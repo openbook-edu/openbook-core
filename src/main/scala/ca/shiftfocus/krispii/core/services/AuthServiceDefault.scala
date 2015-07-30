@@ -1,7 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.{InputUtils, ScalaCachePool}
+import ca.shiftfocus.krispii.core.lib.{ InputUtils, ScalaCachePool }
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
@@ -209,7 +209,7 @@ class AuthServiceDefault(
       for {
         validEmail <- lift(validateEmail(email.trim))
         validUsername <- lift(validateUsername(username.trim))
-        validPassword <- lift(InputUtils.isValidPassword(password.trim))
+        _ <- predicate(InputUtils.isValidPassword(password.trim))(ServiceError.BadInput("The password provided must be at least 8 characters."))
         passwordHash = Some(webcrank.crypt(password.trim))
         newUser <- lift {
           val newUser = User(
@@ -325,8 +325,8 @@ class AuthServiceDefault(
       val updated = for {
         existingUser <- lift(userRepository.find(id))
         _ <- predicate(existingUser.version == version)(ServiceError.OfflineLockFail)
-        u_password <- lift(InputUtils.isValidPassword(password))
-        u_hash = wc.crypt(u_password)
+        _ <- predicate(InputUtils.isValidPassword(password.trim))(ServiceError.BadInput("The password provided must be at least 8 characters."))
+        u_hash = wc.crypt(password.trim)
         userToUpdate = existingUser.copy(hash = Some(u_hash))
         updatedUser <- lift(userRepository.update(userToUpdate))
       } yield updatedUser
@@ -558,8 +558,8 @@ class AuthServiceDefault(
    */
   private def validateEmail(email: String, existingId: Option[UUID] = None)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, String]] = {
     val existing = for {
-      validEmail <- lift(InputUtils.isValidEmail(email))
-      existingUser <- lift(userRepository.find(validEmail))
+      _ <- predicate(InputUtils.isValidEmail(email.trim))(ServiceError.BadInput(s"'$email' is not a valid format"))
+      existingUser <- lift(userRepository.find(email.trim))
     } yield existingUser
 
     existing.run.map {
@@ -582,8 +582,8 @@ class AuthServiceDefault(
    */
   private def validateUsername(username: String, existingId: Option[UUID] = None)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, String]] = {
     val existing = for {
-      validUsername <- lift(InputUtils.isValidUsername(username))
-      existingUser <- lift(userRepository.find(validUsername))
+      _ <- predicate(InputUtils.isValidUsername(username.trim))(ServiceError.BadInput("Your username must be at least 3 characters."))
+      existingUser <- lift(userRepository.find(username.trim))
     } yield existingUser
 
     existing.run.map {

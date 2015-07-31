@@ -169,6 +169,7 @@ class CourseScheduleExceptionRepositoryPostgres(
         courseScheduleException.endTime,
         courseScheduleException.reason
       )))
+      _ <- lift(cache.removeCached(cacheExceptionKey(inserted.id)))
       _ <- lift(cache.removeCached(cacheExceptionsKey(inserted.courseId)))
       _ <- lift(cache.removeCached(cacheExceptionsKey(inserted.courseId, inserted.userId)))
     } yield inserted
@@ -195,6 +196,7 @@ class CourseScheduleExceptionRepositoryPostgres(
         courseScheduleException.id,
         courseScheduleException.version
       )))
+      _ <- lift(cache.removeCached(cacheExceptionKey(updated.id)))
       _ <- lift(cache.removeCached(cacheExceptionsKey(updated.courseId)))
       _ <- lift(cache.removeCached(cacheExceptionsKey(updated.courseId, updated.userId)))
     } yield updated
@@ -210,6 +212,7 @@ class CourseScheduleExceptionRepositoryPostgres(
                      (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseScheduleException]] = { // format: ON
     for {
       deleted <- lift(queryOne(Delete, Array(courseScheduleException.id, courseScheduleException.version)))
+      _ <- lift(cache.removeCached(cacheExceptionKey(deleted.id)))
       _ <- lift(cache.removeCached(cacheExceptionsKey(deleted.courseId)))
       _ <- lift(cache.removeCached(cacheExceptionsKey(deleted.courseId, deleted.userId)))
     } yield deleted

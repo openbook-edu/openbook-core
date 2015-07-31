@@ -16,7 +16,7 @@ import scala.concurrent.{ Await, Future }
 import scalaz.{ \/-, -\/ }
 
 class WorkServiceSpec
-    extends TestEnvironment {
+    extends TestEnvironment(writeToDb = false) {
   val db = stub[DB]
   val mockConnection = stub[Connection]
 

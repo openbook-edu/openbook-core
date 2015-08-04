@@ -204,6 +204,19 @@ class SchoolServiceSpec
     }
   }
 
+  "SchoolService.deleteCourse" should {
+    inSequence {
+      "return ServiceError.OfflineLockFail if versions don't match" in {
+        val testCourse = TestValues.testCourseA
+
+        (courseRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testCourse.id, *, *) returns (Future.successful((\/-(testCourse))))
+
+        val result = schoolService.deleteCourse(testCourse.id, testCourse.version + 1)
+        Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
+      }
+    }
+  }
+
   "SchoolService.findUserForTeacher" should {
     inSequence {
       "return RepositoryError.NoResults if user is not in the teacher's class" in {

@@ -24,7 +24,7 @@ trait TaskRepository extends Repository {
   def find(project: Project, part: Part, taskNum: Int)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]]
 
   def insert(task: Task)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]]
-  def update(task: Task)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]]
+  def update(task: Task, oldPartId: Option[UUID] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]]
   def delete(task: Task)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]]
   def delete(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]]
 }

@@ -225,16 +225,24 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       |RETURNING $CommonFields, $SpecificFields
     """.stripMargin
 
-  val Delete =
+  val DeleteDocumentTask =
     s"""
       |DELETE FROM $Table
-      |USING
-      | document_tasks,
-      | question_tasks
+      |USING document_tasks
       |WHERE $Table.id = ?
       | AND $Table.version = ?
-      | AND ($DeleteWhere)
-      |RETURNING $CommonFields, $SpecificFields
+      | AND document_tasks.task_id = $Table.id
+      |RETURNING $CommonFields, document_tasks.dependency_id as dependency_id
+    """.stripMargin
+
+  val DeleteQuestionTask =
+    s"""
+       |DELETE FROM $Table
+       |USING question_tasks
+       |WHERE $Table.id = ?
+       | AND $Table.version = ?
+       | AND (question_tasks.task_id = $Table.id)
+       |RETURNING $CommonFields, question_tasks.questions as questions
     """.stripMargin
 
   // -- Methods ------------------------------------------------------------------------------------------------------
@@ -387,7 +395,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
    * @param task The task to be updated.
    * @return the updated task
    */
-  override def update(task: Task)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]] = {
+  override def update(task: Task, oldPartId: Option[UUID] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]] = {
     // Start with the data common to all task types.
     val commonData = Seq[Any](
       task.partId,
@@ -416,6 +424,10 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     // Send the query
     for {
       updated <- lift(queryOne(query, dataArray))
+      _ <- lift(oldPartId match {
+        case Some(oldId) => cache.removeCached(cacheTasksKey(oldId))
+        case None => Future successful \/-(())
+      })
       _ <- lift(cache.removeCached(cacheTaskKey(task.id)))
       _ <- lift(cache.removeCached(cacheTasksKey(task.partId)))
     } yield updated
@@ -428,8 +440,12 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
    * @return A boolean indicating whether the operation was successful.
    */
   override def delete(task: Task)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]] = {
+    val query = task match {
+      case document: DocumentTask => DeleteDocumentTask
+      case question: QuestionTask => DeleteQuestionTask
+    }
     for {
-      deleted <- lift(queryOne(Delete, Seq(task.id, task.version)))
+      deleted <- lift(queryOne(query, Seq(task.id, task.version)))
       _ <- lift(cache.removeCached(cacheTaskKey(task.id)))
       _ <- lift(cache.removeCached(cacheTasksKey(task.partId)))
     } yield deleted

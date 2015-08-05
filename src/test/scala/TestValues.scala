@@ -113,6 +113,38 @@ object TestValues {
 
   /* ---------------------- ROLES ---------------------- */
 
+  val testRoleAuth = Role(
+    id = UUID.fromString("40b178e1-3e91-47b9-9377-6fa74fa17293"),
+    version = 1L,
+    name = "authenticated",
+    createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testRoleAdmin = Role(
+    id = UUID.fromString("8acf3355-31ef-4bac-a046-00e3574412ad"),
+    version = 2L,
+    name = "administrator",
+    createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testRoleTeacher = Role(
+    id = UUID.fromString("ca8a1d7f-de06-45c8-b52e-8e9c7ead2e7e"),
+    version = 2L,
+    name = "teacher",
+    createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testRoleStudent = Role(
+    id = UUID.fromString("4ef48c1f-5446-4748-a9d5-2565472945b3"),
+    version = 2L,
+    name = "student",
+    createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   val testRoleA = Role(
     id = UUID.fromString("1430e950-77f9-4b30-baf8-bb226fc7091a"),
     version = 1L,

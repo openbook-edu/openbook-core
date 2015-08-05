@@ -170,8 +170,8 @@ class SchoolServiceDefault(
     transactional { implicit conn =>
       for {
         existingCourse <- lift(courseRepository.find(id))
-        toDelete = existingCourse.copy(version = version)
-        wasDeleted <- lift(courseRepository.delete(toDelete))
+        _ <- predicate(existingCourse.version == version)(ServiceError.OfflineLockFail)
+        wasDeleted <- lift(courseRepository.delete(existingCourse))
       } yield wasDeleted
     }
   }

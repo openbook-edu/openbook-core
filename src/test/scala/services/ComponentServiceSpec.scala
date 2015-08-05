@@ -18,7 +18,6 @@ import scalaz.{ -\/, \/- }
 
 class ComponentServiceSpec
     extends TestEnvironment(writeToDb = false) {
-  // Create stubs of AuthService's dependencies
   val db = stub[DB]
   val mockConnection = stub[Connection]
   val authService = stub[AuthService]

@@ -11,17 +11,33 @@ import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 
 case class CourseScheduleException(
-  id: UUID = UUID.randomUUID,
-  userId: UUID,
-  courseId: UUID,
-  version: Long = 1L,
-  day: LocalDate,
-  startTime: LocalTime,
-  endTime: LocalTime,
-  reason: String,
-  createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime
-)
+    id: UUID = UUID.randomUUID,
+    userId: UUID,
+    courseId: UUID,
+    version: Long = 1L,
+    day: LocalDate,
+    startTime: LocalTime,
+    endTime: LocalTime,
+    reason: String,
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
+) {
+  override def equals(anotherObject: Any): Boolean = {
+    anotherObject match {
+      case anotherCourseScheduleException: CourseScheduleException =>
+        this.id == anotherCourseScheduleException.id &&
+          this.userId == anotherCourseScheduleException.userId &&
+          this.courseId == anotherCourseScheduleException.courseId &&
+          this.version == anotherCourseScheduleException.version &&
+          this.day == anotherCourseScheduleException.day &&
+          this.startTime == anotherCourseScheduleException.startTime &&
+          this.endTime == anotherCourseScheduleException.endTime &&
+          this.reason == anotherCourseScheduleException.reason
+      case _ => false
+
+    }
+  }
+}
 
 object CourseScheduleException extends LocalDateTimeJson {
   implicit val courseScheduleWrites: Writes[CourseScheduleException] = (

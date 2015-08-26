@@ -19,9 +19,10 @@ case class CourseScheduleException(
     startTime: LocalTime,
     endTime: LocalTime,
     reason: String,
+    block: Boolean = false,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
-) {
+) extends Schedule {
   override def equals(anotherObject: Any): Boolean = {
     anotherObject match {
       case anotherCourseScheduleException: CourseScheduleException =>
@@ -30,6 +31,7 @@ case class CourseScheduleException(
           this.courseId == anotherCourseScheduleException.courseId &&
           this.version == anotherCourseScheduleException.version &&
           this.day == anotherCourseScheduleException.day &&
+          this.block == anotherCourseScheduleException.block &&
           this.startTime == anotherCourseScheduleException.startTime &&
           this.endTime == anotherCourseScheduleException.endTime &&
           this.reason == anotherCourseScheduleException.reason
@@ -49,6 +51,7 @@ object CourseScheduleException extends LocalDateTimeJson {
     (__ \ "startTime").write[LocalTime] and
     (__ \ "endTime").write[LocalTime] and
     (__ \ "reason").write[String] and
+    (__ \ "block").write[Boolean] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(CourseScheduleException.unapply))

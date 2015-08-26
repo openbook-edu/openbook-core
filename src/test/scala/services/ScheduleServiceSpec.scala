@@ -686,6 +686,34 @@ class ScheduleServiceSpec
         )
         Await.result(result, Duration.Inf) should be(\/-(false))
       }
+      "be FALSE if there exists a blocking exception for the user and startTime < now < endTime" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = true)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector()
+        val testScheduleExceptionList = Vector(
+          TestValues.testCourseScheduleExceptionB,
+          TestValues.testCourseScheduleExceptionC,
+          TestValues.testCourseScheduleExceptionD.copy(block = true)
+        )
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleExceptionList(2).day,
+          testScheduleExceptionList(2).startTime.plusMinutes(1)
+        )
+        Await.result(result, Duration.Inf) should be(\/-(false))
+      }
       "return ServiceError.BadPermissions if user doesn't have the course (schedulingEnabled = TRUE)" in {
         val testUser = TestValues.testUserE
         val testCourseList = Vector(

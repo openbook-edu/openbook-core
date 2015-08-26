@@ -26,6 +26,7 @@ class ScheduleServiceDefault(
 ) extends ScheduleService {
 
   implicit def conn: Connection = db.pool
+
   implicit def cache: ScalaCachePool = scalaCache
 
   /**
@@ -180,7 +181,9 @@ class ScheduleServiceDefault(
         course <- lift(schoolService.findCourse(courseId))
         user <- lift(authService.find(userId))
         usersInCourse <- lift(schoolService.listStudents(courseId))
-        _ <- predicate(usersInCourse.contains(user))({ ServiceError.BusinessLogicFail("User specified not in course") })
+        _ <- predicate(usersInCourse.contains(user))({
+          ServiceError.BusinessLogicFail("User specified not in course")
+        })
         newSchedule = CourseScheduleException(
           userId = user.id,
           courseId = course.id,
@@ -205,14 +208,18 @@ class ScheduleServiceDefault(
   ): Future[\/[ErrorUnion#Fail, IndexedSeq[CourseScheduleException]]] = {
     transactional { implicit conn =>
       for {
-        _ <- predicate(exceptionIds.isEmpty || (exceptionIds.get).length == userIds.length)({ ServiceError.BusinessLogicFail("Invalid number of exception ids") })
+        _ <- predicate(exceptionIds.isEmpty || (exceptionIds.get).length == userIds.length)({
+          ServiceError.BusinessLogicFail("Invalid number of exception ids")
+        })
         course <- lift(schoolService.findCourse(courseId))
         usersSpecified <- lift(serializedT(userIds)(authService.find))
         usersSpecifiedInd = usersSpecified.zipWithIndex
         usersInCourse <- lift(schoolService.listStudents(courseId))
         areUsersPresent = usersSpecified.forall((us: User) => usersInCourse.contains(us))
-        _ <- predicate(areUsersPresent)({ ServiceError.BusinessLogicFail("User(s) specified not in course") })
-      
+        _ <- predicate(areUsersPresent)({
+          ServiceError.BusinessLogicFail("User(s) specified not in course")
+        })
+
         newScheduleExceptions = usersSpecifiedInd.map {
           case (us, idx) => CourseScheduleException(
             id = if (exceptionIds.isDefined) {
@@ -339,28 +346,28 @@ class ScheduleServiceDefault(
         schedules <- lift(fSchedules)
         exceptions <- lift(fExceptions)
         userExceptions = exceptions.filter(_.userId == userId)
+        blockedUserExceptions = userExceptions.filter(_.block == true)
+        regUserExceptions = userExceptions.filter(_.block == false)
         scheduledForStudent = {
           if (!course.enabled) false
           else {
-            schedules.exists({ schedule =>
-              {
-                today.equals(schedule.day) && (
-                  now.equals(schedule.startTime) ||
-                  now.equals(schedule.endTime) ||
-                  (now.isBefore(schedule.endTime) && now.isAfter(schedule.startTime))
-                )
-              }
-            }) ||
-              userExceptions.exists({ schedule =>
-                today.equals(schedule.day) && (
-                  now.equals(schedule.startTime) ||
-                  now.equals(schedule.endTime) ||
-                  (now.isBefore(schedule.endTime) && now.isAfter(schedule.startTime))
-                )
+            (!blockedUserExceptions.exists({ schedule => isScheduleNow(schedule, today, now)
+            })) &&
+              schedules.exists({ schedule => isScheduleNow(schedule, today, now)
+              }) ||
+              regUserExceptions.exists({ schedule => isScheduleNow(schedule, today, now)
               })
           }
         }
       } yield scheduledForStudent
     }
+  }
+
+  def isScheduleNow(schedule: Schedule, today: LocalDate, now: LocalTime): Boolean = {
+    today.equals(schedule.day) && (
+      now.equals(schedule.startTime) ||
+      now.equals(schedule.endTime) ||
+      (now.isBefore(schedule.endTime) && now.isAfter(schedule.startTime))
+    )
   }
 }

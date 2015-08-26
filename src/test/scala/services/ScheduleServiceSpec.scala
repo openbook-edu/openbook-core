@@ -1,8 +1,8 @@
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.error.ServiceError
+import ca.shiftfocus.krispii.core.error.{ RepositoryError, ServiceError }
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
-import ca.shiftfocus.krispii.core.models.Course
+import ca.shiftfocus.krispii.core.models.{ CourseScheduleException, User, Course }
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services._
 import ca.shiftfocus.krispii.core.services.datasource.DB
@@ -50,6 +50,188 @@ class ScheduleServiceSpec
           Some(testSchedule.description)
         )
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
+      }
+    }
+  }
+
+  "ScheduleService.createScheduleExceptions" should {
+    inSequence {
+      val testCourse = TestValues.testCourseA
+      val testUsers: IndexedSeq[User] = IndexedSeq(TestValues.testUserA, TestValues.testUserB, TestValues.testUserC)
+      val testWrongUsers: IndexedSeq[User] = IndexedSeq(TestValues.testUserA, TestValues.testUserB, TestValues.testUserC, TestValues.testUserD)
+      val testUserIds: IndexedSeq[UUID] = testUsers.map(_.id)
+      val testWrongUserIds: IndexedSeq[UUID] = testWrongUsers.map(_.id)
+      val testCourseScheduleException = TestValues.testCourseScheduleExceptionA
+
+      val scheduleException0 = testCourseScheduleException.copy(userId = testUserIds(0), courseId = testCourse.id)
+      val scheduleException1 = testCourseScheduleException.copy(userId = testUserIds(1), courseId = testCourse.id)
+      val scheduleException2 = testCourseScheduleException.copy(userId = testUserIds(2), courseId = testCourse.id)
+
+      val expectedExceptions = Vector(scheduleException0, scheduleException1, scheduleException2)
+
+      val expectedExceptionIds = expectedExceptions.map(_.id)
+
+      val noResultsError = RepositoryError.NoResults("No course found with that Id")
+
+      "return createdScheduleExceptions if all input is correct" in {
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (authService.find(_: UUID)) when (testUserIds(0)) returns (Future.successful(\/-(testUsers(0)))) // A
+        (authService.find(_: UUID)) when (testUserIds(1)) returns (Future.successful(\/-(testUsers(1)))) // B
+        (authService.find(_: UUID)) when (testUserIds(2)) returns (Future.successful(\/-(testUsers(2)))) // C
+        (schoolService.listStudents(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testUsers))) // ABC
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException0, *, *) returns (Future.successful(\/-(scheduleException0)))
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException1, *, *) returns (Future.successful(\/-(scheduleException1)))
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException2, *, *) returns (Future.successful(\/-(scheduleException2)))
+
+        val result = scheduleService.createScheduleExceptions(
+          testUserIds, //A, B, C
+          testCourse.id,
+          testCourseScheduleException.day,
+          testCourseScheduleException.startTime,
+          testCourseScheduleException.endTime,
+          testCourseScheduleException.reason,
+          Some(expectedExceptions.map(_.id))
+        )
+        Await.result(result, Duration.Inf) should be(\/-(expectedExceptions))
+      }
+
+      "return NoResults (No Course with that id) if invalid course id " in {
+        val noResultsError = RepositoryError.NoResults("No course found with that Id")
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(-\/(noResultsError)))
+        (authService.find(_: UUID)) when (testUserIds(0)) returns (Future.successful(\/-(testUsers(0)))) // A
+        (authService.find(_: UUID)) when (testUserIds(1)) returns (Future.successful(\/-(testUsers(1)))) // B
+        (authService.find(_: UUID)) when (testUserIds(2)) returns (Future.successful(\/-(testUsers(2)))) // C
+        (schoolService.listStudents(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testUsers))) // ABC
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException0, *, *) returns (Future.successful(\/-(scheduleException0)))
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException1, *, *) returns (Future.successful(\/-(scheduleException1)))
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException2, *, *) returns (Future.successful(\/-(scheduleException2)))
+
+        val result = scheduleService.createScheduleExceptions(
+          testUserIds, //A, B, C
+          testCourse.id,
+          testCourseScheduleException.day,
+          testCourseScheduleException.startTime,
+          testCourseScheduleException.endTime,
+          testCourseScheduleException.reason,
+          Some(expectedExceptions.map(_.id))
+        )
+        Await.result(result, Duration.Inf) should be(-\/(noResultsError))
+      }
+
+      "return NoResults (No User with that id) if invalid user id " in {
+        val noResultsError = RepositoryError.NoResults("No user found with that Id")
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (authService.find(_: UUID)) when (testUserIds(0)) returns (Future.successful(-\/(noResultsError))) // A
+        (authService.find(_: UUID)) when (testUserIds(1)) returns (Future.successful(\/-(testUsers(1)))) // B
+        (authService.find(_: UUID)) when (testUserIds(2)) returns (Future.successful(\/-(testUsers(2)))) // C
+        (schoolService.listStudents(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testUsers))) // ABC
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException0, *, *) returns (Future.successful(\/-(scheduleException0)))
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException1, *, *) returns (Future.successful(\/-(scheduleException1)))
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException2, *, *) returns (Future.successful(\/-(scheduleException2)))
+
+        val result = scheduleService.createScheduleExceptions(
+          testUserIds, //A, B, C
+          testCourse.id,
+          testCourseScheduleException.day,
+          testCourseScheduleException.startTime,
+          testCourseScheduleException.endTime,
+          testCourseScheduleException.reason,
+          Some(expectedExceptions.map(_.id))
+        )
+        Await.result(result, Duration.Inf) should be(-\/(noResultsError))
+      }
+
+      "return NoResults(No Course with that ID upon listing students) " in {
+        val noResultsError = RepositoryError.NoResults("No course found with that Id")
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (authService.find(_: UUID)) when (testUserIds(0)) returns (Future.successful(\/-(testUsers(0)))) // A
+        (authService.find(_: UUID)) when (testUserIds(1)) returns (Future.successful(\/-(testUsers(1)))) // B
+        (authService.find(_: UUID)) when (testUserIds(2)) returns (Future.successful(\/-(testUsers(2)))) // C
+        (schoolService.listStudents(_: UUID)) when (testCourse.id) returns (Future.successful(-\/(noResultsError))) // ABC
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException0, *, *) returns (Future.successful(\/-(scheduleException0)))
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException1, *, *) returns (Future.successful(\/-(scheduleException1)))
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException2, *, *) returns (Future.successful(\/-(scheduleException2)))
+
+        val result = scheduleService.createScheduleExceptions(
+          testUserIds, //A, B, C
+          testCourse.id,
+          testCourseScheduleException.day,
+          testCourseScheduleException.startTime,
+          testCourseScheduleException.endTime,
+          testCourseScheduleException.reason,
+          Some(expectedExceptions.map(_.id))
+        )
+        Await.result(result, Duration.Inf) should be(-\/(noResultsError))
+      }
+
+      "return PrimaryKeyFail if non unique keys" in {
+        val primaryKeyFail = RepositoryError.PrimaryKeyConflict
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (authService.find(_: UUID)) when (testUserIds(0)) returns (Future.successful(\/-(testUsers(0)))) // A users specified
+        (authService.find(_: UUID)) when (testUserIds(1)) returns (Future.successful(\/-(testUsers(1)))) // B
+        (authService.find(_: UUID)) when (testUserIds(2)) returns (Future.successful(\/-(testUsers(2)))) // C
+        (schoolService.listStudents(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testUsers))) // ABC
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException0, *, *) returns (Future.successful(-\/(primaryKeyFail)))
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException1, *, *) returns (Future.successful(\/-(scheduleException1)))
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException2, *, *) returns (Future.successful(\/-(scheduleException2)))
+
+        val result = scheduleService.createScheduleExceptions(
+          testUserIds, //A, B, C
+          testCourse.id,
+          testCourseScheduleException.day,
+          testCourseScheduleException.startTime,
+          testCourseScheduleException.endTime,
+          testCourseScheduleException.reason,
+          Some(expectedExceptions.map(_.id))
+        )
+        Await.result(result, Duration.Inf) should be(-\/(primaryKeyFail))
+      }
+
+      "return BusinessLogicFail if invalid number of exception ids" in {
+        val error = ServiceError.BusinessLogicFail("Invalid number of exception ids")
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (authService.find(_: UUID)) when (testUserIds(0)) returns (Future.successful(\/-(testUsers(0)))) // A
+        (authService.find(_: UUID)) when (testUserIds(1)) returns (Future.successful(\/-(testUsers(1)))) // B
+        (authService.find(_: UUID)) when (testUserIds(2)) returns (Future.successful(\/-(testUsers(2)))) // C
+        (schoolService.listStudents(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testUsers))) // ABC
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException0, *, *) returns (Future.successful(\/-(scheduleException0)))
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException1, *, *) returns (Future.successful(\/-(scheduleException1)))
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException2, *, *) returns (Future.successful(\/-(scheduleException2)))
+
+        val result = scheduleService.createScheduleExceptions(
+          testWrongUserIds,
+          testCourse.id,
+          testCourseScheduleException.day,
+          testCourseScheduleException.startTime,
+          testCourseScheduleException.endTime,
+          testCourseScheduleException.reason,
+          Some(expectedExceptions.map(_.id))
+        )
+        Await.result(result, Duration.Inf) should be(-\/(error))
+      }
+
+      "return BusinessLogicFail if users specified not in course" in {
+        val error = ServiceError.BusinessLogicFail("User(s) specified not in course")
+        val testWrongUsers: IndexedSeq[User] = IndexedSeq(TestValues.testUserB, TestValues.testUserC, TestValues.testUserD)
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (authService.find(_: UUID)) when (testUserIds(0)) returns (Future.successful(\/-(testUsers(0)))) // A users specified
+        (authService.find(_: UUID)) when (testUserIds(1)) returns (Future.successful(\/-(testUsers(1)))) // B
+        (authService.find(_: UUID)) when (testUserIds(2)) returns (Future.successful(\/-(testUsers(2)))) // C
+        (schoolService.listStudents(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testWrongUsers)))
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException0, *, *) returns (Future.successful(\/-(scheduleException0)))
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException1, *, *) returns (Future.successful(\/-(scheduleException1)))
+        (courseScheduleExceptionRepository.insert(_: CourseScheduleException)(_: Connection, _: ScalaCachePool)) when (scheduleException2, *, *) returns (Future.successful(\/-(scheduleException2)))
+
+        val result = scheduleService.createScheduleExceptions(
+          testUserIds,
+          testCourse.id,
+          testCourseScheduleException.day,
+          testCourseScheduleException.startTime,
+          testCourseScheduleException.endTime,
+          testCourseScheduleException.reason,
+          Some(expectedExceptions.map(_.id))
+        )
+        Await.result(result, Duration.Inf) should be(-\/(error))
       }
     }
   }
@@ -108,7 +290,6 @@ class ScheduleServiceSpec
 
   "ScheduleService.isCourseScheduledForUser" should {
     inSequence {
-      // shcedule
       "be TRUE if course has only schedules for today and now = startTime (schedulingEnabled = TRUE)" in {
         val testUser = TestValues.testUserE
         val testCourseList = Vector(
@@ -502,6 +683,34 @@ class ScheduleServiceSpec
           testUser.id,
           testScheduleExceptionList(0).day,
           testScheduleExceptionList(0).startTime
+        )
+        Await.result(result, Duration.Inf) should be(\/-(false))
+      }
+      "be FALSE if there exists a blocking exception for the user and startTime < now < endTime" in {
+        val testUser = TestValues.testUserE
+        val testCourseList = Vector(
+          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
+          TestValues.testCourseB.copy(enabled = true, schedulingEnabled = true)
+        )
+        val testCourse = testCourseList(1)
+        val testScheduleList = Vector()
+        val testScheduleExceptionList = Vector(
+          TestValues.testCourseScheduleExceptionB,
+          TestValues.testCourseScheduleExceptionC,
+          TestValues.testCourseScheduleExceptionD.copy(block = true)
+        )
+
+        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+
+        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
+        (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
+        (courseScheduleExceptionRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleExceptionList)))
+
+        val result = scheduleService.isCourseScheduledForUser(
+          testCourse,
+          testUser.id,
+          testScheduleExceptionList(2).day,
+          testScheduleExceptionList(2).startTime.plusMinutes(1)
         )
         Await.result(result, Duration.Inf) should be(\/-(false))
       }

@@ -29,6 +29,8 @@ trait ScheduleService extends Service[ErrorUnion#Fail] {
 
   def createScheduleException(userId: UUID, courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime,
     description: String): Future[\/[ErrorUnion#Fail, CourseScheduleException]]
+  def createScheduleExceptions(userIds: IndexedSeq[UUID], courseId: UUID, day: LocalDate, startTime: LocalTime, endTime: LocalTime,
+    description: String, exceptionIds: Option[IndexedSeq[UUID]] = None): Future[\/[ErrorUnion#Fail, IndexedSeq[CourseScheduleException]]]
   def updateScheduleException(id: UUID, version: Long, day: Option[LocalDate], startTime: Option[LocalTime], endTime: Option[LocalTime],
     description: Option[String]): Future[\/[ErrorUnion#Fail, CourseScheduleException]]
   def deleteScheduleException(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, CourseScheduleException]]
@@ -37,3 +39,5 @@ trait ScheduleService extends Service[ErrorUnion#Fail] {
   def isCourseScheduledForUser(courseId: UUID, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]]
   def isCourseScheduledForUser(course: Course, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]]
 }
+
+/// Future.sequence(roleNames.map { roleName => roleRepository.addToUser(user, roleName) } )

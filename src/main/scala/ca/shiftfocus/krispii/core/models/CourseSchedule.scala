@@ -22,7 +22,13 @@ case class CourseSchedule(
   description: String,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
-)
+) extends Schedule
+
+trait Schedule {
+  def day: LocalDate
+  def startTime: LocalTime
+  def endTime: LocalTime
+}
 
 object CourseSchedule extends LocalDateTimeJson {
 

@@ -13,16 +13,30 @@ import org.joda.time.LocalDate
 import org.joda.time.LocalTime
 
 case class CourseSchedule(
-  id: UUID = UUID.randomUUID,
-  version: Long = 1L,
-  courseId: UUID,
-  day: LocalDate,
-  startTime: LocalTime,
-  endTime: LocalTime,
-  description: String,
-  createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime
-)
+    id: UUID = UUID.randomUUID,
+    version: Long = 1L,
+    courseId: UUID,
+    day: LocalDate,
+    startTime: LocalTime,
+    endTime: LocalTime,
+    description: String,
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
+) {
+  override def equals(anotherObject: Any): Boolean = {
+    anotherObject match {
+      case anotherCS: CourseSchedule =>
+        this.id == anotherCS.id &&
+          this.version == anotherCS.version &&
+          this.courseId == anotherCS.courseId &&
+          this.day.toString == anotherCS.day.toString &&
+          this.startTime.toString == anotherCS.startTime.toString &&
+          this.endTime.toString == anotherCS.endTime.toString &&
+          this.description == anotherCS.description
+      case _ => false
+    }
+  }
+}
 
 object CourseSchedule extends LocalDateTimeJson {
 

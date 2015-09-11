@@ -25,18 +25,16 @@ case class CourseScheduleException(
 ) extends Schedule {
   override def equals(anotherObject: Any): Boolean = {
     anotherObject match {
-      case anotherCourseScheduleException: CourseScheduleException =>
-        this.id == anotherCourseScheduleException.id &&
-          this.userId == anotherCourseScheduleException.userId &&
-          this.courseId == anotherCourseScheduleException.courseId &&
-          this.version == anotherCourseScheduleException.version &&
-          this.day == anotherCourseScheduleException.day &&
-          this.block == anotherCourseScheduleException.block &&
-          this.startTime == anotherCourseScheduleException.startTime &&
-          this.endTime == anotherCourseScheduleException.endTime &&
-          this.reason == anotherCourseScheduleException.reason
+      case anotherCSE: CourseScheduleException =>
+        this.id == anotherCSE.id &&
+          this.userId == anotherCSE.userId &&
+          this.courseId == anotherCSE.courseId &&
+          this.version == anotherCSE.version &&
+          this.day.toString == anotherCSE.day.toString &&
+          this.startTime.toString == anotherCSE.startTime.toString &&
+          this.endTime.toString == anotherCSE.endTime.toString &&
+          this.reason == anotherCSE.reason
       case _ => false
-
     }
   }
 }

@@ -22,7 +22,22 @@ case class CourseSchedule(
   description: String,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
-) extends Schedule
+) extends Schedule {
+  override def equals(anotherObject: Any): Boolean = {
+    anotherObject match {
+      case anotherCS: CourseSchedule =>
+        this.id == anotherCS.id &&
+          this.version == anotherCS.version &&
+          this.courseId == anotherCS.courseId &&
+          this.day.toString == anotherCS.day.toString &&
+          this.startTime.toString == anotherCS.startTime.toString &&
+          this.endTime.toString == anotherCS.endTime.toString &&
+          this.description == anotherCS.description
+      case _ => false
+    }
+  }
+}
+
 
 trait Schedule {
   def day: LocalDate

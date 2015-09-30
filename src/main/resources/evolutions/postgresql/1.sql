@@ -288,42 +288,42 @@ CREATE TABLE chat_logs (
 
 CREATE TABLE journal_201505 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2015-05-01' AND '2015-05-31')
+    check (created_at BETWEEN '2015-05-01' AND '2015-05-31T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201506 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2015-06-01' AND '2015-06-30')
+    check (created_at BETWEEN '2015-06-01' AND '2015-06-30T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201507 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2015-07-01' AND '2015-07-31')
+    check (created_at BETWEEN '2015-07-01' AND '2015-07-31T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201508 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2015-08-01' AND '2015-08-31')
+    check (created_at BETWEEN '2015-08-01' AND '2015-08-31T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201509 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2015-09-01' AND '2015-09-30')
+    check (created_at BETWEEN '2015-09-01' AND '2015-09-30T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201510 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2015-10-01' AND '2015-10-31')
+    check (created_at BETWEEN '2015-10-01' AND '2015-10-31T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201511 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2015-11-01' AND '2015-11-30')
+    check (created_at BETWEEN '2015-11-01' AND '2015-11-30T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201512 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2015-12-01' AND '2015-12-31')
+    check (created_at BETWEEN '2015-12-01' AND '2015-12-31T23:59:59')
 ) INHERITS (journal);
 
 # --- !Downs

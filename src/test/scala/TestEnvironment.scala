@@ -106,7 +106,7 @@ abstract class TestEnvironment(writeToDb: Boolean = true)
     s"""
       |CREATE TABLE ${journalTable}_${suffix}  (
       |  PRIMARY KEY(id),
-      |  check (created_at BETWEEN '${checkDate}01' AND '${checkDate}${checkDateDay}')
+      |  check (created_at BETWEEN '${checkDate}01' AND '${checkDate}${checkDateDay}T23:59:59')
       |) INHERITS (${journalTable})
     """.stripMargin
 

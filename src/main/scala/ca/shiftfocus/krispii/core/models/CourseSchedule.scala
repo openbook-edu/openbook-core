@@ -13,15 +13,15 @@ import org.joda.time.LocalDate
 import org.joda.time.LocalTime
 
 case class CourseSchedule(
-  id: UUID = UUID.randomUUID,
-  version: Long = 1L,
-  courseId: UUID,
-  day: LocalDate,
-  startTime: LocalTime,
-  endTime: LocalTime,
-  description: String,
-  createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime
+    id: UUID = UUID.randomUUID,
+    version: Long = 1L,
+    courseId: UUID,
+    day: LocalDate,
+    startTime: LocalTime,
+    endTime: LocalTime,
+    description: String,
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
 ) extends Schedule {
   override def equals(anotherObject: Any): Boolean = {
     anotherObject match {
@@ -37,7 +37,6 @@ case class CourseSchedule(
     }
   }
 }
-
 
 trait Schedule {
   def day: LocalDate

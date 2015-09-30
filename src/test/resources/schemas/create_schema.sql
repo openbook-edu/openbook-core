@@ -67,6 +67,7 @@ CREATE TABLE course_schedule_exceptions (
   start_time time,
   end_time time,
   reason text,
+  block boolean DEFAULT false,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
@@ -286,61 +287,61 @@ CREATE TABLE chat_logs (
 /* YEAR 2014 */
 CREATE TABLE journal_201401 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2014-01-01' AND '2014-01-31')
+    check (created_at BETWEEN '2014-01-01' AND '2014-01-31T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201402 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2014-02-01' AND '2014-02-28')
+    check (created_at BETWEEN '2014-02-01' AND '2014-02-28T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201403 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2014-03-01' AND '2014-03-31')
+    check (created_at BETWEEN '2014-03-01' AND '2014-03-31T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201404 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2014-04-01' AND '2014-04-30')
+    check (created_at BETWEEN '2014-04-01' AND '2014-04-30T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201405 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2014-05-01' AND '2014-05-31')
+    check (created_at BETWEEN '2014-05-01' AND '2014-05-31T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201406 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2014-06-01' AND '2014-06-30')
+    check (created_at BETWEEN '2014-06-01' AND '2014-06-30T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201407 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2014-07-01' AND '2014-07-31')
+    check (created_at BETWEEN '2014-07-01' AND '2014-07-31T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201408 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2014-08-01' AND '2014-08-31')
+    check (created_at BETWEEN '2014-08-01' AND '2014-08-31T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201409 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2014-09-01' AND '2014-09-30')
+    check (created_at BETWEEN '2014-09-01' AND '2014-09-30T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201410 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2014-10-01' AND '2014-10-31')
+    check (created_at BETWEEN '2014-10-01' AND '2014-10-31T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201411 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2014-11-01' AND '2014-11-30')
+    check (created_at BETWEEN '2014-11-01' AND '2014-11-30T23:59:59')
 ) INHERITS (journal);
 
 CREATE TABLE journal_201412 (
     PRIMARY KEY(id),
-    check (created_at BETWEEN '2014-12-01' AND '2014-12-31')
+    check (created_at BETWEEN '2014-12-01' AND '2014-12-31T23:59:59')
 ) INHERITS (journal);
 

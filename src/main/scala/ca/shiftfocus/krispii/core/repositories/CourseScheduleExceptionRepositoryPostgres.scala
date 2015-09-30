@@ -38,7 +38,7 @@ class CourseScheduleExceptionRepositoryPostgres(
 
   val Fields = "id, version, created_at, updated_at, user_id, course_id, day, start_time, end_time, reason, block"
   val Table = "course_schedule_exceptions"
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 
   // User CRUD operations
   val SelectAll =
@@ -195,9 +195,9 @@ class CourseScheduleExceptionRepositoryPostgres(
         courseScheduleException.reason,
         courseScheduleException.version + 1,
         new DateTime,
+        courseScheduleException.block,
         courseScheduleException.id,
-        courseScheduleException.version,
-        courseScheduleException.block
+        courseScheduleException.version
       )))
       _ <- lift(cache.removeCached(cacheExceptionKey(updated.id)))
       _ <- lift(cache.removeCached(cacheExceptionsKey(updated.courseId)))

@@ -764,8 +764,8 @@ class ProjectServiceDefault(
       case Some((orderedTask, originalTask)) => {
         if (originalTask.position != i + 1 || originalTask.partId != orderedTask.partId) {
           orderedTask match {
-            case task: DocumentTask => taskRepository.update(task.copy(position = i + 1))
-            case task: QuestionTask => taskRepository.update(task.copy(position = i + 1))
+            case task: DocumentTask => taskRepository.update(task.copy(position = i + 1), Some(originalTask.partId))
+            case task: QuestionTask => taskRepository.update(task.copy(position = i + 1), Some(originalTask.partId))
           }
         }
         else {

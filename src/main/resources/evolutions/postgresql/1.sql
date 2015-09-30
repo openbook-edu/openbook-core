@@ -69,6 +69,7 @@ CREATE TABLE course_schedule_exceptions (
   start_time time,
   end_time time,
   reason text,
+  block boolean DEFAULT false,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );

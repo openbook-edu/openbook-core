@@ -41,7 +41,7 @@ libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-jdbc-evolutions" % "2.4.0",
   // We heavily depend on scalaz's \/ and associated types
   "org.scalaz" %% "scalaz-core" % "7.1.2",
-  "com.github.mauricio" %% "postgresql-async" % "0.2.17-SNAPSHOT",
+  "com.github.mauricio" %% "postgresql-async" % "0.2.18",
   "joda-time" % "joda-time" % "2.1",
   "net.sf.uadetector" % "uadetector-resources" % "2014.04",
   "com.github.cb372" %% "scalacache-redis" % "0.6.1",

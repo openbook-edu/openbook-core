@@ -30,14 +30,15 @@ class CourseScheduleExceptionRepositoryPostgres(
       row("start_time").asInstanceOf[LocalTime],
       row("end_time").asInstanceOf[LocalTime],
       row("reason").asInstanceOf[String],
+      row("block").asInstanceOf[Boolean],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
   }
 
-  val Fields = "id, version, created_at, updated_at, user_id, course_id, day, start_time, end_time, reason"
+  val Fields = "id, version, created_at, updated_at, user_id, course_id, day, start_time, end_time, reason, block"
   val Table = "course_schedule_exceptions"
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?,?"
 
   // User CRUD operations
   val SelectAll =
@@ -63,7 +64,7 @@ class CourseScheduleExceptionRepositoryPostgres(
   val Update =
     s"""
        |UPDATE $Table
-       |SET user_id = ?, course_id = ?, day = ?, start_time = ?, end_time = ?, reason = ?, version = ?, updated_at = ?
+       |SET user_id = ?, course_id = ?, day = ?, start_time = ?, end_time = ?, reason = ?, version = ?, updated_at = ?, block = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $Fields
@@ -167,7 +168,8 @@ class CourseScheduleExceptionRepositoryPostgres(
         courseScheduleException.day,
         courseScheduleException.startTime,
         courseScheduleException.endTime,
-        courseScheduleException.reason
+        courseScheduleException.reason,
+        courseScheduleException.block
       )))
       _ <- lift(cache.removeCached(cacheExceptionKey(inserted.id)))
       _ <- lift(cache.removeCached(cacheExceptionsKey(inserted.courseId)))
@@ -194,7 +196,8 @@ class CourseScheduleExceptionRepositoryPostgres(
         courseScheduleException.version + 1,
         new DateTime,
         courseScheduleException.id,
-        courseScheduleException.version
+        courseScheduleException.version,
+        courseScheduleException.block
       )))
       _ <- lift(cache.removeCached(cacheExceptionKey(updated.id)))
       _ <- lift(cache.removeCached(cacheExceptionsKey(updated.courseId)))

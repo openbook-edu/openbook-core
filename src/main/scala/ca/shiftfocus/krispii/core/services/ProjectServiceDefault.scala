@@ -109,16 +109,6 @@ class ProjectServiceDefault(
     for {
       user <- lift(authService.find(userId))
       project <- lift(projectRepository.find(projectId, user, fetchParts))
-      course <- lift(schoolService.findCourse(project.courseId))
-      projectFiltered <- lift {
-        if (userId == course.teacherId) {
-          if (fetchParts) projectRepository.find(project.id)
-          else Future.successful(\/-(project))
-        }
-        else {
-          projectRepository.find(project.id, user, fetchParts)
-        }
-      }
     } yield project
   }
 
@@ -135,7 +125,7 @@ class ProjectServiceDefault(
       course <- lift(schoolService.findCourse(project.courseId))
       projectFiltered <- lift {
         if (userId == course.teacherId) {
-          if (fetchParts) projectRepository.find(project.id)
+          if (fetchParts) projectRepository.find(project.id, true)
           else Future.successful(\/-(project))
         }
         else {

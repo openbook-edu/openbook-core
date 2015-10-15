@@ -2,7 +2,7 @@
 
 The core is a plain Scala sbt module that handles data services and domain logic for the krispii platform.  This is not intended to be run as a standalone project: written so that the underlying data storage and domain logic is independent from the interface it is served by. In practice this means that it should be imported by the krispii-api project, which will expose the functionality provided by core to the outside world via json-speaking HTTP endpoints.
 
-Core has two layers: repository layer, and services layer. Each layer has definition traits, definining the interfaces that each service and repository should implement, along with implementation classes. `AuthService` and `AuthServiceDefault`. `UserRepository` and `UserRepositoryPostgres`. They describe dependencies to abstract types, and concrete implementations are injected at "the top of the world" where, for example, a configuration value could decide between the use of MySQL or Postgres repositories.
+Core has two layers: repository layer, and services layer. Each layer has definition traits, definining the interfaces that each service and repository should implement, along with implementation classes. `AuthService` and `AuthServiceDefault`. `UserRepository` and `UserRepositoryPostgres`. They describe dependencies to abstract types, and concrete implementations are injected at "the top of the world" where, for example, a configuration value could decide between the use of MySQL or Postgres repositories..
 
 
 ## Repository layer

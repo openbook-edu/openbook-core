@@ -171,7 +171,7 @@ class WorkServiceDefault(
           response = Some(document)
         )
         work <- lift(workRepository.insert(newWork))
-      } yield work.asInstanceOf[DocumentWork]
+      } yield work.asInstanceOf[DocumentWork].copy(response = Some(document))
     }
   }
 
@@ -193,7 +193,6 @@ class WorkServiceDefault(
       for {
         user <- lift(fUser)
         task <- lift(fTask)
-        document <- lift(documentService.create(UUID.randomUUID, user, "", Delta(IndexedSeq())))
         newWork = QuestionWork(
           studentId = userId,
           taskId = taskId,

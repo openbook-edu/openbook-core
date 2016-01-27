@@ -345,3 +345,9 @@ CREATE TABLE journal_201412 (
     check (created_at BETWEEN '2014-12-01' AND '2014-12-31T23:59:59')
 ) INHERITS (journal);
 
+CREATE TABLE project_notes (
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  project_id uuid REFERENCES projects(id) ON DELETE RESTRICT,
+  document_id uuid REFERENCES documents(id) ON DELETE RESTRICT,
+  PRIMARY KEY (user_id, project_id)
+);

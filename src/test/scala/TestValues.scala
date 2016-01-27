@@ -2148,5 +2148,52 @@ object TestValues {
     hidden = false,
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
+  /* ---------------------- PROJECT_SCRATCHPADS ---------------------- */
+
+  val testProjectScratchpadA = ProjectScratchpad(
+    userId = testUserA.id,
+    projectId = testProjectA.id,
+    version = testDocumentK.version,
+    documentId = testDocumentJ.id,
+    createdAt = testDocumentJ.createdAt,
+    updatedAt = testDocumentJ.updatedAt
+  )
+
+  val testProjectScratchpadB = ProjectScratchpad(
+    userId = testUserA.id,
+    projectId = testProjectB.id,
+    version = testDocumentF.version,
+    documentId = testDocumentF.id,
+    createdAt = testDocumentF.createdAt,
+    updatedAt = testDocumentF.updatedAt
+  )
+
+  val testProjectScratchpad = ProjectScratchpad(
+    userId = testUserC.id,
+    projectId = testProjectB.id,
+    version = testDocumentN.version,
+    documentId = testDocumentN.id,
+    createdAt = testDocumentN.createdAt,
+    updatedAt = testDocumentN.updatedAt
+  )
+
+  val testProjectScratchpadD = ProjectScratchpad(
+    userId = testUserE.id,
+    projectId = testProjectB.id,
+    version = testDocumentO.version,
+    documentId = testDocumentO.id,
+    createdAt = testDocumentO.createdAt,
+    updatedAt = testDocumentO.updatedAt
+  )
+  //scratchPad that is not in the database, mysterious stranger
+  val testProjectScratchpadX = ProjectScratchpad(
+    userId = testUserA.id,
+    projectId = testProjectC.id,
+    documentId = testDocumentJ.id,
+    document = Some(testDocumentJ),
+    version = testDocumentJ.version,
+    createdAt = testDocumentJ.createdAt,
+    updatedAt = testDocumentJ.updatedAt
+  )
 }
 

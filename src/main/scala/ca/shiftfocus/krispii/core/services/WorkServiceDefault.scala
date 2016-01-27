@@ -22,7 +22,9 @@ class WorkServiceDefault(
   val componentService: ComponentService,
   val workRepository: WorkRepository,
   val taskFeedbackRepository: TaskFeedbackRepository,
-  val taskScratchpadRepository: TaskScratchpadRepository
+  val taskScratchpadRepository: TaskScratchpadRepository,
+  val projectScratchpadRepository: ProjectScratchpadRepository
+
 )
     extends WorkService {
 
@@ -499,6 +501,71 @@ class WorkServiceDefault(
         )
         // Insert the new feedback
         createdFeedback <- lift(taskScratchpadRepository.insert(newScratchpad))
+      } yield createdFeedback
+    }
+  }
+
+  /*
+  * -----------------------------------------------------------
+  * ProjectScratchpad methods
+  * -----------------------------------------------------------
+  */
+
+  /**
+   * List all of a user's task scratchpads in a project.
+   *
+   * @param userId the unique ID of the user to list for
+   * @param projectId the project within which to search for task scratchpads
+   * @return a vector of responses
+   */
+  override def listProjectScratchpads(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[ProjectScratchpad]]] = {
+    val fUser = authService.find(userId)
+    for {
+      user <- lift(fUser)
+      responses <- lift(projectScratchpadRepository.list(user))
+    } yield responses
+  }
+  /**
+   * Find the latest revision of a user's task scratchpad to a task.
+   *
+   * @param userId the unique ID of the user to list for
+   * @param projectId the project within which to search for task scratchpads
+   * @return an optional response
+   */
+  override def findProjectScratchpad(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, ProjectScratchpad]] = {
+    val fUser = authService.find(userId)
+    val fProject = projectService.find(projectId)
+
+    for {
+      user <- lift(fUser)
+      project <- lift(fProject)
+      responses <- lift(projectScratchpadRepository.find(user, project))
+    } yield responses
+  }
+
+  /**
+   * Create a new task task scratchpad.
+   *
+   * @param userId the unique ID of the user whose component scratchpad it is
+   * @param projectId the unique ID of the project this project scratchpad is for
+   * @return the updated task scratchpad
+   */
+  override def createProjectScratchpad(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, ProjectScratchpad]] = {
+    transactional { implicit conn =>
+      val fStudent = authService.find(userId)
+      val fProject = projectService.findTask(projectId)
+
+      for {
+        student <- lift(fStudent)
+        project <- lift(fProject)
+        document <- lift(documentService.create(UUID.randomUUID, student, "", Delta(IndexedSeq())))
+        newScratchpad = ProjectScratchpad(
+          userId = student.id,
+          projectId = project.id,
+          documentId = document.id
+        )
+        // Insert the new feedback
+        createdFeedback <- lift(projectScratchpadRepository.insert(newScratchpad))
       } yield createdFeedback
     }
   }

@@ -32,13 +32,13 @@ scalacOptions in ThisBuild ++= Seq(
   "-Ywarn-value-discard",
   "-Ywarn-inaccessible",
   "-Ywarn-dead-code",
-  "-P:linter:disable:OptionOfOption+PreferIfToBooleanMatch"
+  "-P:linterhttps://fls.dev.shiftfocus.ca/uploads/students5d364485-8407-493b-8206-042817c8d6c5.students:disable:OptionOfOption+PreferIfToBooleanMatch"
 )
 
 libraryDependencies ++= Seq(
   // We depend on several parts of the Play project
   "com.typesafe.play" %% "play-json" % "2.4.0",
-  "com.typesafe.play" %% "play-jdbc-evolutions" % "2.4.0",
+//  "com.typesafe.play" %% "play-jdbc-evolutions" % "2.4.0",
   // We heavily depend on scalaz's \/ and associated types
   "org.scalaz" %% "scalaz-core" % "7.1.2",
   "com.github.mauricio" %% "postgresql-async" % "0.2.18",
@@ -55,7 +55,7 @@ libraryDependencies ++= Seq(
   "ws.kahn" %% "ot" % "1.0-SNAPSHOT"
 )
 
-addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % "0.1.12")
+//addCompilerPlugin("com.foursquare.lint" %% "linter" % "0.1.10")
 
 import scalariform.formatter.preferences._
 scalariformSettings

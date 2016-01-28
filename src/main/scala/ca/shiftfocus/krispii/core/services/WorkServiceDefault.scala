@@ -553,7 +553,7 @@ class WorkServiceDefault(
   override def createProjectScratchpad(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, ProjectScratchpad]] = {
     transactional { implicit conn =>
       val fStudent = authService.find(userId)
-      val fProject = projectService.findTask(projectId)
+      val fProject = projectService.find(projectId)
 
       for {
         student <- lift(fStudent)

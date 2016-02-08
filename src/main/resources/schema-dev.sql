@@ -40,7 +40,7 @@ CREATE TABLE courses (
   slug text UNIQUE,
   enabled boolean DEFAULT false,
   scheduling_enabled boolean DEFAULT false,
-  chat_enabled boolean DEFAULT true,
+  chat_enabled boolean DEFAULT false,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );

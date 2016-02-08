@@ -51,4 +51,9 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   def findTaskScratchpad(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, TaskScratchpad]]
   def createTaskScratchpad(userId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, TaskScratchpad]]
 
+  // Project notes
+  def listProjectScratchpads(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[ProjectScratchpad]]]
+  def findProjectScratchpad(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, ProjectScratchpad]]
+  def createProjectScratchpad(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, ProjectScratchpad]]
+
 }

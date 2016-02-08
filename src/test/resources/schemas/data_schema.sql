@@ -776,3 +776,21 @@ VALUES ('217c5622ff9e43728e6a95fb3bae300b', 5, 'f5f984073a0b4ea5952a575886e90586
 /* chatF */
 INSERT INTO chat_logs (course_id, message_num, user_id, message, hidden, created_at)
 VALUES ('217c5622ff9e43728e6a95fb3bae300b', 6, 'f5f984073a0b4ea5952a575886e90586', 'testChatF message', false, '2014-08-06 14:01:19.545-04');
+
+/* -----------------------  ProjectScratchpads  ----------------------- */
+/* projectScratchpadA  user a project a document j*/
+INSERT INTO project_notes (user_id, project_id, document_id)
+VALUES ('36c8c0ca50aa4806afa5916a5e33a81f', 'c9b4cfceaed448fd94f5c980763dfddc', '30739c6d43774a2f8aa3d1240dfb0740');
+
+/* taskScratchpadB  user a project b document f*/
+INSERT INTO project_notes (user_id, project_id, document_id)
+VALUES ('36c8c0ca50aa4806afa5916a5e33a81f', 'e4ae3b9098714339b05c8d39e3aaf65d', '1a9d5407b3c444a18e7e1d7e9578eabc');
+
+/* taskScratchpadC */
+INSERT INTO project_notes (user_id, project_id, document_id)
+VALUES ('f5f984073a0b4ea5952a575886e90586', 'e4ae3b9098714339b05c8d39e3aaf65d', '196a1793c6884f66b725a8353dd1ac67');
+
+/* taskScratchpadD */
+INSERT INTO project_notes (user_id, project_id, document_id)
+VALUES ('871b525067124e548ab60784cae0bc64', 'e4ae3b9098714339b05c8d39e3aaf65d', '78b9baaf16b743a39cec410104cdde4e');
+

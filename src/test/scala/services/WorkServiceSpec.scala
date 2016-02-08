@@ -32,13 +32,14 @@ class WorkServiceSpec
   val workRepository = stub[WorkRepository]
   val taskFeedbackRepository = stub[TaskFeedbackRepository]
   val taskScratchpadRepository = stub[TaskScratchpadRepository]
+  val projectScratchpadRepository = stub[ProjectScratchpadRepository]
 
   val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, sessionRepository)
   val schoolService = stub[SchoolService]
   val projectService = stub[ProjectService]
   val documentService = new DocumentServiceDefault(db, cache, userRepository, documentRepository, revisionRepository)
   val componentService = stub[ComponentService]
-  val workService = new WorkServiceDefault(db, authService, schoolService, projectService, documentService, componentService, workRepository, taskFeedbackRepository, taskScratchpadRepository) {
+  val workService = new WorkServiceDefault(db, authService, schoolService, projectService, documentService, componentService, workRepository, taskFeedbackRepository, taskScratchpadRepository, projectScratchpadRepository) {
     override implicit def conn: Connection = mockConnection
 
     override def transactional[A](f: Connection => Future[A]): Future[A] = {

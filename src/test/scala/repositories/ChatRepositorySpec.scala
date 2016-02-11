@@ -1,13 +1,13 @@
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.Chat
 import ca.shiftfocus.krispii.core.repositories.ChatRepositoryPostgres
+import org.scalatest.Matchers._
 import org.scalatest._
-import Matchers._
 
 import scala.collection.immutable.TreeMap
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import scalaz.{ -\/, \/- }
+import scalaz.{-\/, \/-}
 
 class ChatRepositorySpec
     extends TestEnvironment {

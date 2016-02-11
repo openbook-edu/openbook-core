@@ -25,6 +25,14 @@ CREATE TABLE users_roles (
   PRIMARY KEY (user_id, role_id)
 );
 
+
+CREATE TABLE activations (
+  user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  nonce text UNIQUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+);
+
+
 CREATE TABLE courses (
   id uuid PRIMARY KEY,
   version bigint,

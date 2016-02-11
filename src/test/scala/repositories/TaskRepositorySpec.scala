@@ -1,12 +1,11 @@
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.repositories.TaskRepositoryPostgres
-import scala.collection.immutable.TreeMap
 import ca.shiftfocus.krispii.core.models.tasks._
-
+import ca.shiftfocus.krispii.core.repositories.TaskRepositoryPostgres
+import org.scalatest.Matchers._
 import org.scalatest._
-import Matchers._
-import scala.concurrent.{ Future, Await }
+
 import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 import scalaz._
 
 class TaskRepositorySpec

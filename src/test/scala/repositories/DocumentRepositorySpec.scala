@@ -1,16 +1,15 @@
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.document._
-import ca.shiftfocus.krispii.core.repositories.{ RevisionRepository, DocumentRepositoryPostgres }
+import ca.shiftfocus.krispii.core.repositories.{DocumentRepositoryPostgres, RevisionRepository}
 import com.github.mauricio.async.db.Connection
-import ws.kahn.ot.exceptions.IncompatibleDeltasException
-import ws.kahn.ot.{ Retain, InsertText, Delete, Delta }
-
-import scala.concurrent.{ Future, Await }
-import scala.concurrent.duration.Duration
-import scalaz.{ -\/, \/- }
-
+import org.scalatest.Matchers._
 import org.scalatest._
-import Matchers._
+import ws.kahn.ot.exceptions.IncompatibleDeltasException
+import ws.kahn.ot.{Delete, Delta, InsertText, Retain}
+
+import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
+import scalaz.{-\/, \/-}
 
 class DocumentRepositorySpec
     extends TestEnvironment {

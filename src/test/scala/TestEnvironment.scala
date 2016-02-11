@@ -10,7 +10,9 @@ import com.typesafe.config.ConfigFactory
 import grizzled.slf4j.Logger
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
+import org.junit.runner.RunWith
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.junit.JUnitRunner
 import org.scalatest.{ BeforeAndAfter, Suite, MustMatchers, WordSpec }
 import scala.concurrent.duration.Duration
 import scalacache.ScalaCache
@@ -24,6 +26,7 @@ import scalaz.{ \/-, -\/ }
  *
  * @param writeToDb Populate test DB with tables and values
  */
+@RunWith(classOf[JUnitRunner])
 abstract class TestEnvironment(writeToDb: Boolean = true)
     extends WordSpec
     with MustMatchers

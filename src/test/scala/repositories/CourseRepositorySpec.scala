@@ -1,15 +1,17 @@
 import java.awt.Color
-import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.{ User, Course }
-import ca.shiftfocus.krispii.core.repositories._
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.error.RepositoryError
+import ca.shiftfocus.krispii.core.models.{Course, User}
+import ca.shiftfocus.krispii.core.repositories._
+import org.scalatest.Matchers._
 import org.scalatest._
-import Matchers._
+
 import scala.collection._
 import scala.collection.immutable.TreeMap
-import scala.concurrent.{ Future, Await }
 import scala.concurrent.duration.Duration
-import scalaz.{ -\/, \/- }
+import scala.concurrent.{Await, Future}
+import scalaz.{-\/, \/-}
 
 class CourseRepositorySpec
     extends TestEnvironment {

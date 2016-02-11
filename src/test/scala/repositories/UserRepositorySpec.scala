@@ -1,14 +1,16 @@
-import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.{ Role, User }
 import java.util.UUID
-import scala.collection.immutable.TreeMap
-import scala.concurrent.{ Future, Await }
-import scala.concurrent.duration._
+
+import ca.shiftfocus.krispii.core.error.RepositoryError
+import ca.shiftfocus.krispii.core.models.{Role, User}
 import ca.shiftfocus.krispii.core.repositories.UserRepositoryPostgres
+import org.scalatest.Matchers._
 import org.scalatest._
-import Matchers._
-import collection.breakOut
-import scalaz.{ -\/, \/- }
+
+import scala.collection.breakOut
+import scala.collection.immutable.TreeMap
+import scala.concurrent.duration._
+import scala.concurrent.{Await, Future}
+import scalaz.{-\/, \/-}
 
 class UserRepositorySpec
     extends TestEnvironment {

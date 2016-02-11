@@ -1,15 +1,15 @@
-import ca.shiftfocus.krispii.core.error.RepositoryError
-import com.github.mauricio.async.db.RowData
-import scala.collection._
-import scala.collection.immutable.TreeMap
-import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.repositories.{ UserRepositoryPostgres, RoleRepositoryPostgres }
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.error.RepositoryError
+import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.repositories.{RoleRepositoryPostgres, UserRepositoryPostgres}
+import org.scalatest.Matchers._
 import org.scalatest._
-import Matchers._
-import scala.concurrent.{ Future, Await }
+
+import scala.collection.immutable.TreeMap
 import scala.concurrent.duration.Duration
-import scalaz.{ -\/, \/- }
+import scala.concurrent.{Await, Future}
+import scalaz.{-\/, \/-}
 
 class RoleRepositorySpec
     extends TestEnvironment {

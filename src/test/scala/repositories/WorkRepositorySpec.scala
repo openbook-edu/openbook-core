@@ -1,15 +1,16 @@
-import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.work._
-import ca.shiftfocus.krispii.core.models.document._
-import ca.shiftfocus.krispii.core.repositories._
 import java.util.UUID
-import com.github.mauricio.async.db.Connection
 
+import ca.shiftfocus.krispii.core.error.RepositoryError
+import ca.shiftfocus.krispii.core.models.document._
+import ca.shiftfocus.krispii.core.models.work._
+import ca.shiftfocus.krispii.core.repositories._
+import com.github.mauricio.async.db.Connection
+import org.scalatest.Matchers._
 import org.scalatest._
-import Matchers._
+
 import scala.collection.immutable.TreeMap
-import scala.concurrent.{ Future, Await }
 import scala.concurrent.duration.Duration
+import scala.concurrent.{Await, Future}
 import scala.util.Right
 import scalaz._
 

@@ -4,6 +4,8 @@ import ca.shiftfocus.krispii.core.models.User
 import java.util.UUID
 import com.github.mauricio.async.db.Connection
 import org.joda.time.DateTime
+import org.junit.runner.RunWith
+import org.scalatest.junit.JUnitRunner
 import scala.concurrent.{ Future, ExecutionContext, Await }
 import scala.concurrent.duration._
 import ca.shiftfocus.krispii.core.services._
@@ -14,6 +16,10 @@ import org.scalatest._
 import Matchers._ // Is used for "should be and etc."
 import scalaz.{ -\/, \/, \/- }
 
+
+
+
+@RunWith(classOf[JUnitRunner])
 class AuthServiceSpec
     extends TestEnvironment(writeToDb = false) {
   // Create stubs of AuthService's dependencies

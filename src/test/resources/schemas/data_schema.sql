@@ -28,7 +28,11 @@ VALUES ('c4d948967e1b45fabae74fb3a89a4d63', 6, 'testUserG@example.com', 'testUse
 INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
 VALUES ('5099a6b48809400d8e380119184d0f93', 7, 'testUserH@example.com', 'testUserH', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestH', 'UserH', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
-
+/* user for activation tests, no references in other tables */
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
+VALUES ('8b6dc674-d1ae-11e5-9080-08626681851d', 1, 'rafael@krispii.com', 'rafael', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'Rafael', 'Yanez', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
+VALUES ('7c62a526-d1b0-11e5-9080-08626681851d', 1, 'yanez@krispii.com', 'yanez', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'Antonio', 'Yanez', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 /* ---------------------- ROLES ---------------------- */
 
 /* role A */
@@ -794,3 +798,16 @@ VALUES ('f5f984073a0b4ea5952a575886e90586', 'e4ae3b9098714339b05c8d39e3aaf65d', 
 INSERT INTO project_notes (user_id, project_id, document_id)
 VALUES ('871b525067124e548ab60784cae0bc64', 'e4ae3b9098714339b05c8d39e3aaf65d', '78b9baaf16b743a39cec410104cdde4e');
 
+/* activation */
+INSERT INTO activations (user_id, nonce)
+VALUES ('8b6dc674-d1ae-11e5-9080-08626681851d', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=');
+
+--INSERT INTO activations (user_id, nonce)
+--VALUES ('8b6dc674-d1ae-11e5-9080-08626681851d', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=');
+/* activation */
+--INSERT INTO activations (user_id, nonce)
+--VALUES ('7c62a526-d1b0-11e5-9080-08626681851d', '$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=');
+--7c62a526-d1b0-11e5-9080-08626681851d
+/* activation */
+--INSERT INTO activations (user_id, nonce)
+--VALUES ('7c62a526-d1b0-11e5-9080-08626681851d', '$s0$100801$Im7kWa5XcOMHIilt7AIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=');

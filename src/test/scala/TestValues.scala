@@ -2148,6 +2148,7 @@ object TestValues {
     hidden = false,
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
+
   /* ---------------------- PROJECT_SCRATCHPADS ---------------------- */
 
   val testProjectScratchpadA = ProjectScratchpad(
@@ -2194,6 +2195,29 @@ object TestValues {
     version = testDocumentJ.version,
     createdAt = testDocumentJ.createdAt,
     updatedAt = testDocumentJ.updatedAt
+  )
+
+  val testUserToken = UserToken(
+    userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
+    token = "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="
+//    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testUserTokenEmail = UserToken(
+    userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
+    token = "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="
+//    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testUserTokenInsert = UserToken(
+    userId = UUID.fromString("4d01347e-c592-4e5f-b09f-dd281b3d9b87"),
+    token = "$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7xjMLFYE="
+//    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+  val testUserTokenDelete = UserToken(
+    userId = UUID.fromString("7c62a526-d1b0-11e5-9080-08626681851d"),
+    token = "$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="
+    //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 }
 

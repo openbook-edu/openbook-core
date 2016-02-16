@@ -16,9 +16,6 @@ import org.scalatest._
 import Matchers._ // Is used for "should be and etc."
 import scalaz.{ -\/, \/, \/- }
 
-
-
-
 @RunWith(classOf[JUnitRunner])
 class AuthServiceSpec
     extends TestEnvironment(writeToDb = false) {
@@ -28,9 +25,10 @@ class AuthServiceSpec
   val userRepository = stub[UserRepository]
   val roleRepository = stub[RoleRepository]
   val sessionRepository = stub[SessionRepository]
+  val activationRepository = stub[ActivationRepository]
 
   // Create a real instance of AuthService for testing
-  val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, sessionRepository) {
+  val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, activationRepository, sessionRepository) {
     override implicit def conn: Connection = mockConnection
 
     override def transactional[A](f: Connection => Future[A]): Future[A] = {
@@ -539,5 +537,73 @@ class AuthServiceSpec
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
     }
+  }
+
+
+  "AuthService.findActivation" in {
+    val testActivation = TestValues.testUserToken
+
+    (activationRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when ("rafael@krispii.com", *, *) returns (Future.successful(\/-(testActivation)))
+
+    val result = authService.findActivation("rafael@krispii.com")
+
+    val eitherAction = Await.result(result, Duration.Inf)
+    val \/-(action) = eitherAction
+
+    action.userId should be(testActivation.userId)
+    action.token should be(action.token)
+
+  }
+
+  "AuthService.activate user" in {
+    val userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d")
+    val testUser = User(
+      id = userId,
+      version = 1L,
+      email = "rafael@krispii.com",
+      username = "rafaelya",
+      hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
+      givenname = "Rafael",
+      surname = "Yanez"
+    )
+    val testRoleList = Vector(
+      TestValues.testRoleTeacher
+    )
+    val testActivation = TestValues.testUserToken
+    (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId , *, *) returns (Future.successful(\/-(testUser)))
+    (roleRepository.list(_: User)(_: Connection, _: ScalaCachePool)) when (testUser, *, *) returns (Future.successful(\/.right(testRoleList)))
+    (activationRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId, *, *) returns (Future.successful(\/-(testActivation)))
+    (roleRepository.addToUser(_: User, _: String)(_: Connection, _: ScalaCachePool)) when
+      (testUser, "authenticated", *, *) returns (Future.successful(\/.right(testRoleList)))
+    (activationRepository.delete(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId, *, *) returns (Future.successful(\/-(testActivation)))
+
+    val result = authService.activate(userId, "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=")
+    val eitherAction = Await.result(result, Duration.Inf)
+    val \/-(action) = eitherAction
+
+    action.id should be(testUser.id)
+  }
+
+  "AuthService.activate invalid activation code" in {
+    val userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d")
+    val testUser = User(
+      id = userId,
+      version = 1L,
+      email = "rafael@krispii.com",
+      username = "rafaelya",
+      hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
+      givenname = "Rafael",
+      surname = "Yanez"
+    )
+    val testRoleList = Vector(
+      TestValues.testRoleTeacher
+    )
+    val testActivation = TestValues.testUserToken
+    (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId , *, *) returns (Future.successful(\/-(testUser)))
+    (roleRepository.list(_: User)(_: Connection, _: ScalaCachePool)) when (testUser, *, *) returns (Future.successful(\/.right(testRoleList)))
+    (activationRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId, *, *) returns (Future.successful(\/-(testActivation)))
+
+    val result = authService.activate(userId, "$s0$100801$Im7kWa5XcOMHIilt7VTonA6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=")
+    Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput("Wrong activation code!")))
   }
 }

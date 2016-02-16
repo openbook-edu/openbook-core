@@ -33,8 +33,9 @@ class WorkServiceSpec
   val taskFeedbackRepository = stub[TaskFeedbackRepository]
   val taskScratchpadRepository = stub[TaskScratchpadRepository]
   val projectScratchpadRepository = stub[ProjectScratchpadRepository]
+  val activationRepository = stub[ActivationRepository]
 
-  val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, sessionRepository)
+  val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, activationRepository, sessionRepository)
   val schoolService = stub[SchoolService]
   val projectService = stub[ProjectService]
   val documentService = new DocumentServiceDefault(db, cache, userRepository, documentRepository, revisionRepository)

@@ -29,6 +29,10 @@ sealed trait BadParamT extends ErrorUnion {
   case class BadParam(message: String) extends Fail
 }
 
+sealed trait MailerFailT extends ErrorUnion {
+  case class MailerFail(message: String, exception: Option[Throwable] = None) extends Fail
+}
+
 // Service errors
 sealed trait BadInputT extends ErrorUnion {
   case class BadInput(message: String) extends Fail
@@ -59,6 +63,7 @@ object ServiceError
   with BusinessLogicFailT
   with NotScheduledT
   with OfflineLockFailT
+  with MailerFailT
 
 // And an exception for when you don't want to expect particular fails
 case class UnexpectedFailException(fail: ErrorUnion#Fail) extends Exception

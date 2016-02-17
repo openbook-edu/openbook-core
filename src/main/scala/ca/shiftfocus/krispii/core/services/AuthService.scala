@@ -5,6 +5,7 @@ import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories.{ SessionRepository, CourseRepository, RoleRepository, UserRepository }
 import java.util.UUID
+
 import scala.concurrent.Future
 import scalacache.ScalaCache
 import scalaz.\/
@@ -44,7 +45,6 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * List users with filter for roles and courses.
    *
    * @param rolesFilter an optional list of roles to filter by
-   * @param coursesFilter an optional list of courses to filter by
    * @return a list of users with their roles and courses
    */
   def list(rolesFilter: IndexedSeq[String]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
@@ -81,6 +81,25 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     givenname: String,
     surname: String,
     id: UUID = UUID.randomUUID
+  ): Future[\/[ErrorUnion#Fail, User]]
+
+  /**
+   * Creates a new user with the given role.
+   * @param username
+   * @param email
+   * @param password
+   * @param givenname
+   * @param surname
+   * @param role
+   * @return
+   */
+  def createWithRole(
+    username: String,
+    email: String,
+    password: String,
+    givenname: String,
+    surname: String,
+    role: String
   ): Future[\/[ErrorUnion#Fail, User]]
 
   /**
@@ -156,7 +175,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   /**
    * List all roles for one user.
    *
-   * @param user  The user whose roles should be listed.
+   * @param userId  The user whose roles should be listed.
    * @return an array of this user's Roles
    */
   def listRoles(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Role]]]
@@ -172,7 +191,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   /**
    * Find a specific role by name
    *
-   * @param id  the name of the Role to find
+   * @param name  the name of the Role to find
    * @return an optional Role
    */
   def findRole(name: String): Future[\/[ErrorUnion#Fail, Role]]

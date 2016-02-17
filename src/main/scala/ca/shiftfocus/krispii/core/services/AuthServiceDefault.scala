@@ -11,7 +11,7 @@ import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import com.github.mauricio.async.db.Connection
 import org.apache.commons.mail.EmailException
 import play.api.Logger
-import play.api.libs.mailer.{Email, MailerClient}
+import play.api.libs.mailer.{ Email, MailerClient }
 import scala.concurrent.ExecutionContext.Implicits.global
 import play.api.i18n.{ MessagesApi, Messages }
 import scala.concurrent.Future
@@ -26,7 +26,8 @@ class AuthServiceDefault(
   val roleRepository: RoleRepository,
   val activationRepository: ActivationRepository,
   val sessionRepository: SessionRepository,
-  val mailerClient: MailerClient
+  val mailerClient: MailerClient,
+  val messagesApi: MessagesApi
 )
     extends AuthService {
 
@@ -232,6 +233,39 @@ class AuthServiceDefault(
         _ <- lift(activationRepository.insert(newUser.id, token))
       } yield newUser
     }
+  }
+
+  /**
+   * Creates a new user with the given role.
+   * @param username
+   * @param email
+   * @param password
+   * @param givenname
+   * @param surname
+   * @param role
+   * @return
+   */
+  override def createWithRole(
+    username: String,
+    email: String,
+    password: String,
+    givenname: String,
+    surname: String,
+    role: String
+  ): Future[\/[ErrorUnion#Fail, User]] = {
+    val messages = messagesApi
+    val emailForNew = Email(
+      messages("activate.confirm.subject.new"), //subject
+      messages("activate.confirm.from"), //from
+      Seq(givenname + " " + surname + " <" + email + ">"), //to
+      bodyText = Some(messages("activate.confirm.message", givenname, surname, email, email)) //text
+    )
+    val fUser = for {
+      user <- lift(this.create(username, email, password, givenname, surname))
+      _ <- lift(addRole(user.id, role))
+      _ <- lift(sendAsyncEmail(emailForNew))
+    } yield user
+    fUser.run
   }
 
   /**
@@ -614,6 +648,7 @@ class AuthServiceDefault(
       val fUser = userRepository.find(userId)(db.pool, cache)
       for {
         user <- lift(fUser)
+
         roles <- lift(roleRepository.list(user))
         token <- lift(activationRepository.find(user.id))
         _ <- predicate(activationCode == token.token)(ServiceError.BadInput("Wrong activation code!"))
@@ -657,18 +692,16 @@ class AuthServiceDefault(
    * @param email
    * @return
    */
-  private def sendAsyncEmail(email: Email): Future[\/[ErrorUnion#Fail, String]] = {
-    Future {
-      try {
-        mailerClient.send(email)
+  private def sendAsyncEmail(email: Email): Future[\/[ErrorUnion#Fail, String]] = Future {
+    try {
+      \/-(mailerClient.send(email))
+    }
+    catch {
+      case emailException: EmailException => {
+        Logger.error(ExceptionWriter.print(emailException))
+        -\/(ServiceError.MailerFail("E-mail sending failed.", Some(emailException)))
       }
-      catch {
-        case emailException: EmailException => {
-          Logger.error(ExceptionWriter.print(emailException))
-          ServiceError.MailerFail("E-mail sending failed.", Some(emailException))
-        }
-        case otherException: Throwable => throw otherException
-      }
+      case otherException: Throwable => throw otherException
     }
   }
 

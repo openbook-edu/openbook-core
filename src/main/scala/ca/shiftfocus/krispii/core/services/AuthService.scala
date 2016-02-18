@@ -250,13 +250,12 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   def removeUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]]
 
   /**
-    * Activates a new user.
-    * @param userId the UUID of the user to be activated
-    * @param activationCode the activation code to be verified
-    * @return
-    */
+   * Activates a new user.
+   * @param userId the UUID of the user to be activated
+   * @param activationCode the activation code to be verified
+   * @return
+   */
   def activate(userId: UUID, activationCode: String): Future[\/[ErrorUnion#Fail, User]]
-
 
   def findActivation(email: String): Future[\/[ErrorUnion#Fail, UserToken]]
 }

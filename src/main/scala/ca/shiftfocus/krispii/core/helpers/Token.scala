@@ -1,19 +1,19 @@
 package ca.shiftfocus.krispii.core.helpers
 
 import java.nio.ByteBuffer
-import java.security.{MessageDigest, SecureRandom}
+import java.security.{ MessageDigest, SecureRandom }
 
 /**
-  * Created by ryanez on 16/02/16.
-  * This a copy of the Nonce object used in the LCEEQ project to generate the token of authentication when
-  * a new user is being created.
-  */
+ * Created by ryanez on 16/02/16.
+ * This a copy of the Nonce object used in the LCEEQ project to generate the token of authentication when
+ * a new user is being created.
+ */
 object Token {
   val secureRandom = SecureRandom.getInstance("SHA1PRNG")
 
   /**
-    * Generate a reasonably secure random nonce for use as a user activation token.
-    */
+   * Generate a reasonably secure random nonce for use as a user activation token.
+   */
   def getNext = {
     val number = secureRandom.nextLong()
     val bytes = ByteBuffer.allocate(8).putLong(number).array()
@@ -50,6 +50,5 @@ object HexBytesUtil {
     val bytes3 = hex2bytes(data3)
     println(bytes2hex(bytes3))
   }
-
 
 }

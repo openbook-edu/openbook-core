@@ -9,7 +9,7 @@ import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.ExecutionContext.Implicits.global
-import play.api.i18n.{MessagesApi, Messages}
+import play.api.i18n.{ MessagesApi, Messages }
 import scala.concurrent.Future
 import scalacache.ScalaCache
 import scalaz.{ -\/, \/-, \/, EitherT }
@@ -599,72 +599,72 @@ class AuthServiceDefault(
   }
 
   /**
-    * Activates a user given the userId and the activationCode
-    * @param userId the UUID of the user to be activated
-    * @param activationCode the activation code to be verified
-    * @return
-    */
+   * Activates a user given the userId and the activationCode
+   * @param userId the UUID of the user to be activated
+   * @param activationCode the activation code to be verified
+   * @return
+   */
   override def activate(userId: UUID, activationCode: String): Future[\/[ErrorUnion#Fail, User]] = {
-     transactional { implicit conn =>
-       val fUser = userRepository.find(userId)(db.pool, cache)
-       for {
-          user <- lift(fUser)
-          roles <- lift(roleRepository.list(user))
-          token <- lift(activationRepository.find(user.id))
-          _ <- predicate(activationCode == token.token)(ServiceError.BadInput("Wrong activation code!"))
-          _ <- predicate(!roles.isEmpty)(ServiceError.BadInput("Trying to activate an existing user"))
-          _ <- lift(roleRepository.addToUser(user, "authenticated"))
-          deleted <- lift(activationRepository.delete(userId))
-       } yield user
-     }
+    transactional { implicit conn =>
+      val fUser = userRepository.find(userId)(db.pool, cache)
+      for {
+        user <- lift(fUser)
+        roles <- lift(roleRepository.list(user))
+        token <- lift(activationRepository.find(user.id))
+        _ <- predicate(activationCode == token.token)(ServiceError.BadInput("Wrong activation code!"))
+        _ <- predicate(!roles.isEmpty)(ServiceError.BadInput("Trying to activate an existing user"))
+        _ <- lift(roleRepository.addToUser(user, "authenticated"))
+        deleted <- lift(activationRepository.delete(userId))
+      } yield user
+    }
   }
 
   /**
-    * @inheritdoc
-    */
-//  def resendActivation(email: String)(messagesApi: MessagesApi): Future[\/[ErrorUnion#Fail, User]] = {
-//    for {
-//      user <- userRepository.find(email)(db.pool, cache)
-//      nonce <- activationRepository.find(user.id)(db.pool, cache)
-//      messages = messagesApi.preferred(Seq(user.languagePref))
-//      message = messages("activate.email.body", (configuration.getString("general.base_url").get + controllers.routes.Application.activateUser(user.id)), nonce.token)
-//      email = Email(
-//        messages("activate.email.subject"), //subject
-//        messages("activate.email.from"), //from
-//        Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
-//        bodyText = Some(message) //text
-//      )
-//      mail <- sendAsyncEmail(email)
-//    } yield user
-//  }
+   * @inheritdoc
+   */
+  //  def resendActivation(email: String)(messagesApi: MessagesApi): Future[\/[ErrorUnion#Fail, User]] = {
+  //    for {
+  //      user <- userRepository.find(email)(db.pool, cache)
+  //      nonce <- activationRepository.find(user.id)(db.pool, cache)
+  //      messages = messagesApi.preferred(Seq(user.languagePref))
+  //      message = messages("activate.email.body", (configuration.getString("general.base_url").get + controllers.routes.Application.activateUser(user.id)), nonce.token)
+  //      email = Email(
+  //        messages("activate.email.subject"), //subject
+  //        messages("activate.email.from"), //from
+  //        Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
+  //        bodyText = Some(message) //text
+  //      )
+  //      mail <- sendAsyncEmail(email)
+  //    } yield user
+  //  }
 
   /**
-    * Finds an activation code given the user's email
-    * @inheritdoc
-    */
+   * Finds an activation code given the user's email
+   * @inheritdoc
+   */
   override def findActivation(email: String): Future[\/[ErrorUnion#Fail, UserToken]] = {
     activationRepository.find(email)(db.pool, cache)
   }
 
   /**
-    * Send an e-mail within a Future.
-    *
-    * @param email
-    * @return
-    */
-//  private def sendAsyncEmail(email: Email): Expect[String] = Expect {
-//    Future {
-//      try {
-//        mailerClient.send(email).right
-//      }
-//      catch {
-//        case emailException: EmailException => {
-//          Logger.error(ExceptionWriter.print(emailException))
-//          MailerFail("E-mail sending failed.", Some(emailException)).left
-//        }
-//        case otherException: Throwable => throw otherException
-//      }
-//    }
-//  }
+   * Send an e-mail within a Future.
+   *
+   * @param email
+   * @return
+   */
+  //  private def sendAsyncEmail(email: Email): Expect[String] = Expect {
+  //    Future {
+  //      try {
+  //        mailerClient.send(email).right
+  //      }
+  //      catch {
+  //        case emailException: EmailException => {
+  //          Logger.error(ExceptionWriter.print(emailException))
+  //          MailerFail("E-mail sending failed.", Some(emailException)).left
+  //        }
+  //        case otherException: Throwable => throw otherException
+  //      }
+  //    }
+  //  }
 
 }

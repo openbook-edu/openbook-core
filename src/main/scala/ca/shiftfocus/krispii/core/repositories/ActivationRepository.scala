@@ -15,7 +15,6 @@ import scalaz.\/
  * Created by ryanez on 11/02/16.
  */
 trait ActivationRepository extends Repository {
-  def constructor(row: RowData): UserToken
   def find(userId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, UserToken]]
   def find(email: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, UserToken]]
   def insert(userId: UUID, nonce: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, UserToken]]

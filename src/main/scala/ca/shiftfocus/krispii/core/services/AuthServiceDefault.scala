@@ -7,7 +7,11 @@ import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
+import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import com.github.mauricio.async.db.Connection
+import org.apache.commons.mail.EmailException
+import play.api.Logger
+import play.api.libs.mailer.{ Email, MailerClient }
 import scala.concurrent.ExecutionContext.Implicits.global
 import play.api.i18n.{ MessagesApi, Messages }
 import scala.concurrent.Future
@@ -21,7 +25,9 @@ class AuthServiceDefault(
   val userRepository: UserRepository,
   val roleRepository: RoleRepository,
   val activationRepository: ActivationRepository,
-  val sessionRepository: SessionRepository
+  val sessionRepository: SessionRepository,
+  val mailerClient: MailerClient,
+  val messagesApi: MessagesApi
 )
     extends AuthService {
 
@@ -224,9 +230,48 @@ class AuthServiceDefault(
           )
           userRepository.insert(newUser)
         }
+        user = newUser.copy(token = Some(UserToken(id, token)))
         _ <- lift(activationRepository.insert(newUser.id, token))
-      } yield newUser
+      } yield user
     }
+  }
+
+  /**
+   * Creates a new user with the given role.
+   * This method sends an email for account activation.
+   * @param username
+   * @param email
+   * @param password
+   * @param givenname
+   * @param surname
+   * @param role
+   * @return
+   */
+  override def createWithRole(
+    username: String,
+    email: String,
+    password: String,
+    givenname: String,
+    surname: String,
+    role: String,
+    hostname: Option[String]
+  ): Future[\/[ErrorUnion#Fail, User]] = {
+    val messages = messagesApi
+    val fUser = for {
+      user <- lift(this.create(username, email, password, givenname, surname))
+      _ = Logger.error(user.toString)
+      _ <- lift(addRole(user.id, role))
+      _ = Logger.error("role was added")
+      emailForNew = Email(
+        messages("activate.confirm.subject.new"), //subject
+        messages("activate.confirm.from"), //from
+        Seq(givenname + " " + surname + " <" + email + ">"), //to
+        bodyText = Some(messages("activate.confirm.message", hostname.get, email, user.token.get.token)) //text
+      )
+      _ <- lift(sendAsyncEmail(emailForNew))
+      _ = Logger.error("email was sent")
+    } yield user
+    fUser.run
   }
 
   /**
@@ -609,6 +654,7 @@ class AuthServiceDefault(
       val fUser = userRepository.find(userId)(db.pool, cache)
       for {
         user <- lift(fUser)
+
         roles <- lift(roleRepository.list(user))
         token <- lift(activationRepository.find(user.id))
         _ <- predicate(activationCode == token.token)(ServiceError.BadInput("Wrong activation code!"))
@@ -652,19 +698,17 @@ class AuthServiceDefault(
    * @param email
    * @return
    */
-  //  private def sendAsyncEmail(email: Email): Expect[String] = Expect {
-  //    Future {
-  //      try {
-  //        mailerClient.send(email).right
-  //      }
-  //      catch {
-  //        case emailException: EmailException => {
-  //          Logger.error(ExceptionWriter.print(emailException))
-  //          MailerFail("E-mail sending failed.", Some(emailException)).left
-  //        }
-  //        case otherException: Throwable => throw otherException
-  //      }
-  //    }
-  //  }
+  private def sendAsyncEmail(email: Email): Future[\/[ErrorUnion#Fail, String]] = Future {
+    try {
+      \/-(mailerClient.send(email))
+    }
+    catch {
+      case emailException: EmailException => {
+        Logger.error(ExceptionWriter.print(emailException))
+        -\/(ServiceError.MailerFail("E-mail sending failed.", Some(emailException)))
+      }
+      case otherException: Throwable => throw otherException
+    }
+  }
 
 }

@@ -39,6 +39,7 @@ libraryDependencies ++= Seq(
   // We depend on several parts of the Play project
   "com.typesafe.play" %% "play-json" % "2.4.0",
   "com.typesafe.play" %% "play-jdbc-evolutions" % "2.4.0",
+  "com.typesafe.play" %% "play-mailer" % "3.0.1",
   // We heavily depend on scalaz's \/ and associated types
   "org.scalaz" %% "scalaz-core" % "7.1.2",
   "com.github.mauricio" %% "postgresql-async" % "0.2.18",

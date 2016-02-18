@@ -16,6 +16,7 @@ case class User(
     givenname: String,
     surname: String,
     roles: IndexedSeq[Role] = IndexedSeq.empty[Role],
+    token: Option[UserToken] = None,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) {

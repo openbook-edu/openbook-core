@@ -226,7 +226,8 @@ class AuthServiceDefault(
             email = email.trim,
             hash = passwordHash,
             givenname = givenname.trim,
-            surname = surname.trim
+            surname = surname.trim,
+            token = Some(UserToken(id, token))
           )
           userRepository.insert(newUser)
         }
@@ -237,6 +238,7 @@ class AuthServiceDefault(
 
   /**
    * Creates a new user with the given role.
+   * This method sends an email for account activation.
    * @param username
    * @param email
    * @param password
@@ -251,18 +253,19 @@ class AuthServiceDefault(
     password: String,
     givenname: String,
     surname: String,
-    role: String
+    role: String,
+    hostname: Option[String]
   ): Future[\/[ErrorUnion#Fail, User]] = {
     val messages = messagesApi
-    val emailForNew = Email(
-      messages("activate.confirm.subject.new"), //subject
-      messages("activate.confirm.from"), //from
-      Seq(givenname + " " + surname + " <" + email + ">"), //to
-      bodyText = Some(messages("activate.confirm.message", givenname, surname, email, email)) //text
-    )
     val fUser = for {
       user <- lift(this.create(username, email, password, givenname, surname))
       _ <- lift(addRole(user.id, role))
+      emailForNew = Email(
+        messages("activate.confirm.subject.new"), //subject
+        messages("activate.confirm.from"), //from
+        Seq(givenname + " " + surname + " <" + email + ">"), //to
+        bodyText = Some(messages("activate.confirm.message", hostname.get, email, user.token.get.token)) //text
+      )
       _ <- lift(sendAsyncEmail(emailForNew))
     } yield user
     fUser.run

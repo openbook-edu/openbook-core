@@ -652,17 +652,23 @@ class AuthServiceDefault(
   override def activate(userId: UUID, activationCode: String): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
       val fUser = userRepository.find(userId)(db.pool, cache)
-      for {
+      val result = for {
         user <- lift(fUser)
 
         roles <- lift(roleRepository.list(user))
         token <- lift(activationRepository.find(user.id))
         _ <- predicate(activationCode == token.token)(ServiceError.BadInput("Wrong activation code!"))
-        _ <- predicate(!roles.isEmpty)(ServiceError.BadInput("Trying to activate an existing user"))
         _ <- lift(roleRepository.addToUser(user, "authenticated"))
         deleted <- lift(activationRepository.delete(userId))
-      } yield user
+
+      } yield (user, token, roles, deleted)
+
+      result.run.map {
+        case \/-((user, token, roles, deleted)) => \/-(user)
+        case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)
+      }
     }
+
   }
 
   /**

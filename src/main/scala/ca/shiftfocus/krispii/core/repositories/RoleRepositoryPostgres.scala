@@ -338,11 +338,9 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
             \/-(())
           }
           case \/-(false) => {
-            Logger.error("false")
             -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
           }
           case -\/(error) => {
-            Logger.error("error" + error.toString)
             -\/(error)
           }
         })

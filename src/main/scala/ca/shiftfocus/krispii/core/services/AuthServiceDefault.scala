@@ -266,7 +266,7 @@ class AuthServiceDefault(
         messages("activate.confirm.subject.new"), //subject
         messages("activate.confirm.from"), //from
         Seq(givenname + " " + surname + " <" + email + ">"), //to
-        bodyText = Some(messages("activate.confirm.message", hostname.get, email, user.token.get.token)) //text
+        bodyText = Some(messages("activate.confirm.message", hostname.get, user.id.toString, user.token.get.token)) //text
       )
       _ <- lift(sendAsyncEmail(emailForNew))
       _ = Logger.error("email was sent")

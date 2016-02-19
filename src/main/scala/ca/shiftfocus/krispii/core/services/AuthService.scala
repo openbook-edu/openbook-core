@@ -6,6 +6,8 @@ import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories.{ SessionRepository, CourseRepository, RoleRepository, UserRepository }
 import java.util.UUID
 
+import play.api.i18n.MessagesApi
+
 import scala.concurrent.Future
 import scalacache.ScalaCache
 import scalaz.\/
@@ -101,7 +103,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     surname: String,
     role: String,
     hostname: Option[String]
-  ): Future[\/[ErrorUnion#Fail, User]]
+  )(messagesApi: MessagesApi): Future[\/[ErrorUnion#Fail, User]]
 
   /**
    * Update a user

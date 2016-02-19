@@ -13,7 +13,7 @@ import org.apache.commons.mail.EmailException
 import play.api.Logger
 import play.api.libs.mailer.{ Email, MailerClient }
 import scala.concurrent.ExecutionContext.Implicits.global
-import play.api.i18n.{ MessagesApi, Messages }
+import play.api.i18n.{ I18nSupport, MessagesApi, Messages }
 import scala.concurrent.Future
 import scalacache.ScalaCache
 import scalaz.{ -\/, \/-, \/, EitherT }
@@ -27,9 +27,9 @@ class AuthServiceDefault(
   val activationRepository: ActivationRepository,
   val sessionRepository: SessionRepository,
   val mailerClient: MailerClient,
-  val messagesApi: MessagesApi
+  override val messagesApi: MessagesApi
 )
-    extends AuthService {
+    extends AuthService with I18nSupport {
 
   implicit def conn: Connection = db.pool
   implicit def cache: ScalaCachePool = scalaCache
@@ -255,7 +255,7 @@ class AuthServiceDefault(
     surname: String,
     role: String,
     hostname: Option[String]
-  ): Future[\/[ErrorUnion#Fail, User]] = {
+  )(messagesApi: MessagesApi): Future[\/[ErrorUnion#Fail, User]] = {
     val messages = messagesApi
     val fUser = for {
       user <- lift(this.create(username, email, password, givenname, surname))

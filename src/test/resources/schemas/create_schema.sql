@@ -155,6 +155,7 @@ CREATE TABLE tasks (
   notes_allowed boolean DEFAULT true,
   response_title text,
   notes_title text,
+  help_text text,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );

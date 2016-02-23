@@ -6,6 +6,8 @@ import com.github.mauricio.async.db.Connection
 import org.joda.time.DateTime
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
+import play.api.i18n.MessagesApi
+import play.api.libs.mailer.MailerClient
 import scala.concurrent.{ Future, ExecutionContext, Await }
 import scala.concurrent.duration._
 import ca.shiftfocus.krispii.core.services._
@@ -26,9 +28,11 @@ class AuthServiceSpec
   val roleRepository = stub[RoleRepository]
   val sessionRepository = stub[SessionRepository]
   val activationRepository = stub[ActivationRepository]
+  val mailerClient = stub[MailerClient]
+  val messagesApi = stub[MessagesApi]
 
   // Create a real instance of AuthService for testing
-  val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, activationRepository, sessionRepository) {
+  val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, activationRepository, sessionRepository, mailerClient, messagesApi) {
     override implicit def conn: Connection = mockConnection
 
     override def transactional[A](f: Connection => Future[A]): Future[A] = {

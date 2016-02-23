@@ -11,6 +11,8 @@ import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import org.scalatest._
 import Matchers._
+import play.api.i18n.MessagesApi
+import play.api.libs.mailer.MailerClient
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, Future }
 import scalaz.{ \/-, -\/ }
@@ -34,8 +36,10 @@ class WorkServiceSpec
   val taskScratchpadRepository = stub[TaskScratchpadRepository]
   val projectScratchpadRepository = stub[ProjectScratchpadRepository]
   val activationRepository = stub[ActivationRepository]
+  val mailerClient = stub[MailerClient]
+  val messagesApi = stub[MessagesApi]
 
-  val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, activationRepository, sessionRepository)
+  val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, activationRepository, sessionRepository, mailerClient, messagesApi)
   val schoolService = stub[SchoolService]
   val projectService = stub[ProjectService]
   val documentService = new DocumentServiceDefault(db, cache, userRepository, documentRepository, revisionRepository)

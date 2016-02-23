@@ -86,6 +86,12 @@ CREATE TABLE course_schedule_exceptions (
 
 ALTER TABLE public.course_schedule_exceptions OWNER TO krispii_dev;
 
+/*
+  TODO - Project slug should be unique only per course
+  slug text,
+  UNIQUE (course_id, slug)
+*/
+
 CREATE TABLE projects (
   id uuid PRIMARY KEY,
   course_id uuid NOT NULL REFERENCES courses(id) ON DELETE RESTRICT,
@@ -109,6 +115,7 @@ CREATE TABLE parts (
   position int,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
+
 );
 
 ALTER TABLE public.parts OWNER TO krispii_dev;

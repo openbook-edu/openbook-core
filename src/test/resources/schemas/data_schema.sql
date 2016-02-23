@@ -34,6 +34,8 @@ VALUES ('8b6dc674-d1ae-11e5-9080-08626681851d', 1, 'rafael@krispii.com', 'rafael
 
 INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
 VALUES ('7c62a526-d1b0-11e5-9080-08626681851d', 1, 'yanez@krispii.com', 'yanez', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'Antonio', 'Yanez', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+
+
 /* ---------------------- ROLES ---------------------- */
 
 /* role A */
@@ -782,7 +784,9 @@ VALUES ('217c5622ff9e43728e6a95fb3bae300b', 5, 'f5f984073a0b4ea5952a575886e90586
 INSERT INTO chat_logs (course_id, message_num, user_id, message, hidden, created_at)
 VALUES ('217c5622ff9e43728e6a95fb3bae300b', 6, 'f5f984073a0b4ea5952a575886e90586', 'testChatF message', false, '2014-08-06 14:01:19.545-04');
 
+
 /* -----------------------  ProjectScratchpads  ----------------------- */
+
 /* projectScratchpadA  user a project a document j*/
 INSERT INTO project_notes (user_id, project_id, document_id)
 VALUES ('36c8c0ca50aa4806afa5916a5e33a81f', 'c9b4cfceaed448fd94f5c980763dfddc', '30739c6d43774a2f8aa3d1240dfb0740');
@@ -799,6 +803,9 @@ VALUES ('f5f984073a0b4ea5952a575886e90586', 'e4ae3b9098714339b05c8d39e3aaf65d', 
 INSERT INTO project_notes (user_id, project_id, document_id)
 VALUES ('871b525067124e548ab60784cae0bc64', 'e4ae3b9098714339b05c8d39e3aaf65d', '78b9baaf16b743a39cec410104cdde4e');
 
+
+/* -----------------------  ACTIVATIONS  ----------------------- */
+
 /* activation */
 INSERT INTO activations (user_id, nonce)
 VALUES ('8b6dc674-d1ae-11e5-9080-08626681851d', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=');
@@ -806,18 +813,21 @@ VALUES ('8b6dc674-d1ae-11e5-9080-08626681851d', '$s0$100801$Im7kWa5XcOMHIilt7VTo
 /* activation */
 INSERT INTO activations (user_id, nonce)
 VALUES ('7c62a526-d1b0-11e5-9080-08626681851d', '$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=');
-/* words */
+
+
+/* -----------------------  WORDS  ----------------------- */
+
 INSERT INTO words(word, lang)
-VALUES('bisexualpotato', 'eng');
+VALUES('bisexualpotato', 'en');
 
 INSERT INTO words(word, lang)
 VALUES('cielbleu', 'fr');
 
 INSERT INTO words(word, lang)
-VALUES('omniscienttable', 'eng');
+VALUES('omniscienttable', 'en');
 
 INSERT INTO words(word, lang)
-VALUES('alientea', 'eng');
+VALUES('alientea', 'en');
 
 INSERT INTO words(word, lang)
 VALUES('vinrouge', 'fr');
@@ -825,7 +835,8 @@ VALUES('vinrouge', 'fr');
 INSERT INTO words(word, lang)
 VALUES ('интереснаяличность', 'ru');
 
-/* links */
+
+/* -----------------------  LINKS  ----------------------- */
 
 /* course A */
 INSERT INTO links(course_id, link, created_at)

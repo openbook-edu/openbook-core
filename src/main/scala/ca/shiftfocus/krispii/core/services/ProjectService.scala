@@ -43,6 +43,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     version: Long,
     courseId: Option[UUID],
     name: Option[String],
+    slug: Option[String],
     description: Option[String],
     availability: Option[String]
   ): Future[\/[ErrorUnion#Fail, Project]]

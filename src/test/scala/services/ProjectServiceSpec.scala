@@ -185,7 +185,7 @@ class ProjectServiceSpec
 
         (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(\/-(testProject)))
 
-        val result = projectService.updateInfo(testProject.id, 99L, Some(testProject.courseId), Some(testProject.name), Some(testProject.description), Some(testProject.availability))
+        val result = projectService.updateInfo(testProject.id, 99L, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.availability))
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
       "return RepositoryError.NoResults if project doesn't exist" in {
@@ -193,7 +193,7 @@ class ProjectServiceSpec
 
         (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
-        val result = projectService.updateInfo(testProject.id, testProject.version, Some(testProject.courseId), Some(testProject.name), Some(testProject.description), Some(testProject.availability))
+        val result = projectService.updateInfo(testProject.id, testProject.version, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.availability))
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
       }
     }

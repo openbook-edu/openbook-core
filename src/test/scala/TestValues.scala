@@ -111,6 +111,30 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testUserI = User(
+    id = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
+    version = 1L,
+    email = "rafael@krispii.com",
+    username = "rafaelya",
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
+    givenname = "Rafael",
+    surname = "Yanez",
+    createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testUserJ = User(
+    id = UUID.fromString("7c62a526-d1b0-11e5-9080-08626681851d"),
+    version = 1L,
+    email = "yanez@krispii.com",
+    username = "yanez",
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
+    givenname = "Antonio",
+    surname = "Yanez",
+    createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* ---------------------- ROLES ---------------------- */
 
   val testRoleAuth = Role(
@@ -2197,6 +2221,8 @@ object TestValues {
     updatedAt = testDocumentJ.updatedAt
   )
 
+  /* ---------------------- USER TOKENS ---------------------- */
+
   val testUserToken = UserToken(
     userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
     token = "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="
@@ -2220,9 +2246,7 @@ object TestValues {
   //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-  /**
-   * The dictionary words table
-   */
+  /* ---------------------- WORDS ---------------------- */
 
   val testWordA = LinkWord(
     word = "bisexualpotato",
@@ -2253,6 +2277,9 @@ object TestValues {
     word = "интереснаяличность",
     lang = "ru"
   )
+
+  /* ---------------------- REGISTRATION LINKS ---------------------- */
+
   /**
    * The registration links for students
    */

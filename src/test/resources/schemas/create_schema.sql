@@ -362,7 +362,11 @@ CREATE TABLE project_notes (
 
 create table words(word text, lang text, PRIMARY KEY(word, lang));
 
-
+create TABLE links (
+  course_id uuid REFERENCES courses(id) ON DELETE CASCADE,
+  link text PRIMARY KEY,
+  created_at timestamp with time zone
+);
 
 
 

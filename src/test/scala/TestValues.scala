@@ -2253,6 +2253,26 @@ object TestValues {
     word = "интереснаяличность",
     lang = "ru"
   )
+  /**
+   * The registration links for students
+   */
+  val testLinkA = Link(
+    link = testWordA.word,
+    courseId = testCourseA.id,
+    createdAt = new DateTime(2014, 6, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
 
+  val testLinkB = Link(
+    link = testWordE.word,
+    courseId = testCourseB.id,
+    createdAt = new DateTime(2014, 6, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  //Not in the database
+  val testLinkC = Link(
+    link = testWordC.word,
+    courseId = testCourseA.id,
+    createdAt = new DateTime(2014, 6, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
 }
 

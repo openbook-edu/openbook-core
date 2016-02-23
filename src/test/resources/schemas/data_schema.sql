@@ -825,5 +825,11 @@ VALUES('vinrouge', 'fr');
 INSERT INTO words(word, lang)
 VALUES ('интереснаяличность', 'ru');
 
+/* links */
 
-
+/* course A */
+INSERT INTO links(course_id, link, created_at)
+VALUES('217c5622ff9e43728e6a95fb3bae300b', 'bisexualpotato',  '2014-08-05 14:01:19.545-04');
+/* course b */
+INSERT INTO links(course_id, link, created_at)
+VALUES  ('404c800a53854e6b867e365a1e6b00de', 'vinrouge', '2014-08-05 14:01:19.545-04');

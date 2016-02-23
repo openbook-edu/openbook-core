@@ -543,7 +543,6 @@ class AuthServiceSpec
     }
   }
 
-
   "AuthService.findActivation" in {
     val testActivation = TestValues.testUserToken
 
@@ -574,7 +573,7 @@ class AuthServiceSpec
       TestValues.testRoleTeacher
     )
     val testActivation = TestValues.testUserToken
-    (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId , *, *) returns (Future.successful(\/-(testUser)))
+    (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId, *, *) returns (Future.successful(\/-(testUser)))
     (roleRepository.list(_: User)(_: Connection, _: ScalaCachePool)) when (testUser, *, *) returns (Future.successful(\/.right(testRoleList)))
     (activationRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId, *, *) returns (Future.successful(\/-(testActivation)))
     (roleRepository.addToUser(_: User, _: String)(_: Connection, _: ScalaCachePool)) when
@@ -603,7 +602,7 @@ class AuthServiceSpec
       TestValues.testRoleTeacher
     )
     val testActivation = TestValues.testUserToken
-    (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId , *, *) returns (Future.successful(\/-(testUser)))
+    (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId, *, *) returns (Future.successful(\/-(testUser)))
     (roleRepository.list(_: User)(_: Connection, _: ScalaCachePool)) when (testUser, *, *) returns (Future.successful(\/.right(testRoleList)))
     (activationRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId, *, *) returns (Future.successful(\/-(testActivation)))
 

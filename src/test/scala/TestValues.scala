@@ -353,6 +353,7 @@ object TestValues {
       title = "test longAnswerTask A",
       description = "test longAnswerTask A description",
       notesAllowed = true,
+      help = Some("test help info about the task for the teacher"),
       notesTitle = Some("test longAnswerTask A notes title"),
       responseTitle = Some("test longAnswerTask A response title")
     ),
@@ -371,6 +372,7 @@ object TestValues {
       title = "test longAnswerTask N",
       description = "test longAnswerTask N description",
       notesAllowed = true,
+      help = Some("test help info about the task for the teacher N"),
       notesTitle = Some("test longAnswerTask N notes title"),
       responseTitle = Some("test longAnswerTask N response title")
     ),
@@ -426,6 +428,7 @@ object TestValues {
       description = "test shortAnswerTask B description",
       notesAllowed = true,
       notesTitle = Some("test shortAnswerTask B notes title"),
+      help = Some("more text help for the teacher"),
       responseTitle = Some("test shortAnswerTask B response title")
     ),
     questions = IndexedSeq(testShortQuestionA),

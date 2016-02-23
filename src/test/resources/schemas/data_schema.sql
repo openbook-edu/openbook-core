@@ -806,4 +806,25 @@ VALUES ('8b6dc674-d1ae-11e5-9080-08626681851d', '$s0$100801$Im7kWa5XcOMHIilt7VTo
 /* activation */
 INSERT INTO activations (user_id, nonce)
 VALUES ('7c62a526-d1b0-11e5-9080-08626681851d', '$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=');
-/* activation */
+/* words */
+INSERT INTO words(word, lang)
+VALUES('bisexualpotato', 'eng');
+
+INSERT INTO words(word, lang)
+VALUES('cielbleu', 'fr');
+
+INSERT INTO words(word, lang)
+VALUES('omniscienttable', 'eng');
+
+INSERT INTO words(word, lang)
+VALUES('alientea', 'eng');
+
+INSERT INTO words(word, lang)
+VALUES('vinrouge', 'fr');
+
+
+INSERT INTO words(word, lang)
+VALUES ('интереснаяличность', 'ru');
+
+
+

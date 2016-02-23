@@ -2,14 +2,14 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.repositories.{RoleRepositoryPostgres, UserRepositoryPostgres}
+import ca.shiftfocus.krispii.core.repositories.{ RoleRepositoryPostgres, UserRepositoryPostgres }
 import org.scalatest.Matchers._
 import org.scalatest._
 
 import scala.collection.immutable.TreeMap
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
-import scalaz.{-\/, \/-}
+import scala.concurrent.{ Await, Future }
+import scalaz.{ -\/, \/- }
 
 class RoleRepositorySpec
     extends TestEnvironment {

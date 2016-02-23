@@ -19,7 +19,8 @@ class SchoolServiceDefault(
   val authService: AuthService,
   val userRepository: UserRepository,
   val courseRepository: CourseRepository,
-  val chatRepository: ChatRepository
+  val chatRepository: ChatRepository,
+  val wordRepository: WordRepository
 )
     extends SchoolService {
 
@@ -366,6 +367,11 @@ class SchoolServiceDefault(
         newChat = existingChat.copy(hidden = hidden)
         updatedChat <- lift(chatRepository.update(newChat))
       } yield updatedChat
+    }
+  }
+  override def getRandomWord(lang: String): Future[\/[ErrorUnion#Fail, LinkWord]] = {
+    transactional { implicit conn =>
+      wordRepository.get(lang)
     }
   }
 }

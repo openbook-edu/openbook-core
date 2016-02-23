@@ -7,7 +7,7 @@ import org.scalatest._
 import scala.collection.immutable.TreeMap
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import scalaz.{-\/, \/-}
+import scalaz.{ -\/, \/- }
 
 class RevisionRepositorySpec
     extends TestEnvironment {

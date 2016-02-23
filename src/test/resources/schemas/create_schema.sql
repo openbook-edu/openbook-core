@@ -359,3 +359,17 @@ CREATE TABLE project_notes (
   document_id uuid REFERENCES documents(id) ON DELETE RESTRICT,
   PRIMARY KEY (user_id, project_id)
 );
+
+create table words(word text, lang text, PRIMARY KEY(word, lang));
+
+
+
+
+
+
+
+
+
+
+
+

@@ -3,14 +3,14 @@ import java.util.UUID
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models.Part
-import ca.shiftfocus.krispii.core.repositories.{PartRepositoryPostgres, TaskRepository}
+import ca.shiftfocus.krispii.core.repositories.{ PartRepositoryPostgres, TaskRepository }
 import com.github.mauricio.async.db.Connection
 import org.scalatest.Matchers._
 import org.scalatest._
 
 import scala.collection.immutable.TreeMap
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future }
 import scalaz._
 
 class PartRepositorySpec

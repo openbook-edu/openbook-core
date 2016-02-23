@@ -5,7 +5,7 @@ import org.scalatest.Matchers._
 import org.scalatest._
 
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
+import scala.concurrent.{ Await, Future }
 import scalaz._
 
 class TaskRepositorySpec

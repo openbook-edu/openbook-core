@@ -10,8 +10,8 @@ import org.scalatest._
 
 import scala.collection.immutable.TreeMap
 import scala.concurrent.duration.Duration
-import scala.concurrent.{Await, Future}
-import scalaz.{-\/, \/-}
+import scala.concurrent.{ Await, Future }
+import scalaz.{ -\/, \/- }
 
 class TaskScratchpadRepositorySpec
     extends TestEnvironment {

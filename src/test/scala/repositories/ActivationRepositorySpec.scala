@@ -12,7 +12,7 @@ import scalaz.{ -\/, \/- }
 /**
  * Created by ryanez on 11/02/16.
  */
-class ActivationRepositorySpec extends TestEnvironment {
+class eActivationRepositorySpec extends TestEnvironment {
   val activationRepository = new ActivationRepositoryPostgres
 
   "Find one activation by the user id" in {
@@ -28,7 +28,7 @@ class ActivationRepositorySpec extends TestEnvironment {
 
     token.userId should be(testToken.userId)
     token.token should be(testToken.token)
-//    token.createdAt should be(testToken.createdAt)
+    //    token.createdAt should be(testToken.createdAt)
 
   }
 
@@ -45,15 +45,17 @@ class ActivationRepositorySpec extends TestEnvironment {
 
     token.userId should be(testToken.userId)
     token.token should be(testToken.token)
-//    token.createdAt should be(testToken.createdAt)
+    //    token.createdAt should be(testToken.createdAt)
   }
 
   "Insert one new activation" in {
     (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
     (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 
-    val result = activationRepository.insert(UUID.fromString("4d01347e-c592-4e5f-b09f-dd281b3d9b87"),
-      "$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7xjMLFYE=")
+    val result = activationRepository.insert(
+      UUID.fromString("4d01347e-c592-4e5f-b09f-dd281b3d9b87"),
+      "$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7xjMLFYE="
+    )
 
     val testToken = TestValues.testUserTokenInsert
 

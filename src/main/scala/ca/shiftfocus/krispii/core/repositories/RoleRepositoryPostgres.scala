@@ -7,6 +7,7 @@ import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.lib.concurrent.Lifting
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{ ResultSet, RowData, Connection }
+import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
@@ -332,9 +333,16 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
         val fResult = queryNumRows(AddRoleByName, params)(_ == 1)
 
         lift(fResult.map {
-          case \/-(true) => \/-(())
-          case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
-          case -\/(error) => -\/(error)
+          case \/-(true) => {
+            Logger.error(name)
+            \/-(())
+          }
+          case \/-(false) => {
+            -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
+          }
+          case -\/(error) => {
+            -\/(error)
+          }
         })
       }
       _ <- lift(cache.removeCached(cacheRolesKey(user.id)))

@@ -822,7 +822,6 @@ VALUES('alientea', 'eng');
 INSERT INTO words(word, lang)
 VALUES('vinrouge', 'fr');
 
-
 INSERT INTO words(word, lang)
 VALUES ('интереснаяличность', 'ru');
 

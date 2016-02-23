@@ -29,7 +29,7 @@ class ActivationRepositoryPostgres extends ActivationRepository with PostgresRep
    */
   override def find(userId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, UserToken]] = {
     val SelectOne = "SELECT user_id, nonce FROM activations WHERE user_id = ?"
-    queryOne(SelectOne, Seq[Any](userId))
+    queryOne(SelectOne, Seq[Any](userId.toString))
   }
 
   /**

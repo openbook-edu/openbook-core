@@ -29,7 +29,10 @@ object CommonTaskSettings {
       title = row("name").asInstanceOf[String],
       description = row("description").asInstanceOf[String],
       notesAllowed = row("notes_allowed").asInstanceOf[Boolean],
-      help = Option(row("help_text").asInstanceOf[String]),
+      help = Option(row("help_text").asInstanceOf[String]) match {
+        case Some(help) => Some(help)
+        case _ => None
+      },
       notesTitle = Option(row("notes_title").asInstanceOf[String]) match {
       case Some(notesTitle) => Some(notesTitle)
       case _ => None
@@ -45,8 +48,8 @@ object CommonTaskSettings {
     (__ \ "title").read[String] and
     (__ \ "description").read[String] and
     (__ \ "notesAllowed").read[Boolean] and
-    (__ \ "notesTitle").readNullable[String] and
     (__ \ "help").readNullable[String] and
+    (__ \ "notesTitle").readNullable[String] and
     (__ \ "responseTitle").readNullable[String]
   )(CommonTaskSettings.apply(_: String, _: String, _: Boolean, _: Option[String], _: Option[String], _: Option[String]))
 
@@ -54,8 +57,8 @@ object CommonTaskSettings {
     (__ \ "name").write[String] and
     (__ \ "description").write[String] and
     (__ \ "notesAllowed").write[Boolean] and
-    (__ \ "notesTitle").writeNullable[String] and
     (__ \ "help").writeNullable[String] and
+    (__ \ "notesTitle").writeNullable[String] and
     (__ \ "responseTitle").writeNullable[String]
   )(unlift(CommonTaskSettings.unapply))
 }

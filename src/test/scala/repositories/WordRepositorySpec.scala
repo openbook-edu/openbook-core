@@ -4,6 +4,7 @@ import ca.shiftfocus.krispii.core.repositories._
 import com.github.mauricio.async.db.Connection
 import org.scalatest.Matchers._
 import org.scalatest._
+import play.api.Logger
 
 import scala.collection.immutable.TreeMap
 import scala.concurrent.duration.Duration
@@ -29,6 +30,7 @@ class WordRepositorySpec extends TestEnvironment {
         val eitherWord = Await.result(result, Duration.Inf)
         val \/-(wordRandom) = eitherWord
         val contain = testWorkList.contains(wordRandom)
+        Logger.error(wordRandom.toString)
 
         contain should be(true)
       }

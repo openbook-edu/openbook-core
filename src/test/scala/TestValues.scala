@@ -2226,7 +2226,7 @@ object TestValues {
 
   val testWordA = LinkWord(
     word = "bisexualpotato",
-    lang = "en"
+    lang = "eng"
   )
 
   val testWordB = LinkWord(
@@ -2236,12 +2236,12 @@ object TestValues {
 
   val testWordC = LinkWord(
     word = "omniscienttable",
-    lang = "en"
+    lang = "eng"
   )
 
   val testWordD = LinkWord(
     word = "alientea",
-    lang = "en"
+    lang = "eng"
   )
 
   val testWordE = LinkWord(

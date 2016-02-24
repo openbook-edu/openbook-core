@@ -8,6 +8,7 @@ import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.services.{ AuthServiceDefault, SchoolServiceDefault, AuthService }
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
+import org.joda.time.DateTime
 import org.scalatest._
 import Matchers._
 
@@ -27,9 +28,9 @@ class SchoolServiceSpec
   val sessionRepository = stub[SessionRepository]
   val authService = stub[AuthService]
   val wordRepository = stub[WordRepository]
+  val linkRepository = stub[LinkRepository]
   //  val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, sessionRepository)
-
-  val schoolService = new SchoolServiceDefault(db, cache, authService, userRepository, courseRepository, chatRepository, wordRepository) {
+  val schoolService = new SchoolServiceDefault(db, cache, authService, userRepository, courseRepository, chatRepository, wordRepository, linkRepository) {
     override implicit def conn: Connection = mockConnection
 
     override def transactional[A](f: Connection => Future[A]): Future[A] = {
@@ -341,6 +342,20 @@ class SchoolServiceSpec
 
         val result = schoolService.insertChat(testCourse.id, testUser.id, testChat.message)
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadPermissions("You must be a member of a course to chat in it.")))
+      }
+    }
+  }
+  "SchoolService.createLink" should {
+    inSequence {
+      "Create a valid link if it wasn't created before" in {
+        val testWord = TestValues.testWordC
+        val testLink = TestValues.testLinkC
+
+        (wordRepository.get(_: String)(_: Connection)) when (*, *) returns (Future.successful(\/-(testWord)))
+        (linkRepository.create(_: Link)(_: Connection)) when (*, *) returns (Future.successful(\/-(testLink)))
+
+        val result = schoolService.createLink(testWord.lang, testLink.courseId)
+        Await.result(result, Duration.Inf) should be(\/-(testLink))
       }
     }
   }

@@ -17,7 +17,9 @@ class WordRepositoryPostgres extends WordRepository with PostgresRepository[Link
     s"""
        |SELECT $Fields
        |FROM $Table
-       |OFFSET floor(random()*(select COUNT(*) from $Table WHERE lang = ?))
+       |WHERE lang = ?
+       |OFFSET floor(random()*(select COUNT(*) from $Table WHERE lang = ? and word not in (select link from links where link is not null)))
+       |LIMIT 1
      """.stripMargin
 
   val Insert =
@@ -49,7 +51,7 @@ class WordRepositoryPostgres extends WordRepository with PostgresRepository[Link
    * @return
    */
   override def get(lang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, LinkWord]] = {
-    queryOne(SelectOneByLang, Seq[Any](lang))
+    queryOne(SelectOneByLang, Seq[Any](lang, lang))
   }
 
   /**

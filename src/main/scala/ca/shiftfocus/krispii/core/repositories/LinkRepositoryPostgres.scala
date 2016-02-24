@@ -6,6 +6,7 @@ import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.{ Link }
 import com.github.mauricio.async.db.{ RowData, Connection }
 import org.joda.time.DateTime
+import play.api.Logger
 
 import scala.concurrent.Future
 import scalaz.\/
@@ -40,6 +41,12 @@ class LinkRepositoryPostgres extends LinkRepository with PostgresRepository[Link
                    |RETURNING $Fields
                 """.stripMargin
 
+  val DeleteByCourse = s"""
+                          |DELETE FROM $Table
+                          |WHERE course_id = ?
+                          |RETURNING $Fields
+                       """.stripMargin
+
   val Find = s"""
                   |SELECT $Fields
                   |FROM $Table
@@ -49,8 +56,8 @@ class LinkRepositoryPostgres extends LinkRepository with PostgresRepository[Link
 
   override def create(link: Link)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Link]] = {
     queryOne(Insert, Seq[Any](link.link, link.courseId, new DateTime()))
-
   }
+
   override def delete(link: Link)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Link]] = {
     queryOne(Delete, Seq[Any](link.link))
   }
@@ -58,4 +65,9 @@ class LinkRepositoryPostgres extends LinkRepository with PostgresRepository[Link
   override def find(link: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Link]] = {
     queryOne(Find, Seq[Any](link))
   }
+
+  def deleteByCourse(courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Link]] = {
+    queryOne(DeleteByCourse, Seq[Any](courseId))
+  }
+
 }

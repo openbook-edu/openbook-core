@@ -1,6 +1,11 @@
 package ca.shiftfocus.krispii.core.services
 
-import java.awt.Color // scalastyle:ignore
+import java.awt.Color
+
+import org.joda.time.DateTime
+import play.api.Logger
+
+// scalastyle:ignore
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.services.datasource.DB
@@ -20,7 +25,8 @@ class SchoolServiceDefault(
   val userRepository: UserRepository,
   val courseRepository: CourseRepository,
   val chatRepository: ChatRepository,
-  val wordRepository: WordRepository
+  val wordRepository: WordRepository,
+  val linkRepository: LinkRepository
 )
     extends SchoolService {
 
@@ -372,6 +378,48 @@ class SchoolServiceDefault(
   override def getRandomWord(lang: String): Future[\/[ErrorUnion#Fail, LinkWord]] = {
     transactional { implicit conn =>
       wordRepository.get(lang)
+    }
+  }
+
+  /**
+   * Creating a new link for student registration.
+   *
+   * @param lang user's language
+   * @param courseId course id
+   * @return the link for students
+   */
+  override def createLink(lang: String, courseId: UUID): Future[\/[ErrorUnion#Fail, Link]] = {
+    transactional { implicit conn =>
+      for {
+        word <- lift(wordRepository.get(lang))
+        _ = Logger.error(word.toString)
+        link <- lift(linkRepository.create(Link(word.word, courseId, new DateTime())))
+
+      } yield link
+    }
+  }
+
+  /**
+   * Find link by link name
+   *
+   * @param link
+   * @return
+   */
+  override def findLink(link: String): Future[\/[ErrorUnion#Fail, Link]] = {
+    transactional { implicit conn =>
+      linkRepository.find(link)
+    }
+  }
+
+  /**
+   * Delete link based on course id. it will save us some parsing XD
+   *
+   * @param courseId
+   * @return
+   */
+  override def deleteLink(courseId: UUID): Future[\/[ErrorUnion#Fail, Link]] = {
+    transactional { implicit conn =>
+      linkRepository.deleteByCourse(courseId)
     }
   }
 }

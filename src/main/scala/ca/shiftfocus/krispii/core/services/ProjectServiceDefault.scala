@@ -157,7 +157,6 @@ class ProjectServiceDefault(
       parts = IndexedSeq.empty[Part]
     )
     val newPart = Part(projectId = newProject.id, name = "")
-    val newTask = DocumentTask(partId = newPart.id, position = 1)
 
     // Then insert the new project, part and task into the database, wrapped
     // in a transaction such that either all three are created, or none.
@@ -166,10 +165,8 @@ class ProjectServiceDefault(
         _ <- lift(validateSlug(slug))
         createdProject <- lift(projectRepository.insert(newProject))
         createdPart <- lift(partRepository.insert(newPart))
-        createdTask <- lift(taskRepository.insert(newTask))
       } yield {
-        val tasks = IndexedSeq(createdTask)
-        val parts = IndexedSeq(createdPart.copy(tasks = tasks))
+        val parts = IndexedSeq(createdPart)
         val completeProject = createdProject.copy(parts = parts)
         completeProject
       }

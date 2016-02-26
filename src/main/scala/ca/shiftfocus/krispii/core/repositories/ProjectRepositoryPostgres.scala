@@ -37,6 +37,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   val Fields = "id, version, course_id, name, slug, description, availability, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val OrderBy = s"${Table}.created_at DESC"
 
   // User CRUD operations
   val SelectAll =
@@ -75,6 +76,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
        |SELECT $Fields
        |FROM $Table
        |WHERE course_id = ?
+       |ORDER BY $OrderBy
      """.stripMargin
 
   val Insert =

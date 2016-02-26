@@ -1,5 +1,5 @@
 INSERT INTO words(word, lang)
-VALUES('bisexualpotato', 'en');
+VALUES('deadlypotato', 'en');
 
 INSERT INTO words(word, lang)
 VALUES('cielbleu', 'fr');

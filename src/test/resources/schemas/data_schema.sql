@@ -34,6 +34,8 @@ VALUES ('8b6dc674-d1ae-11e5-9080-08626681851d', 1, 'rafael@krispii.com', 'rafael
 
 INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
 VALUES ('7c62a526-d1b0-11e5-9080-08626681851d', 1, 'yanez@krispii.com', 'yanez', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'Antonio', 'Yanez', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+
+
 /* ---------------------- ROLES ---------------------- */
 
 /* role A */
@@ -203,15 +205,15 @@ VALUES ('45a146b3fd9a4cab9d1d3e9b0b15e12c', 7, '4ac4d872451b4092b13f643d6d5fa930
 /* ---------------------- TASKS ---------------------- */
 
 /* longAnswerTask A -> part A -> project A -> course A -> user A (teacher)*/
-INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
-VALUES ('bf1a6ed09f834cb485c1ad456299b3a3', 1, '5cd214be6bba47fa9f350eb8bafec397', 'test longAnswerTask A', 'test longAnswerTask A description', 10, 0, true, 'test longAnswerTask A response title', 'test longAnswerTask A notes title', '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, help_text, created_at, updated_at)
+VALUES ('bf1a6ed09f834cb485c1ad456299b3a3', 1, '5cd214be6bba47fa9f350eb8bafec397', 'test longAnswerTask A', 'test longAnswerTask A description', 10, 0, true, 'test longAnswerTask A response title', 'test longAnswerTask A notes title', 'test help info about the task for the teacher', '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
 
 INSERT INTO document_tasks (task_id, dependency_id)
 VALUES ('bf1a6ed09f834cb485c1ad456299b3a3', null);
 
 /* longAnswerTask N -> part A -> project A -> course A -> user A (teacher)*/
-INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
-VALUES ('73b75cd0c796429fa73402fabca367aa', 2, '5cd214be6bba47fa9f350eb8bafec397', 'test longAnswerTask N', 'test longAnswerTask N description', 26, 0, true, 'test longAnswerTask N response title', 'test longAnswerTask N notes title', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, help_text, created_at, updated_at)
+VALUES ('73b75cd0c796429fa73402fabca367aa', 2, '5cd214be6bba47fa9f350eb8bafec397', 'test longAnswerTask N', 'test longAnswerTask N description', 26, 0, true, 'test longAnswerTask N response title', 'test longAnswerTask N notes title', 'test help info about the task for the teacher N', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
 INSERT INTO document_tasks (task_id, dependency_id)
 VALUES ('73b75cd0c796429fa73402fabca367aa', null);
@@ -225,8 +227,8 @@ VALUES ('b807dbf4b4fe4b7bb1b711083899470d', '73b75cd0c796429fa73402fabca367aa');
 
 
 /* shortAnswerTask B -> part A -> project A -> course A -> user A (teacher) */
-INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
-VALUES ('10ef05ee7b494352b86e70510adf617f', 2, '5cd214be6bba47fa9f350eb8bafec397', 'test shortAnswerTask B', 'test shortAnswerTask B description', 14, 1, true, 'test shortAnswerTask B response title', 'test shortAnswerTask B notes title', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, help_text, created_at, updated_at)
+VALUES ('10ef05ee7b494352b86e70510adf617f', 2, '5cd214be6bba47fa9f350eb8bafec397', 'test shortAnswerTask B', 'test shortAnswerTask B description', 14, 1, true, 'test shortAnswerTask B response title', 'test shortAnswerTask B notes title', 'more text help for the teacher', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
 INSERT INTO question_tasks (task_id, questions)
 VALUES ('10ef05ee7b494352b86e70510adf617f', '[{"id": "9d2ed6e8-ccdd-474f-9583-4d10eafaa2a6", "type": 1, "title": "testShortQuestionA title", "description": "testShortQuestionA description", "maxLength": 51}]');
@@ -782,7 +784,9 @@ VALUES ('217c5622ff9e43728e6a95fb3bae300b', 5, 'f5f984073a0b4ea5952a575886e90586
 INSERT INTO chat_logs (course_id, message_num, user_id, message, hidden, created_at)
 VALUES ('217c5622ff9e43728e6a95fb3bae300b', 6, 'f5f984073a0b4ea5952a575886e90586', 'testChatF message', false, '2014-08-06 14:01:19.545-04');
 
+
 /* -----------------------  ProjectScratchpads  ----------------------- */
+
 /* projectScratchpadA  user a project a document j*/
 INSERT INTO project_notes (user_id, project_id, document_id)
 VALUES ('36c8c0ca50aa4806afa5916a5e33a81f', 'c9b4cfceaed448fd94f5c980763dfddc', '30739c6d43774a2f8aa3d1240dfb0740');
@@ -799,6 +803,9 @@ VALUES ('f5f984073a0b4ea5952a575886e90586', 'e4ae3b9098714339b05c8d39e3aaf65d', 
 INSERT INTO project_notes (user_id, project_id, document_id)
 VALUES ('871b525067124e548ab60784cae0bc64', 'e4ae3b9098714339b05c8d39e3aaf65d', '78b9baaf16b743a39cec410104cdde4e');
 
+
+/* -----------------------  ACTIVATIONS  ----------------------- */
+
 /* activation */
 INSERT INTO activations (user_id, nonce)
 VALUES ('8b6dc674-d1ae-11e5-9080-08626681851d', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=');
@@ -806,18 +813,21 @@ VALUES ('8b6dc674-d1ae-11e5-9080-08626681851d', '$s0$100801$Im7kWa5XcOMHIilt7VTo
 /* activation */
 INSERT INTO activations (user_id, nonce)
 VALUES ('7c62a526-d1b0-11e5-9080-08626681851d', '$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=');
-/* words */
+
+
+/* -----------------------  WORDS  ----------------------- */
+
 INSERT INTO words(word, lang)
-VALUES('bisexualpotato', 'eng');
+VALUES('bisexualpotato', 'en');
 
 INSERT INTO words(word, lang)
 VALUES('cielbleu', 'fr');
 
 INSERT INTO words(word, lang)
-VALUES('omniscienttable', 'eng');
+VALUES('omniscienttable', 'en');
 
 INSERT INTO words(word, lang)
-VALUES('alientea', 'eng');
+VALUES('alientea', 'en');
 
 INSERT INTO words(word, lang)
 VALUES('vinrouge', 'fr');
@@ -825,7 +835,8 @@ VALUES('vinrouge', 'fr');
 INSERT INTO words(word, lang)
 VALUES ('интереснаяличность', 'ru');
 
-/* links */
+
+/* -----------------------  LINKS  ----------------------- */
 
 /* course A */
 INSERT INTO links(course_id, link, created_at)

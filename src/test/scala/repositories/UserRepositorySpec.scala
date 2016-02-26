@@ -26,7 +26,9 @@ class UserRepositorySpec
           3 -> TestValues.testUserE.copy(hash = None),
           4 -> TestValues.testUserF.copy(hash = None),
           5 -> TestValues.testUserG.copy(hash = None),
-          6 -> TestValues.testUserH.copy(hash = None)
+          6 -> TestValues.testUserH.copy(hash = None),
+          7 -> TestValues.testUserJ.copy(hash = None),
+          8 -> TestValues.testUserI.copy(hash = None)
         )
 
         val result = userRepository.list(conn)

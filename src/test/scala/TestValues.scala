@@ -111,6 +111,30 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testUserI = User(
+    id = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
+    version = 1L,
+    email = "rafael@krispii.com",
+    username = "rafaelya",
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
+    givenname = "Rafael",
+    surname = "Yanez",
+    createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testUserJ = User(
+    id = UUID.fromString("7c62a526-d1b0-11e5-9080-08626681851d"),
+    version = 1L,
+    email = "yanez@krispii.com",
+    username = "yanez",
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
+    givenname = "Antonio",
+    surname = "Yanez",
+    createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* ---------------------- ROLES ---------------------- */
 
   val testRoleAuth = Role(
@@ -353,6 +377,7 @@ object TestValues {
       title = "test longAnswerTask A",
       description = "test longAnswerTask A description",
       notesAllowed = true,
+      help = Some("test help info about the task for the teacher"),
       notesTitle = Some("test longAnswerTask A notes title"),
       responseTitle = Some("test longAnswerTask A response title")
     ),
@@ -371,6 +396,7 @@ object TestValues {
       title = "test longAnswerTask N",
       description = "test longAnswerTask N description",
       notesAllowed = true,
+      help = Some("test help info about the task for the teacher N"),
       notesTitle = Some("test longAnswerTask N notes title"),
       responseTitle = Some("test longAnswerTask N response title")
     ),
@@ -426,6 +452,7 @@ object TestValues {
       description = "test shortAnswerTask B description",
       notesAllowed = true,
       notesTitle = Some("test shortAnswerTask B notes title"),
+      help = Some("more text help for the teacher"),
       responseTitle = Some("test shortAnswerTask B response title")
     ),
     questions = IndexedSeq(testShortQuestionA),
@@ -2197,6 +2224,8 @@ object TestValues {
     updatedAt = testDocumentJ.updatedAt
   )
 
+  /* ---------------------- USER TOKENS ---------------------- */
+
   val testUserToken = UserToken(
     userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
     token = "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="
@@ -2220,9 +2249,7 @@ object TestValues {
   //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-  /**
-   * The dictionary words table
-   */
+  /* ---------------------- WORDS ---------------------- */
 
   val testWordA = LinkWord(
     word = "bisexualpotato",
@@ -2253,6 +2280,9 @@ object TestValues {
     word = "интереснаяличность",
     lang = "ru"
   )
+
+  /* ---------------------- REGISTRATION LINKS ---------------------- */
+
   /**
    * The registration links for students
    */

@@ -22,8 +22,12 @@ class WordRepositorySpec extends TestEnvironment {
     inSequence {
       "Return random string by language" in {
         val testWorkList = IndexedSeq[LinkWord](
+          TestValues.testWordA,
           TestValues.testWordB,
-          TestValues.testWordE
+          TestValues.testWordC,
+          TestValues.testWordD,
+          TestValues.testWordE,
+          TestValues.testWordF
         )
 
         val result = wordRepository.get("fr")

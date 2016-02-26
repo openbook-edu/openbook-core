@@ -185,11 +185,15 @@ class ProjectServiceDefault(
    * @param description The new description for the project.
    * @return the updated project.
    */
-  override def updateInfo(id: UUID, version: Long,
+  override def updateInfo(
+    id: UUID,
+    version: Long,
     courseId: Option[UUID],
     name: Option[String],
+    slug: Option[String],
     description: Option[String],
-    availability: Option[String]): Future[\/[ErrorUnion#Fail, Project]] = {
+    availability: Option[String]
+  ): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
       for {
         existingProject <- lift(projectRepository.find(id))
@@ -197,6 +201,7 @@ class ProjectServiceDefault(
         toUpdate = existingProject.copy(
           courseId = courseId.getOrElse(existingProject.courseId),
           name = name.getOrElse(existingProject.name),
+          slug = slug.getOrElse(existingProject.slug),
           description = description.getOrElse(existingProject.description),
           availability = availability.getOrElse(existingProject.availability)
         )

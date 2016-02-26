@@ -415,6 +415,7 @@ class TaskRepositorySpec
         task.partId should be(testTask.partId)
         task.position should be(testTask.position)
         task.taskType should be(testTask.taskType)
+        task.settings.help should be(testTask.settings.help)
         task.settings.toString should be(testTask.settings.toString)
 
         //Specific
@@ -613,6 +614,7 @@ class TaskRepositorySpec
             description = "updated" + testTask.settings.description,
             notesAllowed = !testTask.settings.notesAllowed,
             notesTitle = Some("updated notes title"),
+            help = Some("updated help info"),
             responseTitle = Some("updated response title")
           )
         )

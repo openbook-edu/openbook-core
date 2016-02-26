@@ -15,5 +15,6 @@ trait LinkRepository extends Repository {
   def delete(link: Link)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Link]]
   def deleteByCourse(courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Link]]
   def find(link: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Link]]
+  def findByCourse(courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Link]]
 
 }

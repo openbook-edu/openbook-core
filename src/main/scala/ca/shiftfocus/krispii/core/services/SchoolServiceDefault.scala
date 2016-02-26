@@ -400,7 +400,7 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Find link by link name
+   * Find a link by link name
    *
    * @param link
    * @return
@@ -412,7 +412,7 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Delete link based on course id. it will save us some parsing XD
+   * Delete a link based on course id. it will save us some parsing XD
    *
    * @param courseId
    * @return
@@ -420,6 +420,17 @@ class SchoolServiceDefault(
   override def deleteLink(courseId: UUID): Future[\/[ErrorUnion#Fail, Link]] = {
     transactional { implicit conn =>
       linkRepository.deleteByCourse(courseId)
+    }
+  }
+
+  /**
+   * Find a link by course id
+   * @param courseId
+   * @return
+   */
+  override def findLinkByCourse(courseId: UUID): Future[\/[ErrorUnion#Fail, Link]] = {
+    transactional { implicit conn =>
+      linkRepository.findByCourse(courseId)
     }
   }
 }

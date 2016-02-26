@@ -54,6 +54,26 @@ class LinkRepositorySpec extends TestEnvironment {
     }
   }
 
+  "LinkRepository.findByCourse" should {
+    inSequence {
+      "Return a valid link" in {
+        val testLink = TestValues.testLinkA
+        val result = linkRepository.findByCourse(testLink.courseId)
+        val eitherLink = Await.result(result, Duration.Inf)
+        val \/-(link) = eitherLink
+
+        link.link should be(testLink.link)
+        link.courseId should be(testLink.courseId)
+      }
+      "Return not found error if the link doest exists" in {
+        val testLink = TestValues.testLinkC
+        val result = linkRepository.find(testLink.link)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Link")))
+
+      }
+    }
+  }
+
   "LinkRepository.delete" should {
     inSequence {
       "delete a link from the database" in {

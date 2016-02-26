@@ -54,6 +54,13 @@ class LinkRepositoryPostgres extends LinkRepository with PostgresRepository[Link
                   |LIMIT 1
               """.stripMargin
 
+  val FindByCourse = s"""
+                        |SELECT $Fields
+                        |FROM $Table
+                        |WHERE course_id = ?
+                        |LIMIT 1
+              """.stripMargin
+
   override def create(link: Link)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Link]] = {
     queryOne(Insert, Seq[Any](link.link, link.courseId, new DateTime()))
   }
@@ -68,6 +75,10 @@ class LinkRepositoryPostgres extends LinkRepository with PostgresRepository[Link
 
   def deleteByCourse(courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Link]] = {
     queryOne(DeleteByCourse, Seq[Any](courseId))
+  }
+
+  override def findByCourse(courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Link]] = {
+    queryOne(FindByCourse, Seq[Any](courseId))
   }
 
 }

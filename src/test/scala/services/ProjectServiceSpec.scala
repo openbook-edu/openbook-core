@@ -60,15 +60,7 @@ class ProjectServiceSpec
           position = 1
         )
 
-        val resultProject = emptyProject.copy(
-          parts = IndexedSeq(
-            emptyPart.copy(
-              tasks = IndexedSeq(
-                emptyTask
-              )
-            )
-          )
-        )
+        val resultProject = emptyProject
 
         (projectRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (emptyProject.slug, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (projectRepository.insert(_: Project)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyProject)))

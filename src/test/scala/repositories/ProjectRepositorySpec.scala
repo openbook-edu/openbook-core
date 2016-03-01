@@ -81,15 +81,15 @@ class ProjectRepositorySpec
         val testCourse = TestValues.testCourseB
 
         val testProjectList = TreeMap[Int, Project](
-          0 -> TestValues.testProjectB,
-          1 -> TestValues.testProjectC
+          0 -> TestValues.testProjectC,
+          1 -> TestValues.testProjectB
         )
 
         val testPartList = TreeMap(
-          testProjectList(0).id.toString -> Vector(
+          testProjectList(1).id.toString -> Vector(
             TestValues.testPartC
           ),
-          testProjectList(1).id.toString -> Vector(
+          testProjectList(0).id.toString -> Vector(
             TestValues.testPartE,
             TestValues.testPartF,
             TestValues.testPartH

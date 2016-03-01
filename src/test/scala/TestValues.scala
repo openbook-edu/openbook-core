@@ -351,7 +351,7 @@ object TestValues {
     id = UUID.fromString("1646f580-2347-4cdd-8b7d-fd43588a3a50"),
     title = "testMatchingQuestionD title",
     description = "testMatchingQuestionD description",
-    choices = IndexedSeq(MatchingQuestion.Match("choice left 5", "choice right 6"), MatchingQuestion.Match("choice left 7.sql", "choice right 8"))
+    choices = IndexedSeq(MatchingQuestion.Match("choice left 5", "choice right 6"), MatchingQuestion.Match("choice left 7", "choice right 8"))
   )
 
   val testBlanksQuestionE = BlanksQuestion(
@@ -2069,7 +2069,7 @@ object TestValues {
     userId = testUserB.id,
     projectId = testProjectB.id,
     entryType = JournalEntryUpdate.entryType,
-    item = "item 7.sql",
+    item = "item 7",
     message = "journalEntry.message",
     createdAt = new DateTime(2014, 7, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 7, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2229,24 +2229,24 @@ object TestValues {
   val testUserToken = UserToken(
     userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
     token = "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="
-  //    createdAt = new DateTime(2014, 8, 7.sql, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   val testUserTokenEmail = UserToken(
     userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
     token = "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="
-  //    createdAt = new DateTime(2014, 8, 7.sql, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   val testUserTokenInsert = UserToken(
     userId = UUID.fromString("4d01347e-c592-4e5f-b09f-dd281b3d9b87"),
     token = "$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7xjMLFYE="
-  //    createdAt = new DateTime(2014, 8, 7.sql, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
   val testUserTokenDelete = UserToken(
     userId = UUID.fromString("7c62a526-d1b0-11e5-9080-08626681851d"),
     token = "$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="
-  //    createdAt = new DateTime(2014, 8, 7.sql, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   /* ---------------------- WORDS ---------------------- */

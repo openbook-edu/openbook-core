@@ -178,7 +178,8 @@ class ProjectServiceDefault(
     name: Option[String],
     slug: Option[String],
     description: Option[String],
-    availability: Option[String]
+    availability: Option[String],
+    enabled: Option[Boolean]
   ): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
       for {
@@ -189,7 +190,8 @@ class ProjectServiceDefault(
           name = name.getOrElse(existingProject.name),
           slug = slug.getOrElse(existingProject.slug),
           description = description.getOrElse(existingProject.description),
-          availability = availability.getOrElse(existingProject.availability)
+          availability = availability.getOrElse(existingProject.availability),
+          enabled = enabled.getOrElse(existingProject.enabled)
         )
         updatedProject <- lift(projectRepository.update(toUpdate))
       } yield updatedProject

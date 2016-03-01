@@ -27,6 +27,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
       row("slug").asInstanceOf[String],
       row("description").asInstanceOf[String],
       row("availability").asInstanceOf[String],
+      row("enabled").asInstanceOf[Boolean],
       IndexedSeq[Part](),
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
@@ -34,9 +35,9 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   }
 
   val Table = "projects"
-  val Fields = "id, version, course_id, name, slug, description, availability, created_at, updated_at"
+  val Fields = "id, version, course_id, name, slug, description, availability, enabled, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.created_at DESC"
 
   // User CRUD operations
@@ -89,7 +90,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   val Update =
     s"""
       |UPDATE $Table
-      |SET course_id = ?, name = ?, slug = ?, description = ?, availability = ?, version = ?, updated_at = ?
+      |SET course_id = ?, name = ?, slug = ?, description = ?, availability = ?, enabled = ?, version = ?, updated_at = ?
       |WHERE id = ?
       |  AND version = ?
       |RETURNING $Fields
@@ -233,7 +234,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   override def insert(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
       project.id, 1, project.courseId, project.name, project.slug,
-      project.description, project.availability, new DateTime, new DateTime
+      project.description, project.availability, project.enabled, new DateTime, new DateTime
     )
 
     for {
@@ -252,7 +253,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   override def update(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
       project.courseId, project.name, project.slug, project.description,
-      project.availability, project.version + 1, new DateTime, project.id, project.version
+      project.availability, project.enabled, project.version + 1, new DateTime, project.id, project.version
     )
 
     (for {

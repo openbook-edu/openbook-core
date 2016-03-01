@@ -15,6 +15,7 @@ case class Project(
     slug: String,
     description: String,
     availability: String = Project.Availability.AnyTime,
+    enabled: Boolean = false,
     parts: IndexedSeq[Part],
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
@@ -52,37 +53,10 @@ object Project {
     (__ \ "slug").write[String] and
     (__ \ "description").write[String] and
     (__ \ "availability").write[String] and
+    (__ \ "enabled").write[Boolean] and
     (__ \ "parts").write[IndexedSeq[Part]] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Project.unapply))
 
-}
-
-case class ProjectPost(
-  name: String,
-  slug: String,
-  description: String
-)
-object ProjectPost {
-  implicit val projectPostReads = (
-    (__ \ "name").read[String] and
-    (__ \ "slug").read[String] and
-    (__ \ "description").read[String]
-  )(ProjectPost.apply _)
-}
-
-case class ProjectPut(
-  version: Long,
-  name: String,
-  slug: String,
-  description: String
-)
-object ProjectPut {
-  implicit val projectPutReads = (
-    (__ \ "version").read[Long] and
-    (__ \ "name").read[String] and
-    (__ \ "slug").read[String] and
-    (__ \ "description").read[String]
-  )(ProjectPut.apply _)
 }

@@ -136,10 +136,7 @@ class ProjectServiceDefault(
   }
 
   /**
-   * Create a new project, with a single part and an empty task.
-   *
-   * New projects will *always* need at least one part and task to be useful,
-   * so we will simply the creation process and do it all at once.
+   * Create a new project.
    *
    * @param name The new name to give the project.
    * @param slug The new slug to give the project.
@@ -156,20 +153,12 @@ class ProjectServiceDefault(
       availability = availability,
       parts = IndexedSeq.empty[Part]
     )
-    val newPart = Part(projectId = newProject.id, name = "")
 
-    // Then insert the new project, part and task into the database, wrapped
-    // in a transaction such that either all three are created, or none.
     transactional { implicit conn: Connection =>
       for {
         _ <- lift(validateSlug(slug))
         createdProject <- lift(projectRepository.insert(newProject))
-        createdPart <- lift(partRepository.insert(newPart))
-      } yield {
-        val parts = IndexedSeq(createdPart)
-        val completeProject = createdProject.copy(parts = parts)
-        completeProject
-      }
+      } yield createdProject
     }
   }
 

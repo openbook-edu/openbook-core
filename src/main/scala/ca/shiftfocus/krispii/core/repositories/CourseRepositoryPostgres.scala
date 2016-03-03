@@ -216,7 +216,6 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
    * Return course by its project.
    *
    * @param project  the project to filter by
-   *
    * @return a result set
    */
   override def list(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Course]]] = {
@@ -229,23 +228,29 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
    * @param user the user to search by
    * @param asTeacher  whether we are searching for courses this user teachers,
    *                   or courses this user is a student of.
-   *
    * @return the found courses
    */
   override def list(user: User, asTeacher: Boolean = false) // format: OFF
                    (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Course]]] = { // format: ON
-    val key = if (asTeacher) cacheTeachingKey(user.id) else cacheCoursesKey(user.id)
-    cache.getCached[IndexedSeq[Course]](key).flatMap {
-      case \/-(courseList) => Future successful \/-(courseList)
-      case -\/(noResults: RepositoryError.NoResults) =>
-        for {
-          courseList <- lift(queryList(if (asTeacher) ListByTeacherId else ListCourses, Seq[Any](user.id)))
-          _ <- lift(cache.putCache[IndexedSeq[Course]](key)(courseList, ttl))
-        } yield courseList
-      case -\/(error) => Future successful -\/(error)
+
+    if (asTeacher) {
+      val key = cacheTeachingKey(user.id)
+      cache.getCached[IndexedSeq[Course]](key).flatMap {
+        case \/-(courseList) => Future successful \/-(courseList)
+        case -\/(noResults: RepositoryError.NoResults) =>
+          for {
+            courseList <- lift(queryList(if (asTeacher) ListByTeacherId else ListCourses, Seq[Any](user.id)))
+            _ <- lift(cache.putCache[IndexedSeq[Course]](key)(courseList, ttl))
+          } yield courseList
+        case -\/(error) => Future successful -\/(error)
+      }
+    }
+    else {
+      for {
+        courseList <- lift(queryList(ListCourses, Seq[Any](user.id)))
+      } yield courseList
     }
   }
-
   /**
    * List the courses associated with a user.
    */

@@ -280,4 +280,5 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   def activate(userId: UUID, activationCode: String): Future[\/[ErrorUnion#Fail, User]]
 
   def findActivation(email: String): Future[\/[ErrorUnion#Fail, UserToken]]
+
 }

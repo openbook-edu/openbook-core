@@ -3,4 +3,4 @@ create TABLE links (
   link text PRIMARY KEY,
   created_at timestamp with time zone
 );
-alter table links owner to krispii_dev;
+-- alter table links owner to krispii;

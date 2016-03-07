@@ -1,5 +1,5 @@
 INSERT INTO words(word, lang)
-VALUES('bisexualpotato', 'en');
+VALUES('watchyourlanguagepotato', 'en');
 
 INSERT INTO words(word, lang)
 VALUES('cielbleu', 'fr');
@@ -13,5 +13,5 @@ VALUES('alientea', 'en');
 INSERT INTO words(word, lang)
 VALUES('vinrouge', 'fr');
 
-INSERT INTO words(word, lang)
-VALUES ('интереснаяличность', 'ru');
+-- INSERT INTO words(word, lang)
+-- VALUES ('интереснаяличность', 'ru');

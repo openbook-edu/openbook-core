@@ -4,4 +4,4 @@ CREATE TABLE project_notes (
   document_id uuid REFERENCES documents(id) ON DELETE RESTRICT,
   PRIMARY KEY (user_id, project_id)
 );
-ALTER TABLE project_notes OWNER TO krispii_dev
+-- ALTER TABLE project_notes OWNER TO krispii_dev

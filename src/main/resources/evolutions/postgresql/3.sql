@@ -3,4 +3,4 @@ CREATE TABLE activations (
   nonce text UNIQUE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
-alter table activations owner to krispii_dev
+-- alter table activations owner to krispii

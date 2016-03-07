@@ -303,15 +303,7 @@ class ComponentRepositoryPostgres()
    * @return an array of components
    */
   override def list(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
-    cache.getCached[IndexedSeq[Component]](cacheComponentsKey(part.id)).flatMap {
-      case \/-(compList) => Future successful \/-(compList)
-      case -\/(noResults: RepositoryError.NoResults) =>
-        for {
-          compList <- lift(queryList(SelectByPartId, Array[Any](part.id)))
-          _ <- lift(cache.putCache[IndexedSeq[Component]](cacheComponentsKey(part.id))(compList, ttl))
-        } yield compList
-      case -\/(error) => Future successful -\/(error)
-    }
+    queryList(SelectByPartId, Array[Any](part.id))
   }
 
   /**
@@ -321,15 +313,7 @@ class ComponentRepositoryPostgres()
    * @return an array of components
    */
   override def list(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
-    cache.getCached[IndexedSeq[Component]](cacheComponentsKey(project.id)).flatMap {
-      case \/-(compList) => Future successful \/-(compList)
-      case -\/(noResults: RepositoryError.NoResults) =>
-        for {
-          compList <- lift(queryList(SelectByProjectId, Array[Any](project.id)))
-          _ <- lift(cache.putCache[IndexedSeq[Component]](cacheComponentsKey(project.id))(compList, ttl))
-        } yield compList
-      case -\/(error) => Future successful -\/(error)
-    }
+    queryList(SelectByProjectId, Array[Any](project.id))
   }
 
   /**
@@ -350,15 +334,7 @@ class ComponentRepositoryPostgres()
    * @return an optional RowData object containing the results
    */
   override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
-    cache.getCached[Component](cacheComponentKey(id)).flatMap {
-      case \/-(compList) => Future successful \/-(compList)
-      case -\/(noResults: RepositoryError.NoResults) =>
-        for {
-          compList <- lift(queryOne(SelectOne, Array[Any](id)))
-          _ <- lift(cache.putCache[Component](cacheComponentKey(id))(compList, ttl))
-        } yield compList
-      case -\/(error) => Future successful -\/(error)
-    }
+    queryOne(SelectOne, Array[Any](id))
   }
 
   /**
@@ -375,7 +351,6 @@ class ComponentRepositoryPostgres()
         case \/-(false) => -\/(RepositoryError.NoResults(s"Could not add component ${component.id.toString} to part ${part.id.toString}"))
         case -\/(error) => -\/(error)
       })
-      _ <- lift(cache.removeCached(cacheComponentsKey(part.id)))
     } yield ()
   }
 
@@ -393,7 +368,6 @@ class ComponentRepositoryPostgres()
         case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove component ${component.id.toString} from part ${part.id.toString}"))
         case -\/(error) => -\/(error)
       })
-      _ <- lift(cache.removeCached(cacheComponentsKey(part.id)))
     } yield ()
   }
 
@@ -415,7 +389,6 @@ class ComponentRepositoryPostgres()
           case -\/(error) => -\/(error)
         }
       }
-      _ <- lift(cache.removeCached(cacheComponentsKey(part.id)))
     } yield deletedComponents).run
   }
 
@@ -509,10 +482,7 @@ class ComponentRepositoryPostgres()
     }
 
     // Send the query
-    for {
-      updated <- lift(queryOne(query, dataArray))
-      _ <- lift(cache.removeCached(cacheComponentKey(component.id)))
-    } yield updated
+    queryOne(query, dataArray)
   }
 
   /**
@@ -523,9 +493,6 @@ class ComponentRepositoryPostgres()
    * @return
    */
   override def delete(component: Component)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
-    for {
-      deleted <- lift(queryOne(Delete, Seq[Any](component.id, component.version)))
-      _ <- lift(cache.removeCached(cacheComponentKey(component.id)))
-    } yield deleted
+    queryOne(Delete, Seq[Any](component.id, component.version))
   }
 }

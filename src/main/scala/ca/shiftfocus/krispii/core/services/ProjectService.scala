@@ -79,6 +79,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     taskId: UUID,
     version: Long,
     name: Option[String],
+    help: Option[String],
     description: Option[String],
     position: Option[Int],
     notesAllowed: Option[Boolean],

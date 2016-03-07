@@ -8,10 +8,10 @@ import play.api.libs.functional.syntax._
 
 case class CommonTaskSettings(
   title: String = "",
+  help: String = "",
   description: String = "",
   notesAllowed: Boolean = true,
   notesTitle: Option[String] = None,
-  help: Option[String] = None,
   responseTitle: Option[String] = None
 )
 
@@ -27,12 +27,9 @@ object CommonTaskSettings {
   def apply(row: RowData): CommonTaskSettings = {
     CommonTaskSettings(
       title = row("name").asInstanceOf[String],
+      help = row("help_text").asInstanceOf[String],
       description = row("description").asInstanceOf[String],
       notesAllowed = row("notes_allowed").asInstanceOf[Boolean],
-      help = Option(row("help_text").asInstanceOf[String]) match {
-      case Some(help) => Some(help)
-      case _ => None
-    },
       notesTitle = Option(row("notes_title").asInstanceOf[String]) match {
       case Some(notesTitle) => Some(notesTitle)
       case _ => None
@@ -46,19 +43,19 @@ object CommonTaskSettings {
 
   implicit val tsReads: Reads[CommonTaskSettings] = (
     (__ \ "title").read[String] and
+    (__ \ "help").read[String] and
     (__ \ "description").read[String] and
     (__ \ "notesAllowed").read[Boolean] and
     (__ \ "notesTitle").readNullable[String] and
-    (__ \ "help").readNullable[String] and
     (__ \ "responseTitle").readNullable[String]
-  )(CommonTaskSettings.apply(_: String, _: String, _: Boolean, _: Option[String], _: Option[String], _: Option[String]))
+  )(CommonTaskSettings.apply(_: String, _: String, _: String, _: Boolean, _: Option[String], _: Option[String]))
 
   implicit val tsWrites: Writes[CommonTaskSettings] = (
     (__ \ "name").write[String] and
+    (__ \ "help").write[String] and
     (__ \ "description").write[String] and
     (__ \ "notesAllowed").write[Boolean] and
     (__ \ "notesTitle").writeNullable[String] and
-    (__ \ "help").writeNullable[String] and
     (__ \ "responseTitle").writeNullable[String]
   )(unlift(CommonTaskSettings.unapply))
 }

@@ -788,6 +788,7 @@ class ProjectServiceDefault(
           settings = task.settings.copy(
             title = commonArgs.name.getOrElse(task.settings.title),
             description = commonArgs.description.getOrElse(task.settings.description),
+            help = commonArgs.help.getOrElse(task.settings.help),
             notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
             notesTitle = commonArgs.notesTitle match {
               case Some(Some(newNotesTitle)) => Some(newNotesTitle)

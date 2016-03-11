@@ -140,13 +140,16 @@ class ProjectServiceDefault(
    *
    * @param name The new name to give the project.
    * @param slug The new slug to give the project.
+   * @param parentId The id of the parent project, if the parent project is empty then the project is a master project.
    * @param description The new description for the project.
    * @return the updated project.
    */
-  override def create(courseId: UUID, name: String, slug: String, description: String, availability: String): Future[\/[ErrorUnion#Fail, Project]] = {
+  override def create(courseId: UUID, name: String, slug: String, description: String, availability: String, parentId: Option[UUID]):
+  Future[\/[ErrorUnion#Fail, Project]] = {
     // First instantiate a new Project, Part and Task.
     val newProject = Project(
       courseId = courseId,
+      parentId = parentId,
       name = name,
       slug = slug,
       description = description,

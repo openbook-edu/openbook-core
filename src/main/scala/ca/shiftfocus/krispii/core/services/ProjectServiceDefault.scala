@@ -156,7 +156,7 @@ class ProjectServiceDefault(
 
     transactional { implicit conn: Connection =>
       for {
-        _ <- lift(validateSlug(slug))
+        _ <- lift(isValidSlug(slug))
         createdProject <- lift(projectRepository.insert(newProject))
       } yield createdProject
     }
@@ -206,13 +206,13 @@ class ProjectServiceDefault(
    * @param slug
    * @return
    */
-  override def updateSlug(id: UUID, version: Long, slug: String): Future[\/[ErrorUnion#Fail, Project]] = {
+  override def updateSlug(id: UUID, version: Long, newSlug: String): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
       for {
         existingProject <- lift(projectRepository.find(id))
         _ <- predicate(existingProject.version == version)(ServiceError.OfflineLockFail)
-        validSlug <- lift(validateSlug(slug))
-        toUpdate = existingProject.copy(slug = validSlug)
+        _ <- lift(isValidSlug(newSlug))
+        toUpdate = existingProject.copy(slug = newSlug)
         updatedProject <- lift(projectRepository.update(toUpdate))
       } yield updatedProject
     }
@@ -902,29 +902,7 @@ class ProjectServiceDefault(
    * @return a future disjunction containing either the slug, or a failure
    */
   private def isValidSlug(slug: String): Future[\/[ErrorUnion#Fail, String]] = Future successful {
-    if ("""[A-Za-z0-9\_\-]+""".r.unapplySeq(slug).isDefined) \/-(slug)
+    if ("""[A-Za-z0-9\-]+""".r.unapplySeq(slug).isDefined) \/-(slug)
     else -\/(ServiceError.BadInput(s"$slug is not a valid slug format."))
-  }
-
-  /**
-   * Validate a slug for use in a project.
-   *
-   * @param slug the slug to be checked
-   * @param existingId an optional unique id for an existing project to exclude
-   * @return a future disjunction containing either the slug, or a failure
-   */
-  private def validateSlug(slug: String, existingId: Option[UUID] = None)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, String]] = {
-    val existing = for {
-      validSlug <- lift(isValidSlug(slug))
-      project <- lift(projectRepository.find(validSlug))
-    } yield project
-
-    existing.run.map {
-      case \/-(project) =>
-        if (existingId.isEmpty || (existingId.get != project.id)) -\/(RepositoryError.UniqueKeyConflict("slug", s"The slug $slug is already in use."))
-        else \/-(slug)
-      case -\/(noResults: RepositoryError.NoResults) => \/-(slug)
-      case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)
-    }
   }
 }

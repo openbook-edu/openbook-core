@@ -71,18 +71,20 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
        |LIMIT 1
      """.stripMargin
 
+  // Using here get_slug custom postgres function to generate unique slug if slug already exists
   val Insert = {
     s"""
        |INSERT INTO $Table ($Fields)
-       |VALUES ($QMarks)
+       |VALUES (?, ?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?)
        |RETURNING $Fields
     """.stripMargin
   }
 
+  // Using here get_slug custom postgres function to generate unique slug if slug already exists
   val Update =
     s"""
        |UPDATE $Table
-       |SET version = ?, teacher_id = ?, name = ?, color = ?, slug = ?, enabled = ?, scheduling_enabled = ?, chat_enabled = ?, updated_at = ?
+       |SET version = ?, teacher_id = ?, name = ?, color = ?, slug = get_slug(?, '$Table', ?), enabled = ?, scheduling_enabled = ?, chat_enabled = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $Fields
@@ -459,8 +461,8 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
    */
   def insert(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Course]] = {
     val params = Seq[Any](
-      course.id, 1, course.teacherId, course.name,
-      course.color.getRGB, course.slug, course.enabled, course.chatEnabled, course.schedulingEnabled, new DateTime, new DateTime
+      course.id, 1, course.teacherId, course.name, course.color.getRGB, course.slug, course.id,
+      course.enabled, course.chatEnabled, course.schedulingEnabled, new DateTime, new DateTime
     )
 
     for {
@@ -479,9 +481,8 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   override def update(course: Course) // format: OFF
                      (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Course]] = { // format: ON
     val params = Seq[Any](
-      course.version + 1, course.teacherId, course.name,
-      course.color.getRGB, course.slug, course.enabled, course.schedulingEnabled, course.chatEnabled,
-      new DateTime, course.id, course.version
+      course.version + 1, course.teacherId, course.name, course.color.getRGB, course.slug, course.id,
+      course.enabled, course.schedulingEnabled, course.chatEnabled, new DateTime, course.id, course.version
     )
     for {
       updated <- lift(queryOne(Update, params))

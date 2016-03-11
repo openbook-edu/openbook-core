@@ -115,6 +115,7 @@ class SchoolServiceDefault(
       for {
         teacher <- lift(authService.find(teacherId))
         _ <- predicate(teacher.roles.map(_.name).contains("teacher"))(ServiceError.BadPermissions("Tried to create a course for a user who isn't a teacher."))
+        _ <- lift(isValidSlug(slug))
         newCourse = Course(
           teacherId = teacher.id,
           name = name,
@@ -122,7 +123,7 @@ class SchoolServiceDefault(
           slug = slug
         )
         createdCourse <- lift(courseRepository.insert(newCourse))
-      } yield newCourse
+      } yield createdCourse
     }
   }
 
@@ -432,5 +433,16 @@ class SchoolServiceDefault(
     transactional { implicit conn =>
       linkRepository.findByCourse(courseId)
     }
+  }
+
+  /**
+   * Check if a slug is of the valid format.
+   *
+   * @param slug the slug to be checked
+   * @return a future disjunction containing either the slug, or a failure
+   */
+  private def isValidSlug(slug: String): Future[\/[ErrorUnion#Fail, String]] = Future successful {
+    if ("""[A-Za-z0-9\-]+""".r.unapplySeq(slug).isDefined) \/-(slug)
+    else -\/(ServiceError.BadInput(s"$slug is not a valid slug format."))
   }
 }

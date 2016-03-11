@@ -80,17 +80,19 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
        |ORDER BY $OrderBy
      """.stripMargin
 
+  // Using here get_slug custom postgres function to generate unique slug if slug already exists
   val Insert =
     s"""
       |INSERT INTO $Table ($Fields)
-      |VALUES ($QMarks)
+      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?)
       |RETURNING $Fields
     """.stripMargin
 
+  // Using here get_slug custom postgres function to generate unique slug if slug already exists
   val Update =
     s"""
       |UPDATE $Table
-      |SET course_id = ?, name = ?, slug = ?, description = ?, availability = ?, enabled = ?, version = ?, updated_at = ?
+      |SET course_id = ?, name = ?, slug = get_slug(?, '$Table', ?), description = ?, availability = ?, enabled = ?, version = ?, updated_at = ?
       |WHERE id = ?
       |  AND version = ?
       |RETURNING $Fields
@@ -233,7 +235,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    */
   override def insert(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
-      project.id, 1, project.courseId, project.name, project.slug,
+      project.id, 1, project.courseId, project.name, project.slug, project.id,
       project.description, project.availability, project.enabled, new DateTime, new DateTime
     )
 
@@ -252,7 +254,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    */
   override def update(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
-      project.courseId, project.name, project.slug, project.description,
+      project.courseId, project.name, project.slug, project.id, project.description,
       project.availability, project.enabled, project.version + 1, new DateTime, project.id, project.version
     )
 

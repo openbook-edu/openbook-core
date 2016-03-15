@@ -3,6 +3,7 @@ import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.repositories.TaskRepositoryPostgres
 import org.scalatest.Matchers._
 import org.scalatest._
+import play.api.Logger
 
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, Future }
@@ -28,7 +29,8 @@ class TaskRepositorySpec
           TestValues.testMatchingTaskM,
           TestValues.testOrderingTaskL,
           TestValues.testOrderingTaskN,
-          TestValues.testBlanksTaskP
+          TestValues.testBlanksTaskP,
+          TestValues.testMediaTaskA
         )
 
         val result = taskRepository.list
@@ -127,7 +129,8 @@ class TaskRepositorySpec
           TestValues.testMatchingTaskM,
           TestValues.testOrderingTaskL,
           TestValues.testOrderingTaskN,
-          TestValues.testBlanksTaskP
+          TestValues.testBlanksTaskP,
+          TestValues.testMediaTaskA
         )
 
         val result = taskRepository.list(testProject)
@@ -429,6 +432,38 @@ class TaskRepositorySpec
           case _ => throw new Exception("Invalid task type.")
         }
       }
+      "insert new media task" in {
+        val testTask = TestValues.testMediaTaskB
+
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val result = taskRepository.insert(testTask)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: Task) = eitherTask
+
+        task.id should be(testTask.id)
+        task.version should be(1L)
+        task.partId should be(testTask.partId)
+        task.position should be(testTask.position)
+        task.taskType should be(testTask.taskType)
+        task.settings.help should be(testTask.settings.help)
+        task.settings.toString should be(testTask.settings.toString)
+
+        Logger.error(task.toString)
+        //Specific
+        task match {
+          case documentTask: DocumentTask => {
+            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
+          }
+          case questionTask: QuestionTask => {
+            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
+          }
+          case mediaTask: MediaTask => {
+            mediaTask.mediaType should be(testTask.asInstanceOf[MediaTask].mediaType)
+          }
+          case _ => throw new Exception("Invalid task type.")
+        }
+      }
       "return RepositoryError.PrimaryKeyConflict if LongAnswer task already exists" in {
         val testTask = TestValues.testLongAnswerTaskA
 
@@ -605,6 +640,48 @@ class TaskRepositorySpec
 
   "TaskRepository.update" should {
     inSequence {
+      "update Media task" in {
+        val testTask = TestValues.testMediaTaskA
+        val updatedTask = testTask.copy(
+          position = testTask.position + 1,
+          settings = testTask.settings.copy(
+            title = "updated" + testTask.settings.title,
+            description = "updated" + testTask.settings.description,
+            notesAllowed = !testTask.settings.notesAllowed,
+            notesTitle = Some("updated notes title"),
+            help = "updated help info",
+            responseTitle = Some("updated response title")
+          )
+        )
+
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val result = taskRepository.update(updatedTask)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: Task) = eitherTask
+
+        task.id should be(updatedTask.id)
+        task.version should be(updatedTask.version + 1)
+        task.partId should be(updatedTask.partId)
+        task.taskType should be(updatedTask.taskType)
+        task.position should be(updatedTask.position)
+
+        //Specific
+        task match {
+          case documentTask: DocumentTask => {
+            documentTask.dependencyId should be(updatedTask.asInstanceOf[DocumentTask].dependencyId)
+          }
+          case questionTask: QuestionTask => {
+            questionTask.questions.toString should be(updatedTask.asInstanceOf[QuestionTask].questions.toString)
+          }
+          case mediaTask: MediaTask => {
+            mediaTask.mediaType.toString should be(updatedTask.asInstanceOf[MediaTask].mediaType.toString)
+          }
+
+          case _ => throw new Exception("Invalid task type.")
+        }
+      }
+
       "update LongAnswer task" in {
         val testTask = TestValues.testLongAnswerTaskA
         val updatedTask = testTask.copy(
@@ -919,6 +996,36 @@ class TaskRepositorySpec
           case _ => throw new Exception("Invalid task type.")
         }
       }
+      "delete a media task that doesn't have references in work table" in {
+        val testTask = TestValues.testMediaTaskA
+
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val result = taskRepository.delete(testTask)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: Task) = eitherTask
+
+        task.id should be(testTask.id)
+        task.version should be(testTask.version)
+        task.partId should be(testTask.partId)
+        task.position should be(testTask.position)
+        task.taskType should be(testTask.taskType)
+
+        //Specific
+        task match {
+          case documentTask: DocumentTask => {
+            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
+          }
+          case questionTask: QuestionTask => {
+            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
+          }
+          case mediaTask: MediaTask => {
+            mediaTask.mediaType.toString should be(testTask.asInstanceOf[MediaTask].mediaType.toString)
+          }
+          case _ => throw new Exception("Invalid task type.")
+        }
+      }
+
       "return RepositoryError.ForeignKeyConflict if a task has references in task_feedbacks table" in {
         val testTask = TestValues.testLongAnswerTaskA
 

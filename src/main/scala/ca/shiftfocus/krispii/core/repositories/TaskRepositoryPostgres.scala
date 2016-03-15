@@ -31,6 +31,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     row("task_type").asInstanceOf[Int] match {
       case Task.Document => constructDocumentTask(row)
       case Task.Question => constructQuestionTask(row)
+      case Task.Media => constructMediaTask(row)
       case _ => throw new Exception("Invalid task type.")
     }
   }
@@ -50,6 +51,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     s"""
        |LEFT JOIN document_tasks ON $Table.id = document_tasks.task_id
        |LEFT JOIN question_tasks ON $Table.id = question_tasks.task_id
+       |LEFT JOIN media_tasks ON $Table.id = media_tasks.task_id
      """.stripMargin
 
   // -- Select queries -----------------------------------------------------------------------------------------------
@@ -233,6 +235,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     s"""
        |document_tasks.task_id = $Table.id
        | OR question_tasks.task_id = $Table.id
+       | OR media_tasks.task_id = $Table.id
      """.stripMargin
 
   val DeleteByPart =
@@ -240,7 +243,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |DELETE FROM $Table
        |USING
        | document_tasks,
-       | question_tasks
+       | question_tasks,
+       | media_tasks
        |WHERE part_id = ?
        | AND ($DeleteWhere)
        |RETURNING $CommonFields, $SpecificFields
@@ -272,7 +276,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |USING media_tasks
        |WHERE $Table.id = ?
        | AND $Table.version = ?
-       | AND (question_tasks.task_id = $Table.id)
+       | AND (media_tasks.task_id = $Table.id)
        |RETURNING $CommonFields, media_tasks.media_type as media_type
     """.stripMargin
   // -- Methods ------------------------------------------------------------------------------------------------------
@@ -412,7 +416,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     val query = task match {
       case longAnswer: DocumentTask => InsertLongAnswer
       case question: QuestionTask => InsertQuestion
-      case longAnswer: MediaTask => InsertMedia
+      case media: MediaTask => InsertMedia
 
     }
 
@@ -530,14 +534,14 @@ trait SpecificTaskConstructors {
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )
   }
-  protected def constructorMediaTask(row: RowData): MediaTask = {
+  protected def constructMediaTask(row: RowData): MediaTask = {
     MediaTask(
       id = row("id").asInstanceOf[UUID],
       partId = row("part_id").asInstanceOf[UUID],
       position = row("position").asInstanceOf[Int],
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
-      mediaType = ("media_type").asInstanceOf[Int],
+      mediaType = row("media_type").asInstanceOf[Int],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )

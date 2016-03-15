@@ -2239,17 +2239,19 @@ object TestValues {
     updatedAt = testDocumentJ.updatedAt
   )
   /*MEDIA TASKS*/
+  //VALUES ('a7121b74eac111e59ce95e5517507c66', 3, '5cd214be6bba47fa9f350eb8bafec397', 'test MediaTask A', 'test MediaTask A description', 16, 2, true, 'test MediaTask A response title', 'test MediaTask A notes title', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
+
   val testMediaTaskA = MediaTask(
-    id = UUID.fromString("76aa2ed7611b4dafaa3f20efe42a65a0"),
-    version = 8L,
-    partId = UUID.fromString("5cd214be6bba47fa9f350eb8bafec397"), // testPartB.id
-    position = 25,
+    id = UUID.fromString("a7121b74-eac1-11e5-9ce9-5e5517507c66"),
+    version = 3,
+    partId = UUID.fromString("5cd214be-6bba-47fa-9f35-0eb8bafec397"), // testPartB.id
+    position = 16,
     settings = CommonTaskSettings(
-      title = "test testMediaTask A",
-      description = "test testMediaTask A description",
+      title = "test MediaTask A",
+      description = "test MediaTask A description",
       notesAllowed = true,
-      notesTitle = Some("test testMediaTask A notes title"),
-      responseTitle = Some("test testMediaTask A response title")
+      notesTitle = Some("test MediaTask A notes title"),
+      responseTitle = Some("test MediaTask A response title")
     ),
     mediaType = 0,
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -2258,9 +2260,9 @@ object TestValues {
 
   /*no data in the database media task*/
   val testMediaTaskB = MediaTask(
-    id = UUID.fromString("76xa2ed7611b4dafaa3f20efe42a65a0"),
+    id = UUID.fromString("46a994fa-eac2-11e5-9ce9-5e5517507c66"),
     version = 8L,
-    partId = UUID.fromString("5cd214be6bba47fa9f350eb8bafec397"), // testPartB.id
+    partId = UUID.fromString("5cd214be-6bba-47fa-9f35-0eb8bafec397"), // testPartB.id
     position = 25,
     settings = CommonTaskSettings(
       title = "test testMediaTask B",

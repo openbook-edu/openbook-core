@@ -90,6 +90,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
 
   def updateDocumentTask(commonArgs: CommonTaskArgs, depId: Option[Option[UUID]] = None): Future[\/[ErrorUnion#Fail, Task]]
   def updateQuestionTask(commonArgs: CommonTaskArgs, questions: Option[IndexedSeq[Question]]): Future[\/[ErrorUnion#Fail, Task]]
+  def updateMediaTask(commonArgs: CommonTaskArgs, mediaType: Option[Int] = None): Future[\/[ErrorUnion#Fail, Task]]
 
   def deleteTask(taskId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Task]]
   def moveTask(taskId: UUID, version: Long, newPosition: Int, partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]]

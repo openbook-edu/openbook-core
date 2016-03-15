@@ -542,6 +542,7 @@ class ProjectServiceDefault(
             case true => taskList.filter(_.position < truePosition) ++ taskList.filter(_.position >= truePosition).map {
               case task: DocumentTask => task.copy(position = task.position + 1)
               case task: QuestionTask => task.copy(position = task.position + 1)
+              case task: MediaTask => task.copy(position = task.position + 1)
             }
             case false => taskList
           }
@@ -575,12 +576,15 @@ class ProjectServiceDefault(
       orderedTasks(i) match {
         case task: DocumentTask => taskRepository.insert(task.copy(position = i + 1))
         case task: QuestionTask => taskRepository.insert(task.copy(position = i + 1))
+        case task: MediaTask => taskRepository.insert(task.copy(position = i + 1))
+
       }
     }
     else if (orderedTasks(i).position != i + 1) {
       orderedTasks(i) match {
         case task: DocumentTask => taskRepository.update(task.copy(position = i + 1))
         case task: QuestionTask => taskRepository.update(task.copy(position = i + 1))
+        case task: MediaTask => taskRepository.update(task.copy(position = i + 1))
       }
     }
     else {
@@ -651,6 +655,8 @@ class ProjectServiceDefault(
           taskToUpdate match {
             case task: DocumentTask => lift(taskRepository.update(task.copy(position = movedTask.position, version = movedTask.version)))
             case task: QuestionTask => lift(taskRepository.update(task.copy(position = movedTask.position, version = movedTask.version)))
+            case task: MediaTask => lift(taskRepository.update(task.copy(position = movedTask.position, version = movedTask.version)))
+
           }
         }
       } yield updatedTask
@@ -730,6 +736,8 @@ class ProjectServiceDefault(
               val updatedTasks = taskList.map {
                 case task: DocumentTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
                 case task: QuestionTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
+                case task: MediaTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
+
               }
 
               val orderedTasks = updatedTasks.sortWith(_.position < _.position)
@@ -759,6 +767,8 @@ class ProjectServiceDefault(
           orderedTask match {
             case task: DocumentTask => taskRepository.update(task.copy(position = i + 1), Some(originalTask.partId))
             case task: QuestionTask => taskRepository.update(task.copy(position = i + 1), Some(originalTask.partId))
+            case task: MediaTask => taskRepository.update(task.copy(position = i + 1), Some(originalTask.partId))
+
           }
         }
         else {
@@ -847,6 +857,45 @@ class ProjectServiceDefault(
             }
           ),
           questions = questions.getOrElse(questionTask.questions)
+        )
+        updatedTask <- lift(updateTask(toUpdate))
+      } yield updatedTask
+    }
+
+  /**
+   * Update a MediaTask.
+   *
+   * @param commonArgs
+   * @return
+   */
+  override def updateMediaTask(commonArgs: CommonTaskArgs, mediaType: Option[Int]): Future[\/[ErrorUnion#Fail, Task]] =
+    {
+      for {
+        task <- lift(taskRepository.find(commonArgs.taskId))
+        _ <- predicate(task.isInstanceOf[MediaTask])(ServiceError.BadInput("services.ProjectService.updateDocumentTask.wrongTaskType"))
+        _ <- predicate(task.version == commonArgs.version)(ServiceError.OfflineLockFail)
+        mediaTask = task.asInstanceOf[MediaTask]
+        toUpdate = mediaTask.copy(
+          partId = commonArgs.partId.getOrElse(task.partId),
+          position = commonArgs.position.getOrElse(task.position),
+          settings = task.settings.copy(
+            title = commonArgs.name.getOrElse(task.settings.title),
+            description = commonArgs.description.getOrElse(task.settings.description),
+            help = commonArgs.help.getOrElse(task.settings.help),
+            notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+            notesTitle = commonArgs.notesTitle match {
+              case Some(Some(newNotesTitle)) => Some(newNotesTitle)
+              case Some(None) => None
+              case None => task.settings.notesTitle
+            },
+            responseTitle = commonArgs.responseTitle match {
+              case Some(Some(newResponseTitle)) => Some(newResponseTitle)
+              case Some(None) => None
+              case None => task.settings.responseTitle
+            }
+          ),
+          mediaType = mediaType.getOrElse(mediaTask.mediaType)
+
         )
         updatedTask <- lift(updateTask(toUpdate))
       } yield updatedTask

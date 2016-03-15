@@ -204,6 +204,13 @@ VALUES ('45a146b3fd9a4cab9d1d3e9b0b15e12c', 7, '4ac4d872451b4092b13f643d6d5fa930
 
 /* ---------------------- TASKS ---------------------- */
 
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
+VALUES ('76aa2ed7611b4dafaa3f20efe42a65a0', 3, '5cd214be6bba47fa9f350eb8bafec397', 'test MediaTask A', 'test MediaTask A description', 16, 1, true, 'test MediaTask A response title', 'test MediaTask A notes title', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
+
+INSERT INTO media_tasks (task_id, media_type)
+VALUES ('76aa2ed7611b4dafaa3f20efe42a65a0', 0);
+
+
 /* longAnswerTask A -> part A -> project A -> course A -> user A (teacher)*/
 INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, help_text, created_at, updated_at)
 VALUES ('bf1a6ed09f834cb485c1ad456299b3a3', 1, '5cd214be6bba47fa9f350eb8bafec397', 'test longAnswerTask A', 'test longAnswerTask A description', 10, 0, true, 'test longAnswerTask A response title', 'test longAnswerTask A notes title', 'test help info about the task for the teacher', '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');

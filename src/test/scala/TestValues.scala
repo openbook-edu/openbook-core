@@ -2223,6 +2223,41 @@ object TestValues {
     createdAt = testDocumentJ.createdAt,
     updatedAt = testDocumentJ.updatedAt
   )
+  /*MEDIA TASKS*/
+  val testMediaTaskA = MediaTask(
+    id = UUID.fromString("76aa2ed7611b4dafaa3f20efe42a65a0"),
+    version = 8L,
+    partId = UUID.fromString("5cd214be6bba47fa9f350eb8bafec397"), // testPartB.id
+    position = 25,
+    settings = CommonTaskSettings(
+      title = "test testMediaTask A",
+      description = "test testMediaTask A description",
+      notesAllowed = true,
+      notesTitle = Some("test testMediaTask A notes title"),
+      responseTitle = Some("test testMediaTask A response title")
+    ),
+    mediaType = 0,
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /*no data in the database media task*/
+  val testMediaTaskB = MediaTask(
+    id = UUID.fromString("76xa2ed7611b4dafaa3f20efe42a65a0"),
+    version = 8L,
+    partId = UUID.fromString("5cd214be6bba47fa9f350eb8bafec397"), // testPartB.id
+    position = 25,
+    settings = CommonTaskSettings(
+      title = "test testMediaTask B",
+      description = "test testMediaTask B description",
+      notesAllowed = true,
+      notesTitle = Some("test testMediaTask B notes title"),
+      responseTitle = Some("test testMediaTask B response title")
+    ),
+    mediaType = 2,
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
 
   /* ---------------------- USER TOKENS ---------------------- */
 

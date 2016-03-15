@@ -32,12 +32,11 @@ object Task {
    */
   val Document = 0
   val Question = 1
+  val Media = 2
 
-  // TODO - not used => remove
-  //  val NotStarted = 0
-  //  val Incomplete = 1
-  //  val Complete = 2
-
+  val DefaultMedia = 0
+  val Audio = 1
+  val Video = 2
   /**
    * An apply method that allows instantiation of empty tasks.
    *
@@ -85,6 +84,16 @@ object Task {
           createdAt = createdAt,
           updatedAt = updatedAt
         )
+        case Task.Media => MediaTask(
+          id = id,
+          partId = partId,
+          position = position,
+          version = version,
+          settings = settings,
+          mediaType = 0,
+          createdAt = createdAt,
+          updatedAt = updatedAt
+        )
       }
       newTask
     }
@@ -100,6 +109,9 @@ object Task {
       ))
       case task: QuestionTask => Json.toJson(task).as[JsObject].deepMerge(Json.obj(
         "taskType" -> Question
+      ))
+      case task: MediaTask => Json.toJson(task).as[JsObject].deepMerge(Json.obj(
+        "taskType" -> Media
       ))
     }
   }
@@ -235,4 +247,56 @@ object QuestionTask {
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(QuestionTask.unapply))
+}
+
+final case class MediaTask(
+    // Primary Key
+    id: UUID = UUID.randomUUID,
+    // Combination must be unique
+    partId: UUID,
+    position: Int,
+    // Additional data
+    version: Long = 1L,
+    settings: CommonTaskSettings = CommonTaskSettings(),
+    mediaType: Int,
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
+) extends Task {
+
+  /**
+   * Which type of task this is. Hard-coded value per class!
+   */
+  override val taskType: Int = Task.Media
+
+  override def equals(other: Any): Boolean = {
+    other match {
+      case otherMediaTask: MediaTask => {
+        this.id == otherMediaTask.id &&
+          this.partId == otherMediaTask.partId &&
+          this.position == otherMediaTask.position &&
+          this.version == otherMediaTask.version &&
+          this.settings.toString == otherMediaTask.settings.toString &&
+          this.mediaType == otherMediaTask.mediaType
+      }
+      case _ => false
+    }
+  }
+
+  override def hashCode: Int = 41 * this.id.hashCode
+}
+
+object MediaTask {
+  /**
+   * Serialize a LongAnswerTask to JSON.
+   */
+  implicit val taskWrites: Writes[MediaTask] = (
+    (__ \ "id").write[UUID] and
+    (__ \ "partId").write[UUID] and
+    (__ \ "position").write[Int] and
+    (__ \ "version").write[Long] and
+    (__ \ "settings").write[CommonTaskSettings] and
+    (__ \ "mediaType").write[Int] and
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
+  )(unlift(MediaTask.unapply))
 }

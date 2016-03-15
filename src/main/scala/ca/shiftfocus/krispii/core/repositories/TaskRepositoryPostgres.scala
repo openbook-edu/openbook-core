@@ -42,7 +42,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
   }
-  val SpecificFields = "document_tasks.dependency_id as dependency_id, question_tasks.questions as questions"
+  val SpecificFields = "document_tasks.dependency_id as dependency_id, question_tasks.questions as questions, media_tasks.media_type as media_type"
 
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.position ASC"
@@ -81,63 +81,63 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
 
   val SelectByProjectId =
     s"""
-      |SELECT ${CommonFieldsWithTable()}, $SpecificFields
-      |FROM $Table
-      |$Join
-      |INNER JOIN projects
-      | ON projects.id = ?
-      |INNER JOIN  parts
-      | ON parts.id = $Table.part_id
-      | AND parts.project_id = projects.id
-      |ORDER BY parts.position ASC, $OrderBy
+       |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+       |FROM $Table
+       |$Join
+       |INNER JOIN projects
+       | ON projects.id = ?
+       |INNER JOIN  parts
+       | ON parts.id = $Table.part_id
+       | AND parts.project_id = projects.id
+       |ORDER BY parts.position ASC, $OrderBy
   """.stripMargin
 
   val SelectByPosition =
     s"""
-      |SELECT ${CommonFieldsWithTable()}, $SpecificFields
-      |FROM $Table
-      |$Join
-      |INNER JOIN parts
-      | ON parts.id = $Table.part_id
-      | AND parts.position = ?
-      |INNER JOIN projects
-      | ON projects.id = parts.project_id
-      | AND projects.id = ?
-      |WHERE $Table.position = ?
+       |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+       |FROM $Table
+       |$Join
+       |INNER JOIN parts
+       | ON parts.id = $Table.part_id
+       | AND parts.position = ?
+       |INNER JOIN projects
+       | ON projects.id = parts.project_id
+       | AND projects.id = ?
+       |WHERE $Table.position = ?
   """.stripMargin
 
   val SelectNowByUserId = s"""
-    |SELECT ${CommonFieldsWithTable()}, $SpecificFields
-    |FROM $Table
-    |$Join
-    |INNER JOIN users
-    | ON users.id = ?
-    |INNER JOIN projects
-    | ON projects.id = ?
-    |INNER JOIN parts
-    | ON parts.id = $Table.part_id
-    | AND parts.project_id = projects.id
-    | AND parts.enabled = 't'
-    |INNER JOIN users_courses
-    | ON users_courses.course_id = projects.course_id
-    | AND users_courses.user_id = users.id
-    |LEFT JOIN work
-    | ON users.id = work.user_id
-    | AND $Table.id = work.task_id
-    |WHERE COALESCE(work.is_complete, FALSE) = FALSE
-    |ORDER BY parts.position ASC, $OrderBy
-    |LIMIT 1
+                             |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+                             |FROM $Table
+                             |$Join
+                             |INNER JOIN users
+                             | ON users.id = ?
+                             |INNER JOIN projects
+                             | ON projects.id = ?
+                             |INNER JOIN parts
+                             | ON parts.id = $Table.part_id
+                             | AND parts.project_id = projects.id
+                             | AND parts.enabled = 't'
+                             |INNER JOIN users_courses
+                             | ON users_courses.course_id = projects.course_id
+                             | AND users_courses.user_id = users.id
+                             |LEFT JOIN work
+                             | ON users.id = work.user_id
+                             | AND $Table.id = work.task_id
+                             |WHERE COALESCE(work.is_complete, FALSE) = FALSE
+                             |ORDER BY parts.position ASC, $OrderBy
+                             |LIMIT 1
   """.stripMargin
 
   val SelectNowFromAll = s"""
-    |SELECT ${CommonFieldsWithTable()}, $SpecificFields
-    |FROM $Table
-    |$Join
-    |LEFT JOIN work
-    | ON $Table.id = work.task_id
-    |WHERE COALESCE(work.is_complete, FALSE) = FALSE
-    |ORDER BY $OrderBy
-    |LIMIT 1
+                            |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+                            |FROM $Table
+                            |$Join
+                            |LEFT JOIN work
+                            | ON $Table.id = work.task_id
+                            |WHERE COALESCE(work.is_complete, FALSE) = FALSE
+                            |ORDER BY $OrderBy
+                            |LIMIT 1
   """.stripMargin
 
   // -- Insert queries -----------------------------------------------------------------------------------------------
@@ -170,6 +170,17 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |SELECT ${CommonFieldsWithTable("task")},
        |       q_task.questions
        |FROM task, q_task
+     """.stripMargin
+
+  val InsertMedia =
+    s"""
+       |WITH task AS (${Insert}),
+       |     m_task AS (INSERT INTO media_tasks (task_id, media_type)
+       |                 SELECT task.id as task_id, ? as media_type
+       |                 FROM task
+       |                 RETURNING media_type)
+       |SELECT ${CommonFieldsWithTable("task")}, m_task.media_type
+       |FROM task, m_task
      """.stripMargin
 
   // -- Update queries -----------------------------------------------------------------------------------------------
@@ -206,33 +217,43 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |RETURNING $CommonFields, q_task.questions
      """.stripMargin
 
+  val UpdateMedia =
+    s"""
+       |WITH task AS (${Update})
+       |UPDATE media_tasks AS m_task
+       |SET media_type = ?
+       |FROM task
+       |WHERE task_id = task.id
+       |RETURNING $CommonFields, m_task.media_type
+     """.stripMargin
+
   // -- Delete queries -----------------------------------------------------------------------------------------------
 
   val DeleteWhere =
     s"""
-      |document_tasks.task_id = $Table.id
-      | OR question_tasks.task_id = $Table.id
+       |document_tasks.task_id = $Table.id
+       | OR question_tasks.task_id = $Table.id
      """.stripMargin
 
   val DeleteByPart =
     s"""
-      |DELETE FROM $Table
-      |USING
-      | document_tasks,
-      | question_tasks
-      |WHERE part_id = ?
-      | AND ($DeleteWhere)
-      |RETURNING $CommonFields, $SpecificFields
+       |DELETE FROM $Table
+       |USING
+       | document_tasks,
+       | question_tasks
+       |WHERE part_id = ?
+       | AND ($DeleteWhere)
+       |RETURNING $CommonFields, $SpecificFields
     """.stripMargin
 
   val DeleteDocumentTask =
     s"""
-      |DELETE FROM $Table
-      |USING document_tasks
-      |WHERE $Table.id = ?
-      | AND $Table.version = ?
-      | AND document_tasks.task_id = $Table.id
-      |RETURNING $CommonFields, document_tasks.dependency_id as dependency_id
+       |DELETE FROM $Table
+       |USING document_tasks
+       |WHERE $Table.id = ?
+       | AND $Table.version = ?
+       | AND document_tasks.task_id = $Table.id
+       |RETURNING $CommonFields, document_tasks.dependency_id as dependency_id
     """.stripMargin
 
   val DeleteQuestionTask =
@@ -245,6 +266,15 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |RETURNING $CommonFields, question_tasks.questions as questions
     """.stripMargin
 
+  val DeleteMediaTask =
+    s"""
+       |DELETE FROM $Table
+       |USING media_tasks
+       |WHERE $Table.id = ?
+       | AND $Table.version = ?
+       | AND (question_tasks.task_id = $Table.id)
+       |RETURNING $CommonFields, media_tasks.media_type as media_type
+    """.stripMargin
   // -- Methods ------------------------------------------------------------------------------------------------------
 
   /**
@@ -376,11 +406,14 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       case question: QuestionTask => {
         commonData ++ Seq[Any](Task.Question, Json.toJson(question.questions.map(Question.writes.writes)).toString) // TODO replace with some method like question.getJsonString
       }
+      case media: MediaTask => commonData ++ Seq[Any](Task.Media, media.mediaType)
     }
 
     val query = task match {
       case longAnswer: DocumentTask => InsertLongAnswer
       case question: QuestionTask => InsertQuestion
+      case longAnswer: MediaTask => InsertMedia
+
     }
 
     // Send the query
@@ -415,12 +448,14 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     // Throw in the task type-specific data.
     val dataArray: Seq[Any] = task match {
       case longAnswer: DocumentTask => commonData ++ Seq[Any](longAnswer.dependencyId)
+      case media: MediaTask => commonData ++ Seq[Any](media.mediaType)
       case question: QuestionTask => commonData ++ Seq[Any](Json.toJson(question.questions.map(Question.writes.writes)).toString) // TODO replace with some method like question.getJsonString
     }
 
     val query = task match {
       case longAnswer: DocumentTask => UpdateLongAnswer
       case shortAnswer: QuestionTask => UpdateQuestion
+      case media: MediaTask => UpdateMedia
     }
 
     // Send the query
@@ -445,6 +480,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
     val query = task match {
       case document: DocumentTask => DeleteDocumentTask
       case question: QuestionTask => DeleteQuestionTask
+      case media: MediaTask => DeleteMediaTask
     }
     for {
       deleted <- lift(queryOne(query, Seq(task.id, task.version)))
@@ -490,6 +526,18 @@ trait SpecificTaskConstructors {
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
       questions = Json.parse(row("questions").asInstanceOf[String]).as[IndexedSeq[Question]],
+      createdAt = row("created_at").asInstanceOf[DateTime],
+      updatedAt = row("updated_at").asInstanceOf[DateTime]
+    )
+  }
+  protected def constructorMediaTask(row: RowData): MediaTask = {
+    MediaTask(
+      id = row("id").asInstanceOf[UUID],
+      partId = row("part_id").asInstanceOf[UUID],
+      position = row("position").asInstanceOf[Int],
+      version = row("version").asInstanceOf[Long],
+      settings = CommonTaskSettings(row),
+      mediaType = ("media_type").asInstanceOf[Int],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )

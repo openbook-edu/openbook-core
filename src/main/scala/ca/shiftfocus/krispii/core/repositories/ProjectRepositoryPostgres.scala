@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import com.github.mauricio.async.db.{ RowData, Connection }
+import play.api.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
@@ -10,6 +11,7 @@ import java.util.UUID
 import scala.concurrent.Future
 import org.joda.time.DateTime
 
+import scala.util.Try
 import scalacache.ScalaCache
 import scalaz._
 
@@ -22,7 +24,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
     Project(
       row("id").asInstanceOf[UUID],
       row("course_id").asInstanceOf[UUID],
-      row("parent_id").asInstanceOf[Option[UUID]],
+      Option(row("parent_id")).map(_.asInstanceOf[UUID]),
+      row("is_master").asInstanceOf[Boolean],
       row("version").asInstanceOf[Long],
       row("name").asInstanceOf[String],
       row("slug").asInstanceOf[String],
@@ -36,9 +39,9 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   }
 
   val Table = "projects"
-  val Fields = "id, version, course_id, parent_id, name, slug, description, availability, enabled, created_at, updated_at"
+  val Fields = "id, version, course_id, parent_id, is_master, name, slug, description, availability, enabled, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.created_at DESC"
 
   // User CRUD operations
@@ -46,6 +49,13 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
     s"""
        |SELECT $Fields
        |FROM $Table
+     """.stripMargin
+
+  val SelectAllMaster =
+    s"""
+       |SELECT $Fields
+       |FROM $Table
+       |WHERE is_master is true
      """.stripMargin
 
   val SelectOne =
@@ -85,7 +95,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   val Insert =
     s"""
       |INSERT INTO $Table ($Fields)
-      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?)
+      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?, ?)
       |RETURNING $Fields
     """.stripMargin
 
@@ -93,7 +103,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   val Update =
     s"""
       |UPDATE $Table
-      |SET course_id = ?, name = ?, parent_id = ?, slug = get_slug(?, '$Table', ?), description = ?, availability = ?, enabled = ?, version = ?, updated_at = ?
+      |SET course_id = ?, name = ?, parent_id = ?, is_master = ?, slug = get_slug(?, '$Table', ?), description = ?, availability = ?, enabled = ?, version = ?, updated_at = ?
       |WHERE id = ?
       |  AND version = ?
       |RETURNING $Fields
@@ -112,7 +122,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    *
    * @return a vector of the returned Projects
    */
-  override def list(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+  override def list(implicit conn: Connection, cache: ScalaCachePool, showMasters: Option[Boolean] = None): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+    //    val Select = if !showMasters.isEmpty  if showMasters.get.booleanValue  SelectAllMaster else SelectAll
     (for {
       projectList <- lift(queryList(SelectAll))
       result <- liftSeq {
@@ -124,6 +135,15 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
         }
       }
     } yield result).run
+  }
+
+  /**
+   * Find all Master Projects.
+   *
+   * @return a vector of the returned Projects
+   */
+  override def listMasters(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+    list(conn, cache, Some(false));
   }
 
   /**

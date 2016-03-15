@@ -377,7 +377,7 @@ object TestValues {
   )
 
   /* ---------------------- TASKS ---------------------- */
-
+  CommonTaskSettings()
   /* LONG ANSWER TASKS */
   val testLongAnswerTaskA = DocumentTask(
     id = UUID.fromString("bf1a6ed0-9f83-4cb4-85c1-ad456299b3a3"),

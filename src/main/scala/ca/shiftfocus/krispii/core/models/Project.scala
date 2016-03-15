@@ -11,6 +11,7 @@ case class Project(
     id: UUID = UUID.randomUUID,
     courseId: UUID,
     parentId: Option[UUID] = None,
+    isMaster: Boolean = false,
     version: Long = 1L,
     name: String,
     slug: String,
@@ -25,7 +26,7 @@ case class Project(
     other match {
       case otherProject: Project => {
         this.id.equals(otherProject.id) &&
-          this.parentId.equals(otherProject.parentId) &&
+          this.isMaster.equals(otherProject.isMaster) &&
           this.courseId.equals(otherProject.courseId) &&
           this.version == otherProject.version &&
           this.name == otherProject.name &&
@@ -50,7 +51,8 @@ object Project {
   implicit val projectWrites: Writes[Project] = (
     (__ \ "id").write[UUID] and
     (__ \ "courseId").write[UUID] and
-    (__ \ "parentId").write[UUID] and
+    (__ \ "parentId").writeNullable[UUID] and
+    (__ \ "isMaster").write[Boolean] and
     (__ \ "version").write[Long] and
     (__ \ "name").write[String] and
     (__ \ "slug").write[String] and

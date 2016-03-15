@@ -353,6 +353,26 @@ class ProjectRepositorySpec
         project.availability should be(testProject.availability)
         project.parts should be(Vector())
       }
+      "insert new project with slug + '-1' if slug exists" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+        val existingSlug = TestValues.testProjectA.slug
+        val testProject = TestValues.testProjectD.copy(
+          slug = existingSlug
+        )
+
+        val result = projectRepository.insert(testProject)
+        val eitherProject = Await.result(result, Duration.Inf)
+        val \/-(project) = eitherProject
+
+        project.id should be(testProject.id)
+        project.courseId should be(testProject.courseId)
+        project.version should be(testProject.version)
+        project.name should be(testProject.name)
+        project.slug should be(testProject.slug + "-1")
+        project.description should be(testProject.description)
+        project.availability should be(testProject.availability)
+        project.parts should be(Vector())
+      }
       "return RepositoryError.ForeignKeyConflict if project contains unexisting course id" in {
         val testProject = TestValues.testProjectD.copy(
           courseId = UUID.fromString("ad043c17-d552-4744-890a-6ab8a6778e4c")
@@ -393,6 +413,33 @@ class ProjectRepositorySpec
         project.version should be(updatedProject.version + 1)
         project.name should be(updatedProject.name)
         project.slug should be(updatedProject.slug)
+        project.description should be(updatedProject.description)
+        project.availability should be(updatedProject.availability)
+        project.parts should be(updatedProject.parts)
+        project.createdAt.toString should be(testProject.createdAt.toString)
+        project.updatedAt.toString should not be (testProject.updatedAt.toString)
+      }
+      "update project with slug + '-1' if slug exists" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+        val existingSlug = TestValues.testProjectB.slug
+        val testProject = TestValues.testProjectA
+        val updatedProject = testProject.copy(
+          courseId = TestValues.testCourseB.id,
+          name = "updated test project",
+          slug = existingSlug,
+          description = "updated test project description",
+          availability = "any"
+        )
+
+        val result = projectRepository.update(updatedProject)
+        val eitherProject = Await.result(result, Duration.Inf)
+        val \/-(project) = eitherProject
+
+        project.id should be(updatedProject.id)
+        project.courseId should be(updatedProject.courseId)
+        project.version should be(updatedProject.version + 1)
+        project.name should be(updatedProject.name)
+        project.slug should be(updatedProject.slug + "-1")
         project.description should be(updatedProject.description)
         project.availability should be(updatedProject.availability)
         project.parts should be(updatedProject.parts)

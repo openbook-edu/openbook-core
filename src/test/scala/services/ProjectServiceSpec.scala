@@ -125,7 +125,7 @@ class ProjectServiceSpec
         val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.availability)
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"${emptyProject.slug} is not a valid slug format.")))
       }
-      "return RepositoryError.UniqueKeyConflict if slug is already in use" in {
+      "return a new project with slug + '-1' if slug is already in use" in {
         val testCourse = TestValues.testCourseA
 
         val testProject = TestValues.testProjectA
@@ -150,6 +150,7 @@ class ProjectServiceSpec
         )
 
         val resultProject = emptyProject.copy(
+          slug = emptyProject.slug + "-1",
           parts = IndexedSeq(
             emptyPart.copy(
               tasks = IndexedSeq(
@@ -160,12 +161,24 @@ class ProjectServiceSpec
         )
 
         (projectRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (emptyProject.slug, *, *) returns (Future.successful(\/-(testProject)))
-        (projectRepository.insert(_: Project)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyProject)))
+        (projectRepository.insert(_: Project)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(resultProject)))
         (partRepository.insert(_: Part)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyPart)))
         (taskRepository.insert(_: Task)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyTask)))
 
         val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.availability)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("slug", s"The slug ${emptyProject.slug} is already in use.")))
+        val eitherProject = Await.result(result, Duration.Inf)
+        val \/-(project) = eitherProject
+
+        project.id should be(resultProject.id)
+        project.courseId should be(resultProject.courseId)
+        project.version should be(resultProject.version)
+        project.name should be(resultProject.name)
+        project.slug should be(resultProject.slug)
+        project.description should be(resultProject.description)
+        project.availability should be(resultProject.availability)
+        project.parts should be(resultProject.parts)
+        project.createdAt.toString should be(resultProject.createdAt.toString)
+        project.updatedAt.toString should be(resultProject.updatedAt.toString)
       }
     }
   }
@@ -177,7 +190,7 @@ class ProjectServiceSpec
 
         (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(\/-(testProject)))
 
-        val result = projectService.updateInfo(testProject.id, 99L, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.availability))
+        val result = projectService.updateInfo(testProject.id, 99L, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.availability), Some(testProject.enabled))
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
       "return RepositoryError.NoResults if project doesn't exist" in {
@@ -185,7 +198,7 @@ class ProjectServiceSpec
 
         (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
-        val result = projectService.updateInfo(testProject.id, testProject.version, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.availability))
+        val result = projectService.updateInfo(testProject.id, testProject.version, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.availability), Some(testProject.enabled))
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
       }
     }
@@ -196,7 +209,7 @@ class ProjectServiceSpec
       "update slug" in {
         val testProject = TestValues.testProjectA
         val updatedProject = testProject.copy(
-          slug = "updated_" + testProject.slug
+          slug = "updated-" + testProject.slug
         )
 
         (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(\/-(testProject)))
@@ -219,23 +232,39 @@ class ProjectServiceSpec
         val result = projectService.updateSlug(testProject.id, testProject.version, updatedProject.slug)
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"${updatedProject.slug} is not a valid slug format.")))
       }
-      "return RepositoryError.UniqueKeyConflict if slug is already in use" in {
+      "return updated project with slug + '-1'  if slug is already in use" in {
         val testProject = TestValues.testProjectA
         val updatedProject = testProject.copy(
-          slug = "updated_" + testProject.slug
+          slug = "updated-" + testProject.slug
+        )
+
+        val resultProject = updatedProject.copy(
+          slug = updatedProject.slug + "-1"
         )
 
         (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(\/-(testProject)))
         (projectRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedProject.slug, *, *) returns (Future.successful(\/-(testProject)))
-        (projectRepository.update(_: Project)(_: Connection, _: ScalaCachePool)) when (updatedProject, *, *) returns (Future.successful(\/-(updatedProject)))
+        (projectRepository.update(_: Project)(_: Connection, _: ScalaCachePool)) when (updatedProject, *, *) returns (Future.successful(\/-(resultProject)))
 
         val result = projectService.updateSlug(testProject.id, testProject.version, updatedProject.slug)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("slug", s"The slug ${updatedProject.slug} is already in use.")))
+        val eitherProject = Await.result(result, Duration.Inf)
+        val \/-(project) = eitherProject
+
+        project.id should be(resultProject.id)
+        project.courseId should be(resultProject.courseId)
+        project.version should be(resultProject.version)
+        project.name should be(resultProject.name)
+        project.slug should be(resultProject.slug)
+        project.description should be(resultProject.description)
+        project.availability should be(resultProject.availability)
+        project.parts should be(resultProject.parts)
+        project.createdAt.toString should be(resultProject.createdAt.toString)
+        project.updatedAt.toString should be(resultProject.updatedAt.toString)
       }
       "return ServiceError.OfflineLockFail if versions don't match" in {
         val testProject = TestValues.testProjectA
         val updatedProject = testProject.copy(
-          slug = "updated_" + testProject.slug
+          slug = "updated-" + testProject.slug
         )
 
         (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(\/-(testProject)))
@@ -246,7 +275,7 @@ class ProjectServiceSpec
       "return RepositoryError.NoResults if project doesn't exist" in {
         val testProject = TestValues.testProjectD
         val updatedProject = testProject.copy(
-          slug = "updated_" + testProject.slug
+          slug = "updated-" + testProject.slug
         )
 
         (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
@@ -1449,6 +1478,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !originTask.settings.notesAllowed,
             notesTitle = Some("new notes title"),
@@ -1460,6 +1490,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -1497,6 +1528,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !originTask.settings.notesAllowed,
             notesTitle = None,
@@ -1508,6 +1540,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -1546,6 +1579,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !originTask.settings.notesAllowed,
             notesTitle = originTask.settings.notesTitle,
@@ -1557,6 +1591,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -1595,6 +1630,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !originTask.settings.notesAllowed,
             notesTitle = None,
@@ -1606,6 +1642,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -1633,6 +1670,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !originTask.settings.notesAllowed,
             notesTitle = None,
@@ -1644,6 +1682,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version + 1,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -1675,6 +1714,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = testTaskList(1).settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !testTaskList(1).settings.notesAllowed,
             notesTitle = Some("new notes title"),
@@ -1689,6 +1729,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -1719,6 +1760,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = testTaskList(1).settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !testTaskList(1).settings.notesAllowed,
             notesTitle = Some("new notes title"),
@@ -1729,6 +1771,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -1760,6 +1803,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !testTaskList(1).settings.notesAllowed,
             notesTitle = None,
@@ -1770,6 +1814,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -1801,6 +1846,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !testTaskList(1).settings.notesAllowed,
             notesTitle = None,
@@ -1811,6 +1857,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -1836,6 +1883,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !testTaskList(1).settings.notesAllowed,
             notesTitle = None,
@@ -1846,6 +1894,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version + 1,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -1876,6 +1925,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !originTask.settings.notesAllowed,
             notesTitle = Some("new notes title"),
@@ -1890,6 +1940,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -1927,6 +1978,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !originTask.settings.notesAllowed,
             notesTitle = Some("new notes title"),
@@ -1937,6 +1989,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -1974,6 +2027,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !originTask.settings.notesAllowed,
             notesTitle = None,
@@ -1984,6 +2038,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -2021,6 +2076,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !originTask.settings.notesAllowed,
             notesTitle = None,
@@ -2031,6 +2087,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -2056,6 +2113,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !originTask.settings.notesAllowed,
             notesTitle = None,
@@ -2066,6 +2124,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version + 1,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -2096,6 +2155,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !originTask.settings.notesAllowed,
             notesTitle = Some("new notes title"),
@@ -2110,6 +2170,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -2147,6 +2208,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !originTask.settings.notesAllowed,
             notesTitle = Some("new notes title"),
@@ -2157,6 +2219,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -2194,6 +2257,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !originTask.settings.notesAllowed,
             notesTitle = None,
@@ -2204,6 +2268,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -2242,6 +2307,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !originTask.settings.notesAllowed,
             notesTitle = None,
@@ -2252,6 +2318,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
@@ -2277,6 +2344,7 @@ class ProjectServiceSpec
           position = testTaskList.map(_.position).min,
           settings = originTask.settings.copy(
             title = "New task name",
+            help = "New task help",
             description = "New task description",
             notesAllowed = !originTask.settings.notesAllowed,
             notesTitle = None,
@@ -2287,6 +2355,7 @@ class ProjectServiceSpec
           taskId = updatedTask.id,
           version = updatedTask.version + 1,
           name = Some(updatedTask.settings.title),
+          help = Some(updatedTask.settings.help),
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),

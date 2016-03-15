@@ -833,6 +833,7 @@ class ProjectServiceDefault(
           position = commonArgs.position.getOrElse(task.position),
           settings = task.settings.copy(
             title = commonArgs.name.getOrElse(task.settings.title),
+            help = commonArgs.help.getOrElse(task.settings.help),
             description = commonArgs.description.getOrElse(task.settings.description),
             notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
             notesTitle = commonArgs.notesTitle match {

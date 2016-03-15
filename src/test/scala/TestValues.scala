@@ -241,7 +241,7 @@ object TestValues {
     teacherId = testUserA.id,
     name = "test course A",
     color = new Color(24, 6, 8),
-    slug = "test course A slug",
+    slug = "test-course-A-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -253,7 +253,7 @@ object TestValues {
     teacherId = testUserB.id,
     name = "test course B",
     color = new Color(34, 8, 16),
-    slug = "test course B slug",
+    slug = "test-course-B-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -267,7 +267,7 @@ object TestValues {
     teacherId = testUserA.id,
     name = "unexisting course C",
     color = new Color(24, 6, 8),
-    slug = "test course C slug",
+    slug = "test-course-C-slug",
     chatEnabled = true
   )
 
@@ -277,7 +277,7 @@ object TestValues {
     teacherId = testUserF.id,
     name = "test course D",
     color = new Color(4, 28, 56),
-    slug = "test course D slug",
+    slug = "test-course-D-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -291,7 +291,7 @@ object TestValues {
     teacherId = testUserA.id,
     name = "unexisting course E",
     color = new Color(45, 10, 15),
-    slug = "test course E slug",
+    slug = "test-course-E-slug",
     chatEnabled = true
   )
 
@@ -301,7 +301,7 @@ object TestValues {
     teacherId = testUserF.id,
     name = "test course F",
     color = new Color(4, 28, 56),
-    slug = "test course F slug",
+    slug = "test-course-F-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -316,7 +316,7 @@ object TestValues {
     teacherId = testUserF.id,
     name = "test course G",
     color = new Color(23, 6, 45),
-    slug = "test course G slug",
+    slug = "test-course-G-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -377,7 +377,7 @@ object TestValues {
       title = "test longAnswerTask A",
       description = "test longAnswerTask A description",
       notesAllowed = true,
-      help = Some("test help info about the task for the teacher"),
+      help = "test help text testLongAnswerTaskA",
       notesTitle = Some("test longAnswerTask A notes title"),
       responseTitle = Some("test longAnswerTask A response title")
     ),
@@ -396,7 +396,7 @@ object TestValues {
       title = "test longAnswerTask N",
       description = "test longAnswerTask N description",
       notesAllowed = true,
-      help = Some("test help info about the task for the teacher N"),
+      help = "test help text testLongAnswerTaskN",
       notesTitle = Some("test longAnswerTask N notes title"),
       responseTitle = Some("test longAnswerTask N response title")
     ),
@@ -415,6 +415,7 @@ object TestValues {
       title = "test longAnswerTask O",
       description = "test longAnswerTask O description",
       notesAllowed = true,
+      help = "test help text testLongAnswerTaskO",
       notesTitle = Some("test longAnswerTask O notes title"),
       responseTitle = Some("test longAnswerTask O response title")
     ),
@@ -433,6 +434,7 @@ object TestValues {
       title = "test longAnswerTask F",
       description = "test longAnswerTask F description",
       notesAllowed = false,
+      help = "test help text testLongAnswerTaskF",
       notesTitle = Some("test longAnswerTask F notes title"),
       responseTitle = Some("test longAnswerTask F response title")
     ),
@@ -451,8 +453,8 @@ object TestValues {
       title = "test shortAnswerTask B",
       description = "test shortAnswerTask B description",
       notesAllowed = true,
+      help = "test help text testShortAnswerTaskB",
       notesTitle = Some("test shortAnswerTask B notes title"),
-      help = Some("more text help for the teacher"),
       responseTitle = Some("test shortAnswerTask B response title")
     ),
     questions = IndexedSeq(testShortQuestionA),
@@ -470,6 +472,7 @@ object TestValues {
       title = "test shortAnswerTask G",
       description = "test shortAnswerTask G description",
       notesAllowed = false,
+      help = "test help text testShortAnswerTaskG",
       notesTitle = Some("test shortAnswerTask G notes title"),
       responseTitle = Some("test shortAnswerTask G response title")
     ),
@@ -488,6 +491,7 @@ object TestValues {
       title = "test MultipleChoiceTask C",
       description = "test MultipleChoiceTask C description",
       notesAllowed = true,
+      help = "test help text testMultipleChoiceTaskC",
       notesTitle = Some("test MultipleChoiceTask C notes title"),
       responseTitle = Some("test MultipleChoiceTask C response title")
     ),
@@ -506,6 +510,7 @@ object TestValues {
       title = "test MultipleChoiceTask H",
       description = "test MultipleChoiceTask H description",
       notesAllowed = true,
+      help = "test help text testMultipleChoiceTaskH",
       notesTitle = Some("test MultipleChoiceTask H notes title"),
       responseTitle = Some("test MultipleChoiceTask H response title")
     ),
@@ -524,6 +529,7 @@ object TestValues {
       title = "test OrderingTask D",
       description = "test OrderingTask D description",
       notesAllowed = true,
+      help = "test help text testOrderingTaskD",
       notesTitle = Some("test OrderingTask D notes title"),
       responseTitle = Some("test OrderingTask D response title")
     ),
@@ -541,6 +547,7 @@ object TestValues {
       title = "test OrderingTask L",
       description = "test OrderingTask L description",
       notesAllowed = true,
+      help = "test help text testOrderingTaskL",
       notesTitle = Some("test OrderingTask L notes title"),
       responseTitle = Some("test OrderingTask L response title")
     ),
@@ -558,6 +565,7 @@ object TestValues {
       title = "test OrderingTask N",
       description = "test OrderingTask N description",
       notesAllowed = true,
+      help = "test help text testOrderingTaskN",
       notesTitle = Some("test OrderingTask N notes title"),
       responseTitle = Some("test OrderingTask N response title")
     ),
@@ -576,6 +584,7 @@ object TestValues {
       title = "test OrderingTask I",
       description = "test OrderingTask I description",
       notesAllowed = false,
+      help = "test help text testOrderingTaskI",
       notesTitle = Some("test OrderingTask I notes title"),
       responseTitle = Some("test OrderingTask I response title")
     ),
@@ -595,6 +604,7 @@ object TestValues {
       title = "test MatchingTask E",
       description = "test MatchingTask E description",
       notesAllowed = true,
+      help = "test help text testMatchingTaskE",
       notesTitle = Some("test MatchingTask E notes title"),
       responseTitle = Some("test MatchingTask E response title")
     ),
@@ -613,6 +623,7 @@ object TestValues {
       title = "test MatchingTask J",
       description = "test MatchingTask J description",
       notesAllowed = false,
+      help = "test help text testMatchingTaskJ",
       notesTitle = Some("test MatchingTask J notes title"),
       responseTitle = Some("test MatchingTask J response title")
     ),
@@ -630,6 +641,7 @@ object TestValues {
       title = "test MatchingTask K",
       description = "test MatchingTask K description",
       notesAllowed = true,
+      help = "test help text testMatchingTaskK",
       notesTitle = Some("test MatchingTask K notes title"),
       responseTitle = Some("test MatchingTask K response title")
     ),
@@ -647,6 +659,7 @@ object TestValues {
       title = "test MatchingTask M",
       description = "test MatchingTask M description",
       notesAllowed = true,
+      help = "test help text testMatchingTaskM",
       notesTitle = Some("test MatchingTask M notes title"),
       responseTitle = Some("test MatchingTask M response title")
     ),
@@ -665,6 +678,7 @@ object TestValues {
       title = "test BlanksTask P",
       description = "test BlanksTask P description",
       notesAllowed = true,
+      help = "test help text testBlanksTaskP",
       notesTitle = Some("test BlanksTask P notes title"),
       responseTitle = Some("test BlanksTask P response title")
     ),
@@ -683,6 +697,7 @@ object TestValues {
       title = "test BlanksTask Q",
       description = "test BlanksTask Q description",
       notesAllowed = true,
+      help = "test help text testBlanksTaskQ",
       notesTitle = Some("test BlanksTask Q notes title"),
       responseTitle = Some("test BlanksTask Q response title")
     ),
@@ -1809,7 +1824,7 @@ object TestValues {
     courseId = testCourseA.id,
     version = 1L,
     name = "test project A",
-    slug = "test_project_slug_A",
+    slug = "test-project-slug-A",
     description = "test project A description",
     availability = "any",
     parts = Vector(testPartA, testPartB, testPartG),
@@ -1822,7 +1837,7 @@ object TestValues {
     courseId = testCourseB.id,
     version = 2L,
     name = "test project B",
-    slug = "test_project_slug_B",
+    slug = "test-project-slug-B",
     description = "test project B description",
     availability = "free",
     parts = Vector(testPartC),
@@ -1835,7 +1850,7 @@ object TestValues {
     courseId = testCourseB.id,
     version = 3L,
     name = "test project C",
-    slug = "test_project_slug_C",
+    slug = "test-project-slug-C",
     description = "test project C description",
     availability = "course",
     parts = Vector(testPartE, testPartF, testPartH),
@@ -1850,7 +1865,7 @@ object TestValues {
     id = UUID.fromString("00743ada-1d3a-4912-adc8-fb8a0b1b7443"),
     courseId = testCourseA.id,
     name = "test project D",
-    slug = "test_project_slug_D",
+    slug = "test-project-slug-D",
     description = "test project D description",
     availability = "course",
     parts = Vector()
@@ -1864,7 +1879,7 @@ object TestValues {
     courseId = testCourseA.id,
     version = 4L,
     name = "test project E",
-    slug = "test_project_slug_E",
+    slug = "test-project-slug-E",
     description = "test project E description",
     availability = "course",
     parts = Vector(),

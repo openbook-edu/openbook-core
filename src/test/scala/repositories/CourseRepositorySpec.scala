@@ -523,6 +523,24 @@ class CourseRepositorySpec
         course.name should be(testCourse.name)
         course.color should be(testCourse.color)
       }
+      "insert new course with slug + '-1' if slug exists" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+        val existingSlug = TestValues.testCourseA.slug
+        val testCourse = TestValues.testCourseE.copy(
+          slug = existingSlug
+        )
+
+        val result = courseRepository.insert(testCourse)
+        val eitherCourse = Await.result(result, Duration.Inf)
+        val \/-(course) = eitherCourse
+
+        course.id should be(testCourse.id)
+        course.teacherId should be(testCourse.teacherId)
+        course.version should be(1L)
+        course.name should be(testCourse.name)
+        course.slug should be(testCourse.slug + "-1")
+        course.color should be(testCourse.color)
+      }
       "return RepositoryError.ForeignKeyConflict if course has unexisting teacher id" in {
         (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
@@ -566,6 +584,33 @@ class CourseRepositorySpec
         course.teacherId should be(updatedCourse.teacherId)
         course.version should be(updatedCourse.version + 1)
         course.name should be(updatedCourse.name)
+        course.color should be(updatedCourse.color)
+        course.createdAt.toString should be(updatedCourse.createdAt.toString)
+        course.updatedAt.toString should not be (updatedCourse.updatedAt.toString)
+      }
+      "update existing course with slug + '-1' if slug exists" in {
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val existingSlug = TestValues.testCourseB.slug
+        val testCourse = TestValues.testCourseA
+        val updatedCourse = testCourse.copy(
+          teacherId = TestValues.testCourseB.teacherId,
+          name = "new test course name",
+          slug = existingSlug,
+          color = new Color(78, 40, 23)
+        )
+
+        val result = courseRepository.update(updatedCourse)
+        val eitherCourse = Await.result(result, Duration.Inf)
+        val \/-(course) = eitherCourse
+
+        course.id should be(updatedCourse.id)
+        course.teacherId should be(updatedCourse.teacherId)
+        course.version should be(updatedCourse.version + 1)
+        course.name should be(updatedCourse.name)
+        course.slug should be(updatedCourse.slug + "-1")
         course.color should be(updatedCourse.color)
         course.createdAt.toString should be(updatedCourse.createdAt.toString)
         course.updatedAt.toString should not be (updatedCourse.updatedAt.toString)

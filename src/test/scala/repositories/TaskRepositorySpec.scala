@@ -614,7 +614,7 @@ class TaskRepositorySpec
             description = "updated" + testTask.settings.description,
             notesAllowed = !testTask.settings.notesAllowed,
             notesTitle = Some("updated notes title"),
-            help = Some("updated help info"),
+            help = "updated help info",
             responseTitle = Some("updated response title")
           )
         )

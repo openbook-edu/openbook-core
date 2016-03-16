@@ -287,7 +287,7 @@ final case class MediaTask(
 
 object MediaTask {
   /**
-   * Serialize a LongAnswerTask to JSON.
+   * Serialize a MediaTask to JSON.
    */
   implicit val taskWrites: Writes[MediaTask] = (
     (__ \ "id").write[UUID] and

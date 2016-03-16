@@ -449,7 +449,6 @@ class TaskRepositorySpec
         task.settings.help should be(testTask.settings.help)
         task.settings.toString should be(testTask.settings.toString)
 
-        Logger.error(task.toString)
         //Specific
         task match {
           case documentTask: DocumentTask => {

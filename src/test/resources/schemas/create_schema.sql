@@ -171,7 +171,10 @@ CREATE TABLE question_tasks (
   questions jsonb
 );
 
-
+CREATE TABLE media_tasks (
+  task_id uuid PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
+  media_type int
+);
 
 CREATE TABLE task_feedbacks (
   task_id    uuid REFERENCES tasks(id) ON DELETE RESTRICT,
@@ -272,6 +275,20 @@ CREATE TABLE question_work_answers (
   PRIMARY KEY (work_id, version)
 );
 
+CREATE TABLE media_work (
+  work_id uuid REFERENCES work(id) ON DELETE CASCADE,
+  file_data jsonb,
+  PRIMARY KEY (work_id)
+);
+
+CREATE TABLE media_work_data (
+  work_id uuid REFERENCES media_work(work_id) ON DELETE CASCADE,
+  version bigint,
+  file_data jsonb,
+  created_at timestamp with time zone,
+  PRIMARY KEY (work_id, version)
+);
+
 
 CREATE TABLE journal (
   id uuid PRIMARY KEY,
@@ -368,11 +385,6 @@ create TABLE links (
   course_id uuid REFERENCES courses(id) ON DELETE CASCADE,
   link text PRIMARY KEY,
   created_at timestamp with time zone
-);
-
-CREATE TABLE media_tasks (
-  task_id uuid PRIMARY KEY REFERENCES tasks(id) ON DELETE CASCADE,
-  media_type int
 );
 
 CREATE OR REPLACE FUNCTION get_slug(_slug text, _table text, _id uuid) RETURNS text AS $$

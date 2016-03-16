@@ -38,6 +38,14 @@ trait WorkService extends Service[ErrorUnion#Fail] {
     isComplete: Option[Boolean] = None
   ): Future[\/[ErrorUnion#Fail, QuestionWork]]
 
+  def updateMediaWork(
+    userId: UUID,
+    taskId: UUID,
+    version: Long,
+    fileData: Option[MediaAnswer] = None,
+    isComplete: Option[Boolean] = None
+  ): Future[\/[ErrorUnion#Fail, MediaWork]]
+
   def updateAnswer(workId: UUID, version: Long, questionId: UUID, answer: Answer): Future[\/[ErrorUnion#Fail, QuestionWork]]
 
   // Task feedbacks

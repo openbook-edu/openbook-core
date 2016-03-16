@@ -32,12 +32,14 @@ object Work {
           work match {
             case specific: DocumentWork if specific.response.isDefined => Json.toJson(specific.response.get)
             case specific: QuestionWork => Answers.writes.writes(specific.response)
+            case specific: MediaWork => MediaAnswer.writes.writes(specific.fileData)
           }
         },
         "isComplete" -> work.isComplete,
         "createdAt" -> work.createdAt,
         "updatedAt" -> work.updatedAt
       )
+
       work match {
         case docWork: DocumentWork => jsVal + ("documentId" -> Json.toJson(docWork.documentId))
         case _ => jsVal
@@ -77,6 +79,21 @@ final case class QuestionWork(
 ) extends Work {
   override def responseToString: String = {
     response.toString
+  }
+}
+
+final case class MediaWork(
+    id: UUID = UUID.randomUUID,
+    studentId: UUID,
+    taskId: UUID,
+    version: Long = 1L,
+    fileData: MediaAnswer = MediaAnswer(),
+    isComplete: Boolean = false,
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
+) extends Work {
+  override def responseToString: String = {
+    fileData.toString
   }
 }
 
@@ -256,5 +273,30 @@ object MatchingAnswer {
       "questionType" -> matchingAnswer.questionType,
       "answer" -> matchingAnswer.answer
     )
+  }
+}
+
+case class MediaAnswer(
+  mediaType: Option[Int] = None,
+  fileName: Option[String] = None
+)
+object MediaAnswer {
+  implicit val reads = new Reads[MediaAnswer] {
+    def reads(json: JsValue) = {
+      JsSuccess(
+        MediaAnswer(
+          (json \ "mediaType").asOpt[Int],
+          (json \ "fileName").asOpt[String]
+        )
+      )
+    }
+  }
+  implicit val writes = new Writes[MediaAnswer] {
+    def writes(mediaAnswer: MediaAnswer): JsValue = {
+      Json.obj(
+        "mediaType" -> mediaAnswer.mediaType,
+        "fileName" -> mediaAnswer.fileName
+      )
+    }
   }
 }

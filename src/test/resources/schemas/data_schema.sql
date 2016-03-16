@@ -204,13 +204,6 @@ VALUES ('45a146b3fd9a4cab9d1d3e9b0b15e12c', 7, '4ac4d872451b4092b13f643d6d5fa930
 
 /* ---------------------- TASKS ---------------------- */
 
-INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, created_at, updated_at)
-VALUES ('a7121b74eac111e59ce95e5517507c66', 3, '5cd214be6bba47fa9f350eb8bafec397', 'test MediaTask A', 'test MediaTask A description', 16, 2, true, 'test MediaTask A response title', 'test MediaTask A notes title', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
-
-INSERT INTO media_tasks (task_id, media_type)
-VALUES ('a7121b74eac111e59ce95e5517507c66', 0);
-
-
 /* longAnswerTask A -> part A -> project A -> course A -> user A (teacher)*/
 INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, help_text, created_at, updated_at)
 VALUES ('bf1a6ed09f834cb485c1ad456299b3a3', 1, '5cd214be6bba47fa9f350eb8bafec397', 'test longAnswerTask A', 'test longAnswerTask A description', 10, 0, true, 'test longAnswerTask A response title', 'test longAnswerTask A notes title', 'test help text testLongAnswerTaskA', '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
@@ -309,6 +302,12 @@ VALUES ('9a258f444ee84bab855b53966e53ca10', '[
 {"id": "1646f580-2347-4cdd-8b7d-fd43588a3a50", "type": 5, "title": "testMatchingQuestionD title", "description": "testMatchingQuestionD description", "choices": [{"left": "choice left 5", "right": "choice right 6"}, {"left": "choice left 7", "right": "choice right 8"}]}
 ]');
 
+/* mediaTask A -> part A -> project A -> course A -> user A (teacher) */
+INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, help_text, created_at, updated_at)
+VALUES ('a7121b74eac111e59ce95e5517507c66', 3, '5cd214be6bba47fa9f350eb8bafec397', 'test MediaTask A', 'test MediaTask A description', 16, 2, true, 'test MediaTask A response title', 'test MediaTask A notes title', 'test help text testMediaTaskA', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
+
+INSERT INTO media_tasks (task_id, media_type)
+VALUES ('a7121b74eac111e59ce95e5517507c66', 0);
 
 /* ---------------------- DOCUMENTS ---------------------- */
 
@@ -636,6 +635,23 @@ VALUES ('f92938721eb04523869705898ebc8746', '{ "67a68639-0172-4948-88f0-57e77a75
 /* Previous revision */
 INSERT INTO question_work_answers (work_id, answers, version, created_at)
 VALUES ('f92938721eb04523869705898ebc8746', '{ "67a68639-0172-4948-88f0-57e77a7502d7": {"questionType": 2, "answer": [ "testBlanksAnswerRevisionE answer one", "testBlanksAnswerRevisionE answer two" ]} }', 4, '2014-08-12 14:01:19.545-04');
+
+
+/* testMediaWorkA -> userC -> testMediaTaskA */
+INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
+VALUES ('38800ed08c6e482b84e5806c1f86316d', 'f5f984073a0b4ea5952a575886e90586', 'a7121b74eac111e59ce95e5517507c66', 3, false, 2, '2014-08-12 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+
+/* Latest revision */
+INSERT INTO media_work (work_id, file_data)
+VALUES ('38800ed08c6e482b84e5806c1f86316d', '{ "mediaType": 3, "fileName": "image.jpg" }');
+
+/* Previous revision */
+INSERT INTO media_work_data (work_id, file_data, version, created_at)
+VALUES ('38800ed08c6e482b84e5806c1f86316d', '{ "mediaType": 3, "fileName": "image.jpg" }', 3, '2014-08-14 14:01:19.545-04');
+
+/* Previous revision */
+INSERT INTO media_work_data (work_id, file_data, version, created_at)
+VALUES ('38800ed08c6e482b84e5806c1f86316d', '{ "mediaType": 2, "fileName": "video.mp4" }', 2, '2014-08-12 14:01:19.545-04');
 
 
 /* ---------------------- COMPONENTS ---------------------- */

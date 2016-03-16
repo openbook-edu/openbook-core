@@ -304,7 +304,7 @@ VALUES ('9a258f444ee84bab855b53966e53ca10', '[
 
 /* mediaTask A -> part A -> project A -> course A -> user A (teacher) */
 INSERT INTO tasks (id, version, part_id, name, description, position, task_type, notes_allowed, response_title, notes_title, help_text, created_at, updated_at)
-VALUES ('a7121b74eac111e59ce95e5517507c66', 3, '5cd214be6bba47fa9f350eb8bafec397', 'test MediaTask A', 'test MediaTask A description', 16, 2, true, 'test MediaTask A response title', 'test MediaTask A notes title', 'test help text testMediaTaskA', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
+VALUES ('a7121b74eac111e59ce95e5517507c66', 3, '5cd214be6bba47fa9f350eb8bafec397', 'test MediaTask A', 'test MediaTask A description', 16, 2, true, 'test MediaTask A response title', 'test MediaTask A notes title', 'test help text testMediaTaskA', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 
 INSERT INTO media_tasks (task_id, media_type)
 VALUES ('a7121b74eac111e59ce95e5517507c66', 0);

@@ -59,6 +59,9 @@ class TaskRepositorySpec
             case questionTask: QuestionTask => {
               questionTask.questions.toString should be(task.asInstanceOf[QuestionTask].questions.toString)
             }
+            case mediaTask: MediaTask => {
+              mediaTask.mediaType.toString should be(task.asInstanceOf[MediaTask].mediaType.toString)
+            }
             case _ => throw new Exception("Invalid task type.")
           }
         }
@@ -158,6 +161,9 @@ class TaskRepositorySpec
             }
             case questionTask: QuestionTask => {
               questionTask.questions.toString should be(task.asInstanceOf[QuestionTask].questions.toString)
+            }
+            case mediaTask: MediaTask => {
+              mediaTask.mediaType.toString should be(task.asInstanceOf[MediaTask].mediaType.toString)
             }
             case _ => throw new Exception("Invalid task type.")
           }
@@ -995,36 +1001,6 @@ class TaskRepositorySpec
           case _ => throw new Exception("Invalid task type.")
         }
       }
-      "delete a media task that doesn't have references in work table" in {
-        val testTask = TestValues.testMediaTaskA
-
-        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
-
-        val result = taskRepository.delete(testTask)
-        val eitherTask = Await.result(result, Duration.Inf)
-        val \/-(task: Task) = eitherTask
-
-        task.id should be(testTask.id)
-        task.version should be(testTask.version)
-        task.partId should be(testTask.partId)
-        task.position should be(testTask.position)
-        task.taskType should be(testTask.taskType)
-
-        //Specific
-        task match {
-          case documentTask: DocumentTask => {
-            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
-          }
-          case questionTask: QuestionTask => {
-            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
-          }
-          case mediaTask: MediaTask => {
-            mediaTask.mediaType.toString should be(testTask.asInstanceOf[MediaTask].mediaType.toString)
-          }
-          case _ => throw new Exception("Invalid task type.")
-        }
-      }
-
       "return RepositoryError.ForeignKeyConflict if a task has references in task_feedbacks table" in {
         val testTask = TestValues.testLongAnswerTaskA
 

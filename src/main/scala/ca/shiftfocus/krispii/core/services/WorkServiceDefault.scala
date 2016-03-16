@@ -208,6 +208,36 @@ class WorkServiceDefault(
     }
   }
 
+  /**
+   * Create a media work item.
+   *
+   * Use this method when entering student work on a task for the first time (in a given course).
+   *
+   * @param userId the id of the student whose work is being entered
+   * @param taskId the task for which the work was done
+   * @param isComplete whether the student is finished with the task
+   * @return the newly created work
+   */
+  override def createMediaWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MediaWork]] = {
+    transactional { implicit conn =>
+      val fUser = authService.find(userId)
+      val fTask = projectService.findTask(taskId)
+
+      for {
+        user <- lift(fUser)
+        task <- lift(fTask)
+        newWork = MediaWork(
+          studentId = userId,
+          taskId = taskId,
+          version = 1,
+          fileData = MediaAnswer(),
+          isComplete = isComplete
+        )
+        work <- lift(workRepository.insert(newWork))
+      } yield work.asInstanceOf[MediaWork]
+    }
+  }
+
   // --------- Update ------------------------------------------------------------------------------------------
   // TODO remove
   /**

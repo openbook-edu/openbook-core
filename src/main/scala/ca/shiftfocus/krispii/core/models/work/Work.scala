@@ -277,7 +277,7 @@ object MatchingAnswer {
 }
 
 case class MediaAnswer(
-  mediaType: Option[Int] = None,
+  mediaType: Option[String] = None,
   fileName: Option[String] = None
 )
 object MediaAnswer {
@@ -285,7 +285,7 @@ object MediaAnswer {
     def reads(json: JsValue) = {
       JsSuccess(
         MediaAnswer(
-          (json \ "mediaType").asOpt[Int],
+          (json \ "mediaType").asOpt[String],
           (json \ "fileName").asOpt[String]
         )
       )

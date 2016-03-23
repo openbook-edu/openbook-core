@@ -1506,7 +1506,7 @@ object TestValues {
     studentId = testUserC.id,
     taskId = testMediaTaskA.id,
     version = 3L,
-    fileData = MediaAnswer(Some(3), Some("image.jpg")),
+    fileData = MediaAnswer(Some("3"), Some("image.jpg")),
     isComplete = false,
     createdAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))

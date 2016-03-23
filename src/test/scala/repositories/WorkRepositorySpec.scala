@@ -1555,7 +1555,7 @@ class WorkRepositorySpec
           createdAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04")),
 
           // Should be updated
-          fileData = MediaAnswer(Some(2), Some("video.mp4")),
+          fileData = MediaAnswer(Some("2"), Some("video.mp4")),
           isComplete = !testWork.isComplete
         )
 

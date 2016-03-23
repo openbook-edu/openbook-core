@@ -1,4 +1,4 @@
-# krispii-core 1.0
+# krispii-core
 
 krispii-core is a plain Scala sbt module that handles data services and domain logic for
 the krispii platform. This is not intended to be run as a standalone project: it is built to

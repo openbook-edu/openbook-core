@@ -1,0 +1,3 @@
+[submodule "krispii-db"]
+	path = krispii-db
+	url = gitlab:krispii/krispii-db

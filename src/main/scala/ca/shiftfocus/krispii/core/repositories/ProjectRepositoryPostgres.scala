@@ -41,7 +41,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   }
 
   val Table = "projects"
-  val Fields = "id, version, course_id, parent_id, is_master, name, slug, description, availability, enabled, created_at, updated_at"
+  val Fields = "id, version, course_id, name, slug, parent_id, is_master, description, availability, enabled, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.created_at DESC"
@@ -349,7 +349,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    */
   override def insert(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
-      project.id, 1, project.courseId, project.name, project.slug, project.id, project.isMaster, project.parentId,
+      project.id, 1, project.courseId, project.name, project.slug, project.id, project.parentId, project.isMaster,
       project.description, project.availability, project.enabled, new DateTime, new DateTime
     )
 

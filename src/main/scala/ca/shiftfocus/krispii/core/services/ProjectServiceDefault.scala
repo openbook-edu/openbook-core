@@ -23,7 +23,8 @@ class ProjectServiceDefault(
     val courseRepository: CourseRepository,
     val projectRepository: ProjectRepository,
     val partRepository: PartRepository,
-    val taskRepository: TaskRepository
+    val taskRepository: TaskRepository,
+    val componentRepository: ComponentRepository
 ) extends ProjectService {
 
   implicit def conn: Connection = db.pool
@@ -34,8 +35,8 @@ class ProjectServiceDefault(
    *
    * @return a future disjunction containing either a vector of projects, or a failure
    */
-  override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
-    projectRepository.list
+  override def list(masterProjects: Option[Boolean] = None): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
+    projectRepository.list(masterProjects)
   }
 
   /**
@@ -110,6 +111,27 @@ class ProjectServiceDefault(
       user <- lift(authService.find(userId))
       project <- lift(projectRepository.find(projectId, user, fetchParts))
     } yield project
+  }
+
+  /**
+   * Copy the master project into the given course.
+   * @param projectId
+   * @param courseId
+   * @return
+   */
+  override def copyMasterProject(projectId: UUID, courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]] = {
+    transactional { implicit conn: Connection =>
+      for {
+        clonedProject <- lift(projectRepository.cloneProject(projectId, courseId))
+        newProject <- lift(projectRepository.insert(clonedProject))
+        clonedParts <- lift(projectRepository.cloneProjectParts(projectId, userId))
+        _ <- lift(serializedT(clonedParts)(part => {
+          partRepository.insert(part)
+          serializedT(part.tasks)(taskRepository.insert(_))
+          serializedT(part.components)(componentRepository.insert(_))
+        }))
+      } yield newProject
+    }
   }
 
   /**

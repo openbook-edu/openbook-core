@@ -53,7 +53,7 @@ class ProjectRepositorySpec
           }
         }
 
-        val result = projectRepository.list
+        val result = projectRepository.list()
         val eitherProjects = Await.result(result, Duration.Inf)
         val \/-(projects) = eitherProjects
 
@@ -158,7 +158,7 @@ class ProjectRepositorySpec
           TestValues.testPartG
         )
 
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (testProject.copy(parts = Vector()), true, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (testProject.copy(parts = Vector()), true, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         val result = projectRepository.find(testProject.id)
         val eitherProject = Await.result(result, Duration.Inf)

@@ -17,7 +17,8 @@ import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import scalacache.ScalaCache
 import scalaz.{ -\/, \/-, \/ }
 
-class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRepository with PostgresRepository[Part] {
+class PartRepositoryPostgres(val taskRepository: TaskRepository, val componentRepository: ComponentRepository)
+    extends PartRepository with PostgresRepository[Part] {
 
   override val entityName = "Part"
 
@@ -157,7 +158,7 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
                    (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = // format: ON
     list(project, true)
 
-  override def list(project: Project, fetchTasks: Boolean) // format: OFF
+  override def list(project: Project, fetchTasks: Boolean, fetchComponents: Boolean = false) // format: OFF
                    (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = { // format: ON
     (for {
       partList <- lift(cache.getCached[IndexedSeq[Part]](cachePartsKey(project.id)).flatMap {
@@ -170,11 +171,28 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository) extends PartRep
           } yield partList
         case -\/(error) => Future successful -\/(error)
       })
-      partsWithTasks <- if (fetchTasks) {
+      partsWithTasks <- if (fetchTasks && fetchComponents) {
+        liftSeq(partList.map { part =>
+          (for {
+            tasks <- lift(taskRepository.list(part))
+            components <- lift(componentRepository.list(part))
+            result = part.copy(tasks = tasks, components = components)
+          } yield result).run
+        })
+      }
+      else if (fetchTasks) {
         liftSeq(partList.map { part =>
           (for {
             tasks <- lift(taskRepository.list(part))
             result = part.copy(tasks = tasks)
+          } yield result).run
+        })
+      }
+      else if (fetchComponents) {
+        liftSeq(partList.map { part =>
+          (for {
+            components <- lift(componentRepository.list(part))
+            result = part.copy(components = components)
           } yield result).run
         })
       }

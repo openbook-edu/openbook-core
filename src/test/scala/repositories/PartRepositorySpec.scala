@@ -3,7 +3,7 @@ import java.util.UUID
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models.Part
-import ca.shiftfocus.krispii.core.repositories.{ PartRepositoryPostgres, TaskRepository }
+import ca.shiftfocus.krispii.core.repositories.{ ComponentRepository, PartRepositoryPostgres, TaskRepository }
 import com.github.mauricio.async.db.Connection
 import org.scalatest.Matchers._
 import org.scalatest._
@@ -16,7 +16,8 @@ import scalaz._
 class PartRepositorySpec
     extends TestEnvironment {
   val taskRepository = stub[TaskRepository]
-  val partRepository = new PartRepositoryPostgres(taskRepository)
+  val componentRepository = stub[ComponentRepository]
+  val partRepository = new PartRepositoryPostgres(taskRepository, componentRepository)
 
   "PartRepository.list" should {
     inSequence {

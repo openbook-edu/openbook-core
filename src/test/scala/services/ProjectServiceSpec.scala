@@ -25,8 +25,9 @@ class ProjectServiceSpec
   val projectRepository = stub[ProjectRepository]
   val partRepository = stub[PartRepository]
   val taskRepository = stub[TaskRepository]
+  val componentRepository = stub[ComponentRepository]
 
-  val projectService = new ProjectServiceDefault(db, cache, authService, schoolService, courseRepository, projectRepository, partRepository, taskRepository) {
+  val projectService = new ProjectServiceDefault(db, cache, authService, schoolService, courseRepository, projectRepository, partRepository, taskRepository, componentRepository) {
     override implicit def conn: Connection = mockConnection
 
     override def transactional[A](f: Connection => Future[A]): Future[A] = {
@@ -326,7 +327,7 @@ class ProjectServiceSpec
         )
 
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (testProject.id, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         for (i <- testPartList.indices) {
           (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(i).copy(position = i + 2), *, *) returns (Future.successful(\/-(testPartList(i).copy(position = i + 2))))
@@ -356,7 +357,7 @@ class ProjectServiceSpec
         )
 
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (testProject.id, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         for (i <- testPartList.indices) {
           (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(i).copy(position = i + 2), *, *) returns (Future.successful(\/-(testPartList(i).copy(position = i + 2))))
@@ -386,7 +387,7 @@ class ProjectServiceSpec
         )
 
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (testProject.id, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         for (i <- testPartList.indices) {
           if (i + 1 != testPartList.length)
@@ -420,7 +421,7 @@ class ProjectServiceSpec
         val resultNewPartPosition = testPartList.sortWith(_.position < _.position).indexOf(testPartList(0))
 
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (testProject.id, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         // mock partA
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(0).copy(position = 3), *, *) returns (Future.successful(\/-(testPartList(0).copy(position = 3))))
@@ -453,7 +454,7 @@ class ProjectServiceSpec
         )
 
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (testProject.id, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         for (i <- testPartList.indices) {
           (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(i).copy(position = i + 1), *, *) returns (Future.successful(\/-(testPartList(i).copy(position = i + 1))))
@@ -479,7 +480,7 @@ class ProjectServiceSpec
         )
 
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (testProject.id, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         (partRepository.insert(_: Part)(_: Connection, _: ScalaCachePool)) when (newPart.copy(position = 1), *, *) returns (Future.successful(\/-(newPart.copy(position = 1))))
 
@@ -505,7 +506,7 @@ class ProjectServiceSpec
         )
 
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (testProject.id, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         for (i <- testPartList.indices) {
           (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(i).copy(position = i + 2), *, *) returns (Future.successful(\/-(testPartList(i).copy(position = i + 2))))
@@ -535,7 +536,7 @@ class ProjectServiceSpec
         )
 
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (testProject.id, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         (partRepository.insert(_: Part)(_: Connection, _: ScalaCachePool)) when (newPart, *, *) returns (Future.successful(\/-(newPart)))
 
@@ -561,7 +562,7 @@ class ProjectServiceSpec
         )
 
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (testProject.id, false, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         (partRepository.insert(_: Part)(_: Connection, _: ScalaCachePool)) when (newPart, *, *) returns (Future.successful(\/-(newPart)))
 
@@ -590,7 +591,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPartList(1).id, *, *) returns (Future.successful(\/-(testPartList(1))))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (updatedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         for (i <- filteredPartList.indices) {
           (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (filteredPartList(i).copy(position = i + 2), *, *) returns (Future.successful(\/-(filteredPartList(i).copy(position = i + 2))))
@@ -619,7 +620,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPartList(1).id, *, *) returns (Future.successful(\/-(testPartList(1))))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (updatedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         for (i <- filteredPartList.indices) {
           (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (filteredPartList(i).copy(position = i + 2), *, *) returns (Future.successful(\/-(filteredPartList(i).copy(position = i + 2))))
@@ -648,7 +649,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPartList(0).id, *, *) returns (Future.successful(\/-(testPartList(0))))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (updatedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         // partA
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(0).copy(position = 2), *, *) returns (Future.successful(\/-(testPartList(0).copy(position = 2))))
@@ -680,7 +681,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPartList(0).id, *, *) returns (Future.successful(\/-(testPartList(0))))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (updatedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         // partA
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(0).copy(position = 3), *, *) returns (Future.successful(\/-(testPartList(0).copy(position = 3))))
@@ -712,7 +713,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPartList(0).id, *, *) returns (Future.successful(\/-(testPartList(0))))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (updatedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         // partA
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(0).copy(position = 2), *, *) returns (Future.successful(\/-(testPartList(0).copy(position = 2))))
@@ -742,7 +743,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPartList(0).id, *, *) returns (Future.successful(\/-(testPartList(0))))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (updatedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         // partA
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(0).copy(position = 3), *, *) returns (Future.successful(\/-(testPartList(0).copy(position = 3))))
@@ -770,7 +771,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPartList(0).id, *, *) returns (Future.successful(\/-(testPartList(0))))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (updatedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         // partA
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(0).copy(position = 1), *, *) returns (Future.successful(\/-(testPartList(0).copy(position = 1))))
@@ -800,7 +801,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPartList(2).id, *, *) returns (Future.successful(\/-(testPartList(2))))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (updatedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         // partA
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(1).copy(position = 3), *, *) returns (Future.successful(\/-(testPartList(1).copy(position = 3))))
@@ -828,7 +829,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (updatedPart.id, *, *) returns (Future.successful(\/-(testPartList(1))))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (updatedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         // partB
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (updatedPart, *, *) returns (Future.successful(\/-(updatedPart)))
@@ -869,7 +870,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (updatedPart.id, *, *) returns (Future.successful(\/-(testPartList(1))))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (updatedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(IndexedSeq.empty[Part])))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(IndexedSeq.empty[Part])))
 
         // partB
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (updatedPart, *, *) returns (Future.successful(\/-(updatedPart)))
@@ -893,7 +894,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (updatedPart.id, *, *) returns (Future.successful(\/-(testPartList(1))))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (updatedPart.projectId, false, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         // partB
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (updatedPart, *, *) returns (Future.successful(\/-(updatedPart)))
@@ -916,7 +917,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (updatedPart.id, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (updatedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         // partB
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (updatedPart, *, *) returns (Future.successful(\/-(updatedPart)))
@@ -942,7 +943,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (deletedPart.id, *, *) returns (Future.successful(\/-(deletedPart)))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (testProject.id, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         // mock partA with changed position
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(0).copy(position = 1), *, *) returns (Future.successful(\/-(testPartList(0).copy(position = 1))))
@@ -967,7 +968,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (deletedPart.id, *, *) returns (Future.successful(\/-(deletedPart)))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (deletedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         // mock partB with changed position
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(1).copy(position = 1), *, *) returns (Future.successful(\/-(testPartList(1).copy(position = 1))))
@@ -993,7 +994,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (deletedPart.id, *, *) returns (Future.successful(\/-(deletedPart)))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (deletedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         // mock partB with changed position
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(2).copy(position = 2), *, *) returns (Future.successful(\/-(testPartList(2).copy(position = 2))))
@@ -1016,7 +1017,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (deletedPart.id, *, *) returns (Future.successful(\/-(deletedPart)))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (deletedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         // mock partC with changed position
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(0).copy(position = 1), *, *) returns (Future.successful(\/-(testPartList(0).copy(position = 1))))
@@ -1040,7 +1041,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (deletedPart.id, *, *) returns (Future.successful(\/-(deletedPart)))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (deletedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         // mock partA with changed position
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(0).copy(position = 1), *, *) returns (Future.successful(\/-(testPartList(0).copy(position = 1))))
@@ -1062,7 +1063,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (deletedPart.id, *, *) returns (Future.successful(\/-(deletedPart)))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (deletedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         (taskRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when (deletedPart, *, *) returns (Future.successful(\/-(IndexedSeq())))
         (partRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when (deletedPart, *, *) returns (Future.successful(\/-(deletedPart)))
@@ -1095,7 +1096,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (deletedPart.id, *, *) returns (Future.successful(\/-(deletedPart)))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (deletedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(IndexedSeq.empty[Part])))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(IndexedSeq.empty[Part])))
 
         // mock partB with changed position
         (partRepository.update(_: Part)(_: Connection, _: ScalaCachePool)) when (testPartList(1).copy(position = 1), *, *) returns (Future.successful(\/-(testPartList(1).copy(position = 1))))
@@ -1120,7 +1121,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (deletedPart.id, *, *) returns (Future.successful(\/-(deletedPart)))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (deletedPart.projectId, false, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         (taskRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when (deletedPart, *, *) returns (Future.successful(\/-(IndexedSeq())))
         (partRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when (deletedPart, *, *) returns (Future.successful(\/-(deletedPart)))
@@ -1139,7 +1140,7 @@ class ProjectServiceSpec
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (deletedPart.id, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (projectRepository.find(_: UUID, _: Boolean)(_: Connection, _: ScalaCachePool)) when (deletedPart.projectId, false, *, *) returns (Future.successful(\/-(noPartsProject)))
-        (partRepository.list(_: Project, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, *, *) returns (Future.successful(\/-(testPartList)))
+        (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (noPartsProject, false, false, *, *) returns (Future.successful(\/-(testPartList)))
 
         (taskRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when (deletedPart, *, *) returns (Future.successful(\/-(IndexedSeq())))
         (partRepository.delete(_: Part)(_: Connection, _: ScalaCachePool)) when (deletedPart, *, *) returns (Future.successful(\/-(deletedPart)))

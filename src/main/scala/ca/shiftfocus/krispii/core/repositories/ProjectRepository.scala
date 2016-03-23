@@ -13,8 +13,7 @@ import scalaz.{ EitherT, \/ }
 trait ProjectRepository extends Repository {
   val partRepository: PartRepository
 
-  def list(implicit conn: Connection, cache: ScalaCachePool, showMasters: Option[Boolean] = None): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]]
-  def listMasters(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]]
+  def list(showMasters: Option[Boolean] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]]
   def list(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]]
   def list(course: Course, fetchParts: Boolean)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]]
 
@@ -29,4 +28,8 @@ trait ProjectRepository extends Repository {
   def insert(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]]
   def update(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]]
   def delete(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]]
+
+  def cloneProject(projectId: UUID, courseId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]]
+
+  def cloneProjectParts(projectId: UUID, ownerId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]]
 }

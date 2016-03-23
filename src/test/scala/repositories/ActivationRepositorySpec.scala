@@ -12,7 +12,7 @@ import scalaz.{ -\/, \/- }
 /**
  * Created by ryanez on 11/02/16.
  */
-class eActivationRepositorySpec extends TestEnvironment {
+class ActivationRepositorySpec extends TestEnvironment {
   val activationRepository = new ActivationRepositoryPostgres
 
   "Find one activation by the user id" in {

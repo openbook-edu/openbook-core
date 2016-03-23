@@ -20,7 +20,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
   val maxTasksInPart = 100
 
   // Projects
-  def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
+  def list(masterProjects: Option[Boolean] = None): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
   def list(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
   def listProjectsByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
   def listProjectsByTeacher(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
@@ -38,6 +38,8 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
   def userHasProject(userId: UUID, projectSlug: String): Future[\/[ErrorUnion#Fail, Boolean]]
 
   def create(courseId: UUID, name: String, slug: String, description: String, availability: String, parentId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Project]]
+
+  def copyMasterProject(projectId: UUID, courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]]
 
   def updateInfo(
     id: UUID,

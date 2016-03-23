@@ -1942,6 +1942,8 @@ object TestValues {
     slug = "test-project-slug-D",
     description = "test project D description",
     availability = "course",
+    isMaster = false,
+    parentId = null,
     parts = Vector()
   )
 

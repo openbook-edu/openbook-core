@@ -89,6 +89,8 @@ CREATE TABLE projects (
   slug text UNIQUE,
   description text,
   availability text,
+  parent_id uuid,
+  is_master boolean DEFAULT false,
   enabled boolean DEFAULT false,
   created_at timestamp with time zone,
   updated_at timestamp with time zone

@@ -2,6 +2,8 @@ package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
+import ca.shiftfocus.krispii.core.models
+import ca.shiftfocus.krispii.core.models.tasks.{ QuestionTask, DocumentTask, Task }
 import com.github.mauricio.async.db.{ RowData, Connection }
 import play.api.Logger
 
@@ -39,7 +41,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   }
 
   val Table = "projects"
-  val Fields = "id, version, course_id, parent_id, is_master, name, slug, description, availability, enabled, created_at, updated_at"
+  val Fields = "id, version, course_id, name, slug, is_master, parent_id, description, availability, enabled, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.created_at DESC"
@@ -95,7 +97,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   val Insert =
     s"""
       |INSERT INTO $Table ($Fields)
-      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?, ?)
+      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?, ?, ?)
       |RETURNING $Fields
     """.stripMargin
 
@@ -122,10 +124,11 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    *
    * @return a vector of the returned Projects
    */
-  override def list(implicit conn: Connection, cache: ScalaCachePool, showMasters: Option[Boolean] = None): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
-    //    val Select = if !showMasters.isEmpty  if showMasters.get.booleanValue  SelectAllMaster else SelectAll
+  override def list(showMasters: Option[Boolean] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+    val showMastersProjects = showMasters.getOrElse(false)
+    val Select = if (showMastersProjects) SelectAllMaster else SelectAll
     (for {
-      projectList <- lift(queryList(SelectAll))
+      projectList <- lift(queryList(Select))
       result <- liftSeq {
         projectList.map { project =>
           (for {
@@ -138,12 +141,102 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   }
 
   /**
-   * Find all Master Projects.
-   *
-   * @return a vector of the returned Projects
+   * Clones the master project into the given course.
+   * @param projectId
+   * @param courseId
+   * @param conn
+   * @param cache
+   * @return
    */
-  override def listMasters(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
-    list(conn, cache, Some(false));
+  override def cloneProject(projectId: UUID, courseId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
+    (for {
+      project <- lift(find(projectId))
+      newProject = project.copy(id = UUID.randomUUID(), isMaster = false, courseId = courseId, parentId = Some(project.id))
+    } yield newProject).run
+  }
+
+  /**
+   * Cloning the Parts of a Project.
+   * @param projectId
+   * @param conn
+   * @param cache
+   * @return
+   */
+  def cloneProjectParts(projectId: UUID, ownerId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
+    (for {
+      project <- lift(find(projectId))
+      parts <- lift(partRepository.list(project, true, true))
+      clonedParts = parts.map(part => {
+        part.copy(
+          id = UUID.randomUUID,
+          projectId = project.id,
+          createdAt = new DateTime,
+          updatedAt = new DateTime,
+          tasks = cloneTasks(part.tasks),
+          components = cloneComponents(part.components, ownerId)
+        )
+      })
+    } yield clonedParts).run
+  }
+
+  /**
+   * Cloning the tasks of a Part.
+   * @param tasks
+   * @return
+   */
+  private def cloneTasks(tasks: IndexedSeq[Task]): IndexedSeq[Task] = {
+    //map that will contain as a key the old UUID of the task and the value will be the new UUID
+    val dependencies = collection.mutable.Map[UUID, UUID]()
+    val documentTasks = tasks.filter(task => task.isInstanceOf[DocumentTask])
+      .map(task => task.asInstanceOf[DocumentTask])
+      .sortBy(_.dependencyId)
+    val noDependenciesTasks = documentTasks.filter(task => task.dependencyId.isEmpty)
+    val clonedWithoutDependencies = noDependenciesTasks.map(task => {
+      val newId = UUID.randomUUID
+      dependencies(task.id) = newId
+      task.copy(id = newId)
+    })
+    val dependenciesTasks = documentTasks.filter(task => !task.dependencyId.isEmpty)
+    val clonedWithDependencies = dependenciesTasks.map(task => {
+      val newId = UUID.randomUUID
+      val dependencyId = dependencies get task.dependencyId.get
+      if (dependencyId.isEmpty) {
+        dependencies(task.dependencyId.get) = UUID.randomUUID
+      }
+      task.copy(id = newId, dependencyId = Some(dependencies(task.dependencyId.get)))
+    })
+
+    val otherTasks = tasks.filter(task => !task.isInstanceOf[DocumentTask])
+
+    val otherCloned = otherTasks.map(task => cloneTask(task))
+
+    clonedWithDependencies union clonedWithoutDependencies union otherCloned
+  }
+
+  private def cloneTask(task: Task): Task = {
+    task match {
+      case t: DocumentTask => {
+        task.asInstanceOf[DocumentTask].copy(id = UUID.randomUUID)
+      }
+      case t: QuestionTask => task.asInstanceOf[QuestionTask].copy(id = UUID.randomUUID)
+    }
+  }
+
+  /**
+   * Cloning the Components of the master Project.
+   * @return
+   */
+  private def cloneComponents(components: IndexedSeq[Component], ownerId: UUID): IndexedSeq[Component] = {
+    components.map(component => {
+      component match {
+        case c: VideoComponent =>
+          component.asInstanceOf[VideoComponent].copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
+        case c: AudioComponent =>
+          component.asInstanceOf[AudioComponent].copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
+        case c: TextComponent =>
+          component.asInstanceOf[TextComponent].copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
+      }
+    })
   }
 
   /**
@@ -256,7 +349,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    */
   override def insert(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
-      project.id, 1, project.courseId, project.parentId, project.name, project.slug, project.id,
+      project.id, 1, project.courseId, project.name, project.slug, project.id, project.isMaster, project.parentId,
       project.description, project.availability, project.enabled, new DateTime, new DateTime
     )
 
@@ -275,7 +368,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    */
   override def update(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
-      project.courseId, project.name, project.parentId, project.slug, project.id, project.description,
+      project.courseId, project.name, project.parentId, project.isMaster, project.slug, project.id, project.description,
       project.availability, project.enabled, project.version + 1, new DateTime, project.id, project.version
     )
 

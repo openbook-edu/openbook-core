@@ -15,7 +15,7 @@ trait PartRepository extends Repository {
 
   def list(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]]
   def list(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]]
-  def list(project: Project, fetchTasks: Boolean)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]]
+  def list(project: Project, fetchTasks: Boolean, fetchComponents: Boolean = false)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]]
   def list(component: Component)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]]
   def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Part]]
   def find(project: Project, position: Int)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Part]]

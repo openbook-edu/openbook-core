@@ -15,6 +15,7 @@ case class Part(
     position: Int = 0,
     enabled: Boolean = true,
     tasks: IndexedSeq[Task] = IndexedSeq(),
+    components: IndexedSeq[Component] = IndexedSeq(),
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) {
@@ -46,6 +47,7 @@ object Part {
     (__ \ "position").write[Int] and
     (__ \ "enabled").write[Boolean] and
     (__ \ "tasks").write[IndexedSeq[Task]] and
+    (__ \ "components").write[IndexedSeq[Component]] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Part.unapply))

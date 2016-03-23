@@ -41,7 +41,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   }
 
   val Table = "projects"
-  val Fields = "id, version, course_id, name, slug, is_master, parent_id, description, availability, enabled, created_at, updated_at"
+  val Fields = "id, version, course_id, parent_id, is_master, name, slug, description, availability, enabled, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.created_at DESC"

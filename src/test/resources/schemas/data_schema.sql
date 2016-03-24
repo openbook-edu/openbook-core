@@ -34,7 +34,9 @@ VALUES ('8b6dc674-d1ae-11e5-9080-08626681851d', 1, 'rafael@krispii.com', 'rafael
 
 INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
 VALUES ('7c62a526-d1b0-11e5-9080-08626681851d', 1, 'yanez@krispii.com', 'yanez', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'Antonio', 'Yanez', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
-
+/* user X for deletion tests with deleted set to true*/
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at, is_deleted)
+VALUES ('a898c83a-5638-4483-9528-8037b3ed661d', 1, 'kmccormick@krispii.com', 'mysterion', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'Kenny', 'McCormick', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04', TRUE);
 
 /* ---------------------- ROLES ---------------------- */
 

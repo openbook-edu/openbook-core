@@ -51,6 +51,23 @@ class UserRepositorySpec
           }
         }
       }
+      "not list deleted users" in {
+        val testUser = TestValues.testUserX
+
+        val result = userRepository.list(conn)
+        val eitherUsers = Await.result(result, Duration.Inf)
+        val \/-(users) = eitherUsers
+
+        users.foreach {
+          case (user: User) => {
+            testUser.id should not be (user.id)
+            testUser.email should not be (user.email)
+            testUser.username should not be (user.username)
+            testUser.givenname should not be (user.givenname)
+            testUser.surname should not be (user.surname)
+          }
+        }
+      }
       "list users with a specified set of user Ids" in {
         (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
@@ -209,6 +226,15 @@ class UserRepositorySpec
         user.createdAt.toString() should be(testUser.createdAt.toString())
         user.updatedAt.toString() should be(testUser.updatedAt.toString())
       }
+      "not return deleted user" in {
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+
+        val testUser = TestValues.testUserX
+
+        val result = userRepository.find(testUser.id)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type User")))
+      }
       "return RepositoryError.NoResults if user wasn't found by ID" in {
         (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
@@ -364,7 +390,7 @@ class UserRepositorySpec
         val result = userRepository.update(updatedTestUser)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("email", "users_email_key")))
       }
-      "reutrn RepositoryError.NoResults when update an unexisting user" in {
+      "return RepositoryError.NoResults when update an unexisting user" in {
         val unexistingUser = User(
           email = "unexisting_email@example.com",
           username = "unexisting_username",
@@ -456,12 +482,12 @@ class UserRepositorySpec
         user.createdAt.toString() should be(testUser.createdAt.toString())
         user.updatedAt.toString() should be(testUser.updatedAt.toString())
       }
-      "return ForeignKeyConflict if user is teacher and has references in other tables" in {
-        val testUser = TestValues.testUserB
-
-        val result = userRepository.delete(testUser)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("teacher_id", "courses_teacher_id_fkey")))
-      }
+      //      "return ForeignKeyConflict if user is teacher and has references in other tables" in {
+      //        val testUser = TestValues.testUserB
+      //
+      //        val result = userRepository.delete(testUser)
+      //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("teacher_id", "courses_teacher_id_fkey")))
+      //      }
       "return RepositoryError.NoResults if User hasn't been found" in {
         val unexistingUser = User(
           email = "unexisting_email@example.com",

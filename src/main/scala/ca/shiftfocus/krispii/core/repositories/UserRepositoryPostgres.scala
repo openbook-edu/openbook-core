@@ -52,6 +52,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
     s"""
        |SELECT $FieldsWithoutHash
        |FROM $Table
+       |WHERE is_deleted = FALSE
        |ORDER BY $OrderBy
      """.stripMargin
 
@@ -60,6 +61,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |SELECT $Fields
        |FROM $Table
        |WHERE id = ?
+       |AND is_deleted = FALSE
        |LIMIT 1
      """.stripMargin
 
@@ -69,6 +71,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |FROM $Table, users_roles
        |WHERE users.id = users_roles.user_id
        |  AND users_roles.role_id = ?
+       |  AND is_deleted = FALSE
      """.stripMargin
 
   val Insert = {
@@ -101,9 +104,10 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
 
   val Delete =
     s"""
-       |DELETE FROM $Table
+       |UPDATE $Table
+       |SET is_deleted = TRUE
        |WHERE id = ?
-       |  AND version = ?
+       |AND version = ?
        |RETURNING $FieldsWithoutHash
      """.stripMargin
 
@@ -112,6 +116,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |SELECT $Fields
        |FROM $Table
        |WHERE (email = ? OR username = ?)
+       |AND is_deleted = FALSE
        |LIMIT 1
      """.stripMargin
 
@@ -121,6 +126,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |FROM $Table, users_courses
        |WHERE $Table.id = users_courses.user_id
        |  AND users_courses.course_id = ?
+       |  AND is_deleted = FALSE
        |ORDER BY $OrderBy
     """.stripMargin
 

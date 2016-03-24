@@ -7,7 +7,8 @@ CREATE TABLE users (
   givenname text,
   surname text,
   created_at timestamp with time zone,
-  updated_at timestamp with time zone
+  updated_at timestamp with time zone,
+  is_deleted boolean DEFAULT FALSE
 );
 
 CREATE TABLE roles (

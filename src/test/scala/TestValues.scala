@@ -135,6 +135,17 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testUserX = User(
+    id = UUID.fromString("a898c83a-5638-4483-9528-8037b3ed661d"),
+    version = 1L,
+    email = "kmccormick@krispii.com",
+    username = "mysterion",
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
+    givenname = "Kenny",
+    surname = "McCormick",
+    createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
   /* ---------------------- ROLES ---------------------- */
 
   val testRoleAuth = Role(

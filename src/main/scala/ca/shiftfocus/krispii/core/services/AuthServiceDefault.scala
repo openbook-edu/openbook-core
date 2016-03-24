@@ -239,6 +239,7 @@ class AuthServiceDefault(
   /**
    * Creates a new user with the given role.
    * This method sends an email for account activation.
+   *
    * @param username
    * @param email
    * @param password
@@ -289,7 +290,8 @@ class AuthServiceDefault(
     email: Option[String],
     username: Option[String],
     givenname: Option[String],
-    surname: Option[String]
+    surname: Option[String],
+    password: Option[String]
   ): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
       val updated = for {
@@ -297,11 +299,25 @@ class AuthServiceDefault(
         _ <- predicate(existingUser.version == version)(ServiceError.OfflineLockFail)
         u_email <- lift(email.map { someEmail => validateEmail(someEmail, Some(id)) }.getOrElse(Future.successful(\/-(existingUser.email))))
         u_username <- lift(username.map { someUsername => validateUsername(someUsername, Some(id)) }.getOrElse(Future.successful(\/-(existingUser.username))))
+        hash = password match {
+          case Some(pwd) => {
+            if (!InputUtils.isValidPassword(pwd.trim)) {
+              Some("0")
+            }
+            else {
+              val webcrank = Passwords.scrypt()
+              Some(webcrank.crypt(pwd.trim))
+            }
+          }
+          case None => None
+        }
+        _ <- predicate(!(hash.getOrElse("no password") == "0"))(ServiceError.BadInput("Password must be at least 8 characters"))
         userToUpdate = existingUser.copy(
           email = u_email,
           username = u_username,
           givenname = givenname.getOrElse(existingUser.givenname),
-          surname = surname.getOrElse(existingUser.surname)
+          surname = surname.getOrElse(existingUser.surname),
+          hash = hash
         )
         updatedUser <- lift(userRepository.update(userToUpdate))
       } yield updatedUser
@@ -645,6 +661,7 @@ class AuthServiceDefault(
 
   /**
    * Activates a user given the userId and the activationCode
+   *
    * @param userId the UUID of the user to be activated
    * @param activationCode the activation code to be verified
    * @return
@@ -692,6 +709,7 @@ class AuthServiceDefault(
 
   /**
    * Finds an activation code given the user's email
+   *
    * @inheritdoc
    */
   override def findActivation(email: String): Future[\/[ErrorUnion#Fail, UserToken]] = {

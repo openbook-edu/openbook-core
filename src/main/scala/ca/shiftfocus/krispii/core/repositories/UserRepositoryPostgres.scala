@@ -271,10 +271,11 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
     for {
       updated <- lift {
         user.hash match {
-          case Some(hash) => queryOne(UpdateWithPass, Seq[Any](
-            user.username, user.email, hash, user.givenname, user.surname,
-            user.version + 1, new DateTime, user.id, user.version
-          ))
+          case Some(hash) =>
+            queryOne(UpdateWithPass, Seq[Any](
+              user.username, user.email, hash, user.givenname, user.surname,
+              user.version + 1, new DateTime, user.id, user.version
+            ))
           case None => queryOne(UpdateNoPass, Seq[Any](
             user.username, user.email, user.givenname, user.surname,
             user.version + 1, new DateTime, user.id, user.version

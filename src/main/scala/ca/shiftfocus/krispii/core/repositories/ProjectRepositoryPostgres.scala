@@ -126,8 +126,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    *
    * @return a vector of the returned Projects
    */
-  override def list(showMasters: Option[Boolean] = None)(implicit conn: Connection, cache: ScalaCachePool):
-  Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+  override def list(showMasters: Option[Boolean] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
     val showMastersProjects = showMasters.getOrElse(false)
     val Select = if (showMastersProjects) SelectAllMaster else SelectAll
     (for {
@@ -167,8 +166,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @param cache
    * @return
    */
-  def cloneProjectParts(projectId: UUID, ownerId: UUID)(implicit conn: Connection, cache: ScalaCachePool):
-  Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
+  def cloneProjectParts(projectId: UUID, ownerId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
     (for {
       project <- lift(find(projectId))
       parts <- lift(partRepository.list(project, true, true))
@@ -186,10 +184,10 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   }
 
   /**
-    * Cloning the Components.
-    * This function is used when cloning the master projects
-    * @return
-    */
+   * Cloning the Components.
+   * This function is used when cloning the master projects
+   * @return
+   */
   def cloneComponents(components: IndexedSeq[Component], ownerId: UUID): IndexedSeq[Component] = {
     components.map(component => {
       component match {
@@ -208,7 +206,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @param tasks
    * @return
    */
-   def cloneTasks(tasks: IndexedSeq[Task]): IndexedSeq[Task] = {
+  def cloneTasks(tasks: IndexedSeq[Task]): IndexedSeq[Task] = {
     //map that will contain as a key the old UUID of the task and the value will be the new UUID
     val dependencies = collection.mutable.Map[UUID, UUID]()
     val documentTasks = tasks.filter(task => task.isInstanceOf[DocumentTask])
@@ -245,8 +243,6 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
       case t: QuestionTask => task.asInstanceOf[QuestionTask].copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime)
     }
   }
-
-
 
   /**
    * Find all Projects belonging to a given course.

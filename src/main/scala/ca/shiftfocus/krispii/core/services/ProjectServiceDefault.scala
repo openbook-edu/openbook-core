@@ -31,12 +31,21 @@ class ProjectServiceDefault(
   implicit def cache: ScalaCachePool = scalaCache
 
   /**
-   * Lists all projects.
+   * Lists master projects.
    *
    * @return a future disjunction containing either a vector of projects, or a failure
    */
-  override def list(masterProjects: Option[Boolean] = None): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
-    projectRepository.list(masterProjects)
+  override def listMasterProjects(masterProjects: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
+    projectRepository.list(Some(masterProjects))
+  }
+
+  /**
+    * Lists all projects.
+    *
+    * @return a future disjunction containing either a vector of projects, or a failure
+    */
+  override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
+    projectRepository.list(None)
   }
 
   /**

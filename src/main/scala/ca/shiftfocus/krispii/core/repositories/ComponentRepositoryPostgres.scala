@@ -496,5 +496,4 @@ class ComponentRepositoryPostgres()
     queryOne(Delete, Seq[Any](component.id, component.version))
   }
 
-
 }

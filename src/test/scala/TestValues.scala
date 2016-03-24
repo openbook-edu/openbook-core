@@ -717,6 +717,45 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 20, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  /* MEDIA TASKS */
+
+  val testMediaTaskA = MediaTask(
+    id = UUID.fromString("a7121b74-eac1-11e5-9ce9-5e5517507c66"),
+    version = 3,
+    partId = UUID.fromString("5cd214be-6bba-47fa-9f35-0eb8bafec397"), // testPartA.id
+    position = 16,
+    settings = CommonTaskSettings(
+      title = "test MediaTask A",
+      description = "test MediaTask A description",
+      notesAllowed = true,
+      help = "test help text testMediaTaskA",
+      notesTitle = Some("test MediaTask A notes title"),
+      responseTitle = Some("test MediaTask A response title")
+    ),
+    mediaType = 0,
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* No data in DB */
+  val testMediaTaskB = MediaTask(
+    id = UUID.fromString("46a994fa-eac2-11e5-9ce9-5e5517507c66"),
+    version = 8L,
+    partId = UUID.fromString("5cd214be-6bba-47fa-9f35-0eb8bafec397"), // testPartA.id
+    position = 25,
+    settings = CommonTaskSettings(
+      title = "test testMediaTask B",
+      description = "test testMediaTask B description",
+      notesAllowed = true,
+      help = "test help text testMediaTaskB",
+      notesTitle = Some("test testMediaTask B notes title"),
+      responseTitle = Some("test testMediaTask B response title")
+    ),
+    mediaType = 2,
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* ---------------------- DOCUMENTS ---------------------- */
 
   val testDocumentA = Document(
@@ -1459,6 +1498,30 @@ object TestValues {
     isComplete = true,
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* MEDIA_WORK */
+  val testMediaWorkA = MediaWork(
+    id = UUID.fromString("38800ed0-8c6e-482b-84e5-806c1f86316d"),
+    studentId = testUserC.id,
+    taskId = testMediaTaskA.id,
+    version = 3L,
+    fileData = MediaAnswer(Some(3), Some("image.jpg")),
+    isComplete = false,
+    createdAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* No data in DB */
+  val testMediaWorkB = MediaWork(
+    id = UUID.fromString("761f5ba1-7379-4fbd-80aa-94d39a6d8cb7"),
+    studentId = testUserE.id,
+    taskId = testMediaTaskA.id,
+    version = 1L,
+    fileData = MediaAnswer(),
+    isComplete = false,
+    createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   /* ---------------------- WORK REVISIONS ---------------------- */
@@ -2248,43 +2311,6 @@ object TestValues {
     version = testDocumentJ.version,
     createdAt = testDocumentJ.createdAt,
     updatedAt = testDocumentJ.updatedAt
-  )
-  /*MEDIA TASKS*/
-  //VALUES ('a7121b74eac111e59ce95e5517507c66', 3, '5cd214be6bba47fa9f350eb8bafec397', 'test MediaTask A', 'test MediaTask A description', 16, 2, true, 'test MediaTask A response title', 'test MediaTask A notes title', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
-
-  val testMediaTaskA = MediaTask(
-    id = UUID.fromString("a7121b74-eac1-11e5-9ce9-5e5517507c66"),
-    version = 3,
-    partId = UUID.fromString("5cd214be-6bba-47fa-9f35-0eb8bafec397"), // testPartB.id
-    position = 16,
-    settings = CommonTaskSettings(
-      title = "test MediaTask A",
-      description = "test MediaTask A description",
-      notesAllowed = true,
-      notesTitle = Some("test MediaTask A notes title"),
-      responseTitle = Some("test MediaTask A response title")
-    ),
-    mediaType = 0,
-    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
-  )
-
-  /*no data in the database media task*/
-  val testMediaTaskB = MediaTask(
-    id = UUID.fromString("46a994fa-eac2-11e5-9ce9-5e5517507c66"),
-    version = 8L,
-    partId = UUID.fromString("5cd214be-6bba-47fa-9f35-0eb8bafec397"), // testPartB.id
-    position = 25,
-    settings = CommonTaskSettings(
-      title = "test testMediaTask B",
-      description = "test testMediaTask B description",
-      notesAllowed = true,
-      notesTitle = Some("test testMediaTask B notes title"),
-      responseTitle = Some("test testMediaTask B response title")
-    ),
-    mediaType = 2,
-    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
-    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   /* ---------------------- USER TOKENS ---------------------- */

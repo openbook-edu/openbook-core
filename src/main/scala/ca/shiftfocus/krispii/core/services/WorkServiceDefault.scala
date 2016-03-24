@@ -64,6 +64,7 @@ class WorkServiceDefault(
   }
 
   /**
+   * TODO - not used, will list revisions by each work type
    * List all of a user's work revisions for a specific task in a specific course.
    *
    * @param userId the unique id of the user to filter by
@@ -207,6 +208,36 @@ class WorkServiceDefault(
     }
   }
 
+  /**
+   * Create a media work item.
+   *
+   * Use this method when entering student work on a task for the first time (in a given course).
+   *
+   * @param userId the id of the student whose work is being entered
+   * @param taskId the task for which the work was done
+   * @param isComplete whether the student is finished with the task
+   * @return the newly created work
+   */
+  override def createMediaWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MediaWork]] = {
+    transactional { implicit conn =>
+      val fUser = authService.find(userId)
+      val fTask = projectService.findTask(taskId)
+
+      for {
+        user <- lift(fUser)
+        task <- lift(fTask)
+        newWork = MediaWork(
+          studentId = userId,
+          taskId = taskId,
+          version = 1,
+          fileData = MediaAnswer(),
+          isComplete = isComplete
+        )
+        work <- lift(workRepository.insert(newWork))
+      } yield work.asInstanceOf[MediaWork]
+    }
+  }
+
   // --------- Update ------------------------------------------------------------------------------------------
   // TODO remove
   /**
@@ -284,6 +315,33 @@ class WorkServiceDefault(
         )
         updatedWork <- lift(workRepository.update(workToUpdate))
       } yield updatedWork.asInstanceOf[QuestionWork]
+    }
+  }
+
+  override def updateMediaWork(
+    userId: UUID,
+    taskId: UUID,
+    version: Long,
+    fileData: Option[MediaAnswer],
+    isComplete: Option[Boolean]
+  ): Future[\/[ErrorUnion#Fail, MediaWork]] = {
+    transactional { implicit conn =>
+      val fUser = authService.find(userId)
+      val fTask = projectService.findTask(taskId)
+
+      for {
+        user <- lift(fUser)
+        task <- lift(fTask)
+        existingWork <- lift(workRepository.find(user, task))
+        _ <- predicate(existingWork.isInstanceOf[MediaWork])(ServiceError.BadInput("Attempted to update the answer for a document work"))
+        _ <- predicate(existingWork.version == version)(ServiceError.OfflineLockFail)
+        existingMediaWork = existingWork.asInstanceOf[MediaWork]
+        workToUpdate = existingMediaWork.copy(
+          fileData = fileData.getOrElse(existingMediaWork.fileData),
+          isComplete = isComplete.getOrElse(existingMediaWork.isComplete)
+        )
+        updatedWork <- lift(workRepository.update(workToUpdate))
+      } yield updatedWork.asInstanceOf[MediaWork]
     }
   }
 

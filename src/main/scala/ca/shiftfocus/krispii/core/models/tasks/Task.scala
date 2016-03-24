@@ -34,9 +34,11 @@ object Task {
   val Question = 1
   val Media = 2
 
-  val DefaultMedia = 0
+  // Media type
+  val AnyMedia = 0
   val Audio = 1
   val Video = 2
+  val Image = 3
   /**
    * An apply method that allows instantiation of empty tasks.
    *
@@ -90,7 +92,7 @@ object Task {
           position = position,
           version = version,
           settings = settings,
-          mediaType = 0,
+          mediaType = AnyMedia,
           createdAt = createdAt,
           updatedAt = updatedAt
         )

@@ -5,6 +5,7 @@ import ca.shiftfocus.krispii.core.models.document._
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.repositories._
 import com.github.mauricio.async.db.Connection
+import org.joda.time.{ DateTimeZone, DateTime }
 import org.scalatest.Matchers._
 import org.scalatest._
 
@@ -23,7 +24,7 @@ class WorkRepositorySpec
   "WorkRepository.list" should {
     inSequence {
       /* --- list(testUser, testProject) --- */
-      "list the latest revision of work for each task in a project for a user (MultipleChoiceWork, LongAnswerWork, ShortAnswerWork, OrderingWork, BlanksWork)" in {
+      "list the latest revision of work for each task in a project for a user (MultipleChoiceWork, LongAnswerWork, ShortAnswerWork, OrderingWork, BlanksWork, MediaWork)" in {
         val testUser = TestValues.testUserC
         val testProject = TestValues.testProjectA
 
@@ -32,7 +33,8 @@ class WorkRepositorySpec
           TestValues.testMultipleChoiceWorkC,
           TestValues.testLongAnswerWorkA,
           TestValues.testOrderingWorkD,
-          TestValues.testBlanksWorkK
+          TestValues.testBlanksWorkK,
+          TestValues.testMediaWorkA
         )
 
         val testDocumentList = IndexedSeq[Document](
@@ -68,6 +70,9 @@ class WorkRepositorySpec
             }
             case questionWork: QuestionWork => {
               questionWork.response should be(work.asInstanceOf[QuestionWork].response)
+            }
+            case mediaWork: MediaWork => {
+              mediaWork.fileData should be(work.asInstanceOf[MediaWork].fileData)
             }
           }
         }
@@ -771,6 +776,22 @@ class WorkRepositorySpec
         work.createdAt.toString should be(testWork.createdAt.toString)
         work.updatedAt.toString should be(testWork.updatedAt.toString)
       }
+      "find the latest revision of a single work (MediaWork)" in {
+        val testWork = TestValues.testMediaWorkA
+
+        val result = workRepository.find(testWork.id)
+        val eitherWork = Await.result(result, Duration.Inf)
+        val \/-(work: MediaWork) = eitherWork
+
+        work.id should be(testWork.id)
+        work.studentId should be(testWork.studentId)
+        work.taskId should be(testWork.taskId)
+        work.version should be(testWork.version)
+        work.fileData should be(testWork.fileData)
+        work.isComplete should be(testWork.isComplete)
+        work.createdAt.toString should be(testWork.createdAt.toString)
+        work.updatedAt.toString should be(testWork.updatedAt.toString)
+      }
       "return RepositoryError.NoResults if work doesn't exist" in {
         val testWork = TestValues.testMatchingWorkO
 
@@ -993,6 +1014,24 @@ class WorkRepositorySpec
         work.taskId should be(testWork.taskId)
         work.version should be(testWork.version)
         work.response should be(testWork.response)
+        work.isComplete should be(testWork.isComplete)
+        work.createdAt.toString should be(testWork.createdAt.toString)
+        work.updatedAt.toString should be(testWork.updatedAt.toString)
+      }
+      "find the latest revision of a single work for a user within a Task (MediaWork)" in {
+        val testUser = TestValues.testUserC
+        val testTask = TestValues.testMediaTaskA
+        val testWork = TestValues.testMediaWorkA
+
+        val result = workRepository.find(testUser, testTask)
+        val eitherWork = Await.result(result, Duration.Inf)
+        val \/-(work: MediaWork) = eitherWork
+
+        work.id should be(testWork.id)
+        work.studentId should be(testWork.studentId)
+        work.taskId should be(testWork.taskId)
+        work.version should be(testWork.version)
+        work.fileData should be(testWork.fileData)
         work.isComplete should be(testWork.isComplete)
         work.createdAt.toString should be(testWork.createdAt.toString)
         work.updatedAt.toString should be(testWork.updatedAt.toString)
@@ -1266,6 +1305,19 @@ class WorkRepositorySpec
         work.response should be(Answers(Map()))
         work.isComplete should be(testWork.isComplete)
       }
+      "insert new MediaWork" in {
+        val testWork = TestValues.testMediaWorkB
+        val result = workRepository.insert(testWork)
+        val eitherWork = Await.result(result, Duration.Inf)
+        val \/-(work: MediaWork) = eitherWork
+
+        work.id should be(testWork.id)
+        work.studentId should be(testWork.studentId)
+        work.taskId should be(testWork.taskId)
+        work.version should be(1L)
+        work.fileData should be(MediaAnswer())
+        work.isComplete should be(testWork.isComplete)
+      }
       "return RepositoryError.PrimaryKeyConflict if this work allready exists (DocumentWork)" in {
         val testWork = TestValues.testLongAnswerWorkA.copy(
           studentId = TestValues.testUserG.id
@@ -1493,6 +1545,36 @@ class WorkRepositorySpec
         work.version should be(updatedWork.version + 1)
         work.updatedAt.toString should not be (testWork.updatedAt.toString)
       }
+      "update MediaWork" in {
+        val testWork = TestValues.testMediaWorkA
+        // Work for new values
+        val updatedWork = testWork.copy(
+          // Shouldn't be updated
+          studentId = UUID.randomUUID(),
+          taskId = UUID.randomUUID(),
+          createdAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+
+          // Should be updated
+          fileData = MediaAnswer(Some(2), Some("video.mp4")),
+          isComplete = !testWork.isComplete
+        )
+
+        val result = workRepository.update(updatedWork)
+        val eitherWork = Await.result(result, Duration.Inf)
+        val \/-(work: MediaWork) = eitherWork
+
+        // This values should remain unchanged
+        work.id should be(testWork.id)
+        work.studentId should be(testWork.studentId)
+        work.taskId should be(testWork.taskId)
+        work.createdAt.toString should be(testWork.createdAt.toString)
+
+        // This should be updated
+        work.fileData should be(updatedWork.fileData)
+        work.isComplete should be(updatedWork.isComplete)
+        work.version should be(updatedWork.version + 1)
+        work.updatedAt.toString should not be (testWork.updatedAt.toString)
+      }
       "update LongAnswerWork if version is wrong" in {
         val testWork = TestValues.testLongAnswerWorkF
         // Work for new values
@@ -1688,6 +1770,22 @@ class WorkRepositorySpec
         work.taskId should be(testWork.taskId)
         work.version should be(testWork.version)
         work.response should be(testWork.response)
+        work.isComplete should be(testWork.isComplete)
+        work.createdAt.toString should be(testWork.createdAt.toString)
+        work.updatedAt.toString should be(testWork.updatedAt.toString)
+      }
+      "delete all revisions of a work (MediaWork)" in {
+        val testWork = TestValues.testMediaWorkA
+
+        val result = workRepository.delete(testWork)
+        val eitherWork = Await.result(result, Duration.Inf)
+        val \/-(work: MediaWork) = eitherWork
+
+        work.id should be(testWork.id)
+        work.studentId should be(testWork.studentId)
+        work.taskId should be(testWork.taskId)
+        work.version should be(testWork.version)
+        work.fileData should be(testWork.fileData)
         work.isComplete should be(testWork.isComplete)
         work.createdAt.toString should be(testWork.createdAt.toString)
         work.updatedAt.toString should be(testWork.updatedAt.toString)

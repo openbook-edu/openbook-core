@@ -23,6 +23,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   override val entityName = "Project"
 
   def constructor(row: RowData): Project = {
+    Logger.error(row("enabled").toString)
     Project(
       row("id").asInstanceOf[UUID],
       row("course_id").asInstanceOf[UUID],
@@ -51,6 +52,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
     s"""
        |SELECT $Fields
        |FROM $Table
+       |WHERE is_master is false
      """.stripMargin
 
   val SelectAllMaster =
@@ -124,7 +126,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    *
    * @return a vector of the returned Projects
    */
-  override def list(showMasters: Option[Boolean] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+  override def list(showMasters: Option[Boolean] = None)(implicit conn: Connection, cache: ScalaCachePool):
+  Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
     val showMastersProjects = showMasters.getOrElse(false)
     val Select = if (showMastersProjects) SelectAllMaster else SelectAll
     (for {
@@ -132,7 +135,9 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
       result <- liftSeq {
         projectList.map { project =>
           (for {
-            partList <- lift(partRepository.list(project))
+            partList <- {
+              lift(partRepository.list(project))
+            }
             result = project.copy(parts = partList)
           } yield result).run
         }
@@ -162,7 +167,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
    * @param cache
    * @return
    */
-  def cloneProjectParts(projectId: UUID, ownerId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
+  def cloneProjectParts(projectId: UUID, ownerId: UUID)(implicit conn: Connection, cache: ScalaCachePool):
+  Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
     (for {
       project <- lift(find(projectId))
       parts <- lift(partRepository.list(project, true, true))
@@ -180,11 +186,29 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   }
 
   /**
+    * Cloning the Components.
+    * This function is used when cloning the master projects
+    * @return
+    */
+  def cloneComponents(components: IndexedSeq[Component], ownerId: UUID): IndexedSeq[Component] = {
+    components.map(component => {
+      component match {
+        case c: VideoComponent =>
+          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
+        case c: AudioComponent =>
+          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
+        case c: TextComponent =>
+          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
+      }
+    })
+  }
+
+  /**
    * Cloning the tasks of a Part.
    * @param tasks
    * @return
    */
-  private def cloneTasks(tasks: IndexedSeq[Task]): IndexedSeq[Task] = {
+   def cloneTasks(tasks: IndexedSeq[Task]): IndexedSeq[Task] = {
     //map that will contain as a key the old UUID of the task and the value will be the new UUID
     val dependencies = collection.mutable.Map[UUID, UUID]()
     val documentTasks = tasks.filter(task => task.isInstanceOf[DocumentTask])
@@ -194,7 +218,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
     val clonedWithoutDependencies = noDependenciesTasks.map(task => {
       val newId = UUID.randomUUID
       dependencies(task.id) = newId
-      task.copy(id = newId)
+      task.copy(id = newId, createdAt = new DateTime, updatedAt = new DateTime)
     })
     val dependenciesTasks = documentTasks.filter(task => !task.dependencyId.isEmpty)
     val clonedWithDependencies = dependenciesTasks.map(task => {
@@ -203,41 +227,26 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
       if (dependencyId.isEmpty) {
         dependencies(task.dependencyId.get) = UUID.randomUUID
       }
-      task.copy(id = newId, dependencyId = Some(dependencies(task.dependencyId.get)))
+      task.copy(id = newId, dependencyId = Some(dependencies(task.dependencyId.get)), createdAt = new DateTime, updatedAt = new DateTime)
     })
 
     val otherTasks = tasks.filter(task => !task.isInstanceOf[DocumentTask])
 
     val otherCloned = otherTasks.map(task => cloneTask(task))
 
-    clonedWithDependencies union clonedWithoutDependencies union otherCloned
+    (clonedWithDependencies union clonedWithoutDependencies union otherCloned).sortBy(t => t.position)
   }
 
   private def cloneTask(task: Task): Task = {
     task match {
       case t: DocumentTask => {
-        task.asInstanceOf[DocumentTask].copy(id = UUID.randomUUID)
+        task.asInstanceOf[DocumentTask].copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime)
       }
-      case t: QuestionTask => task.asInstanceOf[QuestionTask].copy(id = UUID.randomUUID)
+      case t: QuestionTask => task.asInstanceOf[QuestionTask].copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime)
     }
   }
 
-  /**
-   * Cloning the Components of the master Project.
-   * @return
-   */
-  private def cloneComponents(components: IndexedSeq[Component], ownerId: UUID): IndexedSeq[Component] = {
-    components.map(component => {
-      component match {
-        case c: VideoComponent =>
-          component.asInstanceOf[VideoComponent].copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
-        case c: AudioComponent =>
-          component.asInstanceOf[AudioComponent].copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
-        case c: TextComponent =>
-          component.asInstanceOf[TextComponent].copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
-      }
-    })
-  }
+
 
   /**
    * Find all Projects belonging to a given course.

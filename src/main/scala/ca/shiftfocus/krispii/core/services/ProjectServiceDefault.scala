@@ -173,6 +173,8 @@ class ProjectServiceDefault(
       parentId = parentId,
       name = name,
       slug = slug,
+      enabled = false,
+      isMaster = false,
       description = description,
       availability = availability,
       parts = IndexedSeq.empty[Part]

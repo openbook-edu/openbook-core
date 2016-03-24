@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.models
 import com.github.mauricio.async.db.RowData
 import java.util.UUID
 import org.joda.time.DateTime
+import play.api.Logger
 import play.api.libs.json._
 import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
@@ -26,8 +27,8 @@ case class Project(
     other match {
       case otherProject: Project => {
         this.id.equals(otherProject.id) &&
-          this.isMaster.equals(otherProject.isMaster) &&
           this.courseId.equals(otherProject.courseId) &&
+          this.isMaster.equals(otherProject.isMaster) &&
           this.version == otherProject.version &&
           this.name == otherProject.name &&
           this.slug == otherProject.slug &&

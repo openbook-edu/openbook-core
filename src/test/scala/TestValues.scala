@@ -1897,6 +1897,8 @@ object TestValues {
     id = UUID.fromString("c9b4cfce-aed4-48fd-94f5-c980763dfddc"),
     courseId = testCourseA.id,
     version = 1L,
+    enabled = false,
+    isMaster = false,
     name = "test project A",
     slug = "test-project-slug-A",
     description = "test project A description",
@@ -1961,6 +1963,58 @@ object TestValues {
     parts = Vector(),
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /**
+    * Master project F
+    */
+  val testProjectF = Project(
+    id = UUID.fromString("b36919cb-2df0-43b7-bb7f-36cae797deab"),
+    courseId = testCourseG.id,
+    version = 1L,
+    name = "test project F",
+    slug = "test-project-slug-F",
+    description = "test project F description",
+    availability = "course",
+    parts = Vector(),
+    isMaster = true,
+    enabled = true,
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /**
+    * Master project G
+    */
+  val testProjectG = Project(
+    id = UUID.fromString("b36919cb-2df0-43b7-bb7f-36cae797deac"),
+    courseId = testCourseG.id,
+    version = 1L,
+    name = "test project G",
+    slug = "test-project-slug-G",
+    description = "test project G description",
+    availability = "course",
+    parts = Vector(),
+    isMaster = true,
+    enabled = true,
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /**
+    * Master project to be used in insert test
+    */
+  val testProjectH = Project(
+    id = UUID.fromString("00743ada-1d3a-4912-adc8-fb8a0b1b7447"),
+    courseId = testCourseA.id,
+    name = "test project H",
+    slug = "test-project-slug-H",
+    description = "test project H description",
+    availability = "course",
+    isMaster = true,
+    parentId = null,
+    enabled = true,
+    parts = Vector()
   )
 
   /* ---------------------- SCHEDULES ---------------------- */

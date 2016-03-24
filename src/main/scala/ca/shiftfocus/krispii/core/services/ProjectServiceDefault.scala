@@ -40,10 +40,10 @@ class ProjectServiceDefault(
   }
 
   /**
-    * Lists all projects.
-    *
-    * @return a future disjunction containing either a vector of projects, or a failure
-    */
+   * Lists all projects.
+   *
+   * @return a future disjunction containing either a vector of projects, or a failure
+   */
   override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
     projectRepository.list(None)
   }

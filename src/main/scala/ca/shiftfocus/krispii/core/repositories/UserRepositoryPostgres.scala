@@ -4,6 +4,7 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{ RowData, Connection, ResultSet }
+import play.api.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.lib.exceptions.ExceptionWriter
@@ -230,8 +231,11 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
         } yield user
       }
       case -\/(noResults: RepositoryError.NoResults) => {
+        Logger.error("|" + identifier + "|")
         for {
           user <- lift(queryOne(SelectOneByIdentifier, Seq[Any](identifier, identifier)))
+          _ = Logger.error("User has been found")
+          _ = Logger.error(user.toString)
           _ <- lift(cache.putCache[UUID](cacheUsernameKey(identifier))(user.id, ttl))
           _ <- lift(cache.putCache[User](cacheUserKey(user.id))(user, ttl))
         } yield user

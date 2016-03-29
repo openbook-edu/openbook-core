@@ -280,6 +280,25 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    */
   def activate(userId: UUID, activationCode: String): Future[\/[ErrorUnion#Fail, User]]
 
-  def findActivation(email: String): Future[\/[ErrorUnion#Fail, UserToken]]
+  /**
+   * create a password reset token for a user
+   * @param user
+   * @return
+   */
+  def createPasswordResetToken(user: User): Future[\/[ErrorUnion#Fail, UserToken]]
 
+  /**
+   * finding a user token by nonce
+   * @param nonce
+   * @param tokenType
+   * @return
+   */
+  def findUserToken(nonce: String, tokenType: String): Future[\/[ErrorUnion#Fail, UserToken]]
+
+  /**
+   * destroy user token
+   * @param token
+   * @return
+   */
+  def deleteToken(token: UserToken): Future[\/[ErrorUnion#Fail, UserToken]]
 }

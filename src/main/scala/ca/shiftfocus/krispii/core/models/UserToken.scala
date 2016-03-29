@@ -8,12 +8,13 @@ import play.api.libs.json.Reads._
 import play.api.libs.functional.syntax._
 
 /**
- * Represents the authentication token assign to a new user when signing up.
- * Created by ryanez on 11/02/16.
+ * Represents the authentication token assign to a new user when signing up or to a user which requests a password
  */
 case class UserToken(
   userId: UUID,
-  token: String
+  token: String,
+  tokenType: String,
+  createdAt: DateTime = new DateTime
 ) {}
 
 object UserToken {

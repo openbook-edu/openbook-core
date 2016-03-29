@@ -757,9 +757,10 @@ class AuthServiceDefault(
   /**
    * Delete a token if exists and create a new one and send an email
    * @param user
+   * @param host - current host for creating a link
    * @return
    */
-  def createPasswordResetToken(user: User): Future[\/[ErrorUnion#Fail, UserToken]] = {
+  def createPasswordResetToken(user: User, host: String): Future[\/[ErrorUnion#Fail, UserToken]] = {
     transactional { implicit conn =>
       var nonce = Token.getNext
       var fToken = for {
@@ -773,7 +774,7 @@ class AuthServiceDefault(
           "reset your password", //subject
           "vz@shiftfocus.ca", //from
           Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
-          bodyText = Some("/api/reset/" + nonce.toString) //text
+          bodyText = Some(host + "/api/reset/" + nonce.toString) //text
         )
         mail <- lift(sendAsyncEmail(email))
       } yield token

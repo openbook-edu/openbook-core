@@ -35,7 +35,7 @@ class WorkServiceSpec
   val taskFeedbackRepository = stub[TaskFeedbackRepository]
   val taskScratchpadRepository = stub[TaskScratchpadRepository]
   val projectScratchpadRepository = stub[ProjectScratchpadRepository]
-  val activationRepository = stub[ActivationRepository]
+  val activationRepository = stub[UserTokenRepository]
   val mailerClient = stub[MailerClient]
   val messagesApi = stub[MessagesApi]
 

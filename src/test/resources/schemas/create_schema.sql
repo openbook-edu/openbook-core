@@ -27,9 +27,10 @@ CREATE TABLE users_roles (
 );
 
 
-CREATE TABLE activations (
+CREATE TABLE user_tokens (
   user_id uuid PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
   nonce text UNIQUE,
+  token_type text,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
 );
 

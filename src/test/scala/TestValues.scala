@@ -1506,7 +1506,7 @@ object TestValues {
     studentId = testUserC.id,
     taskId = testMediaTaskA.id,
     version = 3L,
-    fileData = MediaAnswer(Some("3"), Some("image.jpg")),
+    fileData = MediaAnswer(),
     isComplete = false,
     createdAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2373,24 +2373,28 @@ object TestValues {
 
   val testUserToken = UserToken(
     userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
-    token = "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="
+    token = "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=",
+    tokenType = "activation"
   //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   val testUserTokenEmail = UserToken(
     userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
-    token = "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="
+    token = "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=",
+    tokenType = "activation"
   //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   val testUserTokenInsert = UserToken(
     userId = UUID.fromString("4d01347e-c592-4e5f-b09f-dd281b3d9b87"),
-    token = "$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7xjMLFYE="
+    token = "$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7xjMLFYE=",
+    tokenType = "activation"
   //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
   val testUserTokenDelete = UserToken(
     userId = UUID.fromString("7c62a526-d1b0-11e5-9080-08626681851d"),
-    token = "$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="
+    token = "$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=",
+    tokenType = "activation"
   //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
@@ -2448,6 +2452,18 @@ object TestValues {
     link = testWordC.word,
     courseId = testCourseA.id,
     createdAt = new DateTime(2014, 6, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+  //user tokens
+  var testUserTokenA = UserToken(
+    userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
+    token = "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=",
+    tokenType = "activation"
+  )
+
+  var testUserTokenP = UserToken(
+    userId = UUID.fromString("7c62a526-d1b0-11e5-9080-08626681851d"),
+    token = "$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=",
+    tokenType = "password_reset"
   )
 }
 

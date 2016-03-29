@@ -1555,7 +1555,7 @@ class WorkRepositorySpec
           createdAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04")),
 
           // Should be updated
-          fileData = MediaAnswer(Some("2"), Some("video.mp4")),
+          fileData = MediaAnswer(Some("video/mp4"), Some("video.mp4")),
           isComplete = !testWork.isComplete
         )
 
@@ -1671,372 +1671,372 @@ class WorkRepositorySpec
     }
   }
 
-  "WorkRepository.delete" should {
-    inSequence {
-      /* --- delete(Work) --- */
-      "delete all revisions of a work (LongAnswerWork)" in {
-        val testWork = TestValues.testLongAnswerWorkF
-        val testDocument = testWork.response.get
-
-        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (testDocument.id, *, *) returns (Future.successful(\/-(testDocument)))
-
-        val result = workRepository.delete(testWork)
-        val eitherWork = Await.result(result, Duration.Inf)
-        val \/-(work: DocumentWork) = eitherWork
-
-        work.id should be(testWork.id)
-        work.studentId should be(testWork.studentId)
-        work.taskId should be(testWork.taskId)
-        work.version should be(testWork.version)
-        work.documentId should be(testWork.documentId)
-        work.response should be(testWork.response)
-        work.isComplete should be(testWork.isComplete)
-        work.createdAt.toString should be(testWork.createdAt.toString)
-        work.updatedAt.toString should be(testWork.updatedAt.toString)
-      }
-      "delete all revisions of a work (ShortAnswerWork)" in {
-        val testWork = TestValues.testShortAnswerWorkG
-
-        val result = workRepository.delete(testWork)
-        val eitherWork = Await.result(result, Duration.Inf)
-        val \/-(work: QuestionWork) = eitherWork
-
-        work.id should be(testWork.id)
-        work.studentId should be(testWork.studentId)
-        work.taskId should be(testWork.taskId)
-        work.version should be(testWork.version)
-        work.response should be(testWork.response)
-        work.isComplete should be(testWork.isComplete)
-        work.createdAt.toString should be(testWork.createdAt.toString)
-        work.updatedAt.toString should be(testWork.updatedAt.toString)
-      }
-      "delete all revisions of a work (MultipleChoiceWork)" in {
-        val testWork = TestValues.testMultipleChoiceWorkC
-
-        val result = workRepository.delete(testWork)
-        val eitherWork = Await.result(result, Duration.Inf)
-        val \/-(work: QuestionWork) = eitherWork
-
-        work.id should be(testWork.id)
-        work.studentId should be(testWork.studentId)
-        work.taskId should be(testWork.taskId)
-        work.version should be(testWork.version)
-        work.response should be(testWork.response)
-        work.isComplete should be(testWork.isComplete)
-        work.createdAt.toString should be(testWork.createdAt.toString)
-        work.updatedAt.toString should be(testWork.updatedAt.toString)
-      }
-      "delete all revisions of a work (OrderingWork)" in {
-        val testWork = TestValues.testOrderingWorkD
-
-        val result = workRepository.delete(testWork)
-        val eitherWork = Await.result(result, Duration.Inf)
-        val \/-(work: QuestionWork) = eitherWork
-
-        work.id should be(testWork.id)
-        work.studentId should be(testWork.studentId)
-        work.taskId should be(testWork.taskId)
-        work.version should be(testWork.version)
-        work.response should be(testWork.response)
-        work.isComplete should be(testWork.isComplete)
-        work.createdAt.toString should be(testWork.createdAt.toString)
-        work.updatedAt.toString should be(testWork.updatedAt.toString)
-      }
-      "delete all revisions of a work (MatchingWork)" in {
-        val testWork = TestValues.testMatchingWorkJ
-
-        val result = workRepository.delete(testWork)
-        val eitherWork = Await.result(result, Duration.Inf)
-        val \/-(work: QuestionWork) = eitherWork
-
-        work.id should be(testWork.id)
-        work.studentId should be(testWork.studentId)
-        work.taskId should be(testWork.taskId)
-        work.version should be(testWork.version)
-        work.response should be(testWork.response)
-        work.isComplete should be(testWork.isComplete)
-        work.createdAt.toString should be(testWork.createdAt.toString)
-        work.updatedAt.toString should be(testWork.updatedAt.toString)
-      }
-      "delete all revisions of a work (BlanksWork)" in {
-        val testWork = TestValues.testBlanksWorkK
-
-        val result = workRepository.delete(testWork)
-        val eitherWork = Await.result(result, Duration.Inf)
-        val \/-(work: QuestionWork) = eitherWork
-
-        work.id should be(testWork.id)
-        work.studentId should be(testWork.studentId)
-        work.taskId should be(testWork.taskId)
-        work.version should be(testWork.version)
-        work.response should be(testWork.response)
-        work.isComplete should be(testWork.isComplete)
-        work.createdAt.toString should be(testWork.createdAt.toString)
-        work.updatedAt.toString should be(testWork.updatedAt.toString)
-      }
-      "delete all revisions of a work (MediaWork)" in {
-        val testWork = TestValues.testMediaWorkA
-
-        val result = workRepository.delete(testWork)
-        val eitherWork = Await.result(result, Duration.Inf)
-        val \/-(work: MediaWork) = eitherWork
-
-        work.id should be(testWork.id)
-        work.studentId should be(testWork.studentId)
-        work.taskId should be(testWork.taskId)
-        work.version should be(testWork.version)
-        work.fileData should be(testWork.fileData)
-        work.isComplete should be(testWork.isComplete)
-        work.createdAt.toString should be(testWork.createdAt.toString)
-        work.updatedAt.toString should be(testWork.updatedAt.toString)
-      }
-      "return RepositoryError.NoResults if work doesn't exist" in {
-        val testWork = TestValues.testMatchingWorkO
-
-        val result = workRepository.delete(testWork)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Work")))
-      }
-
-      /* --- delete(Task) --- */
-      "delete all work for a given task (LongAnswerWork)" in {
-        val testTask = TestValues.testLongAnswerTaskA
-
-        val testWorkList = IndexedSeq[Work](
-          TestValues.testLongAnswerWorkA,
-          TestValues.testLongAnswerWorkF
-        )
-
-        val testDocumentList = TreeMap[Int, Document](
-          0 -> TestValues.testDocumentA,
-          1 -> TestValues.testDocumentB
-        )
-
-        testDocumentList.foreach {
-          case (key, document: Document) => {
-            (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (document.id, *, *) returns (Future.successful(\/-(document)))
-          }
-        }
-
-        val result = workRepository.delete(testTask)
-        val eitherWorks = Await.result(result, Duration.Inf)
-        val \/-(works: IndexedSeq[DocumentWork]) = eitherWorks
-
-        works.size should be(testWorkList.size)
-
-        works.foreach { work =>
-          var testWork = if (testWorkList.exists({ item => item.id == work.id && item.version == work.version })) testWorkList.filter({ item => item.id == work.id && item.version == work.version }).head
-          else fail("There is no task with such ID and version in testTaskList: " + work.id)
-
-          testWork.id should be(work.id)
-          testWork.studentId should be(work.studentId)
-          testWork.taskId should be(work.taskId)
-          testWork.version should be(work.version)
-          testWork.isComplete should be(work.isComplete)
-          testWork.createdAt.toString should be(work.createdAt.toString)
-          testWork.updatedAt.toString should be(work.updatedAt.toString)
-
-          //Specific
-          testWork match {
-            case documentWork: DocumentWork => {
-              documentWork.response should be(work.asInstanceOf[DocumentWork].response)
-            }
-            case questionWork: QuestionWork => {
-              questionWork.response should be(work.asInstanceOf[QuestionWork].response)
-            }
-          }
-        }
-      }
-      "delete all work for a given task (ShortAnswerWork)" in {
-        val testTask = TestValues.testShortAnswerTaskB
-
-        val testWorkList = IndexedSeq[Work](
-          TestValues.testShortAnswerWorkB,
-          TestValues.testShortAnswerWorkG
-        )
-
-        val result = workRepository.delete(testTask)
-        val eitherWorks = Await.result(result, Duration.Inf)
-        val \/-(works: IndexedSeq[QuestionWork]) = eitherWorks
-
-        works.size should be(testWorkList.size)
-
-        works.foreach { work =>
-          var testWork = if (testWorkList.exists({ item => item.id == work.id && item.version == work.version })) testWorkList.filter({ item => item.id == work.id && item.version == work.version }).head
-          else fail("There is no task with such ID and version in testTaskList: " + work.id)
-
-          testWork.id should be(work.id)
-          testWork.studentId should be(work.studentId)
-          testWork.taskId should be(work.taskId)
-          testWork.version should be(work.version)
-          testWork.isComplete should be(work.isComplete)
-          testWork.createdAt.toString should be(work.createdAt.toString)
-          testWork.updatedAt.toString should be(work.updatedAt.toString)
-
-          //Specific
-          testWork match {
-            case documentWork: DocumentWork => {
-              documentWork.response should be(work.asInstanceOf[DocumentWork].response)
-            }
-            case questionWork: QuestionWork => {
-              questionWork.response should be(work.asInstanceOf[QuestionWork].response)
-            }
-          }
-        }
-      }
-      "delete all work for a given task (MultipleChoiceWork)" in {
-        val testTask = TestValues.testMultipleChoiceTaskC
-
-        val testWorkList = IndexedSeq[Work](
-          TestValues.testMultipleChoiceWorkC,
-          TestValues.testMultipleChoiceWorkH
-        )
-
-        val result = workRepository.delete(testTask)
-        val eitherWorks = Await.result(result, Duration.Inf)
-        val \/-(works: IndexedSeq[QuestionWork]) = eitherWorks
-
-        works.size should be(testWorkList.size)
-
-        works.foreach { work =>
-          var testWork = if (testWorkList.exists({ item => item.id == work.id && item.version == work.version })) testWorkList.filter({ item => item.id == work.id && item.version == work.version }).head
-          else fail("There is no task with such ID and version in testTaskList: " + work.id)
-
-          testWork.id should be(work.id)
-          testWork.studentId should be(work.studentId)
-          testWork.taskId should be(work.taskId)
-          testWork.version should be(work.version)
-          testWork.isComplete should be(work.isComplete)
-          testWork.createdAt.toString should be(work.createdAt.toString)
-          testWork.updatedAt.toString should be(work.updatedAt.toString)
-
-          //Specific
-          testWork match {
-            case documentWork: DocumentWork => {
-              documentWork.response should be(work.asInstanceOf[DocumentWork].response)
-            }
-            case questionWork: QuestionWork => {
-              questionWork.response should be(work.asInstanceOf[QuestionWork].response)
-            }
-          }
-        }
-      }
-      "delete all work for a given task (OrderingWork)" in {
-        val testTask = TestValues.testOrderingTaskN
-
-        val testWorkList = IndexedSeq[Work](
-          TestValues.testOrderingWorkI,
-          TestValues.testOrderingWorkD
-        )
-
-        val result = workRepository.delete(testTask)
-        val eitherWorks = Await.result(result, Duration.Inf)
-        val \/-(works: IndexedSeq[QuestionWork]) = eitherWorks
-
-        works.size should be(testWorkList.size)
-
-        works.foreach { work =>
-          var testWork = if (testWorkList.exists({ item => item.id == work.id && item.version == work.version })) testWorkList.filter({ item => item.id == work.id && item.version == work.version }).head
-          else fail("There is no task with such ID and version in testTaskList: " + work.id)
-
-          testWork.id should be(work.id)
-          testWork.studentId should be(work.studentId)
-          testWork.taskId should be(work.taskId)
-          testWork.version should be(work.version)
-          testWork.isComplete should be(work.isComplete)
-          testWork.createdAt.toString should be(work.createdAt.toString)
-          testWork.updatedAt.toString should be(work.updatedAt.toString)
-
-          //Specific
-          testWork match {
-            case documentWork: DocumentWork => {
-              documentWork.response should be(work.asInstanceOf[DocumentWork].response)
-            }
-            case questionWork: QuestionWork => {
-              questionWork.response should be(work.asInstanceOf[QuestionWork].response)
-            }
-          }
-        }
-      }
-      "delete all work for a given task (MatchingWork)" in {
-        val testTask = TestValues.testMatchingTaskE
-
-        val testWorkList = IndexedSeq[Work](
-          TestValues.testMatchingWorkJ,
-          TestValues.testMatchingWorkE
-        )
-
-        val result = workRepository.delete(testTask)
-        val eitherWorks = Await.result(result, Duration.Inf)
-        val \/-(works: IndexedSeq[QuestionWork]) = eitherWorks
-
-        works.size should be(testWorkList.size)
-
-        works.foreach { work =>
-          var testWork = if (testWorkList.exists({ item => item.id == work.id && item.version == work.version })) testWorkList.filter({ item => item.id == work.id && item.version == work.version }).head
-          else fail("There is no task with such ID and version in testTaskList: " + work.id)
-
-          testWork.id should be(work.id)
-          testWork.studentId should be(work.studentId)
-          testWork.taskId should be(work.taskId)
-          testWork.version should be(work.version)
-          testWork.isComplete should be(work.isComplete)
-          testWork.createdAt.toString should be(work.createdAt.toString)
-          testWork.updatedAt.toString should be(work.updatedAt.toString)
-
-          //Specific
-          testWork match {
-            case documentWork: DocumentWork => {
-              documentWork.response should be(work.asInstanceOf[DocumentWork].response)
-            }
-            case questionWork: QuestionWork => {
-              questionWork.response should be(work.asInstanceOf[QuestionWork].response)
-            }
-          }
-        }
-      }
-      "delete all work for a given task (BlanksWork)" in {
-        val testTask = TestValues.testBlanksTaskP
-
-        val testWorkList = IndexedSeq[Work](
-          TestValues.testBlanksWorkK,
-          TestValues.testBlanksWorkL
-        )
-
-        val result = workRepository.delete(testTask)
-        val eitherWorks = Await.result(result, Duration.Inf)
-        val \/-(works: IndexedSeq[QuestionWork]) = eitherWorks
-
-        works.size should be(testWorkList.size)
-
-        works.foreach { work =>
-          var testWork = if (testWorkList.exists({ item => item.id == work.id && item.version == work.version })) testWorkList.filter({ item => item.id == work.id && item.version == work.version }).head
-          else fail("There is no task with such ID and version in testTaskList: " + work.id)
-
-          testWork.id should be(work.id)
-          testWork.studentId should be(work.studentId)
-          testWork.taskId should be(work.taskId)
-          testWork.version should be(work.version)
-          testWork.isComplete should be(work.isComplete)
-          testWork.createdAt.toString should be(work.createdAt.toString)
-          testWork.updatedAt.toString should be(work.updatedAt.toString)
-
-          //Specific
-          testWork match {
-            case documentWork: DocumentWork => {
-              documentWork.response should be(work.asInstanceOf[DocumentWork].response)
-            }
-            case questionWork: QuestionWork => {
-              questionWork.response should be(work.asInstanceOf[QuestionWork].response)
-            }
-          }
-        }
-      }
-      "return empty Vector() if task doesn't exist" in {
-        val testTask = TestValues.testMatchingTaskJ
-
-        val result = workRepository.delete(testTask)
-        Await.result(result, Duration.Inf) should be(\/-(Vector()))
-      }
-    }
-  }
+  //  "WorkRepository.delete" should {
+  //    inSequence {
+  //      /* --- delete(Work) --- */
+  //      "delete all revisions of a work (LongAnswerWork)" in {
+  //        val testWork = TestValues.testLongAnswerWorkF
+  //        val testDocument = testWork.response.get
+  //
+  //        (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (testDocument.id, *, *) returns (Future.successful(\/-(testDocument)))
+  //
+  //        val result = workRepository.delete(testWork)
+  //        val eitherWork = Await.result(result, Duration.Inf)
+  //        val \/-(work: DocumentWork) = eitherWork
+  //
+  //        work.id should be(testWork.id)
+  //        work.studentId should be(testWork.studentId)
+  //        work.taskId should be(testWork.taskId)
+  //        work.version should be(testWork.version)
+  //        work.documentId should be(testWork.documentId)
+  //        work.response should be(testWork.response)
+  //        work.isComplete should be(testWork.isComplete)
+  //        work.createdAt.toString should be(testWork.createdAt.toString)
+  //        work.updatedAt.toString should be(testWork.updatedAt.toString)
+  //      }
+  //      "delete all revisions of a work (ShortAnswerWork)" in {
+  //        val testWork = TestValues.testShortAnswerWorkG
+  //
+  //        val result = workRepository.delete(testWork)
+  //        val eitherWork = Await.result(result, Duration.Inf)
+  //        val \/-(work: QuestionWork) = eitherWork
+  //
+  //        work.id should be(testWork.id)
+  //        work.studentId should be(testWork.studentId)
+  //        work.taskId should be(testWork.taskId)
+  //        work.version should be(testWork.version)
+  //        work.response should be(testWork.response)
+  //        work.isComplete should be(testWork.isComplete)
+  //        work.createdAt.toString should be(testWork.createdAt.toString)
+  //        work.updatedAt.toString should be(testWork.updatedAt.toString)
+  //      }
+  //      "delete all revisions of a work (MultipleChoiceWork)" in {
+  //        val testWork = TestValues.testMultipleChoiceWorkC
+  //
+  //        val result = workRepository.delete(testWork)
+  //        val eitherWork = Await.result(result, Duration.Inf)
+  //        val \/-(work: QuestionWork) = eitherWork
+  //
+  //        work.id should be(testWork.id)
+  //        work.studentId should be(testWork.studentId)
+  //        work.taskId should be(testWork.taskId)
+  //        work.version should be(testWork.version)
+  //        work.response should be(testWork.response)
+  //        work.isComplete should be(testWork.isComplete)
+  //        work.createdAt.toString should be(testWork.createdAt.toString)
+  //        work.updatedAt.toString should be(testWork.updatedAt.toString)
+  //      }
+  //      "delete all revisions of a work (OrderingWork)" in {
+  //        val testWork = TestValues.testOrderingWorkD
+  //
+  //        val result = workRepository.delete(testWork)
+  //        val eitherWork = Await.result(result, Duration.Inf)
+  //        val \/-(work: QuestionWork) = eitherWork
+  //
+  //        work.id should be(testWork.id)
+  //        work.studentId should be(testWork.studentId)
+  //        work.taskId should be(testWork.taskId)
+  //        work.version should be(testWork.version)
+  //        work.response should be(testWork.response)
+  //        work.isComplete should be(testWork.isComplete)
+  //        work.createdAt.toString should be(testWork.createdAt.toString)
+  //        work.updatedAt.toString should be(testWork.updatedAt.toString)
+  //      }
+  //      "delete all revisions of a work (MatchingWork)" in {
+  //        val testWork = TestValues.testMatchingWorkJ
+  //
+  //        val result = workRepository.delete(testWork)
+  //        val eitherWork = Await.result(result, Duration.Inf)
+  //        val \/-(work: QuestionWork) = eitherWork
+  //
+  //        work.id should be(testWork.id)
+  //        work.studentId should be(testWork.studentId)
+  //        work.taskId should be(testWork.taskId)
+  //        work.version should be(testWork.version)
+  //        work.response should be(testWork.response)
+  //        work.isComplete should be(testWork.isComplete)
+  //        work.createdAt.toString should be(testWork.createdAt.toString)
+  //        work.updatedAt.toString should be(testWork.updatedAt.toString)
+  //      }
+  //      "delete all revisions of a work (BlanksWork)" in {
+  //        val testWork = TestValues.testBlanksWorkK
+  //
+  //        val result = workRepository.delete(testWork)
+  //        val eitherWork = Await.result(result, Duration.Inf)
+  //        val \/-(work: QuestionWork) = eitherWork
+  //
+  //        work.id should be(testWork.id)
+  //        work.studentId should be(testWork.studentId)
+  //        work.taskId should be(testWork.taskId)
+  //        work.version should be(testWork.version)
+  //        work.response should be(testWork.response)
+  //        work.isComplete should be(testWork.isComplete)
+  //        work.createdAt.toString should be(testWork.createdAt.toString)
+  //        work.updatedAt.toString should be(testWork.updatedAt.toString)
+  //      }
+  //      "delete all revisions of a work (MediaWork)" in {
+  //        val testWork = TestValues.testMediaWorkA
+  //
+  //        val result = workRepository.delete(testWork)
+  //        val eitherWork = Await.result(result, Duration.Inf)
+  //        val \/-(work: MediaWork) = eitherWork
+  //
+  //        work.id should be(testWork.id)
+  //        work.studentId should be(testWork.studentId)
+  //        work.taskId should be(testWork.taskId)
+  //        work.version should be(testWork.version)
+  //        work.fileData should be(testWork.fileData)
+  //        work.isComplete should be(testWork.isComplete)
+  //        work.createdAt.toString should be(testWork.createdAt.toString)
+  //        work.updatedAt.toString should be(testWork.updatedAt.toString)
+  //      }
+  //      "return RepositoryError.NoResults if work doesn't exist" in {
+  //        val testWork = TestValues.testMatchingWorkO
+  //
+  //        val result = workRepository.delete(testWork)
+  //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Work")))
+  //      }
+  //
+  //      /* --- delete(Task) --- */
+  //      "delete all work for a given task (LongAnswerWork)" in {
+  //        val testTask = TestValues.testLongAnswerTaskA
+  //
+  //        val testWorkList = IndexedSeq[Work](
+  //          TestValues.testLongAnswerWorkA,
+  //          TestValues.testLongAnswerWorkF
+  //        )
+  //
+  //        val testDocumentList = TreeMap[Int, Document](
+  //          0 -> TestValues.testDocumentA,
+  //          1 -> TestValues.testDocumentB
+  //        )
+  //
+  //        testDocumentList.foreach {
+  //          case (key, document: Document) => {
+  //            (documentRepository.find(_: UUID, _: Long)(_: Connection)) when (document.id, *, *) returns (Future.successful(\/-(document)))
+  //          }
+  //        }
+  //
+  //        val result = workRepository.delete(testTask)
+  //        val eitherWorks = Await.result(result, Duration.Inf)
+  //        val \/-(works: IndexedSeq[DocumentWork]) = eitherWorks
+  //
+  //        works.size should be(testWorkList.size)
+  //
+  //        works.foreach { work =>
+  //          var testWork = if (testWorkList.exists({ item => item.id == work.id && item.version == work.version })) testWorkList.filter({ item => item.id == work.id && item.version == work.version }).head
+  //          else fail("There is no task with such ID and version in testTaskList: " + work.id)
+  //
+  //          testWork.id should be(work.id)
+  //          testWork.studentId should be(work.studentId)
+  //          testWork.taskId should be(work.taskId)
+  //          testWork.version should be(work.version)
+  //          testWork.isComplete should be(work.isComplete)
+  //          testWork.createdAt.toString should be(work.createdAt.toString)
+  //          testWork.updatedAt.toString should be(work.updatedAt.toString)
+  //
+  //          //Specific
+  //          testWork match {
+  //            case documentWork: DocumentWork => {
+  //              documentWork.response should be(work.asInstanceOf[DocumentWork].response)
+  //            }
+  //            case questionWork: QuestionWork => {
+  //              questionWork.response should be(work.asInstanceOf[QuestionWork].response)
+  //            }
+  //          }
+  //        }
+  //      }
+  //      "delete all work for a given task (ShortAnswerWork)" in {
+  //        val testTask = TestValues.testShortAnswerTaskB
+  //
+  //        val testWorkList = IndexedSeq[Work](
+  //          TestValues.testShortAnswerWorkB,
+  //          TestValues.testShortAnswerWorkG
+  //        )
+  //
+  //        val result = workRepository.delete(testTask)
+  //        val eitherWorks = Await.result(result, Duration.Inf)
+  //        val \/-(works: IndexedSeq[QuestionWork]) = eitherWorks
+  //
+  //        works.size should be(testWorkList.size)
+  //
+  //        works.foreach { work =>
+  //          var testWork = if (testWorkList.exists({ item => item.id == work.id && item.version == work.version })) testWorkList.filter({ item => item.id == work.id && item.version == work.version }).head
+  //          else fail("There is no task with such ID and version in testTaskList: " + work.id)
+  //
+  //          testWork.id should be(work.id)
+  //          testWork.studentId should be(work.studentId)
+  //          testWork.taskId should be(work.taskId)
+  //          testWork.version should be(work.version)
+  //          testWork.isComplete should be(work.isComplete)
+  //          testWork.createdAt.toString should be(work.createdAt.toString)
+  //          testWork.updatedAt.toString should be(work.updatedAt.toString)
+  //
+  //          //Specific
+  //          testWork match {
+  //            case documentWork: DocumentWork => {
+  //              documentWork.response should be(work.asInstanceOf[DocumentWork].response)
+  //            }
+  //            case questionWork: QuestionWork => {
+  //              questionWork.response should be(work.asInstanceOf[QuestionWork].response)
+  //            }
+  //          }
+  //        }
+  //      }
+  //      "delete all work for a given task (MultipleChoiceWork)" in {
+  //        val testTask = TestValues.testMultipleChoiceTaskC
+  //
+  //        val testWorkList = IndexedSeq[Work](
+  //          TestValues.testMultipleChoiceWorkC,
+  //          TestValues.testMultipleChoiceWorkH
+  //        )
+  //
+  //        val result = workRepository.delete(testTask)
+  //        val eitherWorks = Await.result(result, Duration.Inf)
+  //        val \/-(works: IndexedSeq[QuestionWork]) = eitherWorks
+  //
+  //        works.size should be(testWorkList.size)
+  //
+  //        works.foreach { work =>
+  //          var testWork = if (testWorkList.exists({ item => item.id == work.id && item.version == work.version })) testWorkList.filter({ item => item.id == work.id && item.version == work.version }).head
+  //          else fail("There is no task with such ID and version in testTaskList: " + work.id)
+  //
+  //          testWork.id should be(work.id)
+  //          testWork.studentId should be(work.studentId)
+  //          testWork.taskId should be(work.taskId)
+  //          testWork.version should be(work.version)
+  //          testWork.isComplete should be(work.isComplete)
+  //          testWork.createdAt.toString should be(work.createdAt.toString)
+  //          testWork.updatedAt.toString should be(work.updatedAt.toString)
+  //
+  //          //Specific
+  //          testWork match {
+  //            case documentWork: DocumentWork => {
+  //              documentWork.response should be(work.asInstanceOf[DocumentWork].response)
+  //            }
+  //            case questionWork: QuestionWork => {
+  //              questionWork.response should be(work.asInstanceOf[QuestionWork].response)
+  //            }
+  //          }
+  //        }
+  //      }
+  //      "delete all work for a given task (OrderingWork)" in {
+  //        val testTask = TestValues.testOrderingTaskN
+  //
+  //        val testWorkList = IndexedSeq[Work](
+  //          TestValues.testOrderingWorkI,
+  //          TestValues.testOrderingWorkD
+  //        )
+  //
+  //        val result = workRepository.delete(testTask)
+  //        val eitherWorks = Await.result(result, Duration.Inf)
+  //        val \/-(works: IndexedSeq[QuestionWork]) = eitherWorks
+  //
+  //        works.size should be(testWorkList.size)
+  //
+  //        works.foreach { work =>
+  //          var testWork = if (testWorkList.exists({ item => item.id == work.id && item.version == work.version })) testWorkList.filter({ item => item.id == work.id && item.version == work.version }).head
+  //          else fail("There is no task with such ID and version in testTaskList: " + work.id)
+  //
+  //          testWork.id should be(work.id)
+  //          testWork.studentId should be(work.studentId)
+  //          testWork.taskId should be(work.taskId)
+  //          testWork.version should be(work.version)
+  //          testWork.isComplete should be(work.isComplete)
+  //          testWork.createdAt.toString should be(work.createdAt.toString)
+  //          testWork.updatedAt.toString should be(work.updatedAt.toString)
+  //
+  //          //Specific
+  //          testWork match {
+  //            case documentWork: DocumentWork => {
+  //              documentWork.response should be(work.asInstanceOf[DocumentWork].response)
+  //            }
+  //            case questionWork: QuestionWork => {
+  //              questionWork.response should be(work.asInstanceOf[QuestionWork].response)
+  //            }
+  //          }
+  //        }
+  //      }
+  //      "delete all work for a given task (MatchingWork)" in {
+  //        val testTask = TestValues.testMatchingTaskE
+  //
+  //        val testWorkList = IndexedSeq[Work](
+  //          TestValues.testMatchingWorkJ,
+  //          TestValues.testMatchingWorkE
+  //        )
+  //
+  //        val result = workRepository.delete(testTask)
+  //        val eitherWorks = Await.result(result, Duration.Inf)
+  //        val \/-(works: IndexedSeq[QuestionWork]) = eitherWorks
+  //
+  //        works.size should be(testWorkList.size)
+  //
+  //        works.foreach { work =>
+  //          var testWork = if (testWorkList.exists({ item => item.id == work.id && item.version == work.version })) testWorkList.filter({ item => item.id == work.id && item.version == work.version }).head
+  //          else fail("There is no task with such ID and version in testTaskList: " + work.id)
+  //
+  //          testWork.id should be(work.id)
+  //          testWork.studentId should be(work.studentId)
+  //          testWork.taskId should be(work.taskId)
+  //          testWork.version should be(work.version)
+  //          testWork.isComplete should be(work.isComplete)
+  //          testWork.createdAt.toString should be(work.createdAt.toString)
+  //          testWork.updatedAt.toString should be(work.updatedAt.toString)
+  //
+  //          //Specific
+  //          testWork match {
+  //            case documentWork: DocumentWork => {
+  //              documentWork.response should be(work.asInstanceOf[DocumentWork].response)
+  //            }
+  //            case questionWork: QuestionWork => {
+  //              questionWork.response should be(work.asInstanceOf[QuestionWork].response)
+  //            }
+  //          }
+  //        }
+  //      }
+  //      "delete all work for a given task (BlanksWork)" in {
+  //        val testTask = TestValues.testBlanksTaskP
+  //
+  //        val testWorkList = IndexedSeq[Work](
+  //          TestValues.testBlanksWorkK,
+  //          TestValues.testBlanksWorkL
+  //        )
+  //
+  //        val result = workRepository.delete(testTask)
+  //        val eitherWorks = Await.result(result, Duration.Inf)
+  //        val \/-(works: IndexedSeq[QuestionWork]) = eitherWorks
+  //
+  //        works.size should be(testWorkList.size)
+  //
+  //        works.foreach { work =>
+  //          var testWork = if (testWorkList.exists({ item => item.id == work.id && item.version == work.version })) testWorkList.filter({ item => item.id == work.id && item.version == work.version }).head
+  //          else fail("There is no task with such ID and version in testTaskList: " + work.id)
+  //
+  //          testWork.id should be(work.id)
+  //          testWork.studentId should be(work.studentId)
+  //          testWork.taskId should be(work.taskId)
+  //          testWork.version should be(work.version)
+  //          testWork.isComplete should be(work.isComplete)
+  //          testWork.createdAt.toString should be(work.createdAt.toString)
+  //          testWork.updatedAt.toString should be(work.updatedAt.toString)
+  //
+  //          //Specific
+  //          testWork match {
+  //            case documentWork: DocumentWork => {
+  //              documentWork.response should be(work.asInstanceOf[DocumentWork].response)
+  //            }
+  //            case questionWork: QuestionWork => {
+  //              questionWork.response should be(work.asInstanceOf[QuestionWork].response)
+  //            }
+  //          }
+  //        }
+  //      }
+  //      "return empty Vector() if task doesn't exist" in {
+  //        val testTask = TestValues.testMatchingTaskJ
+  //
+  //        val result = workRepository.delete(testTask)
+  //        Await.result(result, Duration.Inf) should be(\/-(Vector()))
+  //      }
+  //    }
+  //  }
 }

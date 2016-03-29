@@ -835,15 +835,15 @@ INSERT INTO project_notes (user_id, project_id, document_id)
 VALUES ('871b525067124e548ab60784cae0bc64', 'e4ae3b9098714339b05c8d39e3aaf65d', '78b9baaf16b743a39cec410104cdde4e');
 
 
-/* -----------------------  ACTIVATIONS  ----------------------- */
+/* -----------------------  User tokens  ----------------------- */
 
 /* activation */
-INSERT INTO activations (user_id, nonce)
-VALUES ('8b6dc674-d1ae-11e5-9080-08626681851d', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=');
+INSERT INTO user_tokens (user_id, nonce, token_type, created_at)
+VALUES ('8b6dc674-d1ae-11e5-9080-08626681851d', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'activation', '2014-08-01 14:01:19.545-04');
 
-/* activation */
-INSERT INTO activations (user_id, nonce)
-VALUES ('7c62a526-d1b0-11e5-9080-08626681851d', '$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=');
+/* password reset */
+INSERT INTO user_tokens (user_id, nonce, token_type, created_at)
+VALUES ('7c62a526-d1b0-11e5-9080-08626681851d', '$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'password_reset', '2014-08-01 14:01:19.545-04');
 
 
 /* -----------------------  WORDS  ----------------------- */

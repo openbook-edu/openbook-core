@@ -27,12 +27,12 @@ class AuthServiceSpec
   val userRepository = stub[UserRepository]
   val roleRepository = stub[RoleRepository]
   val sessionRepository = stub[SessionRepository]
-  val activationRepository = stub[ActivationRepository]
+  val userTokenRepository = stub[UserTokenRepository]
   val mailerClient = stub[MailerClient]
   val messagesApi = stub[MessagesApi]
 
   // Create a real instance of AuthService for testing
-  val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, activationRepository, sessionRepository, mailerClient, messagesApi) {
+  val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, userTokenRepository, sessionRepository, mailerClient, messagesApi) {
     override implicit def conn: Connection = mockConnection
 
     override def transactional[A](f: Connection => Future[A]): Future[A] = {
@@ -107,7 +107,7 @@ class AuthServiceSpec
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
-        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
+        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname), None)
         val eitherUser = Await.result(result, Duration.Inf)
         val \/-(user) = eitherUser
 
@@ -136,7 +136,7 @@ class AuthServiceSpec
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(\/-(testUser)))
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(\/-(testUser)))
 
-        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
+        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname), None)
         val eitherUser = Await.result(result, Duration.Inf)
         val \/-(user) = eitherUser
 
@@ -168,7 +168,7 @@ class AuthServiceSpec
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(\/-(conflictingUser)))
 
-        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
+        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname), None)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("username", s"The username ${updatedTestUser.username} is already in use.")))
       }
       "return RepositoryError.UniqueKeyConflict if email is not unique" in {
@@ -191,7 +191,7 @@ class AuthServiceSpec
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(\/-(conflictingUser)))
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
-        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
+        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname), None)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.UniqueKeyConflict("email", s"The e-mail address ${updatedTestUser.email} is already in use.")))
       }
       "return ServiceError.BadInput if email is not valid" in {
@@ -213,7 +213,7 @@ class AuthServiceSpec
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
-        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
+        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname), None)
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"'${updatedTestUser.email}' is not a valid format")))
       }
       "return ServiceError.BadInput if username is not valid (>= 3 caracters)" in {
@@ -235,7 +235,7 @@ class AuthServiceSpec
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
-        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
+        val result = authService.update(testUser.id, testUser.version, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname), None)
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"Your username must be at least 3 characters.")))
       }
       "return ServiceError.OfflineLockFail if version is wrong" in {
@@ -257,7 +257,7 @@ class AuthServiceSpec
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.email, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
         (userRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when (updatedTestUser.username, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
-        val result = authService.update(testUser.id, 99L, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname))
+        val result = authService.update(testUser.id, 99L, Some(updatedTestUser.email), Some(updatedTestUser.username), Some(updatedTestUser.givenname), Some(updatedTestUser.surname), None)
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
     }
@@ -543,21 +543,6 @@ class AuthServiceSpec
     }
   }
 
-  "AuthService.findActivation" in {
-    val testActivation = TestValues.testUserToken
-
-    (activationRepository.find(_: String)(_: Connection, _: ScalaCachePool)) when ("rafael@krispii.com", *, *) returns (Future.successful(\/-(testActivation)))
-
-    val result = authService.findActivation("rafael@krispii.com")
-
-    val eitherAction = Await.result(result, Duration.Inf)
-    val \/-(action) = eitherAction
-
-    action.userId should be(testActivation.userId)
-    action.token should be(action.token)
-
-  }
-
   "AuthService.activate user" in {
     val userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d")
     val testUser = User(
@@ -575,10 +560,10 @@ class AuthServiceSpec
     val testActivation = TestValues.testUserToken
     (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId, *, *) returns (Future.successful(\/-(testUser)))
     (roleRepository.list(_: User)(_: Connection, _: ScalaCachePool)) when (testUser, *, *) returns (Future.successful(\/.right(testRoleList)))
-    (activationRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId, *, *) returns (Future.successful(\/-(testActivation)))
+    (userTokenRepository.find(_: UUID, _: String)(_: Connection, _: ScalaCachePool)) when (userId, "activation", *, *) returns (Future.successful(\/-(testActivation)))
     (roleRepository.addToUser(_: User, _: String)(_: Connection, _: ScalaCachePool)) when
       (testUser, "authenticated", *, *) returns (Future.successful(\/.right(testRoleList)))
-    (activationRepository.delete(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId, *, *) returns (Future.successful(\/-(testActivation)))
+    (userTokenRepository.delete(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId, *, *) returns (Future.successful(\/-(testActivation)))
 
     val result = authService.activate(userId, "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=")
     val eitherAction = Await.result(result, Duration.Inf)
@@ -604,7 +589,7 @@ class AuthServiceSpec
     val testActivation = TestValues.testUserToken
     (userRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId, *, *) returns (Future.successful(\/-(testUser)))
     (roleRepository.list(_: User)(_: Connection, _: ScalaCachePool)) when (testUser, *, *) returns (Future.successful(\/.right(testRoleList)))
-    (activationRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId, *, *) returns (Future.successful(\/-(testActivation)))
+    (userTokenRepository.find(_: UUID, _: String)(_: Connection, _: ScalaCachePool)) when (userId, "activation", *, *) returns (Future.successful(\/-(testActivation)))
 
     val result = authService.activate(userId, "$s0$100801$Im7kWa5XcOMHIilt7VTonA6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=")
     Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput("Wrong activation code!")))

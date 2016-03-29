@@ -1,2 +1,2 @@
-ALTER TABLE projects ADD COLUMN parent_id uuid REFERENCES projects(id);
-ALTER TABLE projects ADD COLUMN is_master boolean DEFAULT FALSE;
+ALTER TABLE activations RENAME TO user_tokens;
+ALTER TABLE user_tokens ADD COLUMN "token_type" TEXT;

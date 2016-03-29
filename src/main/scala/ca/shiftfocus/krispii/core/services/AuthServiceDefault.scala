@@ -24,7 +24,7 @@ class AuthServiceDefault(
   val scalaCache: ScalaCachePool,
   val userRepository: UserRepository,
   val roleRepository: RoleRepository,
-  val activationRepository: ActivationRepository,
+  val userTokenRepository: UserTokenRepository,
   val sessionRepository: SessionRepository,
   val mailerClient: MailerClient,
   override val messagesApi: MessagesApi
@@ -33,6 +33,12 @@ class AuthServiceDefault(
 
   implicit def conn: Connection = db.pool
   implicit def cache: ScalaCachePool = scalaCache
+
+  /**
+   * token types
+   */
+  val password_reset = "password_reset"
+  val activation = "activation"
 
   /**
    * List all users.
@@ -230,8 +236,8 @@ class AuthServiceDefault(
           )
           userRepository.insert(newUser)
         }
-        user = newUser.copy(token = Some(UserToken(id, token)))
-        _ <- lift(activationRepository.insert(newUser.id, token))
+        user = newUser.copy(token = Some(UserToken(id, token, activation)))
+        _ <- lift(userTokenRepository.insert(newUser.id, token, activation))
       } yield user
     }
   }
@@ -673,10 +679,10 @@ class AuthServiceDefault(
         user <- lift(fUser)
 
         roles <- lift(roleRepository.list(user))
-        token <- lift(activationRepository.find(user.id))
+        token <- lift(userTokenRepository.find(user.id, activation))
         _ <- predicate(activationCode == token.token)(ServiceError.BadInput("Wrong activation code!"))
         _ <- lift(roleRepository.addToUser(user, "authenticated"))
-        deleted <- lift(activationRepository.delete(userId))
+        deleted <- lift(userTokenRepository.delete(userId, activation))
 
       } yield (user, token, roles, deleted)
 
@@ -689,12 +695,22 @@ class AuthServiceDefault(
   }
 
   /**
+   * Get the user by activation token, verify and send him to his profile page after in api
+   *
+   * @param token
+   * @return
+   */
+  //  def resetPassword(token: String): Future[\/[ErrorUnion#Fail, User]] = {
+  //
+  //  }
+
+  /**
    * @inheritdoc
    */
   //  def resendActivation(email: String)(messagesApi: MessagesApi): Future[\/[ErrorUnion#Fail, User]] = {
   //    for {
   //      user <- userRepository.find(email)(db.pool, cache)
-  //      nonce <- activationRepository.find(user.id)(db.pool, cache)
+  //      nonce <- userTokenRepository.find(user.id)(db.pool, cache)
   //      messages = messagesApi.preferred(Seq(user.languagePref))
   //      message = messages("activate.email.body", (configuration.getString("general.base_url").get + controllers.routes.Application.activateUser(user.id)), nonce.token)
   //      email = Email(
@@ -706,15 +722,6 @@ class AuthServiceDefault(
   //      mail <- sendAsyncEmail(email)
   //    } yield user
   //  }
-
-  /**
-   * Finds an activation code given the user's email
-   *
-   * @inheritdoc
-   */
-  override def findActivation(email: String): Future[\/[ErrorUnion#Fail, UserToken]] = {
-    activationRepository.find(email)(db.pool, cache)
-  }
 
   /**
    * Send an e-mail within a Future.
@@ -735,4 +742,54 @@ class AuthServiceDefault(
     }
   }
 
+  /**
+   * Find user token by nonce
+   * @param nonce nonce duh
+   * @param tokenType type of token - password reset or activation
+   * @return user token
+   */
+  def findUserToken(nonce: String, tokenType: String): Future[\/[ErrorUnion#Fail, UserToken]] = {
+    transactional { implicit conn =>
+      userTokenRepository.findTokenByNonce(nonce, tokenType)
+    }
+  }
+
+  /**
+   * Delete a token if exists and create a new one and send an email
+   * @param user
+   * @param host - current host for creating a link
+   * @return
+   */
+  def createPasswordResetToken(user: User, host: String): Future[\/[ErrorUnion#Fail, UserToken]] = {
+    transactional { implicit conn =>
+      var nonce = Token.getNext
+      var fToken = for {
+        oldToken <- lift(userTokenRepository.delete(user.id, password_reset).map {
+          case \/-(success) => \/-(true)
+          case -\/(error: RepositoryError.NoResults) => \/-(true)
+          case -\/(error) => -\/(error)
+        })
+        token <- lift(userTokenRepository.insert(user.id, nonce, password_reset))
+        email = Email(
+          "reset your password", //subject
+          "vz@shiftfocus.ca", //from
+          Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
+          bodyText = Some(host + "/api/reset/" + nonce.toString) //text
+        )
+        mail <- lift(sendAsyncEmail(email))
+      } yield token
+      fToken.run
+    }
+  }
+
+  /**
+   * Delete user token
+   * @param token token to delete
+   * @return
+   */
+  def deleteToken(token: UserToken): Future[\/[ErrorUnion#Fail, UserToken]] = {
+    transactional { implicit conn =>
+      userTokenRepository.delete(token.userId, token.tokenType)
+    }
+  }
 }

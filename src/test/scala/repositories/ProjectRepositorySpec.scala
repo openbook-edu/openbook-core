@@ -3,7 +3,7 @@ import java.util.UUID
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.tasks.{DocumentTask, Task}
+import ca.shiftfocus.krispii.core.models.tasks.{ DocumentTask, Task }
 import ca.shiftfocus.krispii.core.repositories._
 import com.github.mauricio.async.db.Connection
 import org.scalatest.Matchers._
@@ -502,7 +502,7 @@ class ProjectRepositorySpec
         project.slug should be(updatedProject.slug)
         project.description should be(updatedProject.description)
         project.availability should be(updatedProject.availability)
-        project.isMaster should be (updatedProject.isMaster)
+        project.isMaster should be(updatedProject.isMaster)
         project.parts should be(updatedProject.parts)
         project.createdAt.toString should be(testProject.createdAt.toString)
         project.updatedAt.toString should not be (testProject.updatedAt.toString)
@@ -635,14 +635,14 @@ class ProjectRepositorySpec
         val result = projectRepository.cloneComponents(testComponents, testUserId)
 
         for (i <- 0 to testComponents.size - 1) {
-          testComponents(i).id should not be(result(i).id)
+          testComponents(i).id should not be (result(i).id)
           testComponents(i).title should be(result(i).title)
           testComponents(i).version should be(result(i).version)
           testComponents(i).questions should be(result(i).questions)
           testUserId should be(result(i).ownerId)
           testComponents(i).thingsToThinkAbout should be(result(i).thingsToThinkAbout)
-          testComponents(i).createdAt should not be(result(i).createdAt)
-          testComponents(i).updatedAt should not be(result(i).updatedAt)
+          testComponents(i).createdAt should not be (result(i).createdAt)
+          testComponents(i).updatedAt should not be (result(i).updatedAt)
         }
       }
       "clone tasks of a project" in {
@@ -672,7 +672,7 @@ class ProjectRepositorySpec
         taskADependencyId should be(None)
         taskFDependencyId.get should be(result(0).asInstanceOf[DocumentTask].id)
         taskNDependencyId should be(None)
-        taskODependencyId.get should be (result(2).asInstanceOf[DocumentTask].id)
+        taskODependencyId.get should be(result(2).asInstanceOf[DocumentTask].id)
       }
       "clone a project" in {
         (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
@@ -687,20 +687,20 @@ class ProjectRepositorySpec
         val eitherProject = Await.result(result, Duration.Inf)
         val \/-(project) = eitherProject
         Logger.error(project.slug)
-        project.id should not be(TestValues.testProjectA.id)
+        project.id should not be (TestValues.testProjectA.id)
         project.courseId should be(TestValues.testCourseB.id)
         project.version should be(TestValues.testProjectA.version)
         project.name should be(TestValues.testProjectA.name)
         project.slug should be("test-project-slug-A")
         project.description should be(TestValues.testProjectA.description)
         project.availability should be(TestValues.testProjectA.availability)
-        project.parts.zipWithIndex.foreach{
+        project.parts.zipWithIndex.foreach {
           case (part: Part, i: Int) =>
             part.name should be(testPartList(i).name)
-//            part.id should not be(testPartList(i).id)
-//            part.updatedAt should not be(testPartList(i).updatedAt)
-//            part.createdAt should not be(testPartList(i).createdAt)
-//            part.projectId should be(project.id)
+          //            part.id should not be(testPartList(i).id)
+          //            part.updatedAt should not be(testPartList(i).updatedAt)
+          //            part.createdAt should not be(testPartList(i).createdAt)
+          //            part.projectId should be(project.id)
         }
       }
     }

@@ -3062,4 +3062,32 @@ class ProjectServiceSpec
       }
     }
   }
+
+  "ProjectService.copyMasterProject" should {
+    inSequence {
+      "copy one master project into a course" in {
+        val testPart = TestValues.testPartA.copy(tasks = Vector(
+          TestValues.testLongAnswerTaskA.copy(position = 10),
+          TestValues.testShortAnswerTaskB.copy(position = 11),
+          TestValues.testMultipleChoiceTaskC.copy(position = 12)
+        ))
+        val testTaskList = testPart.tasks
+        val deletedTask = testTaskList(1).asInstanceOf[QuestionTask]
+
+        (taskRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (deletedTask.id, *, *) returns (Future.successful(\/-(deletedTask)))
+        (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(\/-(testPart)))
+
+        // Move
+        // task A
+        (taskRepository.update(_: Task, _: Option[UUID])(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 1), *, *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 1))))
+        // task B
+        (taskRepository.delete(_: Task)(_: Connection, _: ScalaCachePool)) when (deletedTask, *, *) returns (Future.successful(\/-(deletedTask)))
+        // task C
+        (taskRepository.update(_: Task, _: Option[UUID])(_: Connection, _: ScalaCachePool)) when (testTaskList(2).asInstanceOf[QuestionTask].copy(position = 2), *, *, *) returns (Future.successful(\/-(testTaskList(2).asInstanceOf[QuestionTask].copy(position = 2))))
+
+        //        val result = projectService.copyMaster
+        //        Await.result(result, Duration.Inf) should be(\/-(deletedTask))
+      }
+    }
+  }
 }

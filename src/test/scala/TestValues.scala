@@ -333,6 +333,19 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testCourseH = Course(
+  //4ac4d872-451b-4092-b13f-643d6d5fa931
+    id = UUID.fromString("4ac4d872-451b-4092-b13f-643d6d5fa931"),
+    version = 5L,
+    teacherId = testUserF.id,
+    name = "test course H",
+    color = new Color(23, 6, 45),
+    slug = "test-course-H-slug",
+    chatEnabled = true,
+    createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* ---------------------- QUESTIONS ---------------------- */
 
   val testShortQuestionA = ShortQuestion(
@@ -1506,7 +1519,7 @@ object TestValues {
     studentId = testUserC.id,
     taskId = testMediaTaskA.id,
     version = 3L,
-    fileData = MediaAnswer(),
+    fileData = MediaAnswer(fileName = Some("image.jpg")),
     isComplete = false,
     createdAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -1966,8 +1979,8 @@ object TestValues {
   )
 
   /**
-    * Master project F
-    */
+   * Master project F
+   */
   val testProjectF = Project(
     id = UUID.fromString("b36919cb-2df0-43b7-bb7f-36cae797deab"),
     courseId = testCourseG.id,
@@ -1984,8 +1997,8 @@ object TestValues {
   )
 
   /**
-    * Master project G
-    */
+   * Master project G
+   */
   val testProjectG = Project(
     id = UUID.fromString("b36919cb-2df0-43b7-bb7f-36cae797deac"),
     courseId = testCourseG.id,
@@ -2002,8 +2015,8 @@ object TestValues {
   )
 
   /**
-    * Master project to be used in insert test
-    */
+   * Master project to be used in insert test
+   */
   val testProjectH = Project(
     id = UUID.fromString("00743ada-1d3a-4912-adc8-fb8a0b1b7447"),
     courseId = testCourseA.id,

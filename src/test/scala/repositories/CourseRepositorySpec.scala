@@ -648,7 +648,7 @@ class CourseRepositorySpec
         (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
         (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
-        val testCourse = TestValues.testCourseG
+        val testCourse = TestValues.testCourseH
 
         val result = courseRepository.delete(testCourse)
         val eitherCourse = Await.result(result, Duration.Inf)

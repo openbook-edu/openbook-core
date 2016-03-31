@@ -16,3 +16,4 @@ CREATE TABLE media_work_data (
   created_at timestamp with time zone,
   PRIMARY KEY (work_id, version)
 );
+

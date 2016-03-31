@@ -495,4 +495,5 @@ class ComponentRepositoryPostgres()
   override def delete(component: Component)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
     queryOne(Delete, Seq[Any](component.id, component.version))
   }
+
 }

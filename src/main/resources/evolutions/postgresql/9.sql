@@ -15,3 +15,4 @@ BEGIN
 	  RETURN updatedSlug;
 END; $$
 LANGUAGE PLPGSQL;
+

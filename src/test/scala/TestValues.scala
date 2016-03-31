@@ -333,6 +333,19 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testCourseH = Course(
+  //4ac4d872-451b-4092-b13f-643d6d5fa931
+    id = UUID.fromString("4ac4d872-451b-4092-b13f-643d6d5fa931"),
+    version = 5L,
+    teacherId = testUserF.id,
+    name = "test course H",
+    color = new Color(23, 6, 45),
+    slug = "test-course-H-slug",
+    chatEnabled = true,
+    createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* ---------------------- QUESTIONS ---------------------- */
 
   val testShortQuestionA = ShortQuestion(
@@ -377,7 +390,7 @@ object TestValues {
   )
 
   /* ---------------------- TASKS ---------------------- */
-
+  CommonTaskSettings()
   /* LONG ANSWER TASKS */
   val testLongAnswerTaskA = DocumentTask(
     id = UUID.fromString("bf1a6ed0-9f83-4cb4-85c1-ad456299b3a3"),
@@ -1506,7 +1519,7 @@ object TestValues {
     studentId = testUserC.id,
     taskId = testMediaTaskA.id,
     version = 3L,
-    fileData = MediaAnswer(),
+    fileData = MediaAnswer(fileName = Some("image.jpg")),
     isComplete = false,
     createdAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -1897,6 +1910,8 @@ object TestValues {
     id = UUID.fromString("c9b4cfce-aed4-48fd-94f5-c980763dfddc"),
     courseId = testCourseA.id,
     version = 1L,
+    enabled = false,
+    isMaster = false,
     name = "test project A",
     slug = "test-project-slug-A",
     description = "test project A description",
@@ -1942,6 +1957,8 @@ object TestValues {
     slug = "test-project-slug-D",
     description = "test project D description",
     availability = "course",
+    isMaster = false,
+    parentId = null,
     parts = Vector()
   )
 
@@ -1959,6 +1976,58 @@ object TestValues {
     parts = Vector(),
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /**
+   * Master project F
+   */
+  val testProjectF = Project(
+    id = UUID.fromString("b36919cb-2df0-43b7-bb7f-36cae797deab"),
+    courseId = testCourseG.id,
+    version = 1L,
+    name = "test project F",
+    slug = "test-project-slug-F",
+    description = "test project F description",
+    availability = "course",
+    parts = Vector(),
+    isMaster = true,
+    enabled = true,
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /**
+   * Master project G
+   */
+  val testProjectG = Project(
+    id = UUID.fromString("b36919cb-2df0-43b7-bb7f-36cae797deac"),
+    courseId = testCourseG.id,
+    version = 1L,
+    name = "test project G",
+    slug = "test-project-slug-G",
+    description = "test project G description",
+    availability = "course",
+    parts = Vector(),
+    isMaster = true,
+    enabled = true,
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /**
+   * Master project to be used in insert test
+   */
+  val testProjectH = Project(
+    id = UUID.fromString("00743ada-1d3a-4912-adc8-fb8a0b1b7447"),
+    courseId = testCourseA.id,
+    name = "test project H",
+    slug = "test-project-slug-H",
+    description = "test project H description",
+    availability = "course",
+    isMaster = true,
+    parentId = null,
+    enabled = true,
+    parts = Vector()
   )
 
   /* ---------------------- SCHEDULES ---------------------- */

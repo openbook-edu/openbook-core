@@ -23,11 +23,21 @@ class ProjectServiceDefault(
     val courseRepository: CourseRepository,
     val projectRepository: ProjectRepository,
     val partRepository: PartRepository,
-    val taskRepository: TaskRepository
+    val taskRepository: TaskRepository,
+    val componentRepository: ComponentRepository
 ) extends ProjectService {
 
   implicit def conn: Connection = db.pool
   implicit def cache: ScalaCachePool = scalaCache
+
+  /**
+   * Lists master projects.
+   *
+   * @return a future disjunction containing either a vector of projects, or a failure
+   */
+  override def listMasterProjects(masterProjects: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
+    projectRepository.list(Some(masterProjects))
+  }
 
   /**
    * Lists all projects.
@@ -35,7 +45,7 @@ class ProjectServiceDefault(
    * @return a future disjunction containing either a vector of projects, or a failure
    */
   override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
-    projectRepository.list
+    projectRepository.list(None)
   }
 
   /**
@@ -113,6 +123,27 @@ class ProjectServiceDefault(
   }
 
   /**
+   * Copy the master project into the given course.
+   * @param projectId
+   * @param courseId
+   * @return
+   */
+  override def copyMasterProject(projectId: UUID, courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]] = {
+    transactional { implicit conn: Connection =>
+      for {
+        clonedProject <- lift(projectRepository.cloneProject(projectId, courseId))
+        newProject <- lift(projectRepository.insert(clonedProject))
+        clonedParts <- lift(projectRepository.cloneProjectParts(projectId, userId))
+        _ <- lift(serializedT(clonedParts)(part => {
+          partRepository.insert(part)
+          serializedT(part.tasks)(taskRepository.insert(_))
+          serializedT(part.components)(componentRepository.insert(_))
+        }))
+      } yield newProject
+    }
+  }
+
+  /**
    * Find a single project by slug and UserID.
    *
    * @return an optional project
@@ -140,15 +171,19 @@ class ProjectServiceDefault(
    *
    * @param name The new name to give the project.
    * @param slug The new slug to give the project.
+   * @param parentId The id of the parent project, if the parent project is empty then the project is a master project.
    * @param description The new description for the project.
    * @return the updated project.
    */
-  override def create(courseId: UUID, name: String, slug: String, description: String, availability: String): Future[\/[ErrorUnion#Fail, Project]] = {
+  override def create(courseId: UUID, name: String, slug: String, description: String, availability: String, parentId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Project]] = {
     // First instantiate a new Project, Part and Task.
     val newProject = Project(
       courseId = courseId,
+      parentId = parentId,
       name = name,
       slug = slug,
+      enabled = false,
+      isMaster = false,
       description = description,
       availability = availability,
       parts = IndexedSeq.empty[Part]
@@ -203,7 +238,6 @@ class ProjectServiceDefault(
    *
    * @param id
    * @param version
-   * @param slug
    * @return
    */
   override def updateSlug(id: UUID, version: Long, newSlug: String): Future[\/[ErrorUnion#Fail, Project]] = {

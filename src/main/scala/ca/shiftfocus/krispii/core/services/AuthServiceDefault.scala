@@ -266,9 +266,7 @@ class AuthServiceDefault(
     val messages = messagesApi
     val fUser = for {
       user <- lift(this.create(username, email, password, givenname, surname))
-      _ = Logger.error(user.toString)
       _ <- lift(addRole(user.id, role))
-      _ = Logger.error("role was added")
       emailForNew = Email(
         messages("activate.confirm.subject.new"), //subject
         messages("activate.confirm.from"), //from
@@ -276,7 +274,6 @@ class AuthServiceDefault(
         bodyHtml = Some(messages("activate.confirm.message", hostname.get, user.id.toString, user.token.get.token)) //text
       )
       _ <- lift(sendAsyncEmail(emailForNew))
-      _ = Logger.error("email was sent")
     } yield user
     fUser.run
   }
@@ -735,7 +732,6 @@ class AuthServiceDefault(
     }
     catch {
       case emailException: EmailException => {
-        Logger.error(ExceptionWriter.print(emailException))
         -\/(ServiceError.MailerFail("E-mail sending failed.", Some(emailException)))
       }
       case otherException: Throwable => throw otherException
@@ -748,7 +744,7 @@ class AuthServiceDefault(
    * @param tokenType type of token - password reset or activation
    * @return user token
    */
-  def findUserToken(nonce: String, tokenType: String): Future[\/[ErrorUnion#Fail, UserToken]] = {
+  override def findUserToken(nonce: String, tokenType: String): Future[\/[ErrorUnion#Fail, UserToken]] = {
     transactional { implicit conn =>
       userTokenRepository.findTokenByNonce(nonce, tokenType)
     }
@@ -760,7 +756,7 @@ class AuthServiceDefault(
    * @param host - current host for creating a link
    * @return
    */
-  def createPasswordResetToken(user: User, host: String): Future[\/[ErrorUnion#Fail, UserToken]] = {
+  override def createPasswordResetToken(user: User, host: String): Future[\/[ErrorUnion#Fail, UserToken]] = {
     transactional { implicit conn =>
       var nonce = Token.getNext
       var fToken = for {
@@ -787,9 +783,20 @@ class AuthServiceDefault(
    * @param token token to delete
    * @return
    */
-  def deleteToken(token: UserToken): Future[\/[ErrorUnion#Fail, UserToken]] = {
+  override def deleteToken(token: UserToken): Future[\/[ErrorUnion#Fail, UserToken]] = {
     transactional { implicit conn =>
       userTokenRepository.delete(token.userId, token.tokenType)
+    }
+  }
+
+  /**
+   * List users for autocomplete search
+   * @param key the stuff user already typed in
+   * @param conn
+   */
+  override def listByKey(key: String): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    transactional { implicit conn =>
+      userRepository.triagramSearch(key)
     }
   }
 }

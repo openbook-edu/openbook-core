@@ -43,6 +43,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
 
   val Table = "users"
   val Fields = "id, version, created_at, updated_at, username, email, password_hash, givenname, surname"
+  val FieldsWithoutTable = "id, version, created_at, updated_at, username, email, givenname, surname"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val FieldsWithoutHash = FieldsWithTable.replace(s"${Table}.password_hash,", "")
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
@@ -74,6 +75,15 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |  AND users_roles.role_id = ?
        |  AND is_deleted = FALSE
      """.stripMargin
+  /**
+   * if you know how to make this query prettier, by all means, go ahead.
+   */
+  val SelectAllByKey =
+    s"""
+       |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> ? AS dist
+       |FROM users
+       |ORDER BY dist LIMIT 10) as sub  where dist < 0.9;
+    """.stripMargin
 
   val Insert = {
     s"""
@@ -231,11 +241,8 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
         } yield user
       }
       case -\/(noResults: RepositoryError.NoResults) => {
-        Logger.error("|" + identifier + "|")
         for {
           user <- lift(queryOne(SelectOneByIdentifier, Seq[Any](identifier, identifier)))
-          _ = Logger.error("User has been found")
-          _ = Logger.error(user.toString)
           _ <- lift(cache.putCache[UUID](cacheUsernameKey(identifier))(user.id, ttl))
           _ <- lift(cache.putCache[User](cacheUserKey(user.id))(user, ttl))
         } yield user
@@ -303,5 +310,14 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
       _ <- lift(cache.removeCached(cacheUserKey(deleted.id)))
       _ <- lift(cache.removeCached(cacheUsernameKey(deleted.username)))
     } yield deleted
+  }
+
+  /**
+   * Search by triagrams for autocomplete
+   * @param key
+   * @param conn
+   */
+  def triagramSearch(key: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    queryList(SelectAllByKey, Seq[Any](key))
   }
 }

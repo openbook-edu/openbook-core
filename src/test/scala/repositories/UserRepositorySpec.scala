@@ -11,6 +11,7 @@ import scala.collection.immutable.TreeMap
 import scala.concurrent.duration._
 import scala.concurrent.{ Await, Future }
 import scalaz.{ -\/, \/- }
+import play.api.Logger
 
 class UserRepositorySpec
     extends TestEnvironment {
@@ -508,6 +509,71 @@ class UserRepositorySpec
         val result = userRepository.delete(testUser)
 
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type User")))
+      }
+    }
+  }
+
+  "UserRepository.triagramSearch" should {
+    inSequence {
+      "List all the users who has a given string in their email, even deleted ones" in {
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+
+        val testUserList = TreeMap[Int, User](
+          0 -> TestValues.testUserI.copy(hash = None),
+          1 -> TestValues.testUserJ.copy(hash = None),
+          2 -> TestValues.testUserX.copy(hash = None)
+
+        )
+
+        val result = userRepository.triagramSearch("kri")
+        val eitherUsers = Await.result(result, Duration.Inf)
+        val \/-(users) = eitherUsers
+
+        users.size should be(testUserList.size)
+        users.foreach {
+          case (user: User) => {
+            user.email.contains("kri") should be(true)
+          }
+        }
+      }
+      "List all the users who has a given string in their email, even deleted ones with 2 letter sequence" in {
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+
+        val testUserList = TreeMap[Int, User](
+          0 -> TestValues.testUserI.copy(hash = None),
+          1 -> TestValues.testUserJ.copy(hash = None),
+          2 -> TestValues.testUserX.copy(hash = None)
+
+        )
+
+        val result = userRepository.triagramSearch("kri")
+        val eitherUsers = Await.result(result, Duration.Inf)
+        val \/-(users) = eitherUsers
+
+        Logger.error(users.toString)
+        users.foreach {
+          case (user: User) => {
+            user.email.contains("kr") should be(true)
+          }
+        }
+      }
+
+      "Return error is nothing is there" in {
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+
+        val testUserList = TreeMap[Int, User](
+          0 -> TestValues.testUserI.copy(hash = None),
+          1 -> TestValues.testUserJ.copy(hash = None),
+          2 -> TestValues.testUserX.copy(hash = None)
+
+        )
+
+        val result = userRepository.triagramSearch("shmebulock")
+        val eitherUsers = Await.result(result, Duration.Inf)
+        eitherUsers should be(\/-(Vector()))
       }
     }
   }

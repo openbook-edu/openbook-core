@@ -563,7 +563,7 @@ class AuthServiceSpec
     (userTokenRepository.find(_: UUID, _: String)(_: Connection, _: ScalaCachePool)) when (userId, "activation", *, *) returns (Future.successful(\/-(testActivation)))
     (roleRepository.addToUser(_: User, _: String)(_: Connection, _: ScalaCachePool)) when
       (testUser, "authenticated", *, *) returns (Future.successful(\/.right(testRoleList)))
-    (userTokenRepository.delete(_: UUID)(_: Connection, _: ScalaCachePool)) when (userId, *, *) returns (Future.successful(\/-(testActivation)))
+    (userTokenRepository.delete(_: UUID, _: String)(_: Connection, _: ScalaCachePool)) when (userId, *, *, *) returns (Future.successful(\/-(testActivation)))
 
     val result = authService.activate(userId, "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=")
     val eitherAction = Await.result(result, Duration.Inf)

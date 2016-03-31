@@ -22,4 +22,6 @@ trait UserRepository extends Repository {
   def insert(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]]
   def update(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]]
   def delete(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]]
+
+  def triagramSearch(key: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]
 }

@@ -155,7 +155,11 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   override def cloneProject(projectId: UUID, courseId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
       project <- lift(find(projectId))
+      _ = Logger.error("old project")
+      _ = Logger.error(project.toString)
       newProject = project.copy(id = UUID.randomUUID(), isMaster = false, courseId = courseId, parentId = Some(project.id))
+      _ = Logger.error("new project")
+      _ = Logger.error(newProject.toString)
     } yield newProject).run
   }
 
@@ -165,6 +169,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
    * @return
    */
   def cloneProjectParts(projectId: UUID, ownerId: UUID, newProjectId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
+    Logger.error("Old id" + projectId)
+    Logger.error("new id" + newProjectId)
     (for {
       project <- lift(find(projectId))
       parts <- lift(partRepository.list(project))
@@ -180,6 +186,10 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
             tasks = cloneTasks(tasks),
             components = cloneComponents(components, ownerId)
           )
+          _ = Logger.error("old part")
+          _ = Logger.error(part.toString)
+          _ = Logger.error("new part")
+          _ = Logger.error(clonedPart.toString)
         } yield clonedPart
       }))
     } yield clonedParts).run

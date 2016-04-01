@@ -162,7 +162,7 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository, val componentRe
                    (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = { // format: ON
     (for {
       partList <- lift(cache.getCached[IndexedSeq[Part]](cachePartsKey(project.id)).flatMap {
-        case \/-(partList) => Future successful \/-(partList)
+        case \/-(partList) => { Future successful \/-(partList) }
 
         case -\/(noResults: RepositoryError.NoResults) =>
           for {

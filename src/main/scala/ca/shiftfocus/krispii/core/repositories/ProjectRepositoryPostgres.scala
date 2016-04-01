@@ -17,7 +17,7 @@ import scala.util.Try
 import scalacache.ScalaCache
 import scalaz._
 
-class ProjectRepositoryPostgres(val partRepository: PartRepository)
+class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepository: TaskRepository, val componentRepository: ComponentRepository)
     extends ProjectRepository with PostgresRepository[Project] {
 
   override val entityName = "Project"
@@ -162,24 +162,26 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository)
   /**
    * Cloning the Parts of a Project.
    * @param projectId
-   * @param conn
-   * @param cache
    * @return
    */
-  def cloneProjectParts(projectId: UUID, ownerId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
+  def cloneProjectParts(projectId: UUID, ownerId: UUID, newProjectId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
     (for {
       project <- lift(find(projectId))
-      parts <- lift(partRepository.list(project, true, true))
-      clonedParts = parts.map(part => {
-        part.copy(
-          id = UUID.randomUUID,
-          projectId = project.id,
-          createdAt = new DateTime,
-          updatedAt = new DateTime,
-          tasks = cloneTasks(part.tasks),
-          components = cloneComponents(part.components, ownerId)
-        )
-      })
+      parts <- lift(partRepository.list(project))
+      clonedParts <- lift(serializedT(parts)(part => {
+        for {
+          components <- lift(componentRepository.list(part))
+          tasks <- lift(taskRepository.list(part))
+          clonedPart = part.copy(
+            id = UUID.randomUUID,
+            projectId = newProjectId,
+            createdAt = new DateTime,
+            updatedAt = new DateTime,
+            tasks = cloneTasks(tasks),
+            components = cloneComponents(components, ownerId)
+          )
+        } yield clonedPart
+      }))
     } yield clonedParts).run
   }
 

@@ -3066,27 +3066,21 @@ class ProjectServiceSpec
   "ProjectService.copyMasterProject" should {
     inSequence {
       "copy one master project into a course" in {
-        val testPart = TestValues.testPartA.copy(tasks = Vector(
-          TestValues.testLongAnswerTaskA.copy(position = 10),
-          TestValues.testShortAnswerTaskB.copy(position = 11),
-          TestValues.testMultipleChoiceTaskC.copy(position = 12)
-        ))
-        val testTaskList = testPart.tasks
-        val deletedTask = testTaskList(1).asInstanceOf[QuestionTask]
-
-        (taskRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (deletedTask.id, *, *) returns (Future.successful(\/-(deletedTask)))
-        (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(\/-(testPart)))
-
-        // Move
-        // task A
-        (taskRepository.update(_: Task, _: Option[UUID])(_: Connection, _: ScalaCachePool)) when (testTaskList(0).asInstanceOf[DocumentTask].copy(position = 1), *, *, *) returns (Future.successful(\/-(testTaskList(0).asInstanceOf[DocumentTask].copy(position = 1))))
-        // task B
-        (taskRepository.delete(_: Task)(_: Connection, _: ScalaCachePool)) when (deletedTask, *, *) returns (Future.successful(\/-(deletedTask)))
-        // task C
-        (taskRepository.update(_: Task, _: Option[UUID])(_: Connection, _: ScalaCachePool)) when (testTaskList(2).asInstanceOf[QuestionTask].copy(position = 2), *, *, *) returns (Future.successful(\/-(testTaskList(2).asInstanceOf[QuestionTask].copy(position = 2))))
-
-        //        val result = projectService.copyMaster
-        //        Await.result(result, Duration.Inf) should be(\/-(deletedTask))
+        val expectedProject = TestValues.testProjectH.copy(id = UUID.randomUUID)
+        (projectRepository.cloneProject(_: UUID, _: UUID)(_: Connection, _: ScalaCachePool)) when (TestValues.testProjectH.id, TestValues.testCourseH.id, *, *) returns (Future.successful(\/-(expectedProject)))
+//        val result = projectService.copyMasterProject(TestValues.testProjectH.id, TestValues.testCourseH.id, TestValues.testUserH.id)
+//        val \/-(clonedProject) = Await.result(result, Duration.Inf)
+//
+//        TestValues.testProjectH.id should not be(clonedProject.id)
+//        TestValues.testProjectH.courseId should be(clonedProject.courseId)
+//        TestValues.testProjectH.version should be(clonedProject.version)
+//        TestValues.testProjectH.name should be(clonedProject.name)
+//        TestValues.testProjectH.slug should be(clonedProject.slug)
+//        TestValues.testProjectH.description should be(clonedProject.description)
+//        TestValues.testProjectH.availability should be(clonedProject.availability)
+//        TestValues.testProjectH.parts should be(clonedProject.parts)
+//        TestValues.testProjectH.createdAt.toString should be(clonedProject.createdAt.toString)
+//        TestValues.testProjectH.updatedAt.toString should be(clonedProject.updatedAt.toString)
       }
     }
   }

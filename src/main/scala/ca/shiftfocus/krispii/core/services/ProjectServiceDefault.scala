@@ -3,6 +3,9 @@ package ca.shiftfocus.krispii.core.services
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models.tasks.questions.Question
 import com.github.mauricio.async.db.Connection
+import com.sun.org.apache.xalan.internal.xsltc.runtime.BasisLibrary
+import org.joda.time.DateTime
+import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
@@ -130,16 +133,41 @@ class ProjectServiceDefault(
    */
   override def copyMasterProject(projectId: UUID, courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
-      for {
+      val futureProject = for {
         clonedProject <- lift(projectRepository.cloneProject(projectId, courseId))
         newProject <- lift(projectRepository.insert(clonedProject))
-        clonedParts <- lift(projectRepository.cloneProjectParts(projectId, userId))
-        _ <- lift(serializedT(clonedParts)(part => {
-          partRepository.insert(part)
-          serializedT(part.tasks)(taskRepository.insert(_))
-          serializedT(part.components)(componentRepository.insert(_))
-        }))
       } yield newProject
+
+      futureProject.run.flatMap {
+
+        case \/-(project) => {
+          val futureParts = for {
+            clonedParts <- lift(projectRepository.cloneProjectParts(projectId, userId, project.id))
+            _ <- lift(serializedT(clonedParts)(part => {
+              Logger.error(s" inserting part ${part.toString}")
+              partRepository.insert(part)
+
+            }))
+          } yield clonedParts
+          futureParts.run.map {
+            case \/-(parts) => {
+              for {
+                clonedComponents <- lift(serializedT(parts)(part => Future.successful(\/-(part.components))))
+                _ <- liftSeq(clonedComponents.flatten.map { component =>
+                  (for {
+                    result <- lift(componentRepository.insert(component))
+                  } yield result).run
+
+                })
+                //                _ <- lift(serializedT(clonedComponents.flatten)(component => Future.successful(\/-(componentRepository.insert(component)))))
+              } yield clonedComponents
+              \/-(project)
+            }
+            case -\/(error) => -\/(error)
+          }
+        }
+        case -\/(error) => Future.successful(-\/(error))
+      }
     }
   }
 

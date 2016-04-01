@@ -4,6 +4,7 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{ ResultSet, RowData, Connection }
+import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
@@ -303,6 +304,7 @@ class ComponentRepositoryPostgres()
    * @return an array of components
    */
   override def list(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+    Logger.error(s"inside component.list ${part.toString}")
     queryList(SelectByPartId, Array[Any](part.id))
   }
 

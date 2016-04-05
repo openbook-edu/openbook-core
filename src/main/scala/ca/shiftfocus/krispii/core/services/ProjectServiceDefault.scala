@@ -129,19 +129,23 @@ class ProjectServiceDefault(
    * insert array of componets
    */
 
-  def insertComponents(components: IndexedSeq[Component], part: Part): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
-    transactional { implicit conn: Connection =>
-      for {
-        components <- lift(serializedT(components)(component => {
-          Logger.error("executing for component " + component.id)
-          for {
-            newComponent <- lift(componentRepository.insert(component))
-            //added <- lift(componentRepository.addToPart(newComponent, part))
-          } yield newComponent
-        }))
-      } yield components
-    }
+  def insertComponents(components: IndexedSeq[Component]): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
+    for {
+      components <- lift(serializedT(components)(component => {
+        Logger.error("executing for component " + component.id)
+        for {
+          newComponent <- lift(componentRepository.insert(component).map {
+            case \/-(insertedComponent) => \/-(insertedComponent)
+            case -\/(error) => {
+              Logger.error(s" error within insertComponents ${error.toString}")
+              \/-(component)
+            }
+          })
+        } yield newComponent
+      }))
+    } yield components
   }
+
   def insertTasks(tasks: IndexedSeq[Task], part: Part): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = {
     transactional { implicit conn: Connection =>
       for {
@@ -150,6 +154,26 @@ class ProjectServiceDefault(
           taskRepository.insert(task)
         }))
       } yield tasks
+    }
+  }
+
+  def insertParts(parts: IndexedSeq[Part]): Future[\/[ErrorUnion#Fail, IndexedSeq[Part]]] = {
+    transactional { implicit conn: Connection =>
+      for {
+        parts <- lift(serializedT(parts)(part => {
+          Logger.error(s" inserting part ${part.toString}")
+          partRepository.insert(part)
+        }))
+      } yield parts
+    }
+  }
+
+  def insertProject(project: Project): Future[\/[ErrorUnion#Fail, Project]] = {
+    transactional { implicit conn: Connection =>
+      for {
+        //          t = Logger.error(s" inserting project ${project.toString}")
+        newProject <- lift(projectRepository.insert(project))
+      } yield newProject
     }
   }
 
@@ -166,15 +190,16 @@ class ProjectServiceDefault(
 
       val futureProject = for {
         clonedProject <- lift(projectRepository.cloneProject(projectId, courseId))
-        newProject <- lift(projectRepository.insert(clonedProject))
+        newProject <- lift(insertProject(clonedProject))
         clonedParts <- lift(projectRepository.cloneProjectParts(projectId, userId, clonedProject.id))
+        clonedComponents <- lift(projectRepository.cloneProjectComponents(projectId, userId))
+        parts <- lift(insertParts(clonedParts))
+        components <- lift(insertComponents(clonedComponents))
         partsWithAdditions <- lift(serializedT(clonedParts)(part => {
           for {
-            components <- lift(insertComponents(part.components, part))
             tasks <- lift(insertTasks(part.tasks, part))
-            partNew = part.copy(tasks = tasks, components = components)
-            part <- lift(createPart(newProject.id, partNew.name, partNew.position, partNew.id))
-          } yield (components, tasks, part)
+            partComponents <- lift(insertPartsComponents(components, part))
+          } yield tasks
         }))
         project <- lift(projectRepository.find(newProject.id))
         //here we might want to change it. instead of accessing database once more we can map parts to the projects
@@ -183,38 +208,17 @@ class ProjectServiceDefault(
     }
   }
 
-  //      futureProject.run.flatMap {
-  //
-  //        case \/-(project) => {
-  //          val futureParts = for {
-  //            clonedParts <- lift(projectRepository.cloneProjectParts(projectId, userId, project.id))
-  //            _ <- lift(serializedT(clonedParts)(part => {
-  //              Logger.error(s" inserting part ${part.toString}")
-  //              partRepository.insert(part)
-  //
-  //            }))
-  //          } yield clonedParts
-  //          futureParts.run.map {
-  //            case \/-(parts) => {
-  //              for {
-  //                clonedComponents <- lift(serializedT(parts)(part => Future.successful(\/-(part.components))))
-  //                _ <- liftSeq(clonedComponents.flatten.map { component =>
-  //                  (for {
-  //                    result <- lift(componentRepository.insert(component))
-  //                  } yield result).run
-  //
-  //                })
-  //                //                _ <- lift(serializedT(clonedComponents.flatten)(component => Future.successful(\/-(componentRepository.insert(component)))))
-  //              } yield clonedComponents
-  //              \/-(project)
-  //            }
-  //            case -\/(error) => -\/(error)
-  //          }
-  //        }
-  //        case -\/(error) => Future.successful(-\/(error))
-  //      }
-  //    }
-  //  }
+  def insertPartsComponents(components: IndexedSeq[Component], part: Part): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
+    for {
+      components <- lift(serializedT(components)(component => {
+        Logger.error("executing for component " + component.id)
+        for {
+          added <- lift(componentRepository.addToPart(component, part))
+        } yield component
+      }))
+    } yield components
+
+  }
 
   /**
    * Find a single project by slug and UserID.

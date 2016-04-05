@@ -34,4 +34,6 @@ trait ProjectRepository extends Repository {
   def cloneProjectParts(projectId: UUID, ownerId: UUID, newProjectId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]]
 
   def cloneComponents(components: IndexedSeq[Component], ownerId: UUID): IndexedSeq[Component]
+
+  def cloneProjectComponents(projectId: UUID, ownerId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]]
 }

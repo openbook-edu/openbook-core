@@ -26,7 +26,8 @@ class SchoolServiceDefault(
   val courseRepository: CourseRepository,
   val chatRepository: ChatRepository,
   val wordRepository: WordRepository,
-  val linkRepository: LinkRepository
+  val linkRepository: LinkRepository,
+  val limitRepository: LimitRepository
 )
     extends SchoolService {
 
@@ -433,6 +434,10 @@ class SchoolServiceDefault(
     transactional { implicit conn =>
       linkRepository.findByCourse(courseId)
     }
+  }
+
+  override def getCourseLimit(userId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getCourseLimit(userId)
   }
 
   /**

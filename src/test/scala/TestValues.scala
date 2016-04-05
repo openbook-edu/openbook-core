@@ -346,6 +346,18 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testCourseK = Course(
+    id = UUID.fromString("b24abba8-e6c7-4700-900c-e66ed0185a71"),
+    version = 5L,
+    teacherId = testUserF.id,
+    name = "test course K",
+    color = new Color(23, 6, 45),
+    slug = "test-course-K-slug",
+    chatEnabled = true,
+    createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* ---------------------- QUESTIONS ---------------------- */
 
   val testShortQuestionA = ShortQuestion(
@@ -2019,15 +2031,16 @@ object TestValues {
    */
   val testProjectH = Project(
     id = UUID.fromString("00743ada-1d3a-4912-adc8-fb8a0b1b7447"),
-    courseId = testCourseA.id,
+    courseId = testCourseG.id,
     name = "test project H",
     slug = "test-project-slug-H",
     description = "test project H description",
     availability = "course",
     isMaster = true,
-    parentId = null,
+    parts = Vector(),
     enabled = true,
-    parts = Vector()
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   /* ---------------------- SCHEDULES ---------------------- */
@@ -2405,8 +2418,8 @@ object TestValues {
   //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
   val testUserTokenDelete = UserToken(
-    userId = UUID.fromString("7c62a526-d1b0-11e5-9080-08626681851d"),
-    token = "$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=",
+    userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
+    token = "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=",
     tokenType = "activation"
   //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )

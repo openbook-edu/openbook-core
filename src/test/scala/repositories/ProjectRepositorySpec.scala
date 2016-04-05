@@ -19,7 +19,9 @@ class ProjectRepositorySpec
     extends TestEnvironment {
 
   val partRepository = stub[PartRepository]
-  val projectRepository = new ProjectRepositoryPostgres(partRepository)
+  val componentRepository = stub[ComponentRepository]
+  val taskRepository = stub[TaskRepository]
+  val projectRepository = new ProjectRepositoryPostgres(partRepository, taskRepository, componentRepository)
 
   "ProjectRepository.list" should {
     inSequence {
@@ -146,20 +148,13 @@ class ProjectRepositorySpec
       "find all master projects" in {
         val testProjectList = TreeMap[Int, Project](
           0 -> TestValues.testProjectF,
-          1 -> TestValues.testProjectG
+          1 -> TestValues.testProjectG,
+          2 -> TestValues.testProjectH
         )
 
-        val testPartList = TreeMap(
-          testProjectList(0).id.toString -> Vector(),
-          testProjectList(1).id.toString -> Vector()
-        )
 
         // Put here parts = Vector(), because after db query Project object is created without parts.
-        testProjectList.foreach {
-          case (key, project: Project) => {
-            (partRepository.list(_: Project)(_: Connection, _: ScalaCachePool)) when (project.copy(parts = Vector()), *, *) returns (Future.successful(\/-(testPartList(project.id.toString))))
-          }
-        }
+        (partRepository.list(_: Project)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(Vector())))
 
         val result = projectRepository.list(Some(true))
         val eitherProjects = Await.result(result, Duration.Inf)
@@ -397,7 +392,7 @@ class ProjectRepositorySpec
       "insert new master project" in {
         (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
-        val testProject = TestValues.testProjectH
+        val testProject = TestValues.testProjectH.copy(id = UUID.randomUUID, slug = "test-project-slug-H-1")
 
         val result = projectRepository.insert(testProject)
         val eitherProject = Await.result(result, Duration.Inf)
@@ -653,7 +648,7 @@ class ProjectRepositorySpec
           TestValues.testLongAnswerTaskO
         ).sortBy(t => t.position)
 
-        val result = projectRepository.cloneTasks(testTaskList)
+        val result = projectRepository.cloneTasks(testTaskList, UUID.fromString("5cd214be-6bba-47fa-9f35-0eb8bafec397"))
 
         for (i <- 0 to testTaskList.size - 1) {
           testTaskList(i).id should not be (result(i).id)

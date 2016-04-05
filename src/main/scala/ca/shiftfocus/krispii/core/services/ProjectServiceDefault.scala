@@ -38,8 +38,8 @@ class ProjectServiceDefault(
    *
    * @return a future disjunction containing either a vector of projects, or a failure
    */
-  override def listMasterProjects(masterProjects: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
-    projectRepository.list(Some(masterProjects))
+  override def listMasterProjects : Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
+    projectRepository.list(Some(true))
   }
 
   /**

@@ -123,7 +123,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
 
   /**
    * Find all Projects.
-   *
+   * @param showMasters optional parameter, by default is false, if true it will return the master projects.
    * @return a vector of the returned Projects
    */
   override def list(showMasters: Option[Boolean] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {

@@ -33,6 +33,7 @@ class AuthServiceDefault(
 
   implicit def conn: Connection = db.pool
   implicit def cache: ScalaCachePool = scalaCache
+  implicit def messages: MessagesApi = messagesApi
 
   /**
    * token types
@@ -756,7 +757,7 @@ class AuthServiceDefault(
    * @param host - current host for creating a link
    * @return
    */
-  override def createPasswordResetToken(user: User, host: String): Future[\/[ErrorUnion#Fail, UserToken]] = {
+  override def createPasswordResetToken(user: User, host: String)(messages: MessagesApi): Future[\/[ErrorUnion#Fail, UserToken]] = {
     transactional { implicit conn =>
       var nonce = Token.getNext
       var fToken = for {
@@ -767,10 +768,10 @@ class AuthServiceDefault(
         })
         token <- lift(userTokenRepository.insert(user.id, nonce, password_reset))
         email = Email(
-          "reset your password", //subject
-          "vz@shiftfocus.ca", //from
+          messages("reset.password.confirm.subject.new"), //subject
+          messages("reset.password.confirm.from"), //from
           Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
-          bodyText = Some(host + "/api/reset/" + nonce.toString) //text
+          bodyHtml = Some(messages("reset.password.confirm.message", host, nonce.toString)) //text
         )
         mail <- lift(sendAsyncEmail(email))
       } yield token

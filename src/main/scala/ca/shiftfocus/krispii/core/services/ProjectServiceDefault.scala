@@ -38,7 +38,7 @@ class ProjectServiceDefault(
    *
    * @return a future disjunction containing either a vector of projects, or a failure
    */
-  override def listMasterProjects : Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
+  override def listMasterProjects: Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
     projectRepository.list(Some(true))
   }
 
@@ -201,9 +201,8 @@ class ProjectServiceDefault(
             partComponents <- lift(insertPartsComponents(components, part))
           } yield tasks
         }))
-        project <- lift(projectRepository.find(newProject.id))
         //here we might want to change it. instead of accessing database once more we can map parts to the projects
-      } yield project
+      } yield clonedProject
       futureProject
     }
   }

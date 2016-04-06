@@ -251,7 +251,7 @@ class ProjectServiceDefault(
    * @param description The new description for the project.
    * @return the updated project.
    */
-  override def create(courseId: UUID, name: String, slug: String, description: String, availability: String, parentId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Project]] = {
+  override def create(courseId: UUID, name: String, slug: String, description: String, availability: String, parentId: Option[UUID] = None, isMaster: Boolean = false): Future[\/[ErrorUnion#Fail, Project]] = {
     // First instantiate a new Project, Part and Task.
     val newProject = Project(
       courseId = courseId,
@@ -259,7 +259,7 @@ class ProjectServiceDefault(
       name = name,
       slug = slug,
       enabled = false,
-      isMaster = false,
+      isMaster = isMaster,
       description = description,
       availability = availability,
       parts = IndexedSeq.empty[Part]

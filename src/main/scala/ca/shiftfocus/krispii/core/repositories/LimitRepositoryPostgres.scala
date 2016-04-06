@@ -14,15 +14,48 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[In
     row("limited").asInstanceOf[Int]
   }
 
-  val CourseLimit =
+  val TeacherLimit =
     """
       |SELECT *
-      |FROM course_limit
+      |FROM teacher_limit
       |WHERE teacher_id = ?
       | AND type = ?
     """.stripMargin
 
-  def getCourseLimit(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
-    queryOne(CourseLimit, Seq[Any](userId, "course"))
+  val CourseLimit =
+    """
+      |SELECT *
+      |FROM course_limit
+      |WHERE course_id = ?
+      | AND type = ?
+    """.stripMargin
+
+  /**
+    * Get number of courses that teacher is allowed to have
+    *
+    * @param teacherId
+    * @return
+    */
+  def getCourseLimit(teacherId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
+    queryOne(TeacherLimit, Seq[Any](teacherId, Limits.course))
   }
+
+  /**
+    * Get number of students that course is allowed to have
+    *
+    * @param courseId
+    * @return
+    */
+  def getStudentLimit(courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
+    queryOne(CourseLimit, Seq[Any](courseId, Limits.student))
+  }
+}
+
+
+/**
+  * Types of limits
+  */
+object Limits {
+  val course = "course"
+  val student = "student"
 }

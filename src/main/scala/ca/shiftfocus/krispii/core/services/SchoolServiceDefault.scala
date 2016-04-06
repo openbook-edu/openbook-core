@@ -436,8 +436,24 @@ class SchoolServiceDefault(
     }
   }
 
-  override def getCourseLimit(userId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
-    limitRepository.getCourseLimit(userId)
+  /**
+    * Get number of courses that teacher is allowed to have
+    *
+    * @param teacherId
+    * @return
+    */
+  override def getCourseLimit(teacherId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getCourseLimit(teacherId)
+  }
+
+  /**
+    * Get number of students that course is allowed to have
+    *
+    * @param courseId
+    * @return
+    */
+  override def getStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getStudentLimit(courseId)
   }
 
   /**

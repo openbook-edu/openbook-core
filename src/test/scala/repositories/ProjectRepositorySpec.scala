@@ -152,7 +152,6 @@ class ProjectRepositorySpec
           2 -> TestValues.testProjectH
         )
 
-
         // Put here parts = Vector(), because after db query Project object is created without parts.
         (partRepository.list(_: Project)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(Vector())))
 

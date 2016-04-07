@@ -334,7 +334,7 @@ object TestValues {
   )
 
   val testCourseH = Course(
-  //4ac4d872-451b-4092-b13f-643d6d5fa931
+    //4ac4d872-451b-4092-b13f-643d6d5fa931
     id = UUID.fromString("4ac4d872-451b-4092-b13f-643d6d5fa931"),
     version = 5L,
     teacherId = testUserF.id,

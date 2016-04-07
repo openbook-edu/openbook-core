@@ -126,13 +126,13 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
    * @param showMasters optional parameter, by default is false, if true it will return the master projects.
    * @return a vector of the returned Projects
    */
-  override def list(showMasters: Option[Boolean] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+  override def list(showMasters: Option[Boolean] = None, enabled: Option[Boolean] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
     val showMastersProjects = showMasters.getOrElse(false)
     val Select = if (showMastersProjects) SelectAllMaster else SelectAll
     (for {
       projectList <- lift(queryList(Select))
       result <- liftSeq {
-        projectList.map { project =>
+        projectList.filter(project => if (enabled.isDefined) enabled.get.equals(project.enabled) else true).map { project =>
           (for {
             partList <- {
               lift(partRepository.list(project))

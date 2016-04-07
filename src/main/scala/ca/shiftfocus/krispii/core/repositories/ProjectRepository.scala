@@ -13,7 +13,7 @@ import scalaz.{ EitherT, \/ }
 trait ProjectRepository extends Repository {
   val partRepository: PartRepository
 
-  def list(showMasters: Option[Boolean] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]]
+  def list(showMasters: Option[Boolean] = None, enabled: Option[Boolean] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]]
   def list(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]]
   def list(course: Course, fetchParts: Boolean)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]]
 

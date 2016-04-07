@@ -157,7 +157,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
       project <- lift(find(projectId))
       _ = Logger.error("old project")
       _ = Logger.error(project.toString)
-      newProject = project.copy(id = UUID.randomUUID(), isMaster = false, courseId = courseId, parentId = Some(project.id))
+      newProject = project.copy(id = UUID.randomUUID(), isMaster = false, courseId = courseId, parentId = Some(project.id), enabled = true)
       _ = Logger.error("new project")
       _ = Logger.error(newProject.toString)
     } yield newProject).run

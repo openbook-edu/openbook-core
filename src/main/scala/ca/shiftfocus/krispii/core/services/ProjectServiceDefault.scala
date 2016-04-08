@@ -153,6 +153,24 @@ class ProjectServiceDefault(
     }
   }
 
+  def insertForClonePart(part: Part): Future[\/[ErrorUnion#Fail, Part]] = {
+    transactional { implicit conn: Connection =>
+      Logger.error("inserting" + part.toString)
+      partRepository.insert(part)
+    }
+  }
+
+  def insertProjectWithParts(parts: IndexedSeq[Part], project: Project): Future[\/[ErrorUnion#Fail, IndexedSeq[Part]]] = {
+    transactional { implicit conn: Connection =>
+      for {
+        newProject <- projectRepository.insert(project)
+        partsWithAdditions <- lift(serializedT(parts)(part => {
+          partRepository.insert(part)
+        }))
+      } yield parts
+
+    }
+  }
   /**
    * insert array of tasks in for
    *
@@ -163,20 +181,20 @@ class ProjectServiceDefault(
    */
   override def copyMasterProject(projectId: UUID, courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
-
       val futureProject = for {
         clonedProject <- lift(projectRepository.cloneProject(projectId, courseId))
-        newProject <- lift(projectRepository.insert(clonedProject))
-        clonedParts <- lift(projectRepository.cloneProjectParts(projectId, userId, clonedProject.id))
+        parts <- lift(projectRepository.cloneProjectParts(projectId, userId, clonedProject.id))
+        clonedParts <- lift((insertProjectWithParts(parts, clonedProject)))
         partsWithAdditions <- lift(serializedT(clonedParts)(part => {
           for {
             components <- lift(insertComponents(part.components, part))
             tasks <- lift(insertTasks(part.tasks, part))
             partNew = part.copy(tasks = tasks, components = components)
-            part <- lift(createPart(newProject.id, partNew.name, partNew.position, partNew.id))
+            _ = Logger.error("part project id" + part.projectId)
+            //            part <- lift(insertForClonePart(part))
           } yield (components, tasks, part)
         }))
-        project <- lift(projectRepository.find(newProject.id))
+        project <- lift(projectRepository.find(clonedProject.id))
         //here we might want to change it. instead of accessing database once more we can map parts to the projects
       } yield project
       futureProject
@@ -394,6 +412,7 @@ class ProjectServiceDefault(
     id: UUID = UUID.randomUUID
   ): Future[\/[ErrorUnion#Fail, Part]] = {
     transactional { implicit conn: Connection =>
+      Logger.error("inside create part")
       for {
         project <- lift(projectRepository.find(projectId, false))
         partList <- lift(partRepository.list(project, false))
@@ -431,6 +450,7 @@ class ProjectServiceDefault(
             name = name,
             position = truePosition
           )
+          Logger.error("inserting into " + newPart.projectId + " part" + newPart.toString)
           // Add newPart and order parts by position
           val orderedParts = (filteredPartList :+ newPart).sortWith(_.position < _.position)
 

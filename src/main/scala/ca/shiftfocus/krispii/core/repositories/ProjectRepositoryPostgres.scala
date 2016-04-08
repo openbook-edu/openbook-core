@@ -123,16 +123,16 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
 
   /**
    * Find all Projects.
-   *
+   * @param showMasters optional parameter, by default is false, if true it will return the master projects.
    * @return a vector of the returned Projects
    */
-  override def list(showMasters: Option[Boolean] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+  override def list(showMasters: Option[Boolean] = None, enabled: Option[Boolean] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
     val showMastersProjects = showMasters.getOrElse(false)
     val Select = if (showMastersProjects) SelectAllMaster else SelectAll
     (for {
       projectList <- lift(queryList(Select))
       result <- liftSeq {
-        projectList.map { project =>
+        projectList.filter(project => if (enabled.isDefined) enabled.get.equals(project.enabled) else true).map { project =>
           (for {
             partList <- {
               lift(partRepository.list(project))
@@ -157,7 +157,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
       project <- lift(find(projectId))
       _ = Logger.error("old project")
       _ = Logger.error(project.toString)
-      newProject = project.copy(id = UUID.randomUUID(), isMaster = false, courseId = courseId, parentId = Some(project.id))
+      newProject = project.copy(id = UUID.randomUUID(), isMaster = false, courseId = courseId, parentId = Some(project.id), enabled = true)
       _ = Logger.error("new project")
       _ = Logger.error(newProject.toString)
     } yield newProject).run
@@ -169,30 +169,38 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
    * @return
    */
   def cloneProjectParts(projectId: UUID, ownerId: UUID, newProjectId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
-    Logger.error("Old id" + projectId)
-    Logger.error("new id" + newProjectId)
     (for {
       project <- lift(find(projectId))
       parts <- lift(partRepository.list(project))
       clonedParts <- lift(serializedT(parts)(part => {
         for {
-          components <- lift(componentRepository.list(part))
           tasks <- lift(taskRepository.list(part))
+          components <- lift(componentRepository.list(part))
+          partId = UUID.randomUUID
           clonedPart = part.copy(
-            id = UUID.randomUUID,
+            id = partId,
             projectId = newProjectId,
             createdAt = new DateTime,
             updatedAt = new DateTime,
-            tasks = cloneTasks(tasks),
+            tasks = cloneTasks(tasks, partId),
             components = cloneComponents(components, ownerId)
           )
-          _ = Logger.error("old part")
-          _ = Logger.error(part.toString)
-          _ = Logger.error("new part")
-          _ = Logger.error(clonedPart.toString)
         } yield clonedPart
       }))
     } yield clonedParts).run
+  }
+
+  /**
+   * Cloning the Parts of a Project.
+   * @param projectId
+   * @return
+   */
+  def cloneProjectComponents(projectId: UUID, ownerId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+    (for {
+      project <- lift(find(projectId))
+      projectComponents <- lift(componentRepository.list(project))
+      clonedProjectComponents = cloneComponents(projectComponents, ownerId)
+    } yield clonedProjectComponents).run
   }
 
   /**
@@ -218,7 +226,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
    * @param tasks
    * @return
    */
-  def cloneTasks(tasks: IndexedSeq[Task]): IndexedSeq[Task] = {
+  def cloneTasks(tasks: IndexedSeq[Task], partId: UUID): IndexedSeq[Task] = {
     //map that will contain as a key the old UUID of the task and the value will be the new UUID
     val dependencies = collection.mutable.Map[UUID, UUID]()
     val documentTasks = tasks.filter(task => task.isInstanceOf[DocumentTask])
@@ -228,7 +236,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
     val clonedWithoutDependencies = noDependenciesTasks.map(task => {
       val newId = UUID.randomUUID
       dependencies(task.id) = newId
-      task.copy(id = newId, createdAt = new DateTime, updatedAt = new DateTime)
+      task.copy(id = newId, partId = partId, createdAt = new DateTime, updatedAt = new DateTime)
     })
     val dependenciesTasks = documentTasks.filter(task => !task.dependencyId.isEmpty)
     val clonedWithDependencies = dependenciesTasks.map(task => {
@@ -237,22 +245,22 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
       if (dependencyId.isEmpty) {
         dependencies(task.dependencyId.get) = UUID.randomUUID
       }
-      task.copy(id = newId, dependencyId = Some(dependencies(task.dependencyId.get)), createdAt = new DateTime, updatedAt = new DateTime)
+      task.copy(id = newId, partId = partId, dependencyId = Some(dependencies(task.dependencyId.get)), createdAt = new DateTime, updatedAt = new DateTime)
     })
 
     val otherTasks = tasks.filter(task => !task.isInstanceOf[DocumentTask])
 
-    val otherCloned = otherTasks.map(task => cloneTask(task))
+    val otherCloned = otherTasks.map(task => cloneTask(task, partId))
 
     (clonedWithDependencies union clonedWithoutDependencies union otherCloned).sortBy(t => t.position)
   }
 
-  private def cloneTask(task: Task): Task = {
+  private def cloneTask(task: Task, partId: UUID): Task = {
     task match {
       case t: DocumentTask => {
-        task.asInstanceOf[DocumentTask].copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime)
+        task.asInstanceOf[DocumentTask].copy(id = UUID.randomUUID, partId = partId, createdAt = new DateTime, updatedAt = new DateTime)
       }
-      case t: QuestionTask => task.asInstanceOf[QuestionTask].copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime)
+      case t: QuestionTask => task.asInstanceOf[QuestionTask].copy(id = UUID.randomUUID, partId = partId, createdAt = new DateTime, updatedAt = new DateTime)
     }
   }
 

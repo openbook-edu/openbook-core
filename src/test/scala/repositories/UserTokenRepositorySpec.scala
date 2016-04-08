@@ -53,7 +53,7 @@ class UserTokenRepositorySpec extends TestEnvironment {
   "Delete one activation" in {
     (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 
-    val result = userTokenRepository.delete(UUID.fromString("7c62a526-d1b0-11e5-9080-08626681851d"), "activation")
+    val result = userTokenRepository.delete(UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"), "activation")
 
     val testToken = TestValues.testUserTokenDelete.copy()
 

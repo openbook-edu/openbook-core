@@ -3068,19 +3068,19 @@ class ProjectServiceSpec
       "copy one master project into a course" in {
         val expectedProject = TestValues.testProjectH.copy(id = UUID.randomUUID)
         (projectRepository.cloneProject(_: UUID, _: UUID)(_: Connection, _: ScalaCachePool)) when (TestValues.testProjectH.id, TestValues.testCourseH.id, *, *) returns (Future.successful(\/-(expectedProject)))
-//        val result = projectService.copyMasterProject(TestValues.testProjectH.id, TestValues.testCourseH.id, TestValues.testUserH.id)
-//        val \/-(clonedProject) = Await.result(result, Duration.Inf)
-//
-//        TestValues.testProjectH.id should not be(clonedProject.id)
-//        TestValues.testProjectH.courseId should be(clonedProject.courseId)
-//        TestValues.testProjectH.version should be(clonedProject.version)
-//        TestValues.testProjectH.name should be(clonedProject.name)
-//        TestValues.testProjectH.slug should be(clonedProject.slug)
-//        TestValues.testProjectH.description should be(clonedProject.description)
-//        TestValues.testProjectH.availability should be(clonedProject.availability)
-//        TestValues.testProjectH.parts should be(clonedProject.parts)
-//        TestValues.testProjectH.createdAt.toString should be(clonedProject.createdAt.toString)
-//        TestValues.testProjectH.updatedAt.toString should be(clonedProject.updatedAt.toString)
+        //        val result = projectService.copyMasterProject(TestValues.testProjectH.id, TestValues.testCourseH.id, TestValues.testUserH.id)
+        //        val \/-(clonedProject) = Await.result(result, Duration.Inf)
+        //
+        //        TestValues.testProjectH.id should not be(clonedProject.id)
+        //        TestValues.testProjectH.courseId should be(clonedProject.courseId)
+        //        TestValues.testProjectH.version should be(clonedProject.version)
+        //        TestValues.testProjectH.name should be(clonedProject.name)
+        //        TestValues.testProjectH.slug should be(clonedProject.slug)
+        //        TestValues.testProjectH.description should be(clonedProject.description)
+        //        TestValues.testProjectH.availability should be(clonedProject.availability)
+        //        TestValues.testProjectH.parts should be(clonedProject.parts)
+        //        TestValues.testProjectH.createdAt.toString should be(clonedProject.createdAt.toString)
+        //        TestValues.testProjectH.updatedAt.toString should be(clonedProject.updatedAt.toString)
       }
     }
   }

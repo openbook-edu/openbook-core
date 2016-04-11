@@ -64,10 +64,10 @@ class SchoolServiceDefault(
   }
 
   /**
-    * List the courses or the given user
-    * @param user the UUID of the user to search for.
-    * @return an IndexedSeq of course
-    */
+   * List the courses or the given user
+   * @param user the UUID of the user to search for.
+   * @return an IndexedSeq of course
+   */
   override def listCoursesByUser(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
     for {
       courses <- lift(courseRepository.list(user, false))

@@ -53,17 +53,25 @@ class SchoolServiceDefault(
    * student of the course via an association table.
    *
    * @param userId the UUID of the user to search for.
+   * @param isDeleted defaults to false so it doesn't retrieve deleted courses, if set to true it will retrieve only deleted courses
    * @return an IndexedSeq of course
    */
-  override def listCoursesByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
+  override def listCoursesByUser(userId: UUID, isDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
     for {
       user <- lift(authService.find(userId))
       courses <- lift(listCoursesByUser(user))
-    } yield courses
+    } yield courses.filter(course => course.deleted == isDeleted)
   }
 
+  /**
+    * List the courses or the given user
+    * @param user the UUID of the user to search for.
+    * @return an IndexedSeq of course
+    */
   override def listCoursesByUser(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
-    courseRepository.list(user, false)
+    for {
+      courses <- lift(courseRepository.list(user, false))
+    } yield courses
   }
 
   /**
@@ -75,11 +83,11 @@ class SchoolServiceDefault(
    * @param userId the UUID of the user to search for.
    * @return an IndexedSeq of course
    */
-  override def listCoursesByTeacher(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
+  override def listCoursesByTeacher(userId: UUID, isDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
     for {
       user <- lift(authService.find(userId))
       courses <- lift(courseRepository.list(user, true))
-    } yield courses
+    } yield courses.filter(course => course.deleted == isDeleted)
   }
 
   /**

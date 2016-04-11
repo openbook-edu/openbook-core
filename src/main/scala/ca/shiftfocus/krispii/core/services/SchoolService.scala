@@ -17,9 +17,9 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
   val chatRepository: ChatRepository
 
   def listCourses: Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]]
-  def listCoursesByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]]
+  def listCoursesByUser(userId: UUID, isDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]]
   def listCoursesByUser(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]]
-  def listCoursesByTeacher(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]]
+  def listCoursesByTeacher(userId: UUID, isDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]]
 
   def findCourse(id: UUID): Future[\/[ErrorUnion#Fail, Course]]
   def findCourse(slug: String): Future[\/[ErrorUnion#Fail, Course]]

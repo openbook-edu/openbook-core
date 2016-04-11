@@ -18,7 +18,7 @@ class WordRepositoryPostgres extends WordRepository with PostgresRepository[Link
        |SELECT $Fields
        |FROM $Table
        |WHERE lang = ?
-       |OFFSET floor(random()*(select COUNT(*) from $Table WHERE lang = ? and word not in (select link from links where link is not null)))
+       |OFFSET floor(random()*(select COUNT(*) from $Table WHERE lang = ? and word not in (select link from links where link is not null) and word not in (select nonce from user_tokens where nonce is not null)))
        |LIMIT 1
      """.stripMargin
 

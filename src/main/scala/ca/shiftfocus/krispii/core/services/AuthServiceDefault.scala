@@ -20,18 +20,19 @@ import scalaz.{ -\/, \/-, \/, EitherT }
 import webcrank.password._
 
 class AuthServiceDefault(
-  val db: DB,
-  val scalaCache: ScalaCachePool,
-  val userRepository: UserRepository,
-  val roleRepository: RoleRepository,
-  val userTokenRepository: UserTokenRepository,
-  val sessionRepository: SessionRepository,
-  val mailerClient: MailerClient,
-  override val messagesApi: MessagesApi
-)
-    extends AuthService with I18nSupport {
+    val db: DB,
+    val scalaCache: ScalaCachePool,
+    val userRepository: UserRepository,
+    val roleRepository: RoleRepository,
+    val userTokenRepository: UserTokenRepository,
+    val sessionRepository: SessionRepository,
+    val mailerClient: MailerClient,
+    val wordRepository: WordRepository,
+    override val messagesApi: MessagesApi
+) extends AuthService with I18nSupport {
 
   implicit def conn: Connection = db.pool
+
   implicit def cache: ScalaCachePool = scalaCache
   implicit def messages: MessagesApi = messagesApi
 
@@ -188,7 +189,7 @@ class AuthServiceDefault(
   /**
    * Find a user by their unique identifier.
    *
-   * @param identifier  The unique e-mail or username identifying this user.
+   * @param identifier The unique e-mail or username identifying this user.
    * @return a future disjunction containing the user and their information, or a failure
    */
   override def find(identifier: String): Future[\/[ErrorUnion#Fail, User]] = {
@@ -203,11 +204,11 @@ class AuthServiceDefault(
    * Create a new user. Throws exceptions if the e-mail and username aren't unique.
    *
    * @param username  A unique identifier for this user.
-   * @param email  The user's unique e-mail address.
+   * @param email     The user's unique e-mail address.
    * @param password  The user's password.
-   * @param givenname  The user's first name.
-   * @param surname  The user's family name.
-   * @param id The ID to allocate for this user, if left out, it will be random.
+   * @param givenname The user's first name.
+   * @param surname   The user's family name.
+   * @param id        The ID to allocate for this user, if left out, it will be random.
    * @return the created user
    */
   override def create(
@@ -282,9 +283,9 @@ class AuthServiceDefault(
   /**
    * Update a user's identifiers.
    *
-   * @param id the unique id of the user
-   * @param version the latest version of the user for O.O.L.
-   * @param email optionally update the e-mail
+   * @param id       the unique id of the user
+   * @param version  the latest version of the user for O.O.L.
+   * @param email    optionally update the e-mail
    * @param username optionally update the username
    * @return a future disjunction containing the updated user, or a failure
    */
@@ -332,9 +333,9 @@ class AuthServiceDefault(
   /**
    * Update a user's identifiers.
    *
-   * @param id the unique id of the user
-   * @param version the latest version of the user for O.O.L.
-   * @param email optionally update the e-mail
+   * @param id       the unique id of the user
+   * @param version  the latest version of the user for O.O.L.
+   * @param email    optionally update the e-mail
    * @param username optionally update the username
    * @return a future disjunction containing the updated user, or a failure
    */
@@ -358,10 +359,10 @@ class AuthServiceDefault(
   /**
    * Update a user's "non-identifying" information.
    *
-   * @param id the unique id of the user to be updated
-   * @param version the latest version of the user for O.O.L.
+   * @param id        the unique id of the user to be updated
+   * @param version   the latest version of the user for O.O.L.
    * @param givenname the user's updated given name
-   * @param surname the user's updated family name
+   * @param surname   the user's updated family name
    * @return a future disjunction containing the updated user, or a failure
    */
   override def updateInfo(id: UUID, version: Long, givenname: Option[String] = None, surname: Option[String] = None): Future[\/[ErrorUnion#Fail, User]] = {
@@ -382,8 +383,8 @@ class AuthServiceDefault(
   /**
    * Update the user's password.
    *
-   * @param id the unique id of the user to be updated
-   * @param version the latest version of the user for O.O.L.
+   * @param id       the unique id of the user to be updated
+   * @param version  the latest version of the user for O.O.L.
    * @param password the new password
    * @return a future disjunction containing the updated user, or a failure
    */
@@ -407,7 +408,7 @@ class AuthServiceDefault(
    *
    * TODO: delete the user's work
    *
-   * @param id the unique id of the user to be updated
+   * @param id      the unique id of the user to be updated
    * @param version the latest version of the user for O.O.L.
    * @return a future disjunction containing the deleted user, or a failure
    */
@@ -434,7 +435,7 @@ class AuthServiceDefault(
   /**
    * List all roles for one user.
    *
-   * @param userId  The user whose roles should be listed.
+   * @param userId The user whose roles should be listed.
    * @return an array of this user's Roles
    */
   override def listRoles(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Role]]] = {
@@ -449,7 +450,7 @@ class AuthServiceDefault(
   /**
    * Find a specific role by its unique id.
    *
-   * @param id  the UUID of the Role to find
+   * @param id the UUID of the Role to find
    * @return an optional Role
    */
   override def findRole(id: UUID): Future[\/[ErrorUnion#Fail, Role]] = {
@@ -459,7 +460,7 @@ class AuthServiceDefault(
   /**
    * Find a specific role by name
    *
-   * @param name  the name of the Role to find
+   * @param name the name of the Role to find
    * @return an optional Role
    */
   override def findRole(name: String): Future[\/[ErrorUnion#Fail, Role]] = {
@@ -469,7 +470,7 @@ class AuthServiceDefault(
   /**
    * Create a new role.
    *
-   * @param name  the name of the Role to create
+   * @param name the name of the Role to create
    * @return the newly created Role
    */
   override def createRole(name: String, id: UUID = UUID.randomUUID): Future[\/[ErrorUnion#Fail, Role]] = {
@@ -482,9 +483,9 @@ class AuthServiceDefault(
   /**
    * Update a Role
    *
-   * @param id  the unique id of the Role
-   * @param version  the version of the Role for optimistic offline lock
-   * @param name  the new name to assign this Role
+   * @param id      the unique id of the Role
+   * @param version the version of the Role for optimistic offline lock
+   * @param name    the new name to assign this Role
    * @return the newly updated Role
    */
   override def updateRole(id: UUID, version: Long, name: String): Future[\/[ErrorUnion#Fail, Role]] = {
@@ -499,11 +500,11 @@ class AuthServiceDefault(
   }
 
   /**
-   *  Delete a role.
+   * Delete a role.
    *
-   *  @param id  the unique id of the role
-   *  @param version  the version of the role for optimistic offline lock
-   *  @return the deleted role
+   * @param id      the unique id of the role
+   * @param version the version of the role for optimistic offline lock
+   * @return the deleted role
    */
   override def deleteRole(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Role]] = {
     transactional { implicit conn =>
@@ -519,8 +520,8 @@ class AuthServiceDefault(
   /**
    * Add a role to a user.
    *
-   * @param userId  the unique id of the user
-   * @param roleName  the name of the role
+   * @param userId   the unique id of the user
+   * @param roleName the name of the role
    * @return a boolean indicator if the role was added
    */
   override def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, User]] = {
@@ -540,8 +541,8 @@ class AuthServiceDefault(
   /**
    * Add a role to a user.
    *
-   * @param userId  the unique id of the user
-   * @param roleNames  the name of the role
+   * @param userId    the unique id of the user
+   * @param roleNames the name of the role
    * @return a boolean indicator if the role was added
    */
   override def addRoles(userId: UUID, roleNames: IndexedSeq[String]): Future[\/[ErrorUnion#Fail, User]] = {
@@ -556,8 +557,8 @@ class AuthServiceDefault(
   /**
    * Remove a role from a user.
    *
-   * @param userId  the unique id of the user
-   * @param roleName  the name of the role
+   * @param userId   the unique id of the user
+   * @param roleName the name of the role
    * @return a boolean indicator if the role was removed
    */
   override def removeRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, User]] = {
@@ -576,7 +577,7 @@ class AuthServiceDefault(
   /**
    * Add a role to a given list of users.
    *
-   * @param roleId the UUID of the Role to be added
+   * @param roleId  the UUID of the Role to be added
    * @param userIds an IndexedSeq of UUID listing the users to gain the role
    * @return a boolean indicator if the role was added
    */
@@ -596,7 +597,7 @@ class AuthServiceDefault(
   /**
    * Remove a role from a given list of users.
    *
-   * @param roleId the UUID of the Role to be removed
+   * @param roleId  the UUID of the Role to be removed
    * @param userIds an IndexedSeq of UUID listing the users to lose the role
    * @return a boolean indicator if the role was removed
    */
@@ -666,7 +667,7 @@ class AuthServiceDefault(
   /**
    * Activates a user given the userId and the activationCode
    *
-   * @param userId the UUID of the user to be activated
+   * @param userId         the UUID of the user to be activated
    * @param activationCode the activation code to be verified
    * @return
    */
@@ -741,7 +742,8 @@ class AuthServiceDefault(
 
   /**
    * Find user token by nonce
-   * @param nonce nonce duh
+   *
+   * @param nonce     nonce duh
    * @param tokenType type of token - password reset or activation
    * @return user token
    */
@@ -753,6 +755,7 @@ class AuthServiceDefault(
 
   /**
    * Delete a token if exists and create a new one and send an email
+   *
    * @param user
    * @param host - current host for creating a link
    * @return
@@ -781,6 +784,7 @@ class AuthServiceDefault(
 
   /**
    * Delete user token
+   *
    * @param token token to delete
    * @return
    */
@@ -791,7 +795,18 @@ class AuthServiceDefault(
   }
 
   /**
+   * find user by token
+   *
+   */
+  override def findToken(userId: UUID, tokenType: String): Future[\/[ErrorUnion#Fail, UserToken]] = {
+    transactional { implicit conn =>
+      userTokenRepository.find(userId, tokenType)
+    }
+  }
+
+  /**
    * List users for autocomplete search
+   *
    * @param key the stuff user already typed in
    * @param conn
    */
@@ -800,4 +815,26 @@ class AuthServiceDefault(
       userRepository.triagramSearch(key)
     }
   }
+  /**
+   * Create password reset link for students, if it exists delete it
+   */
+  override def studentPasswordReset(user: User, lang: String): Future[\/[ErrorUnion#Fail, UserToken]] = {
+    transactional { implicit conn =>
+      var fToken = for {
+        nonce <- lift(wordRepository.get(lang))
+        token <- lift(userTokenRepository.insert(user.id, nonce.word, password_reset))
+      } yield token
+      fToken.run
+    }
+  }
+
+  override def redeemStudentPasswordReset(token: UserToken): Future[\/[ErrorUnion#Fail, User]] = {
+    transactional { implicit conn =>
+      for {
+        deleted <- lift(userTokenRepository.delete(token.userId, token.tokenType))
+        user <- lift(userRepository.find(token.userId))
+      } yield user
+    }
+  }
+
 }

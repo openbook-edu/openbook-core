@@ -291,7 +291,6 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @return
    */
   def createPasswordResetToken(user: User, host: String)(messages: MessagesApi): Future[\/[ErrorUnion#Fail, UserToken]]
-
   /**
    * finding a user token by nonce
    * @param nonce
@@ -301,9 +300,23 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   def findUserToken(nonce: String, tokenType: String): Future[\/[ErrorUnion#Fail, UserToken]]
 
   /**
+   * find token by user id and type
+   */
+  def findToken(userId: UUID, tokenType: String): Future[\/[ErrorUnion#Fail, UserToken]]
+  /**
    * destroy user token
    * @param token
    * @return
    */
   def deleteToken(token: UserToken): Future[\/[ErrorUnion#Fail, UserToken]]
+
+  /**
+   * create password reset link for students
+   */
+  def studentPasswordReset(user: User, lang: String): Future[\/[ErrorUnion#Fail, UserToken]]
+
+  /**
+   * redeem password reset token for students
+   */
+  def redeemStudentPasswordReset(token: UserToken): Future[\/[ErrorUnion#Fail, User]]
 }

@@ -42,7 +42,8 @@ CREATE TABLE courses (
   name text,
   color integer,
   slug text UNIQUE,
-  enabled boolean DEFAULT false,
+  enabled boolean DEFAULT true,
+  is_deleted boolean DEFAULT false,
   scheduling_enabled boolean DEFAULT false,
   chat_enabled boolean DEFAULT true,
   created_at timestamp with time zone,
@@ -389,6 +390,20 @@ create TABLE links (
   course_id uuid REFERENCES courses(id) ON DELETE CASCADE,
   link text PRIMARY KEY,
   created_at timestamp with time zone
+);
+
+CREATE TABLE teacher_limit (
+  teacher_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  type text,
+  limited integer,
+  PRIMARY KEY (teacher_id, type)
+);
+
+CREATE TABLE course_limit (
+  course_id uuid REFERENCES courses(id) ON DELETE CASCADE,
+  type text,
+  limited integer,
+  PRIMARY KEY (course_id, type)
 );
 
 CREATE OR REPLACE FUNCTION get_slug(_slug text, _table text, _id uuid) RETURNS text AS $$

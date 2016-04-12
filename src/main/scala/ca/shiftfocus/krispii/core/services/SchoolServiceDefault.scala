@@ -17,6 +17,7 @@ import scala.collection.IndexedSeq
 import scala.concurrent.Future
 import scalacache.ScalaCache
 import scalaz.{ \/-, -\/, \/ }
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class SchoolServiceDefault(
   val db: DB,
@@ -26,7 +27,8 @@ class SchoolServiceDefault(
   val courseRepository: CourseRepository,
   val chatRepository: ChatRepository,
   val wordRepository: WordRepository,
-  val linkRepository: LinkRepository
+  val linkRepository: LinkRepository,
+  val limitRepository: LimitRepository
 )
     extends SchoolService {
 
@@ -53,17 +55,25 @@ class SchoolServiceDefault(
    * student of the course via an association table.
    *
    * @param userId the UUID of the user to search for.
+   * @param isDeleted defaults to false so it doesn't retrieve deleted courses, if set to true it will retrieve only deleted courses
    * @return an IndexedSeq of course
    */
-  override def listCoursesByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
+  override def listCoursesByUser(userId: UUID, isDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
     for {
       user <- lift(authService.find(userId))
       courses <- lift(listCoursesByUser(user))
-    } yield courses
+    } yield courses.filter(course => course.deleted == isDeleted)
   }
 
+  /**
+   * List the courses or the given user
+   * @param user the UUID of the user to search for.
+   * @return an IndexedSeq of course
+   */
   override def listCoursesByUser(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
-    courseRepository.list(user, false)
+    for {
+      courses <- lift(courseRepository.list(user, false))
+    } yield courses
   }
 
   /**
@@ -75,11 +85,11 @@ class SchoolServiceDefault(
    * @param userId the UUID of the user to search for.
    * @return an IndexedSeq of course
    */
-  override def listCoursesByTeacher(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
+  override def listCoursesByTeacher(userId: UUID, isDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
     for {
       user <- lift(authService.find(userId))
       courses <- lift(courseRepository.list(user, true))
-    } yield courses
+    } yield courses.filter(course => course.deleted == isDeleted)
   }
 
   /**
@@ -432,6 +442,48 @@ class SchoolServiceDefault(
   override def findLinkByCourse(courseId: UUID): Future[\/[ErrorUnion#Fail, Link]] = {
     transactional { implicit conn =>
       linkRepository.findByCourse(courseId)
+    }
+  }
+
+  /**
+   * Get number of courses that teacher is allowed to have
+   *
+   * @param teacherId
+   * @return
+   */
+  override def getCourseLimit(teacherId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getCourseLimit(teacherId)
+  }
+
+  /**
+   * Get number of students that course is allowed to have
+   *
+   * @param courseId
+   * @return
+   */
+  override def getStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getStudentLimit(courseId)
+  }
+
+  /**
+   * Insert or update number of courses that teacher is allowed to have
+   */
+  override def setCourseLimit(teacherId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+    transactional { implicit conn =>
+      for {
+        limit <- limitRepository.setCourseLimit(teacherId, limit)
+      } yield limit
+    }
+  }
+
+  /**
+   * Insert or update number of courses that teacher is allowed to have
+   */
+  override def setStudentLimit(courseId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+    transactional { implicit conn =>
+      for {
+        limit <- limitRepository.setStudentLimit(courseId, limit)
+      } yield limit
     }
   }
 

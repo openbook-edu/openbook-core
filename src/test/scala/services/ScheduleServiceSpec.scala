@@ -303,7 +303,7 @@ class ScheduleServiceSpec
         )
         val testScheduleExceptionList = Vector()
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -330,7 +330,7 @@ class ScheduleServiceSpec
         )
         val testScheduleExceptionList = Vector()
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -357,7 +357,7 @@ class ScheduleServiceSpec
         )
         val testScheduleExceptionList = Vector()
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -384,7 +384,7 @@ class ScheduleServiceSpec
         )
         val testScheduleExceptionList = Vector()
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -411,7 +411,7 @@ class ScheduleServiceSpec
         )
         val testScheduleExceptionList = Vector()
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -438,7 +438,7 @@ class ScheduleServiceSpec
         )
         val testScheduleExceptionList = Vector()
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -465,7 +465,7 @@ class ScheduleServiceSpec
         )
         val testScheduleExceptionList = Vector()
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -495,7 +495,7 @@ class ScheduleServiceSpec
           TestValues.testCourseScheduleExceptionD
         )
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -523,7 +523,7 @@ class ScheduleServiceSpec
           TestValues.testCourseScheduleExceptionD
         )
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -551,7 +551,7 @@ class ScheduleServiceSpec
           TestValues.testCourseScheduleExceptionD
         )
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -582,7 +582,7 @@ class ScheduleServiceSpec
           TestValues.testCourseScheduleExceptionD
         )
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -613,7 +613,7 @@ class ScheduleServiceSpec
           TestValues.testCourseScheduleExceptionD
         )
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -644,7 +644,7 @@ class ScheduleServiceSpec
           TestValues.testCourseScheduleExceptionD
         )
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -672,7 +672,7 @@ class ScheduleServiceSpec
           TestValues.testCourseScheduleExceptionD
         )
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -700,7 +700,7 @@ class ScheduleServiceSpec
           TestValues.testCourseScheduleExceptionD.copy(block = true)
         )
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -727,7 +727,7 @@ class ScheduleServiceSpec
         )
         val testScheduleExceptionList = Vector()
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList.filter(_.id != testCourse.id))))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList.filter(_.id != testCourse.id))))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -756,7 +756,7 @@ class ScheduleServiceSpec
         )
         val testScheduleExceptionList = Vector()
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -783,7 +783,7 @@ class ScheduleServiceSpec
         )
         val testScheduleExceptionList = Vector()
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))
@@ -810,7 +810,7 @@ class ScheduleServiceSpec
         )
         val testScheduleExceptionList = Vector()
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList.filter(_.id != testCourse.id))))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList.filter(_.id != testCourse.id))))
 
         (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
         (courseScheduleRepository.list(_: Course)(_: Connection, _: ScalaCachePool)) when (testCourse, *, *) returns (Future.successful(\/-(testScheduleList)))

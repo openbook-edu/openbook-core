@@ -104,7 +104,7 @@ VALUES ('4d01347ec5924e5fb09fdd281b3d9b87', '31a4c2e6762a4303bbb8e64c24048920', 
 
 /* course A -> user A (teacher) */
 INSERT INTO courses (id, version, teacher_id, name, color, slug, enabled, chat_enabled, scheduling_enabled, created_at, updated_at)
-VALUES ('217c5622ff9e43728e6a95fb3bae300b', 1, '36c8c0ca50aa4806afa5916a5e33a81f', 'test course A', 1574408, 'test-course-A-slug', false, true, false, '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
+VALUES ('217c5622ff9e43728e6a95fb3bae300b', 1, '36c8c0ca50aa4806afa5916a5e33a81f', 'test course A', 1574408, 'test-course-A-slug', true, true, false, '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
 /* course B -> user B (teacher) */
 INSERT INTO courses (id, version, teacher_id, name, color, slug, enabled, chat_enabled, scheduling_enabled, created_at, updated_at)

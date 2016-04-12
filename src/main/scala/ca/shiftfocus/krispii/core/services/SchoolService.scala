@@ -17,9 +17,9 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
   val chatRepository: ChatRepository
 
   def listCourses: Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]]
-  def listCoursesByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]]
+  def listCoursesByUser(userId: UUID, isDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]]
   def listCoursesByUser(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]]
-  def listCoursesByTeacher(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]]
+  def listCoursesByTeacher(userId: UUID, isDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]]
 
   def findCourse(id: UUID): Future[\/[ErrorUnion#Fail, Course]]
   def findCourse(slug: String): Future[\/[ErrorUnion#Fail, Course]]
@@ -68,4 +68,9 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
   def findLink(link: String): Future[\/[ErrorUnion#Fail, Link]]
   def findLinkByCourse(courseId: UUID): Future[\/[ErrorUnion#Fail, Link]]
   def deleteLink(courseId: UUID): Future[\/[ErrorUnion#Fail, Link]]
+
+  def getCourseLimit(teacherId: UUID): Future[\/[ErrorUnion#Fail, Int]]
+  def getStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Int]]
+  def setCourseLimit(teacherId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
+  def setStudentLimit(courseId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
 }

@@ -29,10 +29,11 @@ class AuthServiceSpec
   val sessionRepository = stub[SessionRepository]
   val userTokenRepository = stub[UserTokenRepository]
   val mailerClient = stub[MailerClient]
+  val wordRepository = stub[WordRepository]
   val messagesApi = stub[MessagesApi]
 
   // Create a real instance of AuthService for testing
-  val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, userTokenRepository, sessionRepository, mailerClient, messagesApi) {
+  val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, userTokenRepository, sessionRepository, mailerClient, wordRepository, messagesApi) {
     override implicit def conn: Connection = mockConnection
 
     override def transactional[A](f: Connection => Future[A]): Future[A] = {

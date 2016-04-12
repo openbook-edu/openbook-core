@@ -29,8 +29,9 @@ class SchoolServiceSpec
   val authService = stub[AuthService]
   val wordRepository = stub[WordRepository]
   val linkRepository = stub[LinkRepository]
+  val limitRepository = stub[LimitRepository]
   //  val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, sessionRepository)
-  val schoolService = new SchoolServiceDefault(db, cache, authService, userRepository, courseRepository, chatRepository, wordRepository, linkRepository) {
+  val schoolService = new SchoolServiceDefault(db, cache, authService, userRepository, courseRepository, chatRepository, wordRepository, linkRepository, limitRepository) {
     override implicit def conn: Connection = mockConnection
 
     override def transactional[A](f: Connection => Future[A]): Future[A] = {

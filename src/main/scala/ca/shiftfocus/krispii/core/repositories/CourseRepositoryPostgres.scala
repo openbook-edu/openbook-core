@@ -8,7 +8,11 @@ import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import com.github.mauricio.async.db.exceptions.ConnectionStillRunningQueryException
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{ ResultSet, RowData, Connection }
-import java.awt.Color // scalastyle:ignore
+import java.awt.Color
+
+import play.api.Logger
+
+// scalastyle:ignore
 import java.util.NoSuchElementException
 import java.util.UUID
 import org.joda.time.DateTime
@@ -33,6 +37,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
       new Color(Option(row("color").asInstanceOf[Int]).getOrElse(0)),
       row("slug").asInstanceOf[String],
       row("enabled").asInstanceOf[Boolean],
+      row("is_deleted").asInstanceOf[Boolean],
       row("chat_enabled").asInstanceOf[Boolean],
       row("scheduling_enabled").asInstanceOf[Boolean],
       None,
@@ -42,9 +47,9 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   }
 
   val Table = "courses"
-  val Fields = "id, version, teacher_id, name, color, slug, enabled, chat_enabled, scheduling_enabled, created_at, updated_at"
+  val Fields = "id, version, teacher_id, name, color, slug, enabled, is_deleted, chat_enabled, scheduling_enabled, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.name ASC"
 
   // User CRUD operations
@@ -75,7 +80,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   val Insert = {
     s"""
        |INSERT INTO $Table ($Fields)
-       |VALUES (?, ?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?)
+       |VALUES (?, ?, ?, ?, ?, get_slug(?, '$Table', ?), ?, false, ?, ?, ?, ?)
        |RETURNING $Fields
     """.stripMargin
   }
@@ -92,9 +97,9 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
 
   val Delete =
     s"""
-       |DELETE FROM $Table
+       |UPDATE $Table
+       |SET is_deleted = true
        |WHERE id = ?
-       |  AND version = ?
        |RETURNING $Fields
      """.stripMargin
 
@@ -505,7 +510,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   override def delete(course: Course)  // format: OFF
                      (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Course]] = { // format: ON
     for {
-      deleted <- lift(queryOne(Delete, Array(course.id, course.version)))
+      deleted <- lift(queryOne(Delete, Array(course.id)))
       students <- lift(userRepository.list(deleted))
       _ <- lift(cache.removeCached(cacheStudentsKey(deleted.id)))
       _ <- lift(cache.removeCached(cacheCourseKey(deleted.id)))

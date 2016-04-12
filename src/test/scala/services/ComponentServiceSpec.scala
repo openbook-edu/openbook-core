@@ -346,7 +346,7 @@ class ComponentServiceSpec
           testPartList(2).id -> Vector()
         )
 
-        (schoolService.listCoursesByTeacher(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByTeacher(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         testCourseList.foreach { course =>
           (projectService.list(_: UUID)) when (course.id) returns (Future.successful(\/-(testProjectList)))
@@ -408,8 +408,8 @@ class ComponentServiceSpec
           testPartList(2).id -> Vector()
         )
 
-        (schoolService.listCoursesByTeacher(_: UUID)) when (testUser.id) returns (Future.successful(\/-(IndexedSeq.empty[Course])))
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByTeacher(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(IndexedSeq.empty[Course])))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         testCourseList.foreach { course =>
           (projectService.list(_: UUID)) when (course.id) returns (Future.successful(\/-(testProjectList)))
@@ -469,7 +469,7 @@ class ComponentServiceSpec
           testPartList(2).id -> Vector()
         )
 
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         testCourseList.foreach { course =>
           (projectService.list(_: UUID)) when (course.id) returns (Future.successful(\/-(testProjectList)))
@@ -545,8 +545,8 @@ class ComponentServiceSpec
           testPartList(2).id -> Vector()
         )
 
-        (schoolService.listCoursesByTeacher(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByTeacher(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         testCourseList.foreach { course =>
           (projectService.list(_: UUID)) when (course.id) returns (Future.successful(\/-(testProjectList)))
@@ -606,8 +606,8 @@ class ComponentServiceSpec
           testPartList(2).id -> Vector()
         )
 
-        (schoolService.listCoursesByTeacher(_: UUID)) when (testUser.id) returns (Future.successful(\/-(IndexedSeq.empty[Course])))
-        (schoolService.listCoursesByUser(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testCourseList)))
+        (schoolService.listCoursesByTeacher(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(IndexedSeq.empty[Course])))
+        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 
         testCourseList.foreach { course =>
           (projectService.list(_: UUID)) when (course.id) returns (Future.successful(\/-(testProjectList)))

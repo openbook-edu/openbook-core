@@ -679,26 +679,13 @@ class CourseRepositorySpec
         course.name should be(testCourse.name)
         course.color should be(testCourse.color)
       }
-      "return RepositoryError.ForeignKeyConflict if course has references in projects table" in {
-        val testCourse = TestValues.testCourseA
-
-        val result = courseRepository.delete(testCourse)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("course_id", "projects_course_id_fkey")))
-      }
       "return RepositoryError.NoResults if Course hasn't been found" in {
         val testCourse = TestValues.testCourseE
 
         val result = courseRepository.delete(testCourse)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Course")))
       }
-      "return RepositoryError.NoResults if Course version is wrong" in {
-        val testCourse = TestValues.testCourseG.copy(
-          version = 99L
-        )
 
-        val result = courseRepository.delete(testCourse)
-        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Course")))
-      }
     }
   }
 }

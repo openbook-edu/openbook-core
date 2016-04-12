@@ -68,7 +68,7 @@ class ProjectServiceSpec
         (partRepository.insert(_: Part)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyPart)))
         (taskRepository.insert(_: Task)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyTask)))
 
-        val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.availability)
+        val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.availability, enabled = true)
         val eitherProject = Await.result(result, Duration.Inf)
         val \/-(project) = eitherProject
 

@@ -37,9 +37,10 @@ class WorkServiceSpec
   val projectScratchpadRepository = stub[ProjectScratchpadRepository]
   val activationRepository = stub[UserTokenRepository]
   val mailerClient = stub[MailerClient]
+  val wordRepository = stub[WordRepository]
   val messagesApi = stub[MessagesApi]
 
-  val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, activationRepository, sessionRepository, mailerClient, messagesApi)
+  val authService = new AuthServiceDefault(db, cache, userRepository, roleRepository, activationRepository, sessionRepository, mailerClient, wordRepository, messagesApi)
   val schoolService = stub[SchoolService]
   val projectService = stub[ProjectService]
   val documentService = new DocumentServiceDefault(db, cache, userRepository, documentRepository, revisionRepository)

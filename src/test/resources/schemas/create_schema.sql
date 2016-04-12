@@ -391,6 +391,20 @@ create TABLE links (
   created_at timestamp with time zone
 );
 
+CREATE TABLE teacher_limit (
+  teacher_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  type text,
+  limited integer,
+  PRIMARY KEY (teacher_id, type)
+);
+
+CREATE TABLE course_limit (
+  course_id uuid REFERENCES courses(id) ON DELETE CASCADE,
+  type text,
+  limited integer,
+  PRIMARY KEY (course_id, type)
+);
+
 CREATE OR REPLACE FUNCTION get_slug(_slug text, _table text, _id uuid) RETURNS text AS $$
 DECLARE
  updatedSlug text := $1;

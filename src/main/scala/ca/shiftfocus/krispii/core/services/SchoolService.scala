@@ -68,6 +68,9 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
   def findLink(link: String): Future[\/[ErrorUnion#Fail, Link]]
   def findLinkByCourse(courseId: UUID): Future[\/[ErrorUnion#Fail, Link]]
   def deleteLink(courseId: UUID): Future[\/[ErrorUnion#Fail, Link]]
+
   def getCourseLimit(teacherId: UUID): Future[\/[ErrorUnion#Fail, Int]]
   def getStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Int]]
+  def setCourseLimit(teacherId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
+  def setStudentLimit(courseId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
 }

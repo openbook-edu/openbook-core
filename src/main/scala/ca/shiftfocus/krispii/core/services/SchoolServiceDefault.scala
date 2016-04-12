@@ -17,6 +17,7 @@ import scala.collection.IndexedSeq
 import scala.concurrent.Future
 import scalacache.ScalaCache
 import scalaz.{ \/-, -\/, \/ }
+import scala.concurrent.ExecutionContext.Implicits.global
 
 class SchoolServiceDefault(
   val db: DB,
@@ -437,23 +438,45 @@ class SchoolServiceDefault(
   }
 
   /**
-    * Get number of courses that teacher is allowed to have
-    *
-    * @param teacherId
-    * @return
-    */
+   * Get number of courses that teacher is allowed to have
+   *
+   * @param teacherId
+   * @return
+   */
   override def getCourseLimit(teacherId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
     limitRepository.getCourseLimit(teacherId)
   }
 
   /**
-    * Get number of students that course is allowed to have
-    *
-    * @param courseId
-    * @return
-    */
+   * Get number of students that course is allowed to have
+   *
+   * @param courseId
+   * @return
+   */
   override def getStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
     limitRepository.getStudentLimit(courseId)
+  }
+
+  /**
+   * Insert or update number of courses that teacher is allowed to have
+   */
+  override def setCourseLimit(teacherId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+    transactional { implicit conn =>
+      for {
+        limit <- limitRepository.setCourseLimit(teacherId, limit)
+      } yield limit
+    }
+  }
+
+  /**
+   * Insert or update number of courses that teacher is allowed to have
+   */
+  override def setStudentLimit(courseId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+    transactional { implicit conn =>
+      for {
+        limit <- limitRepository.setStudentLimit(courseId, limit)
+      } yield limit
+    }
   }
 
   /**

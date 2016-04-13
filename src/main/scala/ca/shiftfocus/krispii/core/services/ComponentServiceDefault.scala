@@ -81,14 +81,16 @@ class ComponentServiceDefault(
     title: String,
     questions: String,
     thingsToThinkAbout: String,
-    soundcloudId: String
+    soundcloudId: String,
+    order: Int
   ): Future[\/[ErrorUnion#Fail, Component]] = {
     val newComponent = AudioComponent(
       ownerId = ownerId,
       title = title,
       questions = questions,
       thingsToThinkAbout = thingsToThinkAbout,
-      soundcloudId = soundcloudId
+      soundcloudId = soundcloudId,
+      order = order
     )
     transactional { implicit conn =>
       componentRepository.insert(newComponent)
@@ -100,14 +102,16 @@ class ComponentServiceDefault(
     title: String,
     questions: String,
     thingsToThinkAbout: String,
-    content: String
+    content: String,
+    order: Int
   ): Future[\/[ErrorUnion#Fail, Component]] = {
     val newComponent = TextComponent(
       ownerId = ownerId,
       title = title,
       questions = questions,
       thingsToThinkAbout = thingsToThinkAbout,
-      content = content
+      content = content,
+      order = order
     )
     transactional { implicit conn =>
       componentRepository.insert(newComponent)
@@ -121,7 +125,8 @@ class ComponentServiceDefault(
     thingsToThinkAbout: String,
     vimeoId: String,
     height: Int,
-    width: Int
+    width: Int,
+    order: Int
   ): Future[\/[ErrorUnion#Fail, Component]] = {
     val newComponent = VideoComponent(
       ownerId = ownerId,
@@ -130,7 +135,8 @@ class ComponentServiceDefault(
       thingsToThinkAbout = thingsToThinkAbout,
       vimeoId = vimeoId,
       width = width,
-      height = height
+      height = height,
+      order = order
     )
     transactional { implicit conn =>
       componentRepository.insert(newComponent)
@@ -141,7 +147,8 @@ class ComponentServiceDefault(
     title: Option[String],
     questions: Option[String],
     thingsToThinkAbout: Option[String],
-    soundcloudId: Option[String]): Future[\/[ErrorUnion#Fail, Component]] = {
+    soundcloudId: Option[String],
+    order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
       for {
         existingComponent <- lift(componentRepository.find(id))
@@ -154,7 +161,8 @@ class ComponentServiceDefault(
           title = title.getOrElse(existingAudio.title),
           questions = questions.getOrElse(existingAudio.questions),
           thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingAudio.thingsToThinkAbout),
-          soundcloudId = soundcloudId.getOrElse(existingAudio.soundcloudId)
+          soundcloudId = soundcloudId.getOrElse(existingAudio.soundcloudId),
+          order = order.getOrElse(existingAudio.order)
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
       } yield updatedComponent
@@ -165,7 +173,8 @@ class ComponentServiceDefault(
     title: Option[String],
     questions: Option[String],
     thingsToThinkAbout: Option[String],
-    content: Option[String]): Future[\/[ErrorUnion#Fail, Component]] = {
+    content: Option[String],
+    order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
       for {
         existingComponent <- lift(componentRepository.find(id))
@@ -178,7 +187,8 @@ class ComponentServiceDefault(
           title = title.getOrElse(existingText.title),
           questions = questions.getOrElse(existingText.questions),
           thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingText.thingsToThinkAbout),
-          content = content.getOrElse(existingText.content)
+          content = content.getOrElse(existingText.content),
+          order = order.getOrElse(existingText.order)
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
       } yield updatedComponent
@@ -191,7 +201,8 @@ class ComponentServiceDefault(
     thingsToThinkAbout: Option[String],
     vimeoId: Option[String],
     width: Option[Int],
-    height: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
+    height: Option[Int],
+    order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
       for {
         existingComponent <- lift(componentRepository.find(id))
@@ -206,7 +217,8 @@ class ComponentServiceDefault(
           thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingVideo.thingsToThinkAbout),
           vimeoId = vimeoId.getOrElse(existingVideo.vimeoId),
           width = width.getOrElse(existingVideo.width),
-          height = height.getOrElse(existingVideo.height)
+          height = height.getOrElse(existingVideo.height),
+          order = order.getOrElse(existingVideo.order)
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
       } yield updatedComponent
@@ -340,5 +352,17 @@ class ComponentServiceDefault(
         Future successful \/-(false)
       }
     }
+  }
+  def getLargestOrder(ownerId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
+    //change it for project parent later
+    for {
+      part <- lift(projectService.findPart(ownerId))
+      components <- lift(componentRepository.list(part))
+      maxOrder = components.map(_.order).max
+    } yield maxOrder
+  }
+
+  def setOrder(component: Component, order: Int): Future[\/[ErrorUnion#Fail, Component]] = {
+    componentRepository.setOrder(component, order)
   }
 }

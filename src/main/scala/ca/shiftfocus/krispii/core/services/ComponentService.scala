@@ -19,17 +19,17 @@ trait ComponentService extends Service[ErrorUnion#Fail] {
   def listByProject(projectId: UUID, forceAll: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
   def find(id: UUID): Future[\/[ErrorUnion#Fail, Component]]
 
-  def createAudio(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, soundCloudId: String): Future[\/[ErrorUnion#Fail, Component]]
-  def createText(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, content: String): Future[\/[ErrorUnion#Fail, Component]]
+  def createAudio(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, soundCloudId: String, order: Int): Future[\/[ErrorUnion#Fail, Component]]
+  def createText(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, content: String, order: Int): Future[\/[ErrorUnion#Fail, Component]]
   def createVideo(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String,
-    vimeoId: String, height: Int, width: Int): Future[\/[ErrorUnion#Fail, Component]]
+    vimeoId: String, height: Int, width: Int, order: Int): Future[\/[ErrorUnion#Fail, Component]]
 
   def updateAudio(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
-    soundCloudId: Option[String]): Future[\/[ErrorUnion#Fail, Component]]
+    soundCloudId: Option[String], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
   def updateText(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
-    content: Option[String]): Future[\/[ErrorUnion#Fail, Component]]
+    content: Option[String], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
   def updateVideo(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
-    vimeoId: Option[String], height: Option[Int], width: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
+    vimeoId: Option[String], height: Option[Int], width: Option[Int], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
 
   def delete(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Component]]
 
@@ -39,4 +39,7 @@ trait ComponentService extends Service[ErrorUnion#Fail] {
   def userCanAccess(component: Component, userInfo: User): Future[\/[ErrorUnion#Fail, Boolean]]
 
   def detaggify(text: String): String
+
+  def getLargestOrder(ownerId: UUID): Future[\/[ErrorUnion#Fail, Int]]
+  def setOrder(component: Component, order: Int): Future[\/[ErrorUnion#Fail, Component]]
 }

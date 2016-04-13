@@ -36,6 +36,7 @@ class ComponentRepositoryPostgres()
       row("questions").asInstanceOf[String],
       row("things_to_think_about").asInstanceOf[String],
       row("soundcloud_id").asInstanceOf[String],
+      row("ord").asInstanceOf[Int],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -50,6 +51,7 @@ class ComponentRepositoryPostgres()
       row("questions").asInstanceOf[String],
       row("things_to_think_about").asInstanceOf[String],
       row("content").asInstanceOf[String],
+      row("ord").asInstanceOf[Int],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -66,6 +68,7 @@ class ComponentRepositoryPostgres()
       row("vimeo_id").asInstanceOf[String],
       row("width").asInstanceOf[Int],
       row("height").asInstanceOf[Int],
+      row("ord").asInstanceOf[Int],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -74,7 +77,7 @@ class ComponentRepositoryPostgres()
   // -- Common query components --------------------------------------------------------------------------------------
 
   val Table = "components"
-  val CommonFields = "id, version, owner_id, title, questions, things_to_think_about, created_at, updated_at, type"
+  val CommonFields = "id, version, owner_id, title, questions, things_to_think_about, ord, created_at, updated_at, type"
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
   }
@@ -87,9 +90,9 @@ class ComponentRepositoryPostgres()
        |  audio_components.soundcloud_id
      """.stripMargin
 
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val GroupBy = s"${Table}.id"
-  val OrderBy = s"${Table}.title ASC"
+  val OrderBy = s"${Table}.ord ASC"
   val Join =
     s"""
       |LEFT JOIN  text_components ON $Table.id = text_components.component_id
@@ -219,7 +222,7 @@ class ComponentRepositoryPostgres()
       |UPDATE $Table
       |SET version = ?, owner_id = ?,
       |    title = ?, questions = ?,
-      |    things_to_think_about = ?,
+      |    things_to_think_about = ?, ord = ?,
       |    updated_at = ?
       |WHERE id = ?
       |  AND version = ?
@@ -285,6 +288,14 @@ class ComponentRepositoryPostgres()
       | AND $Table.version = ?
       |RETURNING $CommonFields, $SpecificFields
     """.stripMargin
+
+  val SetOrder =
+    s"""
+       |UPDATE components
+       |set ord = ?
+       |where id = ?
+       |RETURNING $CommonFields, $SpecificFields
+       """.stripMargin
 
   // -- Methods ------------------------------------------------------------------------------------------------------
 
@@ -409,6 +420,7 @@ class ComponentRepositoryPostgres()
       component.title,
       component.questions,
       component.thingsToThinkAbout,
+      component.order,
       new DateTime,
       new DateTime
     )
@@ -456,6 +468,7 @@ class ComponentRepositoryPostgres()
       component.title,
       component.questions,
       component.thingsToThinkAbout,
+      component.order,
       new DateTime,
       component.id,
       component.version
@@ -496,6 +509,13 @@ class ComponentRepositoryPostgres()
    */
   override def delete(component: Component)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
     queryOne(Delete, Seq[Any](component.id, component.version))
+  }
+
+  /**
+   * set order for a component
+   */
+  def setOrder(component: Component, order: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Component]] = {
+    queryOne(SetOrder, Seq[Any](component.id, order))
   }
 
 }

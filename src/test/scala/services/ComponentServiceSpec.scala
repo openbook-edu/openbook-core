@@ -150,7 +150,8 @@ class ComponentServiceSpec
           Some(testComponent.title),
           Some(testComponent.questions),
           Some(testComponent.thingsToThinkAbout),
-          Some(testComponent.soundcloudId)
+          Some(testComponent.soundcloudId),
+          None
         )
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
@@ -166,6 +167,7 @@ class ComponentServiceSpec
           Some(testComponent.title),
           Some(testComponent.questions),
           Some(testComponent.thingsToThinkAbout),
+          None,
           None
         )
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput("Component type is not audio")))
@@ -187,7 +189,8 @@ class ComponentServiceSpec
           Some(testComponent.title),
           Some(testComponent.questions),
           Some(testComponent.thingsToThinkAbout),
-          Some(testComponent.content)
+          Some(testComponent.content),
+          None
         )
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
@@ -203,6 +206,7 @@ class ComponentServiceSpec
           Some(testComponent.title),
           Some(testComponent.questions),
           Some(testComponent.thingsToThinkAbout),
+          None,
           None
         )
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput("Component type is not text")))
@@ -226,7 +230,8 @@ class ComponentServiceSpec
           Some(testComponent.thingsToThinkAbout),
           Some(testComponent.vimeoId),
           Some(testComponent.width),
-          Some(testComponent.height)
+          Some(testComponent.height),
+          None
         )
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
@@ -242,6 +247,7 @@ class ComponentServiceSpec
           Some(testComponent.title),
           Some(testComponent.questions),
           Some(testComponent.thingsToThinkAbout),
+          None,
           None,
           None,
           None

@@ -204,6 +204,7 @@ CREATE TABLE components (
   questions text,
   things_to_think_about text,
   type text,
+  ord integer DEFAULT 0,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );

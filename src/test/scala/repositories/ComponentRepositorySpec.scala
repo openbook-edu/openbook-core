@@ -19,10 +19,10 @@ class ComponentRepositorySpec
     inSequence {
       "find all components" in {
         val testComponentList = TreeMap[Int, Component](
-          0 -> TestValues.testAudioComponentC,
-          1 -> TestValues.testAudioComponentE,
-          2 -> TestValues.testTextComponentA,
-          3 -> TestValues.testVideoComponentB
+          0 -> TestValues.testAudioComponentE,
+          1 -> TestValues.testTextComponentA,
+          2 -> TestValues.testVideoComponentB,
+          3 -> TestValues.testAudioComponentC
         )
 
         val result = componentRepository.list
@@ -139,9 +139,9 @@ class ComponentRepositorySpec
         val testProject = TestValues.testProjectA
 
         val testComponentList = TreeMap[Int, Component](
-          0 -> TestValues.testAudioComponentC,
-          1 -> TestValues.testTextComponentA,
-          2 -> TestValues.testVideoComponentB
+          0 -> TestValues.testTextComponentA,
+          1 -> TestValues.testVideoComponentB,
+          2 -> TestValues.testAudioComponentC
         )
 
         val result = componentRepository.list(testProject)
@@ -205,8 +205,8 @@ class ComponentRepositorySpec
         val testProject = TestValues.testProjectA
 
         val testComponentList = TreeMap[Int, Component](
-          0 -> TestValues.testAudioComponentC,
-          1 -> TestValues.testTextComponentA
+          0 -> TestValues.testTextComponentA,
+          1 -> TestValues.testAudioComponentC
         )
 
         val result = componentRepository.list(testProject, testUser)

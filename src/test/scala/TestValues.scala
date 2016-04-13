@@ -1735,6 +1735,7 @@ object TestValues {
     questions = "testTextComponentA questions",
     thingsToThinkAbout = "testTextComponentA thingsToThinkAbout",
     content = "testTextComponentA content",
+    order = 1,
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1748,6 +1749,7 @@ object TestValues {
     questions = "testTextComponentG questions",
     thingsToThinkAbout = "testTextComponentG thingsToThinkAbout",
     content = "testTextComponentG content",
+    order = 2,
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1763,6 +1765,7 @@ object TestValues {
     vimeoId = "19579282",
     width = 640,
     height = 480,
+    order = 3,
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1778,6 +1781,7 @@ object TestValues {
     vimeoId = "19579283",
     width = 640,
     height = 480,
+    order = 0,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1791,6 +1795,7 @@ object TestValues {
     questions = "testAudioComponentC questions",
     thingsToThinkAbout = "testAudioComponentC thingsToThinkAbout",
     soundcloudId = "dj-whisky-ft-nozipho-just",
+    order = 0,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1804,6 +1809,7 @@ object TestValues {
     questions = "testAudioComponentD questions",
     thingsToThinkAbout = "testAudioComponentD thingsToThinkAbout",
     soundcloudId = "fetty-wap-my-way-feat-monty",
+    order = 0,
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1816,6 +1822,7 @@ object TestValues {
     questions = "testAudioComponentE questions",
     thingsToThinkAbout = "testAudioComponentE thingsToThinkAbout",
     soundcloudId = "revolution-radio-network",
+    order = 0,
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )

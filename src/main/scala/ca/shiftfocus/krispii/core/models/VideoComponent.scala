@@ -17,6 +17,7 @@ case class VideoComponent(
   vimeoId: String,
   width: Int,
   height: Int,
+  order: Int,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) extends Component
@@ -33,6 +34,7 @@ object VideoComponent {
     (__ \ "vimeoId").write[String] and
     (__ \ "width").write[Int] and
     (__ \ "height").write[Int] and
+    (__ \ "order").write[Int] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(VideoComponent.unapply))
@@ -46,7 +48,8 @@ case class VideoComponentPost(
   thingsToThinkAbout: Option[String],
   vimeoId: String,
   width: Int,
-  height: Int
+  height: Int,
+  order: Int
 )
 object VideoComponentPost {
   implicit val projectPostReads = (
@@ -56,7 +59,8 @@ object VideoComponentPost {
     (__ \ "thingsToThinkAbout").readNullable[String] and
     (__ \ "vimeoId").read[String] and
     (__ \ "width").read[Int] and
-    (__ \ "height").read[Int]
+    (__ \ "height").read[Int] and
+    (__ \ "order").read[Int]
   )(VideoComponentPost.apply _)
 }
 
@@ -67,7 +71,8 @@ case class VideoComponentPut(
   thingsToThinkAbout: String,
   vimeoId: String,
   width: Int,
-  height: Int
+  height: Int,
+  order: Int
 )
 object VideoComponentPut {
   implicit val projectPutReads = (
@@ -77,6 +82,7 @@ object VideoComponentPut {
     (__ \ "thingsToThinkAbout").read[String] and
     (__ \ "vimeoId").read[String] and
     (__ \ "width").read[Int] and
-    (__ \ "height").read[Int]
+    (__ \ "height").read[Int] and
+    (__ \ "order").read[Int]
   )(VideoComponentPut.apply _)
 }

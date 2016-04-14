@@ -14,6 +14,7 @@ case class AudioComponent(
   questions: String,
   thingsToThinkAbout: String,
   soundcloudId: String,
+  order: Int,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) extends Component
@@ -28,6 +29,7 @@ object AudioComponent {
     (__ \ "questions").write[String] and
     (__ \ "thingsToThinkAbout").write[String] and
     (__ \ "soundcloudId").write[String] and
+    (__ \ "order").write[Int] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(AudioComponent.unapply))
@@ -39,7 +41,8 @@ case class AudioComponentPost(
   title: String,
   questions: Option[String],
   thingsToThinkAbout: Option[String],
-  soundcloudId: String
+  soundcloudId: String,
+  order: Int
 )
 object AudioComponentPost {
   implicit val projectPostReads = (
@@ -47,7 +50,8 @@ object AudioComponentPost {
     (__ \ "title").read[String] and
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and
-    (__ \ "soundcloudId").read[String]
+    (__ \ "soundcloudId").read[String] and
+    (__ \ "order").read[Int]
   )(AudioComponentPost.apply _)
 }
 
@@ -56,7 +60,8 @@ case class AudioComponentPut(
   title: String,
   questions: Option[String],
   thingsToThinkAbout: Option[String],
-  soundcloudId: String
+  soundcloudId: String,
+  order: Int
 )
 object AudioComponentPut {
   implicit val projectPutReads = (
@@ -64,6 +69,7 @@ object AudioComponentPut {
     (__ \ "title").read[String] and
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and
-    (__ \ "soundcloudId").read[String]
+    (__ \ "soundcloudId").read[String] and
+    (__ \ "order").read[Int]
   )(AudioComponentPut.apply _)
 }

@@ -671,22 +671,22 @@ VALUES ('38800ed08c6e482b84e5806c1f86316d', '{ "mediaType": 2, "fileName": "vide
 /* ---------------------- COMPONENTS ---------------------- */
 
 /* testTextComponentA -> userA (teacher) */
-INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
-VALUES ('8cfc608981294c2e9ed145d38077d438', 1, '36c8c0ca50aa4806afa5916a5e33a81f', 'testTextComponentA title', 'testTextComponentA questions', 'testTextComponentA thingsToThinkAbout', 'text', '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
+VALUES ('8cfc608981294c2e9ed145d38077d438', 1, '36c8c0ca50aa4806afa5916a5e33a81f', 'testTextComponentA title', 'testTextComponentA questions', 'testTextComponentA thingsToThinkAbout', 'text', 1, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
 
 INSERT INTO text_components (component_id, content)
 VALUES ('8cfc608981294c2e9ed145d38077d438', 'testTextComponentA content');
 
 /* testVideoComponentB -> userA (teacher) */
-INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
-VALUES ('50d07485f33c47559ccf59d823cbb79e', 2, '36c8c0ca50aa4806afa5916a5e33a81f', 'testVideoComponentB title', 'testVideoComponentB questions', 'testVideoComponentB thingsToThinkAbout', 'video', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
+INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
+VALUES ('50d07485f33c47559ccf59d823cbb79e', 2, '36c8c0ca50aa4806afa5916a5e33a81f', 'testVideoComponentB title', 'testVideoComponentB questions', 'testVideoComponentB thingsToThinkAbout', 'video', 2, '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
 INSERT INTO video_components (component_id, vimeo_id, width, height)
 VALUES ('50d07485f33c47559ccf59d823cbb79e', '19579282', 640, 480);
 
 /* testAudioComponentC -> userA (teacher) */
-INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, created_at, updated_at)
-VALUES ('a51c6b535180416daa771cc620dee9c0', 3, '36c8c0ca50aa4806afa5916a5e33a81f', 'testAudioComponentC title', 'testAudioComponentC questions', 'testAudioComponentC thingsToThinkAbout', 'audio', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
+INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
+VALUES ('a51c6b535180416daa771cc620dee9c0', 3, '36c8c0ca50aa4806afa5916a5e33a81f', 'testAudioComponentC title', 'testAudioComponentC questions', 'testAudioComponentC thingsToThinkAbout', 'audio', 3, '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
 
 INSERT INTO audio_components (component_id, soundcloud_id)
 VALUES ('a51c6b535180416daa771cc620dee9c0', 'dj-whisky-ft-nozipho-just');

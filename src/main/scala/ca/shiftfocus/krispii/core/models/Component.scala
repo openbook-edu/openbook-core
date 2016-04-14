@@ -13,6 +13,7 @@ abstract class Component {
   val title: String
   val questions: String
   val thingsToThinkAbout: String
+  val order: Int
   val createdAt: DateTime
   val updatedAt: DateTime
 }
@@ -34,6 +35,7 @@ object Component {
           questions = (js \ "questions").as[String],
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
           soundcloudId = (js \ "soundcloudId").as[String],
+          order = (js \ "order").as[Int],
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
@@ -45,6 +47,7 @@ object Component {
           questions = (js \ "questions").as[String],
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
           content = (js \ "content").as[String],
+          order = (js \ "order").as[Int],
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
@@ -58,6 +61,7 @@ object Component {
           vimeoId = (js \ "vimeoId").as[String],
           width = (js \ "width").as[Int],
           height = (js \ "height").as[Int],
+          order = (js \ "order").as[Int],
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )

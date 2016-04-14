@@ -36,6 +36,7 @@ class WorkServiceSpec
   val taskScratchpadRepository = stub[TaskScratchpadRepository]
   val projectScratchpadRepository = stub[ProjectScratchpadRepository]
   val activationRepository = stub[UserTokenRepository]
+  val componentRepository = stub[ComponentRepository]
   val mailerClient = stub[MailerClient]
   val wordRepository = stub[WordRepository]
   val messagesApi = stub[MessagesApi]
@@ -44,7 +45,7 @@ class WorkServiceSpec
   val schoolService = stub[SchoolService]
   val projectService = stub[ProjectService]
   val documentService = new DocumentServiceDefault(db, cache, userRepository, documentRepository, revisionRepository)
-  val componentService = stub[ComponentService]
+  val componentService = new ComponentServiceDefault(db, cache, authService, projectService, schoolService, componentRepository)
   val workService = new WorkServiceDefault(db, authService, schoolService, projectService, documentService, componentService, workRepository, taskFeedbackRepository, taskScratchpadRepository, projectScratchpadRepository) {
     override implicit def conn: Connection = mockConnection
 

@@ -312,7 +312,8 @@ class ComponentRepositoryPostgres()
       |USING
       | audio_components,
       | text_components,
-      | video_components
+      | video_components,
+      | generic_html_components
       |WHERE $Table.id = ?
       | AND $Table.version = ?
       |RETURNING $CommonFields, $SpecificFields

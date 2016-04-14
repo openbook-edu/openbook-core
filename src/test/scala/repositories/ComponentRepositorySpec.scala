@@ -22,7 +22,7 @@ class ComponentRepositorySpec
         val testComponentList = Seq[Component](
            TestValues.testAudioComponentC,
            TestValues.testAudioComponentE,
-//          2 -> TestValues.testGenericHTMLComponentH,
+           TestValues.testGenericHTMLComponentH,
            TestValues.testTextComponentA,
            TestValues.testVideoComponentB
         ).sortBy((component => component.title))
@@ -57,7 +57,7 @@ class ComponentRepositorySpec
               case genericHTMLComponent: GenericHTMLComponent => {
                 components(i) match {
                   case component: GenericHTMLComponent => {
-                    genericHTMLComponent.content should be(component.content)
+                    genericHTMLComponent.htmlContent should be(component.htmlContent)
                   }
                 }
               }

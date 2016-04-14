@@ -1854,7 +1854,7 @@ object TestValues {
     title = "testGenericComponentH title",
     questions = "testGenericComponentH questions",
     thingsToThinkAbout = "testGenericComponentH thingsToThinkAbout",
-    content = "testGenericComponentH content",
+    htmlContent = "testGenericComponentH content",
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )

@@ -456,6 +456,24 @@ class ComponentRepositorySpec
         //Specific
         component.content should be(testComponent.content)
       }
+      "insert GenericHTMLComponent" in {
+        val testComponent = TestValues.testGenericHTMLComponentI
+
+        val result = componentRepository.insert(testComponent)
+        val eitherComponent = Await.result(result, Duration.Inf)
+        val \/-(component: GenericHTMLComponent) = eitherComponent
+
+        //Common
+        component.id should be(testComponent.id)
+        component.version should be(testComponent.version)
+        component.ownerId should be(testComponent.ownerId)
+        component.title should be(testComponent.title)
+        component.questions should be(testComponent.questions)
+        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
+
+        //Specific
+        component.htmlContent should be(testComponent.htmlContent)
+      }
       "return RepositoryError.PrimaryKeyConflict if TextComponent already exists" in {
         val testComponent = TestValues.testTextComponentA
 
@@ -545,6 +563,35 @@ class ComponentRepositorySpec
 
         //Specific
         component.content should be(updatedComponent.content)
+      }
+      "update GenericHTMLComponent" in {
+        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+
+        val testComponent = TestValues.testGenericHTMLComponentH
+        val updatedComponent = testComponent.copy(
+          ownerId = TestValues.testUserF.id,
+          title = "updated title",
+          questions = "updated questions",
+          thingsToThinkAbout = "updated thingsToThinkAbout",
+          htmlContent = "updated content"
+        )
+
+        val result = componentRepository.update(updatedComponent)
+        val eitherComponent = Await.result(result, Duration.Inf)
+        val \/-(component: GenericHTMLComponent) = eitherComponent
+
+        //Common
+        component.id should be(updatedComponent.id)
+        component.version should be(updatedComponent.version + 1)
+        component.ownerId should be(updatedComponent.ownerId)
+        component.title should be(updatedComponent.title)
+        component.questions should be(updatedComponent.questions)
+        component.thingsToThinkAbout should be(updatedComponent.thingsToThinkAbout)
+        component.createdAt.toString should be(updatedComponent.createdAt.toString)
+        component.updatedAt.toString should not be (updatedComponent.updatedAt.toString)
+
+        //Specific
+        component.htmlContent should be(updatedComponent.htmlContent)
       }
       "return RepositoryError.NoResults if TextComponent doesn't exist" in {
         (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))

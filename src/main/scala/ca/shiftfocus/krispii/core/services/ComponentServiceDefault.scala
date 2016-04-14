@@ -118,6 +118,26 @@ class ComponentServiceDefault(
     }
   }
 
+
+  override def createGenericHTML(
+    ownerId: UUID,
+    title: String,
+    questions: String,
+    thingsToThinkAbout: String,
+    htmlContent: String
+  ): Future[\/[ErrorUnion#Fail, Component]] = {
+    val newComponent = GenericHTMLComponent(
+      ownerId = ownerId,
+      title = title,
+      questions = questions,
+      thingsToThinkAbout = thingsToThinkAbout,
+      htmlContent = htmlContent
+    )
+    transactional { implicit conn =>
+      componentRepository.insert(newComponent)
+    }
+  }
+
   override def createVideo(
     ownerId: UUID,
     title: String,
@@ -195,6 +215,30 @@ class ComponentServiceDefault(
     }
   }
 
+  override def updateGenericHTML(id: UUID, version: Long, ownerId: UUID,
+                          title: Option[String],
+                          questions: Option[String],
+                          thingsToThinkAbout: Option[String],
+                          htmlContent: Option[String]): Future[\/[ErrorUnion#Fail, Component]] = {
+    transactional { implicit conn =>
+      for {
+        existingComponent <- lift(componentRepository.find(id))
+        _ <- predicate(existingComponent.version == version)(ServiceError.OfflineLockFail)
+        _ <- predicate(existingComponent.isInstanceOf[TextComponent])(ServiceError.BadInput("Component type is not text"))
+        existingText = existingComponent.asInstanceOf[TextComponent]
+        componentToUpdate = existingText.copy(
+          version = version,
+          ownerId = ownerId,
+          title = title.getOrElse(existingText.title),
+          questions = questions.getOrElse(existingText.questions),
+          thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingText.thingsToThinkAbout),
+          content = htmlContent.getOrElse(existingText.content)
+        )
+        updatedComponent <- lift(componentRepository.update(componentToUpdate))
+      } yield updatedComponent
+    }
+  }
+
   override def updateVideo(id: UUID, version: Long, ownerId: UUID,
     title: Option[String],
     questions: Option[String],
@@ -233,6 +277,7 @@ class ComponentServiceDefault(
         toDelete = component match {
           case comp: AudioComponent => comp.copy(version = version)
           case comp: TextComponent => comp.copy(version = version)
+          case comp: GenericHTMLComponent => comp.copy(version = version)
           case comp: VideoComponent => comp.copy(version = version)
         }
         deleted <- lift(componentRepository.delete(toDelete))

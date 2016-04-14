@@ -228,8 +228,8 @@ class ComponentRepositoryPostgres()
        |     t AS (INSERT INTO generic_html_components (component_id, html_content)
        |           SELECT id as component_id, ? as html_content
        |           FROM c
-       |           RETURNING content)
-       |SELECT ${CommonFieldsWithTable("c")}, t.content
+       |           RETURNING html_content)
+       |SELECT ${CommonFieldsWithTable("c")}, t.html_content
        |FROM c, t
   """.stripMargin
 
@@ -267,6 +267,17 @@ class ComponentRepositoryPostgres()
       |WHERE component_id = component.id
       |RETURNING $CommonFields,
       |          t.content
+    """.stripMargin
+
+  val UpdateGenericHTML =
+    s"""
+       |WITH component AS ($Update)
+       |UPDATE generic_html_components as t
+       |SET html_content = ?
+       |FROM component
+       |WHERE component_id = component.id
+       |RETURNING $CommonFields,
+       |          t.html_content
     """.stripMargin
 
   val UpdateVideo =
@@ -506,6 +517,9 @@ class ComponentRepositoryPostgres()
       case textComponent: TextComponent => commonData ++ Array[Any](
         textComponent.content
       )
+      case genericHTMLComponent: GenericHTMLComponent => commonData ++ Array[Any](
+        genericHTMLComponent.htmlContent
+      )
       case videoComponent: VideoComponent => commonData ++ Array[Any](
         videoComponent.vimeoId,
         videoComponent.width,
@@ -519,6 +533,7 @@ class ComponentRepositoryPostgres()
 
     val query = component match {
       case textComponent: TextComponent => UpdateText
+      case genericHTMLComponent: GenericHTMLComponent => UpdateGenericHTML
       case videoComponent: VideoComponent => UpdateVideo
       case audioComponent: AudioComponent => UpdateAudio
     }

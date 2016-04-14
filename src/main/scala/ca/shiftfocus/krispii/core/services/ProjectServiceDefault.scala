@@ -1065,4 +1065,5 @@ class ProjectServiceDefault(
     if ("""[A-Za-z0-9\-]+""".r.unapplySeq(slug).isDefined) \/-(slug)
     else -\/(ServiceError.BadInput(s"$slug is not a valid slug format."))
   }
+
 }

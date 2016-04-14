@@ -353,16 +353,4 @@ class ComponentServiceDefault(
       }
     }
   }
-  def getLargestOrder(ownerId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
-    //change it for project parent later
-    for {
-      part <- lift(projectService.findPart(ownerId))
-      components <- lift(componentRepository.list(part))
-      maxOrder = components.map(_.order).max
-    } yield maxOrder
-  }
-
-  def setOrder(component: Component, order: Int): Future[\/[ErrorUnion#Fail, Component]] = {
-    componentRepository.setOrder(component, order)
-  }
 }

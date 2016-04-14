@@ -39,7 +39,4 @@ trait ComponentService extends Service[ErrorUnion#Fail] {
   def userCanAccess(component: Component, userInfo: User): Future[\/[ErrorUnion#Fail, Boolean]]
 
   def detaggify(text: String): String
-
-  def getLargestOrder(ownerId: UUID): Future[\/[ErrorUnion#Fail, Int]]
-  def setOrder(component: Component, order: Int): Future[\/[ErrorUnion#Fail, Component]]
 }

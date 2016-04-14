@@ -289,14 +289,6 @@ class ComponentRepositoryPostgres()
       |RETURNING $CommonFields, $SpecificFields
     """.stripMargin
 
-  val SetOrder =
-    s"""
-       |UPDATE components
-       |set ord = ?
-       |where id = ?
-       |RETURNING $CommonFields, $SpecificFields
-       """.stripMargin
-
   // -- Methods ------------------------------------------------------------------------------------------------------
 
   /**
@@ -509,13 +501,6 @@ class ComponentRepositoryPostgres()
    */
   override def delete(component: Component)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
     queryOne(Delete, Seq[Any](component.id, component.version))
-  }
-
-  /**
-   * set order for a component
-   */
-  def setOrder(component: Component, order: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Component]] = {
-    queryOne(SetOrder, Seq[Any](component.id, order))
   }
 
 }

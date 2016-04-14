@@ -26,6 +26,4 @@ trait ComponentRepository extends Repository {
   def addToPart(component: Component, part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]]
   def removeFromPart(component: Component, part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]]
   def removeFromPart(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]]
-  def setOrder(component: Component, order: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Component]]
-
 }

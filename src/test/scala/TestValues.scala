@@ -1847,6 +1847,18 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testGenericHTMLComponentH = GenericHTMLComponent(
+    id = UUID.fromString("8cfc6089-8129-4c2e-9ed1-45d38077d440"),
+    version = 5L,
+    ownerId = testUserA.id,
+    title = "testGenericComponentH title",
+    questions = "testGenericComponentH questions",
+    thingsToThinkAbout = "testGenericComponentH thingsToThinkAbout",
+    content = "testGenericComponentH content",
+    createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* ---------------------- PARTS ---------------------- */
 
   val testPartA = Part(

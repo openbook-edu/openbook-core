@@ -51,7 +51,7 @@ class ComponentRepositoryPostgres()
       row("title").asInstanceOf[String],
       row("questions").asInstanceOf[String],
       row("things_to_think_about").asInstanceOf[String],
-      row("content").asInstanceOf[String],
+      row("html_content").asInstanceOf[String],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -99,7 +99,7 @@ class ComponentRepositoryPostgres()
   val SpecificFields =
     """
        |  text_components.content,
-       |  generic_html_components.content,
+       |  generic_html_components.html_content,
        |  video_components.vimeo_id,
        |  video_components.width,
        |  video_components.height,
@@ -225,8 +225,8 @@ class ComponentRepositoryPostgres()
   val InsertGenericHTML =
     s"""
        |WITH c AS ($Insert),
-       |     t AS (INSERT INTO generic_html_components (component_id, content)
-       |           SELECT id as component_id, ? as content
+       |     t AS (INSERT INTO generic_html_components (component_id, html_content)
+       |           SELECT id as component_id, ? as html_content
        |           FROM c
        |           RETURNING content)
        |SELECT ${CommonFieldsWithTable("c")}, t.content
@@ -454,7 +454,7 @@ class ComponentRepositoryPostgres()
       )
       case genericHTMLComponent: GenericHTMLComponent => commonData ++ Array[Any](
         Component.GenericHTML,
-        genericHTMLComponent.content
+        genericHTMLComponent.htmlContent
       )
       case videoComponent: VideoComponent => commonData ++ Array[Any](
         Component.Video,

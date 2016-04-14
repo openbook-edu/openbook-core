@@ -224,7 +224,7 @@ CREATE TABLE text_components (
 
 CREATE TABLE generic_html_components (
    component_id uuid PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
-   content text
+   html_content text
 );
 
 CREATE TABLE video_components (

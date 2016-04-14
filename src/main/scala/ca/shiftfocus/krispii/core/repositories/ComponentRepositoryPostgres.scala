@@ -24,6 +24,7 @@ class ComponentRepositoryPostgres()
       case "audio" => constructAudio(row)
       case "text" => constructText(row)
       case "video" => constructVideo(row)
+      case "generic_html" => constructGeneric(row)
     }
   }
 
@@ -37,6 +38,20 @@ class ComponentRepositoryPostgres()
       row("things_to_think_about").asInstanceOf[String],
       row("soundcloud_id").asInstanceOf[String],
       row("ord").asInstanceOf[Int],
+      row("created_at").asInstanceOf[DateTime],
+      row("updated_at").asInstanceOf[DateTime]
+    )
+  }
+
+  private def constructGeneric(row: RowData): GenericHTMLComponent = {
+    GenericHTMLComponent(
+      row("id").asInstanceOf[UUID],
+      row("version").asInstanceOf[Long],
+      row("owner_id").asInstanceOf[UUID],
+      row("title").asInstanceOf[String],
+      row("questions").asInstanceOf[String],
+      row("things_to_think_about").asInstanceOf[String],
+      row("content").asInstanceOf[String],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -84,6 +99,7 @@ class ComponentRepositoryPostgres()
   val SpecificFields =
     """
        |  text_components.content,
+       |  generic_html_components.content,
        |  video_components.vimeo_id,
        |  video_components.width,
        |  video_components.height,
@@ -96,6 +112,7 @@ class ComponentRepositoryPostgres()
   val Join =
     s"""
       |LEFT JOIN  text_components ON $Table.id = text_components.component_id
+      |LEFT JOIN  generic_html_components ON $Table.id = generic_html_components.component_id
       |LEFT JOIN  video_components ON $Table.id = video_components.component_id
       |LEFT JOIN  audio_components ON $Table.id = audio_components.component_id
      """.stripMargin
@@ -202,6 +219,18 @@ class ComponentRepositoryPostgres()
       |           RETURNING content)
       |SELECT ${CommonFieldsWithTable("c")}, t.content
       |FROM c, t
+  """.stripMargin
+
+
+  val InsertGenericHTML =
+    s"""
+       |WITH c AS ($Insert),
+       |     t AS (INSERT INTO generic_html_components (component_id, content)
+       |           SELECT id as component_id, ? as content
+       |           FROM c
+       |           RETURNING content)
+       |SELECT ${CommonFieldsWithTable("c")}, t.content
+       |FROM c, t
   """.stripMargin
 
   val InsertVideo =
@@ -423,6 +452,10 @@ class ComponentRepositoryPostgres()
         Component.Text,
         textComponent.content
       )
+      case genericHTMLComponent: GenericHTMLComponent => commonData ++ Array[Any](
+        Component.GenericHTML,
+        genericHTMLComponent.content
+      )
       case videoComponent: VideoComponent => commonData ++ Array[Any](
         Component.Video,
         videoComponent.vimeoId,
@@ -438,6 +471,7 @@ class ComponentRepositoryPostgres()
 
     val query = component match {
       case textComponent: TextComponent => InsertText
+      case genericHTMLComponent: GenericHTMLComponent => InsertGenericHTML
       case videoComponent: VideoComponent => InsertVideo
       case audioComponent: AudioComponent => InsertAudio
     }

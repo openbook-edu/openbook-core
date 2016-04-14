@@ -5,6 +5,7 @@ import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import org.scalatest.Matchers._
 import org.scalatest._
+import play.api.Logger
 
 import scala.collection.immutable.TreeMap
 import scala.concurrent.duration.Duration
@@ -18,42 +19,50 @@ class ComponentRepositorySpec
   "ComponentRepository.list" should {
     inSequence {
       "find all components" in {
-        val testComponentList = TreeMap[Int, Component](
-          0 -> TestValues.testAudioComponentE,
-          1 -> TestValues.testTextComponentA,
-          2 -> TestValues.testVideoComponentB,
-          3 -> TestValues.testAudioComponentC
-        )
+        val testComponentList = Seq[Component](
+           TestValues.testAudioComponentC,
+           TestValues.testAudioComponentE,
+//          2 -> TestValues.testGenericHTMLComponentH,
+           TestValues.testTextComponentA,
+           TestValues.testVideoComponentB
+        ).sortBy((component => component.title))
 
         val result = componentRepository.list
         val eitherComponents = Await.result(result, Duration.Inf)
         val \/-(components) = eitherComponents
 
         components.size should be(testComponentList.size)
-
-        testComponentList.foreach {
-          case (key, component: Component) => {
+        val sortedComponents = components.sortBy(component => component.title)
+        for(i <- 0 to components.size - 1 ) {
             //Common
-            components(key).id should be(component.id)
-            components(key).version should be(component.version)
-            components(key).ownerId should be(component.ownerId)
-            components(key).title should be(component.title)
-            components(key).questions should be(component.questions)
-            components(key).thingsToThinkAbout should be(component.thingsToThinkAbout)
-            components(key).createdAt.toString should be(component.createdAt.toString)
-            components(key).updatedAt.toString should be(component.updatedAt.toString)
+            Logger.error(s"${testComponentList(i)} ${sortedComponents(i)} ")
+            sortedComponents(i).id should be(testComponentList(i).id)
+            sortedComponents(i).version should be(testComponentList(i).version)
+            sortedComponents(i).ownerId should be(testComponentList(i).ownerId)
+            sortedComponents(i).title should be(testComponentList(i).title)
+            sortedComponents(i).questions should be(testComponentList(i).questions)
+            sortedComponents(i).thingsToThinkAbout should be(testComponentList(i).thingsToThinkAbout)
+            sortedComponents(i).createdAt.toString should be(testComponentList(i).createdAt.toString)
+            sortedComponents(i).updatedAt.toString should be(testComponentList(i).updatedAt.toString)
 
             //Specific
-            components(key) match {
+          testComponentList(i) match {
               case textComponent: TextComponent => {
-                component match {
+                components(i) match {
                   case component: TextComponent => {
                     textComponent.content should be(component.content)
                   }
                 }
               }
+              case genericHTMLComponent: GenericHTMLComponent => {
+                components(i) match {
+                  case component: GenericHTMLComponent => {
+                    genericHTMLComponent.content should be(component.content)
+                  }
+                }
+              }
               case videoComponent: VideoComponent => {
-                component match {
+                components(i) match {
                   case component: VideoComponent => {
                     videoComponent.vimeoId should be(component.vimeoId)
                     videoComponent.width should be(component.width)
@@ -62,14 +71,13 @@ class ComponentRepositorySpec
                 }
               }
               case audioComponent: AudioComponent => {
-                component match {
+                components(i) match {
                   case component: AudioComponent => {
                     audioComponent.soundcloudId should be(component.soundcloudId)
                   }
                 }
               }
             }
-          }
         }
       }
       "find all components belonging to a specific part" in {

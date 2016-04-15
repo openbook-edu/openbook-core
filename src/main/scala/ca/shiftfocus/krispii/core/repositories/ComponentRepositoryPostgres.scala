@@ -51,8 +51,8 @@ class ComponentRepositoryPostgres()
       row("title").asInstanceOf[String],
       row("questions").asInstanceOf[String],
       row("things_to_think_about").asInstanceOf[String],
+      row("ord").asInstanceOf[Int],
       row("html_content").asInstanceOf[String],
-      row("order").asInstanceOf[Int],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )

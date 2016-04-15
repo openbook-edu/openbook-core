@@ -35,7 +35,6 @@ class ComponentRepositorySpec
         val sortedComponents = components.sortBy(component => component.title)
         for(i <- 0 to components.size - 1 ) {
             //Common
-            Logger.error(s"${testComponentList(i)} ${sortedComponents(i)} ")
             sortedComponents(i).id should be(testComponentList(i).id)
             sortedComponents(i).version should be(testComponentList(i).version)
             sortedComponents(i).ownerId should be(testComponentList(i).ownerId)
@@ -48,21 +47,21 @@ class ComponentRepositorySpec
             //Specific
           testComponentList(i) match {
               case textComponent: TextComponent => {
-                components(i) match {
+                sortedComponents(i) match {
                   case component: TextComponent => {
                     textComponent.content should be(component.content)
                   }
                 }
               }
               case genericHTMLComponent: GenericHTMLComponent => {
-                components(i) match {
+                sortedComponents(i) match {
                   case component: GenericHTMLComponent => {
                     genericHTMLComponent.htmlContent should be(component.htmlContent)
                   }
                 }
               }
               case videoComponent: VideoComponent => {
-                components(i) match {
+                sortedComponents(i) match {
                   case component: VideoComponent => {
                     videoComponent.vimeoId should be(component.vimeoId)
                     videoComponent.width should be(component.width)
@@ -71,7 +70,7 @@ class ComponentRepositorySpec
                 }
               }
               case audioComponent: AudioComponent => {
-                components(i) match {
+                sortedComponents(i) match {
                   case component: AudioComponent => {
                     audioComponent.soundcloudId should be(component.soundcloudId)
                   }
@@ -573,6 +572,7 @@ class ComponentRepositorySpec
           title = "updated title",
           questions = "updated questions",
           thingsToThinkAbout = "updated thingsToThinkAbout",
+          order = 0,
           htmlContent = "updated content"
         )
 

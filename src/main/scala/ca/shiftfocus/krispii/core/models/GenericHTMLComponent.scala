@@ -16,8 +16,8 @@ case class GenericHTMLComponent(
   title: String,
   questions: String,
   thingsToThinkAbout: String,
-  htmlContent: String,
   order: Int,
+  htmlContent: String,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) extends Component
@@ -31,8 +31,8 @@ object GenericHTMLComponent {
     (__ \ "title").write[String] and
     (__ \ "questions").write[String] and
     (__ \ "thingsToThinkAbout").write[String] and
-    (__ \ "htmlContent").write[String] and
     (__ \ "order").write[Int] and
+    (__ \ "htmlContent").write[String] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(GenericHTMLComponent.unapply))
@@ -44,8 +44,8 @@ case class GenericHTMLComponentPost(
   title: String,
   questions: Option[String],
   thingsToThinkAbout: Option[String],
-  htmlContent: String,
-  order: Int
+  order: Int,
+  htmlContent: String
 )
 
 object GenericHTMLComponentPost {
@@ -54,8 +54,8 @@ object GenericHTMLComponentPost {
     (__ \ "title").read[String] and
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and
-    (__ \ "htmlContent").read[String] and
-    (__ \ "order").read[Int]
+    (__ \ "order").read[Int] and
+    (__ \ "htmlContent").read[String]
   )(GenericHTMLComponentPost.apply _)
 }
 
@@ -64,8 +64,8 @@ case class GenericHTMLComponentPut(
   title: String,
   questions: String,
   thingsToThinkAbout: String,
-  htmlContent: String,
-  order: Int
+  order: Int,
+  htmlContent: String
 )
 
 object GenericHTMLComponentPut {
@@ -74,7 +74,7 @@ object GenericHTMLComponentPut {
     (__ \ "title").read[String] and
     (__ \ "questions").read[String] and
     (__ \ "thingsToThinkAbout").read[String] and
-    (__ \ "htmlContent").read[String] and
-    (__ \ "order").read[Int]
+    (__ \ "order").read[Int] and
+    (__ \ "htmlContent").read[String]
   )(GenericHTMLComponentPut.apply _)
 }

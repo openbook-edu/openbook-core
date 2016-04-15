@@ -1855,6 +1855,7 @@ object TestValues {
     questions = "testGenericComponentH questions",
     thingsToThinkAbout = "testGenericComponentH thingsToThinkAbout",
     htmlContent = "testGenericComponentH content",
+    order = 0,
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1867,6 +1868,7 @@ object TestValues {
     questions = "testGenericComponentI questions",
     thingsToThinkAbout = "testGenericComponentI thingsToThinkAbout",
     htmlContent = "testGenericComponentI content",
+    order = 0,
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )

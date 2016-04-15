@@ -118,20 +118,21 @@ class ComponentServiceDefault(
     }
   }
 
-
   override def createGenericHTML(
     ownerId: UUID,
     title: String,
     questions: String,
     thingsToThinkAbout: String,
-    htmlContent: String
+    htmlContent: String,
+    order: Int
   ): Future[\/[ErrorUnion#Fail, Component]] = {
     val newComponent = GenericHTMLComponent(
       ownerId = ownerId,
       title = title,
       questions = questions,
       thingsToThinkAbout = thingsToThinkAbout,
-      htmlContent = htmlContent
+      htmlContent = htmlContent,
+      order = order
     )
     transactional { implicit conn =>
       componentRepository.insert(newComponent)
@@ -216,10 +217,10 @@ class ComponentServiceDefault(
   }
 
   override def updateGenericHTML(id: UUID, version: Long, ownerId: UUID,
-                          title: Option[String],
-                          questions: Option[String],
-                          thingsToThinkAbout: Option[String],
-                          htmlContent: Option[String]): Future[\/[ErrorUnion#Fail, Component]] = {
+    title: Option[String],
+    questions: Option[String],
+    thingsToThinkAbout: Option[String],
+    htmlContent: Option[String]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
       for {
         existingComponent <- lift(componentRepository.find(id))

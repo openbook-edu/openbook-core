@@ -59,7 +59,8 @@ object Component {
           title = (js \ "title").as[String],
           questions = (js \ "questions").as[String],
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
-          content = (js \ "content").as[String],
+          htmlContent = (js \ "content").as[String],
+          order = (js \ "order").as[Int],
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )

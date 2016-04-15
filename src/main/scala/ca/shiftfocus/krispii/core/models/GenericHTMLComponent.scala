@@ -7,8 +7,8 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
 /**
-  * Created by ryanez on 13/04/16.
-  */
+ * Created by ryanez on 13/04/16.
+ */
 case class GenericHTMLComponent(
   id: UUID = UUID.randomUUID,
   version: Long = 1L,
@@ -17,9 +17,10 @@ case class GenericHTMLComponent(
   questions: String,
   thingsToThinkAbout: String,
   htmlContent: String,
+  order: Int,
   createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime) extends Component
-
+  updatedAt: DateTime = new DateTime
+) extends Component
 
 object GenericHTMLComponent {
 
@@ -31,18 +32,20 @@ object GenericHTMLComponent {
     (__ \ "questions").write[String] and
     (__ \ "thingsToThinkAbout").write[String] and
     (__ \ "htmlContent").write[String] and
+    (__ \ "order").write[Int] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
-    )(unlift(GenericHTMLComponent.unapply))
+  )(unlift(GenericHTMLComponent.unapply))
 
 }
 
 case class GenericHTMLComponentPost(
-   ownerId: UUID,
-   title: String,
-   questions: Option[String],
-   thingsToThinkAbout: Option[String],
-   htmlContent: String
+  ownerId: UUID,
+  title: String,
+  questions: Option[String],
+  thingsToThinkAbout: Option[String],
+  htmlContent: String,
+  order: Int
 )
 
 object GenericHTMLComponentPost {
@@ -51,24 +54,27 @@ object GenericHTMLComponentPost {
     (__ \ "title").read[String] and
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and
-    (__ \ "htmlContent").read[String]
-    )(GenericHTMLComponentPost.apply _)
+    (__ \ "htmlContent").read[String] and
+    (__ \ "order").read[Int]
+  )(GenericHTMLComponentPost.apply _)
 }
 
 case class GenericHTMLComponentPut(
-    version: Long,
-    title: String,
-    questions: String,
-    thingsToThinkAbout: String,
-    htmlContent: String
+  version: Long,
+  title: String,
+  questions: String,
+  thingsToThinkAbout: String,
+  htmlContent: String,
+  order: Int
 )
 
 object GenericHTMLComponentPut {
   implicit val projectPutReads = (
     (__ \ "version").read[Long] and
-      (__ \ "title").read[String] and
-      (__ \ "questions").read[String] and
-      (__ \ "thingsToThinkAbout").read[String] and
-      (__ \ "htmlContent").read[String]
-    ) (GenericHTMLComponentPut.apply _)
+    (__ \ "title").read[String] and
+    (__ \ "questions").read[String] and
+    (__ \ "thingsToThinkAbout").read[String] and
+    (__ \ "htmlContent").read[String] and
+    (__ \ "order").read[Int]
+  )(GenericHTMLComponentPut.apply _)
 }

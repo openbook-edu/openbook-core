@@ -202,7 +202,7 @@ class ProjectServiceDefault(
           } yield tasks
         }))
         //we need to return the newProject not the clonedProject because the latter one doesn't have the updated slug
-      } yield newProject
+      } yield newProject.copy(parts = clonedParts)
       futureProject
     }
   }

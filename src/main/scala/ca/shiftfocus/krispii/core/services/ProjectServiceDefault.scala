@@ -665,7 +665,8 @@ class ProjectServiceDefault(
             settings = CommonTaskSettings(
               title = name,
               description = description
-            )
+            ),
+            maxGrade = "0"
           )
           // Add newTask and order tasks by position
           val orderedTasks = (filteredTaskList :+ newTask).sortWith(_.position < _.position)
@@ -905,6 +906,7 @@ class ProjectServiceDefault(
         toUpdate = documentTask.copy(
           partId = commonArgs.partId.getOrElse(task.partId),
           position = commonArgs.position.getOrElse(task.position),
+          maxGrade = commonArgs.maxGrade.getOrElse(task.maxGrade),
           settings = task.settings.copy(
             title = commonArgs.name.getOrElse(task.settings.title),
             description = commonArgs.description.getOrElse(task.settings.description),
@@ -951,6 +953,7 @@ class ProjectServiceDefault(
         toUpdate = questionTask.copy(
           partId = commonArgs.partId.getOrElse(task.partId),
           position = commonArgs.position.getOrElse(task.position),
+          maxGrade = commonArgs.maxGrade.getOrElse(task.maxGrade),
           settings = task.settings.copy(
             title = commonArgs.name.getOrElse(task.settings.title),
             help = commonArgs.help.getOrElse(task.settings.help),
@@ -989,6 +992,7 @@ class ProjectServiceDefault(
         toUpdate = mediaTask.copy(
           partId = commonArgs.partId.getOrElse(task.partId),
           position = commonArgs.position.getOrElse(task.position),
+          maxGrade = commonArgs.maxGrade.getOrElse(task.maxGrade),
           settings = task.settings.copy(
             title = commonArgs.name.getOrElse(task.settings.title),
             description = commonArgs.description.getOrElse(task.settings.description),

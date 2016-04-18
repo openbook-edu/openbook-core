@@ -89,7 +89,8 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     notesAllowed: Option[Boolean],
     partId: Option[UUID] = None,
     responseTitle: Option[Option[String]] = None,
-    notesTitle: Option[Option[String]] = None
+    notesTitle: Option[Option[String]] = None,
+    maxGrade: Option[String]
   )
 
   def updateDocumentTask(commonArgs: CommonTaskArgs, depId: Option[Option[UUID]] = None): Future[\/[ErrorUnion#Fail, Task]]

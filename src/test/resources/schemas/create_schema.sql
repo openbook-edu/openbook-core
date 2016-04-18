@@ -162,6 +162,7 @@ CREATE TABLE tasks (
   response_title text,
   notes_title text,
   help_text text,
+  max_grade text DEFAULT '0',
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );

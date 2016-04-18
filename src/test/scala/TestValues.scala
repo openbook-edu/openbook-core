@@ -418,6 +418,7 @@ object TestValues {
       responseTitle = Some("test longAnswerTask A response title")
     ),
     dependencyId = None,
+    maxGrade = "55",
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -437,6 +438,7 @@ object TestValues {
       responseTitle = Some("test longAnswerTask N response title")
     ),
     dependencyId = None,
+    maxGrade = "25",
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -456,6 +458,7 @@ object TestValues {
       responseTitle = Some("test longAnswerTask O response title")
     ),
     dependencyId = Some(testLongAnswerTaskN.id),
+    maxGrade = "15",
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -475,6 +478,7 @@ object TestValues {
       responseTitle = Some("test longAnswerTask F response title")
     ),
     dependencyId = Some(testLongAnswerTaskA.id),
+    maxGrade = "5",
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -494,6 +498,7 @@ object TestValues {
       responseTitle = Some("test shortAnswerTask B response title")
     ),
     questions = IndexedSeq(testShortQuestionA),
+    maxGrade = "90",
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -513,6 +518,7 @@ object TestValues {
       responseTitle = Some("test shortAnswerTask G response title")
     ),
     questions = IndexedSeq(testShortQuestionA),
+    maxGrade = "90",
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -532,6 +538,7 @@ object TestValues {
       responseTitle = Some("test MultipleChoiceTask C response title")
     ),
     questions = IndexedSeq(testMultipleChoiceQuestionB),
+    maxGrade = "30",
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -551,6 +558,7 @@ object TestValues {
       responseTitle = Some("test MultipleChoiceTask H response title")
     ),
     questions = IndexedSeq(testMultipleChoiceQuestionB),
+    maxGrade = "20",
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -570,6 +578,7 @@ object TestValues {
       responseTitle = Some("test OrderingTask D response title")
     ),
     questions = IndexedSeq(testOrderingQuestionC),
+    maxGrade = "1",
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -588,6 +597,7 @@ object TestValues {
       responseTitle = Some("test OrderingTask L response title")
     ),
     questions = IndexedSeq(testOrderingQuestionC),
+    maxGrade = "77",
     createdAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -606,6 +616,7 @@ object TestValues {
       responseTitle = Some("test OrderingTask N response title")
     ),
     questions = IndexedSeq(testOrderingQuestionC),
+    maxGrade = "1000",
     createdAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -625,6 +636,7 @@ object TestValues {
       responseTitle = Some("test OrderingTask I response title")
     ),
     questions = IndexedSeq(testOrderingQuestionC),
+    maxGrade = "10",
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -645,6 +657,7 @@ object TestValues {
       responseTitle = Some("test MatchingTask E response title")
     ),
     questions = IndexedSeq(testMatchingQuestionD),
+    maxGrade = "5",
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -664,6 +677,7 @@ object TestValues {
       responseTitle = Some("test MatchingTask J response title")
     ),
     questions = IndexedSeq(testMatchingQuestionD),
+    maxGrade = "100",
     createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -682,6 +696,7 @@ object TestValues {
       responseTitle = Some("test MatchingTask K response title")
     ),
     questions = IndexedSeq(testMatchingQuestionD),
+    maxGrade = "0",
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -700,6 +715,7 @@ object TestValues {
       responseTitle = Some("test MatchingTask M response title")
     ),
     questions = IndexedSeq(testMatchingQuestionD),
+    maxGrade = "0",
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -719,6 +735,7 @@ object TestValues {
       responseTitle = Some("test BlanksTask P response title")
     ),
     questions = IndexedSeq(testBlanksQuestionE, testMatchingQuestionD),
+    maxGrade = "0",
     createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -738,6 +755,7 @@ object TestValues {
       responseTitle = Some("test BlanksTask Q response title")
     ),
     questions = IndexedSeq(testBlanksQuestionE, testMatchingQuestionD),
+    maxGrade = "0",
     createdAt = new DateTime(2014, 8, 19, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 20, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -758,6 +776,7 @@ object TestValues {
       responseTitle = Some("test MediaTask A response title")
     ),
     mediaType = 0,
+    maxGrade = "0",
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -777,6 +796,7 @@ object TestValues {
       responseTitle = Some("test testMediaTask B response title")
     ),
     mediaType = 2,
+    maxGrade = "10",
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )

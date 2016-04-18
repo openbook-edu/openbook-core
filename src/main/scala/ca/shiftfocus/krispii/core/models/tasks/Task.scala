@@ -21,6 +21,7 @@ sealed trait Task {
   val version: Long
   val settings: CommonTaskSettings
   val taskType: Int
+  val maxGrade: String
   val createdAt: DateTime
   val updatedAt: DateTime
 }
@@ -62,6 +63,7 @@ object Task {
     version: Long = 1L,
     settings: CommonTaskSettings = CommonTaskSettings(),
     taskType: Int,
+    maxGrade: String,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
   ): Task =
@@ -73,6 +75,7 @@ object Task {
           position = position,
           version = version,
           settings = settings,
+          maxGrade = maxGrade,
           createdAt = createdAt,
           updatedAt = updatedAt
         )
@@ -83,6 +86,7 @@ object Task {
           version = version,
           settings = settings,
           questions = IndexedSeq(),
+          maxGrade = maxGrade,
           createdAt = createdAt,
           updatedAt = updatedAt
         )
@@ -93,6 +97,7 @@ object Task {
           version = version,
           settings = settings,
           mediaType = AnyMedia,
+          maxGrade = maxGrade,
           createdAt = createdAt,
           updatedAt = updatedAt
         )
@@ -142,6 +147,7 @@ final case class DocumentTask(
     version: Long = 1L,
     settings: CommonTaskSettings = CommonTaskSettings(),
     dependencyId: Option[UUID] = None,
+    maxGrade: String,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) extends Task {
@@ -179,6 +185,7 @@ object DocumentTask {
     (__ \ "version").write[Long] and
     (__ \ "settings").write[CommonTaskSettings] and
     (__ \ "dependencyId").writeNullable[UUID] and
+    (__ \ "maxGrade").write[String] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(DocumentTask.unapply))
@@ -207,6 +214,7 @@ final case class QuestionTask(
     version: Long = 1L,
     settings: CommonTaskSettings = CommonTaskSettings(),
     questions: IndexedSeq[Question],
+    maxGrade: String,
     createdAt: DateTime = new DateTime(),
     updatedAt: DateTime = new DateTime()
 ) extends Task {
@@ -235,6 +243,7 @@ object QuestionTask {
     (__ \ "version").read[Long] and
     (__ \ "settings").read[CommonTaskSettings] and
     (__ \ "questions").read[IndexedSeq[Question]] and
+    (__ \ "maxGrade").read[String] and
     (__ \ "createdAt").read[DateTime] and
     (__ \ "updatedAt").read[DateTime]
   )(QuestionTask.apply _)
@@ -246,6 +255,7 @@ object QuestionTask {
     (__ \ "version").write[Long] and
     (__ \ "settings").write[CommonTaskSettings] and
     (__ \ "questions").write[IndexedSeq[Question]] and
+    (__ \ "maxGrade").write[String] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(QuestionTask.unapply))
@@ -261,6 +271,7 @@ final case class MediaTask(
     version: Long = 1L,
     settings: CommonTaskSettings = CommonTaskSettings(),
     mediaType: Int,
+    maxGrade: String,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) extends Task {
@@ -298,6 +309,7 @@ object MediaTask {
     (__ \ "version").write[Long] and
     (__ \ "settings").write[CommonTaskSettings] and
     (__ \ "mediaType").write[Int] and
+    (__ \ "maxGrade").write[String] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(MediaTask.unapply))

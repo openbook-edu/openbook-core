@@ -58,7 +58,8 @@ class ProjectServiceSpec
 
         val emptyTask = DocumentTask(
           partId = emptyPart.id,
-          position = 1
+          position = 1,
+          maxGrade = "0"
         )
 
         val resultProject = emptyProject
@@ -105,7 +106,8 @@ class ProjectServiceSpec
 
         val emptyTask = DocumentTask(
           partId = emptyPart.id,
-          position = 1
+          position = 1,
+          maxGrade = "0"
         )
 
         val resultProject = emptyProject.copy(
@@ -147,7 +149,8 @@ class ProjectServiceSpec
 
         val emptyTask = DocumentTask(
           partId = emptyPart.id,
-          position = 1
+          position = 1,
+          maxGrade = "0"
         )
 
         val resultProject = emptyProject.copy(
@@ -1206,7 +1209,8 @@ class ProjectServiceSpec
           settings = CommonTaskSettings(
             title = "New task name",
             description = "New task description"
-          )
+          ),
+          maxGrade = "0"
         )
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(\/-(testPart)))
@@ -1241,7 +1245,8 @@ class ProjectServiceSpec
           settings = CommonTaskSettings(
             title = "New task name",
             description = "New task description"
-          )
+          ),
+          maxGrade = "0"
         )
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(\/-(testPart)))
@@ -1276,7 +1281,8 @@ class ProjectServiceSpec
           settings = CommonTaskSettings(
             title = "New task name",
             description = "New task description"
-          )
+          ),
+          maxGrade = "0"
         )
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(\/-(testPart)))
@@ -1307,7 +1313,8 @@ class ProjectServiceSpec
           settings = CommonTaskSettings(
             title = "New task name",
             description = "New task description"
-          )
+          ),
+          maxGrade = "0"
         )
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(\/-(testPart)))
@@ -1338,7 +1345,8 @@ class ProjectServiceSpec
           settings = CommonTaskSettings(
             title = "New task name",
             description = "New task description"
-          )
+          ),
+          maxGrade = "0"
         )
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(\/-(testPart)))
@@ -1365,7 +1373,8 @@ class ProjectServiceSpec
           settings = CommonTaskSettings(
             title = "New task name",
             description = "New task description"
-          )
+          ),
+          maxGrade = "0"
         )
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(\/-(testPart)))
@@ -1393,7 +1402,8 @@ class ProjectServiceSpec
           settings = CommonTaskSettings(
             title = "New task name",
             description = "New task description"
-          )
+          ),
+          maxGrade = "0"
         )
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(\/-(testPart)))
@@ -1424,7 +1434,8 @@ class ProjectServiceSpec
           settings = CommonTaskSettings(
             title = "New task name",
             description = "New task description"
-          )
+          ),
+          maxGrade = "0"
         )
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(\/-(testPart)))
@@ -1452,7 +1463,8 @@ class ProjectServiceSpec
           settings = CommonTaskSettings(
             title = "New task name",
             description = "New task description"
-          )
+          ),
+          maxGrade = "0"
         )
 
         (partRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testPart.id, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))

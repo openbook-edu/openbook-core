@@ -39,13 +39,13 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   // -- Common query components --------------------------------------------------------------------------------------
 
   val Table = "tasks"
-  val CommonFields = "id, version, part_id, name, description, position, notes_allowed, response_title, notes_title, help_text, created_at, updated_at, task_type"
+  val CommonFields = "id, version, part_id, name, description, position, notes_allowed, response_title, notes_title, help_text, max_grade, created_at, updated_at, task_type"
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
   }
   val SpecificFields = "document_tasks.dependency_id as dependency_id, question_tasks.questions as questions, media_tasks.media_type as media_type"
 
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.position ASC"
   val Join =
     s"""
@@ -193,7 +193,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |SET part_id = ?, name = ?, description = ?,
        |    position = ?, notes_allowed = ?,
        |    response_title = ?, notes_title = ?, help_text = ?,
-       |    version = ?, updated_at = ?
+       |    version = ?, max_grade = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $CommonFields
@@ -400,6 +400,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.settings.responseTitle,
       task.settings.notesTitle,
       task.settings.help,
+      task.maxGrade,
       new DateTime,
       new DateTime
     )
@@ -445,6 +446,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.settings.notesTitle,
       task.settings.help,
       task.version + 1,
+      task.maxGrade,
       new DateTime,
       task.id, task.version
     )
@@ -517,6 +519,7 @@ trait SpecificTaskConstructors {
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
       dependencyId = Option(row("dependency_id")).map(_.asInstanceOf[UUID]),
+      maxGrade = row("max_grade").asInstanceOf[String],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )
@@ -530,6 +533,7 @@ trait SpecificTaskConstructors {
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
       questions = Json.parse(row("questions").asInstanceOf[String]).as[IndexedSeq[Question]],
+      maxGrade = row("max_grade").asInstanceOf[String],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )
@@ -542,6 +546,7 @@ trait SpecificTaskConstructors {
       version = row("version").asInstanceOf[Long],
       settings = CommonTaskSettings(row),
       mediaType = row("media_type").asInstanceOf[Int],
+      maxGrade = row("max_grade").asInstanceOf[String],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )

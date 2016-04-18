@@ -521,7 +521,7 @@ class ComponentRepositorySpec
           content = "updated content"
         )
 
-        val result = componentRepository.update(updatedComponent, None)
+        val result = componentRepository.update(updatedComponent)
         val eitherComponent = Await.result(result, Duration.Inf)
         val \/-(component: TextComponent) = eitherComponent
 
@@ -550,7 +550,7 @@ class ComponentRepositorySpec
           content = "updated content"
         )
 
-        val result = componentRepository.update(updatedComponent, None)
+        val result = componentRepository.update(updatedComponent)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Component")))
       }
       "update VideoComponent" in {
@@ -567,7 +567,7 @@ class ComponentRepositorySpec
           height = 128
         )
 
-        val result = componentRepository.update(updatedComponent, None)
+        val result = componentRepository.update(updatedComponent)
         val eitherComponent = Await.result(result, Duration.Inf)
         val \/-(component: VideoComponent) = eitherComponent
 
@@ -600,7 +600,7 @@ class ComponentRepositorySpec
           height = 128
         )
 
-        val result = componentRepository.update(updatedComponent, None)
+        val result = componentRepository.update(updatedComponent)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Component")))
       }
       "update AudioComponent" in {
@@ -615,7 +615,7 @@ class ComponentRepositorySpec
           soundcloudId = "bla bla bla"
         )
 
-        val result = componentRepository.update(updatedComponent, None)
+        val result = componentRepository.update(updatedComponent)
         val eitherComponent = Await.result(result, Duration.Inf)
         val \/-(component: AudioComponent) = eitherComponent
 
@@ -644,7 +644,7 @@ class ComponentRepositorySpec
           soundcloudId = "bla bla bla"
         )
 
-        val result = componentRepository.update(updatedComponent, None)
+        val result = componentRepository.update(updatedComponent)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Component")))
       }
     }

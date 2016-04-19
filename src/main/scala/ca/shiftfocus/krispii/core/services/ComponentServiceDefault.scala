@@ -220,20 +220,22 @@ class ComponentServiceDefault(
     title: Option[String],
     questions: Option[String],
     thingsToThinkAbout: Option[String],
-    htmlContent: Option[String]): Future[\/[ErrorUnion#Fail, Component]] = {
+    htmlContent: Option[String],
+    order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
       for {
         existingComponent <- lift(componentRepository.find(id))
         _ <- predicate(existingComponent.version == version)(ServiceError.OfflineLockFail)
-        _ <- predicate(existingComponent.isInstanceOf[TextComponent])(ServiceError.BadInput("Component type is not text"))
-        existingText = existingComponent.asInstanceOf[TextComponent]
-        componentToUpdate = existingText.copy(
+        _ <- predicate(existingComponent.isInstanceOf[GenericHTMLComponent])(ServiceError.BadInput("Component type is not text"))
+        existingGenericHTML = existingComponent.asInstanceOf[GenericHTMLComponent]
+        componentToUpdate = existingGenericHTML.copy(
           version = version,
           ownerId = ownerId,
-          title = title.getOrElse(existingText.title),
-          questions = questions.getOrElse(existingText.questions),
-          thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingText.thingsToThinkAbout),
-          content = htmlContent.getOrElse(existingText.content)
+          title = title.getOrElse(existingGenericHTML.title),
+          questions = questions.getOrElse(existingGenericHTML.questions),
+          thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingGenericHTML.thingsToThinkAbout),
+          htmlContent = htmlContent.getOrElse(existingGenericHTML.htmlContent),
+          order = order.getOrElse(existingGenericHTML.order)
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
       } yield updatedComponent

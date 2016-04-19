@@ -31,7 +31,7 @@ trait ComponentService extends Service[ErrorUnion#Fail] {
     content: Option[String], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
   def updateVideo(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
     vimeoId: Option[String], height: Option[Int], width: Option[Int], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
-  def updateGenericHTML(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String], htmlContent: Option[String]): Future[\/[ErrorUnion#Fail, Component]]
+  def updateGenericHTML(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String], htmlContent: Option[String], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
 
   def delete(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Component]]
 

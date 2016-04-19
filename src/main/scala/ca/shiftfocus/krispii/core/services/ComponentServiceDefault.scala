@@ -264,11 +264,11 @@ class ComponentServiceDefault(
   }
 
   override def updateRubric(id: UUID, version: Long, ownerId: UUID,
-                                 title: Option[String],
-                                 questions: Option[String],
-                                 thingsToThinkAbout: Option[String],
-                                 rubricContent: Option[String],
-                                 order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
+    title: Option[String],
+    questions: Option[String],
+    thingsToThinkAbout: Option[String],
+    rubricContent: Option[String],
+    order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
       for {
         existingComponent <- lift(componentRepository.find(id))

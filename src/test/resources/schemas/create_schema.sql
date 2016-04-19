@@ -227,6 +227,12 @@ CREATE TABLE generic_html_components (
    html_content text
 );
 
+CREATE TABLE rubric_components (
+          component_id uuid PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
+          rubric_content text
+);
+
+
 CREATE TABLE video_components (
   component_id uuid PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
   vimeo_id text,

@@ -704,6 +704,12 @@ VALUES ('8cfc608981294c2e9ed145d38077d440', 5, '36c8c0ca50aa4806afa5916a5e33a81f
 INSERT INTO generic_html_components (component_id, html_content)
 VALUES ('8cfc608981294c2e9ed145d38077d440', 'testGenericComponentH content');
 
+INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
+VALUES ('8cfc608981294c2e9ed145d38077d449', 6, '36c8c0ca50aa4806afa5916a5e33a81f', 'testRubricComponentK title', 'testRubricComponentK questions', 'testRubricComponentK thingsToThinkAbout', 'rubric', 5, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+
+INSERT INTO rubric_components (component_id, rubric_content)
+VALUES ('8cfc608981294c2e9ed145d38077d449', 'testRubricComponentK content');
+
 
 /* ---------------------- PARTS_COMPONENTS ---------------------- */
 

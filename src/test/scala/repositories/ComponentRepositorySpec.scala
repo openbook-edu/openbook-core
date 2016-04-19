@@ -23,6 +23,7 @@ class ComponentRepositorySpec
            TestValues.testAudioComponentC,
            TestValues.testAudioComponentE,
            TestValues.testGenericHTMLComponentH,
+          TestValues.testRubricComponentK,
            TestValues.testTextComponentA,
            TestValues.testVideoComponentB
         ).sortBy((component => component.title))
@@ -57,6 +58,13 @@ class ComponentRepositorySpec
                 sortedComponents(i) match {
                   case component: GenericHTMLComponent => {
                     genericHTMLComponent.htmlContent should be(component.htmlContent)
+                  }
+                }
+              }
+              case rubricComponent: RubricComponent => {
+                sortedComponents(i) match {
+                  case component: RubricComponent => {
+                    rubricComponent.rubricContent should be(component.rubricContent)
                   }
                 }
               }

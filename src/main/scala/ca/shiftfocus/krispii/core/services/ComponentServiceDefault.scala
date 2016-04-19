@@ -139,6 +139,27 @@ class ComponentServiceDefault(
     }
   }
 
+  override def createRubric(
+    ownerId: UUID,
+    title: String,
+    questions: String,
+    thingsToThinkAbout: String,
+    rubricContent: String,
+    order: Int
+  ): Future[\/[ErrorUnion#Fail, Component]] = {
+    val newComponent = RubricComponent(
+      ownerId = ownerId,
+      title = title,
+      questions = questions,
+      thingsToThinkAbout = thingsToThinkAbout,
+      rubricContent = rubricContent,
+      order = order
+    )
+    transactional { implicit conn =>
+      componentRepository.insert(newComponent)
+    }
+  }
+
   override def createVideo(
     ownerId: UUID,
     title: String,
@@ -242,6 +263,32 @@ class ComponentServiceDefault(
     }
   }
 
+  override def updateRubric(id: UUID, version: Long, ownerId: UUID,
+                                 title: Option[String],
+                                 questions: Option[String],
+                                 thingsToThinkAbout: Option[String],
+                                 rubricContent: Option[String],
+                                 order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
+    transactional { implicit conn =>
+      for {
+        existingComponent <- lift(componentRepository.find(id))
+        _ <- predicate(existingComponent.version == version)(ServiceError.OfflineLockFail)
+        _ <- predicate(existingComponent.isInstanceOf[RubricComponent])(ServiceError.BadInput("Component type is not text"))
+        existingRubric = existingComponent.asInstanceOf[RubricComponent]
+        componentToUpdate = existingRubric.copy(
+          version = version,
+          ownerId = ownerId,
+          title = title.getOrElse(existingRubric.title),
+          questions = questions.getOrElse(existingRubric.questions),
+          thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingRubric.thingsToThinkAbout),
+          rubricContent = rubricContent.getOrElse(existingRubric.rubricContent),
+          order = order.getOrElse(existingRubric.order)
+        )
+        updatedComponent <- lift(componentRepository.update(componentToUpdate))
+      } yield updatedComponent
+    }
+  }
+
   override def updateVideo(id: UUID, version: Long, ownerId: UUID,
     title: Option[String],
     questions: Option[String],
@@ -281,6 +328,7 @@ class ComponentServiceDefault(
           case comp: AudioComponent => comp.copy(version = version)
           case comp: TextComponent => comp.copy(version = version)
           case comp: GenericHTMLComponent => comp.copy(version = version)
+          case comp: RubricComponent => comp.copy(version = version)
           case comp: VideoComponent => comp.copy(version = version)
         }
         deleted <- lift(componentRepository.delete(toDelete))

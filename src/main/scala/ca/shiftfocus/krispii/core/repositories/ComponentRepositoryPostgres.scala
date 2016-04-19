@@ -25,6 +25,7 @@ class ComponentRepositoryPostgres()
       case "text" => constructText(row)
       case "video" => constructVideo(row)
       case "generic_html" => constructGeneric(row)
+      case "rubric" => constructRubric(row)
     }
   }
 
@@ -53,6 +54,21 @@ class ComponentRepositoryPostgres()
       row("things_to_think_about").asInstanceOf[String],
       row("ord").asInstanceOf[Int],
       row("html_content").asInstanceOf[String],
+      row("created_at").asInstanceOf[DateTime],
+      row("updated_at").asInstanceOf[DateTime]
+    )
+  }
+
+  private def constructRubric(row: RowData): RubricComponent = {
+    RubricComponent(
+      row("id").asInstanceOf[UUID],
+      row("version").asInstanceOf[Long],
+      row("owner_id").asInstanceOf[UUID],
+      row("title").asInstanceOf[String],
+      row("questions").asInstanceOf[String],
+      row("things_to_think_about").asInstanceOf[String],
+      row("ord").asInstanceOf[Int],
+      row("rubric_content").asInstanceOf[String],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -101,6 +117,7 @@ class ComponentRepositoryPostgres()
     """
        |  text_components.content,
        |  generic_html_components.html_content,
+       |  rubric_components.rubric_content,
        |  video_components.vimeo_id,
        |  video_components.width,
        |  video_components.height,
@@ -114,6 +131,7 @@ class ComponentRepositoryPostgres()
     s"""
       |LEFT JOIN  text_components ON $Table.id = text_components.component_id
       |LEFT JOIN  generic_html_components ON $Table.id = generic_html_components.component_id
+      |LEFT JOIN  rubric_components ON $Table.id = rubric_components.component_id
       |LEFT JOIN  video_components ON $Table.id = video_components.component_id
       |LEFT JOIN  audio_components ON $Table.id = audio_components.component_id
      """.stripMargin
@@ -233,6 +251,17 @@ class ComponentRepositoryPostgres()
        |FROM c, t
   """.stripMargin
 
+  val InsertRubric =
+    s"""
+       |WITH c AS ($Insert),
+       |     t AS (INSERT INTO rubric_components (component_id, rubric_content)
+       |           SELECT id as component_id, ? as html_content
+       |           FROM c
+       |           RETURNING rubric_content)
+       |SELECT ${CommonFieldsWithTable("c")}, t.rubric_content
+       |FROM c, t
+  """.stripMargin
+
   val InsertVideo =
     s"""
       |WITH c AS ($Insert),
@@ -280,6 +309,17 @@ class ComponentRepositoryPostgres()
        |          t.html_content
     """.stripMargin
 
+  val UpdateRubric =
+    s"""
+       |WITH component AS ($Update)
+       |UPDATE rubric_components as t
+       |SET rubric_content = ?
+       |FROM component
+       |WHERE component_id = component.id
+       |RETURNING $CommonFields,
+       |          t.rubric_content
+    """.stripMargin
+
   val UpdateVideo =
     s"""
       |WITH component AS ($Update)
@@ -324,7 +364,8 @@ class ComponentRepositoryPostgres()
       | audio_components,
       | text_components,
       | video_components,
-      | generic_html_components
+      | generic_html_components,
+      | rubric_components
       |WHERE $Table.id = ?
       | AND $Table.version = ?
       |RETURNING $CommonFields, $SpecificFields
@@ -468,6 +509,10 @@ class ComponentRepositoryPostgres()
         Component.GenericHTML,
         genericHTMLComponent.htmlContent
       )
+      case rubricComponent: RubricComponent => commonData ++ Array[Any](
+        Component.Rubric,
+        rubricComponent.rubricContent
+      )
       case videoComponent: VideoComponent => commonData ++ Array[Any](
         Component.Video,
         videoComponent.vimeoId,
@@ -484,6 +529,7 @@ class ComponentRepositoryPostgres()
     val query = component match {
       case textComponent: TextComponent => InsertText
       case genericHTMLComponent: GenericHTMLComponent => InsertGenericHTML
+      case rubricComponent: RubricComponent => InsertRubric
       case videoComponent: VideoComponent => InsertVideo
       case audioComponent: AudioComponent => InsertAudio
     }
@@ -520,6 +566,9 @@ class ComponentRepositoryPostgres()
       case genericHTMLComponent: GenericHTMLComponent => commonData ++ Array[Any](
         genericHTMLComponent.htmlContent
       )
+      case rubricComponent: RubricComponent => commonData ++ Array[Any](
+        rubricComponent.rubricContent
+      )
       case videoComponent: VideoComponent => commonData ++ Array[Any](
         videoComponent.vimeoId,
         videoComponent.width,
@@ -534,6 +583,7 @@ class ComponentRepositoryPostgres()
     val query = component match {
       case textComponent: TextComponent => UpdateText
       case genericHTMLComponent: GenericHTMLComponent => UpdateGenericHTML
+      case rubricComponent: RubricComponent => UpdateRubric
       case videoComponent: VideoComponent => UpdateVideo
       case audioComponent: AudioComponent => UpdateAudio
     }

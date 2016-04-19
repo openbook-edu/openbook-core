@@ -1311,6 +1311,7 @@ object TestValues {
     version = testDocumentA.version,
     response = Some(testDocumentA),
     isComplete = true,
+    grade = "",
     createdAt = testDocumentA.createdAt,
     updatedAt = testDocumentA.updatedAt
   )
@@ -1323,6 +1324,7 @@ object TestValues {
     version = testDocumentB.version,
     response = Some(testDocumentB),
     isComplete = true,
+    grade = "",
     createdAt = testDocumentB.createdAt,
     updatedAt = testDocumentB.updatedAt
   )
@@ -1336,6 +1338,7 @@ object TestValues {
     version = 1L,
     response = Some(testDocumentB),
     isComplete = true,
+    grade = "",
     createdAt = testDocumentB.createdAt,
     updatedAt = testDocumentB.updatedAt
   )
@@ -1350,6 +1353,7 @@ object TestValues {
       testShortQuestionA.id -> testShortAnswerA
     )),
     isComplete = false,
+    grade = "",
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1363,6 +1367,7 @@ object TestValues {
       testShortQuestionA.id -> testShortAnswerA
     )),
     isComplete = false,
+    grade = "",
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1373,6 +1378,7 @@ object TestValues {
     studentId = testUserG.id,
     taskId = testShortAnswerTaskB.id,
     version = 1L,
+    grade = "",
     response = Answers(Map(
       testShortQuestionA.id -> testShortAnswerA
     )),
@@ -1387,6 +1393,7 @@ object TestValues {
     studentId = testUserC.id,
     taskId = testMultipleChoiceTaskC.id,
     version = 3L,
+    grade = "",
     response = Answers(Map(
       testMultipleChoiceQuestionB.id -> testMultipleChoiceAnswerB
     )),
@@ -1404,6 +1411,7 @@ object TestValues {
       testMultipleChoiceQuestionB.id -> testMultipleChoiceAnswerB
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1418,6 +1426,7 @@ object TestValues {
       testMultipleChoiceQuestionB.id -> testMultipleChoiceAnswerB
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1432,6 +1441,7 @@ object TestValues {
       testOrderingQuestionC.id -> testOrderingAnswerC
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1445,6 +1455,7 @@ object TestValues {
       testOrderingQuestionC.id -> testOrderingAnswerC
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1459,6 +1470,7 @@ object TestValues {
       testOrderingQuestionC.id -> testOrderingAnswerC
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1473,6 +1485,7 @@ object TestValues {
       testMatchingQuestionD.id -> testMatchingAnswerD
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1486,6 +1499,7 @@ object TestValues {
       testMatchingQuestionD.id -> testMatchingAnswerD
     )),
     isComplete = false,
+    grade = "",
     createdAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1500,6 +1514,7 @@ object TestValues {
       testMatchingQuestionD.id -> testMatchingAnswerD
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1514,6 +1529,7 @@ object TestValues {
       testBlanksQuestionE.id -> testBlanksAnswerE
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1527,6 +1543,7 @@ object TestValues {
       testBlanksQuestionE.id -> testBlanksAnswerE
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1541,6 +1558,7 @@ object TestValues {
       testBlanksQuestionE.id -> testBlanksAnswerE
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1553,6 +1571,7 @@ object TestValues {
     version = 3L,
     fileData = MediaAnswer(fileName = Some("image.jpg")),
     isComplete = false,
+    grade = "",
     createdAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1565,6 +1584,7 @@ object TestValues {
     version = 1L,
     fileData = MediaAnswer(),
     isComplete = false,
+    grade = "",
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1580,6 +1600,7 @@ object TestValues {
     version = testDocumentRevisionA.version,
     response = Some(testDocumentRevisionA),
     isComplete = testLongAnswerWorkA.isComplete,
+    grade = "",
     createdAt = testLongAnswerWorkA.createdAt,
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1592,6 +1613,7 @@ object TestValues {
     version = testDocumentRevisionB.version,
     response = Some(testDocumentRevisionB),
     isComplete = testLongAnswerWorkF.isComplete,
+    grade = "",
     createdAt = testLongAnswerWorkF.createdAt,
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1606,6 +1628,7 @@ object TestValues {
       testShortQuestionA.id -> testShortAnswerRevisionA
     )),
     isComplete = testShortAnswerWorkB.isComplete,
+    grade = "",
     createdAt = testShortAnswerWorkB.createdAt,
     updatedAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1615,6 +1638,7 @@ object TestValues {
     studentId = testShortAnswerWorkG.studentId,
     taskId = testShortAnswerWorkG.taskId,
     version = testShortAnswerWorkG.version - 1,
+    grade = "",
     response = Answers(Map(
       testShortQuestionA.id -> testShortAnswerRevisionA
     )),
@@ -1629,6 +1653,7 @@ object TestValues {
     studentId = testMultipleChoiceWorkC.studentId,
     taskId = testMultipleChoiceWorkC.taskId,
     version = testMultipleChoiceWorkC.version - 1,
+    grade = "",
     response = Answers(Map(
       testMultipleChoiceQuestionB.id -> testMultipleChoiceAnswerRevisionB
     )),
@@ -1642,6 +1667,7 @@ object TestValues {
     studentId = testMultipleChoiceWorkH.studentId,
     taskId = testMultipleChoiceWorkH.taskId,
     version = testMultipleChoiceWorkH.version - 1,
+    grade = "",
     response = Answers(Map(
       testMultipleChoiceQuestionB.id -> testMultipleChoiceAnswerRevisionB
     )),
@@ -1660,6 +1686,7 @@ object TestValues {
       testOrderingQuestionC.id -> testOrderingAnswerRevisionC
     )),
     isComplete = testOrderingWorkD.isComplete,
+    grade = "",
     createdAt = testOrderingWorkD.createdAt,
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1669,6 +1696,7 @@ object TestValues {
     studentId = testOrderingWorkI.studentId,
     taskId = testOrderingWorkI.taskId,
     version = testOrderingWorkI.version - 1,
+    grade = "",
     response = Answers(Map(
       testOrderingQuestionC.id -> testOrderingAnswerRevisionC
     )),
@@ -1683,6 +1711,7 @@ object TestValues {
     studentId = testMatchingWorkE.studentId,
     taskId = testMatchingWorkE.taskId,
     version = testMatchingWorkE.version - 1,
+    grade = "",
     response = Answers(Map(
       testMatchingQuestionD.id -> testMatchingAnswerRevisionD
     )),
@@ -1695,6 +1724,7 @@ object TestValues {
     id = testMatchingWorkJ.id,
     studentId = testMatchingWorkJ.studentId,
     taskId = testMatchingWorkJ.taskId,
+    grade = "",
     version = testMatchingWorkJ.version - 1,
     response = Answers(Map(
       testMatchingQuestionD.id -> testMatchingAnswerRevisionD
@@ -1709,6 +1739,7 @@ object TestValues {
     studentId = testMatchingWorkJ.studentId,
     taskId = testMatchingWorkJ.taskId,
     version = testMatchingWorkJ.version - 2,
+    grade = "",
     response = Answers(Map(
       testMatchingQuestionD.id -> testMatchingAnswerRevisionD
     )),
@@ -1723,6 +1754,7 @@ object TestValues {
     studentId = testBlanksWorkK.studentId,
     taskId = testBlanksWorkK.taskId,
     version = testBlanksWorkK.version - 1,
+    grade = "",
     response = Answers(Map(
       testBlanksQuestionE.id -> testBlanksAnswerRevisionE
     )),
@@ -1736,6 +1768,7 @@ object TestValues {
     studentId = testBlanksWorkL.studentId,
     taskId = testBlanksWorkL.taskId,
     version = testBlanksWorkL.version - 1,
+    grade = "",
     response = Answers(Map(
       testBlanksQuestionE.id -> testBlanksAnswerRevisionE
     )),
@@ -1856,6 +1889,19 @@ object TestValues {
     thingsToThinkAbout = "testGenericComponentH thingsToThinkAbout",
     order = 0,
     htmlContent = "testGenericComponentH content",
+    createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testRubricComponentK = RubricComponent(
+    id = UUID.fromString("8cfc6089-8129-4c2e-9ed1-45d38077d449"),
+    version = 6L,
+    ownerId = testUserA.id,
+    title = "testRubricComponentK title",
+    questions = "testRubricComponentK questions",
+    thingsToThinkAbout = "testRubricComponentK thingsToThinkAbout",
+    order = 0,
+    rubricContent = "testRubricComponentK content",
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )

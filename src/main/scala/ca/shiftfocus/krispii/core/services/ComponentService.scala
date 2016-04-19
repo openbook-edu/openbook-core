@@ -22,6 +22,7 @@ trait ComponentService extends Service[ErrorUnion#Fail] {
   def createAudio(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, soundCloudId: String, order: Int): Future[\/[ErrorUnion#Fail, Component]]
   def createText(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, content: String, order: Int): Future[\/[ErrorUnion#Fail, Component]]
   def createGenericHTML(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, htmlContent: String, order: Int): Future[\/[ErrorUnion#Fail, Component]]
+  def createRubric(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, rubricContent: String, order: Int): Future[\/[ErrorUnion#Fail, Component]]
   def createVideo(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String,
     vimeoId: String, height: Int, width: Int, order: Int): Future[\/[ErrorUnion#Fail, Component]]
 
@@ -32,6 +33,7 @@ trait ComponentService extends Service[ErrorUnion#Fail] {
   def updateVideo(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
     vimeoId: Option[String], height: Option[Int], width: Option[Int], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
   def updateGenericHTML(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String], htmlContent: Option[String], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
+  def updateRubric(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String], rubricContent: Option[String], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
 
   def delete(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Component]]
 

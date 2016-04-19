@@ -201,8 +201,8 @@ class ProjectServiceDefault(
             partComponents <- lift(insertPartsComponents(components, part))
           } yield tasks
         }))
-        //here we might want to change it. instead of accessing database once more we can map parts to the projects
-      } yield clonedProject
+        //we need to return the newProject not the clonedProject because the latter one doesn't have the updated slug
+      } yield newProject.copy(parts = clonedParts)
       futureProject
     }
   }

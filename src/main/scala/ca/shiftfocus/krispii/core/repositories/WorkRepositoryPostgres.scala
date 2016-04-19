@@ -39,6 +39,7 @@ class WorkRepositoryPostgres(
       documentId = row("document_id").asInstanceOf[UUID],
       version = row("version").asInstanceOf[Long],
       response = None,
+      grade = row("grade").asInstanceOf[String],
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
@@ -63,6 +64,7 @@ class WorkRepositoryPostgres(
       version = version,
       response = Json.parse(row("answers").asInstanceOf[String]).as[Answers],
       isComplete = row("is_complete").asInstanceOf[Boolean],
+      grade = row("grade").asInstanceOf[String],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = updated_at
     )
@@ -86,6 +88,7 @@ class WorkRepositoryPostgres(
       version = version,
       fileData = Json.parse(row("file_data").asInstanceOf[String]).as[MediaAnswer],
       isComplete = row("is_complete").asInstanceOf[Boolean],
+      grade = row("grade").asInstanceOf[String],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = updated_at
     )
@@ -94,12 +97,12 @@ class WorkRepositoryPostgres(
   // -- Common query components --------------------------------------------------------------------------------------
 
   val Table = "work"
-  val CommonFields = "id, user_id, task_id, version, is_complete, created_at, updated_at, work_type"
+  val CommonFields = "id, user_id, task_id, version, is_complete, grade, created_at, updated_at, work_type"
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
   }
 
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
 
   object LastWork {
     val SpecificFields =
@@ -249,7 +252,7 @@ class WorkRepositoryPostgres(
   val Insert =
     s"""
        |INSERT INTO $Table ($CommonFields)
-       |VALUES (?, ?, ?, 1, ?, ?, ?, ?)
+       |VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?)
        |RETURNING $CommonFields
      """.stripMargin
 
@@ -260,7 +263,7 @@ class WorkRepositoryPostgres(
        |           SELECT w.id as work_id, ? as document_id
        |           FROM w
        |           RETURNING *)
-       |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.created_at, w.updated_at, w.work_type, x.document_id
+       |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.grade, w.created_at, w.updated_at, w.work_type, x.document_id
        |FROM w, x
      """.stripMargin
   }
@@ -272,7 +275,7 @@ class WorkRepositoryPostgres(
        |           SELECT w.id as work_id, '{}' as answers
        |           FROM w
        |           RETURNING *)
-       |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.created_at, w.updated_at, w.work_type, x.answers
+       |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.grade, w.created_at, w.updated_at, w.work_type, x.answers
        |FROM w, x
      """.stripMargin
   }
@@ -284,7 +287,7 @@ class WorkRepositoryPostgres(
        |           SELECT w.id as work_id, ? as file_data
        |           FROM w
        |           RETURNING *)
-       |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.created_at, w.updated_at, w.work_type, x.file_data
+       |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.grade, w.created_at, w.updated_at, w.work_type, x.file_data
        |FROM w, x
      """.stripMargin
   }
@@ -296,6 +299,7 @@ class WorkRepositoryPostgres(
        |UPDATE $Table
        |SET version = ?,
        |    is_complete = ?,
+       |    grade = ?,
        |    updated_at = ?
        |WHERE id = ?
        |  AND version = ?
@@ -308,7 +312,7 @@ class WorkRepositoryPostgres(
        |     x AS (SELECT *
        |           FROM document_work, w
        |           WHERE work_id = w.id)
-       |SELECT w.id, w.user_id, w.task_id, w.version, x.document_id, w.is_complete, w.work_type, w.created_at, w.updated_at
+       |SELECT w.id, w.user_id, w.task_id, w.version, x.document_id, w.is_complete, w.grade, w.work_type, w.created_at, w.updated_at
        |FROM w, x
      """.stripMargin
   }
@@ -324,7 +328,7 @@ class WorkRepositoryPostgres(
        |                  w.updated_at as created_at
        |           FROM w, x
        |           RETURNING *)
-       |SELECT w.id, w.user_id, w.task_id, w.version, x.answers, w.is_complete, w.work_type, w.created_at, w.updated_at
+       |SELECT w.id, w.user_id, w.task_id, w.version, x.answers, w.is_complete, w.grade, w.work_type, w.created_at, w.updated_at
        |FROM w,x,y
      """.stripMargin
   }
@@ -340,7 +344,7 @@ class WorkRepositoryPostgres(
        |                  w.updated_at as created_at
        |           FROM w, x
        |           RETURNING *)
-       |SELECT w.id, w.user_id, w.task_id, w.version, x.file_data, w.is_complete, w.work_type, w.created_at, w.updated_at
+       |SELECT w.id, w.user_id, w.task_id, w.version, x.file_data, w.is_complete, w.grade, w.work_type, w.created_at, w.updated_at
        |FROM w,x,y
      """.stripMargin
   }
@@ -659,6 +663,7 @@ class WorkRepositoryPostgres(
       work.studentId,
       work.taskId,
       work.isComplete,
+      work.grade,
       new DateTime,
       new DateTime
     )
@@ -689,6 +694,7 @@ class WorkRepositoryPostgres(
     queryOne(UpdateDocumentWork, Seq[Any](
       1L,
       work.isComplete,
+      work.grade,
       new DateTime,
       work.id,
       1L
@@ -709,6 +715,7 @@ class WorkRepositoryPostgres(
     queryOne(UpdateQuestionWork, Seq[Any](
       work.version + 1,
       work.isComplete,
+      work.grade,
       new DateTime,
       work.id,
       work.version,
@@ -721,6 +728,7 @@ class WorkRepositoryPostgres(
     queryOne(UpdateMediaWork, Seq[Any](
       work.version + 1,
       work.isComplete,
+      work.grade,
       new DateTime,
       work.id,
       work.version,

@@ -1,0 +1,1 @@
+alter table work add column "grade" text default '0';

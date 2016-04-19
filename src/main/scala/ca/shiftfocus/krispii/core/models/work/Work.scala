@@ -13,6 +13,7 @@ sealed trait Work {
   val taskId: UUID
   val version: Long
   val isComplete: Boolean
+  val grade: String
   val createdAt: DateTime
   val updatedAt: DateTime
   def responseToString: String = {
@@ -36,6 +37,7 @@ object Work {
           }
         },
         "isComplete" -> work.isComplete,
+        "grade" -> work.grade,
         "createdAt" -> work.createdAt,
         "updatedAt" -> work.updatedAt
       )
@@ -56,6 +58,7 @@ final case class DocumentWork(
     version: Long = 1L,
     response: Option[Document] = None,
     isComplete: Boolean = false,
+    grade: String,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) extends Work {
@@ -74,6 +77,7 @@ final case class QuestionWork(
     version: Long = 1L,
     response: Answers = Answers(),
     isComplete: Boolean = false,
+    grade: String,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) extends Work {
@@ -89,6 +93,7 @@ final case class MediaWork(
     version: Long = 1L,
     fileData: MediaAnswer = MediaAnswer(),
     isComplete: Boolean = false,
+    grade: String,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) extends Work {

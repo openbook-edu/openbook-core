@@ -171,6 +171,7 @@ class WorkServiceDefault(
           taskId = task.id,
           documentId = document.id,
           isComplete = isComplete,
+          grade = "0",
           response = Some(document)
         )
         work <- lift(workRepository.insert(newWork))
@@ -201,7 +202,8 @@ class WorkServiceDefault(
           taskId = taskId,
           version = 1,
           response = Answers(Map()),
-          isComplete = isComplete
+          isComplete = isComplete,
+          grade = "0"
         )
         work <- lift(workRepository.insert(newWork))
       } yield work.asInstanceOf[QuestionWork]
@@ -231,7 +233,8 @@ class WorkServiceDefault(
           taskId = taskId,
           version = 1,
           fileData = MediaAnswer(),
-          isComplete = isComplete
+          isComplete = isComplete,
+          grade = "0"
         )
         work <- lift(workRepository.insert(newWork))
       } yield work.asInstanceOf[MediaWork]
@@ -272,9 +275,9 @@ class WorkServiceDefault(
    * Update a long answer work.
    *
    * Because the contents of the work are handled by the Document service, this method only
-   * serves to update the work's completed status.
+   * serves to update the work's completed status UPD: and grade.
    */
-  def updateDocumentWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, DocumentWork]] = {
+  def updateDocumentWork(userId: UUID, taskId: UUID, isComplete: Boolean, grade: Option[String]): Future[\/[ErrorUnion#Fail, DocumentWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -285,7 +288,7 @@ class WorkServiceDefault(
         existingWork <- lift(workRepository.find(user, task))
         _ <- predicate(existingWork.isInstanceOf[DocumentWork])(ServiceError.BadInput("Attempted to update the answer for a question work"))
         existingDocWork = existingWork.asInstanceOf[DocumentWork]
-        workToUpdate = existingDocWork.copy(isComplete = isComplete)
+        workToUpdate = existingDocWork.copy(isComplete = isComplete, grade = grade.getOrElse(existingWork.grade))
         updatedWork <- lift(workRepository.update(workToUpdate))
       } yield updatedWork.asInstanceOf[DocumentWork]
     }
@@ -296,7 +299,8 @@ class WorkServiceDefault(
     taskId: UUID,
     version: Long,
     response: Option[Answers],
-    isComplete: Option[Boolean]
+    isComplete: Option[Boolean],
+    grade: Option[String]
   ): Future[\/[ErrorUnion#Fail, QuestionWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
@@ -311,7 +315,8 @@ class WorkServiceDefault(
         existingQuestionWork = existingWork.asInstanceOf[QuestionWork]
         workToUpdate = existingQuestionWork.copy(
           response = response.getOrElse(existingQuestionWork.response),
-          isComplete = isComplete.getOrElse(existingQuestionWork.isComplete)
+          isComplete = isComplete.getOrElse(existingQuestionWork.isComplete),
+          grade = grade.getOrElse(existingWork.grade)
         )
         updatedWork <- lift(workRepository.update(workToUpdate))
       } yield updatedWork.asInstanceOf[QuestionWork]
@@ -323,7 +328,8 @@ class WorkServiceDefault(
     taskId: UUID,
     version: Long,
     fileData: Option[MediaAnswer],
-    isComplete: Option[Boolean]
+    isComplete: Option[Boolean],
+    grade: Option[String]
   ): Future[\/[ErrorUnion#Fail, MediaWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
@@ -338,7 +344,8 @@ class WorkServiceDefault(
         existingMediaWork = existingWork.asInstanceOf[MediaWork]
         workToUpdate = existingMediaWork.copy(
           fileData = fileData.getOrElse(existingMediaWork.fileData),
-          isComplete = isComplete.getOrElse(existingMediaWork.isComplete)
+          isComplete = isComplete.getOrElse(existingMediaWork.isComplete),
+          grade = grade.getOrElse(existingWork.grade)
         )
         updatedWork <- lift(workRepository.update(workToUpdate))
       } yield updatedWork.asInstanceOf[MediaWork]

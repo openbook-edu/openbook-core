@@ -30,13 +30,14 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   def createQuestionWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, QuestionWork]]
   def createMediaWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MediaWork]]
 
-  def updateDocumentWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, DocumentWork]]
+  def updateDocumentWork(userId: UUID, taskId: UUID, isComplete: Boolean, grade: Option[String] = None): Future[\/[ErrorUnion#Fail, DocumentWork]]
   def updateQuestionWork(
     userId: UUID,
     taskId: UUID,
     version: Long,
     answers: Option[Answers] = None,
-    isComplete: Option[Boolean] = None
+    isComplete: Option[Boolean] = None,
+    grade: Option[String] = None
   ): Future[\/[ErrorUnion#Fail, QuestionWork]]
 
   def updateMediaWork(
@@ -44,7 +45,8 @@ trait WorkService extends Service[ErrorUnion#Fail] {
     taskId: UUID,
     version: Long,
     fileData: Option[MediaAnswer] = None,
-    isComplete: Option[Boolean] = None
+    isComplete: Option[Boolean] = None,
+    grade: Option[String] = None
   ): Future[\/[ErrorUnion#Fail, MediaWork]]
 
   def updateAnswer(workId: UUID, version: Long, questionId: UUID, answer: Answer): Future[\/[ErrorUnion#Fail, QuestionWork]]

@@ -255,6 +255,15 @@ class SchoolServiceDefault(
     }
   }
 
+  override def removeUser(course: Course, userId: UUID): Future[\/[ErrorUnion#Fail, User]] = {
+    transactional { implicit conn =>
+      for {
+        user <- lift(userRepository.find(userId))
+        wasRemoved <- lift(courseRepository.removeUser(user, course))
+      } yield user
+    }
+  }
+
   /**
    * Given a user and teacher, finds whether this user belongs to any of that teacher's courses.
    *

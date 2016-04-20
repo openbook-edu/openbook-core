@@ -36,7 +36,7 @@ object Component {
           title = (js \ "title").as[String],
           questions = (js \ "questions").as[String],
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
-          soundcloudId = (js \ "soundcloudId").as[String],
+          audioData = (js \ "audio_data").as[MediaData],
           order = (js \ "order").as[Int],
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
@@ -84,7 +84,7 @@ object Component {
           title = (js \ "title").as[String],
           questions = (js \ "questions").as[String],
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
-          vimeoId = (js \ "vimeoId").as[String],
+          videoData = (js \ "video_data").as[MediaData],
           width = (js \ "width").as[Int],
           height = (js \ "height").as[Int],
           order = (js \ "order").as[Int],
@@ -115,3 +115,33 @@ object Component {
     }
   }
 }
+
+case class MediaData(
+  host: Option[String] = None,
+  data: Option[String] = None,
+  dataType: Option[String] = None
+)
+
+object MediaData {
+  implicit val reads = new Reads[MediaData] {
+    def reads(json: JsValue) = {
+      JsSuccess(
+        MediaData(
+          (json \ "host").asOpt[String],
+          (json \ "data").asOpt[String],
+          (json \ "dataType").asOpt[String]
+        )
+      )
+    }
+  }
+  implicit val writes = new Writes[MediaData] {
+    def writes(mediaData: MediaData): JsValue = {
+      Json.obj(
+        "host" -> mediaData.host,
+        "data" -> mediaData.data,
+        "dataType" -> mediaData.dataType
+      )
+    }
+  }
+}
+

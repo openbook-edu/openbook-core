@@ -150,7 +150,7 @@ class ComponentServiceSpec
           Some(testComponent.title),
           Some(testComponent.questions),
           Some(testComponent.thingsToThinkAbout),
-          Some(testComponent.soundcloudId),
+          Some(testComponent.audioData),
           None
         )
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
@@ -228,7 +228,7 @@ class ComponentServiceSpec
           Some(testComponent.title),
           Some(testComponent.questions),
           Some(testComponent.thingsToThinkAbout),
-          Some(testComponent.vimeoId),
+          Some(testComponent.videoData),
           Some(testComponent.width),
           Some(testComponent.height),
           None

@@ -681,22 +681,22 @@ VALUES ('8cfc608981294c2e9ed145d38077d438', 'testTextComponentA content');
 INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
 VALUES ('50d07485f33c47559ccf59d823cbb79e', 2, '36c8c0ca50aa4806afa5916a5e33a81f', 'testVideoComponentB title', 'testVideoComponentB questions', 'testVideoComponentB thingsToThinkAbout', 'video', 2, '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
-INSERT INTO video_components (component_id, vimeo_id, width, height)
-VALUES ('50d07485f33c47559ccf59d823cbb79e', '19579282', 640, 480);
+INSERT INTO video_components (component_id, video_data, width, height)
+VALUES ('50d07485f33c47559ccf59d823cbb79e', '{"host": "vimeo", "data": "19579282"}', 640, 480);
 
 /* testAudioComponentC -> userA (teacher) */
 INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
 VALUES ('a51c6b535180416daa771cc620dee9c0', 3, '36c8c0ca50aa4806afa5916a5e33a81f', 'testAudioComponentC title', 'testAudioComponentC questions', 'testAudioComponentC thingsToThinkAbout', 'audio', 3, '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
 
-INSERT INTO audio_components (component_id, soundcloud_id)
-VALUES ('a51c6b535180416daa771cc620dee9c0', 'dj-whisky-ft-nozipho-just');
+INSERT INTO audio_components (component_id, audio_data)
+VALUES ('a51c6b535180416daa771cc620dee9c0', '{"host": "sound_cloud", "data": "dj-whisky-ft-nozipho-just"}');
 
 /* testAudioComponentE -> userB (teacher) */
 INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
 VALUES ('9f2dd973397b4f559618b0ff3af69ecb', 4, '6c0e29bdd05b4b2981156be93e936c59', 'testAudioComponentE title', 'testAudioComponentE questions', 'testAudioComponentE thingsToThinkAbout', 'audio', 4,  '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
 
-INSERT INTO audio_components (component_id, soundcloud_id)
-VALUES ('9f2dd973397b4f559618b0ff3af69ecb', 'revolution-radio-network');
+INSERT INTO audio_components (component_id, audio_data)
+VALUES ('9f2dd973397b4f559618b0ff3af69ecb', '{"host": "sound_cloud", "data": "revolution-radio-network"}');
 
 INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
 VALUES ('8cfc608981294c2e9ed145d38077d440', 5, '36c8c0ca50aa4806afa5916a5e33a81f', 'testGenericComponentH title', 'testGenericComponentH questions', 'testGenericComponentH thingsToThinkAbout', 'generic_html', 5, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');

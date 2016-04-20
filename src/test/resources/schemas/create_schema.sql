@@ -235,14 +235,14 @@ CREATE TABLE rubric_components (
 
 CREATE TABLE video_components (
   component_id uuid PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
-  vimeo_id text,
+  video_data jsonb,
   width int,
   height int
 );
 
 CREATE TABLE audio_components (
   component_id uuid PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
-  soundcloud_id text
+  audio_data jsonb
 );
 
 CREATE TABLE component_notes (

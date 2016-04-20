@@ -81,7 +81,7 @@ class ComponentServiceDefault(
     title: String,
     questions: String,
     thingsToThinkAbout: String,
-    soundcloudId: String,
+    audioData: MediaData,
     order: Int
   ): Future[\/[ErrorUnion#Fail, Component]] = {
     val newComponent = AudioComponent(
@@ -89,7 +89,7 @@ class ComponentServiceDefault(
       title = title,
       questions = questions,
       thingsToThinkAbout = thingsToThinkAbout,
-      soundcloudId = soundcloudId,
+      audioData = audioData,
       order = order
     )
     transactional { implicit conn =>
@@ -165,7 +165,7 @@ class ComponentServiceDefault(
     title: String,
     questions: String,
     thingsToThinkAbout: String,
-    vimeoId: String,
+    videoData: MediaData,
     height: Int,
     width: Int,
     order: Int
@@ -175,7 +175,7 @@ class ComponentServiceDefault(
       title = title,
       questions = questions,
       thingsToThinkAbout = thingsToThinkAbout,
-      vimeoId = vimeoId,
+      videoData = videoData,
       width = width,
       height = height,
       order = order
@@ -189,7 +189,7 @@ class ComponentServiceDefault(
     title: Option[String],
     questions: Option[String],
     thingsToThinkAbout: Option[String],
-    soundcloudId: Option[String],
+    audioData: Option[MediaData],
     order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
       for {
@@ -203,7 +203,7 @@ class ComponentServiceDefault(
           title = title.getOrElse(existingAudio.title),
           questions = questions.getOrElse(existingAudio.questions),
           thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingAudio.thingsToThinkAbout),
-          soundcloudId = soundcloudId.getOrElse(existingAudio.soundcloudId),
+          audioData = audioData.getOrElse(existingAudio.audioData),
           order = order.getOrElse(existingAudio.order)
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
@@ -293,7 +293,7 @@ class ComponentServiceDefault(
     title: Option[String],
     questions: Option[String],
     thingsToThinkAbout: Option[String],
-    vimeoId: Option[String],
+    videoData: Option[MediaData],
     width: Option[Int],
     height: Option[Int],
     order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
@@ -309,7 +309,7 @@ class ComponentServiceDefault(
           title = title.getOrElse(existingVideo.title),
           questions = questions.getOrElse(existingVideo.questions),
           thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingVideo.thingsToThinkAbout),
-          vimeoId = vimeoId.getOrElse(existingVideo.vimeoId),
+          videoData = videoData.getOrElse(existingVideo.videoData),
           width = width.getOrElse(existingVideo.width),
           height = height.getOrElse(existingVideo.height),
           order = order.getOrElse(existingVideo.order)

@@ -14,7 +14,7 @@ case class VideoComponent(
   title: String,
   questions: String,
   thingsToThinkAbout: String,
-  vimeoId: String,
+  videoData: MediaData = MediaData(),
   width: Int,
   height: Int,
   order: Int,
@@ -24,6 +24,10 @@ case class VideoComponent(
 
 object VideoComponent {
 
+  val Youtube = "youtube"
+  val Vimeo = "vimeo"
+  val S3 = "s3"
+
   implicit val videoComponentWrites: Writes[VideoComponent] = (
     (__ \ "id").write[UUID] and
     (__ \ "version").write[Long] and
@@ -31,7 +35,7 @@ object VideoComponent {
     (__ \ "title").write[String] and
     (__ \ "questions").write[String] and
     (__ \ "thingsToThinkAbout").write[String] and
-    (__ \ "vimeoId").write[String] and
+    (__ \ "videoData").write[MediaData] and
     (__ \ "width").write[Int] and
     (__ \ "height").write[Int] and
     (__ \ "order").write[Int] and
@@ -46,7 +50,7 @@ case class VideoComponentPost(
   title: String,
   questions: Option[String],
   thingsToThinkAbout: Option[String],
-  vimeoId: String,
+  videoData: MediaData,
   width: Int,
   height: Int,
   order: Int
@@ -57,7 +61,7 @@ object VideoComponentPost {
     (__ \ "title").read[String] and
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and
-    (__ \ "vimeoId").read[String] and
+    (__ \ "videoData").read[MediaData] and
     (__ \ "width").read[Int] and
     (__ \ "height").read[Int] and
     (__ \ "order").read[Int]
@@ -69,7 +73,7 @@ case class VideoComponentPut(
   title: String,
   questions: String,
   thingsToThinkAbout: String,
-  vimeoId: String,
+  videoData: MediaData,
   width: Int,
   height: Int,
   order: Int
@@ -80,7 +84,7 @@ object VideoComponentPut {
     (__ \ "title").read[String] and
     (__ \ "questions").read[String] and
     (__ \ "thingsToThinkAbout").read[String] and
-    (__ \ "vimeoId").read[String] and
+    (__ \ "videoData").read[MediaData] and
     (__ \ "width").read[Int] and
     (__ \ "height").read[Int] and
     (__ \ "order").read[Int]

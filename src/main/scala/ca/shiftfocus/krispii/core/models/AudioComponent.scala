@@ -2,9 +2,12 @@ package ca.shiftfocus.krispii.core.models
 
 import com.github.mauricio.async.db.RowData
 import java.util.UUID
+
 import org.joda.time.DateTime
-import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import play.api.libs.json._
+import play.api.libs.json.Writes._
+import sun.audio.AudioData
 
 case class AudioComponent(
   id: UUID = UUID.randomUUID,
@@ -13,13 +16,16 @@ case class AudioComponent(
   title: String,
   questions: String,
   thingsToThinkAbout: String,
-  soundcloudId: String,
+  audioData: MediaData = MediaData(),
   order: Int,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) extends Component
 
 object AudioComponent {
+
+  val SoundCloud = "sound_cloud"
+  val S3 = "s3"
 
   implicit val audioComponentWrites: Writes[AudioComponent] = (
     (__ \ "id").write[UUID] and
@@ -28,7 +34,7 @@ object AudioComponent {
     (__ \ "title").write[String] and
     (__ \ "questions").write[String] and
     (__ \ "thingsToThinkAbout").write[String] and
-    (__ \ "soundcloudId").write[String] and
+    (__ \ "audioData").write[MediaData] and
     (__ \ "order").write[Int] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
@@ -41,7 +47,7 @@ case class AudioComponentPost(
   title: String,
   questions: Option[String],
   thingsToThinkAbout: Option[String],
-  soundcloudId: String,
+  audioData: MediaData,
   order: Int
 )
 object AudioComponentPost {
@@ -50,7 +56,7 @@ object AudioComponentPost {
     (__ \ "title").read[String] and
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and
-    (__ \ "soundcloudId").read[String] and
+    (__ \ "audioData").read[MediaData] and
     (__ \ "order").read[Int]
   )(AudioComponentPost.apply _)
 }
@@ -60,7 +66,7 @@ case class AudioComponentPut(
   title: String,
   questions: Option[String],
   thingsToThinkAbout: Option[String],
-  soundcloudId: String,
+  audioData: MediaData,
   order: Int
 )
 object AudioComponentPut {
@@ -69,7 +75,7 @@ object AudioComponentPut {
     (__ \ "title").read[String] and
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and
-    (__ \ "soundcloudId").read[String] and
+    (__ \ "audioData").read[MediaData] and
     (__ \ "order").read[Int]
   )(AudioComponentPut.apply _)
 }

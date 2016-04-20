@@ -3,16 +3,20 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
-import com.github.mauricio.async.db.{ ResultSet, RowData, Connection }
+import com.github.mauricio.async.db.{ Connection, ResultSet, RowData }
 import play.api.Logger
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
+
 import scala.concurrent.Future
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+import play.api.libs.json.Json
+
 import scalacache.ScalaCache
-import scalaz.{ \/, -\/, \/- }
+import scalaz.{ -\/, \/, \/- }
 
 class ComponentRepositoryPostgres()
     extends ComponentRepository with PostgresRepository[Component] {
@@ -37,7 +41,7 @@ class ComponentRepositoryPostgres()
       row("title").asInstanceOf[String],
       row("questions").asInstanceOf[String],
       row("things_to_think_about").asInstanceOf[String],
-      row("soundcloud_id").asInstanceOf[String],
+      Json.parse(row("audio_data").asInstanceOf[String]).as[MediaData],
       row("ord").asInstanceOf[Int],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
@@ -97,7 +101,7 @@ class ComponentRepositoryPostgres()
       row("title").asInstanceOf[String],
       row("questions").asInstanceOf[String],
       row("things_to_think_about").asInstanceOf[String],
-      row("vimeo_id").asInstanceOf[String],
+      Json.parse(row("video_data").asInstanceOf[String]).as[MediaData],
       row("width").asInstanceOf[Int],
       row("height").asInstanceOf[Int],
       row("ord").asInstanceOf[Int],
@@ -118,10 +122,10 @@ class ComponentRepositoryPostgres()
        |  text_components.content,
        |  generic_html_components.html_content,
        |  rubric_components.rubric_content,
-       |  video_components.vimeo_id,
+       |  video_components.video_data,
        |  video_components.width,
        |  video_components.height,
-       |  audio_components.soundcloud_id
+       |  audio_components.audio_data
      """.stripMargin
 
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
@@ -221,11 +225,11 @@ class ComponentRepositoryPostgres()
   val InsertAudio =
     s"""
       |WITH c AS ($Insert),
-      |     a AS (INSERT INTO audio_components (component_id, soundcloud_id)
-      |           SELECT id as component_id, ? as soundcloud_id
+      |     a AS (INSERT INTO audio_components (component_id, audio_data)
+      |           SELECT id as component_id, ? as audio_data
       |           FROM c
-      |           RETURNING soundcloud_id)
-      |SELECT ${CommonFieldsWithTable("c")}, a.soundcloud_id
+      |           RETURNING audio_data)
+      |SELECT ${CommonFieldsWithTable("c")}, a.audio_data
       |FROM c, a
   """.stripMargin
 
@@ -265,11 +269,11 @@ class ComponentRepositoryPostgres()
   val InsertVideo =
     s"""
       |WITH c AS ($Insert),
-      |     v AS (INSERT INTO video_components (component_id, vimeo_id, width, height)
-      |           SELECT id as component_id, ? as vimeo_id, ? as width, ? as height
+      |     v AS (INSERT INTO video_components (component_id, video_data,  width, height)
+      |           SELECT id as component_id, ? as video_data, ? as width, ? as height
       |           FROM c
-      |           RETURNING vimeo_id, width, height)
-      |SELECT ${CommonFieldsWithTable("c")}, v.vimeo_id, v.width, v.height
+      |           RETURNING video_data, width, height)
+      |SELECT ${CommonFieldsWithTable("c")}, v.video_data, v.width, v.height
       |FROM c, v
   """.stripMargin
 
@@ -324,22 +328,22 @@ class ComponentRepositoryPostgres()
     s"""
       |WITH component AS ($Update)
       |UPDATE video_components as v
-      |SET vimeo_id = ?, width = ?, height = ?
+      |SET video_data = ?, width = ?, height = ?
       |FROM component
       |WHERE component_id = component.id
       |RETURNING $CommonFields,
-      |          v.vimeo_id, v.width, v.height
+      |          v.video_data, v.width, v.height
     """.stripMargin
 
   val UpdateAudio =
     s"""
       |WITH component AS ($Update)
       |UPDATE audio_components as a
-      |SET soundcloud_id = ?
+      |SET audio_data = ?
       |FROM component
       |WHERE component_id = component.id
       |RETURNING $CommonFields,
-      |          a.soundcloud_id
+      |          a.audio_data
     """.stripMargin
 
   // -- Delete queries -----------------------------------------------------------------------------------------------
@@ -515,13 +519,13 @@ class ComponentRepositoryPostgres()
       )
       case videoComponent: VideoComponent => commonData ++ Array[Any](
         Component.Video,
-        videoComponent.vimeoId,
+        Json.toJson(videoComponent.videoData),
         videoComponent.width,
         videoComponent.height
       )
       case audioComponent: AudioComponent => commonData ++ Array[Any](
         Component.Audio,
-        audioComponent.soundcloudId
+        Json.toJson(audioComponent.audioData)
       )
       case _ => throw new Exception("I don't know how you did this, but you sent me a component type that doesn't exist.")
     }
@@ -570,12 +574,12 @@ class ComponentRepositoryPostgres()
         rubricComponent.rubricContent
       )
       case videoComponent: VideoComponent => commonData ++ Array[Any](
-        videoComponent.vimeoId,
+        Json.toJson(videoComponent.videoData),
         videoComponent.width,
         videoComponent.height
       )
       case audioComponent: AudioComponent => commonData ++ Array[Any](
-        audioComponent.soundcloudId
+        Json.toJson(audioComponent.audioData)
       )
       case _ => throw new Exception("I don't know how you did this, but you sent me a component type that doesn't exist.")
     }

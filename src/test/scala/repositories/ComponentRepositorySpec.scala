@@ -71,7 +71,7 @@ class ComponentRepositorySpec
               case videoComponent: VideoComponent => {
                 sortedComponents(i) match {
                   case component: VideoComponent => {
-                    videoComponent.vimeoId should be(component.vimeoId)
+                    videoComponent.videoData should be(component.videoData)
                     videoComponent.width should be(component.width)
                     videoComponent.height should be(component.height)
                   }
@@ -80,7 +80,7 @@ class ComponentRepositorySpec
               case audioComponent: AudioComponent => {
                 sortedComponents(i) match {
                   case component: AudioComponent => {
-                    audioComponent.soundcloudId should be(component.soundcloudId)
+                    audioComponent.audioData should be(component.audioData)
                   }
                 }
               }
@@ -128,7 +128,7 @@ class ComponentRepositorySpec
               case videoComponent: VideoComponent => {
                 component match {
                   case component: VideoComponent => {
-                    videoComponent.vimeoId should be(component.vimeoId)
+                    videoComponent.videoData should be(component.videoData)
                     videoComponent.width should be(component.width)
                     videoComponent.height should be(component.height)
                   }
@@ -189,7 +189,7 @@ class ComponentRepositorySpec
               case videoComponent: VideoComponent => {
                 component match {
                   case component: VideoComponent => {
-                    videoComponent.vimeoId should be(component.vimeoId)
+                    videoComponent.videoData should be(component.videoData)
                     videoComponent.width should be(component.width)
                     videoComponent.height should be(component.height)
                   }
@@ -198,7 +198,7 @@ class ComponentRepositorySpec
               case audioComponent: AudioComponent => {
                 component match {
                   case component: AudioComponent => {
-                    audioComponent.soundcloudId should be(component.soundcloudId)
+                    audioComponent.audioData should be(component.audioData)
                   }
                 }
               }
@@ -254,7 +254,7 @@ class ComponentRepositorySpec
               case audioComponent: AudioComponent => {
                 component match {
                   case component: AudioComponent => {
-                    audioComponent.soundcloudId should be(component.soundcloudId)
+                    audioComponent.audioData should be(component.audioData)
                   }
                 }
               }
@@ -302,7 +302,7 @@ class ComponentRepositorySpec
         component.updatedAt.toString should be(testComponent.updatedAt.toString)
 
         //Specific
-        component.soundcloudId should be(testComponent.soundcloudId)
+        component.audioData should be(testComponent.audioData)
       }
       "return RepositoryError.NoResults if id is wrong" in {
         (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
@@ -420,7 +420,7 @@ class ComponentRepositorySpec
               case videoComponent: VideoComponent => {
                 component match {
                   case component: VideoComponent => {
-                    videoComponent.vimeoId should be(component.vimeoId)
+                    videoComponent.videoData should be(component.videoData)
                     videoComponent.width should be(component.width)
                     videoComponent.height should be(component.height)
                   }
@@ -503,7 +503,7 @@ class ComponentRepositorySpec
         component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
 
         //Specific
-        component.vimeoId should be(testComponent.vimeoId)
+        component.videoData should be(testComponent.videoData)
         component.width should be(testComponent.width)
         component.height should be(testComponent.height)
       }
@@ -529,7 +529,7 @@ class ComponentRepositorySpec
         component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
 
         //Specific
-        component.soundcloudId should be(testComponent.soundcloudId)
+        component.audioData should be(testComponent.audioData)
       }
       "return RepositoryError.PrimaryKeyConflict if AudioComponent already exists" in {
         val testComponent = TestValues.testAudioComponentC
@@ -625,7 +625,7 @@ class ComponentRepositorySpec
           title = "updated title",
           questions = "updated questions",
           thingsToThinkAbout = "updated thingsToThinkAbout",
-          vimeoId = "bla bla",
+          videoData = MediaData(Some("bla_host"), Some("bla bla")),
           width = 128,
           height = 128
         )
@@ -645,7 +645,7 @@ class ComponentRepositorySpec
         component.updatedAt.toString should not be (updatedComponent.updatedAt.toString)
 
         //Specific
-        component.vimeoId should be(updatedComponent.vimeoId)
+        component.videoData should be(updatedComponent.videoData)
         component.width should be(updatedComponent.width)
         component.height should be(updatedComponent.height)
       }
@@ -658,7 +658,7 @@ class ComponentRepositorySpec
           title = "updated title",
           questions = "updated questions",
           thingsToThinkAbout = "updated thingsToThinkAbout",
-          vimeoId = "bla bla",
+          videoData = MediaData(Some("bla_host"), Some("bla bla")),
           width = 128,
           height = 128
         )
@@ -675,7 +675,7 @@ class ComponentRepositorySpec
           title = "updated title",
           questions = "updated questions",
           thingsToThinkAbout = "updated thingsToThinkAbout",
-          soundcloudId = "bla bla bla"
+          audioData = MediaData(Some("bla_host"), Some("bla bla"))
         )
 
         val result = componentRepository.update(updatedComponent)
@@ -693,7 +693,7 @@ class ComponentRepositorySpec
         component.updatedAt.toString should not be (updatedComponent.updatedAt.toString)
 
         //Specific
-        component.soundcloudId should be(updatedComponent.soundcloudId)
+        component.audioData should be(updatedComponent.audioData)
       }
       "return RepositoryError.NoResults if AudioComponent doesn't exist" in {
         (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
@@ -704,7 +704,7 @@ class ComponentRepositorySpec
           title = "updated title",
           questions = "updated questions",
           thingsToThinkAbout = "updated thingsToThinkAbout",
-          soundcloudId = "bla bla bla"
+          audioData = MediaData(Some("bla_host"), Some("bla bla"))
         )
 
         val result = componentRepository.update(updatedComponent)
@@ -773,7 +773,7 @@ class ComponentRepositorySpec
         component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
 
         //Specific
-        component.vimeoId should be(testComponent.vimeoId)
+        component.videoData should be(testComponent.videoData)
         component.width should be(testComponent.width)
         component.height should be(testComponent.height)
       }
@@ -813,7 +813,7 @@ class ComponentRepositorySpec
         component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
 
         //Specific
-        component.soundcloudId should be(testComponent.soundcloudId)
+        component.audioData should be(testComponent.audioData)
       }
       "return RepositoryError.NoResults if AudioComponent doesn't exist" in {
         (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))

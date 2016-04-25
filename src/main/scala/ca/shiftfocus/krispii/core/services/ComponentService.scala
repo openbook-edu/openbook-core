@@ -17,6 +17,7 @@ trait ComponentService extends Service[ErrorUnion#Fail] {
   def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
   def listByPart(partId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
   def listByProject(projectId: UUID, forceAll: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
+  def listByTeacher(teacherId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
   def find(id: UUID): Future[\/[ErrorUnion#Fail, Component]]
 
   def createAudio(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, audioData: MediaData, order: Int): Future[\/[ErrorUnion#Fail, Component]]
@@ -31,7 +32,7 @@ trait ComponentService extends Service[ErrorUnion#Fail] {
   def updateText(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
     content: Option[String], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
   def updateVideo(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
-                  videoData: Option[MediaData], height: Option[Int], width: Option[Int], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
+    videoData: Option[MediaData], height: Option[Int], width: Option[Int], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
   def updateGenericHTML(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String], htmlContent: Option[String], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
   def updateRubric(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String], rubricContent: Option[String], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
 

@@ -19,7 +19,8 @@ class ComponentServiceDefault(
   val authService: AuthService,
   val projectService: ProjectService,
   val schoolService: SchoolService,
-  val componentRepository: ComponentRepository
+  val componentRepository: ComponentRepository,
+  val userRepository: UserRepository
 )
     extends ComponentService {
 
@@ -63,6 +64,19 @@ class ComponentServiceDefault(
       else liftSeq {
         Future.sequence(project.parts.filter(_.enabled).map(componentRepository.list(_: Part)))
       }.map(_.flatten.distinct)
+    } yield componentList
+  }
+
+  /**
+   * List all components for a specific teacher
+   *
+   * @param teacherId
+   * @return
+   */
+  override def listByTeacher(teacherId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
+    for {
+      teacher <- lift(userRepository.find(teacherId))
+      componentList <- lift(componentRepository.list(teacher))
     } yield componentList
   }
 

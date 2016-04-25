@@ -183,6 +183,14 @@ class ComponentRepositoryPostgres()
       |ORDER BY $OrderBy
   """.stripMargin
 
+  val SelectByOwner =
+    s"""
+       |SELECT $CommonFields, $SpecificFields
+       |FROM $Table
+       |$Join
+       |WHERE components.owner_id = ?
+  """.stripMargin
+
   val SelectEnabledByProjectId =
     s"""
       |SELECT ${CommonFieldsWithTable()}, $SpecificFields
@@ -405,6 +413,16 @@ class ComponentRepositoryPostgres()
    */
   override def list(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     queryList(SelectByProjectId, Array[Any](project.id))
+  }
+
+  /**
+   * Find all components for a teacher.
+   *
+   * @param teacher the owner of components
+   * @return an array of components
+   */
+  override def list(teacher: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+    queryList(SelectByOwner, Array[Any](teacher.id))
   }
 
   /**

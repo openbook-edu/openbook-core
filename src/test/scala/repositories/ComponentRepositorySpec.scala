@@ -20,12 +20,12 @@ class ComponentRepositorySpec
     inSequence {
       "find all components" in {
         val testComponentList = Seq[Component](
-           TestValues.testAudioComponentC,
-           TestValues.testAudioComponentE,
-           TestValues.testGenericHTMLComponentH,
-           TestValues.testRubricComponentK,
-           TestValues.testTextComponentA,
-           TestValues.testVideoComponentB
+          TestValues.testAudioComponentC,
+          TestValues.testAudioComponentE,
+          TestValues.testGenericHTMLComponentH,
+          TestValues.testRubricComponentK,
+          TestValues.testTextComponentA,
+          TestValues.testVideoComponentB
         ).sortBy((component => component.title))
 
         val result = componentRepository.list
@@ -34,57 +34,57 @@ class ComponentRepositorySpec
 
         components.size should be(testComponentList.size)
         val sortedComponents = components.sortBy(component => component.title)
-        for(i <- 0 to components.size - 1 ) {
-            //Common
-            sortedComponents(i).id should be(testComponentList(i).id)
-            sortedComponents(i).version should be(testComponentList(i).version)
-            sortedComponents(i).ownerId should be(testComponentList(i).ownerId)
-            sortedComponents(i).title should be(testComponentList(i).title)
-            sortedComponents(i).questions should be(testComponentList(i).questions)
-            sortedComponents(i).thingsToThinkAbout should be(testComponentList(i).thingsToThinkAbout)
-            sortedComponents(i).createdAt.toString should be(testComponentList(i).createdAt.toString)
-            sortedComponents(i).updatedAt.toString should be(testComponentList(i).updatedAt.toString)
+        for (i <- 0 to components.size - 1) {
+          //Common
+          sortedComponents(i).id should be(testComponentList(i).id)
+          sortedComponents(i).version should be(testComponentList(i).version)
+          sortedComponents(i).ownerId should be(testComponentList(i).ownerId)
+          sortedComponents(i).title should be(testComponentList(i).title)
+          sortedComponents(i).questions should be(testComponentList(i).questions)
+          sortedComponents(i).thingsToThinkAbout should be(testComponentList(i).thingsToThinkAbout)
+          sortedComponents(i).createdAt.toString should be(testComponentList(i).createdAt.toString)
+          sortedComponents(i).updatedAt.toString should be(testComponentList(i).updatedAt.toString)
 
-            //Specific
+          //Specific
           testComponentList(i) match {
-              case textComponent: TextComponent => {
-                sortedComponents(i) match {
-                  case component: TextComponent => {
-                    textComponent.content should be(component.content)
-                  }
-                }
-              }
-              case genericHTMLComponent: GenericHTMLComponent => {
-                sortedComponents(i) match {
-                  case component: GenericHTMLComponent => {
-                    genericHTMLComponent.htmlContent should be(component.htmlContent)
-                  }
-                }
-              }
-              case rubricComponent: RubricComponent => {
-                sortedComponents(i) match {
-                  case component: RubricComponent => {
-                    rubricComponent.rubricContent should be(component.rubricContent)
-                  }
-                }
-              }
-              case videoComponent: VideoComponent => {
-                sortedComponents(i) match {
-                  case component: VideoComponent => {
-                    videoComponent.videoData should be(component.videoData)
-                    videoComponent.width should be(component.width)
-                    videoComponent.height should be(component.height)
-                  }
-                }
-              }
-              case audioComponent: AudioComponent => {
-                sortedComponents(i) match {
-                  case component: AudioComponent => {
-                    audioComponent.audioData should be(component.audioData)
-                  }
+            case textComponent: TextComponent => {
+              sortedComponents(i) match {
+                case component: TextComponent => {
+                  textComponent.content should be(component.content)
                 }
               }
             }
+            case genericHTMLComponent: GenericHTMLComponent => {
+              sortedComponents(i) match {
+                case component: GenericHTMLComponent => {
+                  genericHTMLComponent.htmlContent should be(component.htmlContent)
+                }
+              }
+            }
+            case rubricComponent: RubricComponent => {
+              sortedComponents(i) match {
+                case component: RubricComponent => {
+                  rubricComponent.rubricContent should be(component.rubricContent)
+                }
+              }
+            }
+            case videoComponent: VideoComponent => {
+              sortedComponents(i) match {
+                case component: VideoComponent => {
+                  videoComponent.videoData should be(component.videoData)
+                  videoComponent.width should be(component.width)
+                  videoComponent.height should be(component.height)
+                }
+              }
+            }
+            case audioComponent: AudioComponent => {
+              sortedComponents(i) match {
+                case component: AudioComponent => {
+                  audioComponent.audioData should be(component.audioData)
+                }
+              }
+            }
+          }
         }
       }
       "find all components belonging to a specific part" in {

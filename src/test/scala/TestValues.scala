@@ -801,9 +801,6 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-
-
-
   /* ---------------------- DOCUMENTS ---------------------- */
 
   val testDocumentA = Document(
@@ -1883,8 +1880,6 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-
-
   val testGenericHTMLComponentH = GenericHTMLComponent(
     id = UUID.fromString("8cfc6089-8129-4c2e-9ed1-45d38077d440"),
     version = 5L,
@@ -2077,7 +2072,7 @@ object TestValues {
   val testPartI = Part(
     id = UUID.fromString("fb01f11b-7f23-41c8-877b-68410be62ab6"),
     version = 3L,
-    projectId = UUID.fromString("00743ada-1d3a-4912-adc8-fb8a0b1b7447"), // testProjectB.id,
+    projectId = UUID.fromString("00743ada-1d3a-4912-adc8-fb8a0b1b7447"), // testProjectH.id,
     name = "test part I",
     enabled = true,
     position = 1,

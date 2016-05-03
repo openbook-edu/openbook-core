@@ -215,6 +215,9 @@ VALUES ('8e080c002b204e7bb18c2582d79e7e68', 6, 'c9b4cfceaed448fd94f5c980763dfddc
 INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
 VALUES ('45a146b3fd9a4cab9d1d3e9b0b15e12c', 7, '4ac4d872451b4092b13f643d6d5fa930', 'test part H', true, 16, '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
+/* part I -> project H  */
+INSERT INTO parts (id, version, project_id, name, enabled, position, created_at, updated_at)
+VALUES ('fb01f11b7f2341c8877b68410be62ab6', 3, '00743ada1d3a4912adc8fb8a0b1b7447', 'test part I', true, 1, '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
 /* ---------------------- TASKS ---------------------- */
 

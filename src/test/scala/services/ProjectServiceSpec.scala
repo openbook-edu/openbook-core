@@ -3101,7 +3101,7 @@ class ProjectServiceSpec
         val expectedProject = TestValues.testProjectH.copy(id = UUID.randomUUID)
         (projectRepository.cloneProject(_: UUID, _: UUID)(_: Connection, _: ScalaCachePool)) when (TestValues.testProjectH.id, TestValues.testCourseH.id, *, *) returns (Future.successful(\/-(expectedProject)))
         (projectRepository.insert(_: Project)(_: Connection, _: ScalaCachePool)) when (expectedProject, *, *) returns (Future.successful(\/-(expectedProject)))
-        (projectRepository.cloneProjectParts(_: UUID, _: UUID, _: UUID)(_: Connection, _: ScalaCachePool)) when (TestValues.testProjectH.id, TestValues.testUserH.id ,expectedProject.id, *, *) returns (Future.successful(\/-(IndexedSeq(TestValues.testPartI))))
+        (projectRepository.cloneProjectParts(_: UUID, _: UUID, _: UUID)(_: Connection, _: ScalaCachePool)) when (TestValues.testProjectH.id, TestValues.testUserH.id, expectedProject.id, *, *) returns (Future.successful(\/-(IndexedSeq(TestValues.testPartI))))
         (partRepository.insert(_: Part)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(TestValues.testPartC)))
         (projectRepository.cloneProjectComponents(_: UUID, _: UUID)(_: Connection, _: ScalaCachePool)) when (TestValues.testProjectH.id, TestValues.testUserH.id, *, *) returns (Future.successful(\/-(IndexedSeq(TestValues.testRubricComponentK, TestValues.testGenericHTMLComponentM))))
         (componentRepository.insert(_: Component)(_: Connection)) when (*, *) returns (Future.successful(\/-(TestValues.testRubricComponentL)))
@@ -3112,7 +3112,7 @@ class ProjectServiceSpec
         val result = projectService.copyMasterProject(TestValues.testProjectH.id, TestValues.testCourseH.id, TestValues.testUserH.id)
         val \/-(clonedProject) = Await.result(result, Duration.Inf)
 
-        TestValues.testProjectH.id should not be(clonedProject.id)
+        TestValues.testProjectH.id should not be (clonedProject.id)
         TestValues.testProjectH.courseId should be(clonedProject.courseId)
         TestValues.testProjectH.version should be(clonedProject.version)
         TestValues.testProjectH.name should be(clonedProject.name)
@@ -3120,7 +3120,7 @@ class ProjectServiceSpec
         TestValues.testProjectH.description should be(clonedProject.description)
         TestValues.testProjectH.availability should be(clonedProject.availability)
         TestValues.testProjectH.parts should be(clonedProject.parts)
-        TestValues.testPartI.components.head should be (clonedProject.parts.head.components.head)
+        TestValues.testPartI.components.head should be(clonedProject.parts.head.components.head)
         TestValues.testProjectH.createdAt.toString should be(clonedProject.createdAt.toString)
         TestValues.testProjectH.updatedAt.toString should be(clonedProject.updatedAt.toString)
       }

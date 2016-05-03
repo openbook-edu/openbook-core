@@ -23,7 +23,7 @@ class ComponentRepositorySpec
            TestValues.testAudioComponentC,
            TestValues.testAudioComponentE,
            TestValues.testGenericHTMLComponentH,
-          TestValues.testRubricComponentK,
+           TestValues.testRubricComponentK,
            TestValues.testTextComponentA,
            TestValues.testVideoComponentB
         ).sortBy((component => component.title))

@@ -45,7 +45,7 @@ class WorkServiceSpec
   val schoolService = stub[SchoolService]
   val projectService = stub[ProjectService]
   val documentService = new DocumentServiceDefault(db, cache, userRepository, documentRepository, revisionRepository)
-  val componentService = new ComponentServiceDefault(db, cache, authService, projectService, schoolService, componentRepository)
+  val componentService = new ComponentServiceDefault(db, cache, authService, projectService, schoolService, componentRepository, userRepository)
   val workService = new WorkServiceDefault(db, authService, schoolService, projectService, documentService, componentService, workRepository, taskFeedbackRepository, taskScratchpadRepository, projectScratchpadRepository) {
     override implicit def conn: Connection = mockConnection
 

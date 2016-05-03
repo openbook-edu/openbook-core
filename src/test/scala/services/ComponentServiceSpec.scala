@@ -24,8 +24,9 @@ class ComponentServiceSpec
   val projectService = stub[ProjectService]
   val schoolService = stub[SchoolService]
   val componentRepository = stub[ComponentRepository]
+  val userRepository = stub[UserRepository]
 
-  val componentService = new ComponentServiceDefault(db, cache, authService, projectService, schoolService, componentRepository) {
+  val componentService = new ComponentServiceDefault(db, cache, authService, projectService, schoolService, componentRepository, userRepository) {
     override implicit def conn: Connection = mockConnection
 
     override def transactional[A](f: Connection => Future[A]): Future[A] = {

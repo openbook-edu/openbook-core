@@ -117,10 +117,24 @@ object Component {
 }
 
 case class MediaData(
-  host: Option[String] = None,
-  data: Option[String] = None,
-  dataType: Option[String] = None
-)
+    host: Option[String] = None,
+    data: Option[String] = None,
+    dataType: Option[String] = None,
+    // We store the size of a file in Bytes
+    size: Option[Long] = None
+) {
+  override def equals(anotherObject: Any): Boolean = {
+    anotherObject match {
+      case anotherMediaData: MediaData => {
+        this.host == anotherMediaData.host &&
+          this.data == anotherMediaData.data &&
+          this.dataType == anotherMediaData.dataType &&
+          this.size == anotherMediaData.size
+      }
+      case _ => false
+    }
+  }
+}
 
 object MediaData {
   implicit val reads = new Reads[MediaData] {
@@ -129,7 +143,8 @@ object MediaData {
         MediaData(
           (json \ "host").asOpt[String],
           (json \ "data").asOpt[String],
-          (json \ "dataType").asOpt[String]
+          (json \ "dataType").asOpt[String],
+          (json \ "size").asOpt[Long]
         )
       )
     }
@@ -139,7 +154,8 @@ object MediaData {
       Json.obj(
         "host" -> mediaData.host,
         "data" -> mediaData.data,
-        "dataType" -> mediaData.dataType
+        "dataType" -> mediaData.dataType,
+        "size" -> mediaData.size
       )
     }
   }

@@ -283,7 +283,9 @@ object MatchingAnswer {
 
 case class MediaAnswer(
   mediaType: Option[String] = None,
-  fileName: Option[String] = None
+  fileName: Option[String] = None,
+  // We store the size of a file in Bytes
+  size: Option[Long] = None
 )
 object MediaAnswer {
   implicit val reads = new Reads[MediaAnswer] {
@@ -291,7 +293,8 @@ object MediaAnswer {
       JsSuccess(
         MediaAnswer(
           (json \ "mediaType").asOpt[String],
-          (json \ "fileName").asOpt[String]
+          (json \ "fileName").asOpt[String],
+          (json \ "size").asOpt[Long]
         )
       )
     }
@@ -300,7 +303,8 @@ object MediaAnswer {
     def writes(mediaAnswer: MediaAnswer): JsValue = {
       Json.obj(
         "mediaType" -> mediaAnswer.mediaType,
-        "fileName" -> mediaAnswer.fileName
+        "fileName" -> mediaAnswer.fileName,
+        "size" -> mediaAnswer.size
       )
     }
   }

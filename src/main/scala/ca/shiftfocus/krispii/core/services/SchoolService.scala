@@ -71,6 +71,11 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
 
   def getCourseLimit(teacherId: UUID): Future[\/[ErrorUnion#Fail, Int]]
   def getStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Int]]
+
+  def getStorageLimit(teacherId: UUID): Future[\/[ErrorUnion#Fail, Float]]
+  def getStorageUsed(teacherId: UUID): Future[\/[ErrorUnion#Fail, Float]]
+
   def setCourseLimit(teacherId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
+  def setStorageLimit(teacherId: UUID, limit: Float): Future[\/[ErrorUnion#Fail, Float]]
   def setStudentLimit(courseId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
 }

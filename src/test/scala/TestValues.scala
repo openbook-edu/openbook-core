@@ -1569,7 +1569,11 @@ object TestValues {
     studentId = testUserC.id,
     taskId = testMediaTaskA.id,
     version = 3L,
-    fileData = MediaAnswer(fileName = Some("image.jpg")),
+    fileData = MediaAnswer(
+      mediaType = Some("image/jpg"),
+      fileName = Some("image.jpg"),
+      size = Some(750000)
+    ),
     isComplete = false,
     grade = "",
     createdAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -1587,6 +1591,22 @@ object TestValues {
     grade = "",
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testMediaWorkC = MediaWork(
+    id = UUID.fromString("f4a24c3b-e502-445d-8f6e-13bcb121fbdb"),
+    studentId = testUserE.id,
+    taskId = testMediaTaskA.id,
+    version = 3L,
+    fileData = MediaAnswer(
+      mediaType = Some("image/gif"),
+      fileName = Some("photo.gif"),
+      size = Some(500000)
+    ),
+    isComplete = false,
+    grade = "",
+    createdAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   /* ---------------------- WORK REVISIONS ---------------------- */
@@ -1823,6 +1843,21 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testVideoComponentL = VideoComponent(
+    id = UUID.fromString("e3de60fe-ce40-4873-a2fb-5f223460e158"),
+    version = 2L,
+    ownerId = testUserA.id,
+    title = "testVideoComponentL title",
+    questions = "testVideoComponentL questions",
+    thingsToThinkAbout = "testVideoComponentL thingsToThinkAbout",
+    videoData = MediaData(Some("s3"), Some("some_video.mp4"), Some("video/mp4"), Some(4123456)),
+    width = 640,
+    height = 480,
+    order = 3,
+    createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* No data in DB */
   val testVideoComponentF = VideoComponent(
     id = UUID.fromString("913e9192-eb37-4557-9833-393e964472df"),
@@ -1848,6 +1883,33 @@ object TestValues {
     questions = "testAudioComponentC questions",
     thingsToThinkAbout = "testAudioComponentC thingsToThinkAbout",
     audioData = MediaData(Some("sound_cloud"), Some("dj-whisky-ft-nozipho-just")),
+    order = 0,
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testAudioComponentM = AudioComponent(
+    id = UUID.fromString("e43568db-1084-4d13-99b0-33e11b8ddbb0"),
+    version = 3L,
+    ownerId = testUserA.id,
+    title = "testAudioComponentM title",
+    questions = "testAudioComponentM questions",
+    thingsToThinkAbout = "testAudioComponentM thingsToThinkAbout",
+    audioData = MediaData(Some("s3"), Some("some_audio.mp3"), Some("audio/mp3"), Some(2236480)),
+    order = 0,
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  //Share the same file on s3 as testAudioComponentM
+  val testAudioComponentN = AudioComponent(
+    id = UUID.fromString("7fa3ebe7-3a83-468d-8dba-c5a85a2e38fd"),
+    version = 3L,
+    ownerId = testUserA.id,
+    title = "testAudioComponentN title",
+    questions = "testAudioComponentN questions",
+    thingsToThinkAbout = "testAudioComponentN thingsToThinkAbout",
+    audioData = testAudioComponentM.audioData,
     order = 0,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))

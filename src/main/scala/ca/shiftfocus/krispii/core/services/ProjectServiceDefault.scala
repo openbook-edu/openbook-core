@@ -1035,11 +1035,12 @@ class ProjectServiceDefault(
         part <- lift(partRepository.find(task.partId))
         taskList = part.tasks
         _ <- predicate(taskList.nonEmpty)(ServiceError.BusinessLogicFail("Weird, task list shouldn't be empty!"))
+        // TODO - place deleteTask before, because transactional doesn't work, so in case of an error, positions of another tasks won't be changed
+        deletedTask <- lift(taskRepository.delete(task))
         taskListUpdated <- lift {
           val filteredOderedTaskList = taskList.filter(_.id != taskId).sortWith(_.position < _.position)
           serializedT(filteredOderedTaskList.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(filteredOderedTaskList, taskList, _))
         }
-        deletedTask <- lift(taskRepository.delete(task))
       } yield deletedTask
     }
   }

@@ -10,17 +10,33 @@ import play.api.libs.json.Writes._
 import sun.audio.AudioData
 
 case class AudioComponent(
-  id: UUID = UUID.randomUUID,
-  version: Long = 1L,
-  ownerId: UUID,
-  title: String,
-  questions: String,
-  thingsToThinkAbout: String,
-  audioData: MediaData = MediaData(),
-  order: Int,
-  createdAt: DateTime = new DateTime,
-  updatedAt: DateTime = new DateTime
-) extends Component
+    id: UUID = UUID.randomUUID,
+    version: Long = 1L,
+    ownerId: UUID,
+    title: String,
+    questions: String,
+    thingsToThinkAbout: String,
+    audioData: MediaData = MediaData(),
+    order: Int,
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
+) extends Component {
+  override def equals(anotherObject: Any): Boolean = {
+    anotherObject match {
+      case anotherAudioComponent: AudioComponent => {
+        this.id == anotherAudioComponent.id &&
+          this.version == anotherAudioComponent.version &&
+          this.ownerId == anotherAudioComponent.ownerId &&
+          this.title == anotherAudioComponent.title &&
+          this.questions == anotherAudioComponent.questions &&
+          this.thingsToThinkAbout == anotherAudioComponent.thingsToThinkAbout &&
+          this.audioData == anotherAudioComponent.audioData &&
+          this.order == anotherAudioComponent.order
+      }
+      case _ => false
+    }
+  }
+}
 
 object AudioComponent {
 

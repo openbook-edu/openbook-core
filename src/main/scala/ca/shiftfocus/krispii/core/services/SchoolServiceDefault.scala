@@ -465,6 +465,26 @@ class SchoolServiceDefault(
   }
 
   /**
+   * Get storage (in GB) limit that teacher is allowed to have
+   *
+   * @param teacherId
+   * @return MB
+   */
+  override def getStorageLimit(teacherId: UUID): Future[\/[ErrorUnion#Fail, Float]] = {
+    limitRepository.getStorageLimit(teacherId)
+  }
+
+  /**
+   * Get storage (in GB) that is used by teacher
+   *
+   * @param teacherId
+   * @return GB
+   */
+  override def getStorageUsed(teacherId: UUID): Future[\/[ErrorUnion#Fail, Float]] = {
+    limitRepository.getStorageUsed(teacherId)
+  }
+
+  /**
    * Get number of students that course is allowed to have
    *
    * @param courseId
@@ -481,6 +501,17 @@ class SchoolServiceDefault(
     transactional { implicit conn =>
       for {
         limit <- limitRepository.setCourseLimit(teacherId, limit)
+      } yield limit
+    }
+  }
+
+  /**
+   * Insert or update teacher storage limit
+   */
+  override def setStorageLimit(teacherId: UUID, limit: Float): Future[\/[ErrorUnion#Fail, Float]] = {
+    transactional { implicit conn =>
+      for {
+        limit <- limitRepository.setStorageLimit(teacherId, limit)
       } yield limit
     }
   }

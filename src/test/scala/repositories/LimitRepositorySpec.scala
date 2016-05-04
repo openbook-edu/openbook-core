@@ -38,4 +38,41 @@ class LimitRepositorySpec extends TestEnvironment {
       }
     }
   }
+
+  "LimitRepository.setStorageLimit" should {
+    inSequence {
+      "Set new storage limit if it does not exist" in {
+        val testUser = TestValues.testUserA
+        val limit = 40
+
+        val result = limitRepository.setStorageLimit(testUser.id, limit.toFloat)
+        val eitherLimit = Await.result(result, Duration.Inf)
+        val \/-(limitResult) = eitherLimit
+
+        limitResult should be(limit)
+      }
+    }
+  }
+
+  "LimitRepository.getStorageUsed" should {
+    inSequence {
+      "Get teacher storage used (Media work + media components), skip media component duplicates that share the same file on s3" in {
+        val testTeacher = TestValues.testUserA
+        // In GB
+        val limit = (
+          TestValues.testMediaWorkA.fileData.size.get +
+          TestValues.testMediaWorkC.fileData.size.get +
+          TestValues.testVideoComponentL.videoData.size.get +
+          TestValues.testAudioComponentM.audioData.size.get
+        ).toFloat / 1000 / 1000 / 1000
+
+        val result = limitRepository.getStorageUsed(testTeacher.id)
+        val eitherLimit = Await.result(result, Duration.Inf)
+        val \/-(limitResult) = eitherLimit
+
+        TestValues.testAudioComponentM.audioData should be(TestValues.testAudioComponentN.audioData)
+        limitResult should be(limit)
+      }
+    }
+  }
 }

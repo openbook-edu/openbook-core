@@ -657,15 +657,32 @@ VALUES ('38800ed08c6e482b84e5806c1f86316d', 'f5f984073a0b4ea5952a575886e90586', 
 
 /* Latest revision */
 INSERT INTO media_work (work_id, file_data)
-VALUES ('38800ed08c6e482b84e5806c1f86316d', '{ "mediaType": 3, "fileName": "image.jpg" }');
+VALUES ('38800ed08c6e482b84e5806c1f86316d', '{ "mediaType": "image/jpg", "fileName": "image.jpg", "size": 750000 }');
 
 /* Previous revision */
 INSERT INTO media_work_data (work_id, file_data, version, created_at)
-VALUES ('38800ed08c6e482b84e5806c1f86316d', '{ "mediaType": 3, "fileName": "image.jpg" }', 3, '2014-08-14 14:01:19.545-04');
+VALUES ('38800ed08c6e482b84e5806c1f86316d', '{ "mediaType": "image/jpg", "fileName": "image.jpg"}', 3, '2014-08-14 14:01:19.545-04');
 
 /* Previous revision */
 INSERT INTO media_work_data (work_id, file_data, version, created_at)
-VALUES ('38800ed08c6e482b84e5806c1f86316d', '{ "mediaType": 2, "fileName": "video.mp4" }', 2, '2014-08-12 14:01:19.545-04');
+VALUES ('38800ed08c6e482b84e5806c1f86316d', '{ "mediaType": "video/mp4", "fileName": "video.mp4"}', 2, '2014-08-12 14:01:19.545-04');
+
+
+/* testMediaWorkC -> userE -> testMediaTaskA */
+INSERT INTO work (id, user_id, task_id, version, is_complete, work_type, created_at, updated_at)
+VALUES ('f4a24c3be502445d8f6e13bcb121fbdb', '871b525067124e548ab60784cae0bc64', 'a7121b74eac111e59ce95e5517507c66', 3, false, 2, '2014-08-12 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+
+/* Latest revision */
+INSERT INTO media_work (work_id, file_data)
+VALUES ('f4a24c3be502445d8f6e13bcb121fbdb', '{ "mediaType": "image/gif", "fileName": "photo.gif", "size": 500000 }');
+
+/* Previous revision */
+INSERT INTO media_work_data (work_id, file_data, version, created_at)
+VALUES ('f4a24c3be502445d8f6e13bcb121fbdb', '{ "mediaType": "image/gif", "fileName": "photo.gif"}', 3, '2014-08-14 14:01:19.545-04');
+
+/* Previous revision */
+INSERT INTO media_work_data (work_id, file_data, version, created_at)
+VALUES ('f4a24c3be502445d8f6e13bcb121fbdb', '{ "mediaType": "video/mp3", "fileName": "movie.mp3"}', 2, '2014-08-12 14:01:19.545-04');
 
 
 /* ---------------------- COMPONENTS ---------------------- */
@@ -677,12 +694,21 @@ VALUES ('8cfc608981294c2e9ed145d38077d438', 1, '36c8c0ca50aa4806afa5916a5e33a81f
 INSERT INTO text_components (component_id, content)
 VALUES ('8cfc608981294c2e9ed145d38077d438', 'testTextComponentA content');
 
+
 /* testVideoComponentB -> userA (teacher) */
 INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
 VALUES ('50d07485f33c47559ccf59d823cbb79e', 2, '36c8c0ca50aa4806afa5916a5e33a81f', 'testVideoComponentB title', 'testVideoComponentB questions', 'testVideoComponentB thingsToThinkAbout', 'video', 2, '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
 INSERT INTO video_components (component_id, video_data, width, height)
 VALUES ('50d07485f33c47559ccf59d823cbb79e', '{"host": "vimeo", "data": "19579282"}', 640, 480);
+
+/* testVideoComponentL -> userA (teacher) */
+INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
+VALUES ('e3de60fece404873a2fb5f223460e158', 2, '36c8c0ca50aa4806afa5916a5e33a81f', 'testVideoComponentL title', 'testVideoComponentL questions', 'testVideoComponentL thingsToThinkAbout', 'video', 2, '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
+
+INSERT INTO video_components (component_id, video_data, width, height)
+VALUES ('e3de60fece404873a2fb5f223460e158', '{"host": "s3", "data": "some_video.mp4", "dataType": "video/mp4", "size": 4123456}', 640, 480);
+
 
 /* testAudioComponentC -> userA (teacher) */
 INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
@@ -698,12 +724,30 @@ VALUES ('9f2dd973397b4f559618b0ff3af69ecb', 4, '6c0e29bdd05b4b2981156be93e936c59
 INSERT INTO audio_components (component_id, audio_data)
 VALUES ('9f2dd973397b4f559618b0ff3af69ecb', '{"host": "sound_cloud", "data": "revolution-radio-network"}');
 
+/* testAudioComponentM -> userA (teacher) */
+INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
+VALUES ('e43568db10844d1399b033e11b8ddbb0', 3, '36c8c0ca50aa4806afa5916a5e33a81f', 'testAudioComponentM title', 'testAudioComponentM questions', 'testAudioComponentM thingsToThinkAbout', 'audio', 3, '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
+
+INSERT INTO audio_components (component_id, audio_data)
+VALUES ('e43568db10844d1399b033e11b8ddbb0', '{"host": "s3", "data": "some_audio.mp3", "dataType": "audio/mp3", "size": 2236480}');
+
+/* testAudioComponentN -> userA (teacher) Share the same file on s3 as testAudioComponentM */
+INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
+VALUES ('7fa3ebe73a83468d8dbac5a85a2e38fd', 3, '36c8c0ca50aa4806afa5916a5e33a81f', 'testAudioComponentN title', 'testAudioComponentN questions', 'testAudioComponentN thingsToThinkAbout', 'audio', 4, '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
+
+INSERT INTO audio_components (component_id, audio_data)
+VALUES ('7fa3ebe73a83468d8dbac5a85a2e38fd', '{"host": "s3", "data": "some_audio.mp3", "dataType": "audio/mp3", "size": 2236480}');
+
+
+/* testGenericHTMLComponentH -> userA (teacher) */
 INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
 VALUES ('8cfc608981294c2e9ed145d38077d440', 5, '36c8c0ca50aa4806afa5916a5e33a81f', 'testGenericComponentH title', 'testGenericComponentH questions', 'testGenericComponentH thingsToThinkAbout', 'generic_html', 5, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
 
 INSERT INTO generic_html_components (component_id, html_content)
 VALUES ('8cfc608981294c2e9ed145d38077d440', 'testGenericComponentH content');
 
+
+/* testRubricComponentK */
 INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
 VALUES ('8cfc608981294c2e9ed145d38077d449', 6, '36c8c0ca50aa4806afa5916a5e33a81f', 'testRubricComponentK title', 'testRubricComponentK questions', 'testRubricComponentK thingsToThinkAbout', 'rubric', 5, '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
 

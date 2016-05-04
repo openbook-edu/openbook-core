@@ -9,10 +9,10 @@ import com.github.mauricio.async.db.{ Connection, RowData }
 import scala.concurrent.Future
 import scalaz.{ -\/, \/, \/- }
 
-class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Int] {
+class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Long] {
   override val entityName = "Limit"
-  override def constructor(row: RowData): Int = {
-    row("limited").asInstanceOf[Int]
+  override def constructor(row: RowData): Long = {
+    row("limited").toString.toLong
   }
 
   val GetTeacherLimit =
@@ -29,6 +29,45 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[In
       |FROM course_limit
       |WHERE course_id = ?
       | AND type = ?
+    """.stripMargin
+
+  // Use DISTINCT ON, because teacher can have many media components with links to one file on s3
+  val GetStorageUsed =
+    """
+      |WITH vc AS (SELECT SUM(vc_data.size) as limited
+      |            FROM (
+      |             SELECT DISTINCT ON (video_data::jsonb->>'data') video_data::jsonb->>'data', cast(video_data::jsonb->>'size' as bigint) as size
+      |             FROM video_components
+      |             INNER JOIN components
+      |             ON components.id = video_components.component_id
+      |             WHERE components.owner_id = ?
+      |               AND video_components.video_data::jsonb->>'host' = 's3'
+      |             ORDER BY video_data::jsonb->>'data'
+      |            )
+      |            AS vc_data),
+      |
+      |     ac AS (SELECT SUM(ac_data.size) as limited
+      |            FROM (
+      |             SELECT DISTINCT ON (audio_data::jsonb->>'data') audio_data::jsonb->>'data', cast(audio_data::jsonb->>'size' as bigint) as size
+      |             FROM audio_components
+      |             INNER JOIN components
+      |             ON components.id = audio_components.component_id
+      |             WHERE components.owner_id = ?
+      |               AND audio_components.audio_data::jsonb->>'host' = 's3'
+      |             ORDER BY audio_data::jsonb->>'data'
+      |            )
+      |            AS ac_data),
+      |
+      |     mw AS (SELECT SUM(cast(file_data::jsonb->>'size' as bigint)) as limited FROM media_work
+      |            INNER JOIN courses    ON courses.teacher_id = ?
+      |            INNER JOIN projects   ON projects.course_id = courses.id
+      |            INNER JOIN parts      ON parts.project_id = projects.id
+      |            INNER JOIN tasks      ON tasks.part_id = parts.id
+      |            INNER JOIN work       ON work.task_id = tasks.id
+      |            WHERE media_work.work_id = work.id)
+      |
+      |SELECT (COALESCE(vc.limited, 0) + COALESCE(ac.limited, 0) + COALESCE(mw.limited, 0)) as limited
+      |FROM vc, ac, mw
     """.stripMargin
 
   val InsertTeacherLimit =
@@ -70,7 +109,40 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[In
    * @return
    */
   def getCourseLimit(teacherId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
-    queryOne(GetTeacherLimit, Seq[Any](teacherId, Limits.course))
+    getTeacherLimit(teacherId, Limits.course).flatMap {
+      case \/-(limit) => Future successful \/-(limit.toInt)
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
+  /**
+   * Get storage (in GB) limit that teacher is allowed to have
+   *
+   * @param teacherId
+   * @return Limit in GB
+   */
+  def getStorageLimit(teacherId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]] = {
+    getTeacherLimit(teacherId, Limits.storage).flatMap {
+      // We store limit in database in MB, convert them to GB
+      case \/-(limit) => Future successful \/-(limit.toFloat / 1000)
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
+  /**
+   * Get storage (in GB) that teacher has used
+   *
+   * @param teacherId
+   * @return Used space in GB
+   */
+  def getStorageUsed(teacherId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]] = {
+    queryOne(GetStorageUsed, Seq[Any](teacherId, teacherId, teacherId)).flatMap {
+      // We store file size in database in Bytes, convert them to GB
+      case \/-(limit) => {
+        Future successful \/-(limit.toFloat / 1000 / 1000 / 1000)
+      }
+      case -\/(error) => Future successful -\/(error)
+    }
   }
 
   /**
@@ -80,7 +152,10 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[In
    * @return
    */
   def getStudentLimit(courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
-    queryOne(GetCourseLimit, Seq[Any](courseId, Limits.student))
+    getCourseLimit(courseId, Limits.student).flatMap {
+      case \/-(limit) => Future successful \/-(limit.toInt)
+      case -\/(error) => Future successful -\/(error)
+    }
   }
 
   /**
@@ -88,11 +163,33 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[In
    */
   def setCourseLimit(teacherId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
     queryOne(UpdateTeacherLimit, Seq[Any](limit, teacherId, Limits.course)).flatMap {
-      case \/-(limit) => Future successful \/-(limit)
+      case \/-(limit) => Future successful \/-(limit.toInt)
       case -\/(error: RepositoryError.NoResults) => {
         for {
           insert <- lift(queryOne(InsertTeacherLimit, Seq[Any](teacherId, Limits.course, limit)))
-        } yield insert
+        } yield insert.toInt
+      }
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
+  /**
+   * Upsert storage limit for teachers
+   *
+   * @param teacherId
+   * @param limit GB
+   * @return GB
+   */
+  def setStorageLimit(teacherId: UUID, limit: Float)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]] = {
+    // We store limit in database in MB, convert GB in MB
+    queryOne(UpdateTeacherLimit, Seq[Any]((limit * 1000).toInt, teacherId, Limits.storage)).flatMap {
+      // Convert back into GB
+      case \/-(limit) => Future successful \/-(limit.toFloat / 1000)
+      case -\/(error: RepositoryError.NoResults) => {
+        for {
+          insert <- lift(queryOne(InsertTeacherLimit, Seq[Any](teacherId, Limits.storage, (limit * 1000).toInt)))
+        // Convert back into GB
+        } yield insert.toFloat / 1000
       }
       case -\/(error) => Future successful -\/(error)
     }
@@ -103,14 +200,22 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[In
    */
   def setStudentLimit(courseId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
     queryOne(UpdateCourseLimit, Seq[Any](limit, courseId, Limits.student)).flatMap {
-      case \/-(limit) => Future successful \/-(limit)
+      case \/-(limit) => Future successful \/-(limit.toInt)
       case -\/(error: RepositoryError.NoResults) => {
         for {
           insert <- lift(queryOne(InsertCourseLimit, Seq[Any](courseId, Limits.student, limit)))
-        } yield insert
+        } yield insert.toInt
       }
       case -\/(error) => Future successful -\/(error)
     }
+  }
+
+  private def getTeacherLimit(teacherId: UUID, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
+    queryOne(GetTeacherLimit, Seq[Any](teacherId, limitType))
+  }
+
+  private def getCourseLimit(courseId: UUID, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
+    queryOne(GetCourseLimit, Seq[Any](courseId, limitType))
   }
 }
 
@@ -120,4 +225,5 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[In
 object Limits {
   val course: String = "course"
   val student: String = "student"
+  val storage: String = "storage"
 }

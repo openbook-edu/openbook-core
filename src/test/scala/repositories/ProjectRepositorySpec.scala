@@ -147,13 +147,13 @@ class ProjectRepositorySpec
       }
       "find all master projects" in {
         val testProjectList = TreeMap[Int, Project](
-          0 -> TestValues.testProjectF,
-          1 -> TestValues.testProjectG,
+          0 -> TestValues.testProjectF.copy(parts = Vector(TestValues.testPartI)),
+          1 -> TestValues.testProjectG.copy(parts = Vector(TestValues.testPartI)),
           2 -> TestValues.testProjectH
         )
 
         // Put here parts = Vector(), because after db query Project object is created without parts.
-        (partRepository.list(_: Project)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(Vector())))
+        (partRepository.list(_: Project)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(Vector(TestValues.testPartI))))
 
         val result = projectRepository.list(Some(true))
         val eitherProjects = Await.result(result, Duration.Inf)

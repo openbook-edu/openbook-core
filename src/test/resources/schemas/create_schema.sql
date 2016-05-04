@@ -261,6 +261,7 @@ CREATE TABLE work (
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
   task_id uuid NOT NULL REFERENCES tasks(id) ON DELETE RESTRICT,
   version bigint,
+  grade text,
   is_complete boolean DEFAULT false,
   work_type int,
   created_at timestamp with time zone,

@@ -188,7 +188,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       case -\/(error: RepositoryError.NoResults) => {
         for {
           insert <- lift(queryOne(InsertTeacherLimit, Seq[Any](teacherId, Limits.storage, (limit * 1000).toInt)))
-        // Convert back into GB
+          // Convert back into GB
         } yield insert.toFloat / 1000
       }
       case -\/(error) => Future successful -\/(error)

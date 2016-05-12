@@ -109,6 +109,12 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
        |RETURNING $Fields
      """.stripMargin
 
+  val Delete = s"""
+    |DELETE FROM $Table
+    |WHERE course_id = ?
+    |  AND message_num = ?
+    |RETURNING $Fields
+    """.stripMargin
   /**
    * List all chat logs for a course
    *
@@ -183,6 +189,7 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
   }
 
   /**
+   * Update a chat message
    *
    * @param chat
    * @param conn
@@ -191,4 +198,9 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
   override def update(chat: Chat)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]] = {
     queryOne(Update, Seq[Any](chat.hidden, chat.courseId, chat.messageNum))
   }
+
+  def delete(courseId: UUID, messageNum: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]] = {
+    queryOne(Delete, Seq[Any](courseId, messageNum))
+  }
+
 }

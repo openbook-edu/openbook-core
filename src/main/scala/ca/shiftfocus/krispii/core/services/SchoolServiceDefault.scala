@@ -537,4 +537,15 @@ class SchoolServiceDefault(
     if ("""[A-Za-z0-9\-]+""".r.unapplySeq(slug).isDefined) \/-(slug)
     else -\/(ServiceError.BadInput(s"$slug is not a valid slug format."))
   }
+
+  /**
+   * Delete a chat message
+   * @param courseId
+   * @param messageNum
+   * @return
+   */
+  override def deleteChat(courseId: UUID, messageNum: Long): Future[\/[ErrorUnion#Fail, Chat]] = {
+    chatRepository.delete(courseId, messageNum)
+  }
+
 }

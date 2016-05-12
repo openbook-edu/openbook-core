@@ -61,6 +61,7 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
 
   def insertChat(courseId: UUID, userId: UUID, message: String): Future[\/[ErrorUnion#Fail, Chat]]
   def updateChat(courseId: UUID, messageNum: Long, hidden: Boolean): Future[\/[ErrorUnion#Fail, Chat]]
+  def deleteChat(courseId: UUID, messageNum: Long): Future[\/[ErrorUnion#Fail, Chat]]
 
   def getRandomWord(lang: String): Future[\/[ErrorUnion#Fail, LinkWord]]
 

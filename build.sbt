@@ -54,7 +54,8 @@ libraryDependencies ++= Seq(
   "org.clapper" %% "grizzled-slf4j" % "1.0.2",
   "ca.shiftfocus" %% "sflib" % "1.0.6",
   "junit" % "junit" % "4.12" % "test",
-  "ws.kahn" %% "ot" % "1.0-SNAPSHOT"
+  "ws.kahn" %% "ot" % "1.0-SNAPSHOT",
+  "com.stripe" % "stripe-java" % "2.5.0"
 )
 
 addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % "0.1.12")

@@ -28,7 +28,8 @@ class ComponentRepositorySpec
           TestValues.testRubricComponentK,
           TestValues.testTextComponentA,
           TestValues.testVideoComponentB,
-          TestValues.testVideoComponentL
+          TestValues.testVideoComponentL,
+          TestValues.testBookComponentO
         ).sortBy((component => component.title))
 
         val result = componentRepository.list
@@ -37,7 +38,7 @@ class ComponentRepositorySpec
 
         components.size should be(testComponentList.size)
         val sortedComponents = components.sortBy(component => component.title)
-        for (i <- 0 to components.size - 1) {
+        for (i <- 0 until components.size) {
           //Common
           sortedComponents(i).id should be(testComponentList(i).id)
           sortedComponents(i).version should be(testComponentList(i).version)
@@ -84,6 +85,13 @@ class ComponentRepositorySpec
               sortedComponents(i) match {
                 case component: AudioComponent => {
                   audioComponent.audioData should be(component.audioData)
+                }
+              }
+            }
+            case bookComponent: BookComponent => {
+              sortedComponents(i) match {
+                case component: BookComponent => {
+                  bookComponent.fileData should be(component.fileData)
                 }
               }
             }

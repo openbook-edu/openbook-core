@@ -2035,6 +2035,19 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testBookComponentO = BookComponent(
+    id = UUID.fromString("9f2dd973-397b-4f55-9618-b0ff3af69eaa"),
+    version = 1L,
+    ownerId = testUserB.id,
+    title = "testBookComponentO title",
+    questions = "testBookComponentO questions",
+    thingsToThinkAbout = "testBookComponentO thingsToThinkAbout",
+    fileData = MediaData(data = Some("some text from a book"), dataType = Some("epub"), size= Some(4)),
+    order = 0,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* ---------------------- PARTS ---------------------- */
 
   val testPartA = Part(

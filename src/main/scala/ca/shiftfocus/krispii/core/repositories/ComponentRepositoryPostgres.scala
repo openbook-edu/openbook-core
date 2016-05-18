@@ -30,6 +30,7 @@ class ComponentRepositoryPostgres()
       case "video" => constructVideo(row)
       case "generic_html" => constructGeneric(row)
       case "rubric" => constructRubric(row)
+      case "book" => constructBook(row)
     }
   }
 
@@ -110,6 +111,21 @@ class ComponentRepositoryPostgres()
     )
   }
 
+  private def constructBook(row: RowData): BookComponent = {
+    BookComponent(
+      row("id").asInstanceOf[UUID],
+      row("version").asInstanceOf[Long],
+      row("owner_id").asInstanceOf[UUID],
+      row("title").asInstanceOf[String],
+      row("questions").asInstanceOf[String],
+      row("things_to_think_about").asInstanceOf[String],
+      Json.parse(row("file_data").asInstanceOf[String]).as[MediaData],
+      row("ord").asInstanceOf[Int],
+      row("created_at").asInstanceOf[DateTime],
+      row("updated_at").asInstanceOf[DateTime]
+    )
+  }
+
   // -- Common query components --------------------------------------------------------------------------------------
 
   val Table = "components"
@@ -122,6 +138,7 @@ class ComponentRepositoryPostgres()
        |  text_components.content,
        |  generic_html_components.html_content,
        |  rubric_components.rubric_content,
+       |  book_components.file_data,
        |  video_components.video_data,
        |  video_components.width,
        |  video_components.height,
@@ -136,6 +153,7 @@ class ComponentRepositoryPostgres()
       |LEFT JOIN  text_components ON $Table.id = text_components.component_id
       |LEFT JOIN  generic_html_components ON $Table.id = generic_html_components.component_id
       |LEFT JOIN  rubric_components ON $Table.id = rubric_components.component_id
+      |LEFT JOIN  book_components ON $Table.id = book_components.component_id
       |LEFT JOIN  video_components ON $Table.id = video_components.component_id
       |LEFT JOIN  audio_components ON $Table.id = audio_components.component_id
      """.stripMargin
@@ -285,6 +303,17 @@ class ComponentRepositoryPostgres()
       |FROM c, v
   """.stripMargin
 
+  val InsertBook =
+    s"""
+       |WITH c AS ($Insert),
+       |     b AS (INSERT INTO book_components (component_id, file_data)
+       |           SELECT id as component_id, ? as file_data
+       |           FROM c
+       |           RETURNING file_data)
+       |SELECT ${CommonFieldsWithTable("c")}, b.file_data
+       |FROM c, b
+  """.stripMargin
+
   // -- Update queries -----------------------------------------------------------------------------------------------
 
   val Update =
@@ -343,6 +372,17 @@ class ComponentRepositoryPostgres()
       |          v.video_data, v.width, v.height
     """.stripMargin
 
+  val UpdateBook =
+    s"""
+       |WITH component AS ($Update)
+       |UPDATE book_components as b
+       |SET file_data = ?
+       |FROM component
+       |WHERE component_id = component.id
+       |RETURNING $CommonFields,
+       |          b.file_data
+    """.stripMargin
+
   val UpdateAudio =
     s"""
       |WITH component AS ($Update)
@@ -377,7 +417,8 @@ class ComponentRepositoryPostgres()
       | text_components,
       | video_components,
       | generic_html_components,
-      | rubric_components
+      | rubric_components,
+      | book_components
       |WHERE $Table.id = ?
       | AND $Table.version = ?
       |RETURNING $CommonFields, $SpecificFields
@@ -545,6 +586,10 @@ class ComponentRepositoryPostgres()
         Component.Audio,
         Json.toJson(audioComponent.audioData)
       )
+      case bookComponent: BookComponent => commonData ++ Array[Any](
+        Component.Book,
+        Json.toJson(bookComponent.fileData)
+      )
       case _ => throw new Exception("I don't know how you did this, but you sent me a component type that doesn't exist.")
     }
 
@@ -554,6 +599,7 @@ class ComponentRepositoryPostgres()
       case rubricComponent: RubricComponent => InsertRubric
       case videoComponent: VideoComponent => InsertVideo
       case audioComponent: AudioComponent => InsertAudio
+      case bookComponent: BookComponent => InsertBook
     }
 
     // Send the query
@@ -599,6 +645,9 @@ class ComponentRepositoryPostgres()
       case audioComponent: AudioComponent => commonData ++ Array[Any](
         Json.toJson(audioComponent.audioData)
       )
+      case bookComponent: BookComponent => commonData ++ Array[Any](
+        Json.toJson(bookComponent.fileData)
+      )
       case _ => throw new Exception("I don't know how you did this, but you sent me a component type that doesn't exist.")
     }
 
@@ -608,6 +657,7 @@ class ComponentRepositoryPostgres()
       case rubricComponent: RubricComponent => UpdateRubric
       case videoComponent: VideoComponent => UpdateVideo
       case audioComponent: AudioComponent => UpdateAudio
+      case bookComponent: BookComponent => UpdateBook
     }
 
     // Send the query

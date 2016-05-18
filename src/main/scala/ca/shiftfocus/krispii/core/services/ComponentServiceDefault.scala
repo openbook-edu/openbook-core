@@ -111,6 +111,27 @@ class ComponentServiceDefault(
     }
   }
 
+  override def createBook(
+    ownerId: UUID,
+    title: String,
+    questions: String,
+    thingsToThinkAbout: String,
+    fileData: MediaData,
+    order: Int
+  ): Future[\/[ErrorUnion#Fail, Component]] = {
+    val newComponent = BookComponent(
+      ownerId = ownerId,
+      title = title,
+      questions = questions,
+      thingsToThinkAbout = thingsToThinkAbout,
+      fileData = fileData,
+      order = order
+    )
+    transactional { implicit conn =>
+      componentRepository.insert(newComponent)
+    }
+  }
+
   override def createText(
     ownerId: UUID,
     title: String,
@@ -219,6 +240,32 @@ class ComponentServiceDefault(
           thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingAudio.thingsToThinkAbout),
           audioData = audioData.getOrElse(existingAudio.audioData),
           order = order.getOrElse(existingAudio.order)
+        )
+        updatedComponent <- lift(componentRepository.update(componentToUpdate))
+      } yield updatedComponent
+    }
+  }
+
+  override def updateBook(id: UUID, version: Long, ownerId: UUID,
+                           title: Option[String],
+                           questions: Option[String],
+                           thingsToThinkAbout: Option[String],
+                           fileData: Option[MediaData],
+                           order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
+    transactional { implicit conn =>
+      for {
+        existingComponent <- lift(componentRepository.find(id))
+        _ <- predicate(existingComponent.version == version)(ServiceError.OfflineLockFail)
+        _ <- predicate(existingComponent.isInstanceOf[BookComponent])(ServiceError.BadInput("Component type is not book"))
+        existingBook = existingComponent.asInstanceOf[BookComponent]
+        componentToUpdate = existingBook.copy(
+          version = version,
+          ownerId = ownerId,
+          title = title.getOrElse(existingBook.title),
+          questions = questions.getOrElse(existingBook.questions),
+          thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingBook.thingsToThinkAbout),
+          fileData = fileData.getOrElse(existingBook.fileData),
+          order = order.getOrElse(existingBook.order)
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
       } yield updatedComponent
@@ -340,6 +387,7 @@ class ComponentServiceDefault(
         _ <- predicate(component.version == version)(ServiceError.OfflineLockFail)
         toDelete = component match {
           case comp: AudioComponent => comp.copy(version = version)
+          case comp: BookComponent => comp.copy(version = version)
           case comp: TextComponent => comp.copy(version = version)
           case comp: GenericHTMLComponent => comp.copy(version = version)
           case comp: RubricComponent => comp.copy(version = version)

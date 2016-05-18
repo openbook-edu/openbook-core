@@ -245,6 +245,11 @@ CREATE TABLE audio_components (
   audio_data jsonb
 );
 
+CREATE TABLE book_components (
+  component_id uuid PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
+  file_data jsonb
+);
+
 CREATE TABLE component_notes (
   user_id uuid REFERENCES users(id) ON DELETE CASCADE,
   component_id uuid REFERENCES components(id) ON DELETE RESTRICT,

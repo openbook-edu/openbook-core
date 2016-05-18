@@ -25,6 +25,7 @@ object Component {
   val Video = "video"
   val GenericHTML = "generic_html"
   val Rubric = "rubric"
+  val Book = "book"
 
   implicit val componentReads = new Reads[Component] {
     def reads(js: JsValue) = {
@@ -77,6 +78,18 @@ object Component {
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
+        case Component.Book => BookComponent(
+          id = (js \ "id").as[UUID],
+          version = (js \ "version").as[Long],
+          ownerId = (js \ "ownerId").as[UUID],
+          title = (js \ "title").as[String],
+          questions = (js \ "questions").as[String],
+          thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
+          fileData = (js \ "file_data").as[MediaData],
+          order = (js \ "order").as[Int],
+          createdAt = (js \ "createdAt").as[DateTime],
+          updatedAt = (js \ "updatedAt").as[DateTime]
+        )
         case Component.Video => VideoComponent(
           id = (js \ "id").as[UUID],
           version = (js \ "version").as[Long],
@@ -111,6 +124,9 @@ object Component {
       ))
       case component: RubricComponent => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
         "type" -> Component.Rubric
+      ))
+      case component: BookComponent => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
+        "type" -> Component.Book
       ))
     }
   }

@@ -2042,7 +2042,7 @@ object TestValues {
     title = "testBookComponentO title",
     questions = "testBookComponentO questions",
     thingsToThinkAbout = "testBookComponentO thingsToThinkAbout",
-    fileData = MediaData(data = Some("some text from a book"), dataType = Some("epub"), size= Some(4)),
+    fileData = MediaData(data = Some("some text from a book"), dataType = Some("epub"), size = Some(4)),
     order = 0,
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))

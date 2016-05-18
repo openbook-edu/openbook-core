@@ -247,11 +247,11 @@ class ComponentServiceDefault(
   }
 
   override def updateBook(id: UUID, version: Long, ownerId: UUID,
-                           title: Option[String],
-                           questions: Option[String],
-                           thingsToThinkAbout: Option[String],
-                           fileData: Option[MediaData],
-                           order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
+    title: Option[String],
+    questions: Option[String],
+    thingsToThinkAbout: Option[String],
+    fileData: Option[MediaData],
+    order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
       for {
         existingComponent <- lift(componentRepository.find(id))

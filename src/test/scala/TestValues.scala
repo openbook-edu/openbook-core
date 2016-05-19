@@ -1582,8 +1582,8 @@ object TestValues {
 
   /* No data in DB */
   val testMediaWorkB = MediaWork(
-    id = UUID.fromString("761f5ba1-7379-4fbd-80aa-94d39a6d8cb7"),
-    studentId = testUserE.id,
+    id = UUID.fromString("761f5ba1-7379-4fbd-80aa-94d39a6d8cb8"),
+    studentId = UUID.fromString("871b5250-6712-4e54-8ab6-0784cae0bc65"),
     taskId = testMediaTaskA.id,
     version = 1L,
     fileData = MediaAnswer(),

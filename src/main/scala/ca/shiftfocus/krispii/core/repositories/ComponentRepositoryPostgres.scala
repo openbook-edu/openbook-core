@@ -578,17 +578,17 @@ class ComponentRepositoryPostgres()
       )
       case videoComponent: VideoComponent => commonData ++ Array[Any](
         Component.Video,
-        Json.toJson(videoComponent.data),
+        Json.toJson(videoComponent.mediaData),
         videoComponent.width,
         videoComponent.height
       )
       case audioComponent: AudioComponent => commonData ++ Array[Any](
         Component.Audio,
-        Json.toJson(audioComponent.data)
+        Json.toJson(audioComponent.mediaData)
       )
       case bookComponent: BookComponent => commonData ++ Array[Any](
         Component.Book,
-        Json.toJson(bookComponent.data)
+        Json.toJson(bookComponent.mediaData)
       )
       case _ => throw new Exception("I don't know how you did this, but you sent me a component type that doesn't exist.")
     }
@@ -638,15 +638,15 @@ class ComponentRepositoryPostgres()
         rubricComponent.rubricContent
       )
       case videoComponent: VideoComponent => commonData ++ Array[Any](
-        Json.toJson(videoComponent.data),
+        Json.toJson(videoComponent.mediaData),
         videoComponent.width,
         videoComponent.height
       )
       case audioComponent: AudioComponent => commonData ++ Array[Any](
-        Json.toJson(audioComponent.data)
+        Json.toJson(audioComponent.mediaData)
       )
       case bookComponent: BookComponent => commonData ++ Array[Any](
-        Json.toJson(bookComponent.data)
+        Json.toJson(bookComponent.mediaData)
       )
       case _ => throw new Exception("I don't know how you did this, but you sent me a component type that doesn't exist.")
     }

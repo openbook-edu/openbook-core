@@ -37,7 +37,7 @@ object Component {
           title = (js \ "title").as[String],
           questions = (js \ "questions").as[String],
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
-          data = (js \ "audio_data").as[MediaData],
+          mediaData = (js \ "audio_data").as[MediaData],
           order = (js \ "order").as[Int],
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
@@ -85,7 +85,7 @@ object Component {
           title = (js \ "title").as[String],
           questions = (js \ "questions").as[String],
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
-          data = (js \ "file_data").as[MediaData],
+          mediaData = (js \ "file_data").as[MediaData],
           order = (js \ "order").as[Int],
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
@@ -97,7 +97,7 @@ object Component {
           title = (js \ "title").as[String],
           questions = (js \ "questions").as[String],
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
-          data = (js \ "video_data").as[MediaData],
+          mediaData = (js \ "video_data").as[MediaData],
           width = (js \ "width").as[Int],
           height = (js \ "height").as[Int],
           order = (js \ "order").as[Int],

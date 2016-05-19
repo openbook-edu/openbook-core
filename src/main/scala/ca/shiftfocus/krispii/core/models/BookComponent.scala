@@ -16,7 +16,7 @@ case class BookComponent(
   title: String,
   questions: String,
   thingsToThinkAbout: String,
-  data: MediaData = MediaData(),
+  mediaData: MediaData = MediaData(),
   order: Int,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime

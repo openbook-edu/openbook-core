@@ -16,7 +16,7 @@ case class AudioComponent(
     title: String,
     questions: String,
     thingsToThinkAbout: String,
-    data: MediaData = MediaData(),
+    mediaData: MediaData = MediaData(),
     order: Int,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
@@ -30,7 +30,7 @@ case class AudioComponent(
           this.title == anotherAudioComponent.title &&
           this.questions == anotherAudioComponent.questions &&
           this.thingsToThinkAbout == anotherAudioComponent.thingsToThinkAbout &&
-          this.data == anotherAudioComponent.data &&
+          this.mediaData == anotherAudioComponent.mediaData &&
           this.order == anotherAudioComponent.order
       }
       case _ => false

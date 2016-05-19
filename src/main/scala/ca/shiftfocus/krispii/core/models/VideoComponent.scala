@@ -14,7 +14,7 @@ case class VideoComponent(
   title: String,
   questions: String,
   thingsToThinkAbout: String,
-  data: MediaData = MediaData(),
+  mediaData: MediaData = MediaData(),
   width: Int,
   height: Int,
   order: Int,

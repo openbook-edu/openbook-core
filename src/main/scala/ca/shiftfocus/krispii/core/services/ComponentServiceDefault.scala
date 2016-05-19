@@ -103,7 +103,7 @@ class ComponentServiceDefault(
       title = title,
       questions = questions,
       thingsToThinkAbout = thingsToThinkAbout,
-      audioData = audioData,
+      data = audioData,
       order = order
     )
     transactional { implicit conn =>
@@ -124,7 +124,7 @@ class ComponentServiceDefault(
       title = title,
       questions = questions,
       thingsToThinkAbout = thingsToThinkAbout,
-      fileData = fileData,
+      data = fileData,
       order = order
     )
     transactional { implicit conn =>
@@ -210,7 +210,7 @@ class ComponentServiceDefault(
       title = title,
       questions = questions,
       thingsToThinkAbout = thingsToThinkAbout,
-      videoData = videoData,
+      data = videoData,
       width = width,
       height = height,
       order = order
@@ -238,7 +238,7 @@ class ComponentServiceDefault(
           title = title.getOrElse(existingAudio.title),
           questions = questions.getOrElse(existingAudio.questions),
           thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingAudio.thingsToThinkAbout),
-          audioData = audioData.getOrElse(existingAudio.audioData),
+          data = audioData.getOrElse(existingAudio.data),
           order = order.getOrElse(existingAudio.order)
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
@@ -264,7 +264,7 @@ class ComponentServiceDefault(
           title = title.getOrElse(existingBook.title),
           questions = questions.getOrElse(existingBook.questions),
           thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingBook.thingsToThinkAbout),
-          fileData = fileData.getOrElse(existingBook.fileData),
+          data = fileData.getOrElse(existingBook.data),
           order = order.getOrElse(existingBook.order)
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
@@ -370,7 +370,7 @@ class ComponentServiceDefault(
           title = title.getOrElse(existingVideo.title),
           questions = questions.getOrElse(existingVideo.questions),
           thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingVideo.thingsToThinkAbout),
-          videoData = videoData.getOrElse(existingVideo.videoData),
+          data = videoData.getOrElse(existingVideo.data),
           width = width.getOrElse(existingVideo.width),
           height = height.getOrElse(existingVideo.height),
           order = order.getOrElse(existingVideo.order)

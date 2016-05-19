@@ -16,11 +16,11 @@ case class BookComponent(
   title: String,
   questions: String,
   thingsToThinkAbout: String,
-  fileData: MediaData = MediaData(),
+  data: MediaData = MediaData(),
   order: Int,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
-) extends Component
+) extends Component with DataCarrier
 
 object BookComponent {
 

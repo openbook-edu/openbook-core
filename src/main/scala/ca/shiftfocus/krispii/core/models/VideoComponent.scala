@@ -14,13 +14,13 @@ case class VideoComponent(
   title: String,
   questions: String,
   thingsToThinkAbout: String,
-  videoData: MediaData = MediaData(),
+  data: MediaData = MediaData(),
   width: Int,
   height: Int,
   order: Int,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
-) extends Component
+) extends Component with DataCarrier
 
 object VideoComponent {
 

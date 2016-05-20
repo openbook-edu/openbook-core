@@ -159,6 +159,7 @@ class SchoolServiceDefault(
     transactional { implicit conn =>
       for {
         existingCourse <- lift(courseRepository.find(id))
+        _ <- predicate(existingCourse.version == version)(ServiceError.OfflineLockFail)
         tId = teacherId.getOrElse(existingCourse.teacherId)
         teacher <- lift(authService.find(tId))
         _ <- predicate(slug.isEmpty || !existingCourse.enabled)(ServiceError.BusinessLogicFail("You can only change the slug for disabled courses."))

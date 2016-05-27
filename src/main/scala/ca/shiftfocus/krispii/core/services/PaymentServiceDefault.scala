@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.error.{ ErrorUnion, ServiceError }
+import ca.shiftfocus.krispii.core.error.{ ErrorUnion, RepositoryError, ServiceError }
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models.{ Account, AccountStatus }
 import ca.shiftfocus.krispii.core.repositories.{ AccountRepository, SubscriptionRepository, UserRepository }
@@ -54,15 +54,16 @@ class PaymentServiceDefault(
     id: UUID,
     version: Long,
     status: String,
-    activeUntil: Option[DateTime]
+    activeUntil: Option[DateTime],
+    customer: Option[JsValue]
   ): Future[\/[ErrorUnion#Fail, Account]] = {
     for {
       existingAccount <- lift(accountRepository.get(id))
-      _ <- predicate(existingAccount.version == version)(ServiceError.OfflineLockFail)
       subscriptions <- lift(subscriptionRepository.listSubscriptions(existingAccount.userId))
       updatedAccount <- lift(accountRepository.update(existingAccount.copy(
         status = status,
-        activeUntil = activeUntil
+        activeUntil = activeUntil,
+        customer = customer
       )))
     } yield updatedAccount.copy(subscriptions = subscriptions)
   }
@@ -112,18 +113,17 @@ class PaymentServiceDefault(
           case e => -\/(ServiceError.ExternalService(e.toString))
         })
       )
-      updatedAccount <- lift(accountRepository.update(account.copy(customer = Some(customer))))
     } yield customer
   }
 
   /**
-    * Subscribe customer to a specific plan
-    *
-    * @param userId
-    * @param customerId
-    * @param planId
-    * @return
-    */
+   * Subscribe customer to a specific plan
+   *
+   * @param userId
+   * @param customerId
+   * @param planId
+   * @return
+   */
   def subscribe(userId: UUID, customerId: String, planId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
       subscription <- lift(
@@ -142,6 +142,31 @@ class PaymentServiceDefault(
       )
       _ <- lift(subscriptionRepository.createSubscription(userId, subscription))
     } yield subscription
+  }
+
+  /**
+   * Check if user has access to the application
+   *
+   * @param userId
+   * @return
+   */
+  def hasAccess(userId: UUID): Future[\/[ErrorUnion#Fail, Boolean]] = {
+    for {
+      hasAccess <- lift(accountRepository.getByUserId(userId).map {
+        case \/-(account) => \/-(
+          if (account.status == AccountStatus.free || // FREE
+            (account.status == AccountStatus.trial && account.activeUntil.isDefined && account.activeUntil.get.isAfterNow) || // TRIAL
+            (account.status == AccountStatus.paid && account.activeUntil.isDefined && account.activeUntil.get.isAfterNow)) { // PAID
+            true
+          }
+          else {
+            false
+          }
+        )
+        case -\/(error: RepositoryError.NoResults) => \/-(false)
+        case -\/(error) => -\/(error)
+      })
+    } yield hasAccess
   }
 }
 

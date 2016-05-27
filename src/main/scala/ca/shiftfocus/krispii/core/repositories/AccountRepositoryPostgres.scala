@@ -58,14 +58,17 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
        |RETURNING $Fields
      """.stripMargin
 
+  // TODO - add cache
   def get(accountId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     queryOne(Select, Seq[Any](accountId))
   }
 
+  // TODO - add cache
   def getByUserId(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     queryOne(SelectByUser, Seq[Any](userId))
   }
 
+  // TODO - add cache
   def insert(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
       account.id, 1, account.userId, account.status, account.customer, account.activeUntil
@@ -74,6 +77,7 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
     queryOne(Insert, params)
   }
 
+  // TODO - add cache
   def update(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
       account.version + 1, account.status, account.customer, account.activeUntil, account.id

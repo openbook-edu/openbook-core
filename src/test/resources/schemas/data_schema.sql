@@ -940,3 +940,23 @@ VALUES('217c5622ff9e43728e6a95fb3bae300b', 'bisexualpotato',  '2014-08-05 14:01:
 /* course b */
 INSERT INTO links(course_id, link, created_at)
 VALUES  ('404c800a53854e6b867e365a1e6b00de', 'vinrouge', '2014-08-05 14:01:19.545-04');
+
+/* ---------------------------- TAGS -----------------------------*/
+insert into tags(id, name) values('871b525067124e548ab60784cae0bc64', 'pacificsound3003');
+insert into tags(id, name) values('02d6304b98504c9291a94d12654b33bb', 'vanille');
+insert into tags(id, name) values('abb660393680467f9079dae1251cb57d', 'fruit');
+/**
+ lonely tag
+ */
+insert into tags(id, name) values('50df20ac2bba42da800cb660eb6dba62', 'seductive');
+
+/**
+Project A tags
+ */
+insert into project_tags(project_id, tag_id) values ('c9b4cfceaed448fd94f5c980763dfddc','871b525067124e548ab60784cae0bc64');
+insert into project_tags(project_id, tag_id) values ('c9b4cfceaed448fd94f5c980763dfddc','02d6304b98504c9291a94d12654b33bb');
+/**
+Project B tags
+ */
+insert into project_tags(project_id, tag_id) values ('e4ae3b9098714339b05c8d39e3aaf65d','abb660393680467f9079dae1251cb57d');
+insert into project_tags(project_id, tag_id) values ('e4ae3b9098714339b05c8d39e3aaf65d','871b525067124e548ab60784cae0bc64');

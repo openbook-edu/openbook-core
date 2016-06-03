@@ -2719,5 +2719,33 @@ object TestValues {
     token = "$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=",
     tokenType = "password_reset"
   )
+  /* ---------------------- TAGS ---------------------- */
+  //8b6dc674-d1ae-11e5-9080-08626681851d
+  val testTagA = Tag(
+    id = UUID.fromString("871b5250-6712-4e54-8ab6-0784cae0bc64"),
+    name = "pacificsound3003"
+  )
+  val testTagB = Tag(
+    id = UUID.fromString("02d6304b-9850-4c92-91a9-4d12654b33bb"),
+    name = "vanille"
+  )
+  val testTagC = Tag(
+    id = UUID.fromString("abb66039-3680-467f-9079-dae1251cb57d"),
+    name = "fruit"
+  )
+  /**
+   * no project is tagged with this tag, but it still exists
+   */
+  val testTagD = Tag(
+    id = UUID.fromString("50df20ac-2bba-42da-800c-b660eb6dba62"),
+    name = "seductive"
+  )
+  /**
+   * no tag in the database
+   */
+  val testTagX = Tag(
+    id = UUID.fromString("3e83d092-c62f-4456-aba8-748403ae8574"),
+    name = "orange"
+  )
 }
 

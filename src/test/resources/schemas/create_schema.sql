@@ -420,6 +420,12 @@ CREATE TABLE course_limit (
   PRIMARY KEY (course_id, type)
 );
 
+create table tags(id uuid primary key, name varchar(150));
+create table project_tags(
+  project_id uuid references projects(id),
+  tag_id uuid references tags(id),
+  CONSTRAINT tags_projects PRIMARY KEY(project_id, tag_id));
+
 CREATE OR REPLACE FUNCTION get_slug(_slug text, _table text, _id uuid) RETURNS text AS $$
 DECLARE
  updatedSlug text := $1;

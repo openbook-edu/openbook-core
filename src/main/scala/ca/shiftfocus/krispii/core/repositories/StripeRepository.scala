@@ -8,7 +8,13 @@ import play.api.libs.json.JsValue
 import scala.concurrent.Future
 import scalaz.\/
 
-trait SubscriptionRepository extends Repository {
+trait StripeRepository extends Repository {
+  // SUBSCRIPTIONS
   def listSubscriptions(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JsValue]]]
   def createSubscription(userId: UUID, subscription: JsValue)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]]
+  def updateSubscription(userId: UUID, subscription: JsValue)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]]
+
+  // EVENTS
+  def getEvent(eventId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]]
+  def createEvent(eventId: String, eventType: String, event: JsValue)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]]
 }

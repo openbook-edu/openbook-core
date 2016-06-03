@@ -12,6 +12,7 @@ import scalaz.\/
 trait AccountRepository extends Repository {
   def get(accountId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]]
   def getByUserId(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]]
+  def getByCustomerId(customerId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]]
   def insert(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]]
   def update(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]]
 }

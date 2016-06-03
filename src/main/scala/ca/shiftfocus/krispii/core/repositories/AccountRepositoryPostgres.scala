@@ -36,11 +36,18 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
        |WHERE id = ?
      """.stripMargin
 
-  val SelectByUser =
+  val SelectByUserId =
     s"""
        |SELECT $Fields
        |FROM $Table
        |WHERE user_id = ?
+     """.stripMargin
+
+  val SelectByCustomerId =
+    s"""
+       |SELECT $Fields
+       |FROM $Table
+       |WHERE customer::jsonb->>'id' = ?
      """.stripMargin
 
   val Insert =
@@ -65,7 +72,12 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
 
   // TODO - add cache
   def getByUserId(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
-    queryOne(SelectByUser, Seq[Any](userId))
+    queryOne(SelectByUserId, Seq[Any](userId))
+  }
+
+  // TODO - add cache
+  def getByCustomerId(customerId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
+    queryOne(SelectByCustomerId, Seq[Any](customerId))
   }
 
   // TODO - add cache

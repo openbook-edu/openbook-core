@@ -17,15 +17,16 @@ case class Account(
 )
 
 object AccountStatus {
-  val inactive = "inactive"
-  val free = "free"
-  val trial = "trial"
-  val paid = "paid"
-  val onhold = "onhold"
+  val inactive = "account.status.inactive"
+  val free = "account.status.free"
+  val trial = "account.status.trial"
+  val paid = "account.status.paid"
+  val onhold = "account.status.onhold"
+  val error = "account.status.payment.error"
 }
 
 object Account {
-  implicit val sectionWrites: Writes[Account] = (
+  implicit val writes: Writes[Account] = (
     (__ \ "id").write[UUID] and
     (__ \ "version").write[Long] and
     (__ \ "userId").write[UUID] and

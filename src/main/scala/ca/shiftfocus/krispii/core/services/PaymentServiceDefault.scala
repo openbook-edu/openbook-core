@@ -170,11 +170,11 @@ class PaymentServiceDefault(
   }
 
   /**
-    * Delete customer from our DB and Stripe
-    *
-    * @param customerId
-    * @return
-    */
+   * Delete customer from our DB and Stripe
+   *
+   * @param customerId
+   * @return
+   */
   def deleteCustomer(customerId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
       account <- lift(accountRepository.getByCustomerId(customerId))
@@ -240,12 +240,12 @@ class PaymentServiceDefault(
   }
 
   /**
-    * Update subscription in our DB
-    *
-    * @param userId
-    * @param subscription
-    * @return
-    */
+   * Update subscription in our DB
+   *
+   * @param userId
+   * @param subscription
+   * @return
+   */
   def updateSubscription(userId: UUID, subscription: JsValue): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
       updatedSubscription <- lift(stripeRepository.updateSubscription(userId, subscription))

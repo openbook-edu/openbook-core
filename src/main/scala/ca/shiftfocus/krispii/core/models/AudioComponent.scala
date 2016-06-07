@@ -16,11 +16,11 @@ case class AudioComponent(
     title: String,
     questions: String,
     thingsToThinkAbout: String,
-    audioData: MediaData = MediaData(),
+    mediaData: MediaData = MediaData(),
     order: Int,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
-) extends Component {
+) extends Component with DataCarrier {
   override def equals(anotherObject: Any): Boolean = {
     anotherObject match {
       case anotherAudioComponent: AudioComponent => {
@@ -30,7 +30,7 @@ case class AudioComponent(
           this.title == anotherAudioComponent.title &&
           this.questions == anotherAudioComponent.questions &&
           this.thingsToThinkAbout == anotherAudioComponent.thingsToThinkAbout &&
-          this.audioData == anotherAudioComponent.audioData &&
+          this.mediaData == anotherAudioComponent.mediaData &&
           this.order == anotherAudioComponent.order
       }
       case _ => false

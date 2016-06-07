@@ -38,6 +38,9 @@ VALUES ('7c62a526-d1b0-11e5-9080-08626681851d', 1, 'yanez@krispii.com', 'yanez',
 INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at, is_deleted)
 VALUES ('a898c83a-5638-4483-9528-8037b3ed661d', 1, 'kmccormick@krispii.com', 'mysterion', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'Kenny', 'McCormick', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04', TRUE);
 
+/* user  */
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
+VALUES ('871b525067124e548ab60784cae0bc65', 1, 'testUserNew@example.com', 'testUserNew', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestNew', 'UserNew', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 /* ---------------------- ROLES ---------------------- */
 
 /* role A */
@@ -756,6 +759,13 @@ VALUES ('8cfc608981294c2e9ed145d38077d449', 6, '36c8c0ca50aa4806afa5916a5e33a81f
 
 INSERT INTO rubric_components (component_id, rubric_content)
 VALUES ('8cfc608981294c2e9ed145d38077d449', 'testRubricComponentK content');
+
+/* testBookComponentO -> userB  */
+INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
+VALUES ('9f2dd973397b4f559618b0ff3af69eaa', 1, '6c0e29bdd05b4b2981156be93e936c59', 'testBookComponentO title', 'testBookComponentO questions', 'testBookComponentO thingsToThinkAbout', 'book', 0, '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
+
+INSERT INTO book_components (component_id, file_data)
+VALUES ('9f2dd973397b4f559618b0ff3af69eaa', '{"data": "some text from a book", "dataType": "epub", "size": 4}');
 
 
 /* ---------------------- PARTS_COMPONENTS ---------------------- */

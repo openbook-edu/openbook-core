@@ -62,15 +62,15 @@ class LimitRepositorySpec extends TestEnvironment {
         val limit = (
           TestValues.testMediaWorkA.fileData.size.get +
           TestValues.testMediaWorkC.fileData.size.get +
-          TestValues.testVideoComponentL.videoData.size.get +
-          TestValues.testAudioComponentM.audioData.size.get
+          TestValues.testVideoComponentL.mediaData.size.get +
+          TestValues.testAudioComponentM.mediaData.size.get
         ).toFloat / 1000 / 1000 / 1000
 
         val result = limitRepository.getStorageUsed(testTeacher.id)
         val eitherLimit = Await.result(result, Duration.Inf)
         val \/-(limitResult) = eitherLimit
 
-        TestValues.testAudioComponentM.audioData should be(TestValues.testAudioComponentN.audioData)
+        TestValues.testAudioComponentM.mediaData should be(TestValues.testAudioComponentN.mediaData)
         limitResult should be(limit)
       }
     }

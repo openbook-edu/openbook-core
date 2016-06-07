@@ -1582,8 +1582,8 @@ object TestValues {
 
   /* No data in DB */
   val testMediaWorkB = MediaWork(
-    id = UUID.fromString("761f5ba1-7379-4fbd-80aa-94d39a6d8cb7"),
-    studentId = testUserE.id,
+    id = UUID.fromString("761f5ba1-7379-4fbd-80aa-94d39a6d8cb8"),
+    studentId = UUID.fromString("871b5250-6712-4e54-8ab6-0784cae0bc65"),
     taskId = testMediaTaskA.id,
     version = 1L,
     fileData = MediaAnswer(),
@@ -1835,7 +1835,7 @@ object TestValues {
     title = "testVideoComponentB title",
     questions = "testVideoComponentB questions",
     thingsToThinkAbout = "testVideoComponentB thingsToThinkAbout",
-    videoData = MediaData(Some("vimeo"), Some("19579282")),
+    mediaData = MediaData(Some("vimeo"), Some("19579282")),
     width = 640,
     height = 480,
     order = 3,
@@ -1850,7 +1850,7 @@ object TestValues {
     title = "testVideoComponentL title",
     questions = "testVideoComponentL questions",
     thingsToThinkAbout = "testVideoComponentL thingsToThinkAbout",
-    videoData = MediaData(Some("s3"), Some("some_video.mp4"), Some("video/mp4"), Some(4123456)),
+    mediaData = MediaData(Some("s3"), Some("some_video.mp4"), Some("video/mp4"), Some(4123456)),
     width = 640,
     height = 480,
     order = 3,
@@ -1866,7 +1866,7 @@ object TestValues {
     title = "testVideoComponentF title",
     questions = "testVideoComponentF questions",
     thingsToThinkAbout = "testVideoComponentF thingsToThinkAbout",
-    videoData = MediaData(Some("vimeo"), Some("19579283")),
+    mediaData = MediaData(Some("vimeo"), Some("19579283")),
     width = 640,
     height = 480,
     order = 0,
@@ -1882,7 +1882,7 @@ object TestValues {
     title = "testAudioComponentC title",
     questions = "testAudioComponentC questions",
     thingsToThinkAbout = "testAudioComponentC thingsToThinkAbout",
-    audioData = MediaData(Some("sound_cloud"), Some("dj-whisky-ft-nozipho-just")),
+    mediaData = MediaData(Some("sound_cloud"), Some("dj-whisky-ft-nozipho-just")),
     order = 0,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -1895,7 +1895,7 @@ object TestValues {
     title = "testAudioComponentM title",
     questions = "testAudioComponentM questions",
     thingsToThinkAbout = "testAudioComponentM thingsToThinkAbout",
-    audioData = MediaData(Some("s3"), Some("some_audio.mp3"), Some("audio/mp3"), Some(2236480)),
+    mediaData = MediaData(Some("s3"), Some("some_audio.mp3"), Some("audio/mp3"), Some(2236480)),
     order = 0,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -1909,7 +1909,7 @@ object TestValues {
     title = "testAudioComponentN title",
     questions = "testAudioComponentN questions",
     thingsToThinkAbout = "testAudioComponentN thingsToThinkAbout",
-    audioData = testAudioComponentM.audioData,
+    mediaData = testAudioComponentM.mediaData,
     order = 0,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -1923,7 +1923,7 @@ object TestValues {
     title = "testAudioComponentD title",
     questions = "testAudioComponentD questions",
     thingsToThinkAbout = "testAudioComponentD thingsToThinkAbout",
-    audioData = MediaData(Some("sound_cloud"), Some("fetty-wap-my-way-feat-monty")),
+    mediaData = MediaData(Some("sound_cloud"), Some("fetty-wap-my-way-feat-monty")),
     order = 0,
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -1936,7 +1936,7 @@ object TestValues {
     title = "testAudioComponentE title",
     questions = "testAudioComponentE questions",
     thingsToThinkAbout = "testAudioComponentE thingsToThinkAbout",
-    audioData = MediaData(Some("sound_cloud"), Some("revolution-radio-network")),
+    mediaData = MediaData(Some("sound_cloud"), Some("revolution-radio-network")),
     order = 0,
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2033,6 +2033,19 @@ object TestValues {
       """.stripMargin,
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testBookComponentO = BookComponent(
+    id = UUID.fromString("9f2dd973-397b-4f55-9618-b0ff3af69eaa"),
+    version = 1L,
+    ownerId = testUserB.id,
+    title = "testBookComponentO title",
+    questions = "testBookComponentO questions",
+    thingsToThinkAbout = "testBookComponentO thingsToThinkAbout",
+    mediaData = MediaData(data = Some("some text from a book"), dataType = Some("epub"), size = Some(4)),
+    order = 0,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   /* ---------------------- PARTS ---------------------- */

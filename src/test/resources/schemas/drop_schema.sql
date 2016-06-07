@@ -21,6 +21,7 @@ DROP TABLE IF EXISTS parts_components CASCADE;
 DROP TABLE IF EXISTS text_components CASCADE;
 DROP TABLE IF EXISTS video_components CASCADE;
 DROP TABLE IF EXISTS audio_components CASCADE;
+DROP TABLE IF EXISTS book_components CASCADE;
 DROP TABLE IF EXISTS generic_html_components CASCADE;
 DROP TABLE IF EXISTS rubric_components CASCADE;
 DROP TABLE IF EXISTS component_notes CASCADE;

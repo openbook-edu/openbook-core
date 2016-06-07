@@ -11,12 +11,6 @@ import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, Future }
 import scalaz.{ \/, \/-, -\/, EitherT }
 
-/**
- * def create(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]]
- * def delete(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]]
- * def listByProjectId(projectId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]
- * def find(name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]]
- */
 class TagRepositorySpec
     extends TestEnvironment {
   val tagRepository = new TagRepositoryPostgres

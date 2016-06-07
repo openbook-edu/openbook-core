@@ -25,6 +25,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
 
   val Fields = "id, name"
   val QMarks = "?, ?"
+
   val Table = "tags"
 
   val Insert = s"""
@@ -54,6 +55,11 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                   |WHERE project_id = ?
                   |AND tag_id = ?
                 """.stripMargin
+  val TagProject =
+    s"""
+       |INSERT INTO project_tags(project_id, tag_id)
+       |VALUES (?, ?)
+     """.stripMargin
   override def create(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(Insert, Seq[Any](tag.id, tag.name))
   }
@@ -72,6 +78,16 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   override def untag(projectId: UUID, tagId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       _ <- lift(queryNumRows(Untag, Array[Any](projectId, tagId))(_ == 1).map {
+        case \/-(true) => \/-(())
+        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove the tag"))
+        case -\/(error) => -\/(error)
+      })
+    } yield ()
+  }
+
+  override def tag(projectId: UUID, tagId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
+    for {
+      _ <- lift(queryNumRows(TagProject, Array[Any](projectId, tagId))(_ == 1).map {
         case \/-(true) => \/-(())
         case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove the tag"))
         case -\/(error) => -\/(error)
@@ -111,7 +127,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
  * insert into tags(id, name) values('02d6304b98504c9291a94d12654b33bb', 'vanille');
  * *
  * }
- * *
+ * * *
  * list(projectId){
  * select t.name, t.id from tags t join project_tags pt on (pt.tag_id = t.id and pt.project_id = ?);
  * }
@@ -119,3 +135,4 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
  * delete from tags where id = ?
  *
  */
+

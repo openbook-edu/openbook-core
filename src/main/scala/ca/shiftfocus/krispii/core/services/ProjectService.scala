@@ -99,4 +99,11 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
 
   def deleteTask(taskId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Task]]
   def moveTask(taskId: UUID, version: Long, newPosition: Int, partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]]
+
+  /************************************ Tags******************************************/
+  def createTag(name: String): Future[\/[ErrorUnion#Fail, Tag]]
+  def tag(projectId: UUID, tagId: UUID): Future[\/[ErrorUnion#Fail, Unit]]
+  def findTag(name: String): Future[\/[ErrorUnion#Fail, Tag]]
+  def untag(projectId: UUID, tagId: UUID): Future[\/[ErrorUnion#Fail, Unit]]
+  def cloneTags(newProjectId: UUID, oldProjectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
 }

@@ -1,7 +1,10 @@
 package ca.shiftfocus.krispii.core.models
 
+import java.awt.peer.TrayIconPeer
+
 import com.github.mauricio.async.db.RowData
 import java.util.UUID
+
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json._
@@ -19,6 +22,7 @@ case class Project(
     description: String,
     availability: String = Project.Availability.AnyTime,
     enabled: Boolean = false,
+    projectType: String,
     parts: IndexedSeq[Part],
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
@@ -34,6 +38,7 @@ case class Project(
           this.slug == otherProject.slug &&
           this.description == otherProject.description &&
           this.availability == otherProject.availability &&
+          this.projectType == otherProject.projectType &&
           this.parts == otherProject.parts
       }
       case _ => false
@@ -49,6 +54,11 @@ object Project {
     val CourseTime = "course"
   }
 
+  object Type {
+    val DefaultProject = "default_project"
+    val SaS = "SaS"
+  }
+
   implicit val projectWrites: Writes[Project] = (
     (__ \ "id").write[UUID] and
     (__ \ "courseId").write[UUID] and
@@ -60,9 +70,9 @@ object Project {
     (__ \ "description").write[String] and
     (__ \ "availability").write[String] and
     (__ \ "enabled").write[Boolean] and
+    (__ \ "projectType").write[String] and
     (__ \ "parts").write[IndexedSeq[Part]] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Project.unapply))
-
 }

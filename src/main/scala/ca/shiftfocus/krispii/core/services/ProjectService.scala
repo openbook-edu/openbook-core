@@ -38,7 +38,17 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
 
   def userHasProject(userId: UUID, projectSlug: String): Future[\/[ErrorUnion#Fail, Boolean]]
 
-  def create(courseId: UUID, name: String, slug: String, description: String, availability: String, parentId: Option[UUID] = None, isMaster: Boolean = false, enabled: Boolean): Future[\/[ErrorUnion#Fail, Project]]
+  def create(
+    courseId: UUID,
+    name: String,
+    slug: String,
+    description: String,
+    availability: String,
+    parentId: Option[UUID] = None,
+    isMaster: Boolean = false,
+    enabled: Boolean,
+    projectType: String
+  ): Future[\/[ErrorUnion#Fail, Project]]
 
   def copyMasterProject(projectId: UUID, courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]]
 
@@ -50,7 +60,8 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     slug: Option[String],
     description: Option[String],
     availability: Option[String],
-    enabled: Option[Boolean]
+    enabled: Option[Boolean],
+    projectType: Option[String]
   ): Future[\/[ErrorUnion#Fail, Project]]
 
   def updateSlug(id: UUID, version: Long, slug: String): Future[\/[ErrorUnion#Fail, Project]]

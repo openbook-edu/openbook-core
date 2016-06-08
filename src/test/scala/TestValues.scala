@@ -2169,6 +2169,7 @@ object TestValues {
     slug = "test-project-slug-A",
     description = "test project A description",
     availability = "any",
+    projectType = "sas",
     parts = Vector(testPartA, testPartB, testPartG),
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2182,6 +2183,7 @@ object TestValues {
     slug = "test-project-slug-B",
     description = "test project B description",
     availability = "free",
+    projectType = "default_project",
     parts = Vector(testPartC),
     createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2195,6 +2197,7 @@ object TestValues {
     slug = "test-project-slug-C",
     description = "test project C description",
     availability = "course",
+    projectType = "sas",
     parts = Vector(testPartE, testPartF, testPartH),
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2212,6 +2215,7 @@ object TestValues {
     availability = "course",
     isMaster = false,
     parentId = null,
+    projectType = "default_project",
     parts = Vector()
   )
 
@@ -2226,6 +2230,7 @@ object TestValues {
     slug = "test-project-slug-E",
     description = "test project E description",
     availability = "course",
+    projectType = "default_project",
     parts = Vector(),
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2245,6 +2250,7 @@ object TestValues {
     parts = Vector(),
     isMaster = true,
     enabled = true,
+    projectType = "sas",
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -2263,6 +2269,7 @@ object TestValues {
     parts = Vector(),
     isMaster = true,
     enabled = true,
+    projectType = "default_project",
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -2280,6 +2287,7 @@ object TestValues {
     isMaster = true,
     parts = Vector(testPartI),
     enabled = true,
+    projectType = "sas",
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )

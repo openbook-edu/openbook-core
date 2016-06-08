@@ -252,7 +252,17 @@ class ProjectServiceDefault(
    * @param description The new description for the project.
    * @return the updated project.
    */
-  override def create(courseId: UUID, name: String, slug: String, description: String, availability: String, parentId: Option[UUID] = None, isMaster: Boolean = false, enabled: Boolean = false): Future[\/[ErrorUnion#Fail, Project]] = {
+  override def create(
+    courseId: UUID,
+    name: String,
+    slug: String,
+    description: String,
+    availability: String,
+    parentId: Option[UUID] = None,
+    isMaster: Boolean = false,
+    enabled: Boolean = false,
+    projectType: String
+  ): Future[\/[ErrorUnion#Fail, Project]] = {
     // First instantiate a new Project, Part and Task.
     val newProject = Project(
       courseId = courseId,
@@ -263,6 +273,7 @@ class ProjectServiceDefault(
       isMaster = isMaster,
       description = description,
       availability = availability,
+      projectType = projectType,
       parts = IndexedSeq.empty[Part]
     )
 
@@ -291,7 +302,8 @@ class ProjectServiceDefault(
     slug: Option[String],
     description: Option[String],
     availability: Option[String],
-    enabled: Option[Boolean]
+    enabled: Option[Boolean],
+    projectType: Option[String]
   ): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
       for {
@@ -303,7 +315,8 @@ class ProjectServiceDefault(
           slug = slug.getOrElse(existingProject.slug),
           description = description.getOrElse(existingProject.description),
           availability = availability.getOrElse(existingProject.availability),
-          enabled = enabled.getOrElse(existingProject.enabled)
+          enabled = enabled.getOrElse(existingProject.enabled),
+          projectType = projectType.getOrElse(existingProject.projectType)
         )
         updatedProject <- lift(projectRepository.update(toUpdate))
       } yield updatedProject

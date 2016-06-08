@@ -51,6 +51,7 @@ class ProjectServiceSpec
           slug = testProject.slug,
           description = testProject.description,
           availability = testProject.availability,
+          projectType = testProject.projectType,
           parts = IndexedSeq.empty[Part]
         )
 
@@ -72,7 +73,7 @@ class ProjectServiceSpec
         (partRepository.insert(_: Part)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyPart)))
         (taskRepository.insert(_: Task)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyTask)))
 
-        val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.availability, enabled = true)
+        val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.availability, enabled = true, projectType = emptyProject.projectType)
         val eitherProject = Await.result(result, Duration.Inf)
         val \/-(project) = eitherProject
 
@@ -99,6 +100,7 @@ class ProjectServiceSpec
           slug = "bad slug format A",
           description = testProject.description,
           availability = testProject.availability,
+          projectType = testProject.projectType,
           parts = IndexedSeq.empty[Part]
         )
 
@@ -128,7 +130,17 @@ class ProjectServiceSpec
         (partRepository.insert(_: Part)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyPart)))
         (taskRepository.insert(_: Task)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyTask)))
 
-        val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.availability)
+        val result = projectService.create(
+          testCourse.id,
+          emptyProject.name,
+          emptyProject.slug,
+          emptyProject.description,
+          emptyProject.availability,
+          emptyProject.parentId,
+          emptyProject.isMaster,
+          emptyProject.enabled,
+          emptyProject.projectType
+        )
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"${emptyProject.slug} is not a valid slug format.")))
       }
       "return a new project with slug + '-1' if slug is already in use" in {
@@ -142,6 +154,7 @@ class ProjectServiceSpec
           slug = testProject.slug,
           description = testProject.description,
           availability = testProject.availability,
+          projectType = testProject.projectType,
           parts = IndexedSeq.empty[Part]
         )
 
@@ -172,7 +185,7 @@ class ProjectServiceSpec
         (partRepository.insert(_: Part)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyPart)))
         (taskRepository.insert(_: Task)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyTask)))
 
-        val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.availability)
+        val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.availability, enabled = true, projectType = emptyProject.projectType)
         val eitherProject = Await.result(result, Duration.Inf)
         val \/-(project) = eitherProject
 
@@ -197,7 +210,16 @@ class ProjectServiceSpec
 
         (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(\/-(testProject)))
 
-        val result = projectService.updateInfo(testProject.id, 99L, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.availability), Some(testProject.enabled))
+        val result = projectService.updateInfo(
+          testProject.id,
+          99L, Some(testProject.courseId),
+          Some(testProject.name),
+          Some(testProject.slug),
+          Some(testProject.description),
+          Some(testProject.availability),
+          Some(testProject.enabled),
+          Some(testProject.projectType)
+        )
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
       "return RepositoryError.NoResults if project doesn't exist" in {
@@ -205,7 +227,7 @@ class ProjectServiceSpec
 
         (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
-        val result = projectService.updateInfo(testProject.id, testProject.version, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.availability), Some(testProject.enabled))
+        val result = projectService.updateInfo(testProject.id, testProject.version, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.availability), Some(testProject.enabled), Some(testProject.projectType))
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
       }
     }

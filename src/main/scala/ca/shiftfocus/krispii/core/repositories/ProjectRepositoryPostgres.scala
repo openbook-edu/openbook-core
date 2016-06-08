@@ -35,6 +35,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
       row("description").asInstanceOf[String],
       row("availability").asInstanceOf[String],
       row("enabled").asInstanceOf[Boolean],
+      row("project_type").asInstanceOf[String],
       IndexedSeq[Part](),
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
@@ -42,9 +43,9 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   }
 
   val Table = "projects"
-  val Fields = "id, version, course_id, name, slug, parent_id, is_master, description, availability, enabled, created_at, updated_at"
+  val Fields = "id, version, course_id, name, slug, parent_id, is_master, description, availability, enabled, project_type, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.created_at DESC"
 
   // User CRUD operations
@@ -99,7 +100,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   val Insert =
     s"""
       |INSERT INTO $Table ($Fields)
-      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?, ?, ?)
+      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?, ?, ?, ?)
       |RETURNING $Fields
     """.stripMargin
 
@@ -107,7 +108,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   val Update =
     s"""
       |UPDATE $Table
-      |SET course_id = ?, name = ?, parent_id = ?, is_master = ?, slug = get_slug(?, '$Table', ?), description = ?, availability = ?, enabled = ?, version = ?, updated_at = ?
+      |SET course_id = ?, name = ?, parent_id = ?, is_master = ?, slug = get_slug(?, '$Table', ?), description = ?, availability = ?, enabled = ?, project_type = ?, version = ?, updated_at = ?
       |WHERE id = ?
       |  AND version = ?
       |RETURNING $Fields
@@ -379,7 +380,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   override def insert(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
       project.id, 1, project.courseId, project.name, project.slug, project.id, project.parentId, project.isMaster,
-      project.description, project.availability, project.enabled, new DateTime, new DateTime
+      project.description, project.availability, project.enabled, project.projectType, new DateTime, new DateTime
     )
 
     for {
@@ -398,7 +399,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   override def update(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
       project.courseId, project.name, project.parentId, project.isMaster, project.slug, project.id, project.description,
-      project.availability, project.enabled, project.version + 1, new DateTime, project.id, project.version
+      project.availability, project.enabled, project.projectType, project.version + 1, new DateTime, project.id, project.version
     )
 
     (for {

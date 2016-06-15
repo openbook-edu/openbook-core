@@ -98,7 +98,6 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
        |ORDER BY $OrderBy
      """.stripMargin
 
-
   val SelectAllByTag =
     s"""
        |SELECT * FROM (
@@ -109,7 +108,6 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
        |) inn
        |WHERE dist < 0.9 ORDER BY dist LIMIT 10
     """.stripMargin
-
 
   // Using here get_slug custom postgres function to generate unique slug if slug already exists
   val Insert =
@@ -386,10 +384,10 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   }
 
   /**
-    * Search by trigrams for autocomplete
-    * @param key
-    * @param conn
-    */
+   * Search by trigrams for autocomplete
+   * @param key
+   * @param conn
+   */
   def trigramSearch(key: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
     queryList(SelectAllByTag, Seq[Any](key))
   }

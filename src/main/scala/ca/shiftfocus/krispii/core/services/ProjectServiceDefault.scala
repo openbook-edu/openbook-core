@@ -220,7 +220,6 @@ class ProjectServiceDefault(
 
   }
 
-
   /**
    * Find a single project by slug and UserID.
    *

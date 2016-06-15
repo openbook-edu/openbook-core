@@ -93,10 +93,10 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   }
 
   /**
-    * Search by trigrams for autocomplete
-    * @param key
-    * @param conn
-    */
+   * Search by trigrams for autocomplete
+   * @param key
+   * @param conn
+   */
   override def trigramSearch(key: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
     queryList(SelectAllByKey, Seq[Any](key))
   }

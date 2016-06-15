@@ -25,7 +25,6 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
   def list(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
   def listProjectsByUser(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
   def listProjectsByTeacher(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
-  def listByKey(key: String): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]]
 
   def find(id: UUID): Future[\/[ErrorUnion#Fail, Project]]
   def find(projectSlug: String): Future[\/[ErrorUnion#Fail, Project]]
@@ -120,4 +119,5 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
   def findTag(name: String): Future[\/[ErrorUnion#Fail, Tag]]
   def untag(projectId: UUID, tagId: UUID): Future[\/[ErrorUnion#Fail, Unit]]
   def cloneTags(newProjectId: UUID, oldProjectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
+  def listByKey(key: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
 }

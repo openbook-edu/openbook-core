@@ -43,6 +43,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     name: String,
     slug: String,
     description: String,
+    longDescription: String,
     availability: String,
     parentId: Option[UUID] = None,
     isMaster: Boolean = false,
@@ -59,6 +60,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     name: Option[String],
     slug: Option[String],
     description: Option[String],
+    longDescription: Option[String],
     availability: Option[String],
     enabled: Option[Boolean],
     projectType: Option[String]

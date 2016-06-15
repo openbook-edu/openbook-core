@@ -257,6 +257,7 @@ class ProjectServiceDefault(
     name: String,
     slug: String,
     description: String,
+    longDescription: String,
     availability: String,
     parentId: Option[UUID] = None,
     isMaster: Boolean = false,
@@ -272,6 +273,7 @@ class ProjectServiceDefault(
       enabled = enabled,
       isMaster = isMaster,
       description = description,
+      longDescription = longDescription,
       availability = availability,
       projectType = projectType,
       parts = IndexedSeq.empty[Part]
@@ -301,6 +303,7 @@ class ProjectServiceDefault(
     name: Option[String],
     slug: Option[String],
     description: Option[String],
+    longDescription: Option[String],
     availability: Option[String],
     enabled: Option[Boolean],
     projectType: Option[String]
@@ -314,6 +317,7 @@ class ProjectServiceDefault(
           name = name.getOrElse(existingProject.name),
           slug = slug.getOrElse(existingProject.slug),
           description = description.getOrElse(existingProject.description),
+          longDescription = longDescription.getOrElse(existingProject.longDescription),
           availability = availability.getOrElse(existingProject.availability),
           enabled = enabled.getOrElse(existingProject.enabled),
           projectType = projectType.getOrElse(existingProject.projectType)

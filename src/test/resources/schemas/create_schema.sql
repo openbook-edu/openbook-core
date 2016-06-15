@@ -90,6 +90,7 @@ CREATE TABLE projects (
   name text,
   slug text UNIQUE,
   description text,
+  long_description text,
   availability text,
   parent_id uuid,
   is_master boolean DEFAULT false,

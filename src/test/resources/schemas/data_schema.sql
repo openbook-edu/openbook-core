@@ -163,31 +163,31 @@ VALUES ('5099a6b48809400d8e380119184d0f93', '94cc65bb45424f628e08d58522e7b5f1', 
 /* ---------------------- PROJECTS ---------------------- */
 
 /* project A -> course A -> user A (teacher) */
-INSERT INTO projects (id, course_id, version, name, slug, description, availability, project_type, created_at, updated_at)
-VALUES ('c9b4cfceaed448fd94f5c980763dfddc', '217c5622ff9e43728e6a95fb3bae300b', 1, 'test project A', 'test-project-slug-A', 'test project A description', 'any', 'sas', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
+INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability, project_type, created_at, updated_at)
+VALUES ('c9b4cfceaed448fd94f5c980763dfddc', '217c5622ff9e43728e6a95fb3bae300b', 1, 'test project A', 'test-project-slug-A', 'test project A description',  'test project A long description', 'any', 'sas', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
 /* project B -> course B -> user B (teacher) */
-INSERT INTO projects (id, course_id, version, name, slug, description, availability,  project_type, created_at, updated_at)
-VALUES ('e4ae3b9098714339b05c8d39e3aaf65d', '404c800a53854e6b867e365a1e6b00de', 2, 'test project B', 'test-project-slug-B', 'test project B description', 'free', 'default_project', '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
+INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability,  project_type, created_at, updated_at)
+VALUES ('e4ae3b9098714339b05c8d39e3aaf65d', '404c800a53854e6b867e365a1e6b00de', 2, 'test project B', 'test-project-slug-B', 'test project B description',  'test project B long description', 'free', 'default_project', '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
 
 /* project C -> course B -> user B (teacher) */
-INSERT INTO projects (id, course_id, version, name, slug, description, availability, project_type, created_at, updated_at)
-VALUES ('4ac4d872451b4092b13f643d6d5fa930', '404c800a53854e6b867e365a1e6b00de', 3, 'test project C', 'test-project-slug-C', 'test project C description', 'course', 'sas', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability, project_type, created_at, updated_at)
+VALUES ('4ac4d872451b4092b13f643d6d5fa930', '404c800a53854e6b867e365a1e6b00de', 3, 'test project C', 'test-project-slug-C', 'test project C description', 'test project C long description', 'course', 'sas', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
 /* project E -> course A -> user A (teacher) */
-INSERT INTO projects (id, course_id, version, name, slug, description, availability, project_type, created_at, updated_at)
-VALUES ('b36919cb2df043b7bb7f36cae797deaa', '217c5622ff9e43728e6a95fb3bae300b', 4, 'test project E', 'test-project-slug-E', 'test project E description', 'course', 'default_project', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability, project_type, created_at, updated_at)
+VALUES ('b36919cb2df043b7bb7f36cae797deaa', '217c5622ff9e43728e6a95fb3bae300b', 4, 'test project E', 'test-project-slug-E', 'test project E description', 'test project E long description', 'course', 'default_project', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 
 /*  project F master project */
-INSERT INTO projects (id, course_id, version, name, slug, description, availability,  is_master, enabled, project_type, created_at, updated_at)
-VALUES ('b36919cb2df043b7bb7f36cae797deab', 'b24abba8e6c74700900ce66ed0185a70', 1, 'test project F', 'test-project-slug-F', 'test project F description', 'course', true, true, 'sas', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability,  is_master, enabled, project_type, created_at, updated_at)
+VALUES ('b36919cb2df043b7bb7f36cae797deab', 'b24abba8e6c74700900ce66ed0185a70', 1, 'test project F', 'test-project-slug-F', 'test project F description', 'test project F long description', 'course', true, true, 'sas', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 
 /* project G master project */
-INSERT INTO projects (id, course_id, version, name, slug, description, availability,  is_master, enabled, project_type, created_at, updated_at)
-VALUES ('b36919cb2df043b7bb7f36cae797deac', 'b24abba8e6c74700900ce66ed0185a70', 1, 'test project G', 'test-project-slug-G', 'test project G description', 'course', true, true, 'default_project', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability,  is_master, enabled, project_type, created_at, updated_at)
+VALUES ('b36919cb2df043b7bb7f36cae797deac', 'b24abba8e6c74700900ce66ed0185a70', 1, 'test project G', 'test-project-slug-G', 'test project G description', 'test project G long description', 'course', true, true, 'default_project', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 /* project H master project */
-INSERT INTO projects (id, course_id, version, name, slug, description, availability,  is_master, enabled, project_type, created_at, updated_at)
-VALUES ('00743ada1d3a4912adc8fb8a0b1b7447', 'b24abba8e6c74700900ce66ed0185a70', 1, 'test project H', 'test-project-slug-H', 'test project H description', 'course', true, true, 'sas', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability,  is_master, enabled, project_type, created_at, updated_at)
+VALUES ('00743ada1d3a4912adc8fb8a0b1b7447', 'b24abba8e6c74700900ce66ed0185a70', 1, 'test project H', 'test-project-slug-H', 'test project H description', 'test project H long description', 'course', true, true, 'sas', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 /* ---------------------- PARTS ---------------------- */
 
 /* part A -> project A -> course A -> user A (teacher) */

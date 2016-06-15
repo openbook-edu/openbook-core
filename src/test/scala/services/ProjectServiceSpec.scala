@@ -50,6 +50,7 @@ class ProjectServiceSpec
           name = testProject.name,
           slug = testProject.slug,
           description = testProject.description,
+          longDescription = testProject.longDescription,
           availability = testProject.availability,
           projectType = testProject.projectType,
           parts = IndexedSeq.empty[Part]
@@ -73,7 +74,7 @@ class ProjectServiceSpec
         (partRepository.insert(_: Part)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyPart)))
         (taskRepository.insert(_: Task)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyTask)))
 
-        val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.availability, enabled = true, projectType = emptyProject.projectType)
+        val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.longDescription, emptyProject.availability, enabled = true, projectType = emptyProject.projectType)
         val eitherProject = Await.result(result, Duration.Inf)
         val \/-(project) = eitherProject
 
@@ -83,6 +84,7 @@ class ProjectServiceSpec
         project.name should be(resultProject.name)
         project.slug should be(resultProject.slug)
         project.description should be(resultProject.description)
+        project.longDescription should be(resultProject.longDescription)
         project.availability should be(resultProject.availability)
         project.parts should be(resultProject.parts)
         project.createdAt.toString should be(resultProject.createdAt.toString)
@@ -99,6 +101,7 @@ class ProjectServiceSpec
           name = testProject.name,
           slug = "bad slug format A",
           description = testProject.description,
+          longDescription = testProject.longDescription,
           availability = testProject.availability,
           projectType = testProject.projectType,
           parts = IndexedSeq.empty[Part]
@@ -135,6 +138,7 @@ class ProjectServiceSpec
           emptyProject.name,
           emptyProject.slug,
           emptyProject.description,
+          emptyProject.longDescription,
           emptyProject.availability,
           emptyProject.parentId,
           emptyProject.isMaster,
@@ -153,6 +157,7 @@ class ProjectServiceSpec
           name = testProject.name,
           slug = testProject.slug,
           description = testProject.description,
+          longDescription = testProject.longDescription,
           availability = testProject.availability,
           projectType = testProject.projectType,
           parts = IndexedSeq.empty[Part]
@@ -185,7 +190,7 @@ class ProjectServiceSpec
         (partRepository.insert(_: Part)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyPart)))
         (taskRepository.insert(_: Task)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyTask)))
 
-        val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.availability, enabled = true, projectType = emptyProject.projectType)
+        val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.longDescription, emptyProject.availability, enabled = true, projectType = emptyProject.projectType)
         val eitherProject = Await.result(result, Duration.Inf)
         val \/-(project) = eitherProject
 
@@ -195,6 +200,7 @@ class ProjectServiceSpec
         project.name should be(resultProject.name)
         project.slug should be(resultProject.slug)
         project.description should be(resultProject.description)
+        project.longDescription should be(resultProject.longDescription)
         project.availability should be(resultProject.availability)
         project.parts should be(resultProject.parts)
         project.createdAt.toString should be(resultProject.createdAt.toString)
@@ -216,6 +222,7 @@ class ProjectServiceSpec
           Some(testProject.name),
           Some(testProject.slug),
           Some(testProject.description),
+          Some(testProject.longDescription),
           Some(testProject.availability),
           Some(testProject.enabled),
           Some(testProject.projectType)
@@ -227,7 +234,7 @@ class ProjectServiceSpec
 
         (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
-        val result = projectService.updateInfo(testProject.id, testProject.version, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.availability), Some(testProject.enabled), Some(testProject.projectType))
+        val result = projectService.updateInfo(testProject.id, testProject.version, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.longDescription), Some(testProject.availability), Some(testProject.enabled), Some(testProject.projectType))
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
       }
     }
@@ -285,6 +292,7 @@ class ProjectServiceSpec
         project.name should be(resultProject.name)
         project.slug should be(resultProject.slug)
         project.description should be(resultProject.description)
+        project.longDescription should be(resultProject.longDescription)
         project.availability should be(resultProject.availability)
         project.parts should be(resultProject.parts)
         project.createdAt.toString should be(resultProject.createdAt.toString)
@@ -3143,6 +3151,7 @@ class ProjectServiceSpec
         TestValues.testProjectH.name should be(clonedProject.name)
         TestValues.testProjectH.slug should be(clonedProject.slug)
         TestValues.testProjectH.description should be(clonedProject.description)
+        TestValues.testProjectH.longDescription should be(clonedProject.longDescription)
         TestValues.testProjectH.availability should be(clonedProject.availability)
         TestValues.testProjectH.parts should be(clonedProject.parts)
         TestValues.testPartI.components.head should be(clonedProject.parts.head.components.head)

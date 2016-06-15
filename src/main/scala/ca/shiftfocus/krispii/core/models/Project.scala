@@ -20,6 +20,7 @@ case class Project(
     name: String,
     slug: String,
     description: String,
+    longDescription: String,
     availability: String = Project.Availability.AnyTime,
     enabled: Boolean = false,
     projectType: String,
@@ -37,6 +38,7 @@ case class Project(
           this.name == otherProject.name &&
           this.slug == otherProject.slug &&
           this.description == otherProject.description &&
+          this.longDescription == otherProject.longDescription &&
           this.availability == otherProject.availability &&
           this.projectType == otherProject.projectType &&
           this.parts == otherProject.parts
@@ -57,6 +59,7 @@ object Project {
   object Type {
     val DefaultProject = "default_project"
     val SaS = "SaS"
+    val KrispiiBites = "krispii_bites"
   }
 
   implicit val projectWrites: Writes[Project] = (
@@ -68,6 +71,7 @@ object Project {
     (__ \ "name").write[String] and
     (__ \ "slug").write[String] and
     (__ \ "description").write[String] and
+    (__ \ "longDescription").write[String] and
     (__ \ "availability").write[String] and
     (__ \ "enabled").write[Boolean] and
     (__ \ "projectType").write[String] and

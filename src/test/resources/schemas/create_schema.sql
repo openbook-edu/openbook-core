@@ -427,6 +427,8 @@ CREATE TABLE course_limit (
 );
 
 create table tags(id uuid primary key, name varchar(150));
+CREATE INDEX trgm_tag_idx ON tags USING gist (name gist_trgm_ops);
+
 create table project_tags(
   project_id uuid references projects(id),
   tag_id uuid references tags(id),

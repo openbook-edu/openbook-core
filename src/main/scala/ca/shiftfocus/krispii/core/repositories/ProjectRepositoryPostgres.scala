@@ -44,6 +44,9 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   }
 
   val Table = "projects"
+  val ProjectsTagsTable = "project_tags"
+  val TagsTable = "tags"
+  val Fields = "id, version, course_id, name, slug, parent_id, is_master, description, availability, enabled, project_type, created_at, updated_at"
   val Fields = "id, version, course_id, name, slug, parent_id, is_master, description, long_description, availability, enabled, project_type, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
@@ -96,6 +99,17 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
        |WHERE course_id = ?
        |ORDER BY $OrderBy
      """.stripMargin
+
+  val SelectAllByTag =
+    s"""
+       |SELECT * FROM (
+       |SELECT $FieldsWithTable, (1 - similarity($TagsTable.name, ?)) as dist
+       |FROM $Table
+       |INNER JOIN $ProjectsTagsTable ON
+       |$Table.id = $ProjectsTagsTable.project_id INNER JOIN $TagsTable on $TagsTable.id = $ProjectsTagsTable.tag_id
+       |) inn
+       |WHERE dist < 0.9 ORDER BY dist LIMIT 10
+    """.stripMargin
 
   // Using here get_slug custom postgres function to generate unique slug if slug already exists
   val Insert =
@@ -369,6 +383,15 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
       })
       parts <- lift(if (fetchParts) partRepository.list(project) else Future successful \/-(IndexedSeq()))
     } yield project.copy(parts = parts)).run
+  }
+
+  /**
+   * Search by trigrams for autocomplete
+   * @param key
+   * @param conn
+   */
+  def trigramSearch(key: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+    queryList(SelectAllByTag, Seq[Any](key))
   }
 
   /**

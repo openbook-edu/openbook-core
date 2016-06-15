@@ -221,6 +221,17 @@ class ProjectServiceDefault(
   }
 
   /**
+   * List projects for autocomplete search
+   *
+   * @param key the partially typed word from the user
+   */
+  override def listByKey(key: String): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+    transactional { implicit conn =>
+      projectRepository.trigramSearch(key)
+    }
+  }
+
+  /**
    * Find a single project by slug and UserID.
    *
    * @return an optional project

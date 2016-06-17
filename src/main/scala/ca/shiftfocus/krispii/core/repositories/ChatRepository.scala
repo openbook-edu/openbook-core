@@ -20,4 +20,5 @@ trait ChatRepository extends Repository {
 
   def insert(chat: Chat)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]]
   def update(chat: Chat)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]]
+  def delete(courseId: UUID, messageNum: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]]
 }

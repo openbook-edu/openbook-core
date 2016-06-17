@@ -38,6 +38,9 @@ VALUES ('7c62a526-d1b0-11e5-9080-08626681851d', 1, 'yanez@krispii.com', 'yanez',
 INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at, is_deleted)
 VALUES ('a898c83a-5638-4483-9528-8037b3ed661d', 1, 'kmccormick@krispii.com', 'mysterion', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'Kenny', 'McCormick', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04', TRUE);
 
+/* user  */
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
+VALUES ('871b525067124e548ab60784cae0bc65', 1, 'testUserNew@example.com', 'testUserNew', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestNew', 'UserNew', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 /* ---------------------- ROLES ---------------------- */
 
 /* role A */
@@ -160,31 +163,31 @@ VALUES ('5099a6b48809400d8e380119184d0f93', '94cc65bb45424f628e08d58522e7b5f1', 
 /* ---------------------- PROJECTS ---------------------- */
 
 /* project A -> course A -> user A (teacher) */
-INSERT INTO projects (id, course_id, version, name, slug, description, availability, created_at, updated_at)
-VALUES ('c9b4cfceaed448fd94f5c980763dfddc', '217c5622ff9e43728e6a95fb3bae300b', 1, 'test project A', 'test-project-slug-A', 'test project A description', 'any', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
+INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability, project_type, created_at, updated_at)
+VALUES ('c9b4cfceaed448fd94f5c980763dfddc', '217c5622ff9e43728e6a95fb3bae300b', 1, 'test project A', 'test-project-slug-A', 'test project A description',  'test project A long description', 'any', 'sas', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
 /* project B -> course B -> user B (teacher) */
-INSERT INTO projects (id, course_id, version, name, slug, description, availability, created_at, updated_at)
-VALUES ('e4ae3b9098714339b05c8d39e3aaf65d', '404c800a53854e6b867e365a1e6b00de', 2, 'test project B', 'test-project-slug-B', 'test project B description', 'free', '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
+INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability,  project_type, created_at, updated_at)
+VALUES ('e4ae3b9098714339b05c8d39e3aaf65d', '404c800a53854e6b867e365a1e6b00de', 2, 'test project B', 'test-project-slug-B', 'test project B description',  'test project B long description', 'free', 'default_project', '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
 
 /* project C -> course B -> user B (teacher) */
-INSERT INTO projects (id, course_id, version, name, slug, description, availability, created_at, updated_at)
-VALUES ('4ac4d872451b4092b13f643d6d5fa930', '404c800a53854e6b867e365a1e6b00de', 3, 'test project C', 'test-project-slug-C', 'test project C description', 'course', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability, project_type, created_at, updated_at)
+VALUES ('4ac4d872451b4092b13f643d6d5fa930', '404c800a53854e6b867e365a1e6b00de', 3, 'test project C', 'test-project-slug-C', 'test project C description', 'test project C long description', 'course', 'sas', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
 /* project E -> course A -> user A (teacher) */
-INSERT INTO projects (id, course_id, version, name, slug, description, availability, created_at, updated_at)
-VALUES ('b36919cb2df043b7bb7f36cae797deaa', '217c5622ff9e43728e6a95fb3bae300b', 4, 'test project E', 'test-project-slug-E', 'test project E description', 'course', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability, project_type, created_at, updated_at)
+VALUES ('b36919cb2df043b7bb7f36cae797deaa', '217c5622ff9e43728e6a95fb3bae300b', 4, 'test project E', 'test-project-slug-E', 'test project E description', 'test project E long description', 'course', 'default_project', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 
 /*  project F master project */
-INSERT INTO projects (id, course_id, version, name, slug, description, availability,  is_master, enabled, created_at, updated_at)
-VALUES ('b36919cb2df043b7bb7f36cae797deab', 'b24abba8e6c74700900ce66ed0185a70', 1, 'test project F', 'test-project-slug-F', 'test project F description', 'course', true, true, '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability,  is_master, enabled, project_type, created_at, updated_at)
+VALUES ('b36919cb2df043b7bb7f36cae797deab', 'b24abba8e6c74700900ce66ed0185a70', 1, 'test project F', 'test-project-slug-F', 'test project F description', 'test project F long description', 'course', true, true, 'sas', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 
 /* project G master project */
-INSERT INTO projects (id, course_id, version, name, slug, description, availability,  is_master, enabled, created_at, updated_at)
-VALUES ('b36919cb2df043b7bb7f36cae797deac', 'b24abba8e6c74700900ce66ed0185a70', 1, 'test project G', 'test-project-slug-G', 'test project G description', 'course', true, true, '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability,  is_master, enabled, project_type, created_at, updated_at)
+VALUES ('b36919cb2df043b7bb7f36cae797deac', 'b24abba8e6c74700900ce66ed0185a70', 1, 'test project G', 'test-project-slug-G', 'test project G description', 'test project G long description', 'course', true, true, 'default_project', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 /* project H master project */
-INSERT INTO projects (id, course_id, version, name, slug, description, availability,  is_master, enabled, created_at, updated_at)
-VALUES ('00743ada1d3a4912adc8fb8a0b1b7447', 'b24abba8e6c74700900ce66ed0185a70', 1, 'test project H', 'test-project-slug-H', 'test project H description', 'course', true, true, '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
+INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability,  is_master, enabled, project_type, created_at, updated_at)
+VALUES ('00743ada1d3a4912adc8fb8a0b1b7447', 'b24abba8e6c74700900ce66ed0185a70', 1, 'test project H', 'test-project-slug-H', 'test project H description', 'test project H long description', 'course', true, true, 'sas', '2014-08-15 14:01:19.545-04', '2014-08-16 14:01:19.545-04');
 /* ---------------------- PARTS ---------------------- */
 
 /* part A -> project A -> course A -> user A (teacher) */
@@ -757,6 +760,13 @@ VALUES ('8cfc608981294c2e9ed145d38077d449', 6, '36c8c0ca50aa4806afa5916a5e33a81f
 INSERT INTO rubric_components (component_id, rubric_content)
 VALUES ('8cfc608981294c2e9ed145d38077d449', 'testRubricComponentK content');
 
+/* testBookComponentO -> userB  */
+INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
+VALUES ('9f2dd973397b4f559618b0ff3af69eaa', 1, '6c0e29bdd05b4b2981156be93e936c59', 'testBookComponentO title', 'testBookComponentO questions', 'testBookComponentO thingsToThinkAbout', 'book', 0, '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
+
+INSERT INTO book_components (component_id, file_data)
+VALUES ('9f2dd973397b4f559618b0ff3af69eaa', '{"data": "some text from a book", "dataType": "epub", "size": 4}');
+
 
 /* ---------------------- PARTS_COMPONENTS ---------------------- */
 
@@ -940,3 +950,24 @@ VALUES('217c5622ff9e43728e6a95fb3bae300b', 'bisexualpotato',  '2014-08-05 14:01:
 /* course b */
 INSERT INTO links(course_id, link, created_at)
 VALUES  ('404c800a53854e6b867e365a1e6b00de', 'vinrouge', '2014-08-05 14:01:19.545-04');
+
+/* ---------------------------- TAGS -----------------------------*/
+insert into tags(id, name) values('871b525067124e548ab60784cae0bc64', 'pacificsound3003');
+insert into tags(id, name) values('02d6304b98504c9291a94d12654b33bb', 'vanille');
+insert into tags(id, name) values('abb660393680467f9079dae1251cb57d', 'fruit');
+/**
+ lonely tag
+ */
+insert into tags(id, name) values('50df20ac2bba42da800cb660eb6dba62', 'seductive');
+insert into tags(id, name) values('50df20ac2bba42da950cb660eb6dba46', 'seditious');
+
+/**
+Project A tags
+ */
+insert into project_tags(project_id, tag_id) values ('c9b4cfceaed448fd94f5c980763dfddc','871b525067124e548ab60784cae0bc64');
+insert into project_tags(project_id, tag_id) values ('c9b4cfceaed448fd94f5c980763dfddc','02d6304b98504c9291a94d12654b33bb');
+/**
+Project B tags
+ */
+insert into project_tags(project_id, tag_id) values ('e4ae3b9098714339b05c8d39e3aaf65d','abb660393680467f9079dae1251cb57d');
+insert into project_tags(project_id, tag_id) values ('e4ae3b9098714339b05c8d39e3aaf65d','871b525067124e548ab60784cae0bc64');

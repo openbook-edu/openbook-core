@@ -47,7 +47,6 @@ libraryDependencies ++= Seq(
   "net.sf.uadetector" % "uadetector-resources" % "2014.04",
   "com.github.cb372" %% "scalacache-redis" % "0.6.1",
   "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test",
-  "org.scalamock" %% "scalamock-scalatest-support" % "3.2" % "test",
   "ca.shiftfocus" %% "webcrank-password" % "0.4.1",
   "org.slf4j" % "slf4j-api" % "1.7.5",
   "org.slf4j" % "slf4j-simple" % "1.7.5",
@@ -55,7 +54,8 @@ libraryDependencies ++= Seq(
   "ca.shiftfocus" %% "sflib" % "1.0.6",
   "junit" % "junit" % "4.12" % "test",
   "ws.kahn" %% "ot" % "1.0-SNAPSHOT",
-  "com.stripe" % "stripe-java" % "2.5.0"
+  "com.stripe" % "stripe-java" % "2.5.0",
+  "ws.kahn" %% "ot" % "1.0-SNAPSHOT",  "org.scalamock" % "scalamock-scalatest-support_2.11" % "3.2.2" % "test"
 )
 
 addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % "0.1.12")

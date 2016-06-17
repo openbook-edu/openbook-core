@@ -33,8 +33,10 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
       row("name").asInstanceOf[String],
       row("slug").asInstanceOf[String],
       row("description").asInstanceOf[String],
+      row("long_description").asInstanceOf[String],
       row("availability").asInstanceOf[String],
       row("enabled").asInstanceOf[Boolean],
+      row("project_type").asInstanceOf[String],
       IndexedSeq[Part](),
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
@@ -42,9 +44,11 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   }
 
   val Table = "projects"
-  val Fields = "id, version, course_id, name, slug, parent_id, is_master, description, availability, enabled, created_at, updated_at"
+  val ProjectsTagsTable = "project_tags"
+  val TagsTable = "tags"
+  val Fields = "id, version, course_id, name, slug, parent_id, is_master, description, long_description, availability, enabled, project_type, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.created_at DESC"
 
   // User CRUD operations
@@ -95,11 +99,22 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
        |ORDER BY $OrderBy
      """.stripMargin
 
+  val SelectAllByTag =
+    s"""
+       |SELECT * FROM (
+       |SELECT $FieldsWithTable, (1 - similarity($TagsTable.name, ?)) as dist
+       |FROM $Table
+       |INNER JOIN $ProjectsTagsTable ON
+       |$Table.id = $ProjectsTagsTable.project_id INNER JOIN $TagsTable on $TagsTable.id = $ProjectsTagsTable.tag_id
+       |) inn
+       |WHERE dist < 0.9 ORDER BY dist LIMIT 10
+    """.stripMargin
+
   // Using here get_slug custom postgres function to generate unique slug if slug already exists
   val Insert =
     s"""
       |INSERT INTO $Table ($Fields)
-      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?, ?, ?)
+      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?, ?, ?, ?, ?)
       |RETURNING $Fields
     """.stripMargin
 
@@ -107,7 +122,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   val Update =
     s"""
       |UPDATE $Table
-      |SET course_id = ?, name = ?, parent_id = ?, is_master = ?, slug = get_slug(?, '$Table', ?), description = ?, availability = ?, enabled = ?, version = ?, updated_at = ?
+      |SET course_id = ?, name = ?, parent_id = ?, is_master = ?, slug = get_slug(?, '$Table', ?), description = ?, long_description = ?, availability = ?, enabled = ?, project_type = ?, version = ?, updated_at = ?
       |WHERE id = ?
       |  AND version = ?
       |RETURNING $Fields
@@ -370,6 +385,15 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   }
 
   /**
+   * Search by trigrams for autocomplete
+   * @param key
+   * @param conn
+   */
+  def trigramSearch(key: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+    queryList(SelectAllByTag, Seq[Any](key))
+  }
+
+  /**
    * Save a Project row.
    *
    * @param project The new project to save.
@@ -379,7 +403,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   override def insert(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
       project.id, 1, project.courseId, project.name, project.slug, project.id, project.parentId, project.isMaster,
-      project.description, project.availability, project.enabled, new DateTime, new DateTime
+      project.description, project.longDescription, project.availability, project.enabled, project.projectType, new DateTime, new DateTime
     )
 
     for {
@@ -397,8 +421,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
    */
   override def update(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
-      project.courseId, project.name, project.parentId, project.isMaster, project.slug, project.id, project.description,
-      project.availability, project.enabled, project.version + 1, new DateTime, project.id, project.version
+      project.courseId, project.name, project.parentId, project.isMaster, project.slug, project.id, project.description, project.longDescription,
+      project.availability, project.enabled, project.projectType, project.version + 1, new DateTime, project.id, project.version
     )
 
     (for {

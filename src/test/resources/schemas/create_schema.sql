@@ -90,10 +90,12 @@ CREATE TABLE projects (
   name text,
   slug text UNIQUE,
   description text,
+  long_description text,
   availability text,
   parent_id uuid,
   is_master boolean DEFAULT false,
   enabled boolean DEFAULT false,
+  project_type text,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
@@ -243,6 +245,11 @@ CREATE TABLE video_components (
 CREATE TABLE audio_components (
   component_id uuid PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
   audio_data jsonb
+);
+
+CREATE TABLE book_components (
+  component_id uuid PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
+  file_data jsonb
 );
 
 CREATE TABLE component_notes (
@@ -419,6 +426,14 @@ CREATE TABLE course_limit (
   limited integer,
   PRIMARY KEY (course_id, type)
 );
+
+create table tags(id uuid primary key, name varchar(150));
+CREATE INDEX trgm_tag_idx ON tags USING gist (name gist_trgm_ops);
+
+create table project_tags(
+  project_id uuid references projects(id),
+  tag_id uuid references tags(id),
+  CONSTRAINT tags_projects PRIMARY KEY(project_id, tag_id));
 
 CREATE OR REPLACE FUNCTION get_slug(_slug text, _table text, _id uuid) RETURNS text AS $$
 DECLARE

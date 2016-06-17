@@ -27,7 +27,8 @@ class ProjectServiceDefault(
     val projectRepository: ProjectRepository,
     val partRepository: PartRepository,
     val taskRepository: TaskRepository,
-    val componentRepository: ComponentRepository
+    val componentRepository: ComponentRepository,
+    val tagRepository: TagRepository
 ) extends ProjectService {
 
   implicit def conn: Connection = db.pool
@@ -251,7 +252,18 @@ class ProjectServiceDefault(
    * @param description The new description for the project.
    * @return the updated project.
    */
-  override def create(courseId: UUID, name: String, slug: String, description: String, availability: String, parentId: Option[UUID] = None, isMaster: Boolean = false, enabled: Boolean = false): Future[\/[ErrorUnion#Fail, Project]] = {
+  override def create(
+    courseId: UUID,
+    name: String,
+    slug: String,
+    description: String,
+    longDescription: String,
+    availability: String,
+    parentId: Option[UUID] = None,
+    isMaster: Boolean = false,
+    enabled: Boolean = false,
+    projectType: String
+  ): Future[\/[ErrorUnion#Fail, Project]] = {
     // First instantiate a new Project, Part and Task.
     val newProject = Project(
       courseId = courseId,
@@ -261,7 +273,9 @@ class ProjectServiceDefault(
       enabled = enabled,
       isMaster = isMaster,
       description = description,
+      longDescription = longDescription,
       availability = availability,
+      projectType = projectType,
       parts = IndexedSeq.empty[Part]
     )
 
@@ -289,8 +303,10 @@ class ProjectServiceDefault(
     name: Option[String],
     slug: Option[String],
     description: Option[String],
+    longDescription: Option[String],
     availability: Option[String],
-    enabled: Option[Boolean]
+    enabled: Option[Boolean],
+    projectType: Option[String]
   ): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
       for {
@@ -301,8 +317,10 @@ class ProjectServiceDefault(
           name = name.getOrElse(existingProject.name),
           slug = slug.getOrElse(existingProject.slug),
           description = description.getOrElse(existingProject.description),
+          longDescription = longDescription.getOrElse(existingProject.longDescription),
           availability = availability.getOrElse(existingProject.availability),
-          enabled = enabled.getOrElse(existingProject.enabled)
+          enabled = enabled.getOrElse(existingProject.enabled),
+          projectType = projectType.getOrElse(existingProject.projectType)
         )
         updatedProject <- lift(projectRepository.update(toUpdate))
       } yield updatedProject
@@ -1045,6 +1063,34 @@ class ProjectServiceDefault(
     }
   }
 
+  override def createTag(name: String): Future[\/[ErrorUnion#Fail, Tag]] = {
+    transactional { implicit conn: Connection =>
+      tagRepository.create(Tag(UUID.randomUUID(), name))
+    }
+  }
+  override def tag(projectId: UUID, tagId: UUID): Future[\/[ErrorUnion#Fail, Unit]] = {
+    transactional { implicit conn: Connection =>
+      tagRepository.tag(projectId, tagId)
+    }
+  }
+  override def findTag(name: String): Future[\/[ErrorUnion#Fail, Tag]] = {
+    transactional { implicit conn: Connection =>
+      tagRepository.find(name)
+    }
+  }
+
+  override def untag(projectId: UUID, tagId: UUID): Future[\/[ErrorUnion#Fail, Unit]] = {
+    transactional { implicit conn: Connection =>
+      tagRepository.untag(projectId, tagId)
+    }
+  }
+
+  override def listByKey(key: String): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+    transactional { implicit conn: Connection =>
+      tagRepository.trigramSearch(key)
+    }
+  }
+
   /**
    * Checks if a user has access to a project.
    *
@@ -1071,4 +1117,26 @@ class ProjectServiceDefault(
     else -\/(ServiceError.BadInput(s"$slug is not a valid slug format."))
   }
 
+  //  partsWithAdditions <- lift(serializedT(clonedParts)(part => {
+  //    for {
+  //      tasks <- lift(insertTasks(part.tasks, part))
+  //      partComponents <- lift(insertPartsComponents(components, part))
+  //    } yield tasks
+  //  }))
+  /**
+   * clone tags from one project to another
+   * @param newProjectId
+   * @param oldProjectId
+   * @return
+   */
+  override def cloneTags(newProjectId: UUID, oldProjectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
+    for {
+      toClone <- lift(tagRepository.listByProjectId(oldProjectId))
+      cloned <- lift(serializedT(toClone)(tag => {
+        for {
+          inserted <- lift(tagRepository.create(tag))
+        } yield inserted
+      }))
+    } yield cloned
+  }
 }

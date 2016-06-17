@@ -1,4 +1,4 @@
-import ca.shiftfocus.krispii.core.error.{ ServiceError, RepositoryError }
+import ca.shiftfocus.krispii.core.error.{ RepositoryError, ServiceError }
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks._
@@ -7,9 +7,11 @@ import ca.shiftfocus.krispii.core.services._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import java.util.UUID
+
 import org.scalatest._
 import Matchers._
 
+import scala.collection.immutable.TreeMap
 import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, Future }
 import scalaz.{ -\/, \/- }
@@ -26,8 +28,9 @@ class ProjectServiceSpec
   val partRepository = stub[PartRepository]
   val taskRepository = stub[TaskRepository]
   val componentRepository = stub[ComponentRepository]
+  val tagRepository = stub[TagRepository]
 
-  val projectService = new ProjectServiceDefault(db, cache, authService, schoolService, courseRepository, projectRepository, partRepository, taskRepository, componentRepository) {
+  val projectService = new ProjectServiceDefault(db, cache, authService, schoolService, courseRepository, projectRepository, partRepository, taskRepository, componentRepository, tagRepository) {
     override implicit def conn: Connection = mockConnection
 
     override def transactional[A](f: Connection => Future[A]): Future[A] = {
@@ -47,7 +50,9 @@ class ProjectServiceSpec
           name = testProject.name,
           slug = testProject.slug,
           description = testProject.description,
+          longDescription = testProject.longDescription,
           availability = testProject.availability,
+          projectType = testProject.projectType,
           parts = IndexedSeq.empty[Part]
         )
 
@@ -69,7 +74,7 @@ class ProjectServiceSpec
         (partRepository.insert(_: Part)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyPart)))
         (taskRepository.insert(_: Task)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyTask)))
 
-        val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.availability, enabled = true)
+        val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.longDescription, emptyProject.availability, enabled = true, projectType = emptyProject.projectType)
         val eitherProject = Await.result(result, Duration.Inf)
         val \/-(project) = eitherProject
 
@@ -79,6 +84,7 @@ class ProjectServiceSpec
         project.name should be(resultProject.name)
         project.slug should be(resultProject.slug)
         project.description should be(resultProject.description)
+        project.longDescription should be(resultProject.longDescription)
         project.availability should be(resultProject.availability)
         project.parts should be(resultProject.parts)
         project.createdAt.toString should be(resultProject.createdAt.toString)
@@ -95,7 +101,9 @@ class ProjectServiceSpec
           name = testProject.name,
           slug = "bad slug format A",
           description = testProject.description,
+          longDescription = testProject.longDescription,
           availability = testProject.availability,
+          projectType = testProject.projectType,
           parts = IndexedSeq.empty[Part]
         )
 
@@ -125,7 +133,18 @@ class ProjectServiceSpec
         (partRepository.insert(_: Part)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyPart)))
         (taskRepository.insert(_: Task)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyTask)))
 
-        val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.availability)
+        val result = projectService.create(
+          testCourse.id,
+          emptyProject.name,
+          emptyProject.slug,
+          emptyProject.description,
+          emptyProject.longDescription,
+          emptyProject.availability,
+          emptyProject.parentId,
+          emptyProject.isMaster,
+          emptyProject.enabled,
+          emptyProject.projectType
+        )
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadInput(s"${emptyProject.slug} is not a valid slug format.")))
       }
       "return a new project with slug + '-1' if slug is already in use" in {
@@ -138,7 +157,9 @@ class ProjectServiceSpec
           name = testProject.name,
           slug = testProject.slug,
           description = testProject.description,
+          longDescription = testProject.longDescription,
           availability = testProject.availability,
+          projectType = testProject.projectType,
           parts = IndexedSeq.empty[Part]
         )
 
@@ -169,7 +190,7 @@ class ProjectServiceSpec
         (partRepository.insert(_: Part)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyPart)))
         (taskRepository.insert(_: Task)(_: Connection, _: ScalaCachePool)) when (*, *, *) returns (Future.successful(\/-(emptyTask)))
 
-        val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.availability)
+        val result = projectService.create(testCourse.id, emptyProject.name, emptyProject.slug, emptyProject.description, emptyProject.longDescription, emptyProject.availability, enabled = true, projectType = emptyProject.projectType)
         val eitherProject = Await.result(result, Duration.Inf)
         val \/-(project) = eitherProject
 
@@ -179,6 +200,7 @@ class ProjectServiceSpec
         project.name should be(resultProject.name)
         project.slug should be(resultProject.slug)
         project.description should be(resultProject.description)
+        project.longDescription should be(resultProject.longDescription)
         project.availability should be(resultProject.availability)
         project.parts should be(resultProject.parts)
         project.createdAt.toString should be(resultProject.createdAt.toString)
@@ -194,7 +216,17 @@ class ProjectServiceSpec
 
         (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(\/-(testProject)))
 
-        val result = projectService.updateInfo(testProject.id, 99L, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.availability), Some(testProject.enabled))
+        val result = projectService.updateInfo(
+          testProject.id,
+          99L, Some(testProject.courseId),
+          Some(testProject.name),
+          Some(testProject.slug),
+          Some(testProject.description),
+          Some(testProject.longDescription),
+          Some(testProject.availability),
+          Some(testProject.enabled),
+          Some(testProject.projectType)
+        )
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
       "return RepositoryError.NoResults if project doesn't exist" in {
@@ -202,7 +234,7 @@ class ProjectServiceSpec
 
         (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
-        val result = projectService.updateInfo(testProject.id, testProject.version, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.availability), Some(testProject.enabled))
+        val result = projectService.updateInfo(testProject.id, testProject.version, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.longDescription), Some(testProject.availability), Some(testProject.enabled), Some(testProject.projectType))
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
       }
     }
@@ -260,6 +292,7 @@ class ProjectServiceSpec
         project.name should be(resultProject.name)
         project.slug should be(resultProject.slug)
         project.description should be(resultProject.description)
+        project.longDescription should be(resultProject.longDescription)
         project.availability should be(resultProject.availability)
         project.parts should be(resultProject.parts)
         project.createdAt.toString should be(resultProject.createdAt.toString)
@@ -3118,11 +3151,51 @@ class ProjectServiceSpec
         TestValues.testProjectH.name should be(clonedProject.name)
         TestValues.testProjectH.slug should be(clonedProject.slug)
         TestValues.testProjectH.description should be(clonedProject.description)
+        TestValues.testProjectH.longDescription should be(clonedProject.longDescription)
         TestValues.testProjectH.availability should be(clonedProject.availability)
         TestValues.testProjectH.parts should be(clonedProject.parts)
         TestValues.testPartI.components.head should be(clonedProject.parts.head.components.head)
         TestValues.testProjectH.createdAt.toString should be(clonedProject.createdAt.toString)
         TestValues.testProjectH.updatedAt.toString should be(clonedProject.updatedAt.toString)
+      }
+    }
+  }
+
+  "ProjectService.cloneTags" should {
+    inSequence {
+      "copy tags from one project to another" in {
+        val toClone = TestValues.testProjectA
+        val cloned = TestValues.testProjectC
+        val tags = TreeMap[Int, ca.shiftfocus.krispii.core.models.Tag](
+          0 -> TestValues.testTagA,
+          1 -> TestValues.testTagB
+        )
+
+        (tagRepository.listByProjectId(_: UUID)(_: Connection)) when (toClone.id, *) returns (Future.successful(\/-(IndexedSeq[ca.shiftfocus.krispii.core.models.Tag](TestValues.testTagA, TestValues.testTagB))))
+        (tagRepository.create(_: ca.shiftfocus.krispii.core.models.Tag)(_: Connection)) when (TestValues.testTagA, *) returns (Future.successful(\/-(TestValues.testTagA)))
+        (tagRepository.create(_: ca.shiftfocus.krispii.core.models.Tag)(_: Connection)) when (TestValues.testTagB, *) returns (Future.successful(\/-(TestValues.testTagB)))
+
+        val result = projectService.cloneTags(cloned.id, toClone.id)
+        val \/-(clonedTags) = Await.result(result, Duration.Inf)
+
+        tags.foreach {
+          case (key, tag: ca.shiftfocus.krispii.core.models.Tag) => {
+            clonedTags(key).id should be(tag.id)
+            clonedTags(key).name should be(tag.name)
+          }
+        }
+      }
+      "do nothing if there are no tags" in {
+        val toClone = TestValues.testProjectB
+        val cloned = TestValues.testProjectC
+
+        (tagRepository.listByProjectId(_: UUID)(_: Connection)) when (toClone.id, *) returns (Future.successful(\/-(IndexedSeq[ca.shiftfocus.krispii.core.models.Tag]())))
+        (tagRepository.create(_: ca.shiftfocus.krispii.core.models.Tag)(_: Connection)) when (TestValues.testTagB, *) returns (Future.successful(\/-(TestValues.testTagB)))
+
+        val result = projectService.cloneTags(cloned.id, toClone.id)
+        val \/-(clonedTags) = Await.result(result, Duration.Inf)
+
+        clonedTags should be(Vector())
       }
     }
   }

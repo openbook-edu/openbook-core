@@ -71,7 +71,9 @@ class ProjectRepositorySpec
             projects(key).name should be(project.name)
             projects(key).slug should be(project.slug)
             projects(key).description should be(project.description)
+            projects(key).longDescription should be(project.longDescription)
             projects(key).availability should be(project.availability)
+            projects(key).projectType should be(project.projectType)
             projects(key).parts should be(project.parts)
             projects(key).createdAt.toString should be(project.createdAt.toString)
             projects(key).updatedAt.toString should be(project.updatedAt.toString)
@@ -119,8 +121,9 @@ class ProjectRepositorySpec
             projects(key).version should be(project.version)
             projects(key).name should be(project.name)
             projects(key).slug should be(project.slug)
-            projects(key).description should be(project.description)
+            projects(key).longDescription should be(project.longDescription)
             projects(key).availability should be(project.availability)
+            projects(key).projectType should be(project.projectType)
             projects(key).parts should be(project.parts)
             projects(key).createdAt.toString should be(project.createdAt.toString)
             projects(key).updatedAt.toString should be(project.updatedAt.toString)
@@ -169,7 +172,9 @@ class ProjectRepositorySpec
             projects(key).name should be(project.name)
             projects(key).slug should be(project.slug)
             projects(key).description should be(project.description)
+            projects(key).longDescription should be(project.longDescription)
             projects(key).availability should be(project.availability)
+            projects(key).projectType should be(project.projectType)
             projects(key).parts should be(project.parts)
             projects(key).createdAt.toString should be(project.createdAt.toString)
             projects(key).updatedAt.toString should be(project.updatedAt.toString)
@@ -205,7 +210,9 @@ class ProjectRepositorySpec
         project.name should be(testProject.name)
         project.slug should be(testProject.slug)
         project.description should be(testProject.description)
+        project.longDescription should be(testProject.longDescription)
         project.availability should be(testProject.availability)
+        project.projectType should be(testProject.projectType)
         project.parts should be(testProject.parts)
         project.createdAt.toString should be(testProject.createdAt.toString)
         project.updatedAt.toString should be(testProject.updatedAt.toString)
@@ -243,7 +250,9 @@ class ProjectRepositorySpec
         project.name should be(testProject.name)
         project.slug should be(testProject.slug)
         project.description should be(testProject.description)
+        project.longDescription should be(testProject.longDescription)
         project.availability should be(testProject.availability)
+        project.projectType should be(testProject.projectType)
         project.parts should be(testProject.parts)
         project.createdAt.toString should be(testProject.createdAt.toString)
         project.updatedAt.toString should be(testProject.updatedAt.toString)
@@ -272,7 +281,9 @@ class ProjectRepositorySpec
         project.name should be(testProject.name)
         project.slug should be(testProject.slug)
         project.description should be(testProject.description)
+        project.longDescription should be(testProject.longDescription)
         project.availability should be(testProject.availability)
+        project.projectType should be(testProject.projectType)
         project.parts should be(testProject.parts)
         project.createdAt.toString should be(testProject.createdAt.toString)
         project.updatedAt.toString should be(testProject.updatedAt.toString)
@@ -351,7 +362,9 @@ class ProjectRepositorySpec
         project.name should be(testProject.name)
         project.slug should be(testProject.slug)
         project.description should be(testProject.description)
+        project.longDescription should be(testProject.longDescription)
         project.availability should be(testProject.availability)
+        project.projectType should be(testProject.projectType)
         project.parts should be(testProject.parts)
         project.createdAt.toString should be(testProject.createdAt.toString)
         project.updatedAt.toString should be(testProject.updatedAt.toString)
@@ -385,7 +398,9 @@ class ProjectRepositorySpec
         project.name should be(testProject.name)
         project.slug should be(testProject.slug)
         project.description should be(testProject.description)
+        project.longDescription should be(testProject.longDescription)
         project.availability should be(testProject.availability)
+        project.projectType should be(testProject.projectType)
         project.parts should be(Vector())
       }
       "insert new master project" in {
@@ -403,7 +418,9 @@ class ProjectRepositorySpec
         project.name should be(testProject.name)
         project.slug should be(testProject.slug)
         project.description should be(testProject.description)
+        project.longDescription should be(testProject.longDescription)
         project.availability should be(testProject.availability)
+        project.projectType should be(testProject.projectType)
         project.parts should be(Vector())
       }
       "insert new project with slug + '-1' if slug exists" in {
@@ -423,7 +440,9 @@ class ProjectRepositorySpec
         project.name should be(testProject.name)
         project.slug should be(testProject.slug + "-1")
         project.description should be(testProject.description)
+        project.longDescription should be(testProject.longDescription)
         project.availability should be(testProject.availability)
+        project.projectType should be(testProject.projectType)
         project.parts should be(Vector())
       }
       "return RepositoryError.ForeignKeyConflict if project contains unexisting course id" in {
@@ -454,6 +473,7 @@ class ProjectRepositorySpec
           name = "updated test project",
           slug = "updated test project slug",
           description = "updated test project description",
+          longDescription = "updated test project long description",
           availability = "any"
         )
 
@@ -467,7 +487,9 @@ class ProjectRepositorySpec
         project.name should be(updatedProject.name)
         project.slug should be(updatedProject.slug)
         project.description should be(updatedProject.description)
+        project.longDescription should be(updatedProject.longDescription)
         project.availability should be(updatedProject.availability)
+        project.projectType should be(updatedProject.projectType)
         project.parts should be(updatedProject.parts)
         project.createdAt.toString should be(testProject.createdAt.toString)
         project.updatedAt.toString should not be (testProject.updatedAt.toString)
@@ -482,6 +504,7 @@ class ProjectRepositorySpec
           slug = "updated test project slug",
           isMaster = true,
           description = "updated test project description",
+          longDescription = "updated test project long description",
           availability = "any"
         )
 
@@ -495,8 +518,10 @@ class ProjectRepositorySpec
         project.name should be(updatedProject.name)
         project.slug should be(updatedProject.slug)
         project.description should be(updatedProject.description)
+        project.longDescription should be(updatedProject.longDescription)
         project.availability should be(updatedProject.availability)
         project.isMaster should be(updatedProject.isMaster)
+        project.projectType should be(updatedProject.projectType)
         project.parts should be(updatedProject.parts)
         project.createdAt.toString should be(testProject.createdAt.toString)
         project.updatedAt.toString should not be (testProject.updatedAt.toString)
@@ -510,6 +535,7 @@ class ProjectRepositorySpec
           name = "updated test project",
           slug = existingSlug,
           description = "updated test project description",
+          longDescription = "updated test project long description",
           availability = "any"
         )
 
@@ -523,7 +549,9 @@ class ProjectRepositorySpec
         project.name should be(updatedProject.name)
         project.slug should be(updatedProject.slug + "-1")
         project.description should be(updatedProject.description)
+        project.longDescription should be(updatedProject.longDescription)
         project.availability should be(updatedProject.availability)
+        project.projectType should be(updatedProject.projectType)
         project.parts should be(updatedProject.parts)
         project.createdAt.toString should be(testProject.createdAt.toString)
         project.updatedAt.toString should not be (testProject.updatedAt.toString)
@@ -534,6 +562,7 @@ class ProjectRepositorySpec
           name = "updated test project",
           slug = "updated test project slug",
           description = "updated test project description",
+          longDescription = "updated test project long description",
           availability = "any",
           version = 99L
         )
@@ -547,6 +576,7 @@ class ProjectRepositorySpec
           name = "updated test project",
           slug = "updated test project slug",
           description = "updated test project description",
+          longDescription = "updated test project long description",
           availability = "any",
           version = 99L
         )
@@ -574,7 +604,9 @@ class ProjectRepositorySpec
         project.name should be(testProject.name)
         project.slug should be(testProject.slug)
         project.description should be(testProject.description)
+        project.longDescription should be(testProject.longDescription)
         project.availability should be(testProject.availability)
+        project.projectType should be(testProject.projectType)
         project.parts should be(testProject.parts)
         project.createdAt.toString should be(testProject.createdAt.toString)
         project.updatedAt.toString should be(testProject.updatedAt.toString)
@@ -595,7 +627,9 @@ class ProjectRepositorySpec
         project.name should be(testProject.name)
         project.slug should be(testProject.slug)
         project.description should be(testProject.description)
+        project.longDescription should be(testProject.longDescription)
         project.availability should be(testProject.availability)
+        project.projectType should be(testProject.projectType)
         project.parts should be(testProject.parts)
       }
       "return RepositoryError.NoResults if Project hasn't been found" in {
@@ -687,7 +721,9 @@ class ProjectRepositorySpec
         project.name should be(TestValues.testProjectA.name)
         project.slug should be("test-project-slug-A")
         project.description should be(TestValues.testProjectA.description)
+        project.longDescription should be(TestValues.testProjectA.longDescription)
         project.availability should be(TestValues.testProjectA.availability)
+        project.projectType should be(TestValues.testProjectA.projectType)
         project.parts.zipWithIndex.foreach {
           case (part: Part, i: Int) =>
             part.name should be(testPartList(i).name)

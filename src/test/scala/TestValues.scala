@@ -1582,8 +1582,8 @@ object TestValues {
 
   /* No data in DB */
   val testMediaWorkB = MediaWork(
-    id = UUID.fromString("761f5ba1-7379-4fbd-80aa-94d39a6d8cb7"),
-    studentId = testUserE.id,
+    id = UUID.fromString("761f5ba1-7379-4fbd-80aa-94d39a6d8cb8"),
+    studentId = UUID.fromString("871b5250-6712-4e54-8ab6-0784cae0bc65"),
     taskId = testMediaTaskA.id,
     version = 1L,
     fileData = MediaAnswer(),
@@ -1835,7 +1835,7 @@ object TestValues {
     title = "testVideoComponentB title",
     questions = "testVideoComponentB questions",
     thingsToThinkAbout = "testVideoComponentB thingsToThinkAbout",
-    videoData = MediaData(Some("vimeo"), Some("19579282")),
+    mediaData = MediaData(Some("vimeo"), Some("19579282")),
     width = 640,
     height = 480,
     order = 3,
@@ -1850,7 +1850,7 @@ object TestValues {
     title = "testVideoComponentL title",
     questions = "testVideoComponentL questions",
     thingsToThinkAbout = "testVideoComponentL thingsToThinkAbout",
-    videoData = MediaData(Some("s3"), Some("some_video.mp4"), Some("video/mp4"), Some(4123456)),
+    mediaData = MediaData(Some("s3"), Some("some_video.mp4"), Some("video/mp4"), Some(4123456)),
     width = 640,
     height = 480,
     order = 3,
@@ -1866,7 +1866,7 @@ object TestValues {
     title = "testVideoComponentF title",
     questions = "testVideoComponentF questions",
     thingsToThinkAbout = "testVideoComponentF thingsToThinkAbout",
-    videoData = MediaData(Some("vimeo"), Some("19579283")),
+    mediaData = MediaData(Some("vimeo"), Some("19579283")),
     width = 640,
     height = 480,
     order = 0,
@@ -1882,7 +1882,7 @@ object TestValues {
     title = "testAudioComponentC title",
     questions = "testAudioComponentC questions",
     thingsToThinkAbout = "testAudioComponentC thingsToThinkAbout",
-    audioData = MediaData(Some("sound_cloud"), Some("dj-whisky-ft-nozipho-just")),
+    mediaData = MediaData(Some("sound_cloud"), Some("dj-whisky-ft-nozipho-just")),
     order = 0,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -1895,7 +1895,7 @@ object TestValues {
     title = "testAudioComponentM title",
     questions = "testAudioComponentM questions",
     thingsToThinkAbout = "testAudioComponentM thingsToThinkAbout",
-    audioData = MediaData(Some("s3"), Some("some_audio.mp3"), Some("audio/mp3"), Some(2236480)),
+    mediaData = MediaData(Some("s3"), Some("some_audio.mp3"), Some("audio/mp3"), Some(2236480)),
     order = 0,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -1909,7 +1909,7 @@ object TestValues {
     title = "testAudioComponentN title",
     questions = "testAudioComponentN questions",
     thingsToThinkAbout = "testAudioComponentN thingsToThinkAbout",
-    audioData = testAudioComponentM.audioData,
+    mediaData = testAudioComponentM.mediaData,
     order = 0,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -1923,7 +1923,7 @@ object TestValues {
     title = "testAudioComponentD title",
     questions = "testAudioComponentD questions",
     thingsToThinkAbout = "testAudioComponentD thingsToThinkAbout",
-    audioData = MediaData(Some("sound_cloud"), Some("fetty-wap-my-way-feat-monty")),
+    mediaData = MediaData(Some("sound_cloud"), Some("fetty-wap-my-way-feat-monty")),
     order = 0,
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -1936,7 +1936,7 @@ object TestValues {
     title = "testAudioComponentE title",
     questions = "testAudioComponentE questions",
     thingsToThinkAbout = "testAudioComponentE thingsToThinkAbout",
-    audioData = MediaData(Some("sound_cloud"), Some("revolution-radio-network")),
+    mediaData = MediaData(Some("sound_cloud"), Some("revolution-radio-network")),
     order = 0,
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2033,6 +2033,19 @@ object TestValues {
       """.stripMargin,
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testBookComponentO = BookComponent(
+    id = UUID.fromString("9f2dd973-397b-4f55-9618-b0ff3af69eaa"),
+    version = 1L,
+    ownerId = testUserB.id,
+    title = "testBookComponentO title",
+    questions = "testBookComponentO questions",
+    thingsToThinkAbout = "testBookComponentO thingsToThinkAbout",
+    mediaData = MediaData(data = Some("some text from a book"), dataType = Some("epub"), size = Some(4)),
+    order = 0,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   /* ---------------------- PARTS ---------------------- */
@@ -2155,7 +2168,9 @@ object TestValues {
     name = "test project A",
     slug = "test-project-slug-A",
     description = "test project A description",
+    longDescription = "test project A long description",
     availability = "any",
+    projectType = "sas",
     parts = Vector(testPartA, testPartB, testPartG),
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2168,7 +2183,9 @@ object TestValues {
     name = "test project B",
     slug = "test-project-slug-B",
     description = "test project B description",
+    longDescription = "test project B long description",
     availability = "free",
+    projectType = "default_project",
     parts = Vector(testPartC),
     createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2181,7 +2198,9 @@ object TestValues {
     name = "test project C",
     slug = "test-project-slug-C",
     description = "test project C description",
+    longDescription = "test project C long description",
     availability = "course",
+    projectType = "sas",
     parts = Vector(testPartE, testPartF, testPartH),
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2196,9 +2215,11 @@ object TestValues {
     name = "test project D",
     slug = "test-project-slug-D",
     description = "test project D description",
+    longDescription = "test project D long description",
     availability = "course",
     isMaster = false,
     parentId = null,
+    projectType = "default_project",
     parts = Vector()
   )
 
@@ -2212,7 +2233,9 @@ object TestValues {
     name = "test project E",
     slug = "test-project-slug-E",
     description = "test project E description",
+    longDescription = "test project E long description",
     availability = "course",
+    projectType = "default_project",
     parts = Vector(),
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2228,10 +2251,12 @@ object TestValues {
     name = "test project F",
     slug = "test-project-slug-F",
     description = "test project F description",
+    longDescription = "test project F long description",
     availability = "course",
     parts = Vector(),
     isMaster = true,
     enabled = true,
+    projectType = "sas",
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -2246,10 +2271,12 @@ object TestValues {
     name = "test project G",
     slug = "test-project-slug-G",
     description = "test project G description",
+    longDescription = "test project G long description",
     availability = "course",
     parts = Vector(),
     isMaster = true,
     enabled = true,
+    projectType = "default_project",
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -2263,10 +2290,12 @@ object TestValues {
     name = "test project H",
     slug = "test-project-slug-H",
     description = "test project H description",
+    longDescription = "test project H long description",
     availability = "course",
     isMaster = true,
     parts = Vector(testPartI),
     enabled = true,
+    projectType = "sas",
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -2718,6 +2747,34 @@ object TestValues {
     userId = UUID.fromString("7c62a526-d1b0-11e5-9080-08626681851d"),
     token = "$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=",
     tokenType = "password_reset"
+  )
+  /* ---------------------- TAGS ---------------------- */
+  //8b6dc674-d1ae-11e5-9080-08626681851d
+  val testTagA = Tag(
+    id = UUID.fromString("871b5250-6712-4e54-8ab6-0784cae0bc64"),
+    name = "pacificsound3003"
+  )
+  val testTagB = Tag(
+    id = UUID.fromString("02d6304b-9850-4c92-91a9-4d12654b33bb"),
+    name = "vanille"
+  )
+  val testTagC = Tag(
+    id = UUID.fromString("abb66039-3680-467f-9079-dae1251cb57d"),
+    name = "fruit"
+  )
+  /**
+   * no project is tagged with this tag, but it still exists
+   */
+  val testTagD = Tag(
+    id = UUID.fromString("50df20ac-2bba-42da-800c-b660eb6dba62"),
+    name = "seductive"
+  )
+  /**
+   * no tag in the database
+   */
+  val testTagX = Tag(
+    id = UUID.fromString("3e83d092-c62f-4456-aba8-748403ae8574"),
+    name = "orange"
   )
 }
 

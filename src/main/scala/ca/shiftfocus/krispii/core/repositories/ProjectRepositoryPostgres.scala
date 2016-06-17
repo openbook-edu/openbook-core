@@ -46,7 +46,6 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   val Table = "projects"
   val ProjectsTagsTable = "project_tags"
   val TagsTable = "tags"
-  val Fields = "id, version, course_id, name, slug, parent_id, is_master, description, availability, enabled, project_type, created_at, updated_at"
   val Fields = "id, version, course_id, name, slug, parent_id, is_master, description, long_description, availability, enabled, project_type, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"

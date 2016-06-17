@@ -181,42 +181,6 @@ class ProjectRepositorySpec
           }
         }
       }
-      "find all projects by key" in {
-        val testProjectList = TreeMap[Int, Project](
-          0 -> TestValues.testProjectA,
-          1 -> TestValues.testProjectB
-        )
-
-        // Put here parts = Vector(), because after db query Project object is created without parts.
-
-        val result = projectRepository.trigramSearch("pacific")
-        val eitherProjects = Await.result(result, Duration.Inf)
-        val \/-(projects) = eitherProjects
-
-        projects.size should be(testProjectList.size)
-
-        testProjectList.foreach {
-          case (key, project: Project) => {
-            projects(key).id should be(project.id)
-            projects(key).courseId should be(project.courseId)
-            projects(key).version should be(project.version)
-            projects(key).name should be(project.name)
-            projects(key).slug should be(project.slug)
-            projects(key).description should be(project.description)
-            projects(key).availability should be(project.availability)
-            projects(key).projectType should be(project.projectType)
-            projects(key).createdAt.toString should be(project.createdAt.toString)
-            projects(key).updatedAt.toString should be(project.updatedAt.toString)
-          }
-        }
-      }
-      "find projects by key no projects available" in {
-        val result = projectRepository.trigramSearch("seductive")
-        val eitherProjects = Await.result(result, Duration.Inf)
-        val \/-(projects) = eitherProjects
-
-        projects.size should be(0)
-      }
     }
   }
 

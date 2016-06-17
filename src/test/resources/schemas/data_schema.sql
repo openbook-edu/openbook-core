@@ -959,6 +959,7 @@ insert into tags(id, name) values('abb660393680467f9079dae1251cb57d', 'fruit');
  lonely tag
  */
 insert into tags(id, name) values('50df20ac2bba42da800cb660eb6dba62', 'seductive');
+insert into tags(id, name) values('50df20ac2bba42da950cb660eb6dba46', 'seditious');
 
 /**
 Project A tags

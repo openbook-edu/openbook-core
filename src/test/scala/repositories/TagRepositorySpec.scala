@@ -71,6 +71,27 @@ class TagRepositorySpec
     }
   }
 
+  "TagRepository.trigramSearch" should {
+    inSequence {
+      "find the tags given the keyword" in {
+
+        val result = tagRepository.trigramSearch("sed")
+        val eitherTags = Await.result(result, Duration.Inf)
+        val \/-(tags) = eitherTags
+
+        tags.size should be(2)
+
+      }
+      "return no results if the keyword doesn't match anything" in {
+        val result = tagRepository.trigramSearch("coco")
+        val eitherTags = Await.result(result, Duration.Inf)
+        val \/-(tags) = eitherTags
+
+        tags.size should be(0)
+      }
+    }
+  }
+
   "TagRepository.listByProject" should {
     inSequence {
       "list tags for project" in {

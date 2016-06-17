@@ -50,6 +50,13 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                               SELECT $Fields FROM $Table
                               WHERE name = ?
                             """.stripMargin
+
+  val SelectAllByKey = s"""
+                       SELECT $Fields from (SELECT $Fields, name <-> ? AS dist
+                       |FROM $Table
+                       |ORDER BY dist LIMIT 10) as sub  where dist < 0.9;
+                        """.stripMargin
+
   val Untag = s"""
                   |DELETE FROM project_tags
                   |WHERE project_id = ?
@@ -83,6 +90,15 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
         case -\/(error) => -\/(error)
       })
     } yield ()
+  }
+
+  /**
+   * Search by trigrams for autocomplete
+   * @param key
+   * @param conn
+   */
+  override def trigramSearch(key: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+    queryList(SelectAllByKey, Seq[Any](key))
   }
 
   override def tag(projectId: UUID, tagId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {

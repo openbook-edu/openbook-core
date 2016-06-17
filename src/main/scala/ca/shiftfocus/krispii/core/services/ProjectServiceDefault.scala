@@ -221,17 +221,6 @@ class ProjectServiceDefault(
   }
 
   /**
-   * List projects for autocomplete search
-   *
-   * @param key the partially typed word from the user
-   */
-  override def listByKey(key: String): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
-    transactional { implicit conn =>
-      projectRepository.trigramSearch(key)
-    }
-  }
-
-  /**
    * Find a single project by slug and UserID.
    *
    * @return an optional project
@@ -1095,6 +1084,13 @@ class ProjectServiceDefault(
       tagRepository.untag(projectId, tagId)
     }
   }
+
+  override def listByKey(key: String): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+    transactional { implicit conn: Connection =>
+      tagRepository.trigramSearch(key)
+    }
+  }
+
   /**
    * Checks if a user has access to a project.
    *

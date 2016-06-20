@@ -466,6 +466,16 @@ class SchoolServiceDefault(
   }
 
   /**
+   * Get number of courses that teacher is allowed to have within indicated plan
+   *
+   * @param planId
+   * @return
+   */
+  override def getPlanCourseLimit(planId: String): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getPlanCourseLimit(planId)
+  }
+
+  /**
    * Get storage (in GB) limit that teacher is allowed to have
    *
    * @param teacherId
@@ -473,6 +483,16 @@ class SchoolServiceDefault(
    */
   override def getStorageLimit(teacherId: UUID): Future[\/[ErrorUnion#Fail, Float]] = {
     limitRepository.getStorageLimit(teacherId)
+  }
+
+  /**
+   * Get storage (in GB) limit that teacher is allowed to have within indicated plan
+   *
+   * @param planId
+   * @return MB
+   */
+  override def getPlanStorageLimit(planId: String): Future[\/[ErrorUnion#Fail, Float]] = {
+    limitRepository.getPlanStorageLimit(planId)
   }
 
   /**
@@ -493,6 +513,16 @@ class SchoolServiceDefault(
    */
   override def getStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
     limitRepository.getStudentLimit(courseId)
+  }
+
+  /**
+   * Get number of students that courses are allowed to have within indicated plan
+   *
+   * @param planId
+   * @return
+   */
+  override def getPlanStudentLimit(planId: String): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getPlanStudentLimit(planId)
   }
 
   /**

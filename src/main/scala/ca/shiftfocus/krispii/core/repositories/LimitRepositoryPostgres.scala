@@ -31,7 +31,16 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       | AND type = ?
     """.stripMargin
 
+  val GetPlanLimit =
+    """
+      |SELECT plan_id, type, limited
+      |FROM plan_limit
+      |WHERE plan_id = ?
+      | AND type = ?
+    """.stripMargin
+
   // Use DISTINCT ON, because teacher can have many media components with links to one file on s3
+  // TODO add book component
   val GetStorageUsed =
     """
       |WITH vc AS (SELECT SUM(vc_data.size) as limited
@@ -116,6 +125,19 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   }
 
   /**
+   * Get number of courses that teacher is allowed to have within indicated plan
+   *
+   * @param planId
+   * @return
+   */
+  def getPlanCourseLimit(planId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
+    getPlanLimit(planId, Limits.course).flatMap {
+      case \/-(limit) => Future successful \/-(limit.toInt)
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
+  /**
    * Get storage (in GB) limit that teacher is allowed to have
    *
    * @param teacherId
@@ -123,6 +145,20 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
    */
   def getStorageLimit(teacherId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]] = {
     getTeacherLimit(teacherId, Limits.storage).flatMap {
+      // We store limit in database in MB, convert them to GB
+      case \/-(limit) => Future successful \/-(limit.toFloat / 1000)
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
+  /**
+   * Get storage (in GB) limit that teacher is allowed to have within indicated plan
+   *
+   * @param planId
+   * @return Limit in GB
+   */
+  def getPlanStorageLimit(planId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]] = {
+    getPlanLimit(planId, Limits.storage).flatMap {
       // We store limit in database in MB, convert them to GB
       case \/-(limit) => Future successful \/-(limit.toFloat / 1000)
       case -\/(error) => Future successful -\/(error)
@@ -153,6 +189,19 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
    */
   def getStudentLimit(courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
     getCourseLimit(courseId, Limits.student).flatMap {
+      case \/-(limit) => Future successful \/-(limit.toInt)
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
+  /**
+   * Get number of students that course is allowed to have
+   *
+   * @param planId
+   * @return
+   */
+  def getPlanStudentLimit(planId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
+    getPlanLimit(planId, Limits.student).flatMap {
       case \/-(limit) => Future successful \/-(limit.toInt)
       case -\/(error) => Future successful -\/(error)
     }
@@ -216,6 +265,10 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
 
   private def getCourseLimit(courseId: UUID, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
     queryOne(GetCourseLimit, Seq[Any](courseId, limitType))
+  }
+
+  private def getPlanLimit(planId: String, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
+    queryOne(GetPlanLimit, Seq[Any](planId, limitType))
   }
 }
 

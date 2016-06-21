@@ -559,6 +559,27 @@ class SchoolServiceDefault(
   }
 
   /**
+   * Insert or update plan limit values
+   */
+  override def setPlanStorageLimit(palnId: String, limitValue: Float): Future[\/[ErrorUnion#Fail, Float]] = {
+    limitRepository.setPlanStorageLimit(palnId, limitValue)
+  }
+
+  /**
+   * Insert or update plan limit values
+   */
+  override def setPlanCourseLimit(palnId: String, limitValue: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.setPlanCourseLimit(palnId, limitValue)
+  }
+
+  /**
+   * Insert or update plan limit values
+   */
+  override def setPlanStudentLimit(palnId: String, limitValue: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.setPlanStudentLimit(palnId, limitValue)
+  }
+
+  /**
    * Check if a slug is of the valid format.
    *
    * @param slug the slug to be checked

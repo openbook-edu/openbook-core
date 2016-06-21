@@ -93,6 +93,13 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       |RETURNING course_id, type, limited
     """.stripMargin
 
+  val InsertPlanLimit =
+    """
+      |INSERT INTO plan_limit (plan_id, type, limited)
+      |VALUES (?, ?, ?)
+      |RETURNING plan_id, type, limited
+    """.stripMargin
+
   val UpdateTeacherLimit =
     """
       |UPDATE teacher_limit
@@ -109,6 +116,15 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       |WHERE course_id = ?
       | AND type = ?
       |RETURNING course_id, type, limited
+    """.stripMargin
+
+  val UpdatePlanLimit =
+    """
+      |UPDATE plan_limit
+      |SET limited = ?
+      |WHERE plan_id = ?
+      | AND type = ?
+      |RETURNING plan_id, type, limited
     """.stripMargin
 
   /**
@@ -253,6 +269,45 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       case -\/(error: RepositoryError.NoResults) => {
         for {
           insert <- lift(queryOne(InsertCourseLimit, Seq[Any](courseId, Limits.student, limit)))
+        } yield insert.toInt
+      }
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
+  def setPlanStorageLimit(planId: String, limit: Float)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]] = {
+    // We store limit in database in MB, convert GB in MB
+    queryOne(UpdatePlanLimit, Seq[Any]((limit * 1000).toInt, planId, Limits.storage)).flatMap {
+      // Convert back into GB
+      case \/-(limit) => Future successful \/-(limit.toFloat / 1000)
+      case -\/(error: RepositoryError.NoResults) => {
+        for {
+          insert <- lift(queryOne(InsertPlanLimit, Seq[Any](planId, Limits.storage, (limit * 1000).toInt)))
+          // Convert back into GB
+        } yield insert.toFloat / 1000
+      }
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
+  def setPlanCourseLimit(planId: String, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
+    queryOne(UpdatePlanLimit, Seq[Any](limit, planId, Limits.course)).flatMap {
+      case \/-(limit) => Future successful \/-(limit.toInt)
+      case -\/(error: RepositoryError.NoResults) => {
+        for {
+          insert <- lift(queryOne(InsertPlanLimit, Seq[Any](planId, Limits.course, limit)))
+        } yield insert.toInt
+      }
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
+  def setPlanStudentLimit(planId: String, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
+    queryOne(UpdatePlanLimit, Seq[Any](limit, planId, Limits.student)).flatMap {
+      case \/-(limit) => Future successful \/-(limit.toInt)
+      case -\/(error: RepositoryError.NoResults) => {
+        for {
+          insert <- lift(queryOne(InsertPlanLimit, Seq[Any](planId, Limits.student, limit)))
         } yield insert.toInt
       }
       case -\/(error) => Future successful -\/(error)

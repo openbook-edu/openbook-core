@@ -67,6 +67,18 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       |            )
       |            AS ac_data),
       |
+      |     bc AS (SELECT SUM(bc_data.size) as limited
+      |            FROM (
+      |             SELECT DISTINCT ON (file_data::jsonb->>'data') file_data::jsonb->>'data', cast(file_data::jsonb->>'size' as bigint) as size
+      |             FROM book_components
+      |             INNER JOIN components
+      |             ON components.id = book_components.component_id
+      |             WHERE components.owner_id = ?
+      |               AND book_components.file_data::jsonb->>'host' = 's3'
+      |             ORDER BY file_data::jsonb->>'data'
+      |            )
+      |            AS bc_data),
+      |
       |     mw AS (SELECT SUM(cast(file_data::jsonb->>'size' as bigint)) as limited FROM media_work
       |            INNER JOIN courses    ON courses.teacher_id = ?
       |            INNER JOIN projects   ON projects.course_id = courses.id
@@ -75,8 +87,8 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       |            INNER JOIN work       ON work.task_id = tasks.id
       |            WHERE media_work.work_id = work.id)
       |
-      |SELECT (COALESCE(vc.limited, 0) + COALESCE(ac.limited, 0) + COALESCE(mw.limited, 0)) as limited
-      |FROM vc, ac, mw
+      |SELECT (COALESCE(vc.limited, 0) + COALESCE(ac.limited, 0) + COALESCE(bc.limited, 0) + COALESCE(mw.limited, 0)) as limited
+      |FROM vc, ac, bc, mw
     """.stripMargin
 
   val InsertTeacherLimit =
@@ -188,7 +200,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
    * @return Used space in GB
    */
   def getStorageUsed(teacherId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]] = {
-    queryOne(GetStorageUsed, Seq[Any](teacherId, teacherId, teacherId)).flatMap {
+    queryOne(GetStorageUsed, Seq[Any](teacherId, teacherId, teacherId, teacherId)).flatMap {
       // We store file size in database in Bytes, convert them to GB
       case \/-(limit) => {
         Future successful \/-(limit.toFloat / 1000 / 1000 / 1000)

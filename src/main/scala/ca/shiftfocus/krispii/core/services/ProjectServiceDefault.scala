@@ -27,8 +27,7 @@ class ProjectServiceDefault(
     val projectRepository: ProjectRepository,
     val partRepository: PartRepository,
     val taskRepository: TaskRepository,
-    val componentRepository: ComponentRepository,
-    val tagRepository: TagRepository
+    val componentRepository: ComponentRepository
 ) extends ProjectService {
 
   implicit def conn: Connection = db.pool
@@ -1063,34 +1062,6 @@ class ProjectServiceDefault(
     }
   }
 
-  override def createTag(name: String): Future[\/[ErrorUnion#Fail, Tag]] = {
-    transactional { implicit conn: Connection =>
-      tagRepository.create(Tag(UUID.randomUUID(), name))
-    }
-  }
-  override def tag(projectId: UUID, tagId: UUID): Future[\/[ErrorUnion#Fail, Unit]] = {
-    transactional { implicit conn: Connection =>
-      tagRepository.tag(projectId, tagId)
-    }
-  }
-  override def findTag(name: String): Future[\/[ErrorUnion#Fail, Tag]] = {
-    transactional { implicit conn: Connection =>
-      tagRepository.find(name)
-    }
-  }
-
-  override def untag(projectId: UUID, tagId: UUID): Future[\/[ErrorUnion#Fail, Unit]] = {
-    transactional { implicit conn: Connection =>
-      tagRepository.untag(projectId, tagId)
-    }
-  }
-
-  override def listByKey(key: String): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
-    transactional { implicit conn: Connection =>
-      tagRepository.trigramSearch(key)
-    }
-  }
-
   /**
    * Checks if a user has access to a project.
    *
@@ -1123,20 +1094,4 @@ class ProjectServiceDefault(
   //      partComponents <- lift(insertPartsComponents(components, part))
   //    } yield tasks
   //  }))
-  /**
-   * clone tags from one project to another
-   * @param newProjectId
-   * @param oldProjectId
-   * @return
-   */
-  override def cloneTags(newProjectId: UUID, oldProjectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
-    for {
-      toClone <- lift(tagRepository.listByProjectId(oldProjectId))
-      cloned <- lift(serializedT(toClone)(tag => {
-        for {
-          inserted <- lift(tagRepository.create(tag))
-        } yield inserted
-      }))
-    } yield cloned
-  }
 }

@@ -28,9 +28,8 @@ class ProjectServiceSpec
   val partRepository = stub[PartRepository]
   val taskRepository = stub[TaskRepository]
   val componentRepository = stub[ComponentRepository]
-  val tagRepository = stub[TagRepository]
 
-  val projectService = new ProjectServiceDefault(db, cache, authService, schoolService, courseRepository, projectRepository, partRepository, taskRepository, componentRepository, tagRepository) {
+  val projectService = new ProjectServiceDefault(db, cache, authService, schoolService, courseRepository, projectRepository, partRepository, taskRepository, componentRepository) {
     override implicit def conn: Connection = mockConnection
 
     override def transactional[A](f: Connection => Future[A]): Future[A] = {
@@ -3160,44 +3159,4 @@ class ProjectServiceSpec
       }
     }
   }
-
-  "ProjectService.cloneTags" should {
-    inSequence {
-      "copy tags from one project to another" in {
-        val toClone = TestValues.testProjectA
-        val cloned = TestValues.testProjectC
-        val tags = TreeMap[Int, ca.shiftfocus.krispii.core.models.Tag](
-          0 -> TestValues.testTagA,
-          1 -> TestValues.testTagB
-        )
-
-        (tagRepository.listByProjectId(_: UUID)(_: Connection)) when (toClone.id, *) returns (Future.successful(\/-(IndexedSeq[ca.shiftfocus.krispii.core.models.Tag](TestValues.testTagA, TestValues.testTagB))))
-        (tagRepository.create(_: ca.shiftfocus.krispii.core.models.Tag)(_: Connection)) when (TestValues.testTagA, *) returns (Future.successful(\/-(TestValues.testTagA)))
-        (tagRepository.create(_: ca.shiftfocus.krispii.core.models.Tag)(_: Connection)) when (TestValues.testTagB, *) returns (Future.successful(\/-(TestValues.testTagB)))
-
-        val result = projectService.cloneTags(cloned.id, toClone.id)
-        val \/-(clonedTags) = Await.result(result, Duration.Inf)
-
-        tags.foreach {
-          case (key, tag: ca.shiftfocus.krispii.core.models.Tag) => {
-            clonedTags(key).id should be(tag.id)
-            clonedTags(key).name should be(tag.name)
-          }
-        }
-      }
-      "do nothing if there are no tags" in {
-        val toClone = TestValues.testProjectB
-        val cloned = TestValues.testProjectC
-
-        (tagRepository.listByProjectId(_: UUID)(_: Connection)) when (toClone.id, *) returns (Future.successful(\/-(IndexedSeq[ca.shiftfocus.krispii.core.models.Tag]())))
-        (tagRepository.create(_: ca.shiftfocus.krispii.core.models.Tag)(_: Connection)) when (TestValues.testTagB, *) returns (Future.successful(\/-(TestValues.testTagB)))
-
-        val result = projectService.cloneTags(cloned.id, toClone.id)
-        val \/-(clonedTags) = Await.result(result, Duration.Inf)
-
-        clonedTags should be(Vector())
-      }
-    }
-  }
-
 }

@@ -2751,30 +2751,53 @@ object TestValues {
   /* ---------------------- TAGS ---------------------- */
   //8b6dc674-d1ae-11e5-9080-08626681851d
   val testTagA = Tag(
-    id = UUID.fromString("871b5250-6712-4e54-8ab6-0784cae0bc64"),
-    name = "pacificsound3003"
+    name = "pacificsound3003",
+    lang = "en",
+    category = "subject"
   )
   val testTagB = Tag(
-    id = UUID.fromString("02d6304b-9850-4c92-91a9-4d12654b33bb"),
-    name = "vanille"
+    name = "vanille",
+    lang = "fr",
+    category = "level"
   )
   val testTagC = Tag(
-    id = UUID.fromString("abb66039-3680-467f-9079-dae1251cb57d"),
-    name = "fruit"
+    name = "fruit",
+    lang = "fr",
+    category = "level"
   )
   /**
    * no project is tagged with this tag, but it still exists
    */
   val testTagD = Tag(
-    id = UUID.fromString("50df20ac-2bba-42da-800c-b660eb6dba62"),
-    name = "seductive"
+    name = "seductive",
+    lang = "en",
+    category = "level"
   )
   /**
    * no tag in the database
    */
   val testTagX = Tag(
-    id = UUID.fromString("3e83d092-c62f-4456-aba8-748403ae8574"),
-    name = "orange"
+    name = "orange",
+    lang = "fr",
+    category = "round_things"
   )
+
+  val testTagCategoryA = TagCategory(
+    name = "level",
+    lang = "en"
+  )
+  val testTagCategoryB = TagCategory(
+    name = "subject",
+    lang = "fr"
+  )
+  val testTagCategoryC = TagCategory(
+    name = "shit",
+    lang = "en"
+  )
+  val testTagCategoryD = TagCategory(
+    name = "futility",
+    lang = "en"
+  )
+
 }
 

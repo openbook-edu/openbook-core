@@ -952,22 +952,26 @@ INSERT INTO links(course_id, link, created_at)
 VALUES  ('404c800a53854e6b867e365a1e6b00de', 'vinrouge', '2014-08-05 14:01:19.545-04');
 
 /* ---------------------------- TAGS -----------------------------*/
-insert into tags(id, name) values('871b525067124e548ab60784cae0bc64', 'pacificsound3003');
-insert into tags(id, name) values('02d6304b98504c9291a94d12654b33bb', 'vanille');
-insert into tags(id, name) values('abb660393680467f9079dae1251cb57d', 'fruit');
-/**
- lonely tag
- */
-insert into tags(id, name) values('50df20ac2bba42da800cb660eb6dba62', 'seductive');
-insert into tags(id, name) values('50df20ac2bba42da950cb660eb6dba46', 'seditious');
+insert into tags(name, lang, category) values('pacificsound3003', 'en', 'subject');
+insert into tags(name, lang, category) values('vanille', 'fr', 'level');
+insert into tags(name, lang, category) values('fruit' , 'fr', 'level');
+insert into tags(name, lang, category) values('seductive', 'en', 'level');
 
 /**
 Project A tags
  */
-insert into project_tags(project_id, tag_id) values ('c9b4cfceaed448fd94f5c980763dfddc','871b525067124e548ab60784cae0bc64');
-insert into project_tags(project_id, tag_id) values ('c9b4cfceaed448fd94f5c980763dfddc','02d6304b98504c9291a94d12654b33bb');
+insert into project_tags(project_id, tag_name) values ('c9b4cfceaed448fd94f5c980763dfddc','pacificsound3003');
+insert into project_tags(project_id, tag_name) values ('c9b4cfceaed448fd94f5c980763dfddc','vanille');
 /**
 Project B tags
  */
-insert into project_tags(project_id, tag_id) values ('e4ae3b9098714339b05c8d39e3aaf65d','abb660393680467f9079dae1251cb57d');
-insert into project_tags(project_id, tag_id) values ('e4ae3b9098714339b05c8d39e3aaf65d','871b525067124e548ab60784cae0bc64');
+insert into project_tags(project_id, tag_name) values ('e4ae3b9098714339b05c8d39e3aaf65d','pacificsound3003');
+insert into project_tags(project_id, tag_name) values ('e4ae3b9098714339b05c8d39e3aaf65d','fruit');
+
+/* ---------------------------- TAG CATEGORIES -----------------------------*/
+
+insert into tag_categories(name, lang) values('level', 'en');
+insert into tag_categories(name, lang) values('subject', 'fr');
+
+-- category with no tags
+insert into tag_categories(name, lang) values('shit', 'en');

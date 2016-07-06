@@ -55,6 +55,10 @@ sealed trait LimitReachedT extends ErrorUnion {
   case class LimitReached(message: String) extends Fail
 }
 
+sealed trait PaymentRequiredT extends ErrorUnion {
+  case class PaymentRequired(message: String) extends Fail
+}
+
 // Now we can construct two concrete ADT's out of of the above traits
 object RepositoryError
   extends DatabaseErrorT
@@ -74,6 +78,7 @@ object ServiceError
   with MailerFailT
   with ExternalServiceT
   with LimitReachedT
+  with PaymentRequiredT
 
 // And an exception for when you don't want to expect particular fails
 case class UnexpectedFailException(fail: ErrorUnion#Fail) extends Exception

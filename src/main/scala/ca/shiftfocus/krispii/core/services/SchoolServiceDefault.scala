@@ -159,6 +159,7 @@ class SchoolServiceDefault(
     transactional { implicit conn =>
       for {
         existingCourse <- lift(courseRepository.find(id))
+        _ <- predicate(existingCourse.version == version)(ServiceError.OfflineLockFail)
         tId = teacherId.getOrElse(existingCourse.teacherId)
         teacher <- lift(authService.find(tId))
         _ <- predicate(slug.isEmpty || !existingCourse.enabled)(ServiceError.BusinessLogicFail("You can only change the slug for disabled courses."))
@@ -465,6 +466,16 @@ class SchoolServiceDefault(
   }
 
   /**
+   * Get number of courses that teacher is allowed to have within indicated plan
+   *
+   * @param planId
+   * @return
+   */
+  override def getPlanCourseLimit(planId: String): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getPlanCourseLimit(planId)
+  }
+
+  /**
    * Get storage (in GB) limit that teacher is allowed to have
    *
    * @param teacherId
@@ -472,6 +483,16 @@ class SchoolServiceDefault(
    */
   override def getStorageLimit(teacherId: UUID): Future[\/[ErrorUnion#Fail, Float]] = {
     limitRepository.getStorageLimit(teacherId)
+  }
+
+  /**
+   * Get storage (in GB) limit that teacher is allowed to have within indicated plan
+   *
+   * @param planId
+   * @return MB
+   */
+  override def getPlanStorageLimit(planId: String): Future[\/[ErrorUnion#Fail, Float]] = {
+    limitRepository.getPlanStorageLimit(planId)
   }
 
   /**
@@ -492,6 +513,16 @@ class SchoolServiceDefault(
    */
   override def getStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
     limitRepository.getStudentLimit(courseId)
+  }
+
+  /**
+   * Get number of students that courses are allowed to have within indicated plan
+   *
+   * @param planId
+   * @return
+   */
+  override def getPlanStudentLimit(planId: String): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getPlanStudentLimit(planId)
   }
 
   /**
@@ -525,6 +556,27 @@ class SchoolServiceDefault(
         limit <- limitRepository.setStudentLimit(courseId, limit)
       } yield limit
     }
+  }
+
+  /**
+   * Insert or update plan limit values
+   */
+  override def setPlanStorageLimit(palnId: String, limitValue: Float): Future[\/[ErrorUnion#Fail, Float]] = {
+    limitRepository.setPlanStorageLimit(palnId, limitValue)
+  }
+
+  /**
+   * Insert or update plan limit values
+   */
+  override def setPlanCourseLimit(palnId: String, limitValue: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.setPlanCourseLimit(palnId, limitValue)
+  }
+
+  /**
+   * Insert or update plan limit values
+   */
+  override def setPlanStudentLimit(palnId: String, limitValue: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.setPlanStudentLimit(palnId, limitValue)
   }
 
   /**

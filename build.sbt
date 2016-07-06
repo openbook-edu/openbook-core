@@ -54,7 +54,8 @@ libraryDependencies ++= Seq(
   "ca.shiftfocus" %% "sflib" % "1.0.6",
   "junit" % "junit" % "4.12" % "test",
   "ws.kahn" %% "ot" % "1.0-SNAPSHOT",
-  "org.scalamock" % "scalamock-scalatest-support_2.11" % "3.2.2" % "test"
+  "com.stripe" % "stripe-java" % "2.5.0",
+  "ws.kahn" %% "ot" % "1.0-SNAPSHOT",  "org.scalamock" % "scalamock-scalatest-support_2.11" % "3.2.2" % "test"
 )
 
 addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % "0.1.12")

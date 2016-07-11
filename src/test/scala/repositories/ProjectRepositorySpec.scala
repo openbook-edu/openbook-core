@@ -184,6 +184,82 @@ class ProjectRepositorySpec
     }
   }
 
+  "ProjectRepository.listByTags" should {
+    inSequence {
+      "find all projects marked with a given tag" in {
+        val testProjectList = TreeMap[Int, Project](
+          0 -> TestValues.testProjectA,
+          1 -> TestValues.testProjectC
+        )
+
+        val testTagList = IndexedSeq(TestValues.testTagA.name, TestValues.testTagB.name)
+
+        val testPartList = TreeMap(
+          testProjectList(0).id.toString -> Vector(
+            TestValues.testPartA,
+            TestValues.testPartB,
+            TestValues.testPartG
+          ),
+          testProjectList(1).id.toString -> Vector(
+            TestValues.testPartE,
+            TestValues.testPartF,
+            TestValues.testPartH
+          )
+        )
+
+        // Put here parts = Vector(), because after db query Project object is created without parts.
+        testProjectList.foreach {
+          case (key, project: Project) => {
+            (partRepository.list(_: Project)(_: Connection, _: ScalaCachePool)) when (project.copy(parts = Vector()), *, *) returns (Future.successful(\/-(testPartList(project.id.toString))))
+          }
+        }
+
+        val result = projectRepository.listByTags(testTagList)
+        val eitherProjects = Await.result(result, Duration.Inf)
+        val \/-(projects) = eitherProjects
+
+        projects.size should be(testProjectList.size)
+
+        testProjectList.foreach {
+          case (key, project: Project) => {
+            projects(key).id should be(project.id)
+            projects(key).courseId should be(project.courseId)
+            projects(key).version should be(project.version)
+            projects(key).name should be(project.name)
+            projects(key).slug should be(project.slug)
+            projects(key).description should be(project.description)
+            projects(key).longDescription should be(project.longDescription)
+            projects(key).availability should be(project.availability)
+            projects(key).projectType should be(project.projectType)
+            projects(key).parts should be(project.parts)
+            projects(key).createdAt.toString should be(project.createdAt.toString)
+            projects(key).updatedAt.toString should be(project.updatedAt.toString)
+          }
+        }
+      }
+
+      "return empty Vector() if there are no projects within the given tags" in {
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+
+        val testTagList = IndexedSeq(TestValues.testTagX.name)
+
+        val result = projectRepository.listByTags(testTagList)
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
+      }
+
+      "return empty Vector() if invalid tag combination is given" in {
+        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+
+        val testTagList = IndexedSeq(TestValues.testTagX.name, TestValues.testTagA.name)
+
+        val result = projectRepository.listByTags(testTagList)
+        Await.result(result, Duration.Inf) should be(\/-(Vector()))
+      }
+    }
+  }
+
   "ProjectRepository.find" should {
     inSequence {
       "find project by ID" in {

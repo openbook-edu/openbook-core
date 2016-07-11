@@ -968,6 +968,13 @@ Project B tags
 insert into project_tags(project_id, tag_name) values ('e4ae3b9098714339b05c8d39e3aaf65d','pacificsound3003');
 insert into project_tags(project_id, tag_name) values ('e4ae3b9098714339b05c8d39e3aaf65d','fruit');
 
+/**
+Project C tags
+ */
+
+insert into project_tags(project_id, tag_name) values ('4ac4d872451b4092b13f643d6d5fa930','pacificsound3003');
+insert into project_tags(project_id, tag_name) values ('4ac4d872451b4092b13f643d6d5fa930','vanille');
+
 /* ---------------------------- TAG CATEGORIES -----------------------------*/
 
 insert into tag_categories(name, lang) values('level', 'en');

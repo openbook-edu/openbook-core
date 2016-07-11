@@ -433,8 +433,8 @@ create table tag_categories(name text, lang text, PRIMARY KEY(name, lang));
 CREATE INDEX trgm_tag_idx ON tags USING gist (name gist_trgm_ops);
 
 create table project_tags(
-  project_id uuid references projects(id),
-  tag_name text references tags(name),
+  project_id uuid references projects(id) ON DELETE CASCADE,
+  tag_name text,
   PRIMARY KEY(project_id, tag_name));
 
 CREATE OR REPLACE FUNCTION get_slug(_slug text, _table text, _id uuid) RETURNS text AS $$

@@ -91,6 +91,43 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
        |WHERE slug = ?
      """.stripMargin
 
+  def SelectByTags(tags: IndexedSeq[String]): String = {
+    var inClause = ""
+    val length = tags.length
+
+    Logger.error("staring zipping: " + length)
+    tags.zipWithIndex.map {
+      case (current, index) =>
+        inClause += s"""'$current'"""
+        Logger.error(inClause)
+        if (index != (length - 1)) inClause += ", "
+    }
+    Logger.error(inClause)
+    s"""
+       |SELECT *
+       |FROM projects
+       |WHERE id IN (
+       |    SELECT project_id
+       |    FROM project_tags
+       |    WHERE tag_name in ($inClause)
+       |    GROUP BY project_id
+       |    HAVING COUNT(DISTINCT tag_name) = $length
+       |)
+
+    """.stripMargin
+    //    s"""
+    //       SELECT p.* from projects p INNER JOIN
+    //       (
+    //         SELECT project_id
+    //         FROM project_tags
+    //         WHERE tag_name in ($inClause)
+    //         GROUP BY project_id
+    //         HAVING COUNT(DISTINCT tag_name) = $length
+    //       ) t ON p.id = t.project_id
+    //
+    //    """
+  }
+
   val ListByCourse =
     s"""
        |SELECT $Fields
@@ -138,6 +175,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
 
   /**
    * Find all Projects.
+   *
    * @param showMasters optional parameter, by default is false, if true it will return the master projects.
    * @return a vector of the returned Projects
    */
@@ -159,8 +197,27 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
     } yield result).run
   }
 
+  override def listByTags(tags: IndexedSeq[String])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+    val select = SelectByTags(tags)
+    (for {
+      projectList <- lift(queryList(select))
+      _ = Logger.error(projectList.toString)
+      result <- liftSeq {
+        projectList.map { project =>
+          (for {
+            partList <- {
+              lift(partRepository.list(project))
+            }
+            result = project.copy(parts = partList)
+          } yield result).run
+        }
+      }
+    } yield result).run
+  }
+
   /**
    * Clones the master project into the given course.
+   *
    * @param projectId
    * @param courseId
    * @param conn
@@ -180,6 +237,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
 
   /**
    * Cloning the Parts of a Project.
+   *
    * @param projectId
    * @return
    */
@@ -207,6 +265,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
 
   /**
    * Cloning the Parts of a Project.
+   *
    * @param projectId
    * @return
    */
@@ -221,6 +280,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   /**
    * Cloning the Components.
    * This function is used when cloning the master projects
+   *
    * @return
    */
   def cloneComponents(components: IndexedSeq[Component], ownerId: UUID): IndexedSeq[Component] = {
@@ -242,6 +302,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
 
   /**
    * Cloning the tasks of a Part.
+   *
    * @param tasks
    * @return
    */
@@ -386,6 +447,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
 
   /**
    * Search by trigrams for autocomplete
+   *
    * @param key
    * @param conn
    */

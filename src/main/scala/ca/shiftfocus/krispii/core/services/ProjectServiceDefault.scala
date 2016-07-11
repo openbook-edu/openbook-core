@@ -90,6 +90,9 @@ class ProjectServiceDefault(
     } yield projects.flatten
   }
 
+  def listProjectsByTags(tags: IndexedSeq[String]): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
+    projectRepository.listByTags(tags)
+  }
   /**
    * Find a single project by slug.
    *

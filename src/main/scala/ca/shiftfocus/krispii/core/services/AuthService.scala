@@ -319,4 +319,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * redeem password reset token for students
    */
   def redeemStudentPasswordReset(token: UserToken): Future[\/[ErrorUnion#Fail, User]]
+
+  def reactivate(email: String, hostname: Option[String]): Future[\/[ErrorUnion#Fail, UserToken]]
+
 }

@@ -280,6 +280,23 @@ class AuthServiceDefault(
     fUser.run
   }
 
+  override def reactivate(email: String, hostname: Option[String]): Future[\/[ErrorUnion#Fail, UserToken]] = {
+    transactional { implicit conn =>
+      val messages = messagesApi
+      val fToken = for {
+        user <- lift(userRepository.find(email))
+        token <- lift(userTokenRepository.find(user.id, "activation"))
+        emailForNew = Email(
+          messages("activate.confirm.subject.new"), //subject
+          messages("activate.confirm.from"), //from
+          Seq(user.givenname + " " + user.surname + " <" + email + ">"), //to
+          bodyHtml = Some(messages("activate.confirm.message", hostname.get, user.id.toString, user.token.get.token)) //text
+        )
+        _ <- lift(sendAsyncEmail(emailForNew))
+      } yield token
+      fToken.run
+    }
+  }
   /**
    * Update a user's identifiers.
    *

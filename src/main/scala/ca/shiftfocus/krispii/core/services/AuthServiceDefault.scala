@@ -290,7 +290,7 @@ class AuthServiceDefault(
           messages("activate.confirm.subject.new"), //subject
           messages("activate.confirm.from"), //from
           Seq(user.givenname + " " + user.surname + " <" + email + ">"), //to
-          bodyHtml = Some(messages("activate.confirm.message", hostname.get, user.id.toString, user.token.get.token)) //text
+          bodyHtml = Some(messages("activate.confirm.message", hostname.get, user.id.toString, token.token)) //text
         )
         _ <- lift(sendAsyncEmail(emailForNew))
       } yield token

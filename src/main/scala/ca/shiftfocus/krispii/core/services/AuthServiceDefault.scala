@@ -94,7 +94,7 @@ class AuthServiceDefault(
             \/-(user.copy(roles = roles))
           }
           else {
-            -\/(ServiceError.BadPermissions("The password was invalid."))
+            -\/(ServiceError.BadInput("The password was invalid."))
           }
         })
       } yield authUser

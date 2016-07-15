@@ -17,7 +17,7 @@ import scala.util.Try
 import scalacache.ScalaCache
 import scalaz._
 
-class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepository: TaskRepository, val componentRepository: ComponentRepository)
+class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepository: TaskRepository, val componentRepository: ComponentRepository, val tagRepository: TagRepository)
     extends ProjectRepository with PostgresRepository[Project] {
 
   override val entityName = "Project"
@@ -38,6 +38,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
       row("enabled").asInstanceOf[Boolean],
       row("project_type").asInstanceOf[String],
       IndexedSeq[Part](),
+      IndexedSeq[Tag](),
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -112,7 +113,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
        |    WHERE tag_name in ($inClause)
        |    GROUP BY project_id
        |    HAVING COUNT(DISTINCT tag_name) = $length
-       |)
+       |) AND is_master = true
 
     """.stripMargin
     //    s"""
@@ -208,7 +209,10 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
             partList <- {
               lift(partRepository.list(project))
             }
-            result = project.copy(parts = partList)
+            tagList <- {
+              lift(tagRepository.listByProjectId(project.id))
+            }
+            result = project.copy(parts = partList, tags = tagList)
           } yield result).run
         }
       }

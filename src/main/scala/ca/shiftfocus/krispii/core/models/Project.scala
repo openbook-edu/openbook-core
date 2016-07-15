@@ -25,6 +25,7 @@ case class Project(
     enabled: Boolean = false,
     projectType: String,
     parts: IndexedSeq[Part],
+    tags: IndexedSeq[Tag] = IndexedSeq(),
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) {
@@ -76,6 +77,7 @@ object Project {
     (__ \ "enabled").write[Boolean] and
     (__ \ "projectType").write[String] and
     (__ \ "parts").write[IndexedSeq[Part]] and
+    (__ \ "tags").write[IndexedSeq[Tag]] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Project.unapply))

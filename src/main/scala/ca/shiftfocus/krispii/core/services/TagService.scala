@@ -17,6 +17,7 @@ trait TagService extends Service[ErrorUnion#Fail] {
   def listByCategory(category: String, lang: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
   def updateTag(name: String, lang: String, category: Option[String]): Future[\/[ErrorUnion#Fail, Tag]]
   def deleteTag(name: String): Future[\/[ErrorUnion#Fail, Tag]]
+  def findTagByName(name: String): Future[\/[ErrorUnion#Fail, Tag]]
   /************************************Tag Categories ********************************/
   def createTagCategory(name: String, lang: String): Future[\/[RepositoryError.Fail, TagCategory]]
   def deleteTagCategory(tagCategoryName: String): Future[\/[RepositoryError.Fail, TagCategory]]

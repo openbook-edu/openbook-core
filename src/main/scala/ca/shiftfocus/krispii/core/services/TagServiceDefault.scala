@@ -90,10 +90,16 @@ class TagServiceDefault(
         tagCategoryRepository.delete(tagCategoryName)
     }
   }
+
   def listTagCategoriesByLanguage(lang: String): Future[\/[RepositoryError.Fail, IndexedSeq[TagCategory]]] = {
     transactional {
       implicit conn: Connection =>
         tagCategoryRepository.listByLanguage(lang)
     }
   }
+
+  def findTagByName(name: String): Future[\/[ErrorUnion#Fail, Tag]] = {
+    tagRepository.find(name)
+  }
+
 }

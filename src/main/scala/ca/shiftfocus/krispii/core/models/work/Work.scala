@@ -285,7 +285,8 @@ case class MediaAnswer(
   mediaType: Option[String] = None,
   fileName: Option[String] = None,
   // We store the size of a file in Bytes
-  size: Option[Long] = None
+  size: Option[Long] = None,
+  isPublic: Option[Boolean] = None
 )
 object MediaAnswer {
   implicit val reads = new Reads[MediaAnswer] {
@@ -294,7 +295,8 @@ object MediaAnswer {
         MediaAnswer(
           (json \ "mediaType").asOpt[String],
           (json \ "fileName").asOpt[String],
-          (json \ "size").asOpt[Long]
+          (json \ "size").asOpt[Long],
+          (json \ "isPublic").asOpt[Boolean]
         )
       )
     }
@@ -304,7 +306,8 @@ object MediaAnswer {
       Json.obj(
         "mediaType" -> mediaAnswer.mediaType,
         "fileName" -> mediaAnswer.fileName,
-        "size" -> mediaAnswer.size
+        "size" -> mediaAnswer.size,
+        "isPublic" -> mediaAnswer.isPublic
       )
     }
   }

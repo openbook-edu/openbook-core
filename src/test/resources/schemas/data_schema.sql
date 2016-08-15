@@ -980,5 +980,26 @@ insert into project_tags(project_id, tag_name) values ('4ac4d872451b4092b13f643d
 insert into tag_categories(name, lang) values('level', 'en');
 insert into tag_categories(name, lang) values('subject', 'fr');
 
--- category with no tags
+/* category with no tags */
 insert into tag_categories(name, lang) values('shit', 'en');
+
+/* ---------------------- USER PREFERENCES ---------------------- */
+
+INSERT INTO preferences (id, machine_name)
+VALUES ('ea8a2527bb57493aaedc3289305258db', 'lang'),
+       ('4342701a16c248b08c07b8ebf4bb914a', 'chat_visibility'),
+       ('4e0cc0a27c034616a97451ec47f95488', 'text_menu'),
+       ('4046754f84aa47238c3bd7532c73fbf1', 'student_dashboard');
+
+INSERT INTO preferences_allowed_values (pref_id, pref_state)
+VALUES ('ea8a2527bb57493aaedc3289305258db', 'en'),
+       ('ea8a2527bb57493aaedc3289305258db', 'fr'),
+       ('4342701a16c248b08c07b8ebf4bb914a', 'open'),
+       ('4342701a16c248b08c07b8ebf4bb914a', 'closed'),
+       ('4e0cc0a27c034616a97451ec47f95488', 'open'),
+       ('4e0cc0a27c034616a97451ec47f95488', 'closed'),
+       ('4046754f84aa47238c3bd7532c73fbf1', 'open'),
+       ('4046754f84aa47238c3bd7532c73fbf1', 'closed');
+
+INSERT INTO users_preferences (user_id, pref_id, state)
+VALUES ('36c8c0ca50aa4806afa5916a5e33a81f', 'ea8a2527bb57493aaedc3289305258db', 'en');

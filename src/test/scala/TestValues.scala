@@ -2799,5 +2799,19 @@ object TestValues {
     lang = "en"
   )
 
+  /* ---------------------- USER PREFERENCES ---------------------- */
+
+  val testUserPrefA = UserPreference(
+    userId = testUserA.id,
+    prefName = "lang",
+    state = "en"
+  )
+
+  // Not in DB
+  val testUserPrefB = UserPreference(
+    userId = testUserB.id,
+    prefName = "lang",
+    state = "en"
+  )
 }
 

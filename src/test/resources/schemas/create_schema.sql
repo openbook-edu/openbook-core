@@ -437,6 +437,26 @@ create table project_tags(
   tag_name text,
   PRIMARY KEY(project_id, tag_name));
 
+/* USER PREFERENCES */
+
+CREATE TABLE preferences (
+    id uuid PRIMARY KEY,
+    machine_name text UNIQUE
+);
+
+CREATE TABLE preferences_allowed_values (
+    pref_id uuid REFERENCES preferences(id) ON DELETE CASCADE,
+    pref_state text,
+    PRIMARY KEY (pref_id, pref_state)
+);
+
+CREATE TABLE users_preferences (
+    user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+    pref_id uuid REFERENCES preferences(id) ON DELETE CASCADE,
+    state text,
+    PRIMARY KEY (user_id, pref_id)
+);
+
 CREATE OR REPLACE FUNCTION get_slug(_slug text, _table text, _id uuid) RETURNS text AS $$
 DECLARE
  updatedSlug text := $1;
@@ -455,7 +475,7 @@ BEGIN
 END; $$
 LANGUAGE PLPGSQL;
 
--- CREATE INDEX trgm_idx ON users USING gist (email gist_trgm_ops);
+/* CREATE INDEX trgm_idx ON users USING gist (email gist_trgm_ops); */
 
 
 

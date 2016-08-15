@@ -261,6 +261,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @return a future disjunction containing either the inserted user, or a failure
    */
   override def insert(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
+    // id, version, created_at, updated_at, username, email, password_hash, givenname, surname
     val params = Seq[Any](
       user.id, 1, new DateTime, new DateTime, user.username, user.email,
       user.hash, user.givenname, user.surname

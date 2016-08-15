@@ -101,6 +101,18 @@ class AuthServiceDefault(
     }
   }
 
+  override def authenticateWithoutPassword(identifier: String): Future[\/[ErrorUnion#Fail, User]] = {
+    transactional { implicit conn =>
+      for {
+        user <- lift(userRepository.find(identifier))
+        roles <- lift(roleRepository.list(user))
+        userHash = user.hash.getOrElse("")
+        authUser = user.copy(roles = roles)
+        _ = Logger.error(authUser.toString)
+      } yield authUser
+    }
+  }
+
   /**
    * List the active sessions for one user.
    *
@@ -278,6 +290,38 @@ class AuthServiceDefault(
       _ <- lift(sendAsyncEmail(emailForNew))
     } yield user
     fUser.run
+  }
+
+  /**
+   * Create a new user for Google account
+   */
+  override def createGoogleUser(
+    email: String,
+    givenname: String,
+    surname: String
+  ): Future[\/[ErrorUnion#Fail, User]] = {
+    transactional { implicit conn =>
+      val newUser = User(
+        id = UUID.randomUUID(),
+        username = email,
+        email = email.trim,
+        hash = Some("google_account_password"),
+        givenname = givenname,
+        surname = surname
+      )
+      Logger.error("createing google user")
+      Logger.error(newUser.toString)
+      val fUser = for {
+
+        user <- lift(userRepository.insert(newUser))
+        _ = Logger.error("user created")
+        userWithRoles <- lift(addRoles(user.id, IndexedSeq("authenticated", "teacher")))
+        _ = Logger.error("roles added")
+        //user <- lift(this.create(email, email, "", givenname, surname))
+        //userRepository.insert(newUser)
+      } yield userWithRoles
+      fUser.run
+    }
   }
 
   override def reactivate(email: String, hostname: Option[String]): Future[\/[ErrorUnion#Fail, UserToken]] = {

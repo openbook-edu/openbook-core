@@ -12,7 +12,8 @@ case class CommonTaskSettings(
   description: String = "",
   notesAllowed: Boolean = true,
   notesTitle: Option[String] = None,
-  responseTitle: Option[String] = None
+  responseTitle: Option[String] = None,
+  hideResponse: Boolean = false
 )
 
 object CommonTaskSettings {
@@ -37,7 +38,8 @@ object CommonTaskSettings {
       responseTitle = Option(row("response_title").asInstanceOf[String]) match {
       case Some(responseTitle) => Some(responseTitle)
       case _ => None
-    }
+    },
+      hideResponse = row("hide_response").asInstanceOf[Boolean]
     )
   }
 
@@ -47,8 +49,9 @@ object CommonTaskSettings {
     (__ \ "description").read[String] and
     (__ \ "notesAllowed").read[Boolean] and
     (__ \ "notesTitle").readNullable[String] and
-    (__ \ "responseTitle").readNullable[String]
-  )(CommonTaskSettings.apply(_: String, _: String, _: String, _: Boolean, _: Option[String], _: Option[String]))
+    (__ \ "responseTitle").readNullable[String] and
+    (__ \ "hideResponse").read[Boolean]
+  )(CommonTaskSettings.apply(_: String, _: String, _: String, _: Boolean, _: Option[String], _: Option[String], _: Boolean))
 
   implicit val tsWrites: Writes[CommonTaskSettings] = (
     (__ \ "name").write[String] and
@@ -56,6 +59,7 @@ object CommonTaskSettings {
     (__ \ "description").write[String] and
     (__ \ "notesAllowed").write[Boolean] and
     (__ \ "notesTitle").writeNullable[String] and
-    (__ \ "responseTitle").writeNullable[String]
+    (__ \ "responseTitle").writeNullable[String] and
+    (__ \ "hideResponse").write[Boolean]
   )(unlift(CommonTaskSettings.unapply))
 }

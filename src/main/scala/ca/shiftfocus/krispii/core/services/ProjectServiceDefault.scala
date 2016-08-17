@@ -932,6 +932,7 @@ class ProjectServiceDefault(
             description = commonArgs.description.getOrElse(task.settings.description),
             help = commonArgs.help.getOrElse(task.settings.help),
             notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+            hideResponse = commonArgs.hideResponse.getOrElse(task.settings.hideResponse),
             notesTitle = commonArgs.notesTitle match {
               case Some(Some(newNotesTitle)) => Some(newNotesTitle)
               case Some(None) => None
@@ -979,6 +980,7 @@ class ProjectServiceDefault(
             help = commonArgs.help.getOrElse(task.settings.help),
             description = commonArgs.description.getOrElse(task.settings.description),
             notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+            hideResponse = commonArgs.hideResponse.getOrElse(task.settings.hideResponse),
             notesTitle = commonArgs.notesTitle match {
               case Some(Some(newNotesTitle)) => Some(newNotesTitle)
               case Some(None) => None
@@ -1018,6 +1020,7 @@ class ProjectServiceDefault(
             description = commonArgs.description.getOrElse(task.settings.description),
             help = commonArgs.help.getOrElse(task.settings.help),
             notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+            hideResponse = commonArgs.hideResponse.getOrElse(task.settings.hideResponse),
             notesTitle = commonArgs.notesTitle match {
               case Some(Some(newNotesTitle)) => Some(newNotesTitle)
               case Some(None) => None

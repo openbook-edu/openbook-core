@@ -101,6 +101,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     description: Option[String],
     position: Option[Int],
     notesAllowed: Option[Boolean],
+    hideResponse: Option[Boolean],
     partId: Option[UUID] = None,
     responseTitle: Option[Option[String]] = None,
     notesTitle: Option[Option[String]] = None,

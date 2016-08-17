@@ -39,7 +39,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   // -- Common query components --------------------------------------------------------------------------------------
 
   val Table = "tasks"
-  val CommonFields = "id, version, part_id, name, description, position, notes_allowed, response_title, notes_title, help_text, max_grade, created_at, updated_at, task_type"
+  val CommonFields = "id, version, part_id, name, description, position, notes_allowed, response_title, hide_response, notes_title, help_text, max_grade, created_at, updated_at, task_type"
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
   }
@@ -192,7 +192,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |UPDATE $Table
        |SET part_id = ?, name = ?, description = ?,
        |    position = ?, notes_allowed = ?,
-       |    response_title = ?, notes_title = ?, help_text = ?,
+       |    response_title = ?, hide_response = ?, notes_title = ?, help_text = ?,
        |    version = ?, max_grade = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
@@ -443,6 +443,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.position,
       task.settings.notesAllowed,
       task.settings.responseTitle,
+      task.settings.hideResponse,
       task.settings.notesTitle,
       task.settings.help,
       task.version + 1,

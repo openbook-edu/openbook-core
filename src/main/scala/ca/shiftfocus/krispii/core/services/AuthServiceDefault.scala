@@ -294,9 +294,6 @@ class AuthServiceDefault(
     fUser.run
   }
 
-<<<<<<< HEAD
-  override def reactivate(email: String, hostname: Option[String])(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]] = {
-=======
   /**
    * Create a new user for Google account
    */
@@ -331,8 +328,7 @@ class AuthServiceDefault(
     }
   }
 
-  override def reactivate(email: String, hostname: Option[String]): Future[\/[ErrorUnion#Fail, UserToken]] = {
->>>>>>> google-auth
+  override def reactivate(email: String, hostname: Option[String])(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]] = {
     transactional { implicit conn =>
       val fToken = for {
         user <- lift(userRepository.find(email))

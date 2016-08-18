@@ -3,10 +3,10 @@ package ca.shiftfocus.krispii.core.services
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.repositories.{ SessionRepository, CourseRepository, RoleRepository, UserRepository }
+import ca.shiftfocus.krispii.core.repositories.{ CourseRepository, RoleRepository, SessionRepository, UserRepository }
 import java.util.UUID
 
-import play.api.i18n.MessagesApi
+import play.api.i18n.{ Lang, MessagesApi }
 
 import scala.concurrent.Future
 import scalacache.ScalaCache
@@ -108,7 +108,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     surname: String,
     role: String,
     hostname: Option[String]
-  )(messagesApi: MessagesApi): Future[\/[ErrorUnion#Fail, User]]
+  )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]]
 
   /**
    * Update a user
@@ -290,7 +290,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @param user
    * @return
    */
-  def createPasswordResetToken(user: User, host: String)(messages: MessagesApi): Future[\/[ErrorUnion#Fail, UserToken]]
+  def createPasswordResetToken(user: User, host: String)(messages: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]]
   /**
    * finding a user token by nonce
    * @param nonce
@@ -320,6 +320,6 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    */
   def redeemStudentPasswordReset(token: UserToken): Future[\/[ErrorUnion#Fail, User]]
 
-  def reactivate(email: String, hostname: Option[String]): Future[\/[ErrorUnion#Fail, UserToken]]
+  def reactivate(email: String, hostname: Option[String])(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]]
 
 }

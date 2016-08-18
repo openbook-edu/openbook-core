@@ -13,10 +13,10 @@ import org.apache.commons.mail.EmailException
 import play.api.Logger
 import play.api.libs.mailer.{ Email, MailerClient }
 import scala.concurrent.ExecutionContext.Implicits.global
-import play.api.i18n.{ I18nSupport, MessagesApi, Messages }
+import play.api.i18n.{ I18nSupport, Lang, MessagesApi }
 import scala.concurrent.Future
 import scalacache.ScalaCache
-import scalaz.{ -\/, \/-, \/, EitherT }
+import scalaz.{ -\/, EitherT, \/, \/- }
 import webcrank.password._
 
 class AuthServiceDefault(
@@ -27,14 +27,12 @@ class AuthServiceDefault(
     val userTokenRepository: UserTokenRepository,
     val sessionRepository: SessionRepository,
     val mailerClient: MailerClient,
-    val wordRepository: WordRepository,
-    override val messagesApi: MessagesApi
-) extends AuthService with I18nSupport {
+    val wordRepository: WordRepository
+) extends AuthService {
 
   implicit def conn: Connection = db.pool
 
   implicit def cache: ScalaCachePool = scalaCache
-  implicit def messages: MessagesApi = messagesApi
 
   /**
    * token types
@@ -264,33 +262,31 @@ class AuthServiceDefault(
     surname: String,
     role: String,
     hostname: Option[String]
-  )(messagesApi: MessagesApi): Future[\/[ErrorUnion#Fail, User]] = {
-    val messages = messagesApi
+  )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]] = {
     val fUser = for {
       user <- lift(this.create(username, email, password, givenname, surname))
       _ <- lift(addRole(user.id, role))
       emailForNew = Email(
-        messages("activate.confirm.subject.new"), //subject
-        messages("activate.confirm.from"), //from
+        messagesApi("activate.confirm.subject.new")(lang), //subject
+        messagesApi("activate.confirm.from")(lang), //from
         Seq(givenname + " " + surname + " <" + email + ">"), //to
-        bodyHtml = Some(messages("activate.confirm.message", hostname.get, user.id.toString, user.token.get.token)) //text
+        bodyHtml = Some(messagesApi("activate.confirm.message", hostname.get, user.id.toString, user.token.get.token)(lang)) //text
       )
       _ <- lift(sendAsyncEmail(emailForNew))
     } yield user
     fUser.run
   }
 
-  override def reactivate(email: String, hostname: Option[String]): Future[\/[ErrorUnion#Fail, UserToken]] = {
+  override def reactivate(email: String, hostname: Option[String])(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]] = {
     transactional { implicit conn =>
-      val messages = messagesApi
       val fToken = for {
         user <- lift(userRepository.find(email))
         token <- lift(userTokenRepository.find(user.id, "activation"))
         emailForNew = Email(
-          messages("activate.confirm.subject.new"), //subject
-          messages("activate.confirm.from"), //from
+          messagesApi("activate.confirm.subject.new")(lang), //subject
+          messagesApi("activate.confirm.from")(lang), //from
           Seq(user.givenname + " " + user.surname + " <" + email + ">"), //to
-          bodyHtml = Some(messages("activate.confirm.message", hostname.get, user.id.toString, token.token)) //text
+          bodyHtml = Some(messagesApi("activate.confirm.message", hostname.get, user.id.toString, token.token)(lang)) //text
         )
         _ <- lift(sendAsyncEmail(emailForNew))
       } yield token
@@ -711,35 +707,6 @@ class AuthServiceDefault(
   }
 
   /**
-   * Get the user by activation token, verify and send him to his profile page after in api
-   *
-   * @param token
-   * @return
-   */
-  //  def resetPassword(token: String): Future[\/[ErrorUnion#Fail, User]] = {
-  //
-  //  }
-
-  /**
-   * @inheritdoc
-   */
-  //  def resendActivation(email: String)(messagesApi: MessagesApi): Future[\/[ErrorUnion#Fail, User]] = {
-  //    for {
-  //      user <- userRepository.find(email)(db.pool, cache)
-  //      nonce <- userTokenRepository.find(user.id)(db.pool, cache)
-  //      messages = messagesApi.preferred(Seq(user.languagePref))
-  //      message = messages("activate.email.body", (configuration.getString("general.base_url").get + controllers.routes.Application.activateUser(user.id)), nonce.token)
-  //      email = Email(
-  //        messages("activate.email.subject"), //subject
-  //        messages("activate.email.from"), //from
-  //        Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
-  //        bodyText = Some(message) //text
-  //      )
-  //      mail <- sendAsyncEmail(email)
-  //    } yield user
-  //  }
-
-  /**
    * Send an e-mail within a Future.
    *
    * @param email
@@ -777,7 +744,7 @@ class AuthServiceDefault(
    * @param host - current host for creating a link
    * @return
    */
-  override def createPasswordResetToken(user: User, host: String)(messages: MessagesApi): Future[\/[ErrorUnion#Fail, UserToken]] = {
+  override def createPasswordResetToken(user: User, host: String)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]] = {
     transactional { implicit conn =>
       var nonce = Token.getNext
       var fToken = for {
@@ -788,10 +755,10 @@ class AuthServiceDefault(
         })
         token <- lift(userTokenRepository.insert(user.id, nonce, password_reset))
         email = Email(
-          messages("reset.password.confirm.subject.new"), //subject
-          messages("reset.password.confirm.from"), //from
+          messagesApi("reset.password.confirm.subject.new")(lang), //subject
+          messagesApi("reset.password.confirm.from")(lang), //from
           Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
-          bodyHtml = Some(messages("reset.password.confirm.message", host, nonce.toString)) //text
+          bodyHtml = Some(messagesApi("reset.password.confirm.message", host, nonce.toString)(lang)) //text
         )
         mail <- lift(sendAsyncEmail(email))
       } yield token
@@ -825,7 +792,6 @@ class AuthServiceDefault(
    * List users for autocomplete search
    *
    * @param key the stuff user already typed in
-   * @param conn
    */
   override def listByKey(key: String): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
     transactional { implicit conn =>
@@ -853,5 +819,4 @@ class AuthServiceDefault(
       } yield user
     }
   }
-
 }

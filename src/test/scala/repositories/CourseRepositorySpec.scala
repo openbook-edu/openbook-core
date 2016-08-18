@@ -150,7 +150,8 @@ class CourseRepositorySpec
           email = "unexisting_email@example.com",
           username = "unexisting_username",
           givenname = "unexisting_givenname",
-          surname = "unexisting_surname"
+          surname = "unexisting_surname",
+          accountType = "krispii"
         )
 
         val result = courseRepository.list(unexistingUser, false)
@@ -164,7 +165,8 @@ class CourseRepositorySpec
           email = "unexisting_email@example.com",
           username = "unexisting_username",
           givenname = "unexisting_givenname",
-          surname = "unexisting_surname"
+          surname = "unexisting_surname",
+          accountType = "krispii"
         )
 
         val result = courseRepository.list(unexistingUser, true)
@@ -212,7 +214,8 @@ class CourseRepositorySpec
             email = "unexisting_email@example.com",
             username = "unexisting_username",
             givenname = "unexisting_givenname",
-            surname = "unexisting_surname"
+            surname = "unexisting_surname",
+            accountType = "krispii"
           )
         )
 

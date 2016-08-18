@@ -79,7 +79,8 @@ class RoleRepositorySpec
           email = "unexisting_email@example.com",
           username = "unexisting_username",
           givenname = "unexisting_givenname",
-          surname = "unexisting_surname"
+          surname = "unexisting_surname",
+          accountType = "krispii"
         )
 
         val result = roleRepository.list(unexistingUser)

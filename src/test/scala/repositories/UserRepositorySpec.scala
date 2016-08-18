@@ -29,7 +29,8 @@ class UserRepositorySpec
           5 -> TestValues.testUserG.copy(hash = None),
           6 -> TestValues.testUserH.copy(hash = None),
           7 -> TestValues.testUserJ.copy(hash = None),
-          8 -> TestValues.testUserI.copy(hash = None)
+          8 -> TestValues.testUserI.copy(hash = None),
+          9 -> TestValues.testUserD.copy(hash = None)
         )
 
         val result = userRepository.list(conn)
@@ -396,7 +397,8 @@ class UserRepositorySpec
           email = "unexisting_email@example.com",
           username = "unexisting_username",
           givenname = "unexisting_givenname",
-          surname = "unexisting_surname"
+          surname = "unexisting_surname",
+          accountType = "google"
         )
 
         val result = userRepository.update(unexistingUser)
@@ -494,7 +496,8 @@ class UserRepositorySpec
           email = "unexisting_email@example.com",
           username = "unexisting_username",
           givenname = "unexisting_givenname",
-          surname = "unexisting_surname"
+          surname = "unexisting_surname",
+          accountType = "krispii"
         )
 
         val result = userRepository.delete(unexistingUser)

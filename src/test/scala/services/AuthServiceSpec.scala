@@ -553,7 +553,8 @@ class AuthServiceSpec
       username = "rafaelya",
       hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
       givenname = "Rafael",
-      surname = "Yanez"
+      surname = "Yanez",
+      accountType = "krispii"
     )
     val testRoleList = Vector(
       TestValues.testRoleTeacher
@@ -583,7 +584,8 @@ class AuthServiceSpec
       username = "rafaelya",
       hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
       givenname = "Rafael",
-      surname = "Yanez"
+      surname = "Yanez",
+      accountType = "krispii"
     )
     val testRoleList = Vector(
       TestValues.testRoleTeacher

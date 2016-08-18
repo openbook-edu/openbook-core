@@ -89,12 +89,28 @@ class AuthServiceDefault(
         userHash = user.hash.getOrElse("")
         authUser <- lift(Future.successful {
           if (Passwords.scrypt().verify(password.trim(), userHash)) {
-            \/-(user.copy(roles = roles))
+            if (Passwords.scrypt().verify("google_password", userHash))
+              -\/(ServiceError.ExternalService("This is the google account!"))
+            else
+              \/-(user.copy(roles = roles))
           }
           else {
             -\/(ServiceError.BadInput("The password was invalid."))
           }
         })
+      } yield authUser
+    }
+  }
+
+  override def authenticateWithoutPassword(identifier: String): Future[\/[ErrorUnion#Fail, User]] = {
+    transactional { implicit conn =>
+      for {
+        user <- lift(userRepository.find(identifier))
+        roles <- lift(roleRepository.list(user))
+        _ = Logger.error("roles" + roles.toString)
+        userHash = user.hash.getOrElse("")
+        authUser = user.copy(roles = roles)
+        _ = Logger.error(authUser.toString)
       } yield authUser
     }
   }
@@ -232,7 +248,8 @@ class AuthServiceDefault(
             email = email.trim,
             hash = passwordHash,
             givenname = givenname.trim,
-            surname = surname.trim
+            surname = surname.trim,
+            accountType = "krispii"
           )
           userRepository.insert(newUser)
         }
@@ -277,7 +294,45 @@ class AuthServiceDefault(
     fUser.run
   }
 
+<<<<<<< HEAD
   override def reactivate(email: String, hostname: Option[String])(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]] = {
+=======
+  /**
+   * Create a new user for Google account
+   */
+  override def createGoogleUser(
+    email: String,
+    givenname: String,
+    surname: String
+  ): Future[\/[ErrorUnion#Fail, User]] = {
+    transactional { implicit conn =>
+      val webcrank = Passwords.scrypt()
+      val newUser = User(
+        id = UUID.randomUUID(),
+        username = email,
+        email = email.trim,
+        hash = Some(webcrank.crypt("google_password")),
+        givenname = givenname,
+        surname = surname,
+        accountType = "google"
+      )
+      Logger.error("createing google user")
+      Logger.error(newUser.toString)
+      val fUser = for {
+
+        user <- lift(userRepository.insert(newUser))
+        _ = Logger.error("user created")
+        roles <- lift(serializedT(IndexedSeq("authenticated", "teacher"))(roleRepository.addToUser(user, _)))
+        _ = Logger.error("roles added")
+        //user <- lift(this.create(email, email, "", givenname, surname))
+        //userRepository.insert(newUser)
+      } yield user
+      fUser.run
+    }
+  }
+
+  override def reactivate(email: String, hostname: Option[String]): Future[\/[ErrorUnion#Fail, UserToken]] = {
+>>>>>>> google-auth
     transactional { implicit conn =>
       val fToken = for {
         user <- lift(userRepository.find(email))

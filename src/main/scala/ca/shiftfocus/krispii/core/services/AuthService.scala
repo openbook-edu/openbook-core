@@ -26,6 +26,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @return the optionally authenticated user info
    */
   def authenticate(identifier: String, password: String): Future[\/[ErrorUnion#Fail, User]]
+  def authenticateWithoutPassword(identifier: String): Future[\/[ErrorUnion#Fail, User]]
 
   /*
    * Session definitions
@@ -109,6 +110,12 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     role: String,
     hostname: Option[String]
   )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]]
+
+  def createGoogleUser(
+    email: String,
+    givenname: String,
+    surname: String
+  ): Future[\/[ErrorUnion#Fail, User]]
 
   /**
    * Update a user

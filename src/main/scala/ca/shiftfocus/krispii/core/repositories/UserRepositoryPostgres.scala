@@ -36,17 +36,18 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
       hash = Try(row("password_hash")).map(_.asInstanceOf[String]).toOption,
       givenname = row("givenname").asInstanceOf[String],
       surname = row("surname").asInstanceOf[String],
+      accountType = row("account_type").asInstanceOf[String],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )
   }
 
   val Table = "users"
-  val Fields = "id, version, created_at, updated_at, username, email, password_hash, givenname, surname"
-  val FieldsWithoutTable = "id, version, created_at, updated_at, username, email, givenname, surname"
+  val Fields = "id, version, created_at, updated_at, username, email, password_hash, givenname, surname, account_type"
+  val FieldsWithoutTable = "id, version, created_at, updated_at, username, email, givenname, surname, account_type"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val FieldsWithoutHash = FieldsWithTable.replace(s"${Table}.password_hash,", "")
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.surname ASC, ${Table}.givenname ASC"
 
   // User CRUD operations
@@ -261,9 +262,10 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @return a future disjunction containing either the inserted user, or a failure
    */
   override def insert(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
+    // id, version, created_at, updated_at, username, email, password_hash, givenname, surname
     val params = Seq[Any](
       user.id, 1, new DateTime, new DateTime, user.username, user.email,
-      user.hash, user.givenname, user.surname
+      user.hash, user.givenname, user.surname, user.accountType
     )
     queryOne(Insert, params)
   }

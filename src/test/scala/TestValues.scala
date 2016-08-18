@@ -20,6 +20,7 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="), // adminpass
     givenname = "TestA",
     surname = "UserA",
+    accountType = "krispii",
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -32,6 +33,7 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestB",
     surname = "UserB",
+    accountType = "krispii",
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -47,6 +49,7 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestC",
     surname = "UserC",
+    accountType = "krispii",
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -60,7 +63,8 @@ object TestValues {
     username = "testUserD",
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestD",
-    surname = "UserD"
+    surname = "UserD",
+    accountType = "google"
   )
 
   val testUserE = User(
@@ -71,6 +75,7 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestE",
     surname = "UserE",
+    accountType = "google",
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -83,6 +88,7 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestF",
     surname = "UserF",
+    accountType = "google",
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -95,6 +101,7 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestG",
     surname = "UserG",
+    accountType = "google",
     createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -107,6 +114,7 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestH",
     surname = "UserH",
+    accountType = "google",
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -119,6 +127,7 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "Rafael",
     surname = "Yanez",
+    accountType = "google",
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -131,6 +140,7 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "Antonio",
     surname = "Yanez",
+    accountType = "google",
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -143,6 +153,7 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "Kenny",
     surname = "McCormick",
+    accountType = "google",
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )

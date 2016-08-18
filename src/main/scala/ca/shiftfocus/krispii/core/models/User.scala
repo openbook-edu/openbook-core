@@ -17,6 +17,7 @@ case class User(
     surname: String,
     roles: IndexedSeq[Role] = IndexedSeq.empty[Role],
     token: Option[UserToken] = None,
+    accountType: String,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) {
@@ -53,6 +54,7 @@ object User {
         "givenname" -> user.givenname,
         "surname" -> user.surname,
         "roles" -> user.roles,
+        "accountType" -> user.accountType,
         "createdAt" -> user.createdAt,
         "updatedAt" -> user.updatedAt
       )
@@ -65,6 +67,7 @@ case class UserInfo(
   roles: IndexedSeq[Role],
   courses: IndexedSeq[Course]
 )
+
 object UserInfo {
   implicit val userInfoWrites = new Writes[UserInfo] {
     def writes(userInfo: UserInfo): JsValue = {
@@ -75,6 +78,7 @@ object UserInfo {
         "email" -> userInfo.user.email,
         "givenname" -> userInfo.user.givenname,
         "surname" -> userInfo.user.surname,
+        "accountType" -> userInfo.user.accountType,
         "createdAt" -> userInfo.user.createdAt,
         "updatedAt" -> userInfo.user.updatedAt
       ).deepMerge(Json.obj(

@@ -1,46 +1,46 @@
 /* ---------------------- USERS ---------------------- */
 
 /* user A */
-INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
-VALUES ('36c8c0ca50aa4806afa5916a5e33a81f', 1, 'testUserA@example.com', 'testUserA', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestA', 'UserA', '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, account_type, created_at, updated_at)
+VALUES ('36c8c0ca50aa4806afa5916a5e33a81f', 1, 'testUserA@example.com', 'testUserA', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestA', 'UserA', 'krispii', '2014-08-01 14:01:19.545-04', '2014-08-02 14:01:19.545-04');
 
 /* user B */
-INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
-VALUES ('6c0e29bdd05b4b2981156be93e936c59', 2, 'testUserB@example.com', 'testUserB', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestB', 'UserB', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, account_type, created_at, updated_at)
+VALUES ('6c0e29bdd05b4b2981156be93e936c59', 2, 'testUserB@example.com', 'testUserB', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestB', 'UserB', 'krispii', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 
 /* user C */
-INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
-VALUES ('f5f984073a0b4ea5952a575886e90586', 3, 'testUserC@example.com', 'testUserC', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestC', 'UserC', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, account_type, created_at, updated_at)
+VALUES ('f5f984073a0b4ea5952a575886e90586', 3, 'testUserC@example.com', 'testUserC', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestC', 'UserC', 'krispii', '2014-08-05 14:01:19.545-04', '2014-08-06 14:01:19.545-04');
 
 /* user E (student) */
-INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
-VALUES ('871b525067124e548ab60784cae0bc64', 4, 'testUserE@example.com', 'testUserE', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestE', 'UserE', '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, account_type, created_at, updated_at)
+VALUES ('871b525067124e548ab60784cae0bc64', 4, 'testUserE@example.com', 'testUserE', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestE', 'UserE', 'krispii', '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
 
 /* user F */
-INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
-VALUES ('4d01347ec5924e5fb09fdd281b3d9b87', 5, 'testUserF@example.com', 'testUserF', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestF', 'UserF', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, account_type, created_at, updated_at)
+VALUES ('4d01347ec5924e5fb09fdd281b3d9b87', 5, 'testUserF@example.com', 'testUserF', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestF', 'UserF', 'krispii', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
 /* user G */
-INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
-VALUES ('c4d948967e1b45fabae74fb3a89a4d63', 6, 'testUserG@example.com', 'testUserG', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestG', 'UserG', '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, account_type, created_at, updated_at)
+VALUES ('c4d948967e1b45fabae74fb3a89a4d63', 6, 'testUserG@example.com', 'testUserG', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestG', 'UserG', 'google', '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
 
 /* user H no references in other tables */
-INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
-VALUES ('5099a6b48809400d8e380119184d0f93', 7, 'testUserH@example.com', 'testUserH', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestH', 'UserH', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, account_type, created_at, updated_at)
+VALUES ('5099a6b48809400d8e380119184d0f93', 7, 'testUserH@example.com', 'testUserH', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestH', 'UserH', 'google', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
 /* user for activation tests, no references in other tables */
-INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
-VALUES ('8b6dc674-d1ae-11e5-9080-08626681851d', 1, 'rafael@krispii.com', 'rafaelya', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'Rafael', 'Yanez', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, account_type, created_at, updated_at)
+VALUES ('8b6dc674-d1ae-11e5-9080-08626681851d', 1, 'rafael@krispii.com', 'rafaelya', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'Rafael', 'Yanez', 'google', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 
-INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
-VALUES ('7c62a526-d1b0-11e5-9080-08626681851d', 1, 'yanez@krispii.com', 'yanez', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'Antonio', 'Yanez', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, account_type, created_at, updated_at)
+VALUES ('7c62a526-d1b0-11e5-9080-08626681851d', 1, 'yanez@krispii.com', 'yanez', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'Antonio', 'Yanez', 'google', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04');
 /* user X for deletion tests with deleted set to true*/
-INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at, is_deleted)
-VALUES ('a898c83a-5638-4483-9528-8037b3ed661d', 1, 'kmccormick@krispii.com', 'mysterion', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'Kenny', 'McCormick', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04', TRUE);
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, account_type, created_at, updated_at, is_deleted)
+VALUES ('a898c83a-5638-4483-9528-8037b3ed661d', 1, 'kmccormick@krispii.com', 'mysterion', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'Kenny', 'McCormick', 'google', '2014-08-13 14:01:19.545-04', '2014-08-14 14:01:19.545-04', TRUE);
 
 /* user  */
-INSERT INTO users (id, version, email, username, password_hash, givenname, surname, created_at, updated_at)
-VALUES ('871b525067124e548ab60784cae0bc65', 1, 'testUserNew@example.com', 'testUserNew', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestNew', 'UserNew', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, account_type, created_at, updated_at)
+VALUES ('871b525067124e548ab60784cae0bc65', 1, 'testUserNew@example.com', 'testUserNew', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestNew', 'UserNew', 'google', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
 /* ---------------------- ROLES ---------------------- */
 
 /* role A */

@@ -6,6 +6,7 @@ CREATE TABLE users (
   password_hash text,
   givenname text,
   surname text,
+  account_type text,
   created_at timestamp with time zone,
   updated_at timestamp with time zone,
   is_deleted boolean DEFAULT FALSE

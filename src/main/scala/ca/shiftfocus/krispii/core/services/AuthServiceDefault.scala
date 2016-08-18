@@ -91,7 +91,10 @@ class AuthServiceDefault(
         userHash = user.hash.getOrElse("")
         authUser <- lift(Future.successful {
           if (Passwords.scrypt().verify(password.trim(), userHash)) {
-            \/-(user.copy(roles = roles))
+            if (Passwords.scrypt().verify("google_password", userHash))
+              -\/(ServiceError.ExternalService("This is the google account!"))
+            else
+              \/-(user.copy(roles = roles))
           }
           else {
             -\/(ServiceError.BadInput("The password was invalid."))
@@ -106,6 +109,7 @@ class AuthServiceDefault(
       for {
         user <- lift(userRepository.find(identifier))
         roles <- lift(roleRepository.list(user))
+        _ = Logger.error("roles" + roles.toString)
         userHash = user.hash.getOrElse("")
         authUser = user.copy(roles = roles)
         _ = Logger.error(authUser.toString)
@@ -246,7 +250,8 @@ class AuthServiceDefault(
             email = email.trim,
             hash = passwordHash,
             givenname = givenname.trim,
-            surname = surname.trim
+            surname = surname.trim,
+            accountType = "krispii"
           )
           userRepository.insert(newUser)
         }
@@ -301,13 +306,15 @@ class AuthServiceDefault(
     surname: String
   ): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
+      val webcrank = Passwords.scrypt()
       val newUser = User(
         id = UUID.randomUUID(),
         username = email,
         email = email.trim,
-        hash = Some("google_account_password"),
+        hash = Some(webcrank.crypt("google_password")),
         givenname = givenname,
-        surname = surname
+        surname = surname,
+        accountType = "google"
       )
       Logger.error("createing google user")
       Logger.error(newUser.toString)
@@ -315,11 +322,11 @@ class AuthServiceDefault(
 
         user <- lift(userRepository.insert(newUser))
         _ = Logger.error("user created")
-        userWithRoles <- lift(addRoles(user.id, IndexedSeq("authenticated", "teacher")))
+        roles <- lift(serializedT(IndexedSeq("authenticated", "teacher"))(roleRepository.addToUser(user, _)))
         _ = Logger.error("roles added")
         //user <- lift(this.create(email, email, "", givenname, surname))
         //userRepository.insert(newUser)
-      } yield userWithRoles
+      } yield user
       fUser.run
     }
   }

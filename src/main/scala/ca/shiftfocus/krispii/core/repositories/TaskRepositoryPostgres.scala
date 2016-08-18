@@ -45,7 +45,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   }
   val SpecificFields = "document_tasks.dependency_id as dependency_id, question_tasks.questions as questions, media_tasks.media_type as media_type"
 
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.position ASC"
   val Join =
     s"""
@@ -398,6 +398,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.position,
       task.settings.notesAllowed,
       task.settings.responseTitle,
+      task.settings.hideResponse,
       task.settings.notesTitle,
       task.settings.help,
       task.maxGrade,

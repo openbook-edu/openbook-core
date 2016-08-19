@@ -21,7 +21,7 @@ class TagServiceDefault(
 
   override def createTag(name: String, lang: String, category: String): Future[\/[ErrorUnion#Fail, Tag]] = {
     transactional { implicit conn: Connection =>
-      tagRepository.create(Tag(name, lang, category))
+      tagRepository.create(Tag(name, lang, category, 0))
     }
   }
   override def tag(projectId: UUID, tagName: String): Future[\/[ErrorUnion#Fail, Unit]] = {
@@ -66,6 +66,13 @@ class TagServiceDefault(
     } yield cloned
   }
 
+  override def updateFrequency(name: String, frequency: Int): Future[\/[ErrorUnion#Fail, Tag]] = {
+    for {
+      existingTag <- lift(tagRepository.find(name))
+      toUpdate = existingTag.copy(name = existingTag.name, frequency = frequency)
+      updatedTag <- lift(tagRepository.update(toUpdate))
+    } yield updatedTag
+  }
   override def updateTag(name: String, lang: String, category: Option[String]): Future[\/[ErrorUnion#Fail, Tag]] = {
     for {
       existingTag <- lift(tagRepository.find(name))

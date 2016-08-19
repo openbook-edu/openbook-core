@@ -9,7 +9,8 @@ import play.api.libs.json._
 case class Tag(
   name: String,
   lang: String,
-  category: String
+  category: String,
+  frequency: Int
 ) {}
 
 object Tag {
@@ -18,7 +19,8 @@ object Tag {
       Json.obj(
         "name" -> tag.name,
         "lang" -> tag.lang,
-        "category" -> tag.category
+        "category" -> tag.category,
+        "frequency" -> tag.frequency
       )
     }
   }

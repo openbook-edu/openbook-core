@@ -2764,17 +2764,20 @@ object TestValues {
   val testTagA = Tag(
     name = "pacificsound3003",
     lang = "en",
-    category = "subject"
+    category = "subject",
+    frequency = 0
   )
   val testTagB = Tag(
     name = "vanille",
     lang = "fr",
-    category = "level"
+    category = "level",
+    frequency = 0
   )
   val testTagC = Tag(
     name = "fruit",
     lang = "fr",
-    category = "level"
+    category = "level",
+    frequency = 0
   )
   /**
    * no project is tagged with this tag, but it still exists
@@ -2782,7 +2785,8 @@ object TestValues {
   val testTagD = Tag(
     name = "seductive",
     lang = "en",
-    category = "level"
+    category = "level",
+    frequency = 0
   )
   /**
    * no tag in the database
@@ -2790,7 +2794,8 @@ object TestValues {
   val testTagX = Tag(
     name = "orange",
     lang = "fr",
-    category = "round_things"
+    category = "round_things",
+    frequency = 0
   )
 
   val testTagCategoryA = TagCategory(

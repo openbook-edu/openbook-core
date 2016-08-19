@@ -360,6 +360,7 @@ class AuthServiceDefault(
     username: Option[String],
     givenname: Option[String],
     surname: Option[String],
+    alias: Option[String],
     password: Option[String]
   ): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
@@ -386,6 +387,11 @@ class AuthServiceDefault(
           username = u_username,
           givenname = givenname.getOrElse(existingUser.givenname),
           surname = surname.getOrElse(existingUser.surname),
+          alias = alias match {
+            case Some(userAlias) if !userAlias.trim.isEmpty => Some(userAlias)
+            case Some(userAlias) if userAlias.trim.isEmpty => None
+            case None => existingUser.alias
+          },
           hash = hash
         )
         updatedUser <- lift(userRepository.update(userToUpdate))
@@ -429,14 +435,18 @@ class AuthServiceDefault(
    * @param surname   the user's updated family name
    * @return a future disjunction containing the updated user, or a failure
    */
-  override def updateInfo(id: UUID, version: Long, givenname: Option[String] = None, surname: Option[String] = None): Future[\/[ErrorUnion#Fail, User]] = {
+  override def updateInfo(id: UUID, version: Long, givenname: Option[String] = None, surname: Option[String] = None, alias: Option[String] = None): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
       val updated = for {
         existingUser <- lift(userRepository.find(id))
         _ <- predicate(existingUser.version == version)(ServiceError.OfflineLockFail)
         userToUpdate = existingUser.copy(
           givenname = givenname.getOrElse(existingUser.givenname),
-          surname = surname.getOrElse(existingUser.surname)
+          surname = surname.getOrElse(existingUser.surname),
+          alias = alias match {
+            case Some(alias) => Some(alias)
+            case None => existingUser.alias
+          }
         )
         updatedUser <- lift(userRepository.update(userToUpdate))
       } yield updatedUser

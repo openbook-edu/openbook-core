@@ -36,6 +36,10 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
       hash = Try(row("password_hash")).map(_.asInstanceOf[String]).toOption,
       givenname = row("givenname").asInstanceOf[String],
       surname = row("surname").asInstanceOf[String],
+      alias = Option(row("alias").asInstanceOf[String]) match {
+        case Some(notesTitle) => Some(notesTitle)
+        case _ => None
+      },
       accountType = row("account_type").asInstanceOf[String],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
@@ -43,11 +47,11 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   }
 
   val Table = "users"
-  val Fields = "id, version, created_at, updated_at, username, email, password_hash, givenname, surname, account_type"
-  val FieldsWithoutTable = "id, version, created_at, updated_at, username, email, givenname, surname, account_type"
+  val Fields = "id, version, created_at, updated_at, username, email, password_hash, givenname, surname, alias, account_type"
+  val FieldsWithoutTable = "id, version, created_at, updated_at, username, email, givenname, surname, alias, account_type"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val FieldsWithoutHash = FieldsWithTable.replace(s"${Table}.password_hash,", "")
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.surname ASC, ${Table}.givenname ASC"
 
   // User CRUD operations
@@ -97,7 +101,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   val UpdateNoPass = {
     s"""
        |UPDATE $Table
-       |SET username = ?, email = ?, givenname = ?, surname = ?, version = ?, updated_at = ?
+       |SET username = ?, email = ?, givenname = ?, surname = ?, alias = ?, version = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $FieldsWithoutHash
@@ -107,7 +111,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   val UpdateWithPass = {
     s"""
        |UPDATE $Table
-        |SET username = ?, email = ?, password_hash = ?, givenname = ?, surname = ?, version = ?, updated_at = ?
+        |SET username = ?, email = ?, password_hash = ?, givenname = ?, surname = ?, alias = ?, version = ?, updated_at = ?
         |WHERE id = ?
         |  AND version = ?
         |RETURNING $FieldsWithoutHash
@@ -262,10 +266,9 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @return a future disjunction containing either the inserted user, or a failure
    */
   override def insert(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
-    // id, version, created_at, updated_at, username, email, password_hash, givenname, surname
     val params = Seq[Any](
       user.id, 1, new DateTime, new DateTime, user.username, user.email,
-      user.hash, user.givenname, user.surname, user.accountType
+      user.hash, user.givenname, user.surname, user.alias, user.accountType
     )
     queryOne(Insert, params)
   }
@@ -286,11 +289,11 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
         user.hash match {
           case Some(hash) =>
             queryOne(UpdateWithPass, Seq[Any](
-              user.username, user.email, hash, user.givenname, user.surname,
+              user.username, user.email, hash, user.givenname, user.surname, user.alias,
               user.version + 1, new DateTime, user.id, user.version
             ))
           case None => queryOne(UpdateNoPass, Seq[Any](
-            user.username, user.email, user.givenname, user.surname,
+            user.username, user.email, user.givenname, user.surname, user.alias,
             user.version + 1, new DateTime, user.id, user.version
           ))
         }

@@ -15,6 +15,7 @@ case class User(
     hash: Option[String] = None,
     givenname: String,
     surname: String,
+    alias: Option[String] = None,
     roles: IndexedSeq[Role] = IndexedSeq.empty[Role],
     token: Option[UserToken] = None,
     accountType: String,
@@ -31,7 +32,7 @@ case class User(
   override def hashCode: Int = this.id.hashCode()
 
   override def toString: String = {
-    s"User(id: ${id.toString}, version: $version, username: $username, email: $email, full name: '$givenname $surname')"
+    s"""User(id: ${id.toString}, version: $version, username: $username, email: $email, full name: '$givenname $surname', alias: '${alias.getOrElse("")}')"""
   }
 }
 
@@ -53,6 +54,7 @@ object User {
         "email" -> user.email,
         "givenname" -> user.givenname,
         "surname" -> user.surname,
+        "alias" -> user.alias,
         "roles" -> user.roles,
         "accountType" -> user.accountType,
         "createdAt" -> user.createdAt,
@@ -78,6 +80,7 @@ object UserInfo {
         "email" -> userInfo.user.email,
         "givenname" -> userInfo.user.givenname,
         "surname" -> userInfo.user.surname,
+        "alias" -> userInfo.user.alias,
         "accountType" -> userInfo.user.accountType,
         "createdAt" -> userInfo.user.createdAt,
         "updatedAt" -> userInfo.user.updatedAt

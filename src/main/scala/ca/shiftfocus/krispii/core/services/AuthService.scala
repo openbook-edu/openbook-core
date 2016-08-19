@@ -135,6 +135,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     username: Option[String],
     givenname: Option[String],
     surname: Option[String],
+    alias: Option[String],
     password: Option[String]
   ): Future[\/[ErrorUnion#Fail, User]]
 
@@ -168,7 +169,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @param surname the user's updated family name
    * @return a future disjunction containing the updated user, or a failure
    */
-  def updateInfo(id: UUID, version: Long, givenname: Option[String], surname: Option[String]): Future[\/[ErrorUnion#Fail, User]]
+  def updateInfo(id: UUID, version: Long, givenname: Option[String], surname: Option[String], alias: Option[String]): Future[\/[ErrorUnion#Fail, User]]
 
   /**
    * Deletes a user.

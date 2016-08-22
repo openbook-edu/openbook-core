@@ -37,9 +37,9 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
       givenname = row("givenname").asInstanceOf[String],
       surname = row("surname").asInstanceOf[String],
       alias = Option(row("alias").asInstanceOf[String]) match {
-        case Some(notesTitle) => Some(notesTitle)
-        case _ => None
-      },
+      case Some(notesTitle) => Some(notesTitle)
+      case _ => None
+    },
       accountType = row("account_type").asInstanceOf[String],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]

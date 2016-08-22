@@ -39,6 +39,7 @@ class AuthServiceDefault(
    */
   val password_reset = "password_reset"
   val activation = "activation"
+  
 
   /**
    * List all users.

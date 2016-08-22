@@ -85,7 +85,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   }
 
   override def update(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
-    queryOne(Update, Seq[Any](tag.lang, tag.category, tag.name, tag.frequency))
+    queryOne(Update, Seq[Any](tag.lang, tag.category, tag.frequency, tag.name))
   }
   override def delete(tagName: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(Delete, Seq[Any](tagName))

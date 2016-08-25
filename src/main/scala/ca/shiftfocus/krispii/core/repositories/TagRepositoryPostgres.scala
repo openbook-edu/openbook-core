@@ -81,7 +81,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                   RETURNING $Fields"""
 
   override def create(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
-    queryOne(Insert, Seq[Any](tag.name, tag.lang, tag.category))
+    queryOne(Insert, Seq[Any](tag.name, tag.lang, tag.category, tag.frequency))
   }
 
   override def update(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {

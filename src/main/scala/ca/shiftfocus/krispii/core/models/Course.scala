@@ -16,7 +16,7 @@ case class Course(
   slug: String,
   enabled: Boolean = true,
   deleted: Boolean = false,
-  chatEnabled: Boolean = false,
+  chatEnabled: Boolean = true,
   schedulingEnabled: Boolean = false,
   projects: Option[IndexedSeq[Project]] = None,
   createdAt: DateTime = new DateTime,

@@ -224,7 +224,8 @@ class ProjectServiceSpec
           Some(testProject.longDescription),
           Some(testProject.availability),
           Some(testProject.enabled),
-          Some(testProject.projectType)
+          Some(testProject.projectType),
+          testProject.status
         )
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
       }
@@ -233,7 +234,7 @@ class ProjectServiceSpec
 
         (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 
-        val result = projectService.updateInfo(testProject.id, testProject.version, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.longDescription), Some(testProject.availability), Some(testProject.enabled), Some(testProject.projectType))
+        val result = projectService.updateInfo(testProject.id, testProject.version, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.longDescription), Some(testProject.availability), Some(testProject.enabled), Some(testProject.projectType), testProject.status)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
       }
     }
@@ -1539,6 +1540,7 @@ class ProjectServiceSpec
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           maxGrade = Some(updatedTask.maxGrade),
           notesTitle = Some(updatedTask.settings.notesTitle),
@@ -1590,6 +1592,7 @@ class ProjectServiceSpec
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           maxGrade = Some(updatedTask.maxGrade),
           notesTitle = Some(updatedTask.settings.notesTitle),
@@ -1643,6 +1646,7 @@ class ProjectServiceSpec
           position = Some(updatedTask.position),
           maxGrade = Some(updatedTask.maxGrade),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = None,
           responseTitle = None
@@ -1695,6 +1699,7 @@ class ProjectServiceSpec
           position = Some(updatedTask.position),
           maxGrade = Some(updatedTask.maxGrade),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)
@@ -1736,6 +1741,7 @@ class ProjectServiceSpec
           position = Some(updatedTask.position),
           maxGrade = Some(updatedTask.maxGrade),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)
@@ -1784,6 +1790,7 @@ class ProjectServiceSpec
           position = Some(updatedTask.position),
           maxGrade = Some(updatedTask.maxGrade),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)
@@ -1827,6 +1834,7 @@ class ProjectServiceSpec
           position = Some(updatedTask.position),
           maxGrade = Some(updatedTask.maxGrade),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)
@@ -1871,6 +1879,7 @@ class ProjectServiceSpec
           position = Some(updatedTask.position),
           maxGrade = Some(updatedTask.maxGrade),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)
@@ -1915,6 +1924,7 @@ class ProjectServiceSpec
           position = Some(updatedTask.position),
           maxGrade = Some(updatedTask.maxGrade),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)
@@ -1953,6 +1963,7 @@ class ProjectServiceSpec
           position = Some(updatedTask.position),
           maxGrade = Some(updatedTask.maxGrade),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)
@@ -2000,6 +2011,7 @@ class ProjectServiceSpec
           position = Some(updatedTask.position),
           maxGrade = Some(updatedTask.maxGrade),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)
@@ -2050,6 +2062,7 @@ class ProjectServiceSpec
           position = Some(updatedTask.position),
           maxGrade = Some(updatedTask.maxGrade),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)
@@ -2100,6 +2113,7 @@ class ProjectServiceSpec
           maxGrade = Some(updatedTask.maxGrade),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)
@@ -2150,6 +2164,7 @@ class ProjectServiceSpec
           position = Some(updatedTask.position),
           maxGrade = Some(updatedTask.maxGrade),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)
@@ -2188,6 +2203,7 @@ class ProjectServiceSpec
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)
@@ -2235,6 +2251,7 @@ class ProjectServiceSpec
           maxGrade = Some(updatedTask.maxGrade),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)
@@ -2285,6 +2302,7 @@ class ProjectServiceSpec
           maxGrade = Some(updatedTask.maxGrade),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)
@@ -2335,6 +2353,7 @@ class ProjectServiceSpec
           position = Some(updatedTask.position),
           maxGrade = Some(updatedTask.maxGrade),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)
@@ -2386,6 +2405,7 @@ class ProjectServiceSpec
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)
@@ -2424,6 +2444,7 @@ class ProjectServiceSpec
           description = Some(updatedTask.settings.description),
           position = Some(updatedTask.position),
           notesAllowed = Some(updatedTask.settings.notesAllowed),
+          hideResponse = Some(updatedTask.settings.hideResponse),
           partId = Some(updatedTask.partId),
           notesTitle = Some(updatedTask.settings.notesTitle),
           responseTitle = Some(updatedTask.settings.responseTitle)

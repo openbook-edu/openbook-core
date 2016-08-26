@@ -26,6 +26,7 @@ case class Project(
     projectType: String,
     parts: IndexedSeq[Part],
     tags: IndexedSeq[Tag] = IndexedSeq(),
+    status: Option[String] = None,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) {
@@ -42,7 +43,8 @@ case class Project(
           this.longDescription == otherProject.longDescription &&
           this.availability == otherProject.availability &&
           this.projectType == otherProject.projectType &&
-          this.parts == otherProject.parts
+          this.parts == otherProject.parts &&
+          this.status == otherProject.status
       }
       case _ => false
     }
@@ -78,6 +80,7 @@ object Project {
     (__ \ "projectType").write[String] and
     (__ \ "parts").write[IndexedSeq[Part]] and
     (__ \ "tags").write[IndexedSeq[Tag]] and
+    (__ \ "status").write[Option[String]] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Project.unapply))

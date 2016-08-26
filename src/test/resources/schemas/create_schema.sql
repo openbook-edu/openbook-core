@@ -97,6 +97,7 @@ CREATE TABLE projects (
   is_master boolean DEFAULT false,
   enabled boolean DEFAULT false,
   project_type text,
+  status text,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );

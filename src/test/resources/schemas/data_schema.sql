@@ -958,10 +958,11 @@ insert into tags(name, lang, category) values('fruit' , 'fr', 'level');
 insert into tags(name, lang, category) values('seductive', 'en', 'level');
 
 /**
-Project A tags
+testProjectG tags
  */
-insert into project_tags(project_id, tag_name) values ('c9b4cfceaed448fd94f5c980763dfddc','pacificsound3003');
-insert into project_tags(project_id, tag_name) values ('c9b4cfceaed448fd94f5c980763dfddc','vanille');
+insert into project_tags(project_id, tag_name) values ('b36919cb2df043b7bb7f36cae797deac','pacificsound3003');
+insert into project_tags(project_id, tag_name) values ('b36919cb2df043b7bb7f36cae797deac','vanille');
+
 /**
 Project B tags
  */
@@ -969,11 +970,10 @@ insert into project_tags(project_id, tag_name) values ('e4ae3b9098714339b05c8d39
 insert into project_tags(project_id, tag_name) values ('e4ae3b9098714339b05c8d39e3aaf65d','fruit');
 
 /**
-Project C tags
+testProjectH tags
  */
-
-insert into project_tags(project_id, tag_name) values ('4ac4d872451b4092b13f643d6d5fa930','pacificsound3003');
-insert into project_tags(project_id, tag_name) values ('4ac4d872451b4092b13f643d6d5fa930','vanille');
+insert into project_tags(project_id, tag_name) values ('00743ada1d3a4912adc8fb8a0b1b7447','pacificsound3003');
+insert into project_tags(project_id, tag_name) values ('00743ada1d3a4912adc8fb8a0b1b7447','vanille');
 
 /* ---------------------------- TAG CATEGORIES -----------------------------*/
 

@@ -39,6 +39,10 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
       row("project_type").asInstanceOf[String],
       IndexedSeq[Part](),
       IndexedSeq[Tag](),
+      Option(row("status").asInstanceOf[String]) match {
+        case Some(status) => Some(status)
+        case _ => None
+      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -47,9 +51,9 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   val Table = "projects"
   val ProjectsTagsTable = "project_tags"
   val TagsTable = "tags"
-  val Fields = "id, version, course_id, name, slug, parent_id, is_master, description, long_description, availability, enabled, project_type, created_at, updated_at"
+  val Fields = "id, version, course_id, name, slug, parent_id, is_master, description, long_description, availability, enabled, project_type, status, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.created_at DESC"
 
   // User CRUD operations
@@ -152,7 +156,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   val Insert =
     s"""
       |INSERT INTO $Table ($Fields)
-      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       |RETURNING $Fields
     """.stripMargin
 
@@ -160,7 +164,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   val Update =
     s"""
       |UPDATE $Table
-      |SET course_id = ?, name = ?, parent_id = ?, is_master = ?, slug = get_slug(?, '$Table', ?), description = ?, long_description = ?, availability = ?, enabled = ?, project_type = ?, version = ?, updated_at = ?
+      |SET course_id = ?, name = ?, parent_id = ?, is_master = ?, slug = get_slug(?, '$Table', ?), description = ?, long_description = ?, availability = ?, enabled = ?, project_type = ?, status = ?, version = ?, updated_at = ?
       |WHERE id = ?
       |  AND version = ?
       |RETURNING $Fields
@@ -209,6 +213,9 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
             partList <- {
               lift(partRepository.list(project))
             }
+            _ = println(Console.GREEN + "---------------" + Console.RESET)
+            _ = println(Console.GREEN + project.name + Console.RESET)
+            _ = println(Console.GREEN + partList + Console.RESET)
             tagList <- {
               lift(tagRepository.listByProjectId(project.id))
             }
@@ -469,7 +476,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   override def insert(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
       project.id, 1, project.courseId, project.name, project.slug, project.id, project.parentId, project.isMaster,
-      project.description, project.longDescription, project.availability, project.enabled, project.projectType, new DateTime, new DateTime
+      project.description, project.longDescription, project.availability, project.enabled, project.projectType, project.status, new DateTime, new DateTime
     )
 
     for {
@@ -488,7 +495,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   override def update(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
       project.courseId, project.name, project.parentId, project.isMaster, project.slug, project.id, project.description, project.longDescription,
-      project.availability, project.enabled, project.projectType, project.version + 1, new DateTime, project.id, project.version
+      project.availability, project.enabled, project.projectType, project.status, project.version + 1, new DateTime, project.id, project.version
     )
 
     (for {

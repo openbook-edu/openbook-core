@@ -799,7 +799,7 @@ class ProjectRepositorySpec
         (partRepository.list(_: Project, _: Boolean, _: Boolean)(_: Connection, _: ScalaCachePool)) when (TestValues.testProjectA.copy(parts = Vector()), true, false, *, *) returns (Future.successful(\/-(testPartList)))
         val eitherProject = Await.result(result, Duration.Inf)
         val \/-(project) = eitherProject
-        Logger.error(project.slug)
+        Logger.debug(project.slug)
         project.id should not be (TestValues.testProjectA.id)
         project.courseId should be(TestValues.testCourseB.id)
         project.version should be(TestValues.testProjectA.version)

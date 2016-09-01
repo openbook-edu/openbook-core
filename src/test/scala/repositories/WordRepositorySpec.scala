@@ -34,7 +34,7 @@ class WordRepositorySpec extends TestEnvironment {
         val eitherWord = Await.result(result, Duration.Inf)
         val \/-(wordRandom) = eitherWord
         val contain = testWorkList.contains(wordRandom)
-        Logger.error(wordRandom.toString)
+        Logger.debug(wordRandom.toString)
 
         contain should be(true)
       }

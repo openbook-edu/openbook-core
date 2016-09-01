@@ -107,10 +107,10 @@ class AuthServiceDefault(
       for {
         user <- lift(userRepository.find(identifier))
         roles <- lift(roleRepository.list(user))
-        _ = Logger.error("roles" + roles.toString)
+        _ = Logger.debug("roles" + roles.toString)
         userHash = user.hash.getOrElse("")
         authUser = user.copy(roles = roles)
-        _ = Logger.error(authUser.toString)
+        _ = Logger.debug(authUser.toString)
       } yield authUser
     }
   }
@@ -313,14 +313,14 @@ class AuthServiceDefault(
         surname = surname,
         accountType = "google"
       )
-      Logger.error("createing google user")
-      Logger.error(newUser.toString)
+      Logger.debug("creating google user")
+      Logger.debug(newUser.toString)
       val fUser = for {
 
         user <- lift(userRepository.insert(newUser))
-        _ = Logger.error("user created")
+        _ = Logger.debug("user created")
         roles <- lift(serializedT(IndexedSeq("authenticated", "teacher"))(roleRepository.addToUser(user, _)))
-        _ = Logger.error("roles added")
+        _ = Logger.debug("roles added")
         //user <- lift(this.create(email, email, "", givenname, surname))
         //userRepository.insert(newUser)
       } yield user

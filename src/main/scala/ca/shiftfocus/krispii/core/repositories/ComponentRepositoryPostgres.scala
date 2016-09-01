@@ -442,7 +442,7 @@ class ComponentRepositoryPostgres()
    * @return an array of components
    */
   override def list(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
-    Logger.error(s"inside component.list ${part.toString}")
+    Logger.debug(s"inside component.list ${part.toString}")
     queryList(SelectByPartId, Array[Any](part.id))
   }
 

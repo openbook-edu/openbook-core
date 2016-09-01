@@ -23,7 +23,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   override val entityName = "Project"
 
   def constructor(row: RowData): Project = {
-    Logger.error(row("enabled").toString)
+    Logger.debug(row("enabled").toString)
     Project(
       row("id").asInstanceOf[UUID],
       row("course_id").asInstanceOf[UUID],
@@ -100,14 +100,14 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
     var inClause = ""
     val length = tags.length
 
-    Logger.error("staring zipping: " + length)
+    Logger.debug("staring zipping: " + length)
     tags.zipWithIndex.map {
       case (current, index) =>
         inClause += s"""'$current'"""
-        Logger.error(inClause)
+        Logger.debug(inClause)
         if (index != (length - 1)) inClause += ", "
     }
-    Logger.error(inClause)
+    Logger.debug(inClause)
     s"""
        |SELECT *
        |FROM projects
@@ -206,7 +206,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
     val select = SelectByTags(tags)
     (for {
       projectList <- lift(queryList(select))
-      _ = Logger.error(projectList.toString)
+      _ = Logger.debug(projectList.toString)
       result <- liftSeq {
         projectList.map { project =>
           (for {
@@ -238,11 +238,11 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   override def cloneProject(projectId: UUID, courseId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
       project <- lift(find(projectId))
-      _ = Logger.error("old project")
-      _ = Logger.error(project.toString)
+      _ = Logger.debug("old project")
+      _ = Logger.debug(project.toString)
       newProject = project.copy(id = UUID.randomUUID(), isMaster = false, courseId = courseId, parentId = Some(project.id), enabled = true)
-      _ = Logger.error("new project")
-      _ = Logger.error(newProject.toString)
+      _ = Logger.debug("new project")
+      _ = Logger.debug(newProject.toString)
     } yield newProject).run
   }
 

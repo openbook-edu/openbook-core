@@ -598,7 +598,7 @@ class AuthServiceDefault(
    * @param roleName the name of the role
    * @return a boolean indicator if the role was added
    */
-  override def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, User]] = {
+  override def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn =>
       val fUser = userRepository.find(userId)(db.pool, cache)
       val fRole = roleRepository.find(roleName)(db.pool, cache)
@@ -607,8 +607,7 @@ class AuthServiceDefault(
         user <- lift(fUser)
         role <- lift(fRole)
         roleAdded <- lift(roleRepository.addToUser(user, role))
-        userInfo <- lift(find(userId))
-      } yield userInfo
+      } yield roleAdded
     }
   }
 
@@ -635,7 +634,7 @@ class AuthServiceDefault(
    * @param roleName the name of the role
    * @return a boolean indicator if the role was removed
    */
-  override def removeRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, User]] = {
+  override def removeRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn =>
       val fUser = userRepository.find(userId)(db.pool, cache)
       val fRole = roleRepository.find(roleName)(db.pool, cache)
@@ -643,8 +642,7 @@ class AuthServiceDefault(
         user <- lift(fUser)
         role <- lift(fRole)
         roleRemoved <- lift(roleRepository.removeFromUser(user, role))
-        userInfo <- lift(find(userId))
-      } yield userInfo
+      } yield roleRemoved
     }
   }
 

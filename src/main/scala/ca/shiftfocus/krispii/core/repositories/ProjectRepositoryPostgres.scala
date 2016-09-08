@@ -3,13 +3,14 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models
-import ca.shiftfocus.krispii.core.models.tasks.{ QuestionTask, DocumentTask, Task }
-import com.github.mauricio.async.db.{ RowData, Connection }
+import ca.shiftfocus.krispii.core.models.tasks.{ DocumentTask, MediaTask, QuestionTask, Task }
+import com.github.mauricio.async.db.{ Connection, RowData }
 import play.api.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
+
 import scala.concurrent.Future
 import org.joda.time.DateTime
 
@@ -351,6 +352,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
       case t: DocumentTask => {
         task.asInstanceOf[DocumentTask].copy(id = UUID.randomUUID, partId = partId, createdAt = new DateTime, updatedAt = new DateTime)
       }
+      case t: MediaTask => task.asInstanceOf[MediaTask].copy(id = UUID.randomUUID, partId = partId, createdAt = new DateTime, updatedAt = new DateTime)
       case t: QuestionTask => task.asInstanceOf[QuestionTask].copy(id = UUID.randomUUID, partId = partId, createdAt = new DateTime, updatedAt = new DateTime)
     }
   }

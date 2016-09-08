@@ -14,6 +14,7 @@ abstract class Component {
   val questions: String
   val thingsToThinkAbout: String
   val order: Int
+  val isPrivate: Boolean
   val createdAt: DateTime
   val updatedAt: DateTime
 }
@@ -39,6 +40,7 @@ object Component {
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
           mediaData = (js \ "audio_data").as[MediaData],
           order = (js \ "order").as[Int],
+          isPrivate = (js \ "isPrivate").as[Boolean],
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )

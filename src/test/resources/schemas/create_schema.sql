@@ -211,6 +211,7 @@ CREATE TABLE components (
   things_to_think_about text,
   type text,
   ord integer DEFAULT 0,
+  is_private boolean DEFAULT false,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );

@@ -17,6 +17,7 @@ case class RubricComponent(
   questions: String,
   thingsToThinkAbout: String,
   order: Int,
+  isPrivate: Boolean = false,
   rubricContent: String,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
@@ -32,6 +33,7 @@ object RubricComponent {
     (__ \ "questions").write[String] and
     (__ \ "thingsToThinkAbout").write[String] and
     (__ \ "order").write[Int] and
+    (__ \ "isPrivate").write[Boolean] and
     (__ \ "rubricContent").write[String] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
@@ -45,6 +47,7 @@ case class RubricComponentPost(
   questions: Option[String],
   thingsToThinkAbout: Option[String],
   order: Int,
+  isPrivate: Boolean,
   rubricContent: String
 )
 
@@ -55,6 +58,7 @@ object RubricComponentPost {
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and
     (__ \ "order").read[Int] and
+    (__ \ "isPrivate").read[Boolean] and
     (__ \ "rubricContent").read[String]
   )(RubricComponentPost.apply _)
 }
@@ -65,6 +69,7 @@ case class RubricComponentPut(
   questions: String,
   thingsToThinkAbout: String,
   order: Int,
+  isPrivate: Boolean,
   rubricContent: String
 )
 
@@ -75,6 +80,7 @@ object RubricComponentPut {
     (__ \ "questions").read[String] and
     (__ \ "thingsToThinkAbout").read[String] and
     (__ \ "order").read[Int] and
+    (__ \ "isPrivate").read[Boolean] and
     (__ \ "rubricContent").read[String]
   )(RubricComponentPut.apply _)
 }

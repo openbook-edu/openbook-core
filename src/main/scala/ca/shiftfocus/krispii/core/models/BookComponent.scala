@@ -18,6 +18,7 @@ case class BookComponent(
   thingsToThinkAbout: String,
   mediaData: MediaData = MediaData(),
   order: Int,
+  isPrivate: Boolean = false,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) extends Component with DataCarrier
@@ -33,6 +34,7 @@ object BookComponent {
     (__ \ "thingsToThinkAbout").write[String] and
     (__ \ "fileData").write[MediaData] and
     (__ \ "order").write[Int] and
+    (__ \ "isPrivate").write[Boolean] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(BookComponent.unapply))
@@ -45,7 +47,8 @@ case class BookComponentPost(
   questions: Option[String],
   thingsToThinkAbout: Option[String],
   fileData: MediaData,
-  order: Int
+  order: Int,
+  isPrivate: Boolean
 )
 
 object BookComponentPost {
@@ -55,7 +58,8 @@ object BookComponentPost {
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and
     (__ \ "fileData").read[MediaData] and
-    (__ \ "order").read[Int]
+    (__ \ "order").read[Int] and
+    (__ \ "isPrivate").read[Boolean]
   )(BookComponentPost.apply _)
 }
 
@@ -65,7 +69,8 @@ case class BookComponentPut(
   questions: String,
   thingsToThinkAbout: String,
   fileData: MediaData,
-  order: Int
+  order: Int,
+  isPrivate: Boolean
 )
 
 object BookComponentPut {
@@ -75,6 +80,7 @@ object BookComponentPut {
     (__ \ "questions").read[String] and
     (__ \ "thingsToThinkAbout").read[String] and
     (__ \ "fileData").read[MediaData] and
-    (__ \ "order").read[Int]
+    (__ \ "order").read[Int] and
+    (__ \ "isPrivate").read[Boolean]
   )(BookComponentPut.apply _)
 }

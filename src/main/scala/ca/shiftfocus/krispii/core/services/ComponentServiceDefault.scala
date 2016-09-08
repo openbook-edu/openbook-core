@@ -225,7 +225,8 @@ class ComponentServiceDefault(
     questions: Option[String],
     thingsToThinkAbout: Option[String],
     audioData: Option[MediaData],
-    order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
+    order: Option[Int],
+    isPrivate: Option[Boolean]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
       for {
         existingComponent <- lift(componentRepository.find(id))
@@ -239,7 +240,8 @@ class ComponentServiceDefault(
           questions = questions.getOrElse(existingAudio.questions),
           thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingAudio.thingsToThinkAbout),
           mediaData = audioData.getOrElse(existingAudio.mediaData),
-          order = order.getOrElse(existingAudio.order)
+          order = order.getOrElse(existingAudio.order),
+          isPrivate = isPrivate.getOrElse(existingAudio.isPrivate)
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
       } yield updatedComponent
@@ -251,7 +253,8 @@ class ComponentServiceDefault(
     questions: Option[String],
     thingsToThinkAbout: Option[String],
     fileData: Option[MediaData],
-    order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
+    order: Option[Int],
+    isPrivate: Option[Boolean]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
       for {
         existingComponent <- lift(componentRepository.find(id))
@@ -265,7 +268,8 @@ class ComponentServiceDefault(
           questions = questions.getOrElse(existingBook.questions),
           thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingBook.thingsToThinkAbout),
           mediaData = fileData.getOrElse(existingBook.mediaData),
-          order = order.getOrElse(existingBook.order)
+          order = order.getOrElse(existingBook.order),
+          isPrivate = isPrivate.getOrElse(existingBook.isPrivate)
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
       } yield updatedComponent
@@ -277,7 +281,8 @@ class ComponentServiceDefault(
     questions: Option[String],
     thingsToThinkAbout: Option[String],
     content: Option[String],
-    order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
+    order: Option[Int],
+    isPrivate: Option[Boolean]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
       for {
         existingComponent <- lift(componentRepository.find(id))
@@ -291,7 +296,8 @@ class ComponentServiceDefault(
           questions = questions.getOrElse(existingText.questions),
           thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingText.thingsToThinkAbout),
           content = content.getOrElse(existingText.content),
-          order = order.getOrElse(existingText.order)
+          order = order.getOrElse(existingText.order),
+          isPrivate = isPrivate.getOrElse(existingText.isPrivate)
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
       } yield updatedComponent
@@ -303,7 +309,8 @@ class ComponentServiceDefault(
     questions: Option[String],
     thingsToThinkAbout: Option[String],
     htmlContent: Option[String],
-    order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
+    order: Option[Int],
+    isPrivate: Option[Boolean]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
       for {
         existingComponent <- lift(componentRepository.find(id))
@@ -317,7 +324,8 @@ class ComponentServiceDefault(
           questions = questions.getOrElse(existingGenericHTML.questions),
           thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingGenericHTML.thingsToThinkAbout),
           htmlContent = htmlContent.getOrElse(existingGenericHTML.htmlContent),
-          order = order.getOrElse(existingGenericHTML.order)
+          order = order.getOrElse(existingGenericHTML.order),
+          isPrivate = isPrivate.getOrElse(existingGenericHTML.isPrivate)
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
       } yield updatedComponent
@@ -329,7 +337,8 @@ class ComponentServiceDefault(
     questions: Option[String],
     thingsToThinkAbout: Option[String],
     rubricContent: Option[String],
-    order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
+    order: Option[Int],
+    isPrivate: Option[Boolean]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
       for {
         existingComponent <- lift(componentRepository.find(id))
@@ -343,7 +352,8 @@ class ComponentServiceDefault(
           questions = questions.getOrElse(existingRubric.questions),
           thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingRubric.thingsToThinkAbout),
           rubricContent = rubricContent.getOrElse(existingRubric.rubricContent),
-          order = order.getOrElse(existingRubric.order)
+          order = order.getOrElse(existingRubric.order),
+          isPrivate = isPrivate.getOrElse(existingRubric.isPrivate)
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
       } yield updatedComponent
@@ -357,7 +367,8 @@ class ComponentServiceDefault(
     videoData: Option[MediaData],
     width: Option[Int],
     height: Option[Int],
-    order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]] = {
+    order: Option[Int],
+    isPrivate: Option[Boolean]): Future[\/[ErrorUnion#Fail, Component]] = {
     transactional { implicit conn =>
       for {
         existingComponent <- lift(componentRepository.find(id))
@@ -373,7 +384,8 @@ class ComponentServiceDefault(
           mediaData = videoData.getOrElse(existingVideo.mediaData),
           width = width.getOrElse(existingVideo.width),
           height = height.getOrElse(existingVideo.height),
-          order = order.getOrElse(existingVideo.order)
+          order = order.getOrElse(existingVideo.order),
+          isPrivate = isPrivate.getOrElse(existingVideo.isPrivate)
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
       } yield updatedComponent

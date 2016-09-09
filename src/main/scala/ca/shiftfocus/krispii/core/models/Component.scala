@@ -22,6 +22,7 @@ abstract class Component {
 object Component {
 
   val Audio = "audio"
+  val Image = "image"
   val Text = "text"
   val Video = "video"
   val GenericHTML = "generic_html"
@@ -39,6 +40,19 @@ object Component {
           questions = (js \ "questions").as[String],
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
           mediaData = (js \ "audio_data").as[MediaData],
+          order = (js \ "order").as[Int],
+          isPrivate = (js \ "isPrivate").as[Boolean],
+          createdAt = (js \ "createdAt").as[DateTime],
+          updatedAt = (js \ "updatedAt").as[DateTime]
+        )
+        case Component.Image => ImageComponent(
+          id = (js \ "id").as[UUID],
+          version = (js \ "version").as[Long],
+          ownerId = (js \ "ownerId").as[UUID],
+          title = (js \ "title").as[String],
+          questions = (js \ "questions").as[String],
+          thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
+          mediaData = (js \ "image_data").as[MediaData],
           order = (js \ "order").as[Int],
           isPrivate = (js \ "isPrivate").as[Boolean],
           createdAt = (js \ "createdAt").as[DateTime],
@@ -117,6 +131,9 @@ object Component {
       ))
       case component: AudioComponent => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
         "type" -> Component.Audio
+      ))
+      case component: ImageComponent => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
+        "type" -> Component.Image
       ))
       case component: TextComponent => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
         "type" -> Component.Text

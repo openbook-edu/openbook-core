@@ -2059,6 +2059,33 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testImageComponentA = ImageComponent(
+    id = UUID.fromString("b88d6fc1-40b5-4231-8516-86b8bc6736fe"),
+    version = 1L,
+    ownerId = testUserB.id,
+    title = "testImageComponentA title",
+    questions = "testImageComponentA questions",
+    thingsToThinkAbout = "testImageComponentA thingsToThinkAbout",
+    mediaData = MediaData(data = Some("imageA.jpg"), dataType = Some("s3"), size = Some(4)),
+    order = 0,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  // Not in db
+  val testImageComponentB = ImageComponent(
+    id = UUID.fromString("de589325-426d-4eb8-881d-65e9f1b10763"),
+    version = 1L,
+    ownerId = testUserB.id,
+    title = "testImageComponentB title",
+    questions = "testImageComponentB questions",
+    thingsToThinkAbout = "testImageComponentB thingsToThinkAbout",
+    mediaData = MediaData(data = Some("imageB.jpg"), dataType = Some("s3"), size = Some(4)),
+    order = 0,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* ---------------------- PARTS ---------------------- */
 
   val testPartA = Part(

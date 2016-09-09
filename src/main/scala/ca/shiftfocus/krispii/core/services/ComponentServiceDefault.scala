@@ -111,6 +111,27 @@ class ComponentServiceDefault(
     }
   }
 
+  override def createImage(
+    ownerId: UUID,
+    title: String,
+    questions: String,
+    thingsToThinkAbout: String,
+    imageData: MediaData,
+    order: Int
+  ): Future[\/[ErrorUnion#Fail, Component]] = {
+    val newComponent = ImageComponent(
+      ownerId = ownerId,
+      title = title,
+      questions = questions,
+      thingsToThinkAbout = thingsToThinkAbout,
+      mediaData = imageData,
+      order = order
+    )
+    transactional { implicit conn =>
+      componentRepository.insert(newComponent)
+    }
+  }
+
   override def createBook(
     ownerId: UUID,
     title: String,
@@ -242,6 +263,34 @@ class ComponentServiceDefault(
           mediaData = audioData.getOrElse(existingAudio.mediaData),
           order = order.getOrElse(existingAudio.order),
           isPrivate = isPrivate.getOrElse(existingAudio.isPrivate)
+        )
+        updatedComponent <- lift(componentRepository.update(componentToUpdate))
+      } yield updatedComponent
+    }
+  }
+
+  override def updateImage(id: UUID, version: Long, ownerId: UUID,
+    title: Option[String],
+    questions: Option[String],
+    thingsToThinkAbout: Option[String],
+    imageData: Option[MediaData],
+    order: Option[Int],
+    isPrivate: Option[Boolean]): Future[\/[ErrorUnion#Fail, Component]] = {
+    transactional { implicit conn =>
+      for {
+        existingComponent <- lift(componentRepository.find(id))
+        _ <- predicate(existingComponent.version == version)(ServiceError.OfflineLockFail)
+        _ <- predicate(existingComponent.isInstanceOf[ImageComponent])(ServiceError.BadInput("Component type is not image"))
+        existingImage = existingComponent.asInstanceOf[ImageComponent]
+        componentToUpdate = existingImage.copy(
+          version = version,
+          ownerId = ownerId,
+          title = title.getOrElse(existingImage.title),
+          questions = questions.getOrElse(existingImage.questions),
+          thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingImage.thingsToThinkAbout),
+          mediaData = imageData.getOrElse(existingImage.mediaData),
+          order = order.getOrElse(existingImage.order),
+          isPrivate = isPrivate.getOrElse(existingImage.isPrivate)
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))
       } yield updatedComponent
@@ -399,6 +448,7 @@ class ComponentServiceDefault(
         _ <- predicate(component.version == version)(ServiceError.OfflineLockFail)
         toDelete = component match {
           case comp: AudioComponent => comp.copy(version = version)
+          case comp: ImageComponent => comp.copy(version = version)
           case comp: BookComponent => comp.copy(version = version)
           case comp: TextComponent => comp.copy(version = version)
           case comp: GenericHTMLComponent => comp.copy(version = version)

@@ -278,7 +278,7 @@ class SchoolServiceDefault(
       teacher <- lift(authService.find(teacherId))
       userCourses <- lift(courseRepository.list(user, false))
       filteredCourses = userCourses.filter(_.teacherId == teacherId)
-      _ <- predicate(filteredCourses.nonEmpty)(RepositoryError.NoResults(s"User ${userId.toString} is not in any courses wiht teacher ${teacherId.toString}"))
+      _ <- predicate(filteredCourses.nonEmpty)(RepositoryError.NoResults(s"User ${userId.toString} is not in any courses with teacher ${teacherId.toString}"))
     } yield user
   }
 

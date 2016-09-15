@@ -223,6 +223,90 @@ class PaymentServiceDefault(
   }
 
   /**
+   * Switch subscription to a new plan
+   *
+   * @param userId
+   * @param  subscriptionId
+   * @param planId
+   * @return
+   */
+  def updateSubscribtionPlan(userId: UUID, subscriptionId: String, planId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
+    for {
+      updatedSubsctiption <- lift(
+        Future successful (try {
+          val params = new java.util.HashMap[String, Object]()
+          params.put("plan", planId)
+
+          val subscription: Subscription = Subscription.retrieve(subscriptionId, requestOptions)
+          val updatedSubsctiption = Json.parse(APIResource.GSON.toJson(subscription.update(params, requestOptions)))
+
+          \/-(updatedSubsctiption)
+        }
+        catch {
+          case e => -\/(ServiceError.ExternalService(e.toString))
+        })
+      )
+      _ <- lift(stripeRepository.updateSubscription(userId, updatedSubsctiption))
+    } yield updatedSubsctiption
+  }
+
+  /**
+   * Replace customer card with a new one
+   *
+   * @param customerId
+   * @param tokenId
+   * @return
+   */
+  def updatePaymentInfo(customerId: String, tokenId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
+    for {
+      updatedCustomer <- lift(
+        Future successful (try {
+          val params = new java.util.HashMap[String, Object]()
+          params.put("source", tokenId)
+
+          val customer: Customer = Customer.retrieve(customerId, requestOptions)
+          val updatedCustomer = customer.update(params, requestOptions)
+
+          // Get default payment source
+          val defaultSource = updatedCustomer.getSources().retrieve(updatedCustomer.getDefaultSource, requestOptions)
+          val result: JsValue = defaultSource.getObject match {
+            // If we have a card, we get additional information about it
+            case "card" => {
+              val defaultCard = defaultSource.asInstanceOf[Card]
+              val last4 = defaultCard.getLast4()
+              val brand = defaultCard.getBrand()
+              val expYear = defaultCard.getExpYear()
+              val expMonth = defaultCard.getExpMonth()
+              val customerJObject = Json.parse(APIResource.GSON.toJson(updatedCustomer)).as[JsObject]
+              val defaultCardJObject = Json.parse(APIResource.GSON.toJson(defaultCard)).as[JsObject]
+
+              // Add additional card info to customer object
+              customerJObject ++ Json.obj(
+                "sources" -> Json.obj(
+                  "data" -> Json.arr(
+                    defaultCardJObject ++ Json.obj(
+                      "last4" -> last4,
+                      "brand" -> brand,
+                      "exp_year" -> expYear.toString,
+                      "exp_month" -> expMonth.toString
+                    )
+                  )
+                )
+              )
+            }
+            case _ => Json.parse(APIResource.GSON.toJson(updatedCustomer))
+          }
+
+          \/-(result)
+        }
+        catch {
+          case e => -\/(ServiceError.ExternalService(e.toString))
+        })
+      )
+    } yield updatedCustomer
+  }
+
+  /**
    * Get subscription from Stripe
    *
    * @param subscriptionId

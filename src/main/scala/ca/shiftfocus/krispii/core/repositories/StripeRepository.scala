@@ -12,7 +12,8 @@ trait StripeRepository extends Repository {
   // SUBSCRIPTIONS
   def listSubscriptions(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JsValue]]]
   def createSubscription(userId: UUID, subscription: JsValue)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]]
-  def updateSubscription(userId: UUID, subscription: JsValue)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]]
+  def updateSubscription(userId: UUID, subscriptionId: String, subscription: JsValue)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]]
+  def deleteSubscription(userId: UUID, subscriptionId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]]
 
   // EVENTS
   def getEvent(eventId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]]

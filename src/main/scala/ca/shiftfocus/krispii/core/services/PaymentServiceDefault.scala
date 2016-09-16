@@ -227,18 +227,18 @@ class PaymentServiceDefault(
    *
    * @param userId
    * @param  subscriptionId
-   * @param planId
+   * @param newPlanId
    * @return
    */
-  def updateSubscribtionPlan(userId: UUID, subscriptionId: String, planId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
+  def updateSubscribtionPlan(userId: UUID, subscriptionId: String, newPlanId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
       updatedSubsctiption <- lift(
         Future successful (try {
           val params = new java.util.HashMap[String, Object]()
-          params.put("plan", planId)
+          params.put("plan", newPlanId)
 
           val subscription: Subscription = Subscription.retrieve(subscriptionId, requestOptions)
-          val updatedSubsctiption = Json.parse(APIResource.GSON.toJson(subscription.update(params, requestOptions)))
+          val updatedSubsctiption = subscription.update(params, requestOptions)
 
           \/-(updatedSubsctiption)
         }
@@ -246,8 +246,28 @@ class PaymentServiceDefault(
           case e => -\/(ServiceError.ExternalService(e.toString))
         })
       )
-      _ <- lift(stripeRepository.updateSubscription(userId, updatedSubsctiption))
-    } yield updatedSubsctiption
+      _ <- lift(stripeRepository.updateSubscription(userId, updatedSubsctiption.getId, Json.parse(APIResource.GSON.toJson(updatedSubsctiption))))
+    } yield Json.parse(APIResource.GSON.toJson(updatedSubsctiption))
+  }
+
+  def cancelSubscription(userId: UUID, subscriptionId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
+    for {
+      canceledSubsctiption <- lift(
+        Future successful (try {
+          val params = new java.util.HashMap[String, Object]()
+          params.put("at_period_end", "true")
+
+          val subscription: Subscription = Subscription.retrieve(subscriptionId, requestOptions)
+          val canceledSubsctiption = subscription.cancel(params, requestOptions)
+
+          \/-(canceledSubsctiption)
+        }
+        catch {
+          case e => -\/(ServiceError.ExternalService(e.toString))
+        })
+      )
+      _ <- lift(stripeRepository.updateSubscription(userId, canceledSubsctiption.getId, Json.parse(APIResource.GSON.toJson(canceledSubsctiption))))
+    } yield Json.parse(APIResource.GSON.toJson(canceledSubsctiption))
   }
 
   /**
@@ -306,6 +326,33 @@ class PaymentServiceDefault(
     } yield updatedCustomer
   }
 
+  def deletePaymentInfo(customerId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
+    for {
+      updatedCustomer <- lift(
+        Future successful (try {
+          val params = new java.util.HashMap[String, Object]()
+
+          val customer: Customer = Customer.retrieve(customerId, requestOptions)
+          // Get default payment source and delete it
+          val defaultSource = customer.getSources().retrieve(customer.getDefaultSource, requestOptions)
+          defaultSource.delete(requestOptions)
+
+          val result: JsValue = {
+            val customerJObject = Json.parse(APIResource.GSON.toJson(customer)).as[JsObject]
+
+            // Clean card info
+            customerJObject.as[JsObject] - "sources"
+          }
+
+          \/-(result)
+        }
+        catch {
+          case e => -\/(ServiceError.ExternalService(e.toString))
+        })
+      )
+    } yield updatedCustomer
+  }
+
   /**
    * Get subscription from Stripe
    *
@@ -331,8 +378,9 @@ class PaymentServiceDefault(
    * @return
    */
   def updateSubscription(userId: UUID, subscription: JsValue): Future[\/[ErrorUnion#Fail, JsValue]] = {
+    val subscriptionId = (subscription \ "id").asOpt[String].getOrElse("")
     for {
-      updatedSubscription <- lift(stripeRepository.updateSubscription(userId, subscription))
+      updatedSubscription <- lift(stripeRepository.updateSubscription(userId, subscriptionId, subscription))
     } yield updatedSubscription
   }
 
@@ -347,9 +395,7 @@ class PaymentServiceDefault(
       hasAccess <- lift(accountRepository.getByUserId(userId).map {
         case \/-(account) => \/-(
           if (account.status == AccountStatus.free || // FREE
-            (account.status == AccountStatus.trial && account.activeUntil.isDefined && account.activeUntil.get.isAfterNow) || // TRIAL
-            (account.status == AccountStatus.error && account.activeUntil.isDefined && account.activeUntil.get.isAfterNow) || // ERROR, but still active
-            (account.status == AccountStatus.paid && account.activeUntil.isDefined && account.activeUntil.get.isAfterNow)) { // PAID
+            account.activeUntil.isDefined && account.activeUntil.get.isAfterNow) { // Active until date is greater then now
             true
           }
           else {

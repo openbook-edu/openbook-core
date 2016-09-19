@@ -201,7 +201,9 @@ class ProjectServiceDefault(
         partsWithAdditions <- lift(serializedT(clonedParts)(part => {
           for {
             tasks <- lift(insertTasks(part.tasks, part))
-            partComponents <- lift(insertPartsComponents(components, part))
+            // Get only components that are for the current part
+            filteredComponents = components.filter(c => part.components.find(_.title == c.title).isDefined)
+            partComponents <- lift(insertPartsComponents(filteredComponents, part))
           } yield tasks
         }))
         //we need to return the newProject not the clonedProject because the latter one doesn't have the updated slug

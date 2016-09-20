@@ -768,6 +768,13 @@ INSERT INTO book_components (component_id, file_data)
 VALUES ('9f2dd973397b4f559618b0ff3af69eaa', '{"data": "some text from a book", "dataType": "epub", "size": 4}');
 
 
+/* testImageComponentA -> userB  */
+INSERT INTO components (id, version, owner_id, title, questions, things_to_think_about, type, ord, created_at, updated_at)
+VALUES ('b88d6fc140b54231851686b8bc6736fe', 1, '6c0e29bdd05b4b2981156be93e936c59', 'testImageComponentA title', 'testImageComponentA questions', 'testImageComponentA thingsToThinkAbout', 'image', 0, '2014-08-07 14:01:19.545-04', '2014-08-08 14:01:19.545-04');
+
+INSERT INTO image_components (component_id, image_data)
+VALUES ('b88d6fc140b54231851686b8bc6736fe', '{"data": "imageA.jpg", "dataType": "s3", "size": 4}');
+
 /* ---------------------- PARTS_COMPONENTS ---------------------- */
 
 /* testTextComponentA -> PartA -> project A -> course A -> user A (teacher)*/

@@ -17,6 +17,7 @@ case class GenericHTMLComponent(
   questions: String,
   thingsToThinkAbout: String,
   order: Int,
+  isPrivate: Boolean = false,
   htmlContent: String,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
@@ -32,6 +33,7 @@ object GenericHTMLComponent {
     (__ \ "questions").write[String] and
     (__ \ "thingsToThinkAbout").write[String] and
     (__ \ "order").write[Int] and
+    (__ \ "isPrivate").write[Boolean] and
     (__ \ "htmlContent").write[String] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
@@ -45,6 +47,7 @@ case class GenericHTMLComponentPost(
   questions: Option[String],
   thingsToThinkAbout: Option[String],
   order: Int,
+  isPrivate: Boolean,
   htmlContent: String
 )
 
@@ -55,6 +58,7 @@ object GenericHTMLComponentPost {
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and
     (__ \ "order").read[Int] and
+    (__ \ "isPrivate").read[Boolean] and
     (__ \ "htmlContent").read[String]
   )(GenericHTMLComponentPost.apply _)
 }
@@ -65,6 +69,7 @@ case class GenericHTMLComponentPut(
   questions: String,
   thingsToThinkAbout: String,
   order: Int,
+  isPrivate: Boolean,
   htmlContent: String
 )
 
@@ -75,6 +80,7 @@ object GenericHTMLComponentPut {
     (__ \ "questions").read[String] and
     (__ \ "thingsToThinkAbout").read[String] and
     (__ \ "order").read[Int] and
+    (__ \ "isPrivate").read[Boolean] and
     (__ \ "htmlContent").read[String]
   )(GenericHTMLComponentPut.apply _)
 }

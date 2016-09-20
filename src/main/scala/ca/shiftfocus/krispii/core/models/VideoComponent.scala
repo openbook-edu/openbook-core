@@ -18,6 +18,7 @@ case class VideoComponent(
   width: Int,
   height: Int,
   order: Int,
+  isPrivate: Boolean = false,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) extends Component with DataCarrier
@@ -39,6 +40,7 @@ object VideoComponent {
     (__ \ "width").write[Int] and
     (__ \ "height").write[Int] and
     (__ \ "order").write[Int] and
+    (__ \ "isPrivate").write[Boolean] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(VideoComponent.unapply))
@@ -53,7 +55,8 @@ case class VideoComponentPost(
   videoData: MediaData,
   width: Int,
   height: Int,
-  order: Int
+  order: Int,
+  isPrivate: Boolean
 )
 object VideoComponentPost {
   implicit val projectPostReads = (
@@ -64,7 +67,8 @@ object VideoComponentPost {
     (__ \ "videoData").read[MediaData] and
     (__ \ "width").read[Int] and
     (__ \ "height").read[Int] and
-    (__ \ "order").read[Int]
+    (__ \ "order").read[Int] and
+    (__ \ "isPrivate").read[Boolean]
   )(VideoComponentPost.apply _)
 }
 
@@ -76,7 +80,8 @@ case class VideoComponentPut(
   videoData: MediaData,
   width: Int,
   height: Int,
-  order: Int
+  order: Int,
+  isPrivate: Boolean
 )
 object VideoComponentPut {
   implicit val projectPutReads = (
@@ -87,6 +92,7 @@ object VideoComponentPut {
     (__ \ "videoData").read[MediaData] and
     (__ \ "width").read[Int] and
     (__ \ "height").read[Int] and
-    (__ \ "order").read[Int]
+    (__ \ "order").read[Int] and
+    (__ \ "isPrivate").read[Boolean]
   )(VideoComponentPut.apply _)
 }

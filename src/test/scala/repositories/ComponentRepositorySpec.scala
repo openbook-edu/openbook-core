@@ -29,7 +29,8 @@ class ComponentRepositorySpec
           TestValues.testTextComponentA,
           TestValues.testVideoComponentB,
           TestValues.testVideoComponentL,
-          TestValues.testBookComponentO
+          TestValues.testBookComponentO,
+          TestValues.testImageComponentA
         ).sortBy((component => component.title))
 
         val result = componentRepository.list
@@ -85,6 +86,13 @@ class ComponentRepositorySpec
               sortedComponents(i) match {
                 case component: AudioComponent => {
                   audioComponent.mediaData should be(component.mediaData)
+                }
+              }
+            }
+            case imageComponent: ImageComponent => {
+              sortedComponents(i) match {
+                case component: ImageComponent => {
+                  imageComponent.mediaData should be(component.mediaData)
                 }
               }
             }
@@ -473,6 +481,21 @@ class ComponentRepositorySpec
 
         //Specific
         component.content should be(testComponent.content)
+      }
+      "insert ImageComponent" in {
+        val testComponent = TestValues.testImageComponentB
+
+        val result = componentRepository.insert(testComponent)
+        val eitherComponent = Await.result(result, Duration.Inf)
+        val \/-(component: ImageComponent) = eitherComponent
+
+        //Common
+        component.id should be(testComponent.id)
+        component.version should be(testComponent.version)
+        component.ownerId should be(testComponent.ownerId)
+        component.title should be(testComponent.title)
+        component.questions should be(testComponent.questions)
+        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
       }
       "insert GenericHTMLComponent" in {
         val testComponent = TestValues.testGenericHTMLComponentI

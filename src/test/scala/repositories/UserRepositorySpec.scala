@@ -555,7 +555,7 @@ class UserRepositorySpec
         val eitherUsers = Await.result(result, Duration.Inf)
         val \/-(users) = eitherUsers
 
-        Logger.error(users.toString)
+        Logger.debug(users.toString)
         users.foreach {
           case (user: User) => {
             user.email.contains("kr") should be(true)

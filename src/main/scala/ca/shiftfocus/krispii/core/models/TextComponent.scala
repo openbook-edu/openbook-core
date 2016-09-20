@@ -16,6 +16,7 @@ case class TextComponent(
   thingsToThinkAbout: String,
   content: String,
   order: Int,
+  isPrivate: Boolean = false,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) extends Component
@@ -31,6 +32,7 @@ object TextComponent {
     (__ \ "thingsToThinkAbout").write[String] and
     (__ \ "content").write[String] and
     (__ \ "order").write[Int] and
+    (__ \ "isPrivate").write[Boolean] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(TextComponent.unapply))
@@ -43,7 +45,8 @@ case class TextComponentPost(
   questions: Option[String],
   thingsToThinkAbout: Option[String],
   content: String,
-  order: Int
+  order: Int,
+  isPrivate: Boolean
 )
 object TextComponentPost {
   implicit val projectPostReads = (
@@ -52,7 +55,8 @@ object TextComponentPost {
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and
     (__ \ "content").read[String] and
-    (__ \ "order").read[Int]
+    (__ \ "order").read[Int] and
+    (__ \ "isPrivate").read[Boolean]
   )(TextComponentPost.apply _)
 }
 
@@ -62,7 +66,8 @@ case class TextComponentPut(
   questions: String,
   thingsToThinkAbout: String,
   content: String,
-  order: Int
+  order: Int,
+  isPrivate: Boolean
 )
 object TextComponentPut {
   implicit val projectPutReads = (
@@ -71,6 +76,7 @@ object TextComponentPut {
     (__ \ "questions").read[String] and
     (__ \ "thingsToThinkAbout").read[String] and
     (__ \ "content").read[String] and
-    (__ \ "order").read[Int]
+    (__ \ "order").read[Int] and
+    (__ \ "isPrivate").read[Boolean]
   )(TextComponentPut.apply _)
 }

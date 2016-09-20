@@ -152,6 +152,7 @@ class ComponentServiceSpec
           Some(testComponent.questions),
           Some(testComponent.thingsToThinkAbout),
           Some(testComponent.mediaData),
+          None,
           None
         )
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
@@ -168,6 +169,7 @@ class ComponentServiceSpec
           Some(testComponent.title),
           Some(testComponent.questions),
           Some(testComponent.thingsToThinkAbout),
+          None,
           None,
           None
         )
@@ -191,6 +193,7 @@ class ComponentServiceSpec
           Some(testComponent.questions),
           Some(testComponent.thingsToThinkAbout),
           Some(testComponent.content),
+          None,
           None
         )
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
@@ -207,6 +210,7 @@ class ComponentServiceSpec
           Some(testComponent.title),
           Some(testComponent.questions),
           Some(testComponent.thingsToThinkAbout),
+          None,
           None,
           None
         )
@@ -232,6 +236,7 @@ class ComponentServiceSpec
           Some(testComponent.mediaData),
           Some(testComponent.width),
           Some(testComponent.height),
+          None,
           None
         )
         Await.result(result, Duration.Inf) should be(-\/(ServiceError.OfflineLockFail))
@@ -248,6 +253,7 @@ class ComponentServiceSpec
           Some(testComponent.title),
           Some(testComponent.questions),
           Some(testComponent.thingsToThinkAbout),
+          None,
           None,
           None,
           None,

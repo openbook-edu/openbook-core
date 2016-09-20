@@ -7,6 +7,7 @@ CREATE TABLE users (
   givenname text,
   surname text,
   account_type text,
+  alias text,
   created_at timestamp with time zone,
   updated_at timestamp with time zone,
   is_deleted boolean DEFAULT FALSE
@@ -210,6 +211,7 @@ CREATE TABLE components (
   things_to_think_about text,
   type text,
   ord integer DEFAULT 0,
+  is_private boolean DEFAULT false,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
@@ -247,6 +249,11 @@ CREATE TABLE video_components (
 CREATE TABLE audio_components (
   component_id uuid PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
   audio_data jsonb
+);
+
+CREATE TABLE image_components (
+  component_id uuid PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
+  image_data jsonb
 );
 
 CREATE TABLE book_components (

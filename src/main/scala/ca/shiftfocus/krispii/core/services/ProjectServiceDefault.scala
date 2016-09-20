@@ -406,6 +406,21 @@ class ProjectServiceDefault(
   }
 
   /**
+   * Find a single part by its position within a project.
+   *
+   * @param projectId
+   * @param position
+   * @param fetchParts
+   * @return
+   */
+  override def findPartByPosition(projectId: UUID, position: Int, fetchParts: Boolean = true): Future[\/[ErrorUnion#Fail, Part]] = {
+    for {
+      project <- lift(projectRepository.find(projectId))
+      part <- lift(partRepository.find(project, position, fetchParts))
+    } yield part
+  }
+
+  /**
    * Create a new part.
    *
    * NB: If the new part's position interferes with the position of an existing part,

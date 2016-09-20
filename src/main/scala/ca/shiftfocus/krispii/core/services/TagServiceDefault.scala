@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error.{ ErrorUnion, RepositoryError }
 import ca.shiftfocus.krispii.core.models.{ Tag, TagCategory }
@@ -9,7 +10,7 @@ import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 
 import scala.concurrent.Future
-import scalaz.\/
+import scalaz.{ -\/, \/, \/- }
 
 class TagServiceDefault(
     val db: DB,
@@ -24,9 +25,17 @@ class TagServiceDefault(
       tagRepository.create(Tag(name, lang, category, 0))
     }
   }
-  override def tag(projectId: UUID, tagName: String): Future[\/[ErrorUnion#Fail, Unit]] = {
+  override def tag(projectId: UUID, tagName: String, lang: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn: Connection =>
-      tagRepository.tag(projectId, tagName)
+      for {
+        existingTag <- lift(
+          tagRepository.find(tagName).flatMap {
+            case \/-(tag) => Future successful (\/-(tag))
+            case -\/(error) => tagRepository.create(Tag(tagName, lang, "", 0))
+          }
+        )
+        tag <- lift(tagRepository.tag(projectId, existingTag.name))
+      } yield tag
     }
   }
 

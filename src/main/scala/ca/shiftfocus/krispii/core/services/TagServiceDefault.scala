@@ -39,9 +39,14 @@ class TagServiceDefault(
     }
   }
 
-  override def untag(projectId: UUID, tagName: String): Future[\/[ErrorUnion#Fail, Unit]] = {
+  override def untag(projectId: UUID, tagName: String, projectState: Boolean): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn: Connection =>
-      tagRepository.untag(projectId, tagName)
+      for {
+        untagged <- lift(tagRepository.untag(projectId, tagName))
+        tag <- lift(tagRepository.find(tagName))
+        frequency = if (tag.frequency - 1 < 0) 0 else (tag.frequency - 1)
+        updatedTag <- lift(if (projectState) updateFrequency(tag.name, tag.frequency - 1) else Future successful \/-(tag))
+      } yield untagged
     }
   }
 

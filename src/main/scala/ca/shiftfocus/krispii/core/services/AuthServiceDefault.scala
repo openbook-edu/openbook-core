@@ -195,8 +195,7 @@ class AuthServiceDefault(
   override def find(id: UUID): Future[\/[ErrorUnion#Fail, User]] = {
     for {
       user <- lift(userRepository.find(id))
-      fRoles = roleRepository.list(user)
-      roles <- lift(fRoles)
+      roles <- lift(roleRepository.list(user))
     } yield user.copy(roles = roles)
   }
 
@@ -209,8 +208,7 @@ class AuthServiceDefault(
   override def find(identifier: String): Future[\/[ErrorUnion#Fail, User]] = {
     for {
       user <- lift(userRepository.find(identifier))
-      fRoles = roleRepository.list(user)
-      roles <- lift(fRoles)
+      roles <- lift(roleRepository.list(user))
     } yield user.copy(roles = roles)
   }
 

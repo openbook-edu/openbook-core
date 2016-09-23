@@ -49,6 +49,19 @@ case class Project(
       case _ => false
     }
   }
+
+  /**
+   * Check if project object contains at least one task
+   *
+   * @return
+   */
+  def isProjectEmpty: Boolean = {
+    this.parts.map { part =>
+      if (part.tasks.nonEmpty) return false;
+    }
+
+    return true;
+  }
 }
 
 object Project {

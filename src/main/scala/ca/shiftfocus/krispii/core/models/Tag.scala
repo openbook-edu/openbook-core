@@ -14,11 +14,12 @@ case class Tag(
     category: String,
     frequency: Int
 ) extends Ordered[Tag] {
+
   /**
-    * Natural order tag name comparation
-    * @param that
-    * @return
-    */
+   * Natural order tag name comparation
+   * @param that
+   * @return
+   */
   def compare(that: Tag): Int = {
     val comp = new NaturalOrderComparator
     comp.compare(this.name, that.name)

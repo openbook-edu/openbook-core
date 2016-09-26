@@ -117,6 +117,10 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     surname: String
   ): Future[\/[ErrorUnion#Fail, User]]
 
+  def updateToGoogleUser(
+    email: String
+  ): Future[\/[ErrorUnion#Fail, User]]
+
   /**
    * Update a user
    *
@@ -247,7 +251,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @param roleName  the name of the role
    * @return a boolean indicator if the role was added
    */
-  def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Unit]]
+  def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Role]]
 
   /**
    * Add several roles to a user.

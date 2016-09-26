@@ -252,7 +252,8 @@ class ProjectServiceDefault(
    *
    * @param name The new name to give the project.
    * @param slug The new slug to give the project.
-   * @param parentId The id of the parent project, if the parent project is empty then the project is a master project.
+   * @param parentId The id of the parent project.
+   * @param parentVersion The version of the parent project.
    * @param description The new description for the project.
    * @return the updated project.
    */
@@ -264,6 +265,7 @@ class ProjectServiceDefault(
     longDescription: String,
     availability: String,
     parentId: Option[UUID] = None,
+    parentVersion: Option[Long] = None,
     isMaster: Boolean = false,
     enabled: Boolean = false,
     projectType: String
@@ -272,6 +274,7 @@ class ProjectServiceDefault(
     val newProject = Project(
       courseId = courseId,
       parentId = parentId,
+      parentVersion = parentVersion,
       name = name,
       slug = slug,
       enabled = enabled,

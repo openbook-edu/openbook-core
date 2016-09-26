@@ -47,6 +47,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     longDescription: String,
     availability: String,
     parentId: Option[UUID] = None,
+    parentVersion: Option[Long] = None,
     isMaster: Boolean = false,
     enabled: Boolean,
     projectType: String

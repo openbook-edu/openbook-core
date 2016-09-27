@@ -117,4 +117,5 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
 
   def deleteTask(taskId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Task]]
   def moveTask(taskId: UUID, version: Long, newPosition: Int, partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]]
+  def hasTaskWork(taskId: UUID): Future[\/[ErrorUnion#Fail, Boolean]]
 }

@@ -21,6 +21,7 @@ class WorkServiceDefault(
   val documentService: DocumentService,
   val componentService: ComponentService,
   val workRepository: WorkRepository,
+  val documentRepository: DocumentRepository,
   val taskFeedbackRepository: TaskFeedbackRepository,
   val taskScratchpadRepository: TaskScratchpadRepository,
   val projectScratchpadRepository: ProjectScratchpadRepository
@@ -413,6 +414,28 @@ class WorkServiceDefault(
   //    }
   //  }
 
+  // --------- Delete methods --------------------------------------------------------------------
+
+  /**
+   * Delete all work for a given task with all the documents and revisions
+   *
+   * @param taskId
+   * @return
+   */
+  override def deleteWork(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]] = {
+    transactional { implicit conn =>
+      for {
+        task <- lift(projectService.findTask(taskId))
+        deletedWork <- lift(workRepository.delete(task))
+        documentIds = deletedWork.map {
+          case work: DocumentWork => Some(work.documentId)
+          case _ => None
+        }.flatten
+        _ <- lift(serializedT(documentIds)(documentRepository.delete))
+      } yield deletedWork
+    }
+  }
+
   /*
    * -----------------------------------------------------------
    * TaskFeedback methods
@@ -498,6 +521,25 @@ class WorkServiceDefault(
         // Insert the new feedback
         createdFeedback <- lift(taskFeedbackRepository.insert(newFeedback))
       } yield createdFeedback
+    }
+  }
+
+  /**
+   *  Delete all teacher feedbacks for a given task.
+   *
+   * @param taskId
+   * @return
+   */
+  def deleteFeedback(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[TaskFeedback]]] = {
+    transactional { implicit conn =>
+      val fTask = projectService.findTask(taskId)
+
+      for {
+        task <- lift(fTask)
+        feedbacks <- lift(taskFeedbackRepository.delete(task))
+        documentIds = feedbacks.map(_.documentId)
+        _ <- lift(serializedT(documentIds)(documentRepository.delete))
+      } yield feedbacks
     }
   }
 

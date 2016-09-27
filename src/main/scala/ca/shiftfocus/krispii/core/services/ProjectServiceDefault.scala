@@ -23,10 +23,12 @@ class ProjectServiceDefault(
     val scalaCache: ScalaCachePool,
     val authService: AuthService,
     val schoolService: SchoolService,
+    val documentService: DocumentService,
     val courseRepository: CourseRepository,
     val projectRepository: ProjectRepository,
     val partRepository: PartRepository,
     val taskRepository: TaskRepository,
+    val workRepository: WorkRepository,
     val componentRepository: ComponentRepository
 ) extends ProjectService {
 
@@ -1107,6 +1109,58 @@ class ProjectServiceDefault(
       project <- lift(find(projectSlug))
       hasProject <- lift(courseRepository.hasProject(user, project))
     } yield hasProject
+  }
+
+  /**
+   * Check if a task contains a student work
+   *
+   * - For document task we check if there is at least one revision
+   * - For media task we check if there is at least one file uploaded by a student
+   *
+   * @param taskId
+   * @return
+   */
+  override def hasTaskWork(taskId: UUID): Future[\/[ErrorUnion#Fail, Boolean]] = {
+    for {
+      task <- lift(findTask(taskId))
+      workList <- lift(workRepository.list(task))
+      // Get the list of works info
+      isEmptyList <- lift(task match {
+        case task: DocumentTask => {
+          val documentIds = workList.map {
+            case work: DocumentWork => Some(work.documentId)
+            case _ => None
+          }.flatten
+
+          // Check if all the document works have just an empty document without revisions
+          val empty: Future[\/[ErrorUnion#Fail, IndexedSeq[Boolean]]] = Future.successful(\/-(IndexedSeq.empty[Boolean]))
+          // Go threw every document id and check if there are any revisions
+          documentIds.foldLeft(empty) { (fAccumulated, nextItem) =>
+            (for {
+              accumulated <- lift(fAccumulated)
+              revisions <- lift(documentService.listRevisions(nextItem))
+              // If revisions list is not empty that means there is a student work
+            } yield accumulated :+ revisions.nonEmpty).run
+          }
+        }
+
+        case task: MediaTask => {
+          val resultList = workList.map {
+            case work: MediaWork => {
+              // Check if user has uploaded a file
+              if (work.fileData.fileName.isDefined) true
+              else false
+            }
+            case _ => false
+          }
+
+          Future successful \/-(resultList)
+        }
+
+        case _ => Future successful \/-(IndexedSeq(workList.isEmpty))
+      })
+      // If list contains true, that means at least one student work exists
+    } yield isEmptyList.contains(true)
   }
 
   /**

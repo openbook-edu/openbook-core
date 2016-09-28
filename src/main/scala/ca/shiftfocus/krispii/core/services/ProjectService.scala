@@ -83,6 +83,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
   def togglePart(partId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Part]]
 
   // Tasks
+  def listTask(partId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]]
   def findTask(taskId: UUID): Future[\/[ErrorUnion#Fail, Task]]
   def findTask(projectSlug: String, partNum: Int, taskNum: Int): Future[\/[ErrorUnion#Fail, Task]]
   def findNowTask(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, Task]]
@@ -118,4 +119,5 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
   def deleteTask(taskId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Task]]
   def moveTask(taskId: UUID, version: Long, newPosition: Int, partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]]
   def hasTaskWork(taskId: UUID): Future[\/[ErrorUnion#Fail, Boolean]]
+  def hasPartWork(partId: UUID): Future[\/[ErrorUnion#Fail, Boolean]]
 }

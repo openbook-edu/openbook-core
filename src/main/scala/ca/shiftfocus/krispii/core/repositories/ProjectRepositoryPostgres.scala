@@ -208,19 +208,11 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
     val select = SelectByTags(tags)
     (for {
       projectList <- lift(queryList(select))
-      _ = Logger.debug(projectList.toString)
       result <- liftSeq {
         projectList.map { project =>
           (for {
-            partList <- {
-              lift(partRepository.list(project))
-            }
-            _ = println(Console.GREEN + "---------------" + Console.RESET)
-            _ = println(Console.GREEN + project.name + Console.RESET)
-            _ = println(Console.GREEN + partList + Console.RESET)
-            tagList <- {
-              lift(tagRepository.listByProjectId(project.id))
-            }
+            partList <- lift(partRepository.list(project))
+            tagList <- lift(tagRepository.listByProjectId(project.id))
             result = project.copy(parts = partList, tags = tagList)
           } yield result).run
         }

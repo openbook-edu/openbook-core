@@ -236,9 +236,6 @@ class ScheduleServiceDefault(
             reason = description
           )
         }
-        _ = newScheduleExceptions.foreach {
-          schedule => println(schedule)
-        }
         createdSchedules <- lift(serializedT(newScheduleExceptions)(courseScheduleExceptionRepository.insert))
 
       } yield createdSchedules

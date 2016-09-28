@@ -900,9 +900,6 @@ class ProjectServiceDefault(
               }
 
               val orderedTasks = updatedTasks.sortWith(_.position < _.position)
-              println("Going to re-order them thar tasks")
-              println(ntList.map({ task => s"Task(${task.settings.title}, ${task.position})" }).mkString(", "))
-              println(orderedTasks.map({ task => s"Task(${task.settings.title}, ${task.position})" }).mkString(", "))
               serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, taskList, _)).map {
                 case -\/(error) => -\/(error)
                 case \/-(tasks) => \/-(tasks.filter(_.id == taskId).head)

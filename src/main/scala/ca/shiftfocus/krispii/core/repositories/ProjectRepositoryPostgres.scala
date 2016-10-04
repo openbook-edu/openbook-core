@@ -297,6 +297,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
           c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
         case c: ImageComponent =>
           c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
+        case c: BookComponent =>
+          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
         case c: TextComponent =>
           c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
         case c: GenericHTMLComponent =>

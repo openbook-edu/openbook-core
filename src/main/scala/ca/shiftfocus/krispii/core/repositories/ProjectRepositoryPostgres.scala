@@ -29,6 +29,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
       row("id").asInstanceOf[UUID],
       row("course_id").asInstanceOf[UUID],
       Option(row("parent_id")).map(_.asInstanceOf[UUID]),
+      Option(row("parent_version")).map(_.asInstanceOf[Long]),
       row("is_master").asInstanceOf[Boolean],
       row("version").asInstanceOf[Long],
       row("name").asInstanceOf[String],
@@ -52,7 +53,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   val Table = "projects"
   val ProjectsTagsTable = "project_tags"
   val TagsTable = "tags"
-  val Fields = "id, version, course_id, name, slug, parent_id, is_master, description, long_description, availability, enabled, project_type, status, created_at, updated_at"
+  val Fields = "id, version, course_id, name, slug, parent_id, parent_version, is_master, description, long_description, availability, enabled, project_type, status, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.created_at DESC"
@@ -157,7 +158,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   val Insert =
     s"""
       |INSERT INTO $Table ($Fields)
-      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       |RETURNING $Fields
     """.stripMargin
 
@@ -165,7 +166,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   val Update =
     s"""
       |UPDATE $Table
-      |SET course_id = ?, name = ?, parent_id = ?, is_master = ?, slug = get_slug(?, '$Table', ?), description = ?, long_description = ?, availability = ?, enabled = ?, project_type = ?, status = ?, version = ?, updated_at = ?
+      |SET course_id = ?, name = ?, parent_id = ?, parent_version = ?, is_master = ?, slug = get_slug(?, '$Table', ?), description = ?, long_description = ?, availability = ?, enabled = ?, project_type = ?, status = ?, version = ?, updated_at = ?
       |WHERE id = ?
       |  AND version = ?
       |RETURNING $Fields
@@ -207,19 +208,11 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
     val select = SelectByTags(tags)
     (for {
       projectList <- lift(queryList(select))
-      _ = Logger.debug(projectList.toString)
       result <- liftSeq {
         projectList.map { project =>
           (for {
-            partList <- {
-              lift(partRepository.list(project))
-            }
-            _ = println(Console.GREEN + "---------------" + Console.RESET)
-            _ = println(Console.GREEN + project.name + Console.RESET)
-            _ = println(Console.GREEN + partList + Console.RESET)
-            tagList <- {
-              lift(tagRepository.listByProjectId(project.id))
-            }
+            partList <- lift(partRepository.list(project))
+            tagList <- lift(tagRepository.listByProjectId(project.id))
             result = project.copy(parts = partList, tags = tagList)
           } yield result).run
         }
@@ -241,7 +234,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
       project <- lift(find(projectId))
       _ = Logger.debug("old project")
       _ = Logger.debug(project.toString)
-      newProject = project.copy(id = UUID.randomUUID(), isMaster = false, courseId = courseId, parentId = Some(project.id), enabled = true)
+      newProject = project.copy(id = UUID.randomUUID(), isMaster = false, courseId = courseId, parentId = Some(project.id), parentVersion = Some(project.version), enabled = true)
       _ = Logger.debug("new project")
       _ = Logger.debug(newProject.toString)
     } yield newProject).run
@@ -303,6 +296,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
         case c: AudioComponent =>
           c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
         case c: ImageComponent =>
+          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
+        case c: BookComponent =>
           c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
         case c: TextComponent =>
           c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
@@ -479,7 +474,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
    */
   override def insert(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
-      project.id, 1, project.courseId, project.name, project.slug, project.id, project.parentId, project.isMaster,
+      project.id, 1, project.courseId, project.name, project.slug, project.id, project.parentId, project.parentVersion, project.isMaster,
       project.description, project.longDescription, project.availability, project.enabled, project.projectType, project.status, new DateTime, new DateTime
     )
 
@@ -498,7 +493,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
    */
   override def update(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
-      project.courseId, project.name, project.parentId, project.isMaster, project.slug, project.id, project.description, project.longDescription,
+      project.courseId, project.name, project.parentId, project.parentVersion, project.isMaster, project.slug, project.id, project.description, project.longDescription,
       project.availability, project.enabled, project.projectType, project.status, project.version + 1, new DateTime, project.id, project.version
     )
 

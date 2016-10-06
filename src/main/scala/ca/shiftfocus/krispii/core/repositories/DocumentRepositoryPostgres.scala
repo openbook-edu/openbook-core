@@ -71,6 +71,13 @@ class DocumentRepositoryPostgres(val revisionRepository: RevisionRepository)
        |RETURNING $Fields
      """.stripMargin
 
+  val DeleteDocument =
+    s"""
+       |DELETE FROM $Table
+       |WHERE id = ?
+       |RETURNING $Fields
+     """.stripMargin
+
   /**
    * Find an individual document.
    *
@@ -136,5 +143,9 @@ class DocumentRepositoryPostgres(val revisionRepository: RevisionRepository)
       document.version + 1, document.title, Json.toJson(document.delta).toString(), document.ownerId,
       new DateTime, document.id, document.version
     ))
+  }
+
+  override def delete(docId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Document]] = {
+    queryOne(DeleteDocument, Seq[Any](docId))
   }
 }

@@ -195,8 +195,7 @@ class AuthServiceDefault(
   override def find(id: UUID): Future[\/[ErrorUnion#Fail, User]] = {
     for {
       user <- lift(userRepository.find(id))
-      fRoles = roleRepository.list(user)
-      roles <- lift(fRoles)
+      roles <- lift(roleRepository.list(user))
     } yield user.copy(roles = roles)
   }
 
@@ -209,8 +208,7 @@ class AuthServiceDefault(
   override def find(identifier: String): Future[\/[ErrorUnion#Fail, User]] = {
     for {
       user <- lift(userRepository.find(identifier))
-      fRoles = roleRepository.list(user)
-      roles <- lift(fRoles)
+      roles <- lift(roleRepository.list(user))
     } yield user.copy(roles = roles)
   }
 
@@ -321,9 +319,23 @@ class AuthServiceDefault(
         _ = Logger.debug("user created")
         roles <- lift(serializedT(IndexedSeq("authenticated", "teacher"))(roleRepository.addToUser(user, _)))
         _ = Logger.debug("roles added")
-        //user <- lift(this.create(email, email, "", givenname, surname))
-        //userRepository.insert(newUser)
       } yield user
+      fUser.run
+    }
+  }
+
+  /**
+   * User account type to "google" type
+   */
+  override def updateToGoogleUser(
+    email: String
+  ): Future[\/[ErrorUnion#Fail, User]] = {
+    transactional { implicit conn =>
+      val fUser = for {
+        user <- lift(userRepository.find(email))
+        updatedUser <- lift(userRepository.update(user.copy(accountType = "google")))
+        _ = Logger.debug("user account type was updated to 'google'")
+      } yield updatedUser
       fUser.run
     }
   }
@@ -598,7 +610,7 @@ class AuthServiceDefault(
    * @param roleName the name of the role
    * @return a boolean indicator if the role was added
    */
-  override def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Unit]] = {
+  override def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Role]] = {
     transactional { implicit conn =>
       val fUser = userRepository.find(userId)(db.pool, cache)
       val fRole = roleRepository.find(roleName)(db.pool, cache)
@@ -607,7 +619,7 @@ class AuthServiceDefault(
         user <- lift(fUser)
         role <- lift(fRole)
         roleAdded <- lift(roleRepository.addToUser(user, role))
-      } yield roleAdded
+      } yield role
     }
   }
 

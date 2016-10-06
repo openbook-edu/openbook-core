@@ -23,10 +23,12 @@ class ProjectServiceDefault(
     val scalaCache: ScalaCachePool,
     val authService: AuthService,
     val schoolService: SchoolService,
+    val documentService: DocumentService,
     val courseRepository: CourseRepository,
     val projectRepository: ProjectRepository,
     val partRepository: PartRepository,
     val taskRepository: TaskRepository,
+    val workRepository: WorkRepository,
     val componentRepository: ComponentRepository
 ) extends ProjectService {
 
@@ -252,7 +254,8 @@ class ProjectServiceDefault(
    *
    * @param name The new name to give the project.
    * @param slug The new slug to give the project.
-   * @param parentId The id of the parent project, if the parent project is empty then the project is a master project.
+   * @param parentId The id of the parent project.
+   * @param parentVersion The version of the parent project.
    * @param description The new description for the project.
    * @return the updated project.
    */
@@ -264,6 +267,7 @@ class ProjectServiceDefault(
     longDescription: String,
     availability: String,
     parentId: Option[UUID] = None,
+    parentVersion: Option[Long] = None,
     isMaster: Boolean = false,
     enabled: Boolean = false,
     projectType: String
@@ -272,6 +276,7 @@ class ProjectServiceDefault(
     val newProject = Project(
       courseId = courseId,
       parentId = parentId,
+      parentVersion = parentVersion,
       name = name,
       slug = slug,
       enabled = enabled,
@@ -401,8 +406,8 @@ class ProjectServiceDefault(
    * @param partId the id of the part
    * @return a vector of this project's parts
    */
-  override def findPart(partId: UUID, fetchParts: Boolean = true): Future[\/[ErrorUnion#Fail, Part]] = {
-    partRepository.find(partId, fetchParts)
+  override def findPart(partId: UUID, fetchTasks: Boolean = true): Future[\/[ErrorUnion#Fail, Part]] = {
+    partRepository.find(partId, fetchTasks)
   }
 
   /**
@@ -749,6 +754,16 @@ class ProjectServiceDefault(
   /**
    * Find a task by its ID.
    */
+  override def listTask(partId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = {
+    for {
+      part <- lift(partRepository.find(partId))
+      taskList <- lift(taskRepository.list(part))
+    } yield taskList
+  }
+
+  /**
+   * Find a task by its ID.
+   */
   override def findTask(taskId: UUID): Future[\/[ErrorUnion#Fail, Task]] = {
     taskRepository.find(taskId)
   }
@@ -895,9 +910,6 @@ class ProjectServiceDefault(
               }
 
               val orderedTasks = updatedTasks.sortWith(_.position < _.position)
-              println("Going to re-order them thar tasks")
-              println(ntList.map({ task => s"Task(${task.settings.title}, ${task.position})" }).mkString(", "))
-              println(orderedTasks.map({ task => s"Task(${task.settings.title}, ${task.position})" }).mkString(", "))
               serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, taskList, _)).map {
                 case -\/(error) => -\/(error)
                 case \/-(tasks) => \/-(tasks.filter(_.id == taskId).head)
@@ -1104,6 +1116,122 @@ class ProjectServiceDefault(
       project <- lift(find(projectSlug))
       hasProject <- lift(courseRepository.hasProject(user, project))
     } yield hasProject
+  }
+
+  /**
+   * Check if a task contains a student work
+   *
+   * - For document task we check if there is at least one revision
+   * - For media task we check if there is at least one file uploaded by a student
+   *
+   * @param taskId
+   * @return
+   */
+  override def hasTaskWork(taskId: UUID): Future[\/[ErrorUnion#Fail, Boolean]] = {
+    for {
+      task <- lift(findTask(taskId))
+      workList <- lift(workRepository.list(task))
+      // Get the list of works info
+      isEmptyList <- lift(task match {
+        case task: DocumentTask => {
+          val documentIds = workList.map {
+            case work: DocumentWork => Some(work.documentId)
+            case _ => None
+          }.flatten
+
+          // Check if all the document works have just an empty document without revisions
+          val empty: Future[\/[ErrorUnion#Fail, IndexedSeq[Boolean]]] = Future.successful(\/-(IndexedSeq.empty[Boolean]))
+          // Go threw every document id and check if there are any revisions
+          documentIds.foldLeft(empty) { (fAccumulated, nextItem) =>
+            (for {
+              accumulated <- lift(fAccumulated)
+              revisions <- lift(documentService.listRevisions(nextItem))
+              // If revisions list is not empty that means there is a student work
+            } yield accumulated :+ revisions.nonEmpty).run
+          }
+        }
+
+        case task: MediaTask => {
+          val resultList = workList.map {
+            case work: MediaWork => {
+              // Check if user has uploaded a file
+              if (work.fileData.fileName.isDefined) true
+              else false
+            }
+            case _ => false
+          }
+
+          Future successful \/-(resultList)
+        }
+
+        case _ => Future successful \/-(IndexedSeq(workList.isEmpty))
+      })
+      // If list contains true, that means at least one student work exists
+    } yield isEmptyList.contains(true)
+  }
+
+  /**
+   * Check if a part contains a student work
+   *
+   * - For document task we check if there is at least one revision
+   * - For media task we check if there is at least one file uploaded by a student
+   *
+   * @param partId
+   * @return
+   */
+  override def hasPartWork(partId: UUID): Future[\/[ErrorUnion#Fail, Boolean]] = {
+    for {
+      part <- lift(findPart(partId))
+
+      // Get the list of works info
+      taskEmptyList <- lift {
+        val empty: Future[\/[ErrorUnion#Fail, IndexedSeq[Boolean]]] = Future.successful(\/-(IndexedSeq.empty[Boolean]))
+
+        part.tasks.foldLeft(empty) { (fAccumulated, nextItem) =>
+          (for {
+            accumulated <- lift(fAccumulated)
+            workList <- lift(workRepository.list(nextItem))
+            workEmptyList <- lift {
+              nextItem match {
+                case task: DocumentTask => {
+                  val documentIds = workList.map {
+                    case work: DocumentWork => Some(work.documentId)
+                    case _ => None
+                  }.flatten
+
+                  // Check if all the document works have just an empty document without revisions
+                  val empty: Future[\/[ErrorUnion#Fail, IndexedSeq[Boolean]]] = Future.successful(\/-(IndexedSeq.empty[Boolean]))
+                  // Go threw every document id and check if there are any revisions
+                  documentIds.foldLeft(empty) { (fAccumulated, nextItem) =>
+                    (for {
+                      accumulated <- lift(fAccumulated)
+                      revisions <- lift(documentService.listRevisions(nextItem))
+                      // If revisions list is not empty that means there is a student work
+                    } yield accumulated :+ revisions.nonEmpty).run
+                  }
+                }
+
+                case task: MediaTask => {
+                  val resultList = workList.map {
+                    case work: MediaWork => {
+                      // Check if user has uploaded a file
+                      if (work.fileData.fileName.isDefined) true
+                      else false
+                    }
+                    case _ => false
+                  }
+
+                  Future successful \/-(resultList)
+                }
+
+                case _ => Future successful \/-(IndexedSeq(workList.isEmpty))
+              }
+            }
+          } yield accumulated :+ workEmptyList.contains(true)).run
+        }
+      }
+      // If list contains true, that means at least one student work exists
+    } yield taskEmptyList.contains(true)
   }
 
   /**

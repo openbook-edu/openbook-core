@@ -222,7 +222,6 @@ class ComponentRepositoryPostgres()
       |INNER JOIN parts
       | ON parts_components.part_id = parts.id
       | AND parts.project_id = ?
-      |GROUP BY $GroupBy, $SpecificFields
       |ORDER BY $OrderBy
   """.stripMargin
 

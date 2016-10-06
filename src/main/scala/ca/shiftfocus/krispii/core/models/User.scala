@@ -32,7 +32,7 @@ case class User(
   override def hashCode: Int = this.id.hashCode()
 
   override def toString: String = {
-    s"""User(id: ${id.toString}, version: $version, username: $username, email: $email, full name: '$givenname $surname', alias: '${alias.getOrElse("")}')"""
+    s"""User(id: ${id.toString}, version: $version, username: $username, email: $email, full name: '$givenname $surname', alias: '${alias.getOrElse("")}', accountType: '${accountType}')"""
   }
 }
 

@@ -30,6 +30,12 @@ class PaymentServiceDefault(
   implicit def conn: Connection = db.pool
   implicit def cache: ScalaCachePool = scalaCache
 
+  /**
+   * Get user account from krispii db by userId
+   *
+   * @param userId
+   * @return
+   */
   def getAccount(userId: UUID): Future[\/[ErrorUnion#Fail, Account]] = {
     for {
       account <- lift(accountRepository.getByUserId(userId))
@@ -37,6 +43,12 @@ class PaymentServiceDefault(
     } yield account.copy(subscriptions = subscriptions)
   }
 
+  /**
+   * Get user account from krispii db by stripe customer id
+   *
+   * @param customerId
+   * @return
+   */
   def getAccount(customerId: String): Future[\/[ErrorUnion#Fail, Account]] = {
     for {
       account <- lift(accountRepository.getByCustomerId(customerId))
@@ -44,6 +56,14 @@ class PaymentServiceDefault(
     } yield account.copy(subscriptions = subscriptions)
   }
 
+  /**
+   * Create krispii user account in database
+   *
+   * @param userId
+   * @param status
+   * @param activeUntil
+   * @return
+   */
   def createAccount(userId: UUID, status: String, activeUntil: Option[DateTime] = None): Future[\/[ErrorUnion#Fail, Account]] = {
     for {
       user <- lift(userRepository.find(userId))
@@ -57,6 +77,16 @@ class PaymentServiceDefault(
     } yield account
   }
 
+  /**
+   *  Update krispii user account information in database
+   *
+   * @param id
+   * @param version
+   * @param status
+   * @param activeUntil
+   * @param customer
+   * @return
+   */
   def updateAccount(
     id: UUID,
     version: Long,
@@ -75,6 +105,11 @@ class PaymentServiceDefault(
     } yield updatedAccount.copy(subscriptions = subscriptions)
   }
 
+  /**
+   * List all available plans from stripe
+   *
+   * @return
+   */
   def listPlansFromStripe: Future[\/[ErrorUnion#Fail, IndexedSeq[JsValue]]] = Future {
     try {
       val params = new java.util.HashMap[String, Object]()
@@ -90,6 +125,12 @@ class PaymentServiceDefault(
     }
   }
 
+  /**
+   * Get a plan info from stipe by id
+   *
+   * @param planId
+   * @return
+   */
   def fetchPlanFromStripe(planId: String): Future[\/[ErrorUnion#Fail, JsValue]] = Future {
     try {
       val plan: JsValue = Json.parse(APIResource.GSON.toJson(Plan.retrieve(planId, requestOptions)))
@@ -101,6 +142,13 @@ class PaymentServiceDefault(
     }
   }
 
+  /**
+   * Create stripe customer
+   *
+   * @param userId
+   * @param tokenId
+   * @return
+   */
   def createCustomer(userId: UUID, tokenId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
       user <- lift(userRepository.find(userId))
@@ -152,6 +200,58 @@ class PaymentServiceDefault(
     } yield customer
   }
 
+  def updateCustomer(userId: UUID, email: String, givenname: String, surname: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
+    for {
+      account <- lift(getAccount(userId))
+      customerId = (account.customer.get \ "id").asOpt[String].getOrElse("")
+      updatedCustomer <- lift(
+        Future successful (try {
+          val params = new java.util.HashMap[String, Object]()
+          params.put("description", givenname + " " + surname + " - " + account.userId.toString)
+          params.put("email", email)
+
+          val customer: Customer = Customer.retrieve(customerId, requestOptions)
+          val updatedCustomer = customer.update(params, requestOptions)
+
+          // Get default payment source
+          val defaultSource = updatedCustomer.getSources().retrieve(updatedCustomer.getDefaultSource, requestOptions)
+          val result: JsValue = defaultSource.getObject match {
+            // If we have a card, we get additional information about it
+            case "card" => {
+              val defaultCard = defaultSource.asInstanceOf[Card]
+              val last4 = defaultCard.getLast4()
+              val brand = defaultCard.getBrand()
+              val expYear = defaultCard.getExpYear()
+              val expMonth = defaultCard.getExpMonth()
+              val customerJObject = Json.parse(APIResource.GSON.toJson(updatedCustomer)).as[JsObject]
+              val defaultCardJObject = Json.parse(APIResource.GSON.toJson(defaultCard)).as[JsObject]
+
+              // Add additional card info to customer object
+              customerJObject ++ Json.obj(
+                "sources" -> Json.obj(
+                  "data" -> Json.arr(
+                    defaultCardJObject ++ Json.obj(
+                      "last4" -> last4,
+                      "brand" -> brand,
+                      "exp_year" -> expYear.toString,
+                      "exp_month" -> expMonth.toString
+                    )
+                  )
+                )
+              )
+            }
+            case _ => Json.parse(APIResource.GSON.toJson(updatedCustomer))
+          }
+
+          \/-(result)
+        }
+        catch {
+          case e => -\/(ServiceError.ExternalService(e.toString))
+        })
+      )
+    } yield updatedCustomer
+  }
+
   /**
    * Get customer from Stripe
    *
@@ -195,7 +295,7 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Subscribe customer to a specific plan
+   * Subscribe customer to a specific plan in stripe
    *
    * @param userId
    * @param customerId
@@ -223,7 +323,7 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Switch subscription to a new plan
+   * Switch subscription to a new plan in stripe
    *
    * @param userId
    * @param  subscriptionId
@@ -250,6 +350,13 @@ class PaymentServiceDefault(
     } yield Json.parse(APIResource.GSON.toJson(updatedSubsctiption))
   }
 
+  /**
+   * Cancel stripe subscription in stripe
+   *
+   * @param userId
+   * @param subscriptionId
+   * @return
+   */
   def cancelSubscription(userId: UUID, subscriptionId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
       canceledSubsctiption <- lift(
@@ -271,7 +378,7 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Replace customer card with a new one
+   * Replace customer payment info (credit card) with a new one in stripe
    *
    * @param customerId
    * @param tokenId
@@ -326,6 +433,12 @@ class PaymentServiceDefault(
     } yield updatedCustomer
   }
 
+  /**
+   * Delete stripe customer's payment info (credit card) from stripe
+   *
+   * @param customerId
+   * @return
+   */
   def deletePaymentInfo(customerId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
       updatedCustomer <- lift(
@@ -354,7 +467,7 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Get subscription from Stripe
+   * Get a subscription from Stripe by id
    *
    * @param subscriptionId
    * @return
@@ -371,7 +484,7 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Update subscription in our DB
+   * Update subscription in krispii DB
    *
    * @param userId
    * @param subscription
@@ -409,7 +522,7 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Get event from Stripe
+   * Get a stripe event from Stripe by id
    *
    * @param eventId
    * @return
@@ -426,7 +539,7 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Get event from our database
+   * Get a stripe event from krispii database by Id
    *
    * @param eventId
    * @return
@@ -437,6 +550,14 @@ class PaymentServiceDefault(
     } yield event
   }
 
+  /**
+   * Create a stripe event in krispii database
+   *
+   * @param eventId
+   * @param eventType
+   * @param event
+   * @return
+   */
   def createEvent(eventId: String, eventType: String, event: JsValue): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
       event <- lift(stripeRepository.createEvent(eventId, eventType, event))

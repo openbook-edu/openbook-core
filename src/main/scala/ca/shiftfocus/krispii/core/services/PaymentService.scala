@@ -25,6 +25,7 @@ trait PaymentService extends Service[ErrorUnion#Fail] {
   def fetchPlanFromStripe(planId: String): Future[\/[ErrorUnion#Fail, JsValue]]
 
   def createCustomer(userId: UUID, tokenId: String): Future[\/[ErrorUnion#Fail, JsValue]]
+  def updateCustomer(userId: UUID, email: String, givenname: String, surname: String): Future[\/[ErrorUnion#Fail, JsValue]]
   def fetchCustomerFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, JsValue]]
   def deleteCustomer(customerId: String): Future[\/[ErrorUnion#Fail, JsValue]]
 

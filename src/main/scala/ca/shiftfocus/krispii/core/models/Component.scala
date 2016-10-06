@@ -157,6 +157,7 @@ case class MediaData(
     dataType: Option[String] = None,
     // We store the size of a file in Bytes
     size: Option[Long] = None,
+    hash: Option[String] = None,
     isPublic: Option[Boolean] = None
 ) {
   override def equals(anotherObject: Any): Boolean = {
@@ -182,6 +183,7 @@ object MediaData {
           (json \ "data").asOpt[String],
           (json \ "dataType").asOpt[String],
           (json \ "size").asOpt[Long],
+          (json \ "hash").asOpt[String],
           (json \ "isPublic").asOpt[Boolean]
         )
       )
@@ -194,6 +196,7 @@ object MediaData {
         "data" -> mediaData.data,
         "dataType" -> mediaData.dataType,
         "size" -> mediaData.size,
+        "hash" -> mediaData.hash,
         "isPublic" -> mediaData.isPublic
       )
     }

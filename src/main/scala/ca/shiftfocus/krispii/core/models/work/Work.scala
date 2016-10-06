@@ -286,6 +286,7 @@ case class MediaAnswer(
   fileName: Option[String] = None,
   // We store the size of a file in Bytes
   size: Option[Long] = None,
+  hash: Option[String] = None,
   isPublic: Option[Boolean] = None
 )
 object MediaAnswer {
@@ -296,6 +297,7 @@ object MediaAnswer {
           (json \ "mediaType").asOpt[String],
           (json \ "fileName").asOpt[String],
           (json \ "size").asOpt[Long],
+          (json \ "hash").asOpt[String],
           (json \ "isPublic").asOpt[Boolean]
         )
       )
@@ -307,6 +309,7 @@ object MediaAnswer {
         "mediaType" -> mediaAnswer.mediaType,
         "fileName" -> mediaAnswer.fileName,
         "size" -> mediaAnswer.size,
+        "hash" -> mediaAnswer.hash,
         "isPublic" -> mediaAnswer.isPublic
       )
     }

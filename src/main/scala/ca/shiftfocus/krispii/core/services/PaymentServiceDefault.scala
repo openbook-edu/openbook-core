@@ -31,7 +31,7 @@ class PaymentServiceDefault(
   implicit def cache: ScalaCachePool = scalaCache
 
   /**
-   * Get user account from krispii db by userId
+   * Get user account with subscriptions from krispii db by userId
    *
    * @param userId
    * @return
@@ -44,7 +44,7 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Get user account from krispii db by stripe customer id
+   * Get user account with subscriptions from krispii db by stripe customer id
    *
    * @param customerId
    * @return
@@ -85,7 +85,7 @@ class PaymentServiceDefault(
    * @param status
    * @param activeUntil
    * @param customer
-   * @return
+   * @return Account with subscriptions
    */
   def updateAccount(
     id: UUID,
@@ -295,7 +295,7 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Subscribe customer to a specific plan in stripe
+   * Subscribe customer to a specific plan in stripe and create subscription info in Krispii db
    *
    * @param userId
    * @param customerId
@@ -323,7 +323,7 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Switch subscription to a new plan in stripe
+   * Switch subscription to a new plan in stripe and update subscription info in Krispii db
    *
    * @param userId
    * @param  subscriptionId
@@ -351,7 +351,7 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Cancel stripe subscription in stripe
+   * Cancel stripe subscription (set cancel at period end to true) in stripe and update subscription info in Krispii db
    *
    * @param userId
    * @param subscriptionId

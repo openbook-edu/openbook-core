@@ -46,7 +46,7 @@ class AuthServiceDefault(
    * @return an IndexedSeq of user
    */
   override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
-    for {
+    (for {
       users <- lift(userRepository.list(db.pool))
       result <- liftSeq {
         users.map { user =>
@@ -56,7 +56,7 @@ class AuthServiceDefault(
           } yield user.copy(roles = roles)).run
         }
       }
-    } yield result
+    } yield result).run
   }
 
   /**
@@ -864,10 +864,17 @@ class AuthServiceDefault(
    *
    * @param key the stuff user already typed in
    */
-  override def listByKey(key: String): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    transactional { implicit conn =>
-      userRepository.triagramSearch(key)
-    }
+  override def listByKey(key: String): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
+    (for {
+      users <- lift(userRepository.triagramSearch(key))
+      result <- liftSeq {
+        users.map { user =>
+          (for {
+            roles <- lift(roleRepository.list(user)(db.pool, cache))
+          } yield user.copy(roles = roles)).run
+        }
+      }
+    } yield result).run
   }
   /**
    * Create password reset link for students, if it exists delete it

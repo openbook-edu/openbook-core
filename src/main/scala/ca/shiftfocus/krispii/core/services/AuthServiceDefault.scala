@@ -235,7 +235,7 @@ class AuthServiceDefault(
       val webcrank = Passwords.scrypt()
       val token = Token.getNext
       for {
-        validEmail <- lift(validateEmail(email.trim))
+        validEmail <- lift(validateEmail(email.trim.toLowerCase))
         validUsername <- lift(validateUsername(username.trim))
         _ <- predicate(InputUtils.isValidPassword(password.trim))(ServiceError.BadInput("The password provided must be at least 8 characters."))
         passwordHash = Some(webcrank.crypt(password.trim))
@@ -243,7 +243,7 @@ class AuthServiceDefault(
           val newUser = User(
             id = id,
             username = username.trim,
-            email = email.trim,
+            email = validEmail,
             hash = passwordHash,
             givenname = givenname.trim,
             surname = surname.trim,
@@ -304,8 +304,8 @@ class AuthServiceDefault(
       val webcrank = Passwords.scrypt()
       val newUser = User(
         id = UUID.randomUUID(),
-        username = email,
-        email = email.trim,
+        username = email.trim,
+        email = email.trim.toLowerCase,
         hash = Some(webcrank.crypt("google_password")),
         givenname = givenname,
         surname = surname,
@@ -379,7 +379,7 @@ class AuthServiceDefault(
       val updated = for {
         existingUser <- lift(userRepository.find(id))
         _ <- predicate(existingUser.version == version)(ServiceError.OfflineLockFail)
-        u_email <- lift(email.map { someEmail => validateEmail(someEmail, Some(id)) }.getOrElse(Future.successful(\/-(existingUser.email))))
+        u_email <- lift(email.map { someEmail => validateEmail(someEmail.trim.toLowerCase, Some(id)) }.getOrElse(Future.successful(\/-(existingUser.email))))
         u_username <- lift(username.map { someUsername => validateUsername(someUsername, Some(id)) }.getOrElse(Future.successful(\/-(existingUser.username))))
         hash = password match {
           case Some(pwd) => {

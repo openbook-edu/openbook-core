@@ -7,14 +7,18 @@ import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import com.github.mauricio.async.db.Connection
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.{ \/, -\/, \/- }
+import scalaz.{-\/, \/, \/-}
 import ws.kahn.ot.Delta
 
 class WorkServiceDefault(
   val db: DB,
+  val scalaCache: ScalaCachePool,
   val authService: AuthService,
   val schoolService: SchoolService,
   val projectService: ProjectService,
@@ -24,12 +28,14 @@ class WorkServiceDefault(
   val documentRepository: DocumentRepository,
   val taskFeedbackRepository: TaskFeedbackRepository,
   val taskScratchpadRepository: TaskScratchpadRepository,
-  val projectScratchpadRepository: ProjectScratchpadRepository
-
+  val projectScratchpadRepository: ProjectScratchpadRepository,
+  val gfileRepository: GfileRepository
 )
     extends WorkService {
 
   implicit def conn: Connection = db.pool
+
+  implicit def cache: ScalaCachePool = scalaCache
 
   /**
    * List the latest revision of all of a user's work in a project for a specific
@@ -47,7 +53,19 @@ class WorkServiceDefault(
       user <- lift(fUser)
       project <- lift(fProject)
       workList <- lift(workRepository.list(user, project))
-    } yield workList
+      result <- liftSeq {
+        workList.map { work =>
+          (for {
+            gFiles <- lift(gfileRepository.listByWork(work)(db.pool))
+            toReturn = work match {
+              case work: DocumentWork => work.copy(gFiles = gFiles)
+              case work: MediaWork => work.copy(gFiles = gFiles)
+              case work: QuestionWork => work.copy(gFiles = gFiles)
+            }
+          } yield toReturn.asInstanceOf[Work]).run
+        }
+      }
+    } yield result
   }
 
   /**
@@ -61,6 +79,18 @@ class WorkServiceDefault(
     for {
       task <- lift(projectService.findTask(taskId))
       workList <- lift(workRepository.list(task))
+      result <- liftSeq {
+        workList.map { work =>
+          (for {
+            gFiles <- lift(gfileRepository.listByWork(work)(db.pool))
+            toReturn = work match {
+              case work: DocumentWork => work.copy(gFiles = gFiles)
+              case work: MediaWork => work.copy(gFiles = gFiles)
+              case work: QuestionWork => work.copy(gFiles = gFiles)
+            }
+          } yield toReturn.asInstanceOf[Work]).run
+        }
+      }
     } yield workList
   }
 

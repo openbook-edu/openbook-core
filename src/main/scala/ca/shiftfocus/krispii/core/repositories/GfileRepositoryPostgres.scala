@@ -5,7 +5,7 @@ import java.util.UUID
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.Gfile
 import ca.shiftfocus.krispii.core.models.work.Work
-import com.github.mauricio.async.db.{Connection, RowData}
+import com.github.mauricio.async.db.{ Connection, RowData }
 import org.joda.time.DateTime
 
 import scala.concurrent.Future
@@ -33,6 +33,13 @@ class GfileRepositoryPostgres extends GfileRepository with PostgresRepository[Gf
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
 
+  val Select =
+    s"""
+       |SELECT ${Fields}
+       |FROM ${Table}
+       |WHERE id = ?
+     """.stripMargin
+
   val SelectByWorkId =
     s"""
        |SELECT ${Fields}
@@ -54,6 +61,10 @@ class GfileRepositoryPostgres extends GfileRepository with PostgresRepository[Gf
       |RETURNING $Fields
     """.stripMargin
 
+  def get(gFileId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Gfile]] = {
+    queryOne(Select, Seq[Any](gFileId))
+  }
+
   def listByWork(work: Work)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Gfile]]] = {
     queryList(SelectByWorkId, Seq[Any](work.id))
   }
@@ -66,7 +77,6 @@ class GfileRepositoryPostgres extends GfileRepository with PostgresRepository[Gf
 
     queryOne(Insert, params)
   }
-
 
   def delete(gfile: Gfile)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Gfile]] = {
     queryOne(Delete, Seq[Any](gfile.id))

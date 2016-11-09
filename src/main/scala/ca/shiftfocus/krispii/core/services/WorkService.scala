@@ -68,4 +68,18 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   def findProjectScratchpad(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, ProjectScratchpad]]
   def createProjectScratchpad(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, ProjectScratchpad]]
 
+  // ########## GOOGLE FILES ###########################################################################################
+  def getGfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Gfile]]
+
+  def createGfile(
+    workId: UUID,
+    fileId: String,
+    mimeType: String,
+    fileType: String,
+    fileName: String,
+    embedUrl: String,
+    url: String
+  ): Future[\/[ErrorUnion#Fail, Work]]
+
+  def deleteGfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Work]]
 }

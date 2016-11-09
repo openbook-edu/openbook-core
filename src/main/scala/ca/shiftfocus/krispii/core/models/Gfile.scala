@@ -4,11 +4,8 @@ import java.util.UUID
 
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{JsValue, _}
+import play.api.libs.json.{ JsValue, _ }
 
-/**
-  * Created by aostapenco on 08/11/16.
-  */
 case class Gfile(
   id: UUID = UUID.randomUUID(),
   workId: UUID,

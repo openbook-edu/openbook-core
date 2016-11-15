@@ -106,6 +106,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     position: Option[Int],
     notesAllowed: Option[Boolean],
     hideResponse: Option[Boolean],
+    allowGfile: Option[Boolean],
     partId: Option[UUID] = None,
     responseTitle: Option[Option[String]] = None,
     notesTitle: Option[Option[String]] = None,

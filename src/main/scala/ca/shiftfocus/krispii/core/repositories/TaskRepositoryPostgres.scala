@@ -39,13 +39,13 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   // -- Common query components --------------------------------------------------------------------------------------
 
   val Table = "tasks"
-  val CommonFields = "id, version, part_id, name, description, position, notes_allowed, response_title, hide_response, notes_title, help_text, max_grade, created_at, updated_at, task_type"
+  val CommonFields = "id, version, part_id, name, description, position, notes_allowed, response_title, hide_response, allow_gfile, notes_title, help_text, max_grade, created_at, updated_at, task_type"
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
   }
   val SpecificFields = "document_tasks.dependency_id as dependency_id, question_tasks.questions as questions, media_tasks.media_type as media_type"
 
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.position ASC"
   val Join =
     s"""
@@ -192,7 +192,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        |UPDATE $Table
        |SET part_id = ?, name = ?, description = ?,
        |    position = ?, notes_allowed = ?,
-       |    response_title = ?, hide_response = ?, notes_title = ?, help_text = ?,
+       |    response_title = ?, hide_response = ?, allow_gfile = ?, notes_title = ?, help_text = ?,
        |    version = ?, max_grade = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
@@ -399,6 +399,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.settings.notesAllowed,
       task.settings.responseTitle,
       task.settings.hideResponse,
+      task.settings.allowGfile,
       task.settings.notesTitle,
       task.settings.help,
       task.maxGrade,
@@ -445,6 +446,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.settings.notesAllowed,
       task.settings.responseTitle,
       task.settings.hideResponse,
+      task.settings.allowGfile,
       task.settings.notesTitle,
       task.settings.help,
       task.version + 1,

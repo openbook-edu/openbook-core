@@ -78,8 +78,11 @@ trait WorkService extends Service[ErrorUnion#Fail] {
     fileType: String,
     fileName: String,
     embedUrl: String,
-    url: String
+    url: String,
+    sharedEmail: Option[String]
   ): Future[\/[ErrorUnion#Fail, Work]]
+
+  def updateGfile(gFileId: UUID, sharedEmail: Option[String]): Future[\/[ErrorUnion#Fail, Work]]
 
   def deleteGfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Work]]
 }

@@ -15,6 +15,7 @@ case class Gfile(
   fileName: String,
   embedUrl: String,
   url: String,
+  sharedEmail: Option[String],
   createdAt: DateTime = new DateTime
 )
 
@@ -28,6 +29,7 @@ object Gfile {
     (__ \ "fileName").write[String] and
     (__ \ "embedUrl").write[String] and
     (__ \ "url").write[String] and
+    (__ \ "sharedEmail").writeNullable[String] and
     (__ \ "createdAt").write[DateTime]
   )(unlift(Gfile.unapply))
 }

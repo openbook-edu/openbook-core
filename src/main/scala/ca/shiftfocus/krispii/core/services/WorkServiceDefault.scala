@@ -765,7 +765,8 @@ class WorkServiceDefault(
     fileType: String,
     fileName: String,
     embedUrl: String,
-    url: String
+    url: String,
+    sharedEmail: Option[String]
   ): Future[\/[ErrorUnion#Fail, Work]] = {
     for {
       work <- lift(workRepository.find(workId))
@@ -778,7 +779,8 @@ class WorkServiceDefault(
           fileType = fileType,
           fileName = fileName,
           embedUrl = embedUrl,
-          url = url
+          url = url,
+          sharedEmail = sharedEmail
         )
       ))
       result = work match {
@@ -789,16 +791,42 @@ class WorkServiceDefault(
     } yield result.asInstanceOf[Work]
   }
 
+  override def updateGfile(
+    gFileId: UUID,
+    sharedEmail: Option[String]
+  ): Future[\/[ErrorUnion#Fail, Work]] = {
+    for {
+      gFile <- lift(gfileRepository.get(gFileId))
+      work <- lift(workRepository.find(gFile.workId))
+      gFiles <- lift(gfileRepository.listByWork(work))
+      updatedGfile <- lift(gfileRepository.update(
+        gFile.copy(sharedEmail = sharedEmail)
+      ))
+      // Update list of google files in the work
+      updatedGfiles = gFiles.map(gF => {
+        if (gF.id == updatedGfile.id) updatedGfile
+        else gF
+      })
+      result = work match {
+        case work: DocumentWork => work.copy(gFiles = updatedGfiles)
+        case work: MediaWork => work.copy(gFiles = updatedGfiles)
+        case work: QuestionWork => work.copy(gFiles = updatedGfiles)
+      }
+    } yield result.asInstanceOf[Work]
+  }
+
   override def deleteGfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Work]] = {
     for {
       gFile <- lift(gfileRepository.get(gFileId))
       work <- lift(workRepository.find(gFile.workId))
       gFiles <- lift(gfileRepository.listByWork(work))
       deletedGfile <- lift(gfileRepository.delete(gFile))
+      // Remove delete google file from the list
+      updatedGfiles = gFiles.filter(_.id != gFile.id)
       result = work match {
-        case work: DocumentWork => work.copy(gFiles = gFiles.filter(_.id != gFile.id))
-        case work: MediaWork => work.copy(gFiles = gFiles.filter(_.id != gFile.id))
-        case work: QuestionWork => work.copy(gFiles = gFiles.filter(_.id != gFile.id))
+        case work: DocumentWork => work.copy(gFiles = updatedGfiles)
+        case work: MediaWork => work.copy(gFiles = updatedGfiles)
+        case work: QuestionWork => work.copy(gFiles = updatedGfiles)
       }
     } yield result.asInstanceOf[Work]
   }

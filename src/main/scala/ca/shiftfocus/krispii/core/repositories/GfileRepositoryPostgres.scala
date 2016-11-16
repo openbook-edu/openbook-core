@@ -24,14 +24,15 @@ class GfileRepositoryPostgres extends GfileRepository with PostgresRepository[Gf
       fileName = row("file_name").asInstanceOf[String],
       embedUrl = row("embed_url").asInstanceOf[String],
       url = row("url").asInstanceOf[String],
+      sharedEmail = Option(row("shared_email").asInstanceOf[String]),
       createdAt = row("created_at").asInstanceOf[DateTime]
     )
   }
 
   val Table = "gfiles"
-  val Fields = "id, work_id, file_id, mime_type, file_type, file_name, embed_url, url, created_at"
+  val Fields = "id, work_id, file_id, mime_type, file_type, file_name, embed_url, url, shared_email, created_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 
   val Select =
     s"""
@@ -54,6 +55,14 @@ class GfileRepositoryPostgres extends GfileRepository with PostgresRepository[Gf
        |RETURNING $Fields
     """.stripMargin
 
+  val Update =
+    s"""
+       |UPDATE $Table
+       |SET shared_email = ?
+       |WHERE id = ?
+       |RETURNING $Fields
+    """.stripMargin
+
   val Delete =
     s"""
       |DELETE FROM $Table
@@ -72,10 +81,16 @@ class GfileRepositoryPostgres extends GfileRepository with PostgresRepository[Gf
   def insert(gfile: Gfile)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Gfile]] = {
     val params = Seq[Any](
       gfile.id, gfile.workId, gfile.fileId, gfile.mimeType, gfile.fileType,
-      gfile.fileName, gfile.embedUrl, gfile.url, gfile.createdAt
+      gfile.fileName, gfile.embedUrl, gfile.url, gfile.sharedEmail, gfile.createdAt
     )
 
     queryOne(Insert, params)
+  }
+
+  def update(gfile: Gfile)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Gfile]] = {
+    val params = Seq[Any](gfile.sharedEmail, gfile.id)
+
+    queryOne(Update, params)
   }
 
   def delete(gfile: Gfile)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Gfile]] = {

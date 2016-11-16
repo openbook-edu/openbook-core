@@ -14,5 +14,6 @@ trait GfileRepository extends Repository {
   def get(gFileId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Gfile]]
   def listByWork(work: Work)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Gfile]]]
   def insert(gfile: Gfile)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Gfile]]
+  def update(gfile: Gfile)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Gfile]]
   def delete(gfile: Gfile)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Gfile]]
 }

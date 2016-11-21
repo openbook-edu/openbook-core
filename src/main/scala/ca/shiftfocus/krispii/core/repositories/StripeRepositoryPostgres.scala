@@ -80,12 +80,10 @@ class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[
     queryOne(InsertSubscription, Seq[Any](userId, subscription))
   }
 
-  // TODO - update where subscription id
   def updateSubscription(userId: UUID, subscriptionId: String, subscription: JsValue)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]] = {
     queryOne(UpdateSubscription, Seq[Any](subscription, userId, subscriptionId))
   }
 
-  // TODO - delete where subscription id
   def deleteSubscription(userId: UUID, subscriptionId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]] = {
     queryOne(DeleteSubscription, Seq[Any](userId, subscriptionId))
   }

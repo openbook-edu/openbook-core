@@ -378,6 +378,19 @@ class PaymentServiceDefault(
   }
 
   /**
+   * Delete subscription from Krispii DB
+   *
+   * @param userId
+   * @param subscriptionId
+   * @return
+   */
+  def deleteSubscription(userId: UUID, subscriptionId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
+    for {
+      deletedSubsctiption <- lift(stripeRepository.deleteSubscription(userId, subscriptionId))
+    } yield deletedSubsctiption
+  }
+
+  /**
    * Replace customer payment info (credit card) with a new one in stripe
    *
    * @param customerId

@@ -23,6 +23,7 @@ object AccountStatus {
   val paid = "account.status.paid"
   val onhold = "account.status.onhold"
   val error = "account.status.payment.error"
+  val overdue = "account.status.overdue"
   val canceled = "account.status.canceled"
 
   def getAll: IndexedSeq[String] = {
@@ -33,6 +34,7 @@ object AccountStatus {
       paid,
       onhold,
       error,
+      overdue,
       canceled
     )
   }

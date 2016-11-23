@@ -85,6 +85,7 @@ class PaymentServiceDefault(
    * @param status
    * @param activeUntil
    * @param customer
+   * @param overdueAt The Date when overdue period has started
    * @return Account with subscriptions
    */
   def updateAccount(
@@ -92,7 +93,8 @@ class PaymentServiceDefault(
     version: Long,
     status: String,
     activeUntil: Option[DateTime],
-    customer: Option[JsValue]
+    customer: Option[JsValue],
+    overdueAt: Option[Option[DateTime]] = None
   ): Future[\/[ErrorUnion#Fail, Account]] = {
     for {
       existingAccount <- lift(accountRepository.get(id))
@@ -100,7 +102,12 @@ class PaymentServiceDefault(
       updatedAccount <- lift(accountRepository.update(existingAccount.copy(
         status = status,
         activeUntil = activeUntil,
-        customer = customer
+        customer = customer,
+        overdueAt = overdueAt match {
+        case Some(Some(overdueAt)) => Some(overdueAt)
+        case Some(None) => None
+        case None => existingAccount.overdueAt
+      }
       )))
     } yield updatedAccount.copy(subscriptions = subscriptions)
   }
@@ -351,6 +358,19 @@ class PaymentServiceDefault(
   }
 
   /**
+   * Update subscription in Krispii DB
+   *
+   * @param userId
+   * @param subscriptionId
+   * @return
+   */
+  def updateSubscription(userId: UUID, subscriptionId: String, subscription: JsValue): Future[\/[ErrorUnion#Fail, JsValue]] = {
+    for {
+      updateddSubsctiption <- lift(stripeRepository.updateSubscription(userId, subscriptionId, subscription))
+    } yield updateddSubsctiption
+  }
+
+  /**
    * Cancel stripe subscription (set cancel at period end to true) in stripe and update subscription info in Krispii db
    *
    * @param userId
@@ -388,6 +408,27 @@ class PaymentServiceDefault(
     for {
       deletedSubsctiption <- lift(stripeRepository.deleteSubscription(userId, subscriptionId))
     } yield deletedSubsctiption
+  }
+
+  def createInvoiceItem(customerId: String, amount: Int, currency: String, description: String = ""): Future[\/[ErrorUnion#Fail, JsValue]] = {
+    for {
+      invoiceItem <- lift(
+        Future successful (try {
+          val params = new java.util.HashMap[String, Object]()
+          params.put("customer", customerId)
+          params.put("amount", amount.toString)
+          params.put("currency", currency)
+          params.put("description", description)
+
+          val invoiceItem: InvoiceItem = InvoiceItem.create(params, requestOptions)
+
+          \/-(invoiceItem)
+        }
+        catch {
+          case e => -\/(ServiceError.ExternalService(e.toString))
+        })
+      )
+    } yield Json.parse(APIResource.GSON.toJson(invoiceItem))
   }
 
   /**
@@ -494,20 +535,6 @@ class PaymentServiceDefault(
     catch {
       case e => -\/(ServiceError.ExternalService(e.toString))
     }
-  }
-
-  /**
-   * Update subscription in krispii DB
-   *
-   * @param userId
-   * @param subscription
-   * @return
-   */
-  def updateSubscription(userId: UUID, subscription: JsValue): Future[\/[ErrorUnion#Fail, JsValue]] = {
-    val subscriptionId = (subscription \ "id").asOpt[String].getOrElse("")
-    for {
-      updatedSubscription <- lift(stripeRepository.updateSubscription(userId, subscriptionId, subscription))
-    } yield updatedSubscription
   }
 
   /**

@@ -26,8 +26,8 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
   }
 
   val Table = "accounts"
-  val Fields = "id, version, user_id, status, customer, active_until"
-  val QMarks = "?, ?, ?, ?, ?, ?"
+  val Fields = "id, version, user_id, status, customer, active_until, overdue_at"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?"
 
   val Select =
     s"""
@@ -60,7 +60,7 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
   val Update =
     s"""
        |UPDATE $Table
-       |SET version = ?, status = ?, customer = ?, active_until = ?
+       |SET version = ?, status = ?, customer = ?, active_until = ?, overdue_at = ?
        |WHERE id = ?
        |RETURNING $Fields
      """.stripMargin
@@ -83,7 +83,7 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
   // TODO - add cache
   def insert(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
-      account.id, 1, account.userId, account.status, account.customer, account.activeUntil
+      account.id, 1, account.userId, account.status, account.customer, account.activeUntil, account.overdueAt
     )
 
     queryOne(Insert, params)
@@ -92,7 +92,7 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
   // TODO - add cache
   def update(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
-      account.version + 1, account.status, account.customer, account.activeUntil, account.id
+      account.version + 1, account.status, account.customer, account.activeUntil, account.overdueAt, account.id
     )
 
     queryOne(Update, params)

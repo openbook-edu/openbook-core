@@ -19,7 +19,7 @@ trait PaymentService extends Service[ErrorUnion#Fail] {
   def getAccount(userId: UUID): Future[\/[ErrorUnion#Fail, Account]]
   def getAccount(customerId: String): Future[\/[ErrorUnion#Fail, Account]]
   def createAccount(userId: UUID, status: String, activeUntil: Option[DateTime] = None): Future[\/[ErrorUnion#Fail, Account]]
-  def updateAccount(id: UUID, version: Long, status: String, activeUntil: Option[DateTime], customer: Option[JsValue]): Future[\/[ErrorUnion#Fail, Account]]
+  def updateAccount(id: UUID, version: Long, status: String, activeUntil: Option[DateTime], customer: Option[JsValue], overdueAt: Option[Option[DateTime]] = None): Future[\/[ErrorUnion#Fail, Account]]
 
   def listPlansFromStripe: Future[\/[ErrorUnion#Fail, IndexedSeq[JsValue]]]
   def fetchPlanFromStripe(planId: String): Future[\/[ErrorUnion#Fail, JsValue]]

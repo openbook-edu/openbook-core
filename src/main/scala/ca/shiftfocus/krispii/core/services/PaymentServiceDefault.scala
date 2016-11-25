@@ -85,7 +85,8 @@ class PaymentServiceDefault(
    * @param status
    * @param activeUntil
    * @param customer
-   * @param overdueAt The Date when overdue period has started
+   * @param overdueStartedAt The Date when overdue period has started
+   * @param overdueEndedAt The Date when overdue period has ended
    * @return Account with subscriptions
    */
   def updateAccount(
@@ -94,7 +95,9 @@ class PaymentServiceDefault(
     status: String,
     activeUntil: Option[DateTime],
     customer: Option[JsValue],
-    overdueAt: Option[Option[DateTime]] = None
+    overdueStartedAt: Option[Option[DateTime]] = None,
+    overdueEndedAt: Option[Option[DateTime]] = None,
+    overduePlanId: Option[Option[String]] = None
   ): Future[\/[ErrorUnion#Fail, Account]] = {
     for {
       existingAccount <- lift(accountRepository.get(id))
@@ -103,10 +106,20 @@ class PaymentServiceDefault(
         status = status,
         activeUntil = activeUntil,
         customer = customer,
-        overdueAt = overdueAt match {
+        overdueStartedAt = overdueStartedAt match {
         case Some(Some(overdueAt)) => Some(overdueAt)
         case Some(None) => None
-        case None => existingAccount.overdueAt
+        case None => existingAccount.overdueStartedAt
+      },
+        overdueEndedAt = overdueEndedAt match {
+        case Some(Some(overdueAt)) => Some(overdueAt)
+        case Some(None) => None
+        case None => existingAccount.overdueEndedAt
+      },
+        overduePlanId = overduePlanId match {
+        case Some(Some(overduePlanId)) => Some(overduePlanId)
+        case Some(None) => None
+        case None => existingAccount.overduePlanId
       }
       )))
     } yield updatedAccount.copy(subscriptions = subscriptions)

@@ -14,7 +14,9 @@ case class Account(
   customer: Option[JsValue] = None,
   subscriptions: IndexedSeq[JsValue] = IndexedSeq.empty[JsValue],
   activeUntil: Option[DateTime] = None,
-  overdueAt: Option[DateTime] = None
+  overdueStartedAt: Option[DateTime] = None,
+  overdueEndedAt: Option[DateTime] = None,
+  overduePlanId: Option[String] = None
 )
 
 object AccountStatus {
@@ -50,7 +52,9 @@ object Account {
     (__ \ "customer").writeNullable[JsValue] and
     (__ \ "subscriptions").write[IndexedSeq[JsValue]] and
     (__ \ "activeUntil").writeNullable[DateTime] and
-    (__ \ "overdueAt").writeNullable[DateTime]
+    (__ \ "overdueStartedAt").writeNullable[DateTime] and
+    (__ \ "overdueEndedAt").writeNullable[DateTime] and
+    (__ \ "overduePlanId").writeNullable[String]
   )(unlift(Account.unapply))
 }
 

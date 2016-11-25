@@ -21,13 +21,16 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
       row("status").asInstanceOf[String],
       Option(row("customer")).map(customer => Json.parse(customer.asInstanceOf[String])),
       IndexedSeq.empty[JsValue],
-      Option(row("active_until")).map(_.asInstanceOf[DateTime])
+      Option(row("active_until")).map(_.asInstanceOf[DateTime]),
+      Option(row("overdue_started_at")).map(_.asInstanceOf[DateTime]),
+      Option(row("overdue_ended_at")).map(_.asInstanceOf[DateTime]),
+      Option(row("overdue_plan_id")).map(_.asInstanceOf[String])
     )
   }
 
   val Table = "accounts"
-  val Fields = "id, version, user_id, status, customer, active_until, overdue_at"
-  val QMarks = "?, ?, ?, ?, ?, ?, ?"
+  val Fields = "id, version, user_id, status, customer, active_until, overdue_started_at, overdue_ended_at, overdue_plan_id"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?"
 
   val Select =
     s"""
@@ -60,7 +63,7 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
   val Update =
     s"""
        |UPDATE $Table
-       |SET version = ?, status = ?, customer = ?, active_until = ?, overdue_at = ?
+       |SET version = ?, status = ?, customer = ?, active_until = ?, overdue_started_at = ?, overdue_ended_at = ?, overdue_plan_id = ?
        |WHERE id = ?
        |RETURNING $Fields
      """.stripMargin
@@ -83,7 +86,7 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
   // TODO - add cache
   def insert(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
-      account.id, 1, account.userId, account.status, account.customer, account.activeUntil, account.overdueAt
+      account.id, 1, account.userId, account.status, account.customer, account.activeUntil, account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId
     )
 
     queryOne(Insert, params)
@@ -92,7 +95,7 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
   // TODO - add cache
   def update(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
-      account.version + 1, account.status, account.customer, account.activeUntil, account.overdueAt, account.id
+      account.version + 1, account.status, account.customer, account.activeUntil, account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId, account.id
     )
 
     queryOne(Update, params)

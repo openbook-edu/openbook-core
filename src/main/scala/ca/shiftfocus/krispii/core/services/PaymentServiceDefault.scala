@@ -384,18 +384,22 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Cancel stripe subscription (set cancel at period end to true) in stripe and update subscription info in Krispii db
+   * Cancel stripe subscription at_period_end or immediately.
    *
    * @param userId
    * @param subscriptionId
+   * @param atPeriodEnd If true, then set cancel at_period_end of the subscription to true in stripe and update subscription info in Krispii db,
+   *                    If false, then cancel the subscription immediately in stripe and delete it from Krispii db.
    * @return
    */
-  def cancelSubscription(userId: UUID, subscriptionId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
+  def cancelSubscription(userId: UUID, subscriptionId: String, atPeriodEnd: Boolean): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
       canceledSubsctiption <- lift(
         Future successful (try {
           val params = new java.util.HashMap[String, Object]()
-          params.put("at_period_end", "true")
+          if (atPeriodEnd) {
+            params.put("at_period_end", "true")
+          }
 
           val subscription: Subscription = Subscription.retrieve(subscriptionId, requestOptions)
           val canceledSubsctiption = subscription.cancel(params, requestOptions)
@@ -406,7 +410,14 @@ class PaymentServiceDefault(
           case e => -\/(ServiceError.ExternalService(e.toString))
         })
       )
-      _ <- lift(stripeRepository.updateSubscription(userId, canceledSubsctiption.getId, Json.parse(APIResource.GSON.toJson(canceledSubsctiption))))
+      _ <- (
+        if (atPeriodEnd) {
+          lift(stripeRepository.updateSubscription(userId, canceledSubsctiption.getId, Json.parse(APIResource.GSON.toJson(canceledSubsctiption))))
+        }
+        else {
+          lift(stripeRepository.deleteSubscription(userId, canceledSubsctiption.getId))
+        }
+      )
     } yield Json.parse(APIResource.GSON.toJson(canceledSubsctiption))
   }
 

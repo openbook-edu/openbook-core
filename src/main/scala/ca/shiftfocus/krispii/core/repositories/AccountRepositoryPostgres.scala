@@ -30,7 +30,7 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
 
   val Table = "accounts"
   val Fields = "id, version, user_id, status, customer, active_until, overdue_started_at, overdue_ended_at, overdue_plan_id"
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
 
   val Select =
     s"""

@@ -101,7 +101,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   val UpdateNoPass = {
     s"""
        |UPDATE $Table
-       |SET username = ?, email = ?, givenname = ?, surname = ?, alias = ?, account_type = ?, version = ?, updated_at = ?
+       |SET username = ?, email = ?, givenname = ?, surname = ?, alias = ?, account_type = ?, version = ?, updated_at = current_timestamp
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $FieldsWithoutHash
@@ -111,7 +111,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   val UpdateWithPass = {
     s"""
        |UPDATE $Table
-        |SET username = ?, email = ?, password_hash = ?, givenname = ?, surname = ?, alias = ?, account_type = ?, version = ?, updated_at = ?
+        |SET username = ?, email = ?, password_hash = ?, givenname = ?, surname = ?, alias = ?, account_type = ?, version = ?, updated_at = current_timestamp
         |WHERE id = ?
         |  AND version = ?
         |RETURNING $FieldsWithoutHash
@@ -121,7 +121,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   val Delete =
     s"""
        |UPDATE $Table
-       |SET is_deleted = TRUE
+       |SET is_deleted = TRUE, updated_at = current_timestamp
        |WHERE id = ?
        |AND version = ?
        |RETURNING $FieldsWithoutHash
@@ -290,11 +290,11 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
           case Some(hash) =>
             queryOne(UpdateWithPass, Seq[Any](
               user.username, user.email, hash, user.givenname, user.surname, user.alias, user.accountType,
-              user.version + 1, new DateTime, user.id, user.version
+              user.version + 1, user.id, user.version
             ))
           case None => queryOne(UpdateNoPass, Seq[Any](
             user.username, user.email, user.givenname, user.surname, user.alias, user.accountType,
-            user.version + 1, new DateTime, user.id, user.version
+            user.version + 1, user.id, user.version
           ))
         }
       }

@@ -396,18 +396,24 @@ class PaymentServiceDefault(
     for {
       canceledSubsctiption <- lift(
         Future successful (try {
-          val params = new java.util.HashMap[String, Object]()
-          if (atPeriodEnd) {
-            params.put("at_period_end", "true")
-          }
-
           val subscription: Subscription = Subscription.retrieve(subscriptionId, requestOptions)
-          val canceledSubsctiption = subscription.cancel(params, requestOptions)
+          val canceledSubsctiption = {
+            if (atPeriodEnd) {
+              var params = new java.util.HashMap[String, Object]()
+              params.put("at_period_end", "true")
+              subscription.cancel(params, requestOptions)
+            }
+            else {
+              subscription.cancel(null, requestOptions)
+            }
+          }
 
           \/-(canceledSubsctiption)
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e => {
+            -\/(ServiceError.ExternalService(e.toString))
+          }
         })
       )
       _ <- (

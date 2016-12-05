@@ -2,20 +2,20 @@ package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
+import ca.shiftfocus.krispii.core.error.{ ErrorUnion, RepositoryError, ServiceError }
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
-import ca.shiftfocus.krispii.core.models.{Account, AccountStatus, PaymentLog}
-import ca.shiftfocus.krispii.core.repositories.{AccountRepository, PaymentLogRepository, StripeRepository, UserRepository}
+import ca.shiftfocus.krispii.core.models.{ Account, AccountStatus, PaymentLog }
+import ca.shiftfocus.krispii.core.repositories.{ AccountRepository, PaymentLogRepository, StripeRepository, UserRepository }
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import com.stripe.model._
-import com.stripe.net.{APIResource, RequestOptions}
+import com.stripe.net.{ APIResource, RequestOptions }
 import org.joda.time.DateTime
-import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.libs.json.{ JsObject, JsValue, Json }
 
 import collection.JavaConversions._
 import scala.concurrent.Future
-import scalaz.{-\/, \/, \/-}
+import scalaz.{ -\/, \/, \/- }
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class PaymentServiceDefault(

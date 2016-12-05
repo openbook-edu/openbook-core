@@ -4,9 +4,9 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.PaymentLog
-import com.github.mauricio.async.db.RowData
+import com.github.mauricio.async.db.{ Connection, RowData }
 import org.joda.time.DateTime
-import play.api.libs.json.{JsValue, Json}
+import play.api.libs.json.{ JsValue, Json }
 
 import scala.concurrent.Future
 import scalaz.\/
@@ -51,15 +51,15 @@ class PaymentLogRepositoryPostgres extends PaymentLogRepository with PostgresRep
     """.stripMargin
   }
 
-  def list(): Future[\/[RepositoryError.Fail, IndexedSeq[PaymentLog]]] = {
+  def list()(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[PaymentLog]]] = {
     queryList(SelectAll)
   }
 
-  def list(userId: UUID): Future[\/[RepositoryError.Fail, IndexedSeq[PaymentLog]]] = {
+  def list(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[PaymentLog]]] = {
     queryList(SelectAllByUser, Seq[Any](userId))
   }
 
-  def insert(paymentLog: PaymentLog): Future[\/[RepositoryError.Fail, PaymentLog]] = {
+  def insert(paymentLog: PaymentLog)(implicit conn: Connection): Future[\/[RepositoryError.Fail, PaymentLog]] = {
     val params = Seq[Any](
       paymentLog.userId, paymentLog.logType, paymentLog.description, paymentLog.data, new DateTime()
     )

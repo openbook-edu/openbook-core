@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.ErrorUnion
-import ca.shiftfocus.krispii.core.models.{Account, PaymentLog}
+import ca.shiftfocus.krispii.core.models.{ Account, PaymentLog }
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.stripe.net.RequestOptions
 import org.joda.time.DateTime

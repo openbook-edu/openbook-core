@@ -2,20 +2,20 @@ package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.error.{ ErrorUnion, RepositoryError, ServiceError }
+import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
-import ca.shiftfocus.krispii.core.models.{ Account, AccountStatus }
-import ca.shiftfocus.krispii.core.repositories.{ AccountRepository, StripeRepository, UserRepository }
+import ca.shiftfocus.krispii.core.models.{Account, AccountStatus, PaymentLog}
+import ca.shiftfocus.krispii.core.repositories.{AccountRepository, PaymentLogRepository, StripeRepository, UserRepository}
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import com.stripe.model._
-import com.stripe.net.{ APIResource, RequestOptions }
+import com.stripe.net.{APIResource, RequestOptions}
 import org.joda.time.DateTime
-import play.api.libs.json.{ JsObject, JsValue, Json }
+import play.api.libs.json.{JsObject, JsValue, Json}
 
 import collection.JavaConversions._
 import scala.concurrent.Future
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class PaymentServiceDefault(
@@ -24,7 +24,8 @@ class PaymentServiceDefault(
     val requestOptions: RequestOptions,
     val userRepository: UserRepository,
     val accountRepository: AccountRepository,
-    val stripeRepository: StripeRepository
+    val stripeRepository: StripeRepository,
+    val paymentLogRepository: PaymentLogRepository
 ) extends PaymentService {
 
   implicit def conn: Connection = db.pool
@@ -632,6 +633,23 @@ class PaymentServiceDefault(
     for {
       event <- lift(stripeRepository.createEvent(eventId, eventType, event))
     } yield event
+  }
+
+  def listLog(): Future[\/[ErrorUnion#Fail, IndexedSeq[PaymentLog]]] = {
+    paymentLogRepository.list()
+  }
+
+  def listLog(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[PaymentLog]]] = {
+    paymentLogRepository.list(userId)
+  }
+
+  def createLog(userId: UUID, logType: String, description: String, data: String): Future[\/[ErrorUnion#Fail, PaymentLog]] = {
+    paymentLogRepository.insert(PaymentLog(
+      userId = userId,
+      logType = logType,
+      description = description,
+      data = data
+    ))
   }
 }
 

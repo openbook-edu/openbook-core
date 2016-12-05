@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.ErrorUnion
-import ca.shiftfocus.krispii.core.models.Account
+import ca.shiftfocus.krispii.core.models.{Account, PaymentLog}
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.stripe.net.RequestOptions
 import org.joda.time.DateTime
@@ -45,4 +45,8 @@ trait PaymentService extends Service[ErrorUnion#Fail] {
   def fetchEventFromStripe(eventId: String): Future[\/[ErrorUnion#Fail, JsValue]]
   def getEvent(eventId: String): Future[\/[ErrorUnion#Fail, JsValue]]
   def createEvent(eventId: String, eventType: String, event: JsValue): Future[\/[ErrorUnion#Fail, JsValue]]
+
+  def listLog(): Future[\/[ErrorUnion#Fail, IndexedSeq[PaymentLog]]]
+  def listLog(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[PaymentLog]]]
+  def createLog(userId: UUID, logType: String, description: String, data: String): Future[\/[ErrorUnion#Fail, PaymentLog]]
 }

@@ -7,10 +7,11 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json.{ JsValue, _ }
 
 case class PaymentLog(
-  userId: UUID,
+  id: UUID = UUID.randomUUID(),
   logType: String,
   description: String,
   data: String,
+  userId: Option[UUID] = None,
   createdAt: DateTime = new DateTime()
 )
 
@@ -22,10 +23,11 @@ object PaymentLogType {
 
 object PaymentLog {
   implicit val writes: Writes[PaymentLog] = (
-    (__ \ "userId").write[UUID] and
+    (__ \ "id").write[UUID] and
     (__ \ "logType").write[String] and
     (__ \ "description").write[String] and
     (__ \ "data").write[String] and
+    (__ \ "userId").writeNullable[UUID] and
     (__ \ "createdAt").write[DateTime]
   )(unlift(PaymentLog.unapply))
 }

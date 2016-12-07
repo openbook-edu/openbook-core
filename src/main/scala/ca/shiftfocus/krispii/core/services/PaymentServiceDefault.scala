@@ -643,13 +643,15 @@ class PaymentServiceDefault(
     paymentLogRepository.list(userId)
   }
 
-  def createLog(userId: UUID, logType: String, description: String, data: String): Future[\/[ErrorUnion#Fail, PaymentLog]] = {
-    paymentLogRepository.insert(PaymentLog(
-      userId = userId,
-      logType = logType,
-      description = description,
-      data = data
-    ))
+  def createLog(logType: String, description: String, data: String, userId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, PaymentLog]] = {
+    paymentLogRepository.insert(
+      PaymentLog(
+        logType = logType,
+        description = description,
+        data = data,
+        userId = userId
+      )
+    )
   }
 }
 

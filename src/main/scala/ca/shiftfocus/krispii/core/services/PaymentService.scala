@@ -48,5 +48,5 @@ trait PaymentService extends Service[ErrorUnion#Fail] {
 
   def listLog(): Future[\/[ErrorUnion#Fail, IndexedSeq[PaymentLog]]]
   def listLog(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[PaymentLog]]]
-  def createLog(userId: UUID, logType: String, description: String, data: String): Future[\/[ErrorUnion#Fail, PaymentLog]]
+  def createLog(logType: String, description: String, data: String, userId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, PaymentLog]]
 }

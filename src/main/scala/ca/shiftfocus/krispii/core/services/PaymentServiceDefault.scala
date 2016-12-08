@@ -462,6 +462,32 @@ class PaymentServiceDefault(
     } yield Json.parse(APIResource.GSON.toJson(invoiceItem))
   }
 
+  def fetchPaymentInfoFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, Card]] = {
+    for {
+      paymentInfo <- lift(
+        Future successful (try {
+          val customer: Customer = Customer.retrieve(customerId, requestOptions)
+
+          Option(customer.getSources()) match {
+            case Some(sources) => {
+              // Get default payment source
+              val defaultSource = customer.getSources().retrieve(customer.getDefaultSource, requestOptions)
+
+              defaultSource.getObject match {
+                case "card" => \/-(defaultSource.asInstanceOf[Card])
+                case _ => -\/(RepositoryError.NoResults("core.services.PaymentServiceDefault.fetchPaymentInfoFromStripe.no.card"))
+              }
+            }
+            case None => -\/(RepositoryError.NoResults("core.services.PaymentServiceDefault.fetchPaymentInfoFromStripe.no.sources"))
+          }
+        }
+        catch {
+          case e => -\/(ServiceError.ExternalService(e.toString))
+        })
+      )
+    } yield paymentInfo
+  }
+
   /**
    * Replace customer payment info (credit card) with a new one in stripe
    *

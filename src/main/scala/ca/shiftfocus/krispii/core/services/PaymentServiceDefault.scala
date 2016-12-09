@@ -14,6 +14,7 @@ import org.joda.time.DateTime
 import play.api.libs.json.{ JsObject, JsValue, Json }
 
 import collection.JavaConversions._
+import scala.collection.immutable.TreeMap
 import scala.concurrent.Future
 import scalaz.{ -\/, \/, \/- }
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -441,7 +442,7 @@ class PaymentServiceDefault(
     } yield deletedSubsctiption
   }
 
-  def createInvoiceItem(customerId: String, amount: Int, currency: String, description: String = ""): Future[\/[ErrorUnion#Fail, JsValue]] = {
+  def createInvoiceItem(customerId: String, amount: Int, currency: String, description: String = "", metadata: TreeMap[String, Object] = TreeMap.empty): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
       invoiceItem <- lift(
         Future successful (try {
@@ -450,6 +451,16 @@ class PaymentServiceDefault(
           params.put("amount", amount.toString)
           params.put("currency", currency)
           params.put("description", description)
+
+          // Generate metadata
+          if (metadata.nonEmpty) {
+            val initialMetadata = new java.util.HashMap[String, Object]()
+            metadata.foreach {
+              case (key: String, value: Object) => initialMetadata.put(key, value)
+              case _ => ""
+            }
+            params.put("metadata", initialMetadata)
+          }
 
           val invoiceItem: InvoiceItem = InvoiceItem.create(params, requestOptions)
 

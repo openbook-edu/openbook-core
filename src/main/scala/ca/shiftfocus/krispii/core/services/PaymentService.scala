@@ -10,6 +10,7 @@ import com.stripe.net.RequestOptions
 import org.joda.time.DateTime
 import play.api.libs.json.JsValue
 
+import scala.collection.immutable.TreeMap
 import scala.concurrent.Future
 import scalaz.\/
 
@@ -36,7 +37,7 @@ trait PaymentService extends Service[ErrorUnion#Fail] {
   def updateSubscription(userId: UUID, subscriptionId: String, subscription: JsValue): Future[\/[ErrorUnion#Fail, JsValue]]
   def cancelSubscription(userId: UUID, subscriptionId: String, atPeriodEnd: Boolean): Future[\/[ErrorUnion#Fail, JsValue]]
   def deleteSubscription(userId: UUID, subscriptionId: String): Future[\/[ErrorUnion#Fail, JsValue]]
-  def createInvoiceItem(customerId: String, amount: Int, currency: String, description: String = ""): Future[\/[ErrorUnion#Fail, JsValue]]
+  def createInvoiceItem(customerId: String, amount: Int, currency: String, description: String = "", metadata: TreeMap[String, Object] = TreeMap.empty): Future[\/[ErrorUnion#Fail, JsValue]]
   def fetchPaymentInfoFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, Card]]
   def updatePaymentInfo(customerId: String, tokenId: String): Future[\/[ErrorUnion#Fail, JsValue]]
   def deletePaymentInfo(customerId: String): Future[\/[ErrorUnion#Fail, JsValue]]

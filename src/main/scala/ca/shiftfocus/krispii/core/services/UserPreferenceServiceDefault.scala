@@ -12,10 +12,16 @@ import scala.concurrent.Future
 import scalaz.\/
 
 class UserPreferenceServiceDefault(
-  val db: DB,
-  val userPreferenceRepository: UserPreferenceRepository
-)
-    extends UserPreferenceService {
+    val db: DB,
+    val userPreferenceRepository: UserPreferenceRepository
+) extends UserPreferenceService {
+
+  def get(userId: UUID, pref: String): Future[\/[ErrorUnion#Fail, UserPreference]] = {
+    transactional { implicit conn: Connection =>
+      userPreferenceRepository.get(userId, pref)
+    }
+  }
+
   def list(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[UserPreference]]] = {
     transactional { implicit conn: Connection =>
       userPreferenceRepository.list(userId)

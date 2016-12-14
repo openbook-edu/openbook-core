@@ -5,7 +5,7 @@ import java.util.UUID
 import ca.shiftfocus.krispii.core.error.ErrorUnion
 import ca.shiftfocus.krispii.core.models.{ Account, PaymentLog }
 import ca.shiftfocus.krispii.core.services.datasource.DB
-import com.stripe.model.Card
+import com.stripe.model.{ Card, Invoice, InvoiceItem }
 import com.stripe.net.RequestOptions
 import org.joda.time.DateTime
 import play.api.libs.json.JsValue
@@ -37,6 +37,8 @@ trait PaymentService extends Service[ErrorUnion#Fail] {
   def updateSubscription(userId: UUID, subscriptionId: String, subscription: JsValue): Future[\/[ErrorUnion#Fail, JsValue]]
   def cancelSubscription(userId: UUID, subscriptionId: String, atPeriodEnd: Boolean): Future[\/[ErrorUnion#Fail, JsValue]]
   def deleteSubscription(userId: UUID, subscriptionId: String): Future[\/[ErrorUnion#Fail, JsValue]]
+  def fetchUpcomingInvoiceFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, Invoice]]
+  def listInvoiceItemsFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, List[InvoiceItem]]]
   def createInvoiceItem(customerId: String, amount: Int, currency: String, description: String = "", metadata: TreeMap[String, Object] = TreeMap.empty): Future[\/[ErrorUnion#Fail, JsValue]]
   def fetchPaymentInfoFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, Card]]
   def updatePaymentInfo(customerId: String, tokenId: String): Future[\/[ErrorUnion#Fail, JsValue]]

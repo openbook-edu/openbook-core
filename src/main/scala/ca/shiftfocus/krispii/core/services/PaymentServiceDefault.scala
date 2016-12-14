@@ -8,6 +8,7 @@ import ca.shiftfocus.krispii.core.models.{ Account, AccountStatus, PaymentLog }
 import ca.shiftfocus.krispii.core.repositories.{ AccountRepository, PaymentLogRepository, StripeRepository, UserRepository }
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
+import com.stripe.exception.InvalidRequestException
 import com.stripe.model._
 import com.stripe.net.{ APIResource, RequestOptions }
 import org.joda.time.DateTime
@@ -440,6 +441,38 @@ class PaymentServiceDefault(
     for {
       deletedSubsctiption <- lift(stripeRepository.deleteSubscription(userId, subscriptionId))
     } yield deletedSubsctiption
+  }
+
+  def fetchUpcomingInvoiceFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, Invoice]] = {
+    Future successful (try {
+      val params = new java.util.HashMap[String, Object]()
+      params.put("customer", customerId)
+
+      val invoice: Invoice = Invoice.upcoming(params, requestOptions)
+
+      \/-(invoice)
+    }
+    catch {
+      case e: InvalidRequestException if (e.toString.contains("No upcoming invoices for customer")) => {
+        -\/(RepositoryError.NoResults("core.services.PaymentServiceDefault.fetchUpcomingInvoiceFromStripe.no.results"))
+      }
+      case e => -\/(ServiceError.ExternalService(e.toString))
+    })
+  }
+
+  def listInvoiceItemsFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, List[InvoiceItem]]] = {
+    Future successful (try {
+      val params = new java.util.HashMap[String, Object]()
+      params.put("customer", customerId)
+
+      val invoiceItemList: InvoiceItemCollection = InvoiceItem.list(params, requestOptions)
+      val result = invoiceItemList.getData.toList
+
+      \/-(result)
+    }
+    catch {
+      case e => -\/(ServiceError.ExternalService(e.toString))
+    })
   }
 
   def createInvoiceItem(customerId: String, amount: Int, currency: String, description: String = "", metadata: TreeMap[String, Object] = TreeMap.empty): Future[\/[ErrorUnion#Fail, JsValue]] = {

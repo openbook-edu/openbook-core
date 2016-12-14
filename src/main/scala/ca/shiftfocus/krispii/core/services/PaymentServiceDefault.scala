@@ -282,7 +282,7 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Get customer from Stripe
+   * Get customer from  Stripe
    *
    * @param customerId
    * @return

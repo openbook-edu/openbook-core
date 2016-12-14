@@ -235,33 +235,39 @@ class PaymentServiceDefault(
 
           val customer: Customer = Customer.retrieve(customerId, requestOptions)
           val updatedCustomer = customer.update(params, requestOptions)
+          val defaultSource = Option(updatedCustomer.getDefaultSource)
 
           // Get default payment source
-          val defaultSource = updatedCustomer.getSources().retrieve(updatedCustomer.getDefaultSource, requestOptions)
-          val result: JsValue = defaultSource.getObject match {
-            // If we have a card, we get additional information about it
-            case "card" => {
-              val defaultCard = defaultSource.asInstanceOf[Card]
-              val last4 = defaultCard.getLast4()
-              val brand = defaultCard.getBrand()
-              val expYear = defaultCard.getExpYear()
-              val expMonth = defaultCard.getExpMonth()
-              val customerJObject = Json.parse(APIResource.GSON.toJson(updatedCustomer)).as[JsObject]
-              val defaultCardJObject = Json.parse(APIResource.GSON.toJson(defaultCard)).as[JsObject]
+          val result: JsValue = Option(updatedCustomer.getSources()) match {
+            case Some(sources) if (defaultSource.isDefined) => {
+              val defaultSource = updatedCustomer.getSources().retrieve(updatedCustomer.getDefaultSource, requestOptions)
+              defaultSource.getObject match {
+                // If we have a card, we get additional information about it
+                case "card" => {
+                  val defaultCard = defaultSource.asInstanceOf[Card]
+                  val last4 = defaultCard.getLast4()
+                  val brand = defaultCard.getBrand()
+                  val expYear = defaultCard.getExpYear()
+                  val expMonth = defaultCard.getExpMonth()
+                  val customerJObject = Json.parse(APIResource.GSON.toJson(updatedCustomer)).as[JsObject]
+                  val defaultCardJObject = Json.parse(APIResource.GSON.toJson(defaultCard)).as[JsObject]
 
-              // Add additional card info to customer object
-              customerJObject ++ Json.obj(
-                "sources" -> Json.obj(
-                  "data" -> Json.arr(
-                    defaultCardJObject ++ Json.obj(
-                      "last4" -> last4,
-                      "brand" -> brand,
-                      "exp_year" -> expYear.toString,
-                      "exp_month" -> expMonth.toString
+                  // Add additional card info to customer object
+                  customerJObject ++ Json.obj(
+                    "sources" -> Json.obj(
+                      "data" -> Json.arr(
+                        defaultCardJObject ++ Json.obj(
+                          "last4" -> last4,
+                          "brand" -> brand,
+                          "exp_year" -> expYear.toString,
+                          "exp_month" -> expMonth.toString
+                        )
+                      )
                     )
                   )
-                )
-              )
+                }
+                case _ => Json.parse(APIResource.GSON.toJson(updatedCustomer))
+              }
             }
             case _ => Json.parse(APIResource.GSON.toJson(updatedCustomer))
           }
@@ -283,9 +289,44 @@ class PaymentServiceDefault(
    */
   def fetchCustomerFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, JsValue]] = Future {
     try {
-      val customer: JsValue = Json.parse(APIResource.GSON.toJson(Customer.retrieve(customerId, requestOptions)))
+      val customer: Customer = Customer.retrieve(customerId, requestOptions)
+      val defaultSource = Option(customer.getDefaultSource)
+      // Get default payment source
+      val result: JsValue = Option(customer.getSources()) match {
+        case Some(sources) if (defaultSource.isDefined) => {
+          val defaultSource = customer.getSources().retrieve(customer.getDefaultSource, requestOptions)
+          defaultSource.getObject match {
+            // If we have a card, we get additional information about it
+            case "card" => {
+              val defaultCard = defaultSource.asInstanceOf[Card]
+              val last4 = defaultCard.getLast4()
+              val brand = defaultCard.getBrand()
+              val expYear = defaultCard.getExpYear()
+              val expMonth = defaultCard.getExpMonth()
+              val customerJObject = Json.parse(APIResource.GSON.toJson(customer)).as[JsObject]
+              val defaultCardJObject = Json.parse(APIResource.GSON.toJson(defaultCard)).as[JsObject]
 
-      \/-(customer)
+              // Add additional card info to customer object
+              customerJObject ++ Json.obj(
+                "sources" -> Json.obj(
+                  "data" -> Json.arr(
+                    defaultCardJObject ++ Json.obj(
+                      "last4" -> last4,
+                      "brand" -> brand,
+                      "exp_year" -> expYear.toString,
+                      "exp_month" -> expMonth.toString
+                    )
+                  )
+                )
+              )
+            }
+            case _ => Json.parse(APIResource.GSON.toJson(customer))
+          }
+        }
+        case _ => Json.parse(APIResource.GSON.toJson(customer))
+      }
+
+      \/-(result)
     }
     catch {
       case e => -\/(ServiceError.ExternalService(e.toString))
@@ -511,9 +552,10 @@ class PaymentServiceDefault(
       paymentInfo <- lift(
         Future successful (try {
           val customer: Customer = Customer.retrieve(customerId, requestOptions)
+          val defaultSource = Option(customer.getDefaultSource)
 
           Option(customer.getSources()) match {
-            case Some(sources) => {
+            case Some(sources) if (defaultSource.isDefined) => {
               // Get default payment source
               val defaultSource = customer.getSources().retrieve(customer.getDefaultSource, requestOptions)
 

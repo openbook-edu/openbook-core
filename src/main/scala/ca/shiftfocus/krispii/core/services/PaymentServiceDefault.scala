@@ -90,7 +90,7 @@ class PaymentServiceDefault(
    * @param customer
    * @param overdueStartedAt The Date when overdue period has started
    * @param overdueEndedAt The Date when overdue period has ended
-   * @return Account with subscriptions
+   * @return  Account with subscriptions
    */
   def updateAccount(
     id: UUID,

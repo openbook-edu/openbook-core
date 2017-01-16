@@ -91,6 +91,7 @@ class ComponentServiceDefault(
   }
 
   override def createAudio(
+    id: UUID,
     ownerId: UUID,
     title: String,
     questions: String,
@@ -99,6 +100,7 @@ class ComponentServiceDefault(
     order: Int
   ): Future[\/[ErrorUnion#Fail, Component]] = {
     val newComponent = AudioComponent(
+      id = id,
       ownerId = ownerId,
       title = title,
       questions = questions,
@@ -112,6 +114,7 @@ class ComponentServiceDefault(
   }
 
   override def createImage(
+    id: UUID,
     ownerId: UUID,
     title: String,
     questions: String,
@@ -120,6 +123,7 @@ class ComponentServiceDefault(
     order: Int
   ): Future[\/[ErrorUnion#Fail, Component]] = {
     val newComponent = ImageComponent(
+      id = id,
       ownerId = ownerId,
       title = title,
       questions = questions,
@@ -133,6 +137,7 @@ class ComponentServiceDefault(
   }
 
   override def createBook(
+    id: UUID,
     ownerId: UUID,
     title: String,
     questions: String,
@@ -141,6 +146,7 @@ class ComponentServiceDefault(
     order: Int
   ): Future[\/[ErrorUnion#Fail, Component]] = {
     val newComponent = BookComponent(
+      id = id,
       ownerId = ownerId,
       title = title,
       questions = questions,
@@ -154,6 +160,7 @@ class ComponentServiceDefault(
   }
 
   override def createText(
+    id: UUID,
     ownerId: UUID,
     title: String,
     questions: String,
@@ -162,6 +169,7 @@ class ComponentServiceDefault(
     order: Int
   ): Future[\/[ErrorUnion#Fail, Component]] = {
     val newComponent = TextComponent(
+      id = id,
       ownerId = ownerId,
       title = title,
       questions = questions,
@@ -175,6 +183,7 @@ class ComponentServiceDefault(
   }
 
   override def createGenericHTML(
+    id: UUID,
     ownerId: UUID,
     title: String,
     questions: String,
@@ -183,6 +192,7 @@ class ComponentServiceDefault(
     order: Int
   ): Future[\/[ErrorUnion#Fail, Component]] = {
     val newComponent = GenericHTMLComponent(
+      id = id,
       ownerId = ownerId,
       title = title,
       questions = questions,
@@ -196,6 +206,7 @@ class ComponentServiceDefault(
   }
 
   override def createRubric(
+    id: UUID,
     ownerId: UUID,
     title: String,
     questions: String,
@@ -204,6 +215,7 @@ class ComponentServiceDefault(
     order: Int
   ): Future[\/[ErrorUnion#Fail, Component]] = {
     val newComponent = RubricComponent(
+      id = id,
       ownerId = ownerId,
       title = title,
       questions = questions,
@@ -217,6 +229,7 @@ class ComponentServiceDefault(
   }
 
   override def createVideo(
+    id: UUID,
     ownerId: UUID,
     title: String,
     questions: String,
@@ -227,6 +240,7 @@ class ComponentServiceDefault(
     order: Int
   ): Future[\/[ErrorUnion#Fail, Component]] = {
     val newComponent = VideoComponent(
+      id = id,
       ownerId = ownerId,
       title = title,
       questions = questions,

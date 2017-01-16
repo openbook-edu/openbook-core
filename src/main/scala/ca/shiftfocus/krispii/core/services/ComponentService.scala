@@ -20,13 +20,13 @@ trait ComponentService extends Service[ErrorUnion#Fail] {
   def listByTeacher(teacherId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
   def find(id: UUID): Future[\/[ErrorUnion#Fail, Component]]
 
-  def createAudio(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, audioData: MediaData, order: Int): Future[\/[ErrorUnion#Fail, Component]]
-  def createImage(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, imageData: MediaData, order: Int): Future[\/[ErrorUnion#Fail, Component]]
-  def createBook(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, fileData: MediaData, order: Int): Future[\/[ErrorUnion#Fail, Component]]
-  def createText(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, content: String, order: Int): Future[\/[ErrorUnion#Fail, Component]]
-  def createGenericHTML(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, htmlContent: String, order: Int): Future[\/[ErrorUnion#Fail, Component]]
-  def createRubric(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, rubricContent: String, order: Int): Future[\/[ErrorUnion#Fail, Component]]
-  def createVideo(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String,
+  def createAudio(id: UUID, ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, audioData: MediaData, order: Int): Future[\/[ErrorUnion#Fail, Component]]
+  def createImage(id: UUID, ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, imageData: MediaData, order: Int): Future[\/[ErrorUnion#Fail, Component]]
+  def createBook(id: UUID, ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, fileData: MediaData, order: Int): Future[\/[ErrorUnion#Fail, Component]]
+  def createText(id: UUID, ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, content: String, order: Int): Future[\/[ErrorUnion#Fail, Component]]
+  def createGenericHTML(id: UUID, ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, htmlContent: String, order: Int): Future[\/[ErrorUnion#Fail, Component]]
+  def createRubric(id: UUID, ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, rubricContent: String, order: Int): Future[\/[ErrorUnion#Fail, Component]]
+  def createVideo(id: UUID, ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String,
     videoData: MediaData, height: Int, width: Int, order: Int): Future[\/[ErrorUnion#Fail, Component]]
 
   def updateAudio(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],

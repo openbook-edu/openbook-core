@@ -157,7 +157,9 @@ case class MediaData(
     dataType: Option[String] = None,
     // We store the size of a file in Bytes
     size: Option[Long] = None,
-    isPublic: Option[Boolean] = None
+    isPublic: Option[Boolean] = None,
+    thumbName: Option[String] = None,
+    thumbSize: Option[Long] = None
 ) {
   override def equals(anotherObject: Any): Boolean = {
     anotherObject match {
@@ -166,7 +168,9 @@ case class MediaData(
           this.data == anotherMediaData.data &&
           this.dataType == anotherMediaData.dataType &&
           this.size == anotherMediaData.size &&
-          this.isPublic == anotherMediaData.isPublic
+          this.isPublic == anotherMediaData.isPublic &&
+          this.thumbName == anotherMediaData.thumbName &&
+          this.thumbSize == anotherMediaData.thumbSize
       }
       case _ => false
     }
@@ -182,7 +186,9 @@ object MediaData {
           (json \ "data").asOpt[String],
           (json \ "dataType").asOpt[String],
           (json \ "size").asOpt[Long],
-          (json \ "isPublic").asOpt[Boolean]
+          (json \ "isPublic").asOpt[Boolean],
+          (json \ "thumbName").asOpt[String],
+          (json \ "thumbSize").asOpt[Long]
         )
       )
     }
@@ -194,7 +200,9 @@ object MediaData {
         "data" -> mediaData.data,
         "dataType" -> mediaData.dataType,
         "size" -> mediaData.size,
-        "isPublic" -> mediaData.isPublic
+        "isPublic" -> mediaData.isPublic,
+        "thumbName" -> mediaData.thumbName,
+        "thumbSize" -> mediaData.thumbSize
       )
     }
   }

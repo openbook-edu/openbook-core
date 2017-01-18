@@ -99,6 +99,7 @@ CREATE TABLE projects (
   enabled boolean DEFAULT false,
   project_type text,
   status text,
+  parent_version bigint,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
@@ -168,6 +169,8 @@ CREATE TABLE tasks (
   notes_title text,
   help_text text,
   max_grade text DEFAULT '0',
+  hide_response boolean NOT NULL DEFAULT false,
+  allow_gfile boolean NOT NULL DEFAULT true,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
@@ -445,6 +448,60 @@ create table project_tags(
   project_id uuid references projects(id) ON DELETE CASCADE,
   tag_name text,
   PRIMARY KEY(project_id, tag_name));
+
+CREATE TABLE accounts (
+    id uuid PRIMARY KEY,
+    version bigint,
+	  user_id uuid UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+	  status text,
+	  customer jsonb,
+	  active_until timestamp with time zone,
+	  overdue_started_at timestamp with time zone,
+	  overdue_ended_at timestamp with time zone,
+	  overdue_plan_id text
+);
+
+CREATE TABLE users_subscriptions (
+	  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+	  subscription jsonb
+);
+
+CREATE TABLE stripe_events (
+    id text PRIMARY KEY,
+    type text,
+	  event jsonb,
+	  created_at timestamp with time zone
+);
+
+CREATE TABLE plan_limit (
+  plan_id text,
+  type text,
+  limited integer,
+  PRIMARY KEY (plan_id, type)
+);
+
+CREATE TABLE gfiles (
+  id uuid PRIMARY KEY,
+  work_id uuid NOT NULL REFERENCES work(id) ON DELETE CASCADE,
+  file_id text NOT NULL,
+  mime_type text NOT NULL,
+  file_type text NOT NULL,
+  file_name text NOT NULL,
+  embed_url text NOT NULL,
+  url text NOT NULL,
+  created_at timestamp with time zone,
+  shared_email text,
+  UNIQUE (work_id, file_id)
+);
+
+CREATE TABLE payment_logs (
+  id uuid PRIMARY KEY,
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  log_type text NOT NULL,
+  description text NOT NULL,
+  data text,
+  created_at timestamp with time zone
+);
 
 /* USER PREFERENCES */
 

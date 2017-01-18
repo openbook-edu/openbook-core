@@ -36,6 +36,10 @@ class ComponentServiceDefault(
     componentRepository.list(db.pool)
   }
 
+  override def listMasterLimit(limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
+    componentRepository.listMasterLimit(limit, offset)
+  }
+
   /**
    * List components by part ID.
    *

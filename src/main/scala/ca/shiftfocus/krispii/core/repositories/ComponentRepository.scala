@@ -13,6 +13,7 @@ import scalaz.{ EitherT, \/ }
 trait ComponentRepository extends Repository {
 
   def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]]
+  def listMasterLimit(limit: Int = 0, offset: Int = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]]
   def list(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]]
   def list(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]]
   def list(teacher: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]]

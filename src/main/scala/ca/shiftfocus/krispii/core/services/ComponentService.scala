@@ -15,6 +15,7 @@ trait ComponentService extends Service[ErrorUnion#Fail] {
   val componentRepository: ComponentRepository
 
   def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
+  def listMasterLimit(limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
   def listByPart(partId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
   def listByProject(projectId: UUID, forceAll: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
   def listByTeacher(teacherId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]

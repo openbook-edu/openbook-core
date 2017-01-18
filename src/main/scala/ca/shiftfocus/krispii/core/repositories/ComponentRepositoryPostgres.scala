@@ -193,6 +193,22 @@ class ComponentRepositoryPostgres()
       |ORDER BY $OrderBy
   """.stripMargin
 
+  def SelectMasterLimit(limit: String, offset: Int) =
+    s"""
+      |SELECT * FROM
+        |(SELECT distinct on ($Table.id) ${CommonFieldsWithTable(Table)}, $SpecificFields
+        |FROM $Table
+        |$Join
+        |INNER JOIN  parts_components ON $Table.id = parts_components.component_id
+        |INNER JOIN  parts ON parts.id = parts_components.part_id
+        |INNER JOIN  projects ON projects.id = parts.project_id
+        | AND projects.is_master = true
+        | AND projects.enabled = true
+        |ORDER BY $Table.id) AS mc
+      |ORDER BY mc.title
+      |LIMIT $limit OFFSET $offset
+  """.stripMargin
+
   val SelectOne =
     s"""
       |SELECT $CommonFields, $SpecificFields
@@ -480,6 +496,18 @@ class ComponentRepositoryPostgres()
    */
   override def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     queryList(SelectAll)
+  }
+
+  /**
+   * Select limited from master projects
+   */
+  override def listMasterLimit(limit: Int = 0, offset: Int = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+    val queryLimit = {
+      if (limit == 0) "ALL"
+      else limit.toString
+    }
+
+    queryList(SelectMasterLimit(queryLimit, offset))
   }
 
   /**

@@ -19,6 +19,9 @@ case class GenericHTMLComponent(
   order: Int,
   isPrivate: Boolean = false,
   htmlContent: String,
+  description: String = "",
+  parentId: Option[UUID] = None,
+  parentVersion: Option[Long] = None,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) extends Component
@@ -35,6 +38,9 @@ object GenericHTMLComponent {
     (__ \ "order").write[Int] and
     (__ \ "isPrivate").write[Boolean] and
     (__ \ "htmlContent").write[String] and
+    (__ \ "description").write[String] and
+    (__ \ "parentId").writeNullable[UUID] and
+    (__ \ "parentVersion").writeNullable[Long] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(GenericHTMLComponent.unapply))
@@ -48,7 +54,10 @@ case class GenericHTMLComponentPost(
   thingsToThinkAbout: Option[String],
   order: Int,
   isPrivate: Boolean,
-  htmlContent: String
+  htmlContent: String,
+  description: String,
+  parentId: Option[UUID],
+  parentVersion: Option[Long]
 )
 
 object GenericHTMLComponentPost {
@@ -59,7 +68,10 @@ object GenericHTMLComponentPost {
     (__ \ "thingsToThinkAbout").readNullable[String] and
     (__ \ "order").read[Int] and
     (__ \ "isPrivate").read[Boolean] and
-    (__ \ "htmlContent").read[String]
+    (__ \ "htmlContent").read[String] and
+    (__ \ "description").read[String] and
+    (__ \ "parentId").readNullable[UUID] and
+    (__ \ "parentVersion").readNullable[Long]
   )(GenericHTMLComponentPost.apply _)
 }
 
@@ -70,7 +82,10 @@ case class GenericHTMLComponentPut(
   thingsToThinkAbout: String,
   order: Int,
   isPrivate: Boolean,
-  htmlContent: String
+  htmlContent: String,
+  description: String,
+  parentId: Option[UUID],
+  parentVersion: Option[Long]
 )
 
 object GenericHTMLComponentPut {
@@ -81,6 +96,9 @@ object GenericHTMLComponentPut {
     (__ \ "thingsToThinkAbout").read[String] and
     (__ \ "order").read[Int] and
     (__ \ "isPrivate").read[Boolean] and
-    (__ \ "htmlContent").read[String]
+    (__ \ "htmlContent").read[String] and
+    (__ \ "description").read[String] and
+    (__ \ "parentId").readNullable[UUID] and
+    (__ \ "parentVersion").readNullable[Long]
   )(GenericHTMLComponentPut.apply _)
 }

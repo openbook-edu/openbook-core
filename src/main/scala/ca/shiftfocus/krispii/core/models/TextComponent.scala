@@ -17,6 +17,9 @@ case class TextComponent(
   content: String,
   order: Int,
   isPrivate: Boolean = false,
+  description: String = "",
+  parentId: Option[UUID] = None,
+  parentVersion: Option[Long] = None,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) extends Component
@@ -33,6 +36,9 @@ object TextComponent {
     (__ \ "content").write[String] and
     (__ \ "order").write[Int] and
     (__ \ "isPrivate").write[Boolean] and
+    (__ \ "description").write[String] and
+    (__ \ "parentId").writeNullable[UUID] and
+    (__ \ "parentVersion").writeNullable[Long] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(TextComponent.unapply))
@@ -46,7 +52,10 @@ case class TextComponentPost(
   thingsToThinkAbout: Option[String],
   content: String,
   order: Int,
-  isPrivate: Boolean
+  isPrivate: Boolean,
+  description: String,
+  parentId: Option[UUID],
+  parentVersion: Option[Long]
 )
 object TextComponentPost {
   implicit val projectPostReads = (
@@ -56,7 +65,10 @@ object TextComponentPost {
     (__ \ "thingsToThinkAbout").readNullable[String] and
     (__ \ "content").read[String] and
     (__ \ "order").read[Int] and
-    (__ \ "isPrivate").read[Boolean]
+    (__ \ "isPrivate").read[Boolean] and
+    (__ \ "description").read[String] and
+    (__ \ "parentId").readNullable[UUID] and
+    (__ \ "parentVersion").readNullable[Long]
   )(TextComponentPost.apply _)
 }
 
@@ -67,7 +79,10 @@ case class TextComponentPut(
   thingsToThinkAbout: String,
   content: String,
   order: Int,
-  isPrivate: Boolean
+  isPrivate: Boolean,
+  description: String,
+  parentId: Option[UUID],
+  parentVersion: Option[Long]
 )
 object TextComponentPut {
   implicit val projectPutReads = (
@@ -77,6 +92,9 @@ object TextComponentPut {
     (__ \ "thingsToThinkAbout").read[String] and
     (__ \ "content").read[String] and
     (__ \ "order").read[Int] and
-    (__ \ "isPrivate").read[Boolean]
+    (__ \ "isPrivate").read[Boolean] and
+    (__ \ "description").read[String] and
+    (__ \ "parentId").readNullable[UUID] and
+    (__ \ "parentVersion").readNullable[Long]
   )(TextComponentPut.apply _)
 }

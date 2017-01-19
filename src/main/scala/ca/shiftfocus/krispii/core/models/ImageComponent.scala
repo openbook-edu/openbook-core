@@ -17,6 +17,9 @@ case class ImageComponent(
     mediaData: MediaData = MediaData(),
     order: Int,
     isPrivate: Boolean = false,
+    description: String = "",
+    parentId: Option[UUID] = None,
+    parentVersion: Option[Long] = None,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) extends Component with DataCarrier {
@@ -53,6 +56,9 @@ object ImageComponent {
     (__ \ "imageData").write[MediaData] and
     (__ \ "order").write[Int] and
     (__ \ "isPrivate").write[Boolean] and
+    (__ \ "description").write[String] and
+    (__ \ "parentId").writeNullable[UUID] and
+    (__ \ "parentVersion").writeNullable[Long] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(ImageComponent.unapply))
@@ -66,7 +72,10 @@ case class ImageComponentPost(
   thingsToThinkAbout: Option[String],
   imageData: MediaData,
   order: Int,
-  isPrivate: Boolean
+  isPrivate: Boolean,
+  description: String,
+  parentId: Option[UUID],
+  parentVersion: Option[Long]
 )
 
 object ImageComponentPost {
@@ -77,7 +86,10 @@ object ImageComponentPost {
     (__ \ "thingsToThinkAbout").readNullable[String] and
     (__ \ "imageData").read[MediaData] and
     (__ \ "order").read[Int] and
-    (__ \ "isPrivate").read[Boolean]
+    (__ \ "isPrivate").read[Boolean] and
+    (__ \ "description").read[String] and
+    (__ \ "parentId").readNullable[UUID] and
+    (__ \ "parentVersion").readNullable[Long]
   )(ImageComponentPost.apply _)
 }
 
@@ -88,7 +100,10 @@ case class ImageComponentPut(
   thingsToThinkAbout: Option[String],
   imageData: MediaData,
   order: Int,
-  isPrivate: Boolean
+  isPrivate: Boolean,
+  description: String,
+  parentId: Option[UUID],
+  parentVersion: Option[Long]
 )
 
 object ImageComponentPut {
@@ -99,6 +114,9 @@ object ImageComponentPut {
     (__ \ "thingsToThinkAbout").readNullable[String] and
     (__ \ "imageData").read[MediaData] and
     (__ \ "order").read[Int] and
-    (__ \ "isPrivate").read[Boolean]
+    (__ \ "isPrivate").read[Boolean] and
+    (__ \ "description").read[String] and
+    (__ \ "parentId").readNullable[UUID] and
+    (__ \ "parentVersion").readNullable[Long]
   )(ImageComponentPut.apply _)
 }

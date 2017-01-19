@@ -19,6 +19,9 @@ case class VideoComponent(
   height: Int,
   order: Int,
   isPrivate: Boolean = false,
+  description: String = "",
+  parentId: Option[UUID] = None,
+  parentVersion: Option[Long] = None,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) extends Component with DataCarrier
@@ -41,6 +44,9 @@ object VideoComponent {
     (__ \ "height").write[Int] and
     (__ \ "order").write[Int] and
     (__ \ "isPrivate").write[Boolean] and
+    (__ \ "description").write[String] and
+    (__ \ "parentId").writeNullable[UUID] and
+    (__ \ "parentVersion").writeNullable[Long] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(VideoComponent.unapply))
@@ -56,7 +62,10 @@ case class VideoComponentPost(
   width: Int,
   height: Int,
   order: Int,
-  isPrivate: Boolean
+  isPrivate: Boolean,
+  description: String,
+  parentId: Option[UUID],
+  parentVersion: Option[Long]
 )
 object VideoComponentPost {
   implicit val projectPostReads = (
@@ -68,7 +77,10 @@ object VideoComponentPost {
     (__ \ "width").read[Int] and
     (__ \ "height").read[Int] and
     (__ \ "order").read[Int] and
-    (__ \ "isPrivate").read[Boolean]
+    (__ \ "isPrivate").read[Boolean] and
+    (__ \ "description").read[String] and
+    (__ \ "parentId").readNullable[UUID] and
+    (__ \ "parentVersion").readNullable[Long]
   )(VideoComponentPost.apply _)
 }
 
@@ -81,7 +93,10 @@ case class VideoComponentPut(
   width: Int,
   height: Int,
   order: Int,
-  isPrivate: Boolean
+  isPrivate: Boolean,
+  description: String,
+  parentId: Option[UUID],
+  parentVersion: Option[Long]
 )
 object VideoComponentPut {
   implicit val projectPutReads = (
@@ -93,6 +108,9 @@ object VideoComponentPut {
     (__ \ "width").read[Int] and
     (__ \ "height").read[Int] and
     (__ \ "order").read[Int] and
-    (__ \ "isPrivate").read[Boolean]
+    (__ \ "isPrivate").read[Boolean] and
+    (__ \ "description").read[String] and
+    (__ \ "parentId").readNullable[UUID] and
+    (__ \ "parentVersion").readNullable[Long]
   )(VideoComponentPut.apply _)
 }

@@ -19,6 +19,9 @@ case class BookComponent(
   mediaData: MediaData = MediaData(),
   order: Int,
   isPrivate: Boolean = false,
+  description: String = "",
+  parentId: Option[UUID] = None,
+  parentVersion: Option[Long] = None,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) extends Component with DataCarrier
@@ -35,6 +38,9 @@ object BookComponent {
     (__ \ "fileData").write[MediaData] and
     (__ \ "order").write[Int] and
     (__ \ "isPrivate").write[Boolean] and
+    (__ \ "description").write[String] and
+    (__ \ "parentId").writeNullable[UUID] and
+    (__ \ "parentVersion").writeNullable[Long] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(BookComponent.unapply))
@@ -48,7 +54,10 @@ case class BookComponentPost(
   thingsToThinkAbout: Option[String],
   fileData: MediaData,
   order: Int,
-  isPrivate: Boolean
+  isPrivate: Boolean,
+  description: String,
+  parentId: Option[UUID],
+  parentVersion: Option[Long]
 )
 
 object BookComponentPost {
@@ -59,7 +68,10 @@ object BookComponentPost {
     (__ \ "thingsToThinkAbout").readNullable[String] and
     (__ \ "fileData").read[MediaData] and
     (__ \ "order").read[Int] and
-    (__ \ "isPrivate").read[Boolean]
+    (__ \ "isPrivate").read[Boolean] and
+    (__ \ "description").read[String] and
+    (__ \ "parentId").readNullable[UUID] and
+    (__ \ "parentVersion").readNullable[Long]
   )(BookComponentPost.apply _)
 }
 
@@ -70,7 +82,10 @@ case class BookComponentPut(
   thingsToThinkAbout: String,
   fileData: MediaData,
   order: Int,
-  isPrivate: Boolean
+  isPrivate: Boolean,
+  description: String,
+  parentId: Option[UUID],
+  parentVersion: Option[Long]
 )
 
 object BookComponentPut {
@@ -81,6 +96,9 @@ object BookComponentPut {
     (__ \ "thingsToThinkAbout").read[String] and
     (__ \ "fileData").read[MediaData] and
     (__ \ "order").read[Int] and
-    (__ \ "isPrivate").read[Boolean]
+    (__ \ "isPrivate").read[Boolean] and
+    (__ \ "description").read[String] and
+    (__ \ "parentId").readNullable[UUID] and
+    (__ \ "parentVersion").readNullable[Long]
   )(BookComponentPut.apply _)
 }

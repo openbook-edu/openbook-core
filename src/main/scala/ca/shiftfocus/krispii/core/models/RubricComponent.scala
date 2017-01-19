@@ -19,6 +19,9 @@ case class RubricComponent(
   order: Int,
   isPrivate: Boolean = false,
   rubricContent: String,
+  description: String = "",
+  parentId: Option[UUID] = None,
+  parentVersion: Option[Long] = None,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) extends Component
@@ -35,6 +38,9 @@ object RubricComponent {
     (__ \ "order").write[Int] and
     (__ \ "isPrivate").write[Boolean] and
     (__ \ "rubricContent").write[String] and
+    (__ \ "description").write[String] and
+    (__ \ "parentId").writeNullable[UUID] and
+    (__ \ "parentVersion").writeNullable[Long] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(RubricComponent.unapply))
@@ -48,7 +54,10 @@ case class RubricComponentPost(
   thingsToThinkAbout: Option[String],
   order: Int,
   isPrivate: Boolean,
-  rubricContent: String
+  rubricContent: String,
+  description: String,
+  parentId: Option[UUID],
+  parentVersion: Option[Long]
 )
 
 object RubricComponentPost {
@@ -59,7 +68,10 @@ object RubricComponentPost {
     (__ \ "thingsToThinkAbout").readNullable[String] and
     (__ \ "order").read[Int] and
     (__ \ "isPrivate").read[Boolean] and
-    (__ \ "rubricContent").read[String]
+    (__ \ "rubricContent").read[String] and
+    (__ \ "description").read[String] and
+    (__ \ "parentId").readNullable[UUID] and
+    (__ \ "parentVersion").readNullable[Long]
   )(RubricComponentPost.apply _)
 }
 
@@ -70,7 +82,10 @@ case class RubricComponentPut(
   thingsToThinkAbout: String,
   order: Int,
   isPrivate: Boolean,
-  rubricContent: String
+  rubricContent: String,
+  description: String,
+  parentId: Option[UUID],
+  parentVersion: Option[Long]
 )
 
 object RubricComponentPut {
@@ -81,6 +96,9 @@ object RubricComponentPut {
     (__ \ "thingsToThinkAbout").read[String] and
     (__ \ "order").read[Int] and
     (__ \ "isPrivate").read[Boolean] and
-    (__ \ "rubricContent").read[String]
+    (__ \ "rubricContent").read[String] and
+    (__ \ "description").read[String] and
+    (__ \ "parentId").readNullable[UUID] and
+    (__ \ "parentVersion").readNullable[Long]
   )(RubricComponentPut.apply _)
 }

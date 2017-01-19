@@ -292,19 +292,19 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
     components.map(component => {
       component match {
         case c: VideoComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
+          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
         case c: AudioComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
+          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
         case c: ImageComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
+          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
         case c: BookComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
+          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
         case c: TextComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
+          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
         case c: GenericHTMLComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
+          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
         case c: RubricComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
+          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
       }
     })
   }

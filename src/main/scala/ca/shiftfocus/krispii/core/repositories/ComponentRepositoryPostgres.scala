@@ -46,6 +46,15 @@ class ComponentRepositoryPostgres()
       Json.parse(row("audio_data").asInstanceOf[String]).as[MediaData],
       row("ord").asInstanceOf[Int],
       row("is_private").asInstanceOf[Boolean],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -62,6 +71,15 @@ class ComponentRepositoryPostgres()
       Json.parse(row("image_data").asInstanceOf[String]).as[MediaData],
       row("ord").asInstanceOf[Int],
       row("is_private").asInstanceOf[Boolean],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -78,6 +96,15 @@ class ComponentRepositoryPostgres()
       row("ord").asInstanceOf[Int],
       row("is_private").asInstanceOf[Boolean],
       row("html_content").asInstanceOf[String],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -94,6 +121,15 @@ class ComponentRepositoryPostgres()
       row("ord").asInstanceOf[Int],
       row("is_private").asInstanceOf[Boolean],
       row("rubric_content").asInstanceOf[String],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -110,6 +146,15 @@ class ComponentRepositoryPostgres()
       row("content").asInstanceOf[String],
       row("ord").asInstanceOf[Int],
       row("is_private").asInstanceOf[Boolean],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -128,6 +173,15 @@ class ComponentRepositoryPostgres()
       row("height").asInstanceOf[Int],
       row("ord").asInstanceOf[Int],
       row("is_private").asInstanceOf[Boolean],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -144,6 +198,15 @@ class ComponentRepositoryPostgres()
       Json.parse(row("file_data").asInstanceOf[String]).as[MediaData],
       row("ord").asInstanceOf[Int],
       row("is_private").asInstanceOf[Boolean],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -152,7 +215,7 @@ class ComponentRepositoryPostgres()
   // -- Common query components --------------------------------------------------------------------------------------
 
   val Table = "components"
-  val CommonFields = "id, version, owner_id, title, questions, things_to_think_about, ord, is_private, created_at, updated_at, type"
+  val CommonFields = "id, version, owner_id, title, questions, things_to_think_about, ord, is_private, description, parent_id, parent_version, created_at, updated_at, type"
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
   }
@@ -169,7 +232,7 @@ class ComponentRepositoryPostgres()
        |  image_components.image_data
      """.stripMargin
 
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val GroupBy = s"${Table}.id"
   val OrderBy = s"${Table}.ord ASC"
   val Join =
@@ -373,7 +436,9 @@ class ComponentRepositoryPostgres()
       |SET version = ?, owner_id = ?,
       |    title = ?, questions = ?,
       |    things_to_think_about = ?, ord = ?,
-      |    is_private = ? , updated_at = ?
+      |    is_private = ?, description = ?,
+      |    parent_id = ?, parent_version = ?,
+      |    updated_at = ?
       |WHERE id = ?
       |  AND version = ?
       |RETURNING $CommonFields
@@ -634,6 +699,9 @@ class ComponentRepositoryPostgres()
       component.thingsToThinkAbout,
       component.order,
       component.isPrivate,
+      component.description,
+      component.parentId,
+      component.parentVersion,
       new DateTime,
       new DateTime
     )
@@ -703,6 +771,9 @@ class ComponentRepositoryPostgres()
       component.thingsToThinkAbout,
       component.order,
       component.isPrivate,
+      component.description,
+      component.parentId,
+      component.parentVersion,
       new DateTime,
       component.id,
       component.version

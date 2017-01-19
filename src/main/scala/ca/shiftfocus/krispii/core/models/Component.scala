@@ -15,6 +15,9 @@ abstract class Component {
   val thingsToThinkAbout: String
   val order: Int
   val isPrivate: Boolean
+  val description: String
+  val parentId: Option[UUID]
+  val parentVersion: Option[Long]
   val createdAt: DateTime
   val updatedAt: DateTime
 }
@@ -42,6 +45,9 @@ object Component {
           mediaData = (js \ "audio_data").as[MediaData],
           order = (js \ "order").as[Int],
           isPrivate = (js \ "isPrivate").as[Boolean],
+          description = (js \ "description").as[String],
+          parentId = Option((js \ "parentId").as[UUID]),
+          parentVersion = Option((js \ "parentVersion").as[Long]),
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
@@ -55,6 +61,9 @@ object Component {
           mediaData = (js \ "image_data").as[MediaData],
           order = (js \ "order").as[Int],
           isPrivate = (js \ "isPrivate").as[Boolean],
+          description = (js \ "description").as[String],
+          parentId = Option((js \ "parentId").as[UUID]),
+          parentVersion = Option((js \ "parentVersion").as[Long]),
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
@@ -67,6 +76,10 @@ object Component {
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
           content = (js \ "content").as[String],
           order = (js \ "order").as[Int],
+          isPrivate = (js \ "isPrivate").as[Boolean],
+          description = (js \ "description").as[String],
+          parentId = Option((js \ "parentId").as[UUID]),
+          parentVersion = Option((js \ "parentVersion").as[Long]),
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
@@ -79,6 +92,10 @@ object Component {
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
           htmlContent = (js \ "content").as[String],
           order = (js \ "order").as[Int],
+          isPrivate = (js \ "isPrivate").as[Boolean],
+          description = (js \ "description").as[String],
+          parentId = Option((js \ "parentId").as[UUID]),
+          parentVersion = Option((js \ "parentVersion").as[Long]),
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
@@ -91,6 +108,10 @@ object Component {
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
           rubricContent = (js \ "content").as[String],
           order = (js \ "order").as[Int],
+          isPrivate = (js \ "isPrivate").as[Boolean],
+          description = (js \ "description").as[String],
+          parentId = Option((js \ "parentId").as[UUID]),
+          parentVersion = Option((js \ "parentVersion").as[Long]),
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
@@ -103,6 +124,10 @@ object Component {
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
           mediaData = (js \ "file_data").as[MediaData],
           order = (js \ "order").as[Int],
+          isPrivate = (js \ "isPrivate").as[Boolean],
+          description = (js \ "description").as[String],
+          parentId = Option((js \ "parentId").as[UUID]),
+          parentVersion = Option((js \ "parentVersion").as[Long]),
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
@@ -117,6 +142,10 @@ object Component {
           width = (js \ "width").as[Int],
           height = (js \ "height").as[Int],
           order = (js \ "order").as[Int],
+          isPrivate = (js \ "isPrivate").as[Boolean],
+          description = (js \ "description").as[String],
+          parentId = Option((js \ "parentId").as[UUID]),
+          parentVersion = Option((js \ "parentVersion").as[Long]),
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )

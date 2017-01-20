@@ -51,6 +51,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       |             ON components.id = video_components.component_id
       |             WHERE components.owner_id = ?
       |               AND video_components.video_data::jsonb->>'host' = 's3'
+      |               AND components.parent_id IS NULL
       |             ORDER BY video_data::jsonb->>'data'
       |            )
       |            AS vc_data),
@@ -63,6 +64,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       |             ON components.id = audio_components.component_id
       |             WHERE components.owner_id = ?
       |               AND audio_components.audio_data::jsonb->>'host' = 's3'
+      |               AND components.parent_id IS NULL
       |             ORDER BY audio_data::jsonb->>'data'
       |            )
       |            AS ac_data),
@@ -75,6 +77,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       |             ON components.id = image_components.component_id
       |             WHERE components.owner_id = ?
       |               AND image_components.image_data::jsonb->>'host' = 's3'
+      |               AND components.parent_id IS NULL
       |             ORDER BY image_data::jsonb->>'data'
       |            )
       |            AS ic_data),
@@ -87,6 +90,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       |             ON components.id = book_components.component_id
       |             WHERE components.owner_id = ?
       |               AND book_components.file_data::jsonb->>'host' = 's3'
+      |               AND components.parent_id IS NULL
       |             ORDER BY file_data::jsonb->>'data'
       |            )
       |            AS bc_data),

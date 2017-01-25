@@ -314,11 +314,8 @@ class AuthServiceDefault(
       Logger.debug("creating google user")
       Logger.debug(newUser.toString)
       val fUser = for {
-
         user <- lift(userRepository.insert(newUser))
         _ = Logger.debug("user created")
-        roles <- lift(serializedT(IndexedSeq("authenticated", "teacher"))(roleRepository.addToUser(user, _)))
-        _ = Logger.debug("roles added")
       } yield user
       fUser.run
     }

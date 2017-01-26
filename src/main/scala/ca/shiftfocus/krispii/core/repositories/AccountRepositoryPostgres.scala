@@ -68,6 +68,13 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
        |RETURNING $Fields
      """.stripMargin
 
+  val Delete =
+    s"""
+       |DELETE FROM $Table
+       |WHERE user_id = ?
+       |RETURNING $Fields
+     """.stripMargin
+
   // TODO - add cache
   def get(accountId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     queryOne(Select, Seq[Any](accountId))
@@ -99,6 +106,11 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
     )
 
     queryOne(Update, params)
+  }
+
+  // TODO - add cache
+  def delete(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
+    queryOne(Delete, Seq[Any](userId))
   }
 }
 

@@ -79,6 +79,16 @@ class UserPreferenceRepositoryPostgres extends UserPreferenceRepository with Pos
      """.stripMargin
   }
 
+  val DeleteAllForUser =
+    s"""
+       |DELETE FROM $Table
+       |USING
+       |  preferences
+       |WHERE user_id = ?
+       | AND preferences.id = $Table.pref_id
+       |RETURNING $Fields, machine_name
+     """.stripMargin
+
   def get(userId: UUID, pref: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, UserPreference]] = {
     queryOne(SelectByUser, Seq[Any](userId, pref))
   }
@@ -98,5 +108,16 @@ class UserPreferenceRepositoryPostgres extends UserPreferenceRepository with Pos
       }
       case -\/(error) => Future successful -\/(error)
     }
+  }
+
+  /**
+   * Delete all for a user
+   *
+   * @param userId
+   * @param conn
+   * @return
+   */
+  def delete(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[UserPreference]]] = {
+    queryList(DeleteAllForUser, Seq[Any](userId))
   }
 }

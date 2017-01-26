@@ -128,6 +128,10 @@ class PaymentServiceDefault(
     } yield updatedAccount.copy(subscriptions = subscriptions)
   }
 
+  def deleteAccount(userId: UUID): Future[\/[ErrorUnion#Fail, Account]] = {
+    accountRepository.delete(userId)
+  }
+
   /**
    * List all available plans from stripe
    *

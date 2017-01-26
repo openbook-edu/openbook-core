@@ -15,4 +15,5 @@ trait AccountRepository extends Repository {
   def getByCustomerId(customerId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]]
   def insert(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]]
   def update(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]]
+  def delete(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]]
 }

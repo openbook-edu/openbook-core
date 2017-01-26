@@ -37,4 +37,10 @@ class UserPreferenceServiceDefault(
       ))
     }
   }
+
+  def delete(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[UserPreference]]] = {
+    transactional { implicit conn: Connection =>
+      userPreferenceRepository.delete(userId)
+    }
+  }
 }

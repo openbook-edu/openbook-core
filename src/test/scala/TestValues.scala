@@ -330,7 +330,7 @@ object TestValues {
   )
 
   /**
-   *  Course without students
+   * Course without students
    */
   val testCourseG = Course(
     id = UUID.fromString("b24abba8-e6c7-4700-900c-e66ed0185a70"),
@@ -2856,5 +2856,12 @@ object TestValues {
     prefName = "lang",
     state = "en"
   )
-}
 
+  /* ---------------------- PROJECT TOKENS ---------------------- */
+  val testProjectTokenA = ProjectToken(
+    projectId = testProjectA.id,
+    email = "some@email.com",
+    token = "26944803-6dbd-487b-b83d-f222f87c0703",
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+}

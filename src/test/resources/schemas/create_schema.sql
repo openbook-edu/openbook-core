@@ -523,6 +523,13 @@ CREATE TABLE users_preferences (
     PRIMARY KEY (user_id, pref_id)
 );
 
+CREATE TABLE project_tokens (
+  project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  email text NOT NULL,
+  token text NOT NULL,
+  created_at timestamp with time zone
+);
+
 CREATE OR REPLACE FUNCTION get_slug(_slug text, _table text, _id uuid) RETURNS text AS $$
 DECLARE
  updatedSlug text := $1;

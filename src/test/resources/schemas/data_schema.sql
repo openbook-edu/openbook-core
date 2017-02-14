@@ -1010,3 +1010,8 @@ VALUES ('ea8a2527bb57493aaedc3289305258db', 'en'),
 
 INSERT INTO users_preferences (user_id, pref_id, state)
 VALUES ('36c8c0ca50aa4806afa5916a5e33a81f', 'ea8a2527bb57493aaedc3289305258db', 'en');
+
+/* ---------------------- PROJECT TOKENS ---------------------- */
+/* project A */
+INSERT INTO project_tokens(project_id, email, token, created_at)
+VALUES  ('c9b4cfceaed448fd94f5c980763dfddc', 'some@email.com', '26944803-6dbd-487b-b83d-f222f87c0703', '2014-08-05 14:01:19.545-04');

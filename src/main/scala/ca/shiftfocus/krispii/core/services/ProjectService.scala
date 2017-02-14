@@ -53,7 +53,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     projectType: String
   ): Future[\/[ErrorUnion#Fail, Project]]
 
-  def copyMasterProject(projectId: UUID, courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]]
+  def copyProject(projectId: UUID, courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]]
 
   def updateInfo(
     id: UUID,
@@ -121,4 +121,8 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
   def moveTask(taskId: UUID, version: Long, newPosition: Int, partId: Option[UUID] = None): Future[\/[ErrorUnion#Fail, Task]]
   def hasTaskWork(taskId: UUID): Future[\/[ErrorUnion#Fail, Boolean]]
   def hasPartWork(partId: UUID): Future[\/[ErrorUnion#Fail, Boolean]]
+
+  def getToken(token: String): Future[\/[ErrorUnion#Fail, ProjectToken]]
+  def createToken(projectId: UUID, email: String): Future[\/[ErrorUnion#Fail, ProjectToken]]
+  def deleteToken(token: String): Future[\/[ErrorUnion#Fail, ProjectToken]]
 }

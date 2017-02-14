@@ -29,6 +29,7 @@ class ProjectServiceDefault(
     val partRepository: PartRepository,
     val taskRepository: TaskRepository,
     val workRepository: WorkRepository,
+    val projectTokenRepository: ProjectTokenRepository,
     val componentRepository: ComponentRepository
 ) extends ProjectService {
 
@@ -183,34 +184,52 @@ class ProjectServiceDefault(
   }
 
   /**
-   * insert array of tasks in for
+   * If master then we should create new components with
    *
    * @param projectId
    * @param courseId
    * @param userId
    * @return
    */
-  override def copyMasterProject(projectId: UUID, courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]] = {
+  override def copyProject(projectId: UUID, courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
-
-      val futureProject = for {
+      for {
+        project <- lift(projectRepository.find(projectId))
+        // Project
         clonedProject <- lift(projectRepository.cloneProject(projectId, courseId))
         newProject <- lift(insertProject(clonedProject))
+        // Parts, tasks
         clonedParts <- lift(projectRepository.cloneProjectParts(projectId, userId, clonedProject.id))
-        clonedComponents <- lift(projectRepository.cloneProjectComponents(projectId, userId))
         parts <- lift(insertParts(clonedParts))
-        components <- lift(insertComponents(clonedComponents))
-        partsWithAdditions <- lift(serializedT(clonedParts)(part => {
-          for {
-            tasks <- lift(insertTasks(part.tasks, part))
-            // Get only components that are for the current part
-            filteredComponents = components.filter(c => part.components.find(_.title == c.title).isDefined)
-            partComponents <- lift(insertPartsComponents(filteredComponents, part))
-          } yield tasks
-        }))
+
+        _ <- lift {
+          // Insert master project components and tasks
+          if (project.isMaster) {
+            for {
+              clonedComponents <- lift(projectRepository.cloneProjectComponents(projectId, userId))
+              components <- lift(insertComponents(clonedComponents))
+              partsWithAdditions <- lift(serializedT(clonedParts)(part => {
+                for {
+                  tasks <- lift(insertTasks(part.tasks, part))
+                  // Get only components that are for the current part
+                  filteredComponents = components.filter(c => part.components.find(_.title == c.title).isDefined)
+                  partComponents <- lift(insertPartsComponents(filteredComponents, part))
+                } yield tasks
+              }))
+            } yield components
+          }
+          else {
+            // Insert tasks and link components with parts
+            serializedT(clonedParts)(part => {
+              for {
+                tasks <- lift(insertTasks(part.tasks, part))
+                partComponents <- lift(insertPartsComponents(part.components, part))
+              } yield tasks
+            })
+          }
+        }
         //we need to return the newProject not the clonedProject because the latter one doesn't have the updated slug
       } yield newProject.copy(parts = clonedParts)
-      futureProject
     }
   }
 
@@ -1235,6 +1254,24 @@ class ProjectServiceDefault(
       }
       // If list contains true, that means at least one student work exists
     } yield taskEmptyList.contains(true)
+  }
+
+  def getToken(token: String): Future[\/[ErrorUnion#Fail, ProjectToken]] = {
+    projectTokenRepository.get(token)
+  }
+
+  def createToken(projectId: UUID, email: String): Future[\/[ErrorUnion#Fail, ProjectToken]] = {
+    projectTokenRepository.insert(ProjectToken(
+      projectId,
+      email
+    ))
+  }
+
+  def deleteToken(token: String): Future[\/[ErrorUnion#Fail, ProjectToken]] = {
+    for {
+      token <- lift(projectTokenRepository.get(token))
+      deletedToken <- lift(projectTokenRepository.delete(token))
+    } yield deletedToken
   }
 
   /**

@@ -391,7 +391,8 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Switch subscription to a new plan in stripe and update subscription info in Krispii db
+   * Switch subscription to a new plan in stripe and update subscription info in Krispii db.
+   * Or resubscribe to the same plan.
    *
    * @param userId
    * @param  subscriptionId
@@ -410,8 +411,9 @@ class PaymentServiceDefault(
           val updatedSubsctiption = subscription.update(params, requestOptions)
           val newPlan: Plan = updatedSubsctiption.getPlan
 
+          // If we switch plans and
           // If plans intervals match then we should manually create an invoice and force payment
-          if (currentPlan.getInterval == newPlan.getInterval) {
+          if (currentPlan.getId != newPlan.getId && currentPlan.getInterval == newPlan.getInterval) {
             val customerId = subscription.getCustomer
             val invoiceParams = new java.util.HashMap[String, Object]()
             invoiceParams.put("customer", customerId)

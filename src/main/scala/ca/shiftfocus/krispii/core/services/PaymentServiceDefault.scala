@@ -406,7 +406,18 @@ class PaymentServiceDefault(
           params.put("plan", newPlanId)
 
           val subscription: Subscription = Subscription.retrieve(subscriptionId, requestOptions)
+          val currentPlan: Plan = subscription.getPlan
+          val newPlan: Plan = Plan.retrieve(newPlanId)
           val updatedSubsctiption = subscription.update(params, requestOptions)
+
+          // If plans intervals match then we should manually create an invoice and force payment
+          if (currentPlan.getInterval == newPlan.getInterval) {
+            val customerId = subscription.getCustomer
+            val invoiceParams = new java.util.HashMap[String, Object]()
+            invoiceParams.put("customer", customerId)
+            val invoice: Invoice = Invoice.create(invoiceParams)
+            invoice.pay()
+          }
 
           \/-(updatedSubsctiption)
         }

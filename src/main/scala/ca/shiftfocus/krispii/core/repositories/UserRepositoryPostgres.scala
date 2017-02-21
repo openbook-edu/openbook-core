@@ -41,17 +41,18 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
       case _ => None
     },
       accountType = row("account_type").asInstanceOf[String],
+      isDeleted = row("is_deleted").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )
   }
 
   val Table = "users"
-  val Fields = "id, version, created_at, updated_at, username, email, password_hash, givenname, surname, alias, account_type"
-  val FieldsWithoutTable = "id, version, created_at, updated_at, username, email, givenname, surname, alias, account_type"
+  val Fields = "id, version, created_at, updated_at, username, email, password_hash, givenname, surname, alias, account_type, is_deleted"
+  val FieldsWithoutTable = "id, version, created_at, updated_at, username, email, givenname, surname, alias, account_type, is_deleted"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val FieldsWithoutHash = FieldsWithTable.replace(s"${Table}.password_hash,", "")
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.surname ASC, ${Table}.givenname ASC"
 
   // User CRUD operations
@@ -68,7 +69,15 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |SELECT $Fields
        |FROM $Table
        |WHERE id = ?
-       |AND is_deleted = FALSE
+       |  AND is_deleted = FALSE
+       |LIMIT 1
+     """.stripMargin
+
+  val SelectOneAdmin =
+    s"""
+       |SELECT $Fields
+       |FROM $Table
+       |WHERE id = ?
        |LIMIT 1
      """.stripMargin
 
@@ -87,6 +96,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
     s"""
        |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> ? AS dist
        |FROM users
+       |WHERE is_deleted = ?
        |ORDER BY dist LIMIT 10) as sub  where dist < 0.9;
     """.stripMargin
 
@@ -101,7 +111,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   val UpdateNoPass = {
     s"""
        |UPDATE $Table
-       |SET username = ?, email = ?, givenname = ?, surname = ?, alias = ?, account_type = ?, version = ?, updated_at = current_timestamp
+       |SET username = ?, email = ?, givenname = ?, surname = ?, alias = ?, account_type = ?, is_deleted = ?, version = ?, updated_at = current_timestamp
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $FieldsWithoutHash
@@ -111,7 +121,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   val UpdateWithPass = {
     s"""
        |UPDATE $Table
-        |SET username = ?, email = ?, password_hash = ?, givenname = ?, surname = ?, alias = ?, account_type = ?, version = ?, updated_at = current_timestamp
+        |SET username = ?, email = ?, password_hash = ?, givenname = ?, surname = ?, alias = ?, account_type = ?, is_deleted = ?, version = ?, updated_at = current_timestamp
         |WHERE id = ?
         |  AND version = ?
         |RETURNING $FieldsWithoutHash
@@ -177,7 +187,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @return a future disjunction containing either the users, or a failure
    */
   override def list(userIds: IndexedSeq[UUID])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    serializedT(userIds)(find).map(_.map { userList =>
+    serializedT(userIds)(find(_)).map(_.map { userList =>
       userList.map { user =>
         user.copy(hash = None)
       }
@@ -218,15 +228,20 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @param id the UUID of the user to search for.
    * @return a future disjunction containing either the user, or a failure
    */
-  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]] = {
+  override def find(id: UUID, includeDeleted: Boolean = false)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]] = {
     cache.getCached[User](cacheUserKey(id)).flatMap {
       case \/-(user) => Future successful \/.right[RepositoryError.Fail, User](user)
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case -\/(noResults: RepositoryError.NoResults) => {
+        val query = {
+          if (includeDeleted) SelectOneAdmin
+          else SelectOne
+        }
         for {
-          user <- lift(queryOne(SelectOne, Seq[Any](id)))
+          user <- lift(queryOne(query, Seq[Any](id)))
           _ <- lift(cache.putCache[UUID](cacheUsernameKey(user.username))(user.id, ttl))
           _ <- lift(cache.putCache[User](cacheUserKey(user.id))(user, ttl))
         } yield user
+      }
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -289,11 +304,11 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
         user.hash match {
           case Some(hash) =>
             queryOne(UpdateWithPass, Seq[Any](
-              user.username, user.email, hash, user.givenname, user.surname, user.alias, user.accountType,
+              user.username, user.email, hash, user.givenname, user.surname, user.alias, user.accountType, user.isDeleted,
               user.version + 1, user.id, user.version
             ))
           case None => queryOne(UpdateNoPass, Seq[Any](
-            user.username, user.email, user.givenname, user.surname, user.alias, user.accountType,
+            user.username, user.email, user.givenname, user.surname, user.alias, user.accountType, user.isDeleted,
             user.version + 1, user.id, user.version
           ))
         }
@@ -322,7 +337,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @param key
    * @param conn
    */
-  def triagramSearch(key: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    queryList(SelectAllByKey, Seq[Any](key))
+  def triagramSearch(key: String, includeDeleted: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    queryList(SelectAllByKey, Seq[Any](key, includeDeleted))
   }
 }

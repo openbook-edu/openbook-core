@@ -40,7 +40,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   /**
    * List user by similiarity to a key word
    */
-  def listByKey(key: String): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
+  def listByKey(key: String, includeDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
   /**
    * List all users.
@@ -62,7 +62,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    *
    * @param id the unique id of the user
    */
-  def find(id: UUID): Future[\/[ErrorUnion#Fail, User]]
+  def find(id: UUID, includeDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, User]]
 
   /**
    * Find a user by their unique identifier.

@@ -212,7 +212,7 @@ class ScheduleServiceDefault(
           ServiceError.BusinessLogicFail("Invalid number of exception ids")
         })
         course <- lift(schoolService.findCourse(courseId))
-        usersSpecified <- lift(serializedT(userIds)(authService.find))
+        usersSpecified <- lift(serializedT(userIds)(authService.find(_)))
         usersSpecifiedInd = usersSpecified.zipWithIndex
         usersInCourse <- lift(schoolService.listStudents(courseId))
         areUsersPresent = usersSpecified.forall((us: User) => usersInCourse.contains(us))

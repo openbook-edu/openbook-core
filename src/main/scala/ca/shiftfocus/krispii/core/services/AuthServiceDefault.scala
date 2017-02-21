@@ -192,9 +192,9 @@ class AuthServiceDefault(
    * @param id the unique id for the user
    * @return a future disjunction containing the user and their information, or a failure
    */
-  override def find(id: UUID): Future[\/[ErrorUnion#Fail, User]] = {
+  override def find(id: UUID, includeDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, User]] = {
     for {
-      user <- lift(userRepository.find(id))
+      user <- lift(userRepository.find(id, includeDeleted))
       roles <- lift(roleRepository.list(user))
     } yield user.copy(roles = roles)
   }
@@ -861,9 +861,9 @@ class AuthServiceDefault(
    *
    * @param key the stuff user already typed in
    */
-  override def listByKey(key: String): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
+  override def listByKey(key: String, includeDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     (for {
-      users <- lift(userRepository.triagramSearch(key))
+      users <- lift(userRepository.triagramSearch(key, includeDeleted))
       result <- liftSeq {
         users.map { user =>
           (for {

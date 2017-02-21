@@ -19,6 +19,8 @@ case class User(
     roles: IndexedSeq[Role] = IndexedSeq.empty[Role],
     token: Option[UserToken] = None,
     accountType: String,
+    // We should show this field only to admins, that's why it is not included in Json writes, and is included in Json adminWrites
+    isDeleted: Boolean = false,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) {
@@ -61,6 +63,23 @@ object User {
         "updatedAt" -> user.updatedAt
       )
     }
+  }
+
+  def adminWrites(user: User): JsValue = {
+    Json.obj(
+      "id" -> user.id.toString,
+      "version" -> user.version,
+      "username" -> user.username,
+      "email" -> user.email,
+      "givenname" -> user.givenname,
+      "surname" -> user.surname,
+      "alias" -> user.alias,
+      "roles" -> user.roles,
+      "accountType" -> user.accountType,
+      "isDeleted" -> user.isDeleted,
+      "createdAt" -> user.createdAt,
+      "updatedAt" -> user.updatedAt
+    )
   }
 }
 

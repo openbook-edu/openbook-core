@@ -393,6 +393,8 @@ class PaymentServiceDefault(
   /**
    * Switch subscription to a new plan in stripe and update subscription info in Krispii db.
    * Or resubscribe to the same plan.
+   * If we switch plans and if plans intervals match we manually create an invoice and
+   * payment is automatically attempted between 1 and 2 hours after the invoice is created
    *
    * @param userId
    * @param  subscriptionId
@@ -417,8 +419,9 @@ class PaymentServiceDefault(
             val customerId = subscription.getCustomer
             val invoiceParams = new java.util.HashMap[String, Object]()
             invoiceParams.put("customer", customerId)
-            val invoice: Invoice = Invoice.create(invoiceParams, requestOptions)
-            invoice.pay(requestOptions)
+            // Note that manually creating an invoice does not lead to a synchronous attempt to pay the invoice.
+            // Payment is automatically attempted between 1 and 2 hours after the invoice is created.
+            Invoice.create(invoiceParams, requestOptions)
           }
 
           \/-(updatedSubsctiption)

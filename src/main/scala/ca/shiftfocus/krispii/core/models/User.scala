@@ -63,23 +63,23 @@ object User {
         "updatedAt" -> user.updatedAt
       )
     }
-  }
 
-  def adminWrites(user: User): JsValue = {
-    Json.obj(
-      "id" -> user.id.toString,
-      "version" -> user.version,
-      "username" -> user.username,
-      "email" -> user.email,
-      "givenname" -> user.givenname,
-      "surname" -> user.surname,
-      "alias" -> user.alias,
-      "roles" -> user.roles,
-      "accountType" -> user.accountType,
-      "isDeleted" -> user.isDeleted,
-      "createdAt" -> user.createdAt,
-      "updatedAt" -> user.updatedAt
-    )
+    def adminWrites(user: User): JsValue = {
+      Json.obj(
+        "id" -> user.id.toString,
+        "version" -> user.version,
+        "username" -> user.username,
+        "email" -> user.email,
+        "givenname" -> user.givenname,
+        "surname" -> user.surname,
+        "alias" -> user.alias,
+        "roles" -> user.roles,
+        "accountType" -> user.accountType,
+        "isDeleted" -> user.isDeleted,
+        "createdAt" -> user.createdAt,
+        "updatedAt" -> user.updatedAt
+      )
+    }
   }
 }
 

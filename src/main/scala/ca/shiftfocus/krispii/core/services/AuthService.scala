@@ -140,7 +140,8 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     givenname: Option[String],
     surname: Option[String],
     alias: Option[String],
-    password: Option[String]
+    password: Option[String],
+    isDeleted: Option[Boolean]
   ): Future[\/[ErrorUnion#Fail, User]]
 
   /**

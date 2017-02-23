@@ -370,11 +370,13 @@ class AuthServiceDefault(
     givenname: Option[String],
     surname: Option[String],
     alias: Option[String],
-    password: Option[String]
+    password: Option[String],
+    isDeleted: Option[Boolean]
   ): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
+      val includeDeletedUsers = true
       val updated = for {
-        existingUser <- lift(userRepository.find(id))
+        existingUser <- lift(userRepository.find(id, includeDeletedUsers))
         _ <- predicate(existingUser.version == version)(ServiceError.OfflineLockFail)
         u_email <- lift(email.map { someEmail => validateEmail(someEmail.trim.toLowerCase, Some(id)) }.getOrElse(Future.successful(\/-(existingUser.email))))
         u_username <- lift(username.map { someUsername => validateUsername(someUsername, Some(id)) }.getOrElse(Future.successful(\/-(existingUser.username))))
@@ -401,10 +403,12 @@ class AuthServiceDefault(
             case Some(userAlias) if userAlias.trim.isEmpty => None
             case None => existingUser.alias
           },
-          hash = hash
+          hash = hash,
+          isDeleted = isDeleted.getOrElse(existingUser.isDeleted)
         )
         updatedUser <- lift(userRepository.update(userToUpdate))
-      } yield updatedUser
+        roles <- lift(roleRepository.list(updatedUser))
+      } yield updatedUser.copy(roles = roles)
       updated.run
     }
   }

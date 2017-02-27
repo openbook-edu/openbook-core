@@ -52,12 +52,25 @@ class PaymentLogRepositoryPostgres extends PaymentLogRepository with PostgresRep
     """.stripMargin
   }
 
+  val MoveToUser = {
+    s"""
+       |UPDATE $Table
+       |SET user_id = ?
+       |WHERE user_id = ?
+       |RETURNING $Fields
+    """.stripMargin
+  }
+
   def list()(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[PaymentLog]]] = {
     queryList(SelectAll)
   }
 
   def list(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[PaymentLog]]] = {
     queryList(SelectAllByUser, Seq[Any](userId))
+  }
+
+  def move(oldUserId: UUID, newUserId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[PaymentLog]]] = {
+    queryList(MoveToUser, Seq[Any](newUserId, oldUserId))
   }
 
   def insert(paymentLog: PaymentLog)(implicit conn: Connection): Future[\/[RepositoryError.Fail, PaymentLog]] = {

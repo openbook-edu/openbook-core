@@ -44,6 +44,14 @@ class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[
        |RETURNING subscription as data
      """.stripMargin
 
+  val MoveSubscriptions =
+    s"""
+       |UPDATE users_subscriptions
+       |SET user_id = ?
+       |WHERE user_id = ?
+       |RETURNING subscription as data
+     """.stripMargin
+
   val DeleteSubscription =
     s"""
        |DELETE FROM users_subscriptions
@@ -82,6 +90,10 @@ class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[
 
   def updateSubscription(userId: UUID, subscriptionId: String, subscription: JsValue)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]] = {
     queryOne(UpdateSubscription, Seq[Any](subscription, userId, subscriptionId))
+  }
+
+  def moveSubscriptions(oldUserId: UUID, newUserId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JsValue]]] = {
+    queryList(MoveSubscriptions, Seq[Any](newUserId, oldUserId))
   }
 
   def deleteSubscription(userId: UUID, subscriptionId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]] = {

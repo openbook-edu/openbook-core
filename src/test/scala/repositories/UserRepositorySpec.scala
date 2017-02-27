@@ -1,21 +1,45 @@
-//import java.util.UUID
-//
-//import ca.shiftfocus.krispii.core.error.RepositoryError
-//import ca.shiftfocus.krispii.core.models.{ Role, User }
-//import ca.shiftfocus.krispii.core.repositories.UserRepositoryPostgres
-//import org.scalatest.Matchers._
-//import org.scalatest._
-//
-//import scala.collection.breakOut
-//import scala.collection.immutable.TreeMap
-//import scala.concurrent.duration._
-//import scala.concurrent.{ Await, Future }
-//import scalaz.{ -\/, \/- }
-//import play.api.Logger
-//
-//class UserRepositorySpec
-//    extends TestEnvironment {
-//  val userRepository = new UserRepositoryPostgres
+import java.util.UUID
+
+import ca.shiftfocus.krispii.core.error.RepositoryError
+import ca.shiftfocus.krispii.core.models.{ Role, User }
+import ca.shiftfocus.krispii.core.repositories.UserRepositoryPostgres
+import org.scalatest.Matchers._
+import org.scalatest._
+
+import scala.collection.breakOut
+import scala.collection.immutable.TreeMap
+import scala.concurrent.duration._
+import scala.concurrent.{ Await, Future }
+import scalaz.{ -\/, \/- }
+import play.api.Logger
+
+class UserRepositorySpec
+    extends TestEnvironment {
+  val userRepository = new UserRepositoryPostgres
+
+  "UserRepository.findDeleted" should {
+    inSequence {
+      "find Deleted user" in {
+        val testUser = TestValues.testUserK
+        val email = testUser.email.replaceAll("^deleted_[1-9]{10}_", "")
+
+        val result = userRepository.findDeleted(email)
+        val eitherUser = Await.result(result, Duration.Inf)
+        val \/-(user) = eitherUser
+
+        user.id should be(testUser.id)
+        user.version should be(testUser.version)
+        user.email should be(testUser.email)
+        user.username should be(testUser.username)
+        user.hash should be(testUser.hash)
+        user.givenname should be(testUser.givenname)
+        user.surname should be(testUser.surname)
+        user.createdAt.toString() should be(testUser.createdAt.toString())
+        user.updatedAt.toString() should be(testUser.updatedAt.toString())
+      }
+    }
+  }
+}
 //
 //  "UserRepository.list" should {
 //    inSequence {

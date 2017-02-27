@@ -131,7 +131,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   val Delete =
     s"""
        |UPDATE $Table
-       |SET is_deleted = TRUE, updated_at = current_timestamp
+       |SET is_deleted = TRUE, updated_at = current_timestamp, username = ?, email = ?
        |WHERE id = ?
        |AND version = ?
        |RETURNING $FieldsWithoutHash
@@ -143,6 +143,17 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |FROM $Table
        |WHERE (email = ? OR username = ?)
        |AND is_deleted = FALSE
+       |LIMIT 1
+     """.stripMargin
+
+  // sql LIKE statement is not working with parameters so we are using string replace
+  val SelectDeletedByEmail =
+    s"""
+       |SELECT $Fields
+       |FROM $Table
+       |WHERE (email like '%{identifier}')
+       |AND is_deleted = TRUE
+       |ORDER BY created_at DESC
        |LIMIT 1
      """.stripMargin
 
@@ -272,6 +283,19 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   }
 
   /**
+   * Find a deleted user by their identifiers, using sql LIKE '%identifier'. I.E. email or surname should ends with identifier.
+   * Be careful, because deleted user can be: deleted_1487883998_some.email@example.com,
+   * and new user can be email@example.com, which will also match sql LIKE query: '%email@example.com'
+   *
+   * @param identifier a String representing their e-mail or username.
+   * @return a future disjunction containing either the user, or a failure
+   */
+  override def findDeleted(identifier: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]] = {
+    // sql LIKE statement is not working with parameters so we are using string replace
+    queryOne(SelectDeletedByEmail.replace("{identifier}", identifier))
+  }
+
+  /**
    * Save a new User.
    *
    * Because we're using UUID, we assume we can always successfully create
@@ -319,14 +343,20 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   }
 
   /**
-   * Delete a user from the database.
+   * Mark user as deleted and update username and email.
    *
    * @param user the user to be deleted
    * @return a future disjunction containing either the deleted user, or a failure
    */
   override def delete(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]] = {
+    val timestamp = System.currentTimeMillis / 1000
     for {
-      deleted <- lift(queryOne(Delete, Seq[Any](user.id, user.version)))
+      deleted <- lift(queryOne(Delete, Seq[Any](
+        (s"deleted_${timestamp}_" + user.username),
+        (s"deleted_${timestamp}_" + user.email),
+        user.id,
+        user.version
+      )))
       _ <- lift(cache.removeCached(cacheUserKey(deleted.id)))
       _ <- lift(cache.removeCached(cacheUsernameKey(deleted.username)))
     } yield deleted

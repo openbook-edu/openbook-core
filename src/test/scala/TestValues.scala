@@ -157,6 +157,19 @@ object TestValues {
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
+
+  val testUserK = User(
+    id = UUID.fromString("11eb9ca0-26dc-42d0-89f8-f5952dcbe2e4"),
+    version = 1L,
+    email = "deleted_1487958454_testUserK@example.com",
+    username = "deleted_1487958454_testUserK",
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
+    givenname = "TestK",
+    surname = "UserK",
+    accountType = "google",
+    createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
   /* ---------------------- ROLES ---------------------- */
 
   val testRoleAuth = Role(

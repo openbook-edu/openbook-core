@@ -91,6 +91,8 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     id: UUID = UUID.randomUUID
   ): Future[\/[ErrorUnion#Fail, User]]
 
+  def syncWithDeletedUser(newUser: User): Future[\/[ErrorUnion#Fail, Account]]
+
   /**
    * Creates a new user with the given role.
    * @param username

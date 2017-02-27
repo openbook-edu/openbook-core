@@ -41,6 +41,12 @@ VALUES ('a898c83a-5638-4483-9528-8037b3ed661d', 1, 'kmccormick@krispii.com', 'my
 /* user  */
 INSERT INTO users (id, version, email, username, password_hash, givenname, surname, account_type, created_at, updated_at)
 VALUES ('871b525067124e548ab60784cae0bc65', 1, 'testUserNew@example.com', 'testUserNew', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestNew', 'UserNew', 'google', '2014-08-03 14:01:19.545-04', '2014-08-04 14:01:19.545-04');
+
+/* user K */
+INSERT INTO users (id, version, email, username, password_hash, givenname, surname, account_type, created_at, updated_at, is_deleted)
+VALUES ('11eb9ca026dc42d089f8f5952dcbe2e4', 1, 'deleted_1487958454_testUserK@example.com', 'deleted_1487958454_testUserK', '$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=', 'TestK', 'UserK', 'google', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04', true);
+
+
 /* ---------------------- ROLES ---------------------- */
 
 /* role A */

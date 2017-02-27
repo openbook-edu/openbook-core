@@ -27,7 +27,10 @@ class AuthServiceDefault(
     val userTokenRepository: UserTokenRepository,
     val sessionRepository: SessionRepository,
     val mailerClient: MailerClient,
-    val wordRepository: WordRepository
+    val wordRepository: WordRepository,
+    val accountRepository: AccountRepository,
+    val stripeRepository: StripeRepository,
+    val paymentLogRepository: PaymentLogRepository
 ) extends AuthService {
 
   implicit def conn: Connection = db.pool
@@ -255,6 +258,45 @@ class AuthServiceDefault(
         _ <- lift(userTokenRepository.insert(newUser.id, token, activation))
       } yield user
     }
+  }
+
+  /**
+   * If deleted user exists then move his account, subscriptions and logs to a new user with the same email
+   *
+   * @param newUser
+   * @return
+   */
+  def syncWithDeletedUser(newUser: User): Future[\/[ErrorUnion#Fail, Account]] = {
+    for {
+      // Check if user was deleted and has stripe account and subscriptions
+      account <- lift(userRepository.findDeleted(newUser.email).flatMap {
+        // If deleted user is found
+        case \/-(deletedUser) => {
+          // We need to check if emails match 100%, because deleted user can be: deleted_1487883998_some.email@example.com,
+          // and new user can be email@example.com, which will also match sql LIKE query: '%email@example.com'
+          // @see userRepository.delete and userRepository.findDeleted
+          // So we need to clean deleted email to compare it
+          val oldEmail = deletedUser.email.replaceAll("^deleted_[0-9]{10}_", "")
+          val newEmail = newUser.email
+
+          if (oldEmail == newEmail) {
+            for {
+              // Move account from old user to a new user
+              account <- lift(accountRepository.getByUserId(deletedUser.id).flatMap {
+                case \/-(account) => accountRepository.update(account.copy(userId = newUser.id))
+                case -\/(error) => Future successful -\/(error)
+              })
+              // Move subscriptions from old user to a new user
+              subscriptions <- lift(stripeRepository.moveSubscriptions(deletedUser.id, newUser.id))
+              // Move payment logs from old user to a new user
+              paymentLogs <- lift(paymentLogRepository.move(deletedUser.id, newUser.id))
+            } yield (account)
+          }
+          else Future successful -\/(RepositoryError.NoResults("core.AuthServiceDefault.syncWithDeletedUser.no.user"))
+        }
+        case -\/(error) => Future successful -\/(error)
+      })
+    } yield account
   }
 
   /**

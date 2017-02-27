@@ -63,7 +63,7 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
   val Update =
     s"""
        |UPDATE $Table
-       |SET version = ?, status = ?, customer = ?, active_until = ?, overdue_started_at = ?, overdue_ended_at = ?, overdue_plan_id = ?
+       |SET version = ?, user_id = ?, status = ?, customer = ?, active_until = ?, overdue_started_at = ?, overdue_ended_at = ?, overdue_plan_id = ?
        |WHERE id = ?
        |RETURNING $Fields
      """.stripMargin
@@ -102,7 +102,7 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
   // TODO - add cache
   def update(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
-      account.version + 1, account.status, account.customer, account.activeUntil, account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId, account.id
+      account.version + 1, account.userId, account.status, account.customer, account.activeUntil, account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId, account.id
     )
 
     queryOne(Update, params)

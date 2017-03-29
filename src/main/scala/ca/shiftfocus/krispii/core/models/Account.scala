@@ -24,6 +24,7 @@ object AccountStatus {
   val free = "account.status.free"
   val trial = "account.status.trial"
   val paid = "account.status.paid"
+  val group = "account.status.paid.group"
   val onhold = "account.status.onhold"
   val error = "account.status.payment.error"
   val overdue = "account.status.overdue"
@@ -35,6 +36,7 @@ object AccountStatus {
       free,
       trial,
       paid,
+      group,
       onhold,
       error,
       overdue,

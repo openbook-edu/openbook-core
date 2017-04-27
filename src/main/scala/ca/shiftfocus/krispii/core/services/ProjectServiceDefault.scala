@@ -152,14 +152,39 @@ class ProjectServiceDefault(
     } yield components
   }
 
-  def insertTasks(tasks: IndexedSeq[Task], part: Part): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = {
+  def insertTasks(parts: IndexedSeq[Part]): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = {
     transactional { implicit conn: Connection =>
-      for {
-        tasks <- lift(serializedT(tasks)(task => {
-          Logger.error(s" inserting task ${part.toString}")
-          taskRepository.insert(task)
-        }))
-      } yield tasks
+      {
+        val empty: Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = Future.successful(\/-(IndexedSeq.empty[Task]))
+        // Go threw every part and get all tasks
+        for {
+          allTasks <- lift(parts.foldLeft(empty) { (fAccumulated, part) =>
+            (for {
+              accumulated <- lift(fAccumulated)
+            } yield accumulated ++ part.tasks).run
+          })
+
+          documentTasks = allTasks.filter(task => task.isInstanceOf[DocumentTask]).map(task => task.asInstanceOf[DocumentTask])
+          noDependenciesTasks = documentTasks.filter(task => task.dependencyId.isEmpty)
+          dependenciesTasks = documentTasks.filter(task => !task.dependencyId.isEmpty)
+          // First we need to insert tasks without dependecies
+          _ <- lift(serializedT(noDependenciesTasks)(task => {
+            taskRepository.insert(task)
+          }).flatMap {
+            // After we can insert tasks with dependecies
+            case \/-(taskList) => {
+              serializedT(dependenciesTasks)(task => {
+                taskRepository.insert(task)
+              })
+            }
+            case -\/(error) => Future successful -\/(error)
+          })
+
+          otherTasks <- lift(serializedT(allTasks.filter(task => !task.isInstanceOf[DocumentTask]))(task => {
+            taskRepository.insert(task)
+          }))
+        } yield allTasks
+      }
     }
   }
 
@@ -200,31 +225,27 @@ class ProjectServiceDefault(
         newProject <- lift(insertProject(clonedProject))
         // Parts, tasks
         clonedParts <- lift(projectRepository.cloneProjectParts(projectId, userId, clonedProject.id))
-        parts <- lift(insertParts(clonedParts))
+        _ <- lift(insertParts(clonedParts))
+        tasks <- lift(insertTasks(clonedParts))
 
         _ <- lift {
-          // Insert master project components and tasks
+          // Insert master project components
           if (project.isMaster) {
             for {
               clonedComponents <- lift(projectRepository.cloneProjectComponents(projectId, userId))
               components <- lift(insertComponents(clonedComponents))
               partsWithAdditions <- lift(serializedT(clonedParts)(part => {
-                for {
-                  tasks <- lift(insertTasks(part.tasks, part))
-                  // Get only components that are for the current part
-                  filteredComponents = components.filter(c => part.components.find(_.title == c.title).isDefined)
-                  partComponents <- lift(insertPartsComponents(filteredComponents, part))
-                } yield tasks
+                // Get only components that are for the current part
+                val filteredComponents = components.filter(c => part.components.find(_.title == c.title).isDefined)
+                insertPartsComponents(filteredComponents, part)
               }))
             } yield components
           }
+          // If we just copy a project
           else {
-            // Insert tasks and link components with parts
+            // Link components with parts
             serializedT(clonedParts)(part => {
-              for {
-                tasks <- lift(insertTasks(part.tasks, part))
-                partComponents <- lift(insertPartsComponents(part.components, part))
-              } yield tasks
+              insertPartsComponents(part.components, part)
             })
           }
         }

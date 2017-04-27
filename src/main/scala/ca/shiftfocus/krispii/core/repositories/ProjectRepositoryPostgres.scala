@@ -249,9 +249,10 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
     (for {
       project <- lift(find(projectId))
       parts <- lift(partRepository.list(project))
+      // We clone task but with old part ids!!!
+      clonedTasks <- lift(cloneTasks(parts))
       clonedParts <- lift(serializedT(parts)(part => {
         for {
-          tasks <- lift(taskRepository.list(part))
           components <- lift(componentRepository.list(part))
           partId = UUID.randomUUID
           clonedPart = part.copy(
@@ -259,11 +260,17 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
             projectId = newProjectId,
             createdAt = new DateTime,
             updatedAt = new DateTime,
-            tasks = cloneTasks(tasks, partId),
-            components = {
-              if (project.isMaster) cloneComponents(components, ownerId)
-              else components
+            // We cloned task with old part ids, we should update them
+            tasks = clonedTasks.filter(_.partId == part.id).map(task => {
+            task match {
+              case task: DocumentTask => task.copy(partId = partId)
+              case task: MediaTask => task.copy(partId = partId)
             }
+          }).asInstanceOf[IndexedSeq[Task]],
+            components = {
+            if (project.isMaster) cloneComponents(components, ownerId)
+            else components
+          }
           )
         } yield clonedPart
       }))
@@ -312,38 +319,48 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   }
 
   /**
-   * Cloning the tasks of a Part.
+   * Cloning all project task.
+   * N.B. Part ids in the tasks are not updated, because at this point we don't know new part ids.
    *
-   * @param tasks
+   * @param parts All parts of a project
    * @return
    */
-  def cloneTasks(tasks: IndexedSeq[Task], partId: UUID): IndexedSeq[Task] = {
-    //map that will contain as a key the old UUID of the task and the value will be the new UUID
-    val dependencies = collection.mutable.Map[UUID, UUID]()
-    val documentTasks = tasks.filter(task => task.isInstanceOf[DocumentTask])
-      .map(task => task.asInstanceOf[DocumentTask])
-      .sortBy(_.dependencyId)
-    val noDependenciesTasks = documentTasks.filter(task => task.dependencyId.isEmpty)
-    val clonedWithoutDependencies = noDependenciesTasks.map(task => {
-      val newId = UUID.randomUUID
-      dependencies(task.id) = newId
-      task.copy(id = newId, partId = partId, createdAt = new DateTime, updatedAt = new DateTime)
-    })
-    val dependenciesTasks = documentTasks.filter(task => !task.dependencyId.isEmpty)
-    val clonedWithDependencies = dependenciesTasks.map(task => {
-      val newId = UUID.randomUUID
-      val dependencyId = dependencies get task.dependencyId.get
-      if (dependencyId.isEmpty) {
-        dependencies(task.dependencyId.get) = UUID.randomUUID
-      }
-      task.copy(id = newId, partId = partId, dependencyId = Some(dependencies(task.dependencyId.get)), createdAt = new DateTime, updatedAt = new DateTime)
-    })
+  def cloneTasks(parts: IndexedSeq[Part])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
+    val empty: Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = Future.successful(\/-(IndexedSeq.empty[Task]))
+    // Go threw every part and get all tasks
+    for {
+      allTasks <- lift(parts.foldLeft(empty) { (fAccumulated, part) =>
+        (for {
+          accumulated <- lift(fAccumulated)
+          tasks <- lift(taskRepository.list(part))
+        } yield accumulated ++ tasks).run
+      })
+      //map that will contain as a key the old UUID of the task and the value will be the new UUID
+      dependencies = collection.mutable.Map[UUID, UUID]()
+      documentTasks = allTasks.filter(task => task.isInstanceOf[DocumentTask])
+        .map(task => task.asInstanceOf[DocumentTask])
+        .sortBy(_.dependencyId)
 
-    val otherTasks = tasks.filter(task => !task.isInstanceOf[DocumentTask])
+      noDependenciesTasks = documentTasks.filter(task => task.dependencyId.isEmpty)
+      clonedWithoutDependencies = noDependenciesTasks.map(task => {
+        val newId = UUID.randomUUID
+        dependencies(task.id) = newId
+        task.copy(id = newId, partId = task.partId, createdAt = new DateTime, updatedAt = new DateTime)
+      })
 
-    val otherCloned = otherTasks.map(task => cloneTask(task, partId))
+      dependenciesTasks = documentTasks.filter(task => !task.dependencyId.isEmpty)
+      clonedWithDependencies = dependenciesTasks.map(task => {
+        val newId = UUID.randomUUID
+        val dependencyId = dependencies get task.dependencyId.get
+        if (dependencyId.isEmpty) {
+          dependencies(task.dependencyId.get) = UUID.randomUUID
+        }
+        task.copy(id = newId, partId = task.partId, dependencyId = Some(dependencies(task.dependencyId.get)), createdAt = new DateTime, updatedAt = new DateTime)
+      })
 
-    (clonedWithDependencies union clonedWithoutDependencies union otherCloned).sortBy(t => t.position)
+      otherTasks = allTasks.filter(task => !task.isInstanceOf[DocumentTask])
+      otherCloned = otherTasks.map(task => cloneTask(task, task.partId))
+    } yield (clonedWithDependencies union clonedWithoutDependencies union otherCloned).sortBy(t => t.position)
   }
 
   private def cloneTask(task: Task, partId: UUID): Task = {

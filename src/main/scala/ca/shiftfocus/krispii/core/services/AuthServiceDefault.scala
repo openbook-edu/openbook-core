@@ -803,13 +803,19 @@ class AuthServiceDefault(
       val fUser = userRepository.find(userId)(db.pool, cache)
       val result = for {
         user <- lift(fUser)
-
         roles <- lift(roleRepository.list(user))
         token <- lift(userTokenRepository.find(user.id, activation))
         _ <- predicate(activationCode == token.token)(ServiceError.BadInput("Wrong activation code!"))
-        _ <- lift(roleRepository.addToUser(user, "authenticated"))
+        _ <- lift {
+          // If there is no "authenticated" role than add it
+          if (!roles.find(_.name == "authenticated").isDefined) {
+            roleRepository.addToUser(user, "authenticated")
+          }
+          else {
+            Future successful \/-()
+          }
+        }
         deleted <- lift(userTokenRepository.delete(userId, activation))
-
       } yield (user, token, roles, deleted)
 
       result.run.map {
@@ -875,6 +881,28 @@ class AuthServiceDefault(
           bodyHtml = Some(messagesApi("reset.password.confirm.message", host, nonce.toString)(lang)) //text
         )
         mail <- lift(sendAsyncEmail(email))
+      } yield token
+      fToken.run
+    }
+  }
+
+  override def createActivationToken(user: User, host: String)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]] = {
+    transactional { implicit conn =>
+      var nonce = Token.getNext
+      var fToken = for {
+        oldToken <- lift(userTokenRepository.delete(user.id, activation).map {
+          case \/-(success) => \/-(true)
+          case -\/(error: RepositoryError.NoResults) => \/-(true)
+          case -\/(error) => -\/(error)
+        })
+        token <- lift(userTokenRepository.insert(user.id, nonce, activation))
+        activationEmail = Email(
+          messagesApi("activate.confirm.subject.new")(lang), //subject
+          messagesApi("activate.confirm.from")(lang), //from
+          Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
+          bodyHtml = Some(messagesApi("activate.confirm.message", host, user.id.toString, token)(lang)) //text
+        )
+        mail <- lift(sendAsyncEmail(activationEmail))
       } yield token
       fToken.run
     }

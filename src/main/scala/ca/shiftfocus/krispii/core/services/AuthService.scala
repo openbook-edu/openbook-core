@@ -306,6 +306,9 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @return
    */
   def createPasswordResetToken(user: User, host: String)(messages: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]]
+
+  def createActivationToken(user: User, host: String)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]]
+
   /**
    * finding a user token by nonce
    * @param nonce

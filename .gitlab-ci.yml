@@ -1,0 +1,8 @@
+compile:
+    script:
+    - sbt -Dsbt.log.noformat=true clean compile compile:doc
+
+publish_local:
+  script:
+    # Execute your project's tests
+    - sbt publishLocal

@@ -7,4 +7,4 @@ publish_local:
     stage: deploy
     script:
         - sbt publishLocal
-        - "curl --request POST --form token=0ab10ae8c48c27f1270f5c1c8332fa --form ref=master https://gitlab.shiftfocus.ca/api/v4/projects/9/trigger/pipeline"
+        - "curl --request POST --form token=0ab10ae8c48c27f1270f5c1c8332fa --form ref=edge https://gitlab.shiftfocus.ca/api/v4/projects/9/trigger/pipeline"

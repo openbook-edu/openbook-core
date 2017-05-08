@@ -3,10 +3,11 @@ package ca.shiftfocus.krispii.core.services
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.repositories.{ CourseRepository, RoleRepository, SessionRepository, UserRepository }
+import ca.shiftfocus.krispii.core.repositories.{CourseRepository, RoleRepository, SessionRepository, UserRepository}
 import java.util.UUID
 
-import play.api.i18n.{ Lang, MessagesApi }
+import models.{EmailChangeRequest, User}
+import play.api.i18n.{Lang, MessagesApi}
 
 import scala.concurrent.Future
 import scalacache.ScalaCache
@@ -340,4 +341,37 @@ trait AuthService extends Service[ErrorUnion#Fail] {
 
   def reactivate(email: String, hostname: Option[String])(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]]
 
+  //##### EMAIL CHANGE #################################################################################################
+
+  def findEmailChange(userId: UUID): Future[\/[ErrorUnion#Fail, EmailChangeRequest]]
+
+  def requestEmailChange(user: User, newEmail: String, host: String)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, EmailChangeRequest]]
+
+  /**
+    * Confirm a user's changed e-mail address.
+    *
+    * Workflow:
+    *   1. Load the change request and validate the token.
+    *   2. Load the user to be changed.
+    *   3. Save the user's new e-mail address.
+    *   4. Send an e-mail to the old address, informing them that the address was changed.
+    *   5. Send an e-mail to the new address, informing them that the address was changed.
+    *
+    * @param email the new e-mail that was requested
+    * @param token the secure token that was generated to protect the change request
+    * @return the updated user
+    */
+  def confirmEmailChange(email: String, token: String)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]]
+
+  /**
+    * Cancel a user's e-mail change request.
+    *
+    * Workflow:
+    *   1. Delete the e-mail change request.
+    *   2. Send an e-mail to the old and new addresses notifying them that the request was cancelled.
+    *
+    * @param userId the e-mail address that was requested
+    * @return the deleted e-mail change request
+    */
+  def cancelEmailChange(userId: UUID)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, EmailChangeRequest]]
 }

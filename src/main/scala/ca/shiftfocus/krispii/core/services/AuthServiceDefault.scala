@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.helpers.Token
-import ca.shiftfocus.krispii.core.lib.{ InputUtils, ScalaCachePool }
+import ca.shiftfocus.krispii.core.lib.{InputUtils, ScalaCachePool}
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
@@ -11,12 +11,12 @@ import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import com.github.mauricio.async.db.Connection
 import org.apache.commons.mail.EmailException
 import play.api.Logger
-import play.api.libs.mailer.{ Email, MailerClient }
+import play.api.libs.mailer.{Email, MailerClient}
 import scala.concurrent.ExecutionContext.Implicits.global
-import play.api.i18n.{ I18nSupport, Lang, MessagesApi }
+import play.api.i18n.{I18nSupport, Lang, MessagesApi}
 import scala.concurrent.Future
 import scalacache.ScalaCache
-import scalaz.{ -\/, EitherT, \/, \/- }
+import scalaz.{-\/, EitherT, \/, \/-}
 import webcrank.password._
 
 class AuthServiceDefault(
@@ -30,7 +30,8 @@ class AuthServiceDefault(
     val wordRepository: WordRepository,
     val accountRepository: AccountRepository,
     val stripeRepository: StripeRepository,
-    val paymentLogRepository: PaymentLogRepository
+    val paymentLogRepository: PaymentLogRepository,
+    val emailChangeRepository: EmailChangeRepository
 ) extends AuthService {
 
   implicit def conn: Connection = db.pool
@@ -967,5 +968,119 @@ class AuthServiceDefault(
         user <- lift(userRepository.find(token.userId))
       } yield user
     }
+  }
+
+  //##### EMAIL CHANGE #################################################################################################
+
+  override def findEmailChange(userId: UUID): Future[\/[ErrorUnion#Fail, EmailChangeRequest]] = {
+    emailChangeRepository.find(userId)
+  }
+
+  /**
+    * Change a user's e-mail address.
+    *
+    * Workflow:
+    *   1. Verify that the new e-mail is unique.
+    *   2. Create an e-mail change request
+    *   3. Send an e-mail to the old address notifying of the change
+    *   4. Send an e-mail to the new address, asking them to confirm the change
+    *
+    * @param user the user for whom the e-mail change is requested
+    * @param newEmail the new address the user would like to have
+    * @return the created e-mail change request
+    */
+  override def requestEmailChange(user: User, newEmail: String, host: String)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, EmailChangeRequest]] = {
+    transactional { implicit conn =>
+      (for {
+        _ <- predicate(InputUtils.isValidEmail(newEmail.trim))(ServiceError.BadInput("core.services.AuthServiceDefault.requestEmailChange.email.bad.format"))
+        emailUnique <- lift(userRepository.find(newEmail).map{
+          case \/-(user) => \/-(false)
+          case -\/(error: RepositoryError.NoResults) => \/-(true)
+          case -\/(error) => -\/(error)
+        })
+        requestNotExists <- lift(emailChangeRepository.find(newEmail).map{
+          case \/-(request) => \/-(false)
+          case -\/(error: RepositoryError.NoResults) => \/-(true)
+          case -\/(error) => -\/(error)
+        })
+        _ <-predicate(emailUnique && requestNotExists)(ServiceError.BadInput("core.services.AuthServiceDefault.requestEmailChange.email.exist"))
+
+        token = Token.getNext
+        newRequest <- lift(emailChangeRepository.insert(EmailChangeRequest(user.id, newEmail, token)))
+
+        oldEmailText = messagesApi("emailchange.request.message.old", user.givenname, user.surname, user.email, newEmail)(lang)
+        emailForOld = Email(
+          messagesApi("emailchange.request.subject.old")(lang), //subject
+          messagesApi("emailchange.request.from")(lang), //from
+          Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
+          bodyHtml = Some(oldEmailText) //text
+        )
+
+        newEmailText = messagesApi("emailchange.request.message.new", user.givenname, user.surname, host, token)(lang)
+        emailForNew = Email(
+          messagesApi("emailchange.request.subject.new")(lang), //subject
+          messagesApi("emailchange.request.from")(lang), //from
+          Seq(user.givenname + " " + user.surname + " <" + newEmail + ">"), //to
+          bodyText = Some(newEmailText) //text
+        )
+
+        oldEmailResult <- lift(sendAsyncEmail(emailForOld))
+        newEmailResult <- lift(sendAsyncEmail(emailForNew))
+      } yield newRequest).run
+    }
+  }
+
+  override def confirmEmailChange(email: String, token: String)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]] = {
+    transactional { implicit conn =>
+      for {
+        changeRequest <- lift(emailChangeRepository.find(email))
+        _ <- predicate(changeRequest.token == token)(ServiceError.BadInput("core.services.AuthServiceDefault.confirmEmailChange.wrong.token"))
+        user <- lift(userRepository.find(changeRequest.userId))
+        updatedUser <- lift(userRepository.update(user.copy(email = email)))
+        deletedRequest <- lift(emailChangeRepository.delete(changeRequest))
+
+        emailForOld = Email(
+          messagesApi("emailchange.confirm.subject.old")(lang), //subject
+          messagesApi("emailchange.confirm.from")(lang), //from
+          Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
+          bodyText = Some(messagesApi("emailchange.confirm.message", user.givenname, user.surname, user.email, email)(lang)) //text
+        )
+
+        emailForNew = Email(
+          messagesApi("emailchange.confirm.subject.new")(lang), //subject
+          messagesApi("emailchange.confirm.from")(lang), //from
+          Seq(user.givenname + " " + user.surname + " <" + email + ">"), //to
+          bodyText = Some(messagesApi("emailchange.confirm.message", user.givenname, user.surname, user.email, email)(lang)) //text
+        )
+
+        oldEmailResult <- lift(sendAsyncEmail(emailForOld))
+        newEmailResult <- lift(sendAsyncEmail(emailForNew))
+      } yield updatedUser
+    }
+  }
+
+  override def cancelEmailChange(userId: UUID)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, EmailChangeRequest]] = {
+    for {
+      user <- lift(userRepository.find(userId))
+      changeRequest <- lift(emailChangeRepository.find(user.id))
+      deleted <- lift(emailChangeRepository.delete(changeRequest))
+
+      emailForOld = Email(
+        messagesApi("emailchange.cancel.subject.old")(lang), //subject
+        messagesApi("emailchange.cancel.from")(lang), //from
+        Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
+        bodyText = Some(messagesApi("emailchange.cancel.message.old", user.givenname, user.surname, user.email, changeRequest.requestedEmail)(lang)) //text
+      )
+
+      emailForNew = Email(
+        messagesApi("emailchange.cancel.subject.new")(lang), //subject
+        messagesApi("emailchange.cancel.from")(lang), //from
+        Seq(user.givenname + " " + user.surname + " <" + changeRequest.requestedEmail + ">"), //to
+        bodyText = Some(messagesApi("emailchange.cancel.message.new", user.givenname, user.surname, user.email, changeRequest.requestedEmail)(lang)) //text
+      )
+
+      oldEmailResult <- sendAsyncEmail(emailForOld)
+      newEmailResult <- sendAsyncEmail(emailForNew)
+    } yield deleted
   }
 }

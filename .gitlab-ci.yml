@@ -8,7 +8,7 @@ ci_compile:
 
 publish_local:
     stage: deploy
-     only:
+    only:
         - edge
     script:
         - sbt publishLocal

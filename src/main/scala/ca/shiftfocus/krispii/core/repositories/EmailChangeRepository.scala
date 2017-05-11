@@ -9,7 +9,6 @@ import com.github.mauricio.async.db.Connection
 import scala.concurrent.Future
 import scalaz.\/
 
-
 trait EmailChangeRepository extends Repository {
 
   def find(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, EmailChangeRequest]]

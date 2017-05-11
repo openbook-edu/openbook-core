@@ -4,7 +4,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.EmailChangeRequest
-import com.github.mauricio.async.db.{Connection, RowData}
+import com.github.mauricio.async.db.{ Connection, RowData }
 
 import scala.concurrent.Future
 import scalaz.\/

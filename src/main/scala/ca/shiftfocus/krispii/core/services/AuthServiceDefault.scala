@@ -901,7 +901,7 @@ class AuthServiceDefault(
           messagesApi("activate.confirm.subject.new")(lang), //subject
           messagesApi("activate.confirm.from")(lang), //from
           Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
-          bodyHtml = Some(messagesApi("activate.confirm.message", host, user.id.toString, token)(lang)) //text
+          bodyHtml = Some(messagesApi("activate.confirm.message", host, user.id.toString, token.token)(lang)) //text
         )
         mail <- lift(sendAsyncEmail(activationEmail))
       } yield token

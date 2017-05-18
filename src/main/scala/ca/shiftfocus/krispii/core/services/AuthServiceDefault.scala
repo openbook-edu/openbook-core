@@ -241,7 +241,7 @@ class AuthServiceDefault(
       for {
         validEmail <- lift(validateEmail(email.trim.toLowerCase))
         validUsername <- lift(validateUsername(username.trim))
-        _ <- predicate(InputUtils.isValidPassword(password.trim))(ServiceError.BadInput("The password provided must be at least 8 characters."))
+        _ <- predicate(InputUtils.isValidPassword(password.trim))(ServiceError.BadInput("core.AuthServiceDefault.password.short"))
         passwordHash = Some(webcrank.crypt(password.trim))
         newUser <- lift {
           val newUser = User(
@@ -524,7 +524,7 @@ class AuthServiceDefault(
       val updated = for {
         existingUser <- lift(userRepository.find(id))
         _ <- predicate(existingUser.version == version)(ServiceError.OfflineLockFail)
-        _ <- predicate(InputUtils.isValidPassword(password.trim))(ServiceError.BadInput("The password provided must be at least 8 characters."))
+        _ <- predicate(InputUtils.isValidPassword(password.trim))(ServiceError.BadInput("core.AuthServiceDefault.password.short"))
         u_hash = wc.crypt(password.trim)
         userToUpdate = existingUser.copy(hash = Some(u_hash))
         updatedUser <- lift(userRepository.update(userToUpdate))

@@ -690,7 +690,7 @@ class AuthServiceDefault(
    * @param roleName the name of the role
    * @return a boolean indicator if the role was removed
    */
-  override def removeRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Unit]] = {
+  override def removeRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Role]] = {
     transactional { implicit conn =>
       val fUser = userRepository.find(userId)(db.pool, cache)
       val fRole = roleRepository.find(roleName)(db.pool, cache)
@@ -698,7 +698,7 @@ class AuthServiceDefault(
         user <- lift(fUser)
         role <- lift(fRole)
         roleRemoved <- lift(roleRepository.removeFromUser(user, role))
-      } yield roleRemoved
+      } yield role
     }
   }
 

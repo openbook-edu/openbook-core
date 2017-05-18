@@ -272,7 +272,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @param roleName  the name of the role
    * @return a boolean indicator if the role was removed
    */
-  def removeRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Unit]]
+  def removeRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Role]]
 
   /**
    * Add a role to a given list of users.

@@ -89,14 +89,22 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |  AND users_roles.role_id = ?
        |  AND is_deleted = FALSE
      """.stripMargin
+
   /**
    * if you know how to make this query prettier, by all means, go ahead.
    */
-  val SelectAllByKey =
+  val SelectAllByKeyNotDeleted =
     s"""
        |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> ? AS dist
        |FROM users
-       |WHERE is_deleted = ?
+       |WHERE is_deleted = false
+       |ORDER BY dist LIMIT 10) as sub  where dist < 0.9;
+    """.stripMargin
+
+  val SelectAllByKeyWithDeleted =
+    s"""
+       |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> ? AS dist
+       |FROM users
        |ORDER BY dist LIMIT 10) as sub  where dist < 0.9;
     """.stripMargin
 
@@ -368,6 +376,11 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @param conn
    */
   def triagramSearch(key: String, includeDeleted: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    queryList(SelectAllByKey, Seq[Any](key, includeDeleted))
+    val query = {
+      if (includeDeleted) SelectAllByKeyWithDeleted
+      else SelectAllByKeyNotDeleted
+    }
+
+    queryList(query, Seq[Any](key))
   }
 }

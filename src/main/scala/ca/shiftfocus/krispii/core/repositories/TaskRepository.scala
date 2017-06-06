@@ -15,6 +15,7 @@ trait TaskRepository extends Repository {
 
   def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]]
   def list(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]]
+  def list(teacher: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]]
   def list(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]]
   //def list(project: Project, partNum: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]]
 

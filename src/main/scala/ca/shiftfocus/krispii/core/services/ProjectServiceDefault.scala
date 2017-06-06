@@ -807,6 +807,13 @@ class ProjectServiceDefault(
     } yield taskList
   }
 
+  override def listTeacherTasks(teacherId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = {
+    for {
+      teacher <- lift(authService.find(teacherId))
+      taskList <- lift(taskRepository.list(teacher))
+    } yield taskList
+  }
+
   /**
    * Find a task by its ID.
    */
@@ -1030,6 +1037,11 @@ class ProjectServiceDefault(
               case Some(Some(mediaData)) => Some(mediaData)
               case Some(None) => None
               case None => task.settings.mediaData
+            },
+            parentId = commonArgs.parentId match {
+              case Some(Some(parentId)) => Some(parentId)
+              case Some(None) => None
+              case None => task.settings.parentId
             }
           ),
           dependencyId = dependencyId match {
@@ -1085,6 +1097,11 @@ class ProjectServiceDefault(
               case Some(Some(mediaData)) => Some(mediaData)
               case Some(None) => None
               case None => task.settings.mediaData
+            },
+            parentId = commonArgs.parentId match {
+              case Some(Some(parentId)) => Some(parentId)
+              case Some(None) => None
+              case None => task.settings.parentId
             }
           ),
           questions = questions.getOrElse(questionTask.questions)
@@ -1132,6 +1149,11 @@ class ProjectServiceDefault(
               case Some(Some(mediaData)) => Some(mediaData)
               case Some(None) => None
               case None => task.settings.mediaData
+            },
+            parentId = commonArgs.parentId match {
+              case Some(Some(parentId)) => Some(parentId)
+              case Some(None) => None
+              case None => task.settings.parentId
             }
           ),
           mediaType = mediaType.getOrElse(mediaTask.mediaType)

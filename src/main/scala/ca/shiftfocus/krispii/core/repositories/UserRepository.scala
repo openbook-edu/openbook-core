@@ -12,6 +12,7 @@ import scalaz.\/
 
 trait UserRepository extends Repository {
   def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]
+  def listRange(limit: Int, offset: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]
   def list(userIds: IndexedSeq[UUID])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]
   def list(role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]
   def list(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]

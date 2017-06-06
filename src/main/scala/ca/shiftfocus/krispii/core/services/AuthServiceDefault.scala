@@ -63,6 +63,12 @@ class AuthServiceDefault(
     } yield result).run
   }
 
+  override def listByRange(offset: Int, limit: Int): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
+    (for {
+      users <- lift(userRepository.listRange(offset, limit)(db.pool))
+    } yield users).run
+  }
+
   /**
    * List users with filter for roles and courses.
    *

@@ -3,22 +3,23 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
-import com.github.mauricio.async.db.{ RowData, Connection, ResultSet }
+import com.github.mauricio.async.db.{ Connection, ResultSet, RowData }
 import play.api.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
+
 import play.api.i18n.Messages
+
 import scala.concurrent.Future
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
 import scala.util.Try
-import scalaz.{ \/, -\/, \/- }
+import scalaz.{ -\/, \/, \/- }
 import scalaz.syntax.either._
-
 import scalacache._
 import scalacache.redis._
 import scala.concurrent.duration._
@@ -62,6 +63,15 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |FROM $Table
        |WHERE is_deleted = FALSE
        |ORDER BY $OrderBy
+     """.stripMargin
+
+  val SelectAllRange =
+    s"""
+       |SELECT $FieldsWithoutHash
+       |FROM $Table
+       |WHERE is_deleted = FALSE
+       |ORDER BY created_at DESC
+       |LIMIT ? OFFSET ?
      """.stripMargin
 
   val SelectOne =
@@ -197,6 +207,10 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    */
   override def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
     queryList(SelectAll)
+  }
+
+  override def listRange(limit: Int, offset: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    queryList(SelectAllRange, Array[Any](limit, offset))
   }
 
   /**

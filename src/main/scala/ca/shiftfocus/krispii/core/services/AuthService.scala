@@ -48,6 +48,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @return a list of users with their roles and courses
    */
   def list: Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
+  def listByRange(limit: Int, offset: Int): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
   /**
    * List users with filter for roles and courses.

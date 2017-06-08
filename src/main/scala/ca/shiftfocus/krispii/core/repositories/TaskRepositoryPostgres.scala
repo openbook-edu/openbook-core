@@ -39,13 +39,13 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   // -- Common query components --------------------------------------------------------------------------------------
 
   val Table = "tasks"
-  val CommonFields = "id, version, part_id, name, description, instructions, position, notes_allowed, response_title, hide_response, allow_gfile, notes_title, help_text, media_data, parent_id, max_grade, created_at, updated_at, task_type"
+  val CommonFields = "id, version, part_id, name, description, instructions, tagline, position, notes_allowed, response_title, hide_response, allow_gfile, notes_title, help_text, media_data, parent_id, max_grade, created_at, updated_at, task_type"
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
   }
   val SpecificFields = "document_tasks.dependency_id as dependency_id, question_tasks.questions as questions, media_tasks.media_type as media_type"
 
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.position ASC"
   val Join =
     s"""
@@ -204,7 +204,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   val Update =
     s"""
        |UPDATE $Table
-       |SET part_id = ?, name = ?, description = ?, instructions = ?,
+       |SET part_id = ?, name = ?, description = ?, instructions = ?, tagline = ?,
        |    position = ?, notes_allowed = ?,
        |    response_title = ?, hide_response = ?, allow_gfile = ?, notes_title = ?, help_text = ?,
        |    media_data = ?, parent_id = ?, version = ?, max_grade = ?, updated_at = ?
@@ -420,6 +420,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.settings.title,
       task.settings.description,
       task.settings.instructions,
+      task.settings.tagline,
       task.position,
       task.settings.notesAllowed,
       task.settings.responseTitle,
@@ -470,6 +471,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.settings.title,
       task.settings.description,
       task.settings.instructions,
+      task.settings.tagline,
       task.position,
       task.settings.notesAllowed,
       task.settings.responseTitle,

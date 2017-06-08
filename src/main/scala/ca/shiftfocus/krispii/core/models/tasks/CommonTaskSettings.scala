@@ -13,6 +13,7 @@ case class CommonTaskSettings(
   help: String = "",
   description: String = "",
   instructions: String = "",
+  tagline: String = "",
   notesAllowed: Boolean = true,
   notesTitle: Option[String] = None,
   responseTitle: Option[String] = None,
@@ -37,6 +38,7 @@ object CommonTaskSettings {
       help = row("help_text").asInstanceOf[String],
       description = row("description").asInstanceOf[String],
       instructions = row("instructions").asInstanceOf[String],
+      tagline = row("tagline").asInstanceOf[String],
       notesAllowed = row("notes_allowed").asInstanceOf[Boolean],
       notesTitle = Option(row("notes_title").asInstanceOf[String]) match {
       case Some(notesTitle) => Some(notesTitle)
@@ -61,6 +63,7 @@ object CommonTaskSettings {
     (__ \ "help").read[String] and
     (__ \ "description").read[String] and
     (__ \ "instructions").read[String] and
+    (__ \ "tagline").read[String] and
     (__ \ "notesAllowed").read[Boolean] and
     (__ \ "notesTitle").readNullable[String] and
     (__ \ "responseTitle").readNullable[String] and
@@ -68,13 +71,14 @@ object CommonTaskSettings {
     (__ \ "allowGfile").read[Boolean] and
     (__ \ "mediaData").readNullable[MediaData] and
     (__ \ "parentId").readNullable[UUID]
-  )(CommonTaskSettings.apply(_: String, _: String, _: String, _: String, _: Boolean, _: Option[String], _: Option[String], _: Boolean, _: Boolean, _: Option[MediaData], _: Option[UUID]))
+  )(CommonTaskSettings.apply(_: String, _: String, _: String, _: String, _: String, _: Boolean, _: Option[String], _: Option[String], _: Boolean, _: Boolean, _: Option[MediaData], _: Option[UUID]))
 
   implicit val tsWrites: Writes[CommonTaskSettings] = (
     (__ \ "name").write[String] and
     (__ \ "help").write[String] and
     (__ \ "description").write[String] and
     (__ \ "instructions").write[String] and
+    (__ \ "tagline").write[String] and
     (__ \ "notesAllowed").write[Boolean] and
     (__ \ "notesTitle").writeNullable[String] and
     (__ \ "responseTitle").writeNullable[String] and

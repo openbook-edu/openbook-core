@@ -152,6 +152,12 @@ class ProjectServiceDefault(
     } yield components
   }
 
+  /**
+   * We insert tasks that are inside part object. These function is used when we copy a project.
+   *
+   * @param parts
+   * @return
+   */
   def insertTasks(parts: IndexedSeq[Part]): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = {
     transactional { implicit conn: Connection =>
       {
@@ -801,6 +807,13 @@ class ProjectServiceDefault(
     } yield taskList
   }
 
+  override def listTeacherTasks(teacherId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = {
+    for {
+      teacher <- lift(authService.find(teacherId))
+      taskList <- lift(taskRepository.list(teacher))
+    } yield taskList
+  }
+
   /**
    * Find a task by its ID.
    */
@@ -1005,6 +1018,8 @@ class ProjectServiceDefault(
           settings = task.settings.copy(
             title = commonArgs.name.getOrElse(task.settings.title),
             description = commonArgs.description.getOrElse(task.settings.description),
+            instructions = commonArgs.instructions.getOrElse(task.settings.instructions),
+            tagline = commonArgs.tagline.getOrElse(task.settings.tagline),
             help = commonArgs.help.getOrElse(task.settings.help),
             notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
             hideResponse = commonArgs.hideResponse.getOrElse(task.settings.hideResponse),
@@ -1018,6 +1033,16 @@ class ProjectServiceDefault(
               case Some(Some(newResponseTitle)) => Some(newResponseTitle)
               case Some(None) => None
               case None => task.settings.responseTitle
+            },
+            mediaData = commonArgs.mediaData match {
+              case Some(Some(mediaData)) => Some(mediaData)
+              case Some(None) => None
+              case None => task.settings.mediaData
+            },
+            parentId = commonArgs.parentId match {
+              case Some(Some(parentId)) => Some(parentId)
+              case Some(None) => None
+              case None => task.settings.parentId
             }
           ),
           dependencyId = dependencyId match {
@@ -1055,6 +1080,8 @@ class ProjectServiceDefault(
             title = commonArgs.name.getOrElse(task.settings.title),
             help = commonArgs.help.getOrElse(task.settings.help),
             description = commonArgs.description.getOrElse(task.settings.description),
+            instructions = commonArgs.instructions.getOrElse(task.settings.instructions),
+            tagline = commonArgs.tagline.getOrElse(task.settings.tagline),
             notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
             hideResponse = commonArgs.hideResponse.getOrElse(task.settings.hideResponse),
             allowGfile = commonArgs.allowGfile.getOrElse(task.settings.allowGfile),
@@ -1067,6 +1094,16 @@ class ProjectServiceDefault(
               case Some(Some(newResponseTitle)) => Some(newResponseTitle)
               case Some(None) => None
               case None => task.settings.responseTitle
+            },
+            mediaData = commonArgs.mediaData match {
+              case Some(Some(mediaData)) => Some(mediaData)
+              case Some(None) => None
+              case None => task.settings.mediaData
+            },
+            parentId = commonArgs.parentId match {
+              case Some(Some(parentId)) => Some(parentId)
+              case Some(None) => None
+              case None => task.settings.parentId
             }
           ),
           questions = questions.getOrElse(questionTask.questions)
@@ -1095,6 +1132,8 @@ class ProjectServiceDefault(
           settings = task.settings.copy(
             title = commonArgs.name.getOrElse(task.settings.title),
             description = commonArgs.description.getOrElse(task.settings.description),
+            instructions = commonArgs.instructions.getOrElse(task.settings.instructions),
+            tagline = commonArgs.tagline.getOrElse(task.settings.tagline),
             help = commonArgs.help.getOrElse(task.settings.help),
             notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
             hideResponse = commonArgs.hideResponse.getOrElse(task.settings.hideResponse),
@@ -1108,6 +1147,16 @@ class ProjectServiceDefault(
               case Some(Some(newResponseTitle)) => Some(newResponseTitle)
               case Some(None) => None
               case None => task.settings.responseTitle
+            },
+            mediaData = commonArgs.mediaData match {
+              case Some(Some(mediaData)) => Some(mediaData)
+              case Some(None) => None
+              case None => task.settings.mediaData
+            },
+            parentId = commonArgs.parentId match {
+              case Some(Some(parentId)) => Some(parentId)
+              case Some(None) => None
+              case None => task.settings.parentId
             }
           ),
           mediaType = mediaType.getOrElse(mediaTask.mediaType)

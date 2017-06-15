@@ -84,6 +84,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
 
   // Tasks
   def listTask(partId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]]
+  def listTeacherTasks(teacherId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]]
   def findTask(taskId: UUID): Future[\/[ErrorUnion#Fail, Task]]
   def findTask(projectSlug: String, partNum: Int, taskNum: Int): Future[\/[ErrorUnion#Fail, Task]]
   def findNowTask(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, Task]]
@@ -103,6 +104,8 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     name: Option[String],
     help: Option[String],
     description: Option[String],
+    instructions: Option[String],
+    tagline: Option[String],
     position: Option[Int],
     notesAllowed: Option[Boolean],
     hideResponse: Option[Boolean],
@@ -110,7 +113,9 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     partId: Option[UUID] = None,
     responseTitle: Option[Option[String]] = None,
     notesTitle: Option[Option[String]] = None,
-    maxGrade: Option[String]
+    maxGrade: Option[String],
+    mediaData: Option[Option[MediaData]],
+    parentId: Option[Option[UUID]] = None
   )
 
   def updateDocumentTask(commonArgs: CommonTaskArgs, depId: Option[Option[UUID]] = None): Future[\/[ErrorUnion#Fail, Task]]

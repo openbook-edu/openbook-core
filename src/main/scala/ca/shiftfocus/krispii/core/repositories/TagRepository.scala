@@ -21,7 +21,7 @@ trait TagRepository extends Repository {
   def create(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]]
   def delete(tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]]
   def listByProjectId(projectId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]
-  def find(name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]]
+  def find(name: String, lang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]]
   def untag(projectId: UUID, tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
   def tag(projectId: UUID, tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
   def listByCategory(category: String, lang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]

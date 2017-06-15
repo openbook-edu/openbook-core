@@ -29,7 +29,7 @@ class TagServiceDefault(
     transactional { implicit conn: Connection =>
       for {
         existingTag <- lift(
-          tagRepository.find(tagName).flatMap {
+          tagRepository.find(tagName, lang).flatMap {
             case \/-(tag) => Future successful (\/-(tag))
             case -\/(error) => tagRepository.create(Tag(tagName, lang, "", 0))
           }
@@ -43,7 +43,7 @@ class TagServiceDefault(
     transactional { implicit conn: Connection =>
       for {
         untagged <- lift(tagRepository.untag(projectId, tagName, tagLang))
-        tag <- lift(tagRepository.find(tagName))
+        tag <- lift(tagRepository.find(tagName, tagLang))
         frequency = if (tag.frequency - 1 < 0) 0 else (tag.frequency - 1)
         updatedTag <- lift(if (projectState) updateFrequency(tag.name, tag.lang, tag.frequency - 1) else Future successful \/-(tag))
       } yield untagged
@@ -82,14 +82,14 @@ class TagServiceDefault(
 
   override def updateFrequency(name: String, lang: String, frequency: Int): Future[\/[ErrorUnion#Fail, Tag]] = {
     for {
-      existingTag <- lift(tagRepository.find(name))
+      existingTag <- lift(tagRepository.find(name, lang))
       toUpdate = existingTag.copy(name = existingTag.name, lang = existingTag.lang, frequency = frequency)
       updatedTag <- lift(tagRepository.update(toUpdate))
     } yield updatedTag
   }
   override def updateTag(name: String, lang: String, category: Option[String]): Future[\/[ErrorUnion#Fail, Tag]] = {
     for {
-      existingTag <- lift(tagRepository.find(name))
+      existingTag <- lift(tagRepository.find(name, lang))
       toUpdate = existingTag.copy(name = existingTag.name, lang = existingTag.lang, category = category.getOrElse(existingTag.category))
       updatedTag <- lift(tagRepository.update(toUpdate))
     } yield updatedTag
@@ -119,8 +119,8 @@ class TagServiceDefault(
     }
   }
 
-  def findTagByName(name: String): Future[\/[ErrorUnion#Fail, Tag]] = {
-    tagRepository.find(name)
+  def findTagByName(name: String, lang: String): Future[\/[ErrorUnion#Fail, Tag]] = {
+    tagRepository.find(name, lang)
   }
 
 }

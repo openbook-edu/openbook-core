@@ -45,7 +45,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   val ListByProject = s"""
                         SELECT t.name, t.lang, t.category, t.frequency FROM $Table t
                         JOIN project_tags pt
-                        ON (pt.tag_name = t.name AND pt.project_id = ?);
+                        ON (pt.tag_name = t.name AND pt.tag_lang = t.lang AND pt.project_id = ?);
                         """.stripMargin
 
   val ListByCategory = s"""
@@ -54,7 +54,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                             """.stripMargin
   val SelectOneByName = s"""
                               SELECT $Fields FROM $Table
-                              WHERE name = ?
+                              WHERE name = ? AND lang = ?
                             """.stripMargin
 
   val SelectAllByKey = s"""
@@ -78,7 +78,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   val Update = s"""
                   UPDATE $Table
                   SET  lang = ?, category = ?, frequency = ?
-                  WHERE name = ? && lang = ?
+                  WHERE name = ? AND lang = ?
                   RETURNING $Fields"""
 
   override def create(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
@@ -86,7 +86,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   }
 
   override def update(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
-    queryOne(Update, Seq[Any](tag.lang, tag.category, tag.frequency, tag.name))
+    queryOne(Update, Seq[Any](tag.lang, tag.category, tag.frequency, tag.name, tag.lang))
   }
   override def delete(tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(Delete, Seq[Any](tagName))
@@ -96,8 +96,8 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     queryList(ListByProject, Seq[Any](projectId))
   }
 
-  override def find(name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
-    queryOne(SelectOneByName, Seq[Any](name))
+  override def find(name: String, lang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
+    queryOne(SelectOneByName, Seq[Any](name, lang))
   }
   override def untag(projectId: UUID, tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {

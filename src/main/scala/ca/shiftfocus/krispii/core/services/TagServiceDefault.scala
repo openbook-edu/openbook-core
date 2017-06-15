@@ -34,18 +34,18 @@ class TagServiceDefault(
             case -\/(error) => tagRepository.create(Tag(tagName, lang, "", 0))
           }
         )
-        tag <- lift(tagRepository.tag(projectId, existingTag.name))
+        tag <- lift(tagRepository.tag(projectId, existingTag.name, existingTag.lang))
       } yield tag
     }
   }
 
-  override def untag(projectId: UUID, tagName: String, projectState: Boolean): Future[\/[ErrorUnion#Fail, Unit]] = {
+  override def untag(projectId: UUID, tagName: String, tagLang: String, projectState: Boolean): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn: Connection =>
       for {
-        untagged <- lift(tagRepository.untag(projectId, tagName))
+        untagged <- lift(tagRepository.untag(projectId, tagName, tagLang))
         tag <- lift(tagRepository.find(tagName))
         frequency = if (tag.frequency - 1 < 0) 0 else (tag.frequency - 1)
-        updatedTag <- lift(if (projectState) updateFrequency(tag.name, tag.frequency - 1) else Future successful \/-(tag))
+        updatedTag <- lift(if (projectState) updateFrequency(tag.name, tag.lang, tag.frequency - 1) else Future successful \/-(tag))
       } yield untagged
     }
   }
@@ -80,23 +80,23 @@ class TagServiceDefault(
     } yield cloned
   }
 
-  override def updateFrequency(name: String, frequency: Int): Future[\/[ErrorUnion#Fail, Tag]] = {
+  override def updateFrequency(name: String, lang: String, frequency: Int): Future[\/[ErrorUnion#Fail, Tag]] = {
     for {
       existingTag <- lift(tagRepository.find(name))
-      toUpdate = existingTag.copy(name = existingTag.name, frequency = frequency)
+      toUpdate = existingTag.copy(name = existingTag.name, lang = existingTag.lang, frequency = frequency)
       updatedTag <- lift(tagRepository.update(toUpdate))
     } yield updatedTag
   }
   override def updateTag(name: String, lang: String, category: Option[String]): Future[\/[ErrorUnion#Fail, Tag]] = {
     for {
       existingTag <- lift(tagRepository.find(name))
-      toUpdate = existingTag.copy(name = existingTag.name, lang = lang, category = category.getOrElse(existingTag.category))
+      toUpdate = existingTag.copy(name = existingTag.name, lang = existingTag.lang, category = category.getOrElse(existingTag.category))
       updatedTag <- lift(tagRepository.update(toUpdate))
     } yield updatedTag
   }
 
-  def deleteTag(name: String): Future[\/[ErrorUnion#Fail, Tag]] = {
-    tagRepository.delete(name)
+  def deleteTag(name: String, lang: String): Future[\/[ErrorUnion#Fail, Tag]] = {
+    tagRepository.delete(name, lang)
   }
 
   def createTagCategory(name: String, lang: String): Future[\/[RepositoryError.Fail, TagCategory]] = {

@@ -67,17 +67,18 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                   |DELETE FROM project_tags
                   |WHERE project_id = ?
                   |AND tag_name = ?
+                  |AND tag_lang = ?
                 """.stripMargin
   val TagProject =
     s"""
-       |INSERT INTO project_tags(project_id, tag_name)
-       |VALUES (?, ?)
+       |INSERT INTO project_tags(project_id, tag_name, tag_lang)
+       |VALUES (?, ?, ?)
      """.stripMargin
 
   val Update = s"""
                   UPDATE $Table
                   SET  lang = ?, category = ?, frequency = ?
-                  WHERE name = ?
+                  WHERE name = ? && lang = ?
                   RETURNING $Fields"""
 
   override def create(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
@@ -87,7 +88,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   override def update(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(Update, Seq[Any](tag.lang, tag.category, tag.frequency, tag.name))
   }
-  override def delete(tagName: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
+  override def delete(tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(Delete, Seq[Any](tagName))
   }
 
@@ -98,9 +99,9 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   override def find(name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(SelectOneByName, Seq[Any](name))
   }
-  override def untag(projectId: UUID, tagName: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def untag(projectId: UUID, tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
-      _ <- lift(queryNumRows(Untag, Array[Any](projectId, tagName))(_ == 1).map {
+      _ <- lift(queryNumRows(Untag, Array[Any](projectId, tagName, tagLang))(_ == 1).map {
         case \/-(true) => \/-(())
         case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove the tag"))
         case -\/(error) => -\/(error)
@@ -117,9 +118,9 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     queryList(SelectAllByKey, Seq[Any](key))
   }
 
-  override def tag(projectId: UUID, tagName: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def tag(projectId: UUID, tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
-      _ <- lift(queryNumRows(TagProject, Array[Any](projectId, tagName))(_ == 1).map {
+      _ <- lift(queryNumRows(TagProject, Array[Any](projectId, tagName, tagLang))(_ == 1).map {
         case \/-(true) => \/-(())
         case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove the tag"))
         case -\/(error) => -\/(error)

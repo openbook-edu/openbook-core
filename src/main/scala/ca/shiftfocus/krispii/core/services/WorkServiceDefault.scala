@@ -56,12 +56,12 @@ class WorkServiceDefault(
       result <- liftSeq {
         workList.map { work =>
           (for {
-            gFiles <- lift(gfileRepository.listByWork(work)(db.pool))
-            toReturn = work match {
-              case work: DocumentWork => work.copy(gFiles = gFiles)
-              case work: MediaWork => work.copy(gFiles = gFiles)
-              case work: QuestionWork => work.copy(gFiles = gFiles)
-            }
+            gFiles <- lift(gfileRepository.listByWork(work))
+            toReturn <- lift(Future successful (work match {
+              case work: DocumentWork => \/-(work.copy(gFiles = gFiles))
+              case work: MediaWork => \/-(work.copy(gFiles = gFiles))
+              case work: QuestionWork => \/-(work.copy(gFiles = gFiles))
+            }))
           } yield toReturn.asInstanceOf[Work]).run
         }
       }
@@ -82,16 +82,16 @@ class WorkServiceDefault(
       result <- liftSeq {
         workList.map { work =>
           (for {
-            gFiles <- lift(gfileRepository.listByWork(work)(db.pool))
-            toReturn = work match {
-              case work: DocumentWork => work.copy(gFiles = gFiles)
-              case work: MediaWork => work.copy(gFiles = gFiles)
-              case work: QuestionWork => work.copy(gFiles = gFiles)
-            }
+            gFiles <- lift(gfileRepository.listByWork(work))
+            toReturn <- lift(Future successful (work match {
+              case work: DocumentWork => \/-(work.copy(gFiles = gFiles))
+              case work: MediaWork => \/-(work.copy(gFiles = gFiles))
+              case work: QuestionWork => \/-(work.copy(gFiles = gFiles))
+            }))
           } yield toReturn.asInstanceOf[Work]).run
         }
       }
-    } yield workList
+    } yield result
   }
 
   /**
@@ -124,11 +124,11 @@ class WorkServiceDefault(
     for {
       work <- lift(workRepository.find(workId))
       gFiles <- lift(gfileRepository.listByWork(work))
-      result = work match {
-        case work: DocumentWork => work.copy(gFiles = gFiles)
-        case work: MediaWork => work.copy(gFiles = gFiles)
-        case work: QuestionWork => work.copy(gFiles = gFiles)
-      }
+      result <- lift(Future successful (work match {
+        case work: DocumentWork => \/-(work.copy(gFiles = gFiles))
+        case work: MediaWork => \/-(work.copy(gFiles = gFiles))
+        case work: QuestionWork => \/-(work.copy(gFiles = gFiles))
+      }))
     } yield result.asInstanceOf[Work]
   }
 
@@ -148,11 +148,11 @@ class WorkServiceDefault(
       task <- lift(fTask)
       work <- lift(workRepository.find(user, task))
       gFiles <- lift(gfileRepository.listByWork(work))
-      result = work match {
-        case work: DocumentWork => work.copy(gFiles = gFiles)
-        case work: MediaWork => work.copy(gFiles = gFiles)
-        case work: QuestionWork => work.copy(gFiles = gFiles)
-      }
+      result <- lift(Future successful (work match {
+        case work: DocumentWork => \/-(work.copy(gFiles = gFiles))
+        case work: MediaWork => \/-(work.copy(gFiles = gFiles))
+        case work: QuestionWork => \/-(work.copy(gFiles = gFiles))
+      }))
     } yield result.asInstanceOf[Work]
   }
 
@@ -173,11 +173,11 @@ class WorkServiceDefault(
       task <- lift(fTask)
       work <- lift(workRepository.find(user, task, version))
       gFiles <- lift(gfileRepository.listByWork(work))
-      result = work match {
-        case work: DocumentWork => work.copy(gFiles = gFiles)
-        case work: MediaWork => work.copy(gFiles = gFiles)
-        case work: QuestionWork => work.copy(gFiles = gFiles)
-      }
+      result <- lift(Future successful (work match {
+        case work: DocumentWork => \/-(work.copy(gFiles = gFiles))
+        case work: MediaWork => \/-(work.copy(gFiles = gFiles))
+        case work: QuestionWork => \/-(work.copy(gFiles = gFiles))
+      }))
     } yield result.asInstanceOf[Work]
   }
 

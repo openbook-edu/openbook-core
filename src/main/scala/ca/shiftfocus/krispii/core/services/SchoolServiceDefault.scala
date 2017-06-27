@@ -112,7 +112,6 @@ class SchoolServiceDefault(
     courseRepository.find(slug)
   }
 
-  // TODO validate slug
   /**
    * Create a new course.
    *
@@ -138,7 +137,7 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Create a new course.
+   * Update course.
    *
    * @param id the UUID of the course this course belongs to
    * @param teacherId the optional UUID of the user teaching this course
@@ -154,6 +153,7 @@ class SchoolServiceDefault(
     color: Option[Color],
     enabled: Option[Boolean],
     schedulingEnabled: Option[Boolean],
+    theaterMode: Option[Boolean],
     chatEnabled: Option[Boolean]
   ): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
@@ -171,6 +171,7 @@ class SchoolServiceDefault(
           color = color.getOrElse(existingCourse.color),
           enabled = enabled.getOrElse(existingCourse.enabled),
           schedulingEnabled = schedulingEnabled.getOrElse(existingCourse.schedulingEnabled),
+          theaterMode = theaterMode.getOrElse(existingCourse.theaterMode),
           chatEnabled = chatEnabled.getOrElse(existingCourse.chatEnabled)
         )
         updatedCourse <- lift(courseRepository.update(toUpdate))

@@ -19,6 +19,7 @@ case class Course(
   chatEnabled: Boolean = true,
   schedulingEnabled: Boolean = false,
   projects: Option[IndexedSeq[Project]] = None,
+  theaterMode: Boolean = false,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 )
@@ -60,6 +61,7 @@ object Course {
     (__ \ "chatEnabled").write[Boolean] and
     (__ \ "schedulingEnabled").write[Boolean] and
     (__ \ "projects").writeNullable[IndexedSeq[Project]] and
+    (__ \ "theaterMode").write[Boolean] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Course.unapply))

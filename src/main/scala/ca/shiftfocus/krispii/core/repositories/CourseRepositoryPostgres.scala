@@ -41,13 +41,14 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
       row("chat_enabled").asInstanceOf[Boolean],
       row("scheduling_enabled").asInstanceOf[Boolean],
       None,
+      row("theater_mode").asInstanceOf[Boolean],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
   }
 
   val Table = "courses"
-  val Fields = "id, version, teacher_id, name, color, slug, enabled, is_deleted, chat_enabled, scheduling_enabled, created_at, updated_at"
+  val Fields = "id, version, teacher_id, name, color, slug, enabled, is_deleted, chat_enabled, scheduling_enabled, theater_mode, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.name ASC"
@@ -89,7 +90,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   val Update =
     s"""
        |UPDATE $Table
-       |SET version = ?, teacher_id = ?, name = ?, color = ?, slug = get_slug(?, '$Table', ?), enabled = ?, scheduling_enabled = ?, chat_enabled = ?, updated_at = ?
+       |SET version = ?, teacher_id = ?, name = ?, color = ?, slug = get_slug(?, '$Table', ?), enabled = ?, scheduling_enabled = ?, theater_mode = ?, chat_enabled = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $Fields
@@ -467,7 +468,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   def insert(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Course]] = {
     val params = Seq[Any](
       course.id, 1, course.teacherId, course.name, course.color.getRGB, course.slug, course.id,
-      course.enabled, course.chatEnabled, course.schedulingEnabled, new DateTime, new DateTime
+      course.enabled, course.chatEnabled, course.schedulingEnabled, course.theaterMode, new DateTime, new DateTime
     )
 
     for {
@@ -487,7 +488,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
                      (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Course]] = { // format: ON
     val params = Seq[Any](
       course.version + 1, course.teacherId, course.name, course.color.getRGB, course.slug, course.id,
-      course.enabled, course.schedulingEnabled, course.chatEnabled, new DateTime, course.id, course.version
+      course.enabled, course.schedulingEnabled, course.theaterMode, course.chatEnabled, new DateTime, course.id, course.version
     )
     for {
       updated <- lift(queryOne(Update, params))

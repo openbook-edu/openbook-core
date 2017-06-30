@@ -50,7 +50,6 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   val Table = "courses"
   val Fields = "id, version, teacher_id, name, color, slug, enabled, is_deleted, chat_enabled, scheduling_enabled, theater_mode, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.name ASC"
 
   // User CRUD operations
@@ -81,7 +80,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   val Insert = {
     s"""
        |INSERT INTO $Table ($Fields)
-       |VALUES (?, ?, ?, ?, ?, get_slug(?, '$Table', ?), ?, false, ?, ?, ?, ?)
+       |VALUES (?, ?, ?, ?, ?, get_slug(?, '$Table', ?), ?, false, ?, ?, ?, ?, ?)
        |RETURNING $Fields
     """.stripMargin
   }

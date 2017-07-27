@@ -8,6 +8,7 @@ import ca.shiftfocus.krispii.core.models.{ Conversation, Message }
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
+import org.joda.time.DateTime
 
 import scala.concurrent.Future
 import scalaz.\/
@@ -33,6 +34,10 @@ class ConversationServiceDefault(
    */
   def listByEntityId(entityId: UUID, limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[Conversation]]] = {
     conversationRepository.list(entityId, limit, offset)
+  }
+
+  def listByEntityId(entityId: UUID, afterDate: DateTime): Future[\/[ErrorUnion#Fail, IndexedSeq[Conversation]]] = {
+    conversationRepository.list(entityId, afterDate)
   }
 
   def findConversation(conversationId: UUID): Future[\/[ErrorUnion#Fail, Conversation]] = {
@@ -78,6 +83,10 @@ class ConversationServiceDefault(
    */
   def listByConversationId(conversationId: UUID, limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[Message]]] = {
     messageRepository.list(conversationId, limit, offset)
+  }
+
+  def listByConversationId(conversationId: UUID, afterDate: DateTime): Future[\/[ErrorUnion#Fail, IndexedSeq[Message]]] = {
+    messageRepository.list(conversationId, afterDate)
   }
 
   def findMessage(messageId: UUID): Future[\/[ErrorUnion#Fail, Message]] = {

@@ -34,6 +34,7 @@ class MessageRepositoryPostgres extends MessageRepository with PostgresRepositor
   val Table = "messages"
   val Fields = "id, conversation_id, user_id, content, revision_id, revision_type, revision_version, created_at"
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?"
+  val OrderBy = "created_at ASC"
 
   val SelectOne =
     s"""
@@ -47,8 +48,17 @@ class MessageRepositoryPostgres extends MessageRepository with PostgresRepositor
        |SELECT $Fields
        |FROM $Table
        |WHERE conversation_id = '$conversationId'
-       |ORDER BY created_at ASC
+       |ORDER BY $OrderBy
        |LIMIT $limit OFFSET $offset
+  """.stripMargin
+
+  def SelectByConversationIdAfter =
+    s"""
+       |SELECT $Fields
+       |FROM $Table
+       |WHERE conversation_id = ?
+       | AND created_at > ?
+       |ORDER BY $OrderBy
   """.stripMargin
 
   val Insert =
@@ -76,6 +86,10 @@ class MessageRepositoryPostgres extends MessageRepository with PostgresRepositor
     }
 
     queryList(SelectRangeByConversationId(conversationId, queryLimit, offset))
+  }
+
+  def list(conversationId: UUID, afterDate: DateTime)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Message]]] = {
+    queryList(SelectByConversationIdAfter, Seq[Any](conversationId, afterDate))
   }
 
   def insert(message: Message)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Message]] = {

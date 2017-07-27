@@ -532,6 +532,35 @@ CREATE TABLE project_tokens (
   created_at timestamp with time zone
 );
 
+CREATE TABLE conversations (
+  id uuid PRIMARY KEY,
+  owner_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  version bigint,
+  title text,
+  shared boolean DEFAULT false,
+  entity_id uuid,
+  entity_type text,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone
+);
+
+CREATE TABLE messages (
+  id uuid PRIMARY KEY,
+  conversation_id uuid NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  user_id  uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  content text,
+  revision_id text,
+  revision_type text,
+  revision_version text,
+  created_at timestamp with time zone
+);
+
+CREATE TABLE users_conversations (
+  conversation_id uuid NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  created_at timestamp with time zone
+);
+
 CREATE OR REPLACE FUNCTION get_slug(_slug text, _table text, _id uuid) RETURNS text AS $$
 DECLARE
  updatedSlug text := $1;

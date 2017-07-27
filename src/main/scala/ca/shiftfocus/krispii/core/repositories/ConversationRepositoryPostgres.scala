@@ -39,6 +39,7 @@ class ConversationRepositoryPostgres(
   val Table = "conversations"
   val Fields = "id, owner_id, version, title, shared, entity_id, entity_type, created_at, updated_at"
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val OrderBy = "created_at ASC"
 
   val SelectOne =
     s"""
@@ -51,7 +52,7 @@ class ConversationRepositoryPostgres(
     s"""
        |SELECT $Fields
        |FROM $Table
-       |ORDER BY created_at ASC
+       |ORDER BY $OrderBy
        |LIMIT $limit OFFSET $offset
   """.stripMargin
 
@@ -60,8 +61,17 @@ class ConversationRepositoryPostgres(
        |SELECT $Fields
        |FROM $Table
        |WHERE entity_id = '$entityId'
-       |ORDER BY created_at DESC
+       |ORDER BY $OrderBy
        |LIMIT $limit OFFSET $offset
+  """.stripMargin
+
+  def SelectByEntityIdAfter =
+    s"""
+       |SELECT $Fields
+       |FROM $Table
+       |WHERE entity_id = ?
+       | AND created_at > ?
+       |ORDER BY $OrderBy
   """.stripMargin
 
   def AddMember =
@@ -100,6 +110,18 @@ class ConversationRepositoryPostgres(
 
     for {
       conversationList <- lift(queryList(SelectRangeByEntityId(entityId, queryLimit, offset)))
+      conversationsWithMembers <- liftSeq(conversationList.map { conversation =>
+        (for {
+          members <- lift(userRepository.list(conversation))
+          result = conversation.copy(members = members)
+        } yield result).run
+      })
+    } yield conversationsWithMembers
+  }
+
+  def list(entityId: UUID, afterDate: DateTime)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Conversation]]] = {
+    for {
+      conversationList <- lift(queryList(SelectByEntityIdAfter, Seq[Any](entityId, afterDate)))
       conversationsWithMembers <- liftSeq(conversationList.map { conversation =>
         (for {
           members <- lift(userRepository.list(conversation))

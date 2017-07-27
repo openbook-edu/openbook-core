@@ -40,6 +40,14 @@ class ConversationServiceDefault(
     conversationRepository.list(entityId, afterDate)
   }
 
+  def listByEntityAndUserId(entityId: UUID, userId: UUID, limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[Conversation]]] = {
+    conversationRepository.listByUser(entityId, userId, limit, offset)
+  }
+
+  def listByEntityAndUserId(entityId: UUID, userId: UUID, afterDate: DateTime): Future[\/[ErrorUnion#Fail, IndexedSeq[Conversation]]] = {
+    conversationRepository.listByUser(entityId, userId, afterDate)
+  }
+
   def findConversation(conversationId: UUID): Future[\/[ErrorUnion#Fail, Conversation]] = {
     conversationRepository.find(conversationId)
   }

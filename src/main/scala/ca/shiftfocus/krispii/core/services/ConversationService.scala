@@ -19,6 +19,8 @@ trait ConversationService extends Service[ErrorUnion#Fail] {
 
   def listByEntityId(entityId: UUID, limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[Conversation]]]
   def listByEntityId(entityId: UUID, afterDate: DateTime): Future[\/[ErrorUnion#Fail, IndexedSeq[Conversation]]]
+  def listByEntityAndUserId(entityId: UUID, userId: UUID, limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[Conversation]]]
+  def listByEntityAndUserId(entityId: UUID, userId: UUID, afterDate: DateTime): Future[\/[ErrorUnion#Fail, IndexedSeq[Conversation]]]
   def findConversation(conversationId: UUID): Future[\/[ErrorUnion#Fail, Conversation]]
   def addMember(conversationId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Conversation]]
   def createConversation(ownerId: UUID, title: String, entityId: Option[UUID], entityType: Option[String]): Future[\/[ErrorUnion#Fail, Conversation]]

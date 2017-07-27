@@ -38,8 +38,9 @@ class ConversationRepositoryPostgres(
 
   val Table = "conversations"
   val Fields = "id, owner_id, version, title, shared, entity_id, entity_type, created_at, updated_at"
+  val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
-  val OrderBy = "created_at ASC"
+  val OrderBy = s"${Table}.created_at ASC"
 
   val SelectOne =
     s"""
@@ -65,12 +66,36 @@ class ConversationRepositoryPostgres(
        |LIMIT $limit OFFSET $offset
   """.stripMargin
 
+  def SelectRangeByEntityAndUserId(entityId: UUID, userId: UUID, limit: String, offset: Int) =
+    s"""
+       |SELECT $FieldsWithTable
+       |FROM $Table
+       |JOIN users_conversations AS uc
+       |  ON uc.conversation_id = $Table.id
+       |  AND uc.user_id = '$userId'
+       |WHERE ${Table}.entity_id = '$entityId'
+       |ORDER BY $OrderBy
+       |LIMIT $limit OFFSET $offset
+  """.stripMargin
+
   def SelectByEntityIdAfter =
     s"""
        |SELECT $Fields
        |FROM $Table
        |WHERE entity_id = ?
        | AND created_at > ?
+       |ORDER BY $OrderBy
+  """.stripMargin
+
+  def SelectByEntityAndUserIdAfter =
+    s"""
+       |SELECT $FieldsWithTable
+       |FROM $Table
+       |JOIN users_conversations AS uc
+       |  ON uc.conversation_id = $Table.id
+       |  AND uc.user_id = ?
+       |WHERE ${Table}.entity_id = ?
+       | AND ${Table}.created_at > ?
        |ORDER BY $OrderBy
   """.stripMargin
 
@@ -122,6 +147,35 @@ class ConversationRepositoryPostgres(
   def list(entityId: UUID, afterDate: DateTime)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Conversation]]] = {
     for {
       conversationList <- lift(queryList(SelectByEntityIdAfter, Seq[Any](entityId, afterDate)))
+      conversationsWithMembers <- liftSeq(conversationList.map { conversation =>
+        (for {
+          members <- lift(userRepository.list(conversation))
+          result = conversation.copy(members = members)
+        } yield result).run
+      })
+    } yield conversationsWithMembers
+  }
+
+  def listByUser(entityId: UUID, userId: UUID, limit: Int = 0, offset: Int = 0)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Conversation]]] = {
+    val queryLimit = {
+      if (limit == 0) "ALL"
+      else limit.toString
+    }
+
+    for {
+      conversationList <- lift(queryList(SelectRangeByEntityAndUserId(entityId, userId, queryLimit, offset)))
+      conversationsWithMembers <- liftSeq(conversationList.map { conversation =>
+        (for {
+          members <- lift(userRepository.list(conversation))
+          result = conversation.copy(members = members)
+        } yield result).run
+      })
+    } yield conversationsWithMembers
+  }
+
+  def listByUser(entityId: UUID, userId: UUID, afterDate: DateTime)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Conversation]]] = {
+    for {
+      conversationList <- lift(queryList(SelectByEntityAndUserIdAfter, Seq[Any](userId, entityId, afterDate)))
       conversationsWithMembers <- liftSeq(conversationList.map { conversation =>
         (for {
           members <- lift(userRepository.list(conversation))

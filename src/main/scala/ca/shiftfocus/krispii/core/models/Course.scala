@@ -15,6 +15,7 @@ case class Course(
   color: Color,
   slug: String,
   enabled: Boolean = true,
+  archived: Boolean = false,
   deleted: Boolean = false,
   chatEnabled: Boolean = true,
   schedulingEnabled: Boolean = false,
@@ -57,6 +58,7 @@ object Course {
     (__ \ "color").write[Color] and
     (__ \ "slug").write[String] and
     (__ \ "enabled").write[Boolean] and
+    (__ \ "archived").write[Boolean] and
     (__ \ "deleted").write[Boolean] and
     (__ \ "chatEnabled").write[Boolean] and
     (__ \ "schedulingEnabled").write[Boolean] and
@@ -91,6 +93,7 @@ case class CoursePut(
   color: Option[Color],
   slug: Option[String],
   enabled: Option[Boolean],
+  archived: Option[Boolean],
   deleted: Option[Boolean],
   chatEnabled: Option[Boolean],
   schedulingEnabled: Option[Boolean]
@@ -104,6 +107,7 @@ object CoursePut {
     (__ \ "color").readNullable[Color] and
     (__ \ "slug").readNullable[String] and
     (__ \ "enabled").readNullable[Boolean] and
+    (__ \ "archived").readNullable[Boolean] and
     (__ \ "deleted").readNullable[Boolean] and
     (__ \ "chatEnabled").readNullable[Boolean] and
     (__ \ "schedulingEnabled").readNullable[Boolean]

@@ -152,6 +152,7 @@ class SchoolServiceDefault(
     slug: Option[String],
     color: Option[Color],
     enabled: Option[Boolean],
+    archived: Option[Boolean],
     schedulingEnabled: Option[Boolean],
     theaterMode: Option[Boolean],
     chatEnabled: Option[Boolean]
@@ -170,6 +171,7 @@ class SchoolServiceDefault(
           slug = slug.getOrElse(existingCourse.slug),
           color = color.getOrElse(existingCourse.color),
           enabled = enabled.getOrElse(existingCourse.enabled),
+          archived = archived.getOrElse(existingCourse.archived),
           schedulingEnabled = schedulingEnabled.getOrElse(existingCourse.schedulingEnabled),
           theaterMode = theaterMode.getOrElse(existingCourse.theaterMode),
           chatEnabled = chatEnabled.getOrElse(existingCourse.chatEnabled)
@@ -180,19 +182,19 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Delete a course from the system.
+   * Mark a course as deleted.
    *
    * @param id the unique ID of the course to update
    * @param version the latest version of the course for O.O.L.
-   * @return a boolean indicating success or failure
+   * @return course
    */
   override def deleteCourse(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
       for {
         existingCourse <- lift(courseRepository.find(id))
         _ <- predicate(existingCourse.version == version)(ServiceError.OfflineLockFail)
-        wasDeleted <- lift(courseRepository.delete(existingCourse))
-      } yield wasDeleted
+        deletedCourse <- lift(courseRepository.delete(existingCourse))
+      } yield deletedCourse
     }
   }
 

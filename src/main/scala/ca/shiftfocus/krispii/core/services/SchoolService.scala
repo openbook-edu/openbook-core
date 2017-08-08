@@ -33,6 +33,7 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
     slug: Option[String],
     color: Option[Color],
     enabled: Option[Boolean],
+    archived: Option[Boolean],
     schedulingEnabled: Option[Boolean],
     theaterMode: Option[Boolean],
     chatEnabled: Option[Boolean]

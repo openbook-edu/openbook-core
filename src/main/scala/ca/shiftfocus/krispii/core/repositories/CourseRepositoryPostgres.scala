@@ -469,7 +469,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   def insert(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Course]] = {
     val params = Seq[Any](
       course.id, 1, course.teacherId, course.name, course.color.getRGB, course.slug, course.id,
-      course.enabled, course.archived, course.chatEnabled, course.schedulingEnabled, course.theaterMode, new DateTime, new DateTime
+      course.enabled, course.chatEnabled, course.schedulingEnabled, course.theaterMode, new DateTime, new DateTime
     )
 
     for {

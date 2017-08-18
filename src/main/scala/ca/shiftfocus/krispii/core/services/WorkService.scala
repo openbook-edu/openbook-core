@@ -70,7 +70,6 @@ trait WorkService extends Service[ErrorUnion#Fail] {
 
   // ########## GOOGLE FILES ###########################################################################################
   def getGfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Gfile]]
-
   def createGfile(
     workId: UUID,
     fileId: String,
@@ -81,8 +80,6 @@ trait WorkService extends Service[ErrorUnion#Fail] {
     url: String,
     sharedEmail: Option[String]
   ): Future[\/[ErrorUnion#Fail, Work]]
-
-  def updateGfile(gFileId: UUID, sharedEmail: Option[String]): Future[\/[ErrorUnion#Fail, Work]]
-
+  def updateGfile(gFileId: UUID, sharedEmail: Option[Option[String]], revisionId: Option[Option[String]]): Future[\/[ErrorUnion#Fail, Work]]
   def deleteGfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Work]]
 }

@@ -793,14 +793,26 @@ class WorkServiceDefault(
 
   override def updateGfile(
     gFileId: UUID,
-    sharedEmail: Option[String]
+    sharedEmail: Option[Option[String]],
+    revisionId: Option[Option[String]]
   ): Future[\/[ErrorUnion#Fail, Work]] = {
     for {
       gFile <- lift(gfileRepository.get(gFileId))
       work <- lift(workRepository.find(gFile.workId))
       gFiles <- lift(gfileRepository.listByWork(work))
       updatedGfile <- lift(gfileRepository.update(
-        gFile.copy(sharedEmail = sharedEmail)
+        gFile.copy(
+          sharedEmail = sharedEmail match {
+          case Some(Some(sharedEmail)) => Some(sharedEmail)
+          case Some(None) => None
+          case None => gFile.sharedEmail
+        },
+          revisionId = revisionId match {
+          case Some(Some(revisionId)) => Some(revisionId)
+          case Some(None) => None
+          case None => gFile.revisionId
+        }
+        )
       ))
       // Update list of google files in the work
       updatedGfiles = gFiles.map(gF => {

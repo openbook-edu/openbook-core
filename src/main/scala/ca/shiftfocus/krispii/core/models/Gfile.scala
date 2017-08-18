@@ -16,6 +16,8 @@ case class Gfile(
   embedUrl: String,
   url: String,
   sharedEmail: Option[String],
+  // Save revision id when work was marked as done
+  revisionId: Option[String] = None,
   createdAt: DateTime = new DateTime
 )
 
@@ -30,6 +32,7 @@ object Gfile {
     (__ \ "embedUrl").write[String] and
     (__ \ "url").write[String] and
     (__ \ "sharedEmail").writeNullable[String] and
+    (__ \ "revisionId").writeNullable[String] and
     (__ \ "createdAt").write[DateTime]
   )(unlift(Gfile.unapply))
 }

@@ -1085,8 +1085,8 @@ class AuthServiceDefault(
         bodyHtml = Some(messagesApi("emailchange.cancel.message.new", user.givenname, user.surname)(lang)) //text
       )
 
-      oldEmailResult <- lift(sendAsyncEmail(emailForOld))
-      newEmailResult <- lift(sendAsyncEmail(emailForNew))
+//      oldEmailResult <- lift(sendAsyncEmail(emailForOld))
+//      newEmailResult <- lift(sendAsyncEmail(emailForNew))
     } yield deleted
   }
 }

@@ -31,15 +31,16 @@ class ConversationRepositoryPostgres(
       Option(row("entity_id")).map(_.asInstanceOf[UUID]),
       Option(row("entity_type")).map(_.asInstanceOf[String]),
       IndexedSeq.empty[User],
+      row("is_deleted").asInstanceOf[Boolean],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
   }
 
   val Table = "conversations"
-  val Fields = "id, owner_id, version, title, shared, entity_id, entity_type, created_at, updated_at"
+  val Fields = "id, owner_id, version, title, shared, entity_id, entity_type, is_deleted, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.created_at ASC"
 
   val SelectOne =
@@ -47,12 +48,14 @@ class ConversationRepositoryPostgres(
        |SELECT $Fields
        |FROM $Table
        |WHERE id = ?
+       | AND is_deleted = false
      """.stripMargin
 
   def SelectRange(limit: String, offset: Int) =
     s"""
        |SELECT $Fields
        |FROM $Table
+       |WHERE is_deleted = false
        |ORDER BY $OrderBy
        |LIMIT $limit OFFSET $offset
   """.stripMargin
@@ -62,6 +65,7 @@ class ConversationRepositoryPostgres(
        |SELECT $Fields
        |FROM $Table
        |WHERE entity_id = '$entityId'
+       |  AND is_deleted = false
        |ORDER BY $OrderBy
        |LIMIT $limit OFFSET $offset
   """.stripMargin
@@ -74,20 +78,22 @@ class ConversationRepositoryPostgres(
        |  ON uc.conversation_id = $Table.id
        |  AND uc.user_id = '$userId'
        |WHERE ${Table}.entity_id = '$entityId'
+       |  AND is_deleted = false
        |ORDER BY $OrderBy
        |LIMIT $limit OFFSET $offset
   """.stripMargin
 
-  def SelectByEntityIdAfter =
+  val SelectByEntityIdAfter =
     s"""
        |SELECT $Fields
        |FROM $Table
        |WHERE entity_id = ?
-       | AND created_at > ?
+       |  AND created_at > ?
+       |  AND is_deleted = false
        |ORDER BY $OrderBy
   """.stripMargin
 
-  def SelectByEntityAndUserIdAfter =
+  val SelectByEntityAndUserIdAfter =
     s"""
        |SELECT $FieldsWithTable
        |FROM $Table
@@ -95,11 +101,12 @@ class ConversationRepositoryPostgres(
        |  ON uc.conversation_id = $Table.id
        |  AND uc.user_id = ?
        |WHERE ${Table}.entity_id = ?
-       | AND ${Table}.created_at > ?
+       |  AND ${Table}.created_at > ?
+       |  AND is_deleted = false
        |ORDER BY $OrderBy
   """.stripMargin
 
-  def AddMember =
+  val AddMember =
     s"""
        |INSERT INTO users_conversations (conversation_id, user_id, created_at)
        |VALUES (?, ?, ?)
@@ -114,7 +121,8 @@ class ConversationRepositoryPostgres(
 
   val Delete =
     s"""
-       |DELETE FROM $Table
+       |UPDATE $Table
+       |SET is_deleted = true
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $Fields
@@ -201,7 +209,7 @@ class ConversationRepositoryPostgres(
   def insert(conversation: Conversation)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Conversation]] = {
     val params = Seq[Any](
       conversation.id, conversation.ownerId, conversation.version, conversation.title, conversation.shared,
-      conversation.entityId, conversation.entityType, conversation.createdAt, conversation.updatedAt
+      conversation.entityId, conversation.entityType, conversation.isDeleted, conversation.createdAt, conversation.updatedAt
     )
 
     queryOne(Insert, params)

@@ -15,6 +15,7 @@ case class Conversation(
   entityId: Option[UUID] = None,
   entityType: Option[String] = None,
   members: IndexedSeq[User] = IndexedSeq.empty[User],
+  isDeleted: Boolean = false,
   createdAt: DateTime = new DateTime(),
   updatedAt: DateTime = new DateTime()
 )
@@ -31,6 +32,7 @@ object Conversation {
         "entityId" -> conversation.entityId,
         "entityType" -> conversation.entityType,
         "members" -> conversation.members,
+        "isDeleted" -> conversation.isDeleted,
         "createdAt" -> conversation.createdAt,
         "updatedAt" -> conversation.updatedAt
       )

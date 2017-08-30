@@ -794,6 +794,7 @@ class WorkServiceDefault(
   override def updateGfile(
     gFileId: UUID,
     sharedEmail: Option[Option[String]],
+    permissionId: Option[Option[String]],
     revisionId: Option[Option[String]]
   ): Future[\/[ErrorUnion#Fail, Work]] = {
     for {
@@ -806,6 +807,11 @@ class WorkServiceDefault(
           case Some(Some(sharedEmail)) => Some(sharedEmail)
           case Some(None) => None
           case None => gFile.sharedEmail
+        },
+          permissionId = permissionId match {
+          case Some(Some(permissionId)) => Some(permissionId)
+          case Some(None) => None
+          case None => gFile.permissionId
         },
           revisionId = revisionId match {
           case Some(Some(revisionId)) => Some(revisionId)

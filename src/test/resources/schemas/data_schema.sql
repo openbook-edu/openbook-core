@@ -1021,3 +1021,103 @@ VALUES ('36c8c0ca50aa4806afa5916a5e33a81f', 'ea8a2527bb57493aaedc3289305258db', 
 /* project A */
 INSERT INTO project_tokens(project_id, email, token, created_at)
 VALUES  ('c9b4cfceaed448fd94f5c980763dfddc', 'some@email.com', '26944803-6dbd-487b-b83d-f222f87c0703', '2014-08-05 14:01:19.545-04');
+
+
+/* ---------------------- CONVERSATIONS ---------------------- */
+/* testConversationA -> testUserA -> testLongAnswerWorkA */
+INSERT INTO conversations(id, owner_id, version, title, shared, entity_id, entity_type, created_at, updated_at)
+VALUES  ('2bd9f7fe0be54721b79edaf702a5c15f', '36c8c0ca50aa4806afa5916a5e33a81f', '1', 'testConversationA', false, '441374e20b1643ecadb96a3251081d24', 'work', '2014-08-05 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
+
+/* testConversationB -> testUserA -> testLongAnswerWorkA */
+INSERT INTO conversations(id, owner_id, version, title, shared, entity_id, entity_type, created_at, updated_at)
+VALUES  ('1ba184c5b31547d6b1e7feee619eea97', '36c8c0ca50aa4806afa5916a5e33a81f', '1', 'testConversationB', false, '441374e20b1643ecadb96a3251081d24', 'work', '2014-08-05 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
+
+/* testConversationC -> testUserA -> testLongAnswerWorkA */
+INSERT INTO conversations(id, owner_id, version, title, shared, entity_id, entity_type, created_at, updated_at)
+VALUES  ('c9cbdcb59ecb484bbcacbfa641d574c6', '36c8c0ca50aa4806afa5916a5e33a81f', '1', 'testConversationC', false, '441374e20b1643ecadb96a3251081d24', 'work', '2014-08-05 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
+
+/* testConversationD -> testUserB -> testLongAnswerWorkF */
+INSERT INTO conversations(id, owner_id, version, title, shared, entity_id, entity_type, created_at, updated_at)
+VALUES  ('380eb1ad0cb74e2aadbff3165f181bd8', '6c0e29bdd05b4b2981156be93e936c59', '1', 'testConversationD', false, 'f7fcffc37b794de7b6ddcf37aa155fd9', 'work', '2014-08-05 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
+
+/* testConversationE -> testUserB -> testLongAnswerWorkF */
+INSERT INTO conversations(id, owner_id, version, title, shared, entity_id, entity_type, created_at, updated_at)
+VALUES  ('0ce5b2caf0e641fcb83a33ac2d330036', '6c0e29bdd05b4b2981156be93e936c59', '1', 'testConversationE', false, 'f7fcffc37b794de7b6ddcf37aa155fd9', 'work', '2014-08-05 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
+
+
+/* ---------------------- MESSAGES ---------------------- */
+/* testMessageA -> testConversationA  -> testUserA */
+INSERT INTO messages(id, conversation_id, user_id, content, revision_id, revision_type, revision_version, created_at)
+VALUES  ('cd39901b4a3547aba33dd6303a9a92c1', '2bd9f7fe0be54721b79edaf702a5c15f', '36c8c0ca50aa4806afa5916a5e33a81f', 'testMessageA content', null, null, null, '2014-08-05 14:01:19.545-04');
+
+/* testMessageB -> testConversationA  -> testUserA */
+INSERT INTO messages(id, conversation_id, user_id, content, revision_id, revision_type, revision_version, created_at)
+VALUES  ('0f65985b87794ea5aabf19f62fab81a4', '2bd9f7fe0be54721b79edaf702a5c15f', '36c8c0ca50aa4806afa5916a5e33a81f', 'testMessageB content', null, null, null, '2018-08-05 14:01:19.545-04');
+
+/* testMessageC -> testConversationB  -> testUserA */
+INSERT INTO messages(id, conversation_id, user_id, content, revision_id, revision_type, revision_version, created_at)
+VALUES  ('57e5f223c10745d2b3835973d6357a3a', '1ba184c5b31547d6b1e7feee619eea97', '36c8c0ca50aa4806afa5916a5e33a81f', 'testMessageC content', null, null, null, '2014-08-05 14:01:19.545-04');
+
+/* testMessageD -> testConversationC  -> testUserA */
+INSERT INTO messages(id, conversation_id, user_id, content, revision_id, revision_type, revision_version, created_at)
+VALUES  ('2e775cd27d094df4bb872a6e566abfd3', 'c9cbdcb59ecb484bbcacbfa641d574c6', '36c8c0ca50aa4806afa5916a5e33a81f', 'testMessageD content', null, null, null, '2014-08-05 14:01:19.545-04');
+
+/* testMessageE -> testConversationC  -> testUserB */
+INSERT INTO messages(id, conversation_id, user_id, content, revision_id, revision_type, revision_version, created_at)
+VALUES  ('e2d34ec27a404985aa0f05d379d3fe70', 'c9cbdcb59ecb484bbcacbfa641d574c6', '6c0e29bdd05b4b2981156be93e936c59', 'testMessageE content', null, null, null, '2018-08-05 14:01:19.545-04');
+
+/* testMessageF -> testConversationD  -> testUserB */
+INSERT INTO messages(id, conversation_id, user_id, content, revision_id, revision_type, revision_version, created_at)
+VALUES  ('f708b72e03af494dbe34356e78a0b643', '380eb1ad0cb74e2aadbff3165f181bd8', '6c0e29bdd05b4b2981156be93e936c59', 'testMessageF content', null, null, null, '2018-08-05 14:01:19.545-04');
+
+/* testMessageG -> testConversationD  -> testUserA */
+INSERT INTO messages(id, conversation_id, user_id, content, revision_id, revision_type, revision_version, created_at)
+VALUES  ('95a085e6521b4287809d8d5c2df7fb80', '380eb1ad0cb74e2aadbff3165f181bd8', '36c8c0ca50aa4806afa5916a5e33a81f', 'testMessageG content', null, null, null, '2014-08-05 14:01:19.545-04');
+
+/* testMessageH -> testConversationE  -> testUserB */
+INSERT INTO messages(id, conversation_id, user_id, content, revision_id, revision_type, revision_version, created_at)
+VALUES  ('f64509952b8040e084e145d121886527', '0ce5b2caf0e641fcb83a33ac2d330036', '6c0e29bdd05b4b2981156be93e936c59', 'testMessageH content', null, null, null, '2014-08-05 14:01:19.545-04');
+
+
+/* ---------------------- USERS CONVERSATIONS ---------------------- */
+/* testConversationA -> testUserA */
+INSERT INTO users_conversations(conversation_id, user_id, created_at)
+VALUES  ('2bd9f7fe0be54721b79edaf702a5c15f', '36c8c0ca50aa4806afa5916a5e33a81f', '2014-08-05 14:01:19.545-04');
+
+/* testConversationB -> testUserA */
+INSERT INTO users_conversations(conversation_id, user_id, created_at)
+VALUES  ('1ba184c5b31547d6b1e7feee619eea97', '36c8c0ca50aa4806afa5916a5e33a81f', '2014-08-05 14:01:19.545-04');
+
+/* testConversationC -> testUserA */
+INSERT INTO users_conversations(conversation_id, user_id, created_at)
+VALUES  ('c9cbdcb59ecb484bbcacbfa641d574c6', '36c8c0ca50aa4806afa5916a5e33a81f', '2014-08-05 14:01:19.545-04');
+
+/* testConversationC -> testUserB */
+INSERT INTO users_conversations(conversation_id, user_id, created_at)
+VALUES  ('c9cbdcb59ecb484bbcacbfa641d574c6', '6c0e29bdd05b4b2981156be93e936c59', '2014-08-05 14:01:19.545-04');
+
+/* testConversationD -> testUserB */
+INSERT INTO users_conversations(conversation_id, user_id, created_at)
+VALUES  ('380eb1ad0cb74e2aadbff3165f181bd8', '6c0e29bdd05b4b2981156be93e936c59', '2014-08-05 14:01:19.545-04');
+
+/* testConversationD -> testUserA */
+INSERT INTO users_conversations(conversation_id, user_id, created_at)
+VALUES  ('380eb1ad0cb74e2aadbff3165f181bd8', '36c8c0ca50aa4806afa5916a5e33a81f', '2014-08-05 14:01:19.545-04');
+
+/* testConversationE -> testUserB */
+INSERT INTO users_conversations(conversation_id, user_id, created_at)
+VALUES  ('0ce5b2caf0e641fcb83a33ac2d330036', '6c0e29bdd05b4b2981156be93e936c59', '2014-08-05 14:01:19.545-04');
+
+
+/* ---------------------- LAST READ MESSAGE ---------------------- */
+/* testConversationA -> testUserA -> testMessageA */
+INSERT INTO last_read_message(conversation_id, user_id, message_id, read_at)
+VALUES  ('2bd9f7fe0be54721b79edaf702a5c15f', '36c8c0ca50aa4806afa5916a5e33a81f', 'cd39901b4a3547aba33dd6303a9a92c1', '2014-08-05 14:01:19.545-04');
+
+/* testConversationC -> testUserA -> testMessageD */
+INSERT INTO last_read_message(conversation_id, user_id, message_id, read_at)
+VALUES  ('c9cbdcb59ecb484bbcacbfa641d574c6', '36c8c0ca50aa4806afa5916a5e33a81f', '2e775cd27d094df4bb872a6e566abfd3', '2014-08-05 14:01:19.545-04');
+
+/* testConversationD -> testUserA -> testMessageF */
+INSERT INTO last_read_message(conversation_id, user_id, message_id, read_at)
+VALUES  ('380eb1ad0cb74e2aadbff3165f181bd8', '36c8c0ca50aa4806afa5916a5e33a81f', 'f708b72e03af494dbe34356e78a0b643', '2014-08-05 14:01:19.545-04');

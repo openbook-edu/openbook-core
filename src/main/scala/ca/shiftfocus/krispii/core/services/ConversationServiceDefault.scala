@@ -101,6 +101,18 @@ class ConversationServiceDefault(
     messageRepository.find(messageId)
   }
 
+  def hasNewMessage(entityId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Boolean]] = {
+    messageRepository.hasNew(entityId, userId)
+  }
+
+  def setLastRead(conversationId: UUID, userId: UUID, messageId: UUID, reatAt: DateTime): Future[\/[ErrorUnion#Fail, Unit]] = {
+    messageRepository.setLastRead(conversationId, userId, messageId, reatAt)
+  }
+
+  def getLastRead(conversationId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Message]] = {
+    messageRepository.getLastRead(conversationId, userId)
+  }
+
   def createMessage(conversationId: UUID, userId: UUID, content: String, revisionId: Option[String], revisionType: Option[String], revisionVersion: Option[String]): Future[\/[ErrorUnion#Fail, Message]] = {
     messageRepository.insert(Message(
       conversationId = conversationId,

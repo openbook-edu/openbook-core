@@ -558,7 +558,16 @@ CREATE TABLE messages (
 CREATE TABLE users_conversations (
   conversation_id uuid NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
   user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  last_access_at timestamp with time zone DEFAULT current_timestamp,
   created_at timestamp with time zone
+);
+
+CREATE TABLE last_read_message (
+  conversation_id uuid NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  message_id uuid NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+  read_at timestamp with time zone,
+  PRIMARY KEY (conversation_id, user_id)
 );
 
 CREATE OR REPLACE FUNCTION get_slug(_slug text, _table text, _id uuid) RETURNS text AS $$

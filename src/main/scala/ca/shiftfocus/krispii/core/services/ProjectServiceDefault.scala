@@ -362,7 +362,8 @@ class ProjectServiceDefault(
     availability: Option[String],
     enabled: Option[Boolean],
     projectType: Option[String],
-    status: Option[String]
+    status: Option[String],
+    lastTaskId: Option[Option[UUID]]
   ): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
       for {
@@ -381,6 +382,11 @@ class ProjectServiceDefault(
             case Some(newStatus) if !newStatus.trim.isEmpty => Some(newStatus)
             case Some(newStatus) if newStatus.trim.isEmpty => None
             case None => existingProject.status
+          },
+          lastTaskId = lastTaskId match {
+            case Some(Some(lastTaskId)) => Some(lastTaskId)
+            case Some(None) => None
+            case None => existingProject.lastTaskId
           }
         )
         updatedProject <- lift(projectRepository.update(toUpdate))

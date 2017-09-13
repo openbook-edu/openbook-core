@@ -28,6 +28,7 @@ case class Project(
     parts: IndexedSeq[Part],
     tags: IndexedSeq[Tag] = IndexedSeq(),
     status: Option[String] = None,
+    lastTaskId: Option[UUID] = None,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) {
@@ -96,6 +97,7 @@ object Project {
     (__ \ "parts").write[IndexedSeq[Part]] and
     (__ \ "tags").write[IndexedSeq[Tag]] and
     (__ \ "status").write[Option[String]] and
+    (__ \ "lastTaskId").write[Option[UUID]] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Project.unapply))

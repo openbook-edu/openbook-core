@@ -66,7 +66,8 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     availability: Option[String],
     enabled: Option[Boolean],
     projectType: Option[String],
-    status: Option[String]
+    status: Option[String],
+    lastTaskId: Option[Option[UUID]]
   ): Future[\/[ErrorUnion#Fail, Project]]
 
   def updateSlug(id: UUID, version: Long, slug: String): Future[\/[ErrorUnion#Fail, Project]]

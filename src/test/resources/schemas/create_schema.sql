@@ -162,6 +162,7 @@ CREATE TABLE tasks (
   part_id uuid NOT NULL REFERENCES parts(id) ON DELETE CASCADE,
   name text,
   description text,
+  instructions text,
   position int,
   task_type int,
   notes_allowed boolean DEFAULT true,
@@ -169,6 +170,7 @@ CREATE TABLE tasks (
   notes_title text,
   help_text text,
   max_grade text DEFAULT '0',
+  media_data jsonb,
   hide_response boolean NOT NULL DEFAULT false,
   allow_gfile boolean NOT NULL DEFAULT true,
   created_at timestamp with time zone,
@@ -528,6 +530,44 @@ CREATE TABLE project_tokens (
   email text NOT NULL,
   token text NOT NULL,
   created_at timestamp with time zone
+);
+
+CREATE TABLE conversations (
+  id uuid PRIMARY KEY,
+  owner_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  version bigint,
+  title text,
+  shared boolean DEFAULT false,
+  entity_id uuid,
+  entity_type text,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone
+);
+
+CREATE TABLE messages (
+  id uuid PRIMARY KEY,
+  conversation_id uuid NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  user_id  uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  content text,
+  revision_id text,
+  revision_type text,
+  revision_version text,
+  created_at timestamp with time zone
+);
+
+CREATE TABLE users_conversations (
+  conversation_id uuid NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  last_access_at timestamp with time zone DEFAULT current_timestamp,
+  created_at timestamp with time zone
+);
+
+CREATE TABLE last_read_message (
+  conversation_id uuid NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  message_id uuid NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+  read_at timestamp with time zone,
+  PRIMARY KEY (conversation_id, user_id)
 );
 
 CREATE OR REPLACE FUNCTION get_slug(_slug text, _table text, _id uuid) RETURNS text AS $$

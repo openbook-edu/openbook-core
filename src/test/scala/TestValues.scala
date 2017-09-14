@@ -439,7 +439,8 @@ object TestValues {
       notesAllowed = true,
       help = "test help text testLongAnswerTaskA",
       notesTitle = Some("test longAnswerTask A notes title"),
-      responseTitle = Some("test longAnswerTask A response title")
+      responseTitle = Some("test longAnswerTask A response title"),
+      mediaData = Some(MediaData(Some("s3"), Some("some_video.mp4"), Some("video/mp4"), Some(4123456)))
     ),
     dependencyId = None,
     maxGrade = "55",

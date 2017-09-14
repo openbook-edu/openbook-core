@@ -4,6 +4,7 @@ import ca.shiftfocus.krispii.core.models.document.Document
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.models.Gfile
+import ca.shiftfocus.krispii.core.models.tasks.Task
 import ca.shiftfocus.krispii.core.models.tasks.questions._
 import org.joda.time.DateTime
 import play.api.libs.json._
@@ -14,6 +15,7 @@ sealed trait Work {
   val studentId: UUID
   val taskId: UUID
   val version: Long
+  val workType: Int
   val isComplete: Boolean
   val grade: String
   val gFiles: IndexedSeq[Gfile]
@@ -32,6 +34,7 @@ object Work {
         "studentId" -> work.studentId,
         "taskId" -> work.taskId,
         "version" -> work.version,
+        "workType" -> work.workType,
         "response" -> {
           work match {
             case specific: DocumentWork if specific.response.isDefined => Json.toJson(specific.response.get)
@@ -60,6 +63,7 @@ final case class DocumentWork(
     taskId: UUID,
     documentId: UUID,
     version: Long = 1L,
+    workType: Int = Task.Document,
     response: Option[Document] = None,
     isComplete: Boolean = false,
     grade: String,
@@ -80,6 +84,7 @@ final case class QuestionWork(
     studentId: UUID,
     taskId: UUID,
     version: Long = 1L,
+    workType: Int = Task.Question,
     response: Answers = Answers(),
     isComplete: Boolean = false,
     grade: String,
@@ -97,6 +102,7 @@ final case class MediaWork(
     studentId: UUID,
     taskId: UUID,
     version: Long = 1L,
+    workType: Int = Task.Media,
     fileData: MediaAnswer = MediaAnswer(),
     isComplete: Boolean = false,
     grade: String,

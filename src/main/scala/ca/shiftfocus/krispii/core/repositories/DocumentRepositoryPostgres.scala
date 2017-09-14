@@ -107,6 +107,10 @@ class DocumentRepositoryPostgres(val revisionRepository: RevisionRepository)
               }
               document.copy(version = version, delta = computedDelta)
             }
+            // We don't have revision for document version 1, as it is empty document
+            else if (version == 1L) {
+              document.copy(version = version, delta = Delta(IndexedSeq()))
+            }
             else {
               document
             }

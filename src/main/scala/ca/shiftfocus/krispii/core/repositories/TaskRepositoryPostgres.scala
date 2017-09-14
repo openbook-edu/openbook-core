@@ -39,13 +39,13 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   // -- Common query components --------------------------------------------------------------------------------------
 
   val Table = "tasks"
-  val CommonFields = "id, version, part_id, name, description, position, notes_allowed, response_title, hide_response, allow_gfile, notes_title, help_text, max_grade, created_at, updated_at, task_type"
+  val CommonFields = "id, version, part_id, name, description, instructions, tagline, position, notes_allowed, response_title, hide_response, allow_gfile, notes_title, help_text, media_data, parent_id, max_grade, created_at, updated_at, task_type"
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
   }
   val SpecificFields = "document_tasks.dependency_id as dependency_id, question_tasks.questions as questions, media_tasks.media_type as media_type"
 
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.position ASC"
   val Join =
     s"""
@@ -92,6 +92,20 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
        | ON parts.id = $Table.part_id
        | AND parts.project_id = projects.id
        |ORDER BY parts.position ASC, $OrderBy
+  """.stripMargin
+
+  val SelectByTeacherId =
+    s"""
+       |SELECT ${CommonFieldsWithTable()}, $SpecificFields
+       |FROM $Table
+       |$Join
+       |INNER JOIN parts
+       | ON parts.id = $Table.part_id
+       |INNER JOIN projects
+       | ON parts.project_id = projects.id
+       |INNER JOIN courses
+       | ON courses.id = projects.course_id
+       | AND courses.teacher_id = ?
   """.stripMargin
 
   val SelectByPosition =
@@ -190,10 +204,10 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   val Update =
     s"""
        |UPDATE $Table
-       |SET part_id = ?, name = ?, description = ?,
+       |SET part_id = ?, name = ?, description = ?, instructions = ?, tagline = ?,
        |    position = ?, notes_allowed = ?,
        |    response_title = ?, hide_response = ?, allow_gfile = ?, notes_title = ?, help_text = ?,
-       |    version = ?, max_grade = ?, updated_at = ?
+       |    media_data = ?, parent_id = ?, version = ?, max_grade = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $CommonFields
@@ -319,6 +333,16 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
   }
 
   /**
+   * Find all tasks belonging to a given teacher.
+   *
+   * @param teacher
+   * @return a vector of the returned tasks
+   */
+  override def list(teacher: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
+    queryList(SelectByTeacherId, Array[Any](teacher.id))
+  }
+
+  /**
    * Find a single entry by ID.
    *
    * @param id the UUID to search for
@@ -395,6 +419,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.partId,
       task.settings.title,
       task.settings.description,
+      task.settings.instructions,
+      task.settings.tagline,
       task.position,
       task.settings.notesAllowed,
       task.settings.responseTitle,
@@ -402,6 +428,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.settings.allowGfile,
       task.settings.notesTitle,
       task.settings.help,
+      Json.toJson(task.settings.mediaData),
+      task.settings.parentId,
       task.maxGrade,
       new DateTime,
       new DateTime
@@ -442,6 +470,8 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.partId,
       task.settings.title,
       task.settings.description,
+      task.settings.instructions,
+      task.settings.tagline,
       task.position,
       task.settings.notesAllowed,
       task.settings.responseTitle,
@@ -449,10 +479,13 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
       task.settings.allowGfile,
       task.settings.notesTitle,
       task.settings.help,
+      Json.toJson(task.settings.mediaData),
+      task.settings.parentId,
       task.version + 1,
       task.maxGrade,
       new DateTime,
-      task.id, task.version
+      task.id,
+      task.version
     )
 
     // Throw in the task type-specific data.

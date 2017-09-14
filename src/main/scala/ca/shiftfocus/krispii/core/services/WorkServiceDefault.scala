@@ -56,12 +56,12 @@ class WorkServiceDefault(
       result <- liftSeq {
         workList.map { work =>
           (for {
-            gFiles <- lift(gfileRepository.listByWork(work)(db.pool))
-            toReturn = work match {
-              case work: DocumentWork => work.copy(gFiles = gFiles)
-              case work: MediaWork => work.copy(gFiles = gFiles)
-              case work: QuestionWork => work.copy(gFiles = gFiles)
-            }
+            gFiles <- lift(gfileRepository.listByWork(work))
+            toReturn <- lift(Future successful (work match {
+              case work: DocumentWork => \/-(work.copy(gFiles = gFiles))
+              case work: MediaWork => \/-(work.copy(gFiles = gFiles))
+              case work: QuestionWork => \/-(work.copy(gFiles = gFiles))
+            }))
           } yield toReturn.asInstanceOf[Work]).run
         }
       }
@@ -82,16 +82,16 @@ class WorkServiceDefault(
       result <- liftSeq {
         workList.map { work =>
           (for {
-            gFiles <- lift(gfileRepository.listByWork(work)(db.pool))
-            toReturn = work match {
-              case work: DocumentWork => work.copy(gFiles = gFiles)
-              case work: MediaWork => work.copy(gFiles = gFiles)
-              case work: QuestionWork => work.copy(gFiles = gFiles)
-            }
+            gFiles <- lift(gfileRepository.listByWork(work))
+            toReturn <- lift(Future successful (work match {
+              case work: DocumentWork => \/-(work.copy(gFiles = gFiles))
+              case work: MediaWork => \/-(work.copy(gFiles = gFiles))
+              case work: QuestionWork => \/-(work.copy(gFiles = gFiles))
+            }))
           } yield toReturn.asInstanceOf[Work]).run
         }
       }
-    } yield workList
+    } yield result
   }
 
   /**
@@ -124,11 +124,11 @@ class WorkServiceDefault(
     for {
       work <- lift(workRepository.find(workId))
       gFiles <- lift(gfileRepository.listByWork(work))
-      result = work match {
-        case work: DocumentWork => work.copy(gFiles = gFiles)
-        case work: MediaWork => work.copy(gFiles = gFiles)
-        case work: QuestionWork => work.copy(gFiles = gFiles)
-      }
+      result <- lift(Future successful (work match {
+        case work: DocumentWork => \/-(work.copy(gFiles = gFiles))
+        case work: MediaWork => \/-(work.copy(gFiles = gFiles))
+        case work: QuestionWork => \/-(work.copy(gFiles = gFiles))
+      }))
     } yield result.asInstanceOf[Work]
   }
 
@@ -148,11 +148,11 @@ class WorkServiceDefault(
       task <- lift(fTask)
       work <- lift(workRepository.find(user, task))
       gFiles <- lift(gfileRepository.listByWork(work))
-      result = work match {
-        case work: DocumentWork => work.copy(gFiles = gFiles)
-        case work: MediaWork => work.copy(gFiles = gFiles)
-        case work: QuestionWork => work.copy(gFiles = gFiles)
-      }
+      result <- lift(Future successful (work match {
+        case work: DocumentWork => \/-(work.copy(gFiles = gFiles))
+        case work: MediaWork => \/-(work.copy(gFiles = gFiles))
+        case work: QuestionWork => \/-(work.copy(gFiles = gFiles))
+      }))
     } yield result.asInstanceOf[Work]
   }
 
@@ -173,11 +173,11 @@ class WorkServiceDefault(
       task <- lift(fTask)
       work <- lift(workRepository.find(user, task, version))
       gFiles <- lift(gfileRepository.listByWork(work))
-      result = work match {
-        case work: DocumentWork => work.copy(gFiles = gFiles)
-        case work: MediaWork => work.copy(gFiles = gFiles)
-        case work: QuestionWork => work.copy(gFiles = gFiles)
-      }
+      result <- lift(Future successful (work match {
+        case work: DocumentWork => \/-(work.copy(gFiles = gFiles))
+        case work: MediaWork => \/-(work.copy(gFiles = gFiles))
+        case work: QuestionWork => \/-(work.copy(gFiles = gFiles))
+      }))
     } yield result.asInstanceOf[Work]
   }
 
@@ -793,14 +793,32 @@ class WorkServiceDefault(
 
   override def updateGfile(
     gFileId: UUID,
-    sharedEmail: Option[String]
+    sharedEmail: Option[Option[String]],
+    permissionId: Option[Option[String]],
+    revisionId: Option[Option[String]]
   ): Future[\/[ErrorUnion#Fail, Work]] = {
     for {
       gFile <- lift(gfileRepository.get(gFileId))
       work <- lift(workRepository.find(gFile.workId))
       gFiles <- lift(gfileRepository.listByWork(work))
       updatedGfile <- lift(gfileRepository.update(
-        gFile.copy(sharedEmail = sharedEmail)
+        gFile.copy(
+          sharedEmail = sharedEmail match {
+          case Some(Some(sharedEmail)) => Some(sharedEmail)
+          case Some(None) => None
+          case None => gFile.sharedEmail
+        },
+          permissionId = permissionId match {
+          case Some(Some(permissionId)) => Some(permissionId)
+          case Some(None) => None
+          case None => gFile.permissionId
+        },
+          revisionId = revisionId match {
+          case Some(Some(revisionId)) => Some(revisionId)
+          case Some(None) => None
+          case None => gFile.revisionId
+        }
+        )
       ))
       // Update list of google files in the work
       updatedGfiles = gFiles.map(gF => {

@@ -185,6 +185,16 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |ORDER BY $OrderBy
     """.stripMargin
 
+  val SelectAllWithConversation =
+    s"""
+       |SELECT $FieldsWithoutHash
+       |FROM $Table, users_conversations as uc
+       |WHERE $Table.id = uc.user_id
+       |  AND uc.conversation_id = ?
+       |  AND is_deleted = FALSE
+       |ORDER BY $OrderBy
+    """.stripMargin
+
   // TODO - not used
   //  val ListUsersFilterByRolesAndCourses =
   //    s"""
@@ -253,6 +263,10 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
         } yield userList
       case -\/(error) => Future successful -\/(error)
     }
+  }
+
+  override def list(conversation: Conversation)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    queryList(SelectAllWithConversation, Seq[Any](conversation.id))
   }
 
   /**

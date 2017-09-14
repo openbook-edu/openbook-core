@@ -1,0 +1,49 @@
+package ca.shiftfocus.krispii.core.services
+
+import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.services.datasource.DB
+import play.api.i18n.Lang
+import play.api.libs.ws.WSClient
+import play.api.{ Configuration, Logger }
+import scala.concurrent.ExecutionContext.Implicits.global
+
+import scala.concurrent.Future
+import scalaz.{ \/, \/- }
+
+class SendyServiceDefault(
+    val db: DB,
+    val wsClient: WSClient,
+    val configuration: Configuration
+) extends SendyService {
+
+  def subscribe(user: User, lang: Lang): Future[\/[ErrorUnion#Fail, Unit]] = {
+    val maybeSendyUrl = configuration.getString("sendy.url")
+    val maybeSendyListId = configuration.getString(s"sendy.${lang.code}.list.id")
+
+    (maybeSendyUrl, maybeSendyListId) match {
+      case (Some(sendyUrl), Some(sendyListId)) => {
+        val postBody = Map[String, Seq[String]](
+          "name" -> Seq((user.givenname + " " + user.surname)),
+          "email" -> Seq(user.email),
+          "list" -> Seq(sendyListId),
+          "boolean" -> Seq("true")
+        )
+
+        wsClient.url(sendyUrl + "/subscribe").withHeaders("Content-Type" -> "application/x-www-form-urlencoded").post(postBody).map { response =>
+          val result = response.body.toString
+          if (result != "1") {
+            Logger.error(s"[SENDY ERROR] For ${user.email}: " + result)
+          }
+        }.recover {
+          case e => Logger.error(s"[SENDY ERROR] For ${user.email}: " + e.toString)
+        }
+      }
+      case (None, Some(sendyListId)) => Logger.error(s"[SENDY ERROR] For ${user.email}: Missing configuration: sendy.url")
+      case (Some(sendyUrl), None) => Logger.error(s"[SENDY ERROR] For ${user.email}: Missing configuration: " + s"sendy.${lang.code}.list.id")
+      case _ => Logger.error(s"[SENDY ERROR] For ${user.email}: Missing configuration: sendy.url and " + s"sendy.${lang.code}.list.id")
+    }
+
+    Future successful \/-()
+  }
+}

@@ -17,7 +17,8 @@ import scalaz.{ -\/, \/, \/- }
  * Work with database tables: users_subscriptions, stripe_events
  */
 class ConversationRepositoryPostgres(
-    val userRepository: UserRepository
+    val userRepository: UserRepository,
+    val roleRepository: RoleRepository
 ) extends ConversationRepository with PostgresRepository[Conversation] {
 
   override val entityName = "Conversation"
@@ -132,7 +133,14 @@ class ConversationRepositoryPostgres(
     for {
       conversation <- lift(queryOne(SelectOne, Seq[Any](id)))
       members <- lift(userRepository.list(conversation))
-    } yield conversation.copy(members = members)
+      membersWithRoles <- liftSeq {
+        members.map { user =>
+          (for {
+            roles <- lift(roleRepository.list(user))
+          } yield user.copy(roles = roles)).run
+        }
+      }
+    } yield conversation.copy(members = membersWithRoles)
   }
 
   def list(entityId: UUID, limit: Int = 0, offset: Int = 0)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Conversation]]] = {
@@ -146,7 +154,14 @@ class ConversationRepositoryPostgres(
       conversationsWithMembers <- liftSeq(conversationList.map { conversation =>
         (for {
           members <- lift(userRepository.list(conversation))
-          result = conversation.copy(members = members)
+          membersWithRoles <- liftSeq {
+            members.map { user =>
+              (for {
+                roles <- lift(roleRepository.list(user))
+              } yield user.copy(roles = roles)).run
+            }
+          }
+          result = conversation.copy(members = membersWithRoles)
         } yield result).run
       })
     } yield conversationsWithMembers
@@ -158,7 +173,14 @@ class ConversationRepositoryPostgres(
       conversationsWithMembers <- liftSeq(conversationList.map { conversation =>
         (for {
           members <- lift(userRepository.list(conversation))
-          result = conversation.copy(members = members)
+          membersWithRoles <- liftSeq {
+            members.map { user =>
+              (for {
+                roles <- lift(roleRepository.list(user))
+              } yield user.copy(roles = roles)).run
+            }
+          }
+          result = conversation.copy(members = membersWithRoles)
         } yield result).run
       })
     } yield conversationsWithMembers
@@ -175,7 +197,14 @@ class ConversationRepositoryPostgres(
       conversationsWithMembers <- liftSeq(conversationList.map { conversation =>
         (for {
           members <- lift(userRepository.list(conversation))
-          result = conversation.copy(members = members)
+          membersWithRoles <- liftSeq {
+            members.map { user =>
+              (for {
+                roles <- lift(roleRepository.list(user))
+              } yield user.copy(roles = roles)).run
+            }
+          }
+          result = conversation.copy(members = membersWithRoles)
         } yield result).run
       })
     } yield conversationsWithMembers
@@ -187,7 +216,14 @@ class ConversationRepositoryPostgres(
       conversationsWithMembers <- liftSeq(conversationList.map { conversation =>
         (for {
           members <- lift(userRepository.list(conversation))
-          result = conversation.copy(members = members)
+          membersWithRoles <- liftSeq {
+            members.map { user =>
+              (for {
+                roles <- lift(roleRepository.list(user))
+              } yield user.copy(roles = roles)).run
+            }
+          }
+          result = conversation.copy(members = membersWithRoles)
         } yield result).run
       })
     } yield conversationsWithMembers
@@ -203,7 +239,14 @@ class ConversationRepositoryPostgres(
         case -\/(error) => -\/(error)
       })
       members <- lift(userRepository.list(conversation))
-    } yield conversation.copy(members = members :+ newMember)
+      membersWithRoles <- liftSeq {
+        members.map { user =>
+          (for {
+            roles <- lift(roleRepository.list(user))
+          } yield user.copy(roles = roles)).run
+        }
+      }
+    } yield conversation.copy(members = membersWithRoles :+ newMember)
   }
 
   def insert(conversation: Conversation)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Conversation]] = {
@@ -219,6 +262,13 @@ class ConversationRepositoryPostgres(
     for {
       deletedConversation <- lift(queryOne(Delete, Seq[Any](conversation.id, conversation.version)))
       members = conversation.members
-    } yield deletedConversation.copy(members = members)
+      membersWithRoles <- liftSeq {
+        members.map { user =>
+          (for {
+            roles <- lift(roleRepository.list(user))
+          } yield user.copy(roles = roles)).run
+        }
+      }
+    } yield deletedConversation.copy(members = membersWithRoles)
   }
 }

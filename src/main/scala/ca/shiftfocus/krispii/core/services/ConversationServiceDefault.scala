@@ -18,7 +18,8 @@ class ConversationServiceDefault(
     val scalaCache: ScalaCachePool,
     val conversationRepository: ConversationRepository,
     val messageRepository: MessageRepository,
-    val userRepository: UserRepository
+    val userRepository: UserRepository,
+    val roleRepository: RoleRepository
 ) extends ConversationService {
 
   implicit def conn: Connection = db.pool
@@ -56,7 +57,8 @@ class ConversationServiceDefault(
     for {
       conversation <- lift(conversationRepository.find(conversationId))
       newMember <- lift(userRepository.find(userId))
-      result <- lift(conversationRepository.addMember(conversation, newMember))
+      roles <- lift(roleRepository.list(newMember))
+      result <- lift(conversationRepository.addMember(conversation, newMember.copy(roles = roles)))
     } yield result
   }
 

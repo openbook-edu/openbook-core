@@ -59,7 +59,6 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   val TagsTable = "tags"
   val Fields = "id, version, course_id, name, slug, parent_id, parent_version, is_master, description, long_description, availability, enabled, project_type, status, last_task_id, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.created_at DESC"
 
   // User CRUD operations
@@ -162,7 +161,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   val Insert =
     s"""
       |INSERT INTO $Table ($Fields)
-      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       |RETURNING $Fields
     """.stripMargin
 

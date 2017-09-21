@@ -11,7 +11,8 @@ import scalaz._
 class ConversationRepositorySpec
     extends TestEnvironment {
   val userRepository = new UserRepositoryPostgres()
-  val conversationRepository = new ConversationRepositoryPostgres(userRepository)
+  val roleRepository = new RoleRepositoryPostgres(userRepository)
+  val conversationRepository = new ConversationRepositoryPostgres(userRepository, roleRepository)
 
   "ComponentRepository.list" should {
     inSequence {

@@ -570,6 +570,15 @@ CREATE TABLE last_read_message (
   PRIMARY KEY (conversation_id, user_id)
 );
 
+CREATE TABLE organizations (
+  id uuid PRIMARY KEY,
+  version bigint NOT NULL,
+  title text NOT NULL,
+  admin_email text,
+  created_at timestamp with time zone NOT NULL,
+  updated_at timestamp with time zone NOT NULL
+);
+
 CREATE OR REPLACE FUNCTION get_slug(_slug text, _table text, _id uuid) RETURNS text AS $$
 DECLARE
  updatedSlug text := $1;

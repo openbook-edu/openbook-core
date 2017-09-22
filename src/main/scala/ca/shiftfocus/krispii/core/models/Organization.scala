@@ -10,7 +10,6 @@ case class Organization(
   version: Long = 1L,
   title: String,
   adminEmail: Option[String] = None,
-  maxUsers: Int = 0,
   tags: IndexedSeq[Tag] = IndexedSeq.empty[Tag],
   createdAt: DateTime = new DateTime(),
   updatedAt: DateTime = new DateTime()
@@ -24,7 +23,6 @@ object Organization {
         "version" -> organization.version,
         "title" -> organization.title,
         "adminEmail" -> organization.adminEmail,
-        "maxUsers" -> organization.adminEmail,
         "tags" -> organization.tags,
         "createdAt" -> organization.createdAt,
         "updatedAt" -> organization.updatedAt

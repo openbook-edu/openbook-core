@@ -579,6 +579,13 @@ CREATE TABLE organizations (
   updated_at timestamp with time zone NOT NULL
 );
 
+CREATE TABLE organization_limit (
+  organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  type text,
+  limited bigint,
+  PRIMARY KEY (organization_id, type)
+);
+
 CREATE OR REPLACE FUNCTION get_slug(_slug text, _table text, _id uuid) RETURNS text AS $$
 DECLARE
  updatedSlug text := $1;

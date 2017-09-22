@@ -50,7 +50,7 @@ class OrganizationServiceDefault(
             case None => existingOrganization.adminEmail
           }
         )))
-      } yield existingOrganization).run
+      } yield updated).run
     }
   }
 

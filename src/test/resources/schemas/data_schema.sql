@@ -1121,3 +1121,7 @@ VALUES  ('c9cbdcb59ecb484bbcacbfa641d574c6', '36c8c0ca50aa4806afa5916a5e33a81f',
 /* testConversationD -> testUserA -> testMessageF */
 INSERT INTO last_read_message(conversation_id, user_id, message_id, read_at)
 VALUES  ('380eb1ad0cb74e2aadbff3165f181bd8', '36c8c0ca50aa4806afa5916a5e33a81f', 'f708b72e03af494dbe34356e78a0b643', '2014-08-05 14:01:19.545-04');
+
+/* ---------------------- ORGANIZATIONS ---------------------- */
+INSERT INTO organizations(id, version, title, admin_email, created_at, updated_at)
+VALUES  ('8c27b83baf4f4e7f9ecf8f6b5ec9bfb0', 1, 'testOrganizationA', null, '2014-08-05 14:01:19.545-04', '2014-08-05 14:01:19.545-04');

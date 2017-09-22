@@ -38,9 +38,11 @@ trait LimitRepository extends Repository {
   def getOrganizationCourseLimit(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
   def getOrganizationStudentLimit(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
   def getOrganizationDateLimit(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, DateTime]]
+  def getOrganizationMemberLimit(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
 
   def setOrganizationStorageLimit(organizationId: UUID, limit: Float)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]]
   def setOrganizationCourseLimit(organizationId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
   def setOrganizationStudentLimit(organizationId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
   def setOrganizationDateLimit(organizationId: UUID, limit: DateTime)(implicit conn: Connection): Future[\/[RepositoryError.Fail, DateTime]]
+  def setOrganizationMemberLimit(organizationId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
 }

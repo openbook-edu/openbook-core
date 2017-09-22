@@ -582,6 +582,40 @@ class SchoolServiceDefault(
     limitRepository.setPlanStudentLimit(palnId, limitValue)
   }
 
+  // Organization
+  def getOrganizationStudentLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getOrganizationStudentLimit(organizationId)
+  }
+
+  def getOrganizationCourseLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getOrganizationCourseLimit(organizationId)
+  }
+  def getOrganizationStorageLimit(organizationtId: UUID): Future[\/[ErrorUnion#Fail, Float]] = {
+    limitRepository.getOrganizationStorageLimit(organizationtId)
+  }
+  def getOrganizationDateLimit(organizationtId: UUID): Future[\/[ErrorUnion#Fail, DateTime]] = {
+    limitRepository.getOrganizationDateLimit(organizationtId)
+  }
+  def getOrganizationMemberLimit(organizationtId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getOrganizationMemberLimit(organizationtId)
+  }
+
+  def setOrganizationStorageLimit(organizationId: UUID, limit: Float): Future[\/[ErrorUnion#Fail, Float]] = {
+    limitRepository.setOrganizationStorageLimit(organizationId, limit)
+  }
+  def setOrganizationCourseLimit(organizationId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.setOrganizationCourseLimit(organizationId, limit)
+  }
+  def setOrganizationStudentLimit(organizationId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.setOrganizationStudentLimit(organizationId, limit)
+  }
+  def setOrganizationDateLimit(organizationId: UUID, limit: DateTime): Future[\/[ErrorUnion#Fail, DateTime]] = {
+    limitRepository.setOrganizationDateLimit(organizationId, limit)
+  }
+  def setOrganizationMemberLimit(organizationtId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.setOrganizationMemberLimit(organizationtId, limit)
+  }
+
   /**
    * Check if a slug is of the valid format.
    *

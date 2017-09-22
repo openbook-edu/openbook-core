@@ -342,7 +342,16 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   def getOrganizationDateLimit(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, DateTime]] = {
     // Limit is unix timestamp
     getOrganizationLimit(organizationId, Limits.activeUntil).flatMap {
-      case \/-(limit) => Future successful \/-(new DateTime(limit))
+      // We need milliseconds here
+      case \/-(limit) => Future successful \/-(new DateTime(limit * 1000))
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
+  def getOrganizationMemberLimit(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
+    // Limit is unix timestamp
+    getOrganizationLimit(organizationId, Limits.maxUsers).flatMap {
+      case \/-(limit) => Future successful \/-(limit.toInt)
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -387,12 +396,24 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   }
 
   def setOrganizationDateLimit(organizationId: UUID, limit: DateTime)(implicit conn: Connection): Future[\/[RepositoryError.Fail, DateTime]] = {
-    queryOne(Update("organization"), Seq[Any](limit, organizationId, Limits.activeUntil)).flatMap {
-      case \/-(limit) => Future successful \/-(new DateTime(limit))
+    queryOne(Update("organization"), Seq[Any](limit.getMillis / 1000, organizationId, Limits.activeUntil)).flatMap {
+      case \/-(limit) => Future successful \/-(new DateTime(limit * 1000))
       case -\/(error: RepositoryError.NoResults) => {
         for {
-          insert <- lift(queryOne(Insert("organization"), Seq[Any](organizationId, Limits.activeUntil, limit)))
-        } yield new DateTime(insert)
+          insert <- lift(queryOne(Insert("organization"), Seq[Any](organizationId, Limits.activeUntil, limit.getMillis / 1000)))
+        } yield new DateTime(insert * 1000)
+      }
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
+  def setOrganizationMemberLimit(organizationId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
+    queryOne(Update("organization"), Seq[Any](limit, organizationId, Limits.maxUsers)).flatMap {
+      case \/-(limit) => Future successful \/-(limit.toInt)
+      case -\/(error: RepositoryError.NoResults) => {
+        for {
+          insert <- lift(queryOne(Insert("organization"), Seq[Any](organizationId, Limits.maxUsers, limit)))
+        } yield insert.toInt
       }
       case -\/(error) => Future successful -\/(error)
     }

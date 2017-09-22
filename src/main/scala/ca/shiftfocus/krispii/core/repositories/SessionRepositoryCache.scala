@@ -28,12 +28,42 @@ class SessionRepositoryCache extends SessionRepository {
    * @return a list of sessions for this user
    */
   override def list(userId: UUID)(implicit cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Session]]] = {
-    cache.getCached[IndexedSeq[Session]](userId.toString).map {
-      case \/-(sessions: IndexedSeq[Session]) => \/-(sessions)
-      case _ => \/-(IndexedSeq())
-    }.recover {
+    val fSessionList = for {
+      sessionList <- lift {
+        cache.getCached[IndexedSeq[Session]](userId.toString).map {
+          case \/-(sessions: IndexedSeq[Session]) => \/-(sessions)
+          case _ => \/-(IndexedSeq())
+        }.recover {
+          case exception => {
+            \/.left(RepositoryError.DatabaseError("Internal error: could not list sessions", Some(exception)))
+          }
+        }
+      }
+      // Find and return only active sessions list
+      activeSessionList <- lift {
+        serializedT(sessionList)(session =>
+          find(session.id).map {
+            case \/-(activeSession) => \/-(Some(activeSession))
+            case -\/(error: RepositoryError.NoResults) => \/-(None)
+            case -\/(error) => -\/(error)
+          }).map {
+          case \/-(activeSessionList) => \/-(activeSessionList.flatten)
+          case -\/(error) => -\/(error)
+        }
+      }
+      // Update session list only with active sessions
+      updatedList <- lift {
+        cache.putCache[IndexedSeq[Session]](userId.toString)(activeSessionList, ttl).map {
+          result => \/-(activeSessionList)
+        }.recover {
+          case exception => throw exception
+        }
+      }
+    } yield updatedList
+
+    fSessionList.run.recover {
       case exception => {
-        \/.left(RepositoryError.DatabaseError("Internal error: could not list sessions", Some(exception)))
+        \/.left(RepositoryError.DatabaseError("Internal error: could not list sessions for user", Some(exception)))
       }
     }
   }
@@ -60,9 +90,18 @@ class SessionRepositoryCache extends SessionRepository {
       updatedAt = Some(new DateTime)
     )
 
-    cache.putCache[Session](session.id.toString)(session, ttl).map {
-      result => \/-(session)
-    }.recover {
+    val fSession = for {
+      newSession <- lift {
+        cache.putCache(session.id.toString)(sessionWithDates, ttl).map {
+          result => \/-(sessionWithDates)
+        }.recover {
+          case exception => throw exception
+        }
+      }
+      sessionList <- lift(addToList(session.userId, sessionWithDates))
+    } yield newSession
+
+    fSession.run.recover {
       case exception => {
         \/.left(RepositoryError.DatabaseError("Internal error: could not create session", Some(exception)))
       }
@@ -79,22 +118,14 @@ class SessionRepositoryCache extends SessionRepository {
     val sessionWithDates = session.copy(updatedAt = Some(new DateTime))
 
     val fUpdate = for {
-      existing <- lift(list(session.userId))
-      newSessions = existing.filter(_.id != session.id) :+ sessionWithDates
-      updatedList <- lift {
-        cache.putCache(session.userId.toString)(newSessions).map {
-          result => \/-(newSessions)
-        }.recover {
-          case exception => throw exception
-        }
-      }
       updatedSession <- lift {
-        cache.putCache[Session](session.id.toString)(sessionWithDates).map {
+        cache.putCache[Session](session.id.toString)(sessionWithDates, ttl).map {
           result => \/-(sessionWithDates)
         }.recover {
           case exception => throw exception
         }
       }
+      sessionList <- lift(addToList(session.userId, updatedSession))
     } yield updatedSession
 
     fUpdate.run.recover {
@@ -112,15 +143,6 @@ class SessionRepositoryCache extends SessionRepository {
    */
   override def delete(session: Session)(implicit cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Session]] = {
     val fRemove = for {
-      userSessions <- lift(list(session.userId))
-      updatedList = userSessions.filter(_.id != session.id)
-      savedList <- lift {
-        cache.putCache(session.userId.toString)(updatedList).map {
-          result => \/-(updatedList)
-        }.recover {
-          case exception => throw exception
-        }
-      }
       deletedSession <- lift {
         cache.removeCached(session.id.toString).map {
           result => \/-(session)
@@ -128,6 +150,7 @@ class SessionRepositoryCache extends SessionRepository {
           case exception => throw exception
         }
       }
+      updatedList <- lift(deleteFromList(session.userId, session))
     } yield deletedSession
 
     fRemove.run.recover {
@@ -137,4 +160,31 @@ class SessionRepositoryCache extends SessionRepository {
     }
   }
 
+  private def addToList(userId: UUID, session: Session)(implicit cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Session]]] = {
+    for {
+      sessionList <- lift(list(userId))
+      newList = sessionList :+ session
+      updatedList <- lift {
+        cache.putCache[IndexedSeq[Session]](session.userId.toString)(newList, ttl).map {
+          result => \/-(newList)
+        }.recover {
+          case exception => throw exception
+        }
+      }
+    } yield newList
+  }
+
+  private def deleteFromList(userId: UUID, session: Session)(implicit cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Session]]] = {
+    for {
+      sessionList <- lift(list(userId))
+      newList = sessionList.filter(_.id != session.id)
+      updatedList <- lift {
+        cache.putCache[IndexedSeq[Session]](session.userId.toString)(newList, ttl).map {
+          result => \/-(newList)
+        }.recover {
+          case exception => throw exception
+        }
+      }
+    } yield newList
+  }
 }

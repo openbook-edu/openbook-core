@@ -102,29 +102,38 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
      """.stripMargin
 
   def SelectByTags(tags: IndexedSeq[String]): String = {
-    var inClause = ""
+    var whereClause = ""
     val length = tags.length
 
     Logger.debug("staring zipping: " + length)
     tags.zipWithIndex.map {
       case (current, index) =>
-        inClause += s"""'$current'"""
-        Logger.debug(inClause)
-        if (index != (length - 1)) inClause += ", "
+        Logger.error(current)
+        val tag = current.split(":")
+        Logger.error(tag(0))
+        Logger.error(tag(1))
+        whereClause += s"""(tag_name='${tag(0)}' AND tag_lang='${tag(1)}')"""
+        if (index != (length - 1)) whereClause += " OR "
     }
-    Logger.debug(inClause)
-    s"""
+
+    if (whereClause != "") {
+      whereClause = "WHERE " + whereClause
+    }
+
+    println(Console.GREEN + whereClause + Console.RESET)
+    def query(whereClause: String) = s"""
        |SELECT *
        |FROM projects
        |WHERE id IN (
        |    SELECT project_id
        |    FROM project_tags
-       |    WHERE tag_name in ($inClause)
+       |    ${whereClause}
        |    GROUP BY project_id
        |    HAVING COUNT(DISTINCT tag_name) = $length
        |) AND is_master = true
 
     """.stripMargin
+    query(whereClause)
     //    s"""
     //       SELECT p.* from projects p INNER JOIN
     //       (

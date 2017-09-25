@@ -76,7 +76,11 @@ trait PostgresRepository[A] {
     }
 
     fRes.map {
-      res => buildEntityList(res.rows, constructor)
+      res =>
+        {
+          println(Console.GREEN + res.rows + Console.RESET)
+          buildEntityList(res.rows, constructor)
+        }
     }.recover {
       case exception: ConnectionStillRunningQueryException =>
         -\/(RepositoryError.DatabaseError("Attempted to send concurrent queries in the same transaction.", Some(exception)))

@@ -122,24 +122,16 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
        |WHERE id IN (
        |    SELECT project_id
        |    FROM project_tags
+       |    LEFT JOIN tags
+       |      ON project_tags.tag_id = tags.id
        |    ${whereClause}
        |    GROUP BY project_id
        |    HAVING COUNT(DISTINCT tag_name) = $length
        |) AND is_master = true
 
     """.stripMargin
+
     query(whereClause)
-    //    s"""
-    //       SELECT p.* from projects p INNER JOIN
-    //       (
-    //         SELECT project_id
-    //         FROM project_tags
-    //         WHERE tag_name in ($inClause)
-    //         GROUP BY project_id
-    //         HAVING COUNT(DISTINCT tag_name) = $length
-    //       ) t ON p.id = t.project_id
-    //
-    //    """
   }
 
   val ListByCourse =
@@ -270,12 +262,10 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
             // All parts should be enabled by default
             enabled = true,
             // We cloned task with old part ids, we should update them
-            tasks = clonedTasks.filter(_.partId == part.id).map(task => {
-            task match {
-              case task: DocumentTask => task.copy(partId = partId)
-              case task: MediaTask => task.copy(partId = partId)
-            }
-          }).asInstanceOf[IndexedSeq[Task]],
+            tasks = clonedTasks.filter(_.partId == part.id).map {
+            case task: DocumentTask => task.copy(partId = partId)
+            case task: MediaTask => task.copy(partId = partId)
+          }.asInstanceOf[IndexedSeq[Task]],
             components = {
             if (project.isMaster) cloneComponents(components, ownerId)
             else components
@@ -307,24 +297,22 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
    * @return
    */
   def cloneComponents(components: IndexedSeq[Component], ownerId: UUID): IndexedSeq[Component] = {
-    components.map(component => {
-      component match {
-        case c: VideoComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
-        case c: AudioComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
-        case c: ImageComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
-        case c: BookComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
-        case c: TextComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
-        case c: GenericHTMLComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
-        case c: RubricComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
-      }
-    })
+    components.map {
+      case c: VideoComponent =>
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+      case c: AudioComponent =>
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+      case c: ImageComponent =>
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+      case c: BookComponent =>
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+      case c: TextComponent =>
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+      case c: GenericHTMLComponent =>
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+      case c: RubricComponent =>
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+    }
   }
 
   /**

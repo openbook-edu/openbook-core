@@ -2,15 +2,14 @@ package ca.shiftfocus.krispii.core.repositories
 
 import java.util.UUID
 
-import com.github.mauricio.async.db.{ Connection, ResultSet, RowData }
+import com.github.mauricio.async.db.{ RowData }
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.{ Component, Tag }
-import ca.shiftfocus.krispii.core.repositories.{ PostgresRepository, TagRepository }
+import ca.shiftfocus.krispii.core.models.{ Tag }
 import com.github.mauricio.async.db.Connection
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.{ \/, -\/, \/-, EitherT }
+import scalaz.{ \/, -\/, \/- }
 
 class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
 
@@ -18,6 +17,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
 
   override def constructor(row: RowData): Tag = {
     Tag(
+      row("id").asInstanceOf[UUID],
       row("name").asInstanceOf[String],
       row("lang").asInstanceOf[String],
       row("category").asInstanceOf[String],
@@ -25,8 +25,8 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     )
   }
 
-  val Fields = "name, lang, category, frequency"
-  val QMarks = "?, ?, ?, ?"
+  val Fields = "id, name, lang, category, frequency"
+  val QMarks = "?, ?, ?, ?, ?"
 
   val Table = "tags"
 
@@ -39,13 +39,14 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   val Delete = s"""
                   |DELETE FROM $Table
                   |WHERE name = ?
+                  | AND lang = ?
                   |RETURNING $Fields
                   """.stripMargin
 
   val ListByProject = s"""
-                        SELECT t.name, t.lang, t.category, t.frequency FROM $Table t
+                        SELECT t.id, t.name, t.lang, t.category, t.frequency FROM $Table t
                         JOIN project_tags pt
-                        ON (pt.tag_name = t.name AND pt.tag_lang = t.lang AND pt.project_id = ?);
+                        ON (pt.tag_id = t.id AND pt.project_id = ?);
                         """.stripMargin
 
   val ListByCategory = s"""
@@ -66,13 +67,12 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   val Untag = s"""
                   |DELETE FROM project_tags
                   |WHERE project_id = ?
-                  |AND tag_name = ?
-                  |AND tag_lang = ?
+                  | AND tag_id = (SELECT id FROM tags WHERE name = ? AND lang = ?)
                 """.stripMargin
   val TagProject =
     s"""
-       |INSERT INTO project_tags(project_id, tag_name, tag_lang)
-       |VALUES (?, ?, ?)
+       |INSERT INTO project_tags(project_id, tag_id)
+       |VALUES (?, (SELECT id FROM tags WHERE name = ? AND lang = ? ))
      """.stripMargin
 
   val Update = s"""
@@ -82,14 +82,14 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                   RETURNING $Fields"""
 
   override def create(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
-    queryOne(Insert, Seq[Any](tag.name, tag.lang, tag.category, tag.frequency))
+    queryOne(Insert, Seq[Any](tag.id, tag.name, tag.lang, tag.category, tag.frequency))
   }
 
   override def update(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(Update, Seq[Any](tag.lang, tag.category, tag.frequency, tag.name, tag.lang))
   }
   override def delete(tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
-    queryOne(Delete, Seq[Any](tagName))
+    queryOne(Delete, Seq[Any](tagName, tagLang))
   }
 
   override def listByProjectId(projectId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {

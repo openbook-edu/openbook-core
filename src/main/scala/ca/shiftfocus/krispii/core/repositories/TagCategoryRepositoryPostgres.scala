@@ -2,10 +2,10 @@ package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.TagCategory
-import ca.shiftfocus.krispii.core.repositories.{ PostgresRepository, TagCategoryRepository }
 import com.github.mauricio.async.db.{ Connection, RowData }
 import scala.concurrent.Future
 import scalaz.\/
+
 class TagCategoryRepositoryPostgres extends TagCategoryRepository with PostgresRepository[TagCategory] {
   override val entityName = "TagCategory"
 

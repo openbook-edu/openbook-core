@@ -22,7 +22,12 @@ class TagServiceDefault(
 
   override def createTag(name: String, lang: String, category: String): Future[\/[ErrorUnion#Fail, Tag]] = {
     transactional { implicit conn: Connection =>
-      tagRepository.create(Tag(name, lang, category, 0))
+      tagRepository.create(Tag(
+        name = name,
+        lang = lang,
+        category = category,
+        frequency = 0
+      ))
     }
   }
   override def tag(projectId: UUID, tagName: String, lang: String): Future[\/[ErrorUnion#Fail, Unit]] = {
@@ -31,7 +36,12 @@ class TagServiceDefault(
         existingTag <- lift(
           tagRepository.find(tagName, lang).flatMap {
             case \/-(tag) => Future successful (\/-(tag))
-            case -\/(error) => tagRepository.create(Tag(tagName, lang, "", 0))
+            case -\/(error) => tagRepository.create(Tag(
+              name = tagName,
+              lang = lang,
+              category = "",
+              frequency = 0
+            ))
           }
         )
         tag <- lift(tagRepository.tag(projectId, existingTag.name, existingTag.lang))

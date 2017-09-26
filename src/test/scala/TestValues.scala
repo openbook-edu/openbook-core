@@ -2801,26 +2801,47 @@ object TestValues {
     tokenType = "password_reset"
   )
   /* ---------------------- TAGS ---------------------- */
-  //8b6dc674-d1ae-11e5-9080-08626681851d
+
+  val testTagCategoryA = TagCategory(
+    id = UUID.fromString("3728ce32-42eb-4ede-b259-76cc42be5ab6"),
+    name = "level",
+    lang = "fr"
+  )
+  val testTagCategoryB = TagCategory(
+    id = UUID.fromString("9de6a5af-ffd4-45ed-af72-8e88ebd447fc"),
+    name = "subject",
+    lang = "en"
+  )
+  val testTagCategoryC = TagCategory(
+    id = UUID.fromString("6fbe56bb-e72e-4bfd-ae0f-a07c2c2015f4"),
+    name = "school",
+    lang = "en"
+  )
+  val testTagCategoryD = TagCategory(
+    id = UUID.fromString("5f7b0bf0-15a0-4198-ac16-c5444304991e"),
+    name = "futility",
+    lang = "en"
+  )
+
   val testTagA = Tag(
     id = UUID.fromString("ebad4d23-f49e-4bcb-a4a3-dd523389091a"),
     name = "pacificsound3003",
     lang = "en",
-    category = "subject",
+    category = Some("subject"),
     frequency = 0
   )
   val testTagB = Tag(
     id = UUID.fromString("67e13f10-c615-45a0-8edf-54988bb1c3d2"),
     name = "vanille",
     lang = "fr",
-    category = "level",
+    category = Some("level"),
     frequency = 0
   )
   val testTagC = Tag(
     id = UUID.fromString("c3f132af-9a6f-4396-9ff3-694c6bc466a2"),
     name = "fruit",
     lang = "fr",
-    category = "level",
+    category = Some("level"),
     frequency = 0
   )
   /**
@@ -2829,8 +2850,8 @@ object TestValues {
   val testTagD = Tag(
     id = UUID.fromString("e48866ac-ef8e-4502-b1be-3545ee04dc29"),
     name = "seductive",
-    lang = "en",
-    category = "level",
+    lang = "fr",
+    category = Some("level"),
     frequency = 0
   )
   /**
@@ -2840,25 +2861,8 @@ object TestValues {
     id = UUID.fromString("e2556012-e24a-4f56-ae3f-62c82c79d27b"),
     name = "orange",
     lang = "fr",
-    category = "round_things",
+    category = Some(testTagCategoryA.name),
     frequency = 0
-  )
-
-  val testTagCategoryA = TagCategory(
-    name = "level",
-    lang = "en"
-  )
-  val testTagCategoryB = TagCategory(
-    name = "subject",
-    lang = "fr"
-  )
-  val testTagCategoryC = TagCategory(
-    name = "shit",
-    lang = "en"
-  )
-  val testTagCategoryD = TagCategory(
-    name = "futility",
-    lang = "en"
   )
 
   /* ---------------------- USER PREFERENCES ---------------------- */

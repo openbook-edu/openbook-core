@@ -964,11 +964,23 @@ VALUES('217c5622ff9e43728e6a95fb3bae300b', 'bisexualpotato',  '2014-08-05 14:01:
 INSERT INTO links(course_id, link, created_at)
 VALUES  ('404c800a53854e6b867e365a1e6b00de', 'vinrouge', '2014-08-05 14:01:19.545-04');
 
+/* ---------------------------- TAG CATEGORIES -----------------------------*/
+
+insert into tag_categories(id, name, lang)
+values('3728ce3242eb4edeb25976cc42be5ab6', 'level', 'fr');
+
+insert into tag_categories(id, name, lang)
+values('9de6a5afffd445edaf728e88ebd447fc', 'subject', 'en');
+
+/* category with no tags */
+insert into tag_categories(id, name, lang)
+values('6fbe56bbe72e4bfdae0fa07c2c2015f4', 'school', 'en');
+
 /* ---------------------------- TAGS -----------------------------*/
-insert into tags(id, name, lang, category) values('ebad4d23f49e4bcba4a3dd523389091a', 'pacificsound3003', 'en', 'subject');
-insert into tags(id, name, lang, category) values('67e13f10c61545a08edf54988bb1c3d2', 'vanille', 'fr', 'level');
-insert into tags(id, name, lang, category) values('c3f132af9a6f43969ff3694c6bc466a2', 'fruit' , 'fr', 'level');
-insert into tags(id, name, lang, category) values('e48866acef8e4502b1be3545ee04dc29', 'seductive', 'en', 'level');
+insert into tags(id, name, lang, category_id) values('ebad4d23f49e4bcba4a3dd523389091a', 'pacificsound3003', 'en', '9de6a5afffd445edaf728e88ebd447fc');
+insert into tags(id, name, lang, category_id) values('67e13f10c61545a08edf54988bb1c3d2', 'vanille', 'fr', '3728ce3242eb4edeb25976cc42be5ab6');
+insert into tags(id, name, lang, category_id) values('c3f132af9a6f43969ff3694c6bc466a2', 'fruit' , 'fr', '3728ce3242eb4edeb25976cc42be5ab6');
+insert into tags(id, name, lang, category_id) values('e48866acef8e4502b1be3545ee04dc29', 'seductive', 'fr', '3728ce3242eb4edeb25976cc42be5ab6');
 
 /**
 testProjectG tags
@@ -987,14 +999,6 @@ testProjectH tags
  */
 insert into project_tags(project_id, tag_id) values ('00743ada1d3a4912adc8fb8a0b1b7447', 'ebad4d23f49e4bcba4a3dd523389091a');
 insert into project_tags(project_id, tag_id) values ('00743ada1d3a4912adc8fb8a0b1b7447', '67e13f10c61545a08edf54988bb1c3d2');
-
-/* ---------------------------- TAG CATEGORIES -----------------------------*/
-
-insert into tag_categories(name, lang) values('level', 'en');
-insert into tag_categories(name, lang) values('subject', 'fr');
-
-/* category with no tags */
-insert into tag_categories(name, lang) values('school', 'en');
 
 /* ---------------------- USER PREFERENCES ---------------------- */
 

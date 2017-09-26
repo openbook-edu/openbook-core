@@ -1,8 +1,11 @@
 package ca.shiftfocus.krispii.core.repositories
 
+import java.util.UUID
+
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.TagCategory
 import com.github.mauricio.async.db.{ Connection, RowData }
+
 import scala.concurrent.Future
 import scalaz.\/
 
@@ -11,13 +14,14 @@ class TagCategoryRepositoryPostgres extends TagCategoryRepository with PostgresR
 
   override def constructor(row: RowData): TagCategory = {
     TagCategory(
+      row("id").asInstanceOf[UUID],
       row("name").asInstanceOf[String],
       row("lang").asInstanceOf[String]
     )
   }
 
-  val Fields = "name, lang"
-  val QMarks = "?, ?"
+  val Fields = "id, name, lang"
+  val QMarks = "?, ?, ?"
   val Table = "tag_categories"
 
   val Insert = s"""
@@ -38,7 +42,7 @@ class TagCategoryRepositoryPostgres extends TagCategoryRepository with PostgresR
                             """.stripMargin
 
   override def create(tagCategory: TagCategory)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TagCategory]] = {
-    queryOne(Insert, Seq[Any](tagCategory.name, tagCategory.lang))
+    queryOne(Insert, Seq[Any](tagCategory.id, tagCategory.name, tagCategory.lang))
   }
 
   override def delete(tagCategoryName: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TagCategory]] = {

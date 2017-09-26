@@ -26,6 +26,30 @@ class TagRepositorySpec
         tag.name should be(testTag.name)
         tag.category should be(testTag.category)
       }
+      "create a new tag with empty category" in {
+        val testTag = TestValues.testTagX.copy(
+          category = None
+        )
+        val result = tagRepository.create(testTag)
+        val eitherTag = Await.result(result, Duration.Inf)
+        val \/-(tag) = eitherTag
+
+        tag.lang should be(testTag.lang)
+        tag.name should be(testTag.name)
+        tag.category should be(testTag.category)
+      }
+      "create a new tag with empty category if category doesn't exist" in {
+        val testTag = TestValues.testTagX.copy(
+          category = Some("unexisting_category")
+        )
+        val result = tagRepository.create(testTag)
+        val eitherTag = Await.result(result, Duration.Inf)
+        val \/-(tag) = eitherTag
+
+        tag.lang should be(testTag.lang)
+        tag.name should be(testTag.name)
+        tag.category should be(None)
+      }
       "return unique key conflict if tag already exists" in {
         val result = tagRepository.create(TestValues.testTagA)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
@@ -122,7 +146,7 @@ class TagRepositorySpec
     }
   }
 
-  "RoleRepository.find" should {
+  "TagRepository.find" should {
     inSequence {
       "find a single entry by ID" in {
 
@@ -150,7 +174,8 @@ class TagRepositorySpec
       "list tags for a given category" in {
         val tagsList = TreeMap[Int, ca.shiftfocus.krispii.core.models.Tag](
           0 -> TestValues.testTagB,
-          1 -> TestValues.testTagC
+          1 -> TestValues.testTagC,
+          2 -> TestValues.testTagD
         )
 
         val result = tagRepository.listByCategory("level", "fr")

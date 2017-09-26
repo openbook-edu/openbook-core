@@ -20,7 +20,7 @@ class TagServiceDefault(
 
   implicit def conn: Connection = db.pool
 
-  override def createTag(name: String, lang: String, category: String): Future[\/[ErrorUnion#Fail, Tag]] = {
+  override def createTag(name: String, lang: String, category: Option[String]): Future[\/[ErrorUnion#Fail, Tag]] = {
     transactional { implicit conn: Connection =>
       tagRepository.create(Tag(
         name = name,
@@ -39,7 +39,7 @@ class TagServiceDefault(
             case -\/(error) => tagRepository.create(Tag(
               name = tagName,
               lang = lang,
-              category = "",
+              category = None,
               frequency = 0
             ))
           }
@@ -97,10 +97,18 @@ class TagServiceDefault(
       updatedTag <- lift(tagRepository.update(toUpdate))
     } yield updatedTag
   }
-  override def updateTag(name: String, lang: String, category: Option[String]): Future[\/[ErrorUnion#Fail, Tag]] = {
+  override def updateTag(name: String, lang: String, category: Option[Option[String]]): Future[\/[ErrorUnion#Fail, Tag]] = {
     for {
       existingTag <- lift(tagRepository.find(name, lang))
-      toUpdate = existingTag.copy(name = existingTag.name, lang = existingTag.lang, category = category.getOrElse(existingTag.category))
+      toUpdate = existingTag.copy(
+        name = existingTag.name,
+        lang = existingTag.lang,
+        category = category match {
+        case Some(Some(category)) => Some(category)
+        case Some(None) => None
+        case None => existingTag.category
+      }
+      )
       updatedTag <- lift(tagRepository.update(toUpdate))
     } yield updatedTag
   }
@@ -112,7 +120,10 @@ class TagServiceDefault(
   def createTagCategory(name: String, lang: String): Future[\/[RepositoryError.Fail, TagCategory]] = {
     transactional {
       implicit conn: Connection =>
-        tagCategoryRepository.create(TagCategory(name, lang))
+        tagCategoryRepository.create(TagCategory(
+          name = name,
+          lang = lang
+        ))
     }
   }
   def deleteTagCategory(tagCategoryName: String): Future[\/[RepositoryError.Fail, TagCategory]] = {

@@ -12,7 +12,7 @@ case class Tag(
     id: UUID = UUID.randomUUID(),
     name: String,
     lang: String,
-    category: String,
+    category: Option[String],
     frequency: Int
 ) extends Ordered[Tag] {
 

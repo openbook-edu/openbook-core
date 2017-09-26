@@ -441,8 +441,21 @@ CREATE TABLE course_limit (
   PRIMARY KEY (course_id, type)
 );
 
-create table tags(id uuid UNIQUE, name text, lang text, category text, frequency integer DEFAULT 0, PRIMARY KEY(name, lang));
-create table tag_categories(name text, lang text, PRIMARY KEY(name, lang));
+create table tag_categories(
+  id uuid UNIQUE,
+  name text,
+  lang text,
+  PRIMARY KEY(name, lang)
+);
+
+create table tags(
+  id uuid UNIQUE,
+  name text,
+  lang text,
+  category_id uuid references tag_categories(id) ON DELETE CASCADE,
+  frequency integer DEFAULT 0,
+  PRIMARY KEY(name, lang)
+);
 
 CREATE INDEX trgm_tag_idx ON tags USING gist (name gist_trgm_ops);
 

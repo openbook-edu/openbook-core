@@ -20,48 +20,50 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
       row("id").asInstanceOf[UUID],
       row("name").asInstanceOf[String],
       row("lang").asInstanceOf[String],
-      row("category").asInstanceOf[String],
+      Option(row("category_name").asInstanceOf[String]),
       row("frequency").asInstanceOf[Int]
     )
   }
 
-  val Fields = "id, name, lang, category, frequency"
-  val QMarks = "?, ?, ?, ?, ?"
+  val Fields = "id, name, lang, frequency"
+  val QMarks = "?, ?, ?, ?"
 
   val Table = "tags"
 
   val Insert = s"""
-                  |INSERT INTO $Table ($Fields)
-                  |VALUES ($QMarks)
-                  |RETURNING $Fields
+                  |INSERT INTO $Table ($Fields, category_id)
+                  |VALUES ($QMarks, (SELECT id FROM tag_categories WHERE name = ? AND lang = ?))
+                  |RETURNING $Fields, (SELECT name FROM tag_categories WHERE name = ? AND lang = ?) as category_name
                   """.stripMargin
 
   val Delete = s"""
-                  |DELETE FROM $Table
+                  |DELETE FROM $Table as t
                   |WHERE name = ?
                   | AND lang = ?
-                  |RETURNING $Fields
+                  |RETURNING $Fields, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name
                   """.stripMargin
 
   val ListByProject = s"""
-                        SELECT t.id, t.name, t.lang, t.category, t.frequency FROM $Table t
+                        SELECT t.id, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
                         JOIN project_tags pt
                         ON (pt.tag_id = t.id AND pt.project_id = ?);
                         """.stripMargin
 
   val ListByCategory = s"""
-                              SELECT $Fields FROM $Table
-                              WHERE category = ? AND lang = ?
+                              SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) as category_name FROM $Table
+                              WHERE category_id = (SELECT id FROM tag_categories WHERE name = ? AND lang = ?) AND lang = ?
                             """.stripMargin
   val SelectOneByName = s"""
-                              SELECT $Fields FROM $Table
+                              SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name FROM $Table
                               WHERE name = ? AND lang = ?
                             """.stripMargin
 
   val SelectAllByKey = s"""
-                       SELECT $Fields from (SELECT $Fields, name <-> ? AS dist
-                       |FROM $Table
-                       |ORDER BY dist LIMIT 10) as sub  where dist < 0.9;
+                       |SELECT $Fields, category_name
+                       |FROM (SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name, name <-> ? AS dist
+                       |  FROM $Table
+                       |  ORDER BY dist LIMIT 10) as sub
+                       |WHERE dist < 0.9;
                         """.stripMargin
 
   val Untag = s"""
@@ -77,16 +79,16 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
 
   val Update = s"""
                   UPDATE $Table
-                  SET  lang = ?, category = ?, frequency = ?
-                  WHERE name = ? AND lang = ?
+                  SET name = ?, lang = ?, category_id = (SELECT id FROM tag_categories WHERE name = ? AND lang = ?), frequency = ?
+                  WHERE id = ?
                   RETURNING $Fields"""
 
   override def create(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
-    queryOne(Insert, Seq[Any](tag.id, tag.name, tag.lang, tag.category, tag.frequency))
+    queryOne(Insert, Seq[Any](tag.id, tag.name, tag.lang, tag.frequency, tag.category, tag.lang, tag.category, tag.lang))
   }
 
   override def update(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
-    queryOne(Update, Seq[Any](tag.lang, tag.category, tag.frequency, tag.name, tag.lang))
+    queryOne(Update, Seq[Any](tag.name, tag.lang, tag.category, tag.lang, tag.frequency, tag.id))
   }
   override def delete(tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(Delete, Seq[Any](tagName, tagLang))
@@ -129,7 +131,6 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   }
 
   def listByCategory(category: String, lang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
-    queryList(ListByCategory, Seq[Any](category, lang))
+    queryList(ListByCategory, Seq[Any](category, lang, lang))
   }
-
 }

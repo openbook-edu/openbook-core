@@ -105,13 +105,9 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
     var whereClause = ""
     val length = tags.length
 
-    Logger.debug("staring zipping: " + length)
     tags.zipWithIndex.map {
       case (current, index) =>
-        Logger.error(current)
         val tag = current.split(":")
-        Logger.error(tag(0))
-        Logger.error(tag(1))
         whereClause += s"""(tag_name='${tag(0)}' AND tag_lang='${tag(1)}')"""
         if (index != (length - 1)) whereClause += " OR "
     }
@@ -120,7 +116,6 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
       whereClause = "WHERE " + whereClause
     }
 
-    println(Console.GREEN + whereClause + Console.RESET)
     def query(whereClause: String) = s"""
        |SELECT *
        |FROM projects

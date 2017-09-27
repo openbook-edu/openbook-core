@@ -62,18 +62,18 @@ class TagRepositorySpec
       "delete the tag if it doesn't have references in other tables" in {
         val testTag = TestValues.testTagD
 
-        val result = tagRepository.delete(testTag.name, testTag.lang)
+        val result = tagRepository.delete(testTag)
         Await.result(result, Duration.Inf) should be(\/-(testTag))
       }
 
       "return an error if a tag is still attached to a project" in {
         //tag_id,project_tags_tag_id_fkey
-        val result = tagRepository.delete(TestValues.testTagA.name, TestValues.testTagA.lang)
+        val result = tagRepository.delete(TestValues.testTagA)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("tag_id", "project_tags_tag_id_fkey")))
       }
 
       "return not found if deleting unexisting tag" in {
-        val result = tagRepository.delete(TestValues.testTagX.name, TestValues.testTagX.lang)
+        val result = tagRepository.delete(TestValues.testTagX)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Tag")))
       }
     }
@@ -148,7 +148,7 @@ class TagRepositorySpec
 
   "TagRepository.find" should {
     inSequence {
-      "find a single entry by ID" in {
+      "find a single entry" in {
 
         val testTag = TestValues.testTagA
 
@@ -160,7 +160,54 @@ class TagRepositorySpec
         tag.name should be(testTag.name)
         tag.category should be(testTag.category)
       }
+      "find a single entry without category" in {
 
+        val testTag = TestValues.testTagE
+
+        val result = tagRepository.find(testTag.name, testTag.lang)
+        val eitherTag = Await.result(result, Duration.Inf)
+        val \/-(tag) = eitherTag
+
+        tag.lang should be(testTag.lang)
+        tag.name should be(testTag.name)
+        tag.category should be(testTag.category)
+      }
+      "return RepositoryError.NoResults if entry wasn't found" in {
+        val testTag = TestValues.testTagX
+        val result = tagRepository.find(testTag.name, testTag.lang)
+        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Tag")))
+      }
+    }
+  }
+
+  "TagRepository.update" should {
+    inSequence {
+      "update a single entry" in {
+        val testTag = TestValues.testTagA.copy(
+          name = "New name"
+        )
+
+        val result = tagRepository.update(testTag)
+        val eitherTag = Await.result(result, Duration.Inf)
+        val \/-(tag) = eitherTag
+
+        tag.lang should be(testTag.lang)
+        tag.name should be(testTag.name)
+        tag.category should be(testTag.category)
+      }
+      "update a single entry without category" in {
+        val testTag = TestValues.testTagE.copy(
+          name = "New name"
+        )
+
+        val result = tagRepository.update(testTag)
+        val eitherTag = Await.result(result, Duration.Inf)
+        val \/-(tag) = eitherTag
+
+        tag.lang should be(testTag.lang)
+        tag.name should be(testTag.name)
+        tag.category should be(testTag.category)
+      }
       "return RepositoryError.NoResults if entry wasn't found" in {
         val testTag = TestValues.testTagX
         val result = tagRepository.find(testTag.name, testTag.lang)

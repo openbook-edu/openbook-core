@@ -2854,6 +2854,15 @@ object TestValues {
     category = Some("level"),
     frequency = 0
   )
+
+  // No category
+  val testTagE = Tag(
+    id = UUID.fromString("2c86e4e9-31ee-4205-bad0-63ffc7944471"),
+    name = "nocategory",
+    lang = "en",
+    category = None,
+    frequency = 0
+  )
   /**
    * no tag in the database
    */

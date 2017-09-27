@@ -443,6 +443,7 @@ CREATE TABLE course_limit (
 
 create table tag_categories(
   id uuid UNIQUE,
+  version bigint,
   name text,
   lang text,
   PRIMARY KEY(name, lang)
@@ -450,6 +451,7 @@ create table tag_categories(
 
 create table tags(
   id uuid UNIQUE,
+  version bigint,
   name text,
   lang text,
   category_id uuid references tag_categories(id) ON DELETE CASCADE,

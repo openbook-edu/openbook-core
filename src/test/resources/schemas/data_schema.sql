@@ -966,21 +966,31 @@ VALUES  ('404c800a53854e6b867e365a1e6b00de', 'vinrouge', '2014-08-05 14:01:19.54
 
 /* ---------------------------- TAG CATEGORIES -----------------------------*/
 
-insert into tag_categories(id, name, lang)
-values('3728ce3242eb4edeb25976cc42be5ab6', 'level', 'fr');
+insert into tag_categories(id, version, name, lang)
+values('3728ce3242eb4edeb25976cc42be5ab6', 1, 'level', 'fr');
 
-insert into tag_categories(id, name, lang)
-values('9de6a5afffd445edaf728e88ebd447fc', 'subject', 'en');
+insert into tag_categories(id, version, name, lang)
+values('9de6a5afffd445edaf728e88ebd447fc', 1, 'subject', 'en');
 
 /* category with no tags */
-insert into tag_categories(id, name, lang)
-values('6fbe56bbe72e4bfdae0fa07c2c2015f4', 'school', 'en');
+insert into tag_categories(id, version, name, lang)
+values('6fbe56bbe72e4bfdae0fa07c2c2015f4', 1, 'school', 'en');
 
 /* ---------------------------- TAGS -----------------------------*/
-insert into tags(id, name, lang, category_id) values('ebad4d23f49e4bcba4a3dd523389091a', 'pacificsound3003', 'en', '9de6a5afffd445edaf728e88ebd447fc');
-insert into tags(id, name, lang, category_id) values('67e13f10c61545a08edf54988bb1c3d2', 'vanille', 'fr', '3728ce3242eb4edeb25976cc42be5ab6');
-insert into tags(id, name, lang, category_id) values('c3f132af9a6f43969ff3694c6bc466a2', 'fruit' , 'fr', '3728ce3242eb4edeb25976cc42be5ab6');
-insert into tags(id, name, lang, category_id) values('e48866acef8e4502b1be3545ee04dc29', 'seductive', 'fr', '3728ce3242eb4edeb25976cc42be5ab6');
+insert into tags(id, version, name, lang, category_id)
+values('ebad4d23f49e4bcba4a3dd523389091a', 1, 'pacificsound3003', 'en', '9de6a5afffd445edaf728e88ebd447fc');
+
+insert into tags(id, version, name, lang, category_id)
+values('67e13f10c61545a08edf54988bb1c3d2', 1, 'vanille', 'fr', '3728ce3242eb4edeb25976cc42be5ab6');
+
+insert into tags(id, version, name, lang, category_id)
+values('c3f132af9a6f43969ff3694c6bc466a2', 1, 'fruit' , 'fr', '3728ce3242eb4edeb25976cc42be5ab6');
+
+insert into tags(id, version, name, lang, category_id)
+values('e48866acef8e4502b1be3545ee04dc29', 1, 'seductive', 'fr', '3728ce3242eb4edeb25976cc42be5ab6');
+
+insert into tags(id, version, name, lang, category_id)
+values('2c86e4e931ee4205bad063ffc7944471', 1, 'nocategory', 'en', NULL);
 
 /**
 testProjectG tags

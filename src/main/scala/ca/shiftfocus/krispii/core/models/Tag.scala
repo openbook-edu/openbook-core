@@ -10,6 +10,7 @@ import play.api.libs.json._
 
 case class Tag(
     id: UUID = UUID.randomUUID(),
+    version: Long = 1L,
     name: String,
     lang: String,
     category: Option[String],
@@ -32,6 +33,7 @@ object Tag {
     def writes(tag: Tag): JsValue = {
       Json.obj(
         "id" -> tag.id,
+        "version" -> tag.version,
         "name" -> tag.name,
         "lang" -> tag.lang,
         "category" -> tag.category,

@@ -9,20 +9,27 @@ import scalaz.\/
 trait TagService extends Service[ErrorUnion#Fail] {
 
   /************************************ Tags******************************************/
-  def createTag(name: String, lang: String, category: Option[String]): Future[\/[ErrorUnion#Fail, Tag]]
   def tag(projectId: UUID, tagName: String, lang: String): Future[\/[ErrorUnion#Fail, Unit]]
   def untag(projectId: UUID, tagName: String, tagLang: String, projectState: Boolean): Future[\/[ErrorUnion#Fail, Unit]]
+  def cloneTags(newProjectId: UUID, oldProjectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
+
+  def findTag(tagId: UUID): Future[\/[ErrorUnion#Fail, Tag]]
+  def findTagByName(name: String, lang: String): Future[\/[ErrorUnion#Fail, Tag]]
   def listByKey(key: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
   def listByProjectId(projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
   def listByCategory(category: String, lang: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
-  def updateTag(name: String, lang: String, category: Option[Option[String]]): Future[\/[ErrorUnion#Fail, Tag]]
-  def updateFrequency(name: String, lang: String, frequency: Int): Future[\/[ErrorUnion#Fail, Tag]]
-  def deleteTag(name: String, lang: String): Future[\/[ErrorUnion#Fail, Tag]]
-  def findTagByName(name: String, lang: String): Future[\/[ErrorUnion#Fail, Tag]]
-  /************************************Tag Categories ********************************/
-  def createTagCategory(name: String, lang: String): Future[\/[RepositoryError.Fail, TagCategory]]
-  def deleteTagCategory(tagCategoryName: String): Future[\/[RepositoryError.Fail, TagCategory]]
-  def listTagCategoriesByLanguage(lang: String): Future[\/[RepositoryError.Fail, IndexedSeq[TagCategory]]]
-  def cloneTags(newProjectId: UUID, oldProjectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
 
+  def createTag(name: String, lang: String, category: Option[String]): Future[\/[ErrorUnion#Fail, Tag]]
+  def updateTag(id: UUID, version: Long, name: Option[String], lang: Option[String], category: Option[Option[String]]): Future[\/[ErrorUnion#Fail, Tag]]
+  def updateFrequency(name: String, lang: String, frequency: Int): Future[\/[ErrorUnion#Fail, Tag]]
+  def deleteTag(id: UUID, vesion: Long): Future[\/[ErrorUnion#Fail, Tag]]
+
+  /************************************Tag Categories ********************************/
+  def findTagCategory(id: UUID): Future[\/[ErrorUnion#Fail, TagCategory]]
+  def findTagCategoryByName(name: String, lang: String): Future[\/[ErrorUnion#Fail, TagCategory]]
+  def listTagCategoriesByLanguage(lang: String): Future[\/[ErrorUnion#Fail, IndexedSeq[TagCategory]]]
+
+  def createTagCategory(name: String, lang: String): Future[\/[ErrorUnion#Fail, TagCategory]]
+  def updateTagCategory(id: UUID, version: Long, name: Option[String]): Future[\/[ErrorUnion#Fail, TagCategory]]
+  def deleteTagCategory(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, TagCategory]]
 }

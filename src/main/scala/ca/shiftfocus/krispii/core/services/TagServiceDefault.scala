@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import java.util.UUID
 
 import scala.concurrent.ExecutionContext.Implicits.global
-import ca.shiftfocus.krispii.core.error.{ ErrorUnion, RepositoryError }
+import ca.shiftfocus.krispii.core.error.{ ErrorUnion, RepositoryError, ServiceError }
 import ca.shiftfocus.krispii.core.models.{ Tag, TagCategory }
 import ca.shiftfocus.krispii.core.repositories.{ TagCategoryRepository, TagRepository, _ }
 import ca.shiftfocus.krispii.core.services.datasource.DB
@@ -20,16 +20,8 @@ class TagServiceDefault(
 
   implicit def conn: Connection = db.pool
 
-  override def createTag(name: String, lang: String, category: Option[String]): Future[\/[ErrorUnion#Fail, Tag]] = {
-    transactional { implicit conn: Connection =>
-      tagRepository.create(Tag(
-        name = name,
-        lang = lang,
-        category = category,
-        frequency = 0
-      ))
-    }
-  }
+  // ########## TAGS ###################################################################################################
+
   override def tag(projectId: UUID, tagName: String, lang: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn: Connection =>
       for {
@@ -60,7 +52,26 @@ class TagServiceDefault(
     }
   }
 
-  override def listByKey(key: String): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+  override def cloneTags(newProjectId: UUID, oldProjectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
+    for {
+      toClone <- lift(tagRepository.listByProjectId(oldProjectId))
+      cloned <- lift(serializedT(toClone)(tag => {
+        for {
+          inserted <- lift(tagRepository.create(tag))
+        } yield inserted
+      }))
+    } yield cloned
+  }
+
+  def findTag(tagId: UUID): Future[\/[ErrorUnion#Fail, Tag]] = {
+    tagRepository.find(tagId)
+  }
+
+  def findTagByName(name: String, lang: String): Future[\/[ErrorUnion#Fail, Tag]] = {
+    tagRepository.find(name, lang)
+  }
+
+  override def listByKey(key: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
     transactional { implicit conn: Connection =>
       tagRepository.trigramSearch(key)
     }
@@ -79,45 +90,68 @@ class TagServiceDefault(
     }
   }
 
-  override def cloneTags(newProjectId: UUID, oldProjectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
-    for {
-      toClone <- lift(tagRepository.listByProjectId(oldProjectId))
-      cloned <- lift(serializedT(toClone)(tag => {
-        for {
-          inserted <- lift(tagRepository.create(tag))
-        } yield inserted
-      }))
-    } yield cloned
+  override def createTag(name: String, lang: String, category: Option[String]): Future[\/[ErrorUnion#Fail, Tag]] = {
+    transactional { implicit conn: Connection =>
+      tagRepository.create(Tag(
+        name = name,
+        lang = lang,
+        category = category,
+        frequency = 0
+      ))
+    }
   }
 
-  override def updateFrequency(name: String, lang: String, frequency: Int): Future[\/[ErrorUnion#Fail, Tag]] = {
+  override def updateTag(id: UUID, version: Long, name: Option[String], lang: Option[String], category: Option[Option[String]]): Future[\/[ErrorUnion#Fail, Tag]] = {
     for {
-      existingTag <- lift(tagRepository.find(name, lang))
-      toUpdate = existingTag.copy(name = existingTag.name, lang = existingTag.lang, frequency = frequency)
-      updatedTag <- lift(tagRepository.update(toUpdate))
-    } yield updatedTag
-  }
-  override def updateTag(name: String, lang: String, category: Option[Option[String]]): Future[\/[ErrorUnion#Fail, Tag]] = {
-    for {
-      existingTag <- lift(tagRepository.find(name, lang))
+      existingTag <- lift(tagRepository.find(id))
+      _ <- predicate(existingTag.version == version)(ServiceError.OfflineLockFail)
       toUpdate = existingTag.copy(
-        name = existingTag.name,
-        lang = existingTag.lang,
+        name = name.getOrElse(existingTag.name),
+        lang = lang.getOrElse(existingTag.lang),
         category = category match {
-        case Some(Some(category)) => Some(category)
-        case Some(None) => None
-        case None => existingTag.category
-      }
+          case Some(Some(category)) => Some(category)
+          case Some(None) => None
+          case None => existingTag.category
+        }
       )
       updatedTag <- lift(tagRepository.update(toUpdate))
     } yield updatedTag
   }
 
-  def deleteTag(name: String, lang: String): Future[\/[ErrorUnion#Fail, Tag]] = {
-    tagRepository.delete(name, lang)
+  override def updateFrequency(name: String, lang: String, frequency: Int): Future[\/[ErrorUnion#Fail, Tag]] = {
+    for {
+      existingTag <- lift(tagRepository.find(name, lang))
+      toUpdate = existingTag.copy(frequency = frequency)
+      updatedTag <- lift(tagRepository.update(toUpdate))
+    } yield updatedTag
   }
 
-  def createTagCategory(name: String, lang: String): Future[\/[RepositoryError.Fail, TagCategory]] = {
+  def deleteTag(tagId: UUID, version: Long): Future[\/[ErrorUnion#Fail, Tag]] = {
+    for {
+      existingTag <- lift(tagRepository.find(tagId))
+      _ <- predicate(existingTag.version == version)(ServiceError.OfflineLockFail)
+      deletedTag <- lift(tagRepository.delete(existingTag))
+    } yield deletedTag
+  }
+
+  // ########## TAG CATEGORIES #########################################################################################
+
+  def findTagCategory(id: UUID): Future[\/[ErrorUnion#Fail, TagCategory]] = {
+    tagCategoryRepository.find(id)
+  }
+
+  def findTagCategoryByName(name: String, lang: String): Future[\/[ErrorUnion#Fail, TagCategory]] = {
+    tagCategoryRepository.findByName(name, lang)
+  }
+
+  def listTagCategoriesByLanguage(lang: String): Future[\/[ErrorUnion#Fail, IndexedSeq[TagCategory]]] = {
+    transactional {
+      implicit conn: Connection =>
+        tagCategoryRepository.listByLanguage(lang)
+    }
+  }
+
+  def createTagCategory(name: String, lang: String): Future[\/[ErrorUnion#Fail, TagCategory]] = {
     transactional {
       implicit conn: Connection =>
         tagCategoryRepository.create(TagCategory(
@@ -126,22 +160,23 @@ class TagServiceDefault(
         ))
     }
   }
-  def deleteTagCategory(tagCategoryName: String): Future[\/[RepositoryError.Fail, TagCategory]] = {
-    transactional {
-      implicit conn: Connection =>
-        tagCategoryRepository.delete(tagCategoryName)
-    }
+
+  def updateTagCategory(id: UUID, version: Long, name: Option[String]): Future[\/[ErrorUnion#Fail, TagCategory]] = {
+    for {
+      existingTagCategory <- lift(tagCategoryRepository.find(id))
+      _ <- predicate(existingTagCategory.version == version)(ServiceError.OfflineLockFail)
+      updatedTagCategory <- lift(tagCategoryRepository.update(existingTagCategory.copy(
+        name = name.getOrElse(existingTagCategory.name)
+      )))
+    } yield updatedTagCategory
+
   }
 
-  def listTagCategoriesByLanguage(lang: String): Future[\/[RepositoryError.Fail, IndexedSeq[TagCategory]]] = {
-    transactional {
-      implicit conn: Connection =>
-        tagCategoryRepository.listByLanguage(lang)
-    }
+  def deleteTagCategory(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, TagCategory]] = {
+    for {
+      existingTagCategory <- lift(tagCategoryRepository.find(id))
+      _ <- predicate(existingTagCategory.version == version)(ServiceError.OfflineLockFail)
+      deletedTagCategory <- lift(tagCategoryRepository.delete(existingTagCategory))
+    } yield deletedTagCategory
   }
-
-  def findTagByName(name: String, lang: String): Future[\/[ErrorUnion#Fail, Tag]] = {
-    tagRepository.find(name, lang)
-  }
-
 }

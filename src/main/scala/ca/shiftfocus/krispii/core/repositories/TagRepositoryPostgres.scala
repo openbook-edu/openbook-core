@@ -56,6 +56,12 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                         ON (ot.tag_id = t.id AND ot.organization_id = ?);
                         """.stripMargin
 
+  val ListByUser = s"""
+                        SELECT t.id, t.version, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
+                        JOIN user_tags ut
+                        ON (ut.tag_id = t.id AND ut.user_id = ?);
+                        """.stripMargin
+
   val ListByCategory = s"""
                               SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) as category_name FROM $Table
                               WHERE category_id = (SELECT id FROM tag_categories WHERE name = ? AND lang = ?) AND lang = ?
@@ -90,6 +96,12 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                   | AND tag_id = (SELECT id FROM tags WHERE name = ? AND lang = ?)
                 """.stripMargin
 
+  val UntagUser = s"""
+                  |DELETE FROM user_tags
+                  |WHERE user_id = ?
+                  | AND tag_id = (SELECT id FROM tags WHERE name = ? AND lang = ?)
+                """.stripMargin
+
   val TagProject =
     s"""
        |INSERT INTO project_tags(project_id, tag_id)
@@ -99,6 +111,12 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   val TagOrganization =
     s"""
        |INSERT INTO organization_tags(organization_id, tag_id)
+       |VALUES (?, (SELECT id FROM tags WHERE name = ? AND lang = ? ))
+     """.stripMargin
+
+  val TagUser =
+    s"""
+       |INSERT INTO user_tags(user_id, tag_id)
        |VALUES (?, (SELECT id FROM tags WHERE name = ? AND lang = ? ))
      """.stripMargin
 
@@ -125,7 +143,8 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     entityType match {
       case TaggableEntities.project => queryList(ListByProject, Seq[Any](entityId))
       case TaggableEntities.organization => queryList(ListByOrganization, Seq[Any](entityId))
-      case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.tag.wrong.entity.type"))
+      case TaggableEntities.user => queryList(ListByUser, Seq[Any](entityId))
+      case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.listByEntity.wrong.entity.type"))
     }
   }
 
@@ -138,19 +157,23 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   }
 
   override def untag(entityId: UUID, entityType: String, tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
-    entityType match {
-      case TaggableEntities.project => queryNumRows(UntagProject, Array[Any](entityId, tagName, tagLang))(_ == 1).map {
-        case \/-(true) => \/-(())
-        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove the tag"))
-        case -\/(error) => -\/(error)
+    for {
+      query <- lift {
+        entityType match {
+          case TaggableEntities.project => Future successful \/-(UntagProject)
+          case TaggableEntities.organization => Future successful \/-(UntagOrganization)
+          case TaggableEntities.user => Future successful \/-(UntagUser)
+          case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.untag.wrong.entity.type"))
+        }
       }
-      case TaggableEntities.organization => queryNumRows(UntagOrganization, Array[Any](entityId, tagName, tagLang))(_ == 1).map {
-        case \/-(true) => \/-(())
-        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove the tag"))
-        case -\/(error) => -\/(error)
+      result <- lift {
+        queryNumRows(query, Array[Any](entityId, tagName, tagLang))(_ == 1).map {
+          case \/-(true) => \/-(())
+          case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove the tag"))
+          case -\/(error) => -\/(error)
+        }
       }
-      case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.tag.wrong.entity.type"))
-    }
+    } yield result
   }
 
   /**
@@ -163,19 +186,23 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   }
 
   override def tag(entityId: UUID, entityType: String, tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
-    entityType match {
-      case TaggableEntities.project => queryNumRows(TagProject, Array[Any](entityId, tagName, tagLang))(_ == 1).map {
-        case \/-(true) => \/-(())
-        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not add the tag"))
-        case -\/(error) => -\/(error)
+    for {
+      query <- lift {
+        entityType match {
+          case TaggableEntities.project => Future successful \/-(TagProject)
+          case TaggableEntities.organization => Future successful \/-(TagOrganization)
+          case TaggableEntities.user => Future successful \/-(TagUser)
+          case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.tag.wrong.entity.type"))
+        }
       }
-      case TaggableEntities.organization => queryNumRows(TagOrganization, Array[Any](entityId, tagName, tagLang))(_ == 1).map {
-        case \/-(true) => \/-(())
-        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not add the tag"))
-        case -\/(error) => -\/(error)
+      result <- lift {
+        queryNumRows(query, Array[Any](entityId, tagName, tagLang))(_ == 1).map {
+          case \/-(true) => \/-(())
+          case \/-(false) => -\/(RepositoryError.NoResults(s"Could not add the tag"))
+          case -\/(error) => -\/(error)
+        }
       }
-      case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.tag.wrong.entity.type"))
-    }
+    } yield result
   }
 
   def listByCategory(category: String, lang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {

@@ -4,7 +4,7 @@ import java.util.UUID
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error.{ ErrorUnion, RepositoryError, ServiceError }
-import ca.shiftfocus.krispii.core.models.{ Tag, TagCategory }
+import ca.shiftfocus.krispii.core.models.{ Tag, TagCategory, TaggableEntities }
 import ca.shiftfocus.krispii.core.repositories.{ TagCategoryRepository, TagRepository, _ }
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
@@ -22,7 +22,7 @@ class TagServiceDefault(
 
   // ########## TAGS ###################################################################################################
 
-  override def tag(projectId: UUID, tagName: String, lang: String): Future[\/[ErrorUnion#Fail, Unit]] = {
+  override def tag(entityId: UUID, entityType: String, tagName: String, lang: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn: Connection =>
       for {
         existingTag <- lift(
@@ -36,25 +36,25 @@ class TagServiceDefault(
             ))
           }
         )
-        tag <- lift(tagRepository.tag(projectId, existingTag.name, existingTag.lang))
+        tag <- lift(tagRepository.tag(entityId, entityType, existingTag.name, existingTag.lang))
       } yield tag
     }
   }
 
-  override def untag(projectId: UUID, tagName: String, tagLang: String, projectState: Boolean): Future[\/[ErrorUnion#Fail, Unit]] = {
+  override def untag(entityId: UUID, entityType: String, tagName: String, tagLang: String, shouldUpdateFrequency: Boolean): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn: Connection =>
       for {
-        untagged <- lift(tagRepository.untag(projectId, tagName, tagLang))
+        untagged <- lift(tagRepository.untag(entityId, entityType, tagName, tagLang))
         tag <- lift(tagRepository.find(tagName, tagLang))
         frequency = if (tag.frequency - 1 < 0) 0 else (tag.frequency - 1)
-        updatedTag <- lift(if (projectState) updateFrequency(tag.name, tag.lang, tag.frequency - 1) else Future successful \/-(tag))
+        updatedTag <- lift(if (shouldUpdateFrequency) updateFrequency(tag.name, tag.lang, tag.frequency - 1) else Future successful \/-(tag))
       } yield untagged
     }
   }
 
   override def cloneTags(newProjectId: UUID, oldProjectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
     for {
-      toClone <- lift(tagRepository.listByProjectId(oldProjectId))
+      toClone <- lift(tagRepository.listByEntity(oldProjectId, TaggableEntities.project))
       cloned <- lift(serializedT(toClone)(tag => {
         for {
           inserted <- lift(tagRepository.create(tag))
@@ -77,12 +77,13 @@ class TagServiceDefault(
     }
   }
 
-  def listByProjectId(projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
+  def listByEntity(entityId: UUID, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
     transactional {
       implicit conn: Connection =>
-        tagRepository.listByProjectId(projectId)
+        tagRepository.listByEntity(entityId, entityType)
     }
   }
+
   def listByCategory(category: String, lang: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
     transactional {
       implicit conn: Connection =>

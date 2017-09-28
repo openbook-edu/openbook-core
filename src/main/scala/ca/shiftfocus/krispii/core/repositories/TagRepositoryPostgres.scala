@@ -2,14 +2,14 @@ package ca.shiftfocus.krispii.core.repositories
 
 import java.util.UUID
 
-import com.github.mauricio.async.db.{ RowData }
+import com.github.mauricio.async.db.RowData
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.{ Tag }
+import ca.shiftfocus.krispii.core.models.{ Tag, TaggableEntities }
 import com.github.mauricio.async.db.Connection
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.{ \/, -\/, \/- }
+import scalaz.{ -\/, \/, \/- }
 
 class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
 
@@ -50,6 +50,12 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                         ON (pt.tag_id = t.id AND pt.project_id = ?);
                         """.stripMargin
 
+  val ListByOrganization = s"""
+                        SELECT t.id, t.version, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
+                        JOIN organization_tags ot
+                        ON (ot.tag_id = t.id AND ot.organization_id = ?);
+                        """.stripMargin
+
   val ListByCategory = s"""
                               SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) as category_name FROM $Table
                               WHERE category_id = (SELECT id FROM tag_categories WHERE name = ? AND lang = ?) AND lang = ?
@@ -72,14 +78,27 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                        |WHERE dist < 0.9;
                         """.stripMargin
 
-  val Untag = s"""
+  val UntagProject = s"""
                   |DELETE FROM project_tags
                   |WHERE project_id = ?
                   | AND tag_id = (SELECT id FROM tags WHERE name = ? AND lang = ?)
                 """.stripMargin
+
+  val UntagOrganization = s"""
+                  |DELETE FROM organization_tags
+                  |WHERE organization_id = ?
+                  | AND tag_id = (SELECT id FROM tags WHERE name = ? AND lang = ?)
+                """.stripMargin
+
   val TagProject =
     s"""
        |INSERT INTO project_tags(project_id, tag_id)
+       |VALUES (?, (SELECT id FROM tags WHERE name = ? AND lang = ? ))
+     """.stripMargin
+
+  val TagOrganization =
+    s"""
+       |INSERT INTO organization_tags(organization_id, tag_id)
        |VALUES (?, (SELECT id FROM tags WHERE name = ? AND lang = ? ))
      """.stripMargin
 
@@ -102,8 +121,12 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     queryOne(Delete, Seq[Any](tag.id, tag.version))
   }
 
-  override def listByProjectId(projectId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
-    queryList(ListByProject, Seq[Any](projectId))
+  override def listByEntity(entityId: UUID, entityType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+    entityType match {
+      case TaggableEntities.project => queryList(ListByProject, Seq[Any](entityId))
+      case TaggableEntities.organization => queryList(ListByOrganization, Seq[Any](entityId))
+      case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.tag.wrong.entity.type"))
+    }
   }
 
   override def find(name: String, lang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
@@ -114,14 +137,20 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     queryOne(SelectOneById, Seq[Any](tagId))
   }
 
-  override def untag(projectId: UUID, tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
-    for {
-      _ <- lift(queryNumRows(Untag, Array[Any](projectId, tagName, tagLang))(_ == 1).map {
+  override def untag(entityId: UUID, entityType: String, tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
+    entityType match {
+      case TaggableEntities.project => queryNumRows(UntagProject, Array[Any](entityId, tagName, tagLang))(_ == 1).map {
         case \/-(true) => \/-(())
         case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove the tag"))
         case -\/(error) => -\/(error)
-      })
-    } yield ()
+      }
+      case TaggableEntities.organization => queryNumRows(UntagOrganization, Array[Any](entityId, tagName, tagLang))(_ == 1).map {
+        case \/-(true) => \/-(())
+        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove the tag"))
+        case -\/(error) => -\/(error)
+      }
+      case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.tag.wrong.entity.type"))
+    }
   }
 
   /**
@@ -133,14 +162,20 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     queryList(SelectAllByKey, Seq[Any](key))
   }
 
-  override def tag(projectId: UUID, tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
-    for {
-      _ <- lift(queryNumRows(TagProject, Array[Any](projectId, tagName, tagLang))(_ == 1).map {
+  override def tag(entityId: UUID, entityType: String, tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
+    entityType match {
+      case TaggableEntities.project => queryNumRows(TagProject, Array[Any](entityId, tagName, tagLang))(_ == 1).map {
         case \/-(true) => \/-(())
-        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove the tag"))
+        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not add the tag"))
         case -\/(error) => -\/(error)
-      })
-    } yield ()
+      }
+      case TaggableEntities.organization => queryNumRows(TagOrganization, Array[Any](entityId, tagName, tagLang))(_ == 1).map {
+        case \/-(true) => \/-(())
+        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not add the tag"))
+        case -\/(error) => -\/(error)
+      }
+      case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.tag.wrong.entity.type"))
+    }
   }
 
   def listByCategory(category: String, lang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {

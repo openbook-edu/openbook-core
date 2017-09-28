@@ -9,14 +9,14 @@ import scalaz.\/
 trait TagService extends Service[ErrorUnion#Fail] {
 
   /************************************ Tags******************************************/
-  def tag(projectId: UUID, tagName: String, lang: String): Future[\/[ErrorUnion#Fail, Unit]]
-  def untag(projectId: UUID, tagName: String, tagLang: String, projectState: Boolean): Future[\/[ErrorUnion#Fail, Unit]]
+  def tag(entityId: UUID, entityType: String, tagName: String, lang: String): Future[\/[ErrorUnion#Fail, Unit]]
+  def untag(entityId: UUID, entityType: String, tagName: String, tagLang: String, shouldUpdateFrequency: Boolean): Future[\/[ErrorUnion#Fail, Unit]]
   def cloneTags(newProjectId: UUID, oldProjectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
 
   def findTag(tagId: UUID): Future[\/[ErrorUnion#Fail, Tag]]
   def findTagByName(name: String, lang: String): Future[\/[ErrorUnion#Fail, Tag]]
   def listByKey(key: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
-  def listByProjectId(projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
+  def listByEntity(entityId: UUID, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
   def listByCategory(category: String, lang: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
 
   def createTag(name: String, lang: String, category: Option[String]): Future[\/[ErrorUnion#Fail, Tag]]

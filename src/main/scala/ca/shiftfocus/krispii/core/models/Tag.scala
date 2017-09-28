@@ -28,6 +28,12 @@ case class Tag(
   }
 }
 
+object TaggableEntities {
+  val project = "project"
+  val organization = "organization"
+  val user = "user"
+}
+
 object Tag {
   implicit val tagWrites = new Writes[Tag] {
     def writes(tag: Tag): JsValue = {

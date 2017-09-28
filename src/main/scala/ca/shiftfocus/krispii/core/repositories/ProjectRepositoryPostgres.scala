@@ -211,7 +211,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
         projectList.map { project =>
           (for {
             partList <- lift(partRepository.list(project))
-            tagList <- lift(tagRepository.listByProjectId(project.id))
+            tagList <- lift(tagRepository.listByEntity(project.id, TaggableEntities.project))
             result = project.copy(parts = partList, tags = tagList)
           } yield result).run
         }

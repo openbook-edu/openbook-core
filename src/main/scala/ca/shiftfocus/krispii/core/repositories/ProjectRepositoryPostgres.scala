@@ -101,14 +101,13 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
        |WHERE slug = ?
      """.stripMargin
 
-  def SelectByTags(tags: IndexedSeq[String]): String = {
+  def SelectByTags(tags: IndexedSeq[(String, String)]): String = {
     var whereClause = ""
     val length = tags.length
 
     tags.zipWithIndex.map {
-      case (current, index) =>
-        val tag = current.split(":")
-        whereClause += s"""(tag_name='${tag(0)}' AND tag_lang='${tag(1)}')"""
+      case ((tagName, tagLang), index) =>
+        whereClause += s"""(tags.name='${tagName}' AND tags.lang='${tagLang}')"""
         if (index != (length - 1)) whereClause += " OR "
     }
 
@@ -126,7 +125,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
        |      ON project_tags.tag_id = tags.id
        |    ${whereClause}
        |    GROUP BY project_id
-       |    HAVING COUNT(DISTINCT tag_name) = $length
+       |    HAVING COUNT(DISTINCT tags.name) = $length
        |) AND is_master = true
 
     """.stripMargin
@@ -203,7 +202,12 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
     } yield result).run
   }
 
-  override def listByTags(tags: IndexedSeq[String])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+  /**
+    * List projects by tags
+    *
+    * @param tags (tagName:String, tagLang:String)
+    */
+  override def listByTags(tags: IndexedSeq[(String, String)])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
     val select = SelectByTags(tags)
     (for {
       projectList <- lift(queryList(select))

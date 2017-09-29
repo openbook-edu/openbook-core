@@ -93,7 +93,13 @@ class ProjectServiceDefault(
     } yield projects.flatten
   }
 
-  def listProjectsByTags(tags: IndexedSeq[String]): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
+  /**
+   * List projects by tags
+   *
+   * @param tags (tagName:String, tagLang:String)
+   * @return
+   */
+  def listProjectsByTags(tags: IndexedSeq[(String, String)]): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
     projectRepository.listByTags(tags)
   }
   /**

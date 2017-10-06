@@ -203,10 +203,10 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   }
 
   /**
-    * List projects by tags
-    *
-    * @param tags (tagName:String, tagLang:String)
-    */
+   * List projects by tags
+   *
+   * @param tags (tagName:String, tagLang:String)
+   */
   override def listByTags(tags: IndexedSeq[(String, String)])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
     val select = SelectByTags(tags)
     (for {

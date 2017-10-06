@@ -2844,6 +2844,15 @@ object TestValues {
     category = Some("level"),
     frequency = 0
   )
+  // Admin tag
+  val testTagF = Tag(
+    id = UUID.fromString("c3f132af-9a6f-4396-9ff3-694c6bc466a2"),
+    isAdmin = true,
+    name = "admin tag",
+    lang = "en",
+    category = Some("subject"),
+    frequency = 0
+  )
   /**
    * no project is tagged with this tag, but it still exists
    */

@@ -83,14 +83,14 @@ class TagRepositorySpec
     inSequence {
       "remove a tag from a project" in {
 
-        val result = tagRepository.untag(TestValues.testProjectG.id, TestValues.testTagA.name, TestValues.testTagA.lang)
+        val result = tagRepository.untag(TestValues.testProjectG.id, TaggableEntities.project, TestValues.testTagA.name, TestValues.testTagA.lang)
         Await.result(result, Duration.Inf) should be(\/-(()))
       }
       "return RepositoryError.NoResults if something doesn't exist" in {
         val testProject = TestValues.testProjectH
         val testTag = TestValues.testTagX
 
-        val result = tagRepository.untag(testProject.id, testTag.name, testTag.lang)
+        val result = tagRepository.untag(testProject.id, TaggableEntities.project, testTag.name, testTag.lang)
         Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("Could not remove the tag")))
       }
     }
@@ -107,8 +107,61 @@ class TagRepositorySpec
         tags.size should be(1)
 
       }
+      "find admin tags given the keyword" in {
+        val tagsList = TreeMap[Int, ca.shiftfocus.krispii.core.models.Tag](
+          0 -> TestValues.testTagF
+        )
+
+        val result = tagRepository.trigramSearchAdmin("adm")
+        val eitherTags = Await.result(result, Duration.Inf)
+        val \/-(tags) = eitherTags
+
+        tags.size should be(1)
+        tagsList.foreach {
+          case (key, tag: ca.shiftfocus.krispii.core.models.Tag) => {
+            tags(key).category should be(tag.category)
+            tags(key).name should be(tag.name)
+            tags(key).lang should be(tag.lang)
+          }
+        }
+      }
+      "find admin tags given the keyword for a tagged user" in {
+        val userId = TestValues.testUserA.id
+        val tagsList = TreeMap[Int, ca.shiftfocus.krispii.core.models.Tag](
+          0 -> TestValues.testTagF
+        )
+
+        val result = tagRepository.trigramSearchAdmin("adm", userId)
+        val eitherTags = Await.result(result, Duration.Inf)
+        val \/-(tags) = eitherTags
+
+        tags.size should be(1)
+        tagsList.foreach {
+          case (key, tag: ca.shiftfocus.krispii.core.models.Tag) => {
+            tags(key).category should be(tag.category)
+            tags(key).name should be(tag.name)
+            tags(key).lang should be(tag.lang)
+          }
+        }
+      }
       "return no results if the keyword doesn't match anything" in {
         val result = tagRepository.trigramSearch("coco")
+        val eitherTags = Await.result(result, Duration.Inf)
+        val \/-(tags) = eitherTags
+
+        tags.size should be(0)
+      }
+      "return no results if the keyword is from admin tag" in {
+        val result = tagRepository.trigramSearch("adm")
+        val eitherTags = Await.result(result, Duration.Inf)
+        val \/-(tags) = eitherTags
+
+        tags.size should be(0)
+      }
+      "return no results if the keyword is from admin tag and user is not tagged with admin tag" in {
+        val userId = TestValues.testUserB.id
+
+        val result = tagRepository.trigramSearchAdmin("adm", userId)
         val eitherTags = Await.result(result, Duration.Inf)
         val \/-(tags) = eitherTags
 
@@ -125,7 +178,7 @@ class TagRepositorySpec
           1 -> TestValues.testTagB
         )
 
-        val result = tagRepository.listByProjectId(TestValues.testProjectG.id)
+        val result = tagRepository.listByEntity(TestValues.testProjectG.id, TaggableEntities.project)
         val eitherTags = Await.result(result, Duration.Inf)
         val \/-(tags) = eitherTags
 
@@ -140,7 +193,7 @@ class TagRepositorySpec
       }
 
       "return empty Vector() project dont have tags" in {
-        val result = tagRepository.listByProjectId(TestValues.testProjectE.id)
+        val result = tagRepository.listByEntity(TestValues.testProjectE.id, TaggableEntities.project)
         Await.result(result, Duration.Inf) should be(\/-(Vector()))
       }
     }

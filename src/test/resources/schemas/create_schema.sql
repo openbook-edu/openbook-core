@@ -452,6 +452,7 @@ create table tag_categories(
 create table tags(
   id uuid UNIQUE,
   version bigint,
+  is_admin boolean DEFAULT false,
   name text,
   lang text,
   category_id uuid references tag_categories(id) ON DELETE CASCADE,
@@ -465,6 +466,12 @@ create table project_tags(
   project_id uuid references projects(id) ON DELETE CASCADE,
   tag_id uuid references tags(id) ON DELETE RESTRICT,
   PRIMARY KEY(project_id, tag_id));
+
+CREATE TABLE user_tags (
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tag_id uuid NOT NULL REFERENCES tags(id) ON DELETE RESTRICT,
+  PRIMARY KEY (user_id, tag_id)
+);
 
 CREATE TABLE accounts (
     id uuid PRIMARY KEY,

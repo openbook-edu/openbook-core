@@ -77,6 +77,18 @@ class TagServiceDefault(
     }
   }
 
+  override def listAdminByKey(key: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
+    transactional { implicit conn: Connection =>
+      tagRepository.trigramSearchAdmin(key)
+    }
+  }
+
+  override def listAdminByKey(key: String, userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
+    transactional { implicit conn: Connection =>
+      tagRepository.trigramSearchAdmin(key, userId)
+    }
+  }
+
   def listByEntity(entityId: UUID, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
     transactional {
       implicit conn: Connection =>
@@ -102,11 +114,19 @@ class TagServiceDefault(
     }
   }
 
-  override def updateTag(id: UUID, version: Long, name: Option[String], lang: Option[String], category: Option[Option[String]]): Future[\/[ErrorUnion#Fail, Tag]] = {
+  override def updateTag(
+    id: UUID,
+    version: Long,
+    isAdmin: Option[Boolean],
+    name: Option[String],
+    lang: Option[String],
+    category: Option[Option[String]]
+  ): Future[\/[ErrorUnion#Fail, Tag]] = {
     for {
       existingTag <- lift(tagRepository.find(id))
       _ <- predicate(existingTag.version == version)(ServiceError.OfflineLockFail)
       toUpdate = existingTag.copy(
+        isAdmin = isAdmin.getOrElse(existingTag.isAdmin),
         name = name.getOrElse(existingTag.name),
         lang = lang.getOrElse(existingTag.lang),
         category = category match {

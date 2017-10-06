@@ -19,6 +19,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     Tag(
       row("id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
+      row("is_admin").asInstanceOf[Boolean],
       row("name").asInstanceOf[String],
       row("lang").asInstanceOf[String],
       Option(row("category_name").asInstanceOf[String]),
@@ -26,7 +27,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     )
   }
 
-  val Fields = "id, version, name, lang, frequency"
+  val Fields = "id, version, is_admin, name, lang, frequency"
   val QMarks = Fields.split(", ").map({ field => "?" }).mkString(", ")
 
   val Table = "tags"
@@ -45,19 +46,19 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                   """.stripMargin
 
   val ListByProject = s"""
-                        SELECT t.id, t.version, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
+                        SELECT t.id, t.version, t.is_admin, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
                         JOIN project_tags pt
                         ON (pt.tag_id = t.id AND pt.project_id = ?);
                         """.stripMargin
 
   val ListByOrganization = s"""
-                        SELECT t.id, t.version, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
+                        SELECT t.id, t.version, t.is_admin, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
                         JOIN organization_tags ot
                         ON (ot.tag_id = t.id AND ot.organization_id = ?);
                         """.stripMargin
 
   val ListByUser = s"""
-                        SELECT t.id, t.version, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
+                        SELECT t.id, t.version, t.is_admin, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
                         JOIN user_tags ut
                         ON (ut.tag_id = t.id AND ut.user_id = ?);
                         """.stripMargin
@@ -80,6 +81,28 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                        |SELECT $Fields, category_name
                        |FROM (SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name, name <-> ? AS dist
                        |  FROM $Table
+                       |  WHERE is_admin = false
+                       |  ORDER BY dist LIMIT 10) as sub
+                       |WHERE dist < 0.9;
+                        """.stripMargin
+
+  val SelectAllAdminByKey = s"""
+                       |SELECT $Fields, category_name
+                       |FROM (SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name, name <-> ? AS dist
+                       |  FROM $Table
+                       |  WHERE is_admin = true
+                       |  ORDER BY dist LIMIT 10) as sub
+                       |WHERE dist < 0.9;
+                        """.stripMargin
+
+  val SelectAllAdminByKeyForUser = s"""
+                       |SELECT $Fields, category_name
+                       |FROM (SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name, name <-> ? AS dist
+                       |  FROM $Table
+                       |  JOIN user_tags
+                       |    ON tag_id = tags.id
+                       |    AND user_id = ?
+                       |  WHERE is_admin = true
                        |  ORDER BY dist LIMIT 10) as sub
                        |WHERE dist < 0.9;
                         """.stripMargin
@@ -122,18 +145,18 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
 
   val Update = s"""
                   UPDATE $Table
-                  SET version = ?, name = ?, lang = ?, category_id = (SELECT id FROM tag_categories WHERE name = ? AND lang = ?), frequency = ?
+                  SET version = ?, is_admin = ?, name = ?, lang = ?, category_id = (SELECT id FROM tag_categories WHERE name = ? AND lang = ?), frequency = ?
                   WHERE id = ?
                     AND version = ?
                   RETURNING $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name
                 """
 
   override def create(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
-    queryOne(Insert, Seq[Any](tag.id, tag.version, tag.name, tag.lang, tag.frequency, tag.category, tag.lang, tag.category, tag.lang))
+    queryOne(Insert, Seq[Any](tag.id, tag.version, tag.isAdmin, tag.name, tag.lang, tag.frequency, tag.category, tag.lang, tag.category, tag.lang))
   }
 
   override def update(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
-    queryOne(Update, Seq[Any]((tag.version + 1), tag.name, tag.lang, tag.category, tag.lang, tag.frequency, tag.id, tag.version))
+    queryOne(Update, Seq[Any]((tag.version + 1), tag.isAdmin, tag.name, tag.lang, tag.category, tag.lang, tag.frequency, tag.id, tag.version))
   }
   override def delete(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(Delete, Seq[Any](tag.id, tag.version))
@@ -183,6 +206,22 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
    */
   override def trigramSearch(key: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
     queryList(SelectAllByKey, Seq[Any](key))
+  }
+
+  override def trigramSearchAdmin(key: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+    queryList(SelectAllAdminByKey, Seq[Any](key))
+  }
+
+  /**
+   * Search for admin tags, with which user is tagged
+   *
+   * @param key
+   * @param userId
+   * @param conn
+   * @return
+   */
+  override def trigramSearchAdmin(key: String, userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+    queryList(SelectAllAdminByKeyForUser, Seq[Any](key, userId))
   }
 
   override def tag(entityId: UUID, entityType: String, tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {

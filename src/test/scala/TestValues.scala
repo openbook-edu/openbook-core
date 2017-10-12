@@ -2905,4 +2905,39 @@ object TestValues {
     token = "26944803-6dbd-487b-b83d-f222f87c0703",
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
+
+  /* ---------------------- ORGANIZATIONS ---------------------- */
+  val testOrganizationA = Organization(
+    id = UUID.fromString("8c27b83b-af4f-4e7f-9ecf-8f6b5ec9bfb0"),
+    version = 1L,
+    title = "testOrganizationA",
+    adminEmail = Some(testUserA.email),
+    tags = IndexedSeq.empty[Tag],
+    members = IndexedSeq(testUserB.email, "unexisting_user@example.com"),
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* Not in db */
+  val testOrganizationB = Organization(
+    id = UUID.fromString("8fa9b903-9326-4c4b-a525-0ebd963537e2"),
+    version = 1L,
+    title = "testOrganizationB",
+    adminEmail = Some(testUserA.email),
+    tags = IndexedSeq.empty[Tag],
+    members = IndexedSeq.empty[String],
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testOrganizationC = Organization(
+    id = UUID.fromString("e26bb8d3-ecfe-4a61-a808-1c3539086066"),
+    version = 1L,
+    title = "testOrganizationC",
+    adminEmail = Some(testUserA.email),
+    tags = IndexedSeq.empty[Tag],
+    members = IndexedSeq.empty[String],
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
 }

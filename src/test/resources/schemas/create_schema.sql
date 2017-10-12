@@ -608,6 +608,12 @@ CREATE TABLE organization_limit (
   PRIMARY KEY (organization_id, type)
 );
 
+CREATE TABLE organization_members (
+  organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  member_email text NOT NULL,
+  PRIMARY KEY (organization_id, member_email)
+);
+
 CREATE OR REPLACE FUNCTION get_slug(_slug text, _table text, _id uuid) RETURNS text AS $$
 DECLARE
  updatedSlug text := $1;

@@ -26,6 +26,24 @@ class OrganizationServiceDefault(
     organizationRepository.list
   }
 
+  def list(adminEmail: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] = {
+    organizationRepository.list(adminEmail)
+  }
+
+  def addMember(organizationId: UUID, memberEmail: String): Future[\/[ErrorUnion#Fail, Organization]] = {
+    (for {
+      existingOrganization <- lift(organizationRepository.find(organizationId))
+      organizationWithMember <- lift(organizationRepository.addMember(existingOrganization, memberEmail))
+    } yield organizationWithMember).run
+  }
+
+  def deleteMember(organizationId: UUID, memberEmail: String): Future[\/[ErrorUnion#Fail, Organization]] = {
+    (for {
+      existingOrganization <- lift(organizationRepository.find(organizationId))
+      organizationWithoutMember <- lift(organizationRepository.deleteMember(existingOrganization, memberEmail))
+    } yield organizationWithoutMember).run
+  }
+
   def create(title: String): Future[\/[ErrorUnion#Fail, Organization]] = {
     organizationRepository.insert(Organization(
       title = title

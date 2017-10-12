@@ -11,6 +11,7 @@ case class Organization(
   title: String,
   adminEmail: Option[String] = None,
   tags: IndexedSeq[Tag] = IndexedSeq.empty[Tag],
+  members: IndexedSeq[String] = IndexedSeq.empty[String],
   createdAt: DateTime = new DateTime(),
   updatedAt: DateTime = new DateTime()
 )
@@ -24,6 +25,7 @@ object Organization {
         "title" -> organization.title,
         "adminEmail" -> organization.adminEmail,
         "tags" -> organization.tags,
+        "members" -> organization.members,
         "createdAt" -> organization.createdAt,
         "updatedAt" -> organization.updatedAt
       )

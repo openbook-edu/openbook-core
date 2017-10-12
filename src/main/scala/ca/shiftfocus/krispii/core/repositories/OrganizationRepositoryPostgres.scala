@@ -4,11 +4,14 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models._
+import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{ Connection, RowData }
 import org.joda.time.DateTime
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.\/
+import scala.util.Try
+import scalaz.{ -\/, \/, \/- }
 
 class OrganizationRepositoryPostgres extends OrganizationRepository with PostgresRepository[Organization] {
   override val entityName = "Organization"
@@ -23,6 +26,7 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
       case _ => None
     },
       tags = IndexedSeq.empty[Tag],
+      members = Try(row("members").asInstanceOf[String].split(",").to[IndexedSeq]).toOption.getOrElse(IndexedSeq.empty[String]),
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )
@@ -33,17 +37,53 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
   val QMarks = Fields.split(", ").map({ field => "?" }).mkString(", ")
   val FieldsWithQMarks = Fields.split(", ").map({ field => s"${field} = ?" }).mkString(", ")
 
+  val MembersField =
+    s"""
+       |string_agg(member_email, ',') AS members
+     """.stripMargin
+
   val SelectOne =
     s"""
-       |SELECT $Fields
+       |SELECT $Fields, $MembersField
        |FROM $Table
+       |LEFT JOIN organization_members AS om
+       |  ON om.organization_id = $Table.id
        |WHERE id = ?
+       |GROUP BY $Table.id
      """.stripMargin
 
   val SelectAll =
     s"""
-       |SELECT $Fields
+       |SELECT $Fields, $MembersField
        |FROM $Table
+       |LEFT JOIN organization_members AS om
+       |  ON om.organization_id = $Table.id
+       |GROUP BY $Table.id
+     """.stripMargin
+
+  val SelectAllByEmail =
+    s"""
+       |SELECT $Fields, $MembersField
+       |FROM $Table
+       |LEFT JOIN organization_members AS om
+       |  ON om.organization_id = $Table.id
+       |WHERE admin_email = ?
+       |GROUP BY $Table.id
+     """.stripMargin
+
+  val AddMember =
+    s"""
+       |INSERT INTO organization_members (organization_id, member_email)
+       |VALUES (?, ?)
+       |RETURNING *
+     """.stripMargin
+
+  val DeleteMember =
+    s"""
+       |DELETE FROM organization_members
+       |WHERE organization_id = ?
+       |  AND member_email = ?
+       |RETURNING *
      """.stripMargin
 
   val Insert =
@@ -65,6 +105,8 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
   val Delete =
     s"""
        |DELETE FROM $Table
+       |USING
+       |  organization_members
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $Fields
@@ -76,6 +118,62 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
 
   def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Organization]]] = {
     queryList(SelectAll)
+  }
+
+  def list(adminEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Organization]]] = {
+    queryList(SelectAllByEmail, Seq[Any](adminEmail))
+  }
+
+  def addMember(organization: Organization, memberEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]] = {
+    for {
+      _ <- lift {
+        conn.sendPreparedStatement(AddMember, Array[Any](organization.id, memberEmail)).map { result =>
+          result.rows match {
+            case Some(resultSet) => resultSet.headOption match {
+              case Some(firstRow) => \/-(firstRow)
+              case None => -\/(RepositoryError.NoResults(s"ResultSet returned no rows. Could not add member to organization"))
+            }
+            case None => -\/(RepositoryError.NoResults(s"No ResultSet was returned. Could not add member to organization"))
+          }
+        }.recover {
+          case exception: GenericDatabaseException =>
+            val fields = exception.errorMessage.fields
+            (fields.get('t'), fields.get('n')) match {
+              case (Some(table), Some(nField)) if nField endsWith "_pkey" =>
+                \/.left(RepositoryError.PrimaryKeyConflict)
+
+              case (Some(table), Some(nField)) if nField endsWith "_key" =>
+                \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length - 4).mkString), nField))
+
+              case (Some(table), Some(nField)) if nField endsWith "_fkey" =>
+                \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length - 5).mkString), nField))
+
+              case _ => \/.left(RepositoryError.DatabaseError("Unhandled GenericDataabaseException", Some(exception)))
+            }
+          case exception: Throwable => -\/(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
+        }
+      }
+      organizationWithMember <- lift(queryOne(SelectOne, Seq[Any](organization.id)))
+    } yield organizationWithMember
+  }
+
+  def deleteMember(organization: Organization, memberEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]] = {
+    for {
+      _ <- lift {
+        conn.sendPreparedStatement(DeleteMember, Array[Any](organization.id, memberEmail)).map { result =>
+          result.rows match {
+            case Some(resultSet) => resultSet.headOption match {
+              case Some(firstRow) => \/-(firstRow)
+              case None => -\/(RepositoryError.NoResults(s"ResultSet returned no rows. Could not remove member from organization"))
+            }
+            case None => -\/(RepositoryError.NoResults(s"No ResultSet was returned. Could not remove member from organization"))
+          }
+        }.recover {
+          case exception: Throwable => -\/(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
+        }
+      }
+      organizationWithoutMember <- lift(queryOne(SelectOne, Seq[Any](organization.id)))
+    } yield organizationWithoutMember
   }
 
   def insert(organization: Organization)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]] = {
@@ -94,12 +192,18 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
       organization.id, organization.version
     )
 
-    queryOne(Update, params)
+    queryOne(Update, params).map {
+      case \/-(org) => \/-(org.copy(members = organization.members))
+      case -\/(error) => -\/(error)
+    }
   }
 
   def delete(organization: Organization)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]] = {
     val params = Seq[Any](organization.id, organization.version)
 
-    queryOne(Delete, params)
+    queryOne(Delete, params).map {
+      case \/-(org) => \/-(org.copy(members = organization.members))
+      case -\/(error) => -\/(error)
+    }
   }
 }

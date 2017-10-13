@@ -1,7 +1,7 @@
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.Organization
+import ca.shiftfocus.krispii.core.models.{ Organization, Tag }
 import ca.shiftfocus.krispii.core.repositories._
 import org.joda.time.DateTime
 import org.scalatest.Matchers._
@@ -54,6 +54,76 @@ class OrganizationRepositorySpec
             organizations(key).members should be(organization.members)
           }
         }
+      }
+    }
+  }
+
+  "OrganizationRepository.listByTags" should {
+    inSequence {
+      "list organizations distinct" in {
+        val organizationList = TreeMap[Int, Organization](
+          0 -> TestValues.testOrganizationA
+        )
+
+        val testTags: IndexedSeq[Tag] = IndexedSeq(
+          TestValues.testTagA,
+          TestValues.testTagB
+        )
+
+        val result = organizationRepository.listByTags(testTags.map(tag => (tag.name, tag.lang)))
+        val eitherOrganizations = Await.result(result, Duration.Inf)
+        val \/-(organizations) = eitherOrganizations
+
+        organizations.size should be(organizationList.size)
+        organizationList.foreach {
+          case (key, organization) => {
+            organizations(key).id should be(organization.id)
+            organizations(key).title should be(organization.title)
+            organizations(key).members should be(organization.members)
+          }
+        }
+      }
+      "list organizations without distinct" in {
+        val organizationList = TreeMap[Int, Organization](
+          0 -> TestValues.testOrganizationA,
+          1 -> TestValues.testOrganizationC
+        )
+
+        val testTags: IndexedSeq[Tag] = IndexedSeq(
+          TestValues.testTagA,
+          TestValues.testTagB
+        )
+
+        val result = organizationRepository.listByTags(testTags.map(tag => (tag.name, tag.lang)), false)
+        val eitherOrganizations = Await.result(result, Duration.Inf)
+        val \/-(organizations) = eitherOrganizations
+
+        organizations.size should be(organizationList.size)
+        organizationList.foreach {
+          case (key, organization) => {
+            organizations(key).id should be(organization.id)
+            organizations(key).title should be(organization.title)
+            organizations(key).members should be(organization.members)
+          }
+        }
+      }
+      "empty organizations distinct if no tags" in {
+        val testTags: IndexedSeq[Tag] = IndexedSeq()
+
+        val result = organizationRepository.listByTags(testTags.map(tag => (tag.name, tag.lang)))
+        val eitherOrganizations = Await.result(result, Duration.Inf)
+        val \/-(organizations) = eitherOrganizations
+
+        organizations.size should be(0)
+      }
+      "empty organizations without distinct if no tags" in {
+        val testTags: IndexedSeq[Tag] = IndexedSeq()
+
+        val result = organizationRepository.listByTags(testTags.map(tag => (tag.name, tag.lang)), false)
+        val eitherOrganizations = Await.result(result, Duration.Inf)
+        val \/-(organizations) = eitherOrganizations
+
+        organizations.size should be(0)
       }
     }
   }

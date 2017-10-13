@@ -614,6 +614,11 @@ CREATE TABLE organization_members (
   PRIMARY KEY (organization_id, member_email)
 );
 
+create table organization_tags(
+  organization_id uuid references organizations(id) ON DELETE CASCADE,
+  tag_id uuid references tags(id) ON DELETE RESTRICT,
+  PRIMARY KEY(organization_id, tag_id));
+
 CREATE OR REPLACE FUNCTION get_slug(_slug text, _table text, _id uuid) RETURNS text AS $$
 DECLARE
  updatedSlug text := $1;

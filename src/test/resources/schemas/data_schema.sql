@@ -995,6 +995,8 @@ values('c704eca6bf4b4be09a4c14d3ed9f6118', 1, true, 'admin tag', 'en', '9de6a5af
 insert into tags(id, version, name, lang, category_id)
 values('2c86e4e931ee4205bad063ffc7944471', 1, 'nocategory', 'en', NULL);
 
+
+/* ---------------------------- PROJECT TAGS -----------------------------*/
 /**
 testProjectG tags
  */
@@ -1015,6 +1017,8 @@ insert into project_tags(project_id, tag_id) values ('00743ada1d3a4912adc8fb8a0b
 
 /* User tags */
 insert into user_tags(user_id, tag_id) values ('36c8c0ca50aa4806afa5916a5e33a81f', 'c704eca6bf4b4be09a4c14d3ed9f6118');
+
+
 
 
 /* ---------------------- USER PREFERENCES ---------------------- */
@@ -1156,3 +1160,12 @@ VALUES  ('8c27b83baf4f4e7f9ecf8f6b5ec9bfb0', 'testUserB@example.com');
 
 INSERT INTO organization_members(organization_id, member_email)
 VALUES  ('8c27b83baf4f4e7f9ecf8f6b5ec9bfb0', 'unexisting_user@example.com');
+
+/* ---------------------------- ORGANIZATION TAGS -----------------------------*/
+/* testOrganizationA -> pacificsound3003 */
+insert into organization_tags(organization_id, tag_id) values ('8c27b83baf4f4e7f9ecf8f6b5ec9bfb0', 'ebad4d23f49e4bcba4a3dd523389091a');
+/* testOrganizationA -> vanille */
+insert into organization_tags(organization_id, tag_id) values ('8c27b83baf4f4e7f9ecf8f6b5ec9bfb0', '67e13f10c61545a08edf54988bb1c3d2');
+
+/* testOrganizationC -> vanille */
+insert into organization_tags(organization_id, tag_id) values ('e26bb8d3ecfe4a61a8081c3539086066', '67e13f10c61545a08edf54988bb1c3d2');

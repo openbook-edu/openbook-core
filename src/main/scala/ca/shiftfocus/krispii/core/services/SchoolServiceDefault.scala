@@ -28,7 +28,9 @@ class SchoolServiceDefault(
   val chatRepository: ChatRepository,
   val wordRepository: WordRepository,
   val linkRepository: LinkRepository,
-  val limitRepository: LimitRepository
+  val limitRepository: LimitRepository,
+  val tagRepository: TagRepository,
+  val organizationRepository: OrganizationRepository
 )
     extends SchoolService {
 
@@ -515,7 +517,34 @@ class SchoolServiceDefault(
    * @return
    */
   override def getStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
-    limitRepository.getStudentLimit(courseId)
+    limitRepository.getStudentLimit(courseId).flatMap {
+      case \/-(limit) => Future successful \/-(limit)
+      case -\/(error: RepositoryError.NoResults) => {
+        for {
+          course <- lift(courseRepository.find(courseId))
+          teacherTags <- lift(tagRepository.listByEntity(course.teacherId, TaggableEntities.user))
+          teacherOrganizations <- lift(organizationRepository.listByTags(teacherTags.map(tag => (tag.name, tag.lang)), false))
+          // Get the highest value from all organizations
+          maxStudentLimit <- lift {
+            if (teacherOrganizations.isEmpty) Future successful -\/(error)
+            else {
+              serializedT(teacherOrganizations)(organization => {
+                limitRepository.getOrganizationStudentLimit(organization.id).map {
+                  case \/-(limit) => \/-(limit)
+                  case -\/(error: RepositoryError.NoResults) => \/-(0)
+                  case -\/(error) => -\/(error)
+                }
+              })
+            }
+          }
+          result <- lift {
+            if (maxStudentLimit.max == 0) Future successful -\/(error)
+            else Future successful \/-(maxStudentLimit.max)
+          }
+        } yield result
+      }
+      case -\/(error) => Future successful -\/(error)
+    }
   }
 
   /**

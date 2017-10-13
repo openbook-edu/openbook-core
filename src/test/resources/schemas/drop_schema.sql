@@ -60,5 +60,6 @@ DROP TABLE IF EXISTS last_read_message CASCADE;
 DROP TABLE IF EXISTS organizations CASCADE;
 DROP TABLE IF EXISTS organization_limit CASCADE;
 DROP TABLE IF EXISTS organization_members CASCADE;
+DROP TABLE IF EXISTS organization_tags CASCADE;
 DROP FUNCTION IF EXISTS get_slug(text, text, uuid) CASCADE;
 -- DROP EXTENSION IF EXISTS pg_trgm;

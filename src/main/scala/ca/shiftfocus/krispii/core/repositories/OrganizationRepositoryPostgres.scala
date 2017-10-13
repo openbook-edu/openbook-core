@@ -61,7 +61,7 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
        |GROUP BY $Table.id
      """.stripMargin
 
-  val SelectAllByEmail =
+  val SelectAllByAdminEmail =
     s"""
        |SELECT $Fields, $MembersField
        |FROM $Table
@@ -70,6 +70,50 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
        |WHERE admin_email = ?
        |GROUP BY $Table.id
      """.stripMargin
+
+  def SelectByTags(tags: IndexedSeq[(String, String)], distinct: Boolean): String = {
+    var whereClause = ""
+    var distinctClause = ""
+    val length = tags.length
+
+    tags.zipWithIndex.map {
+      case ((tagName, tagLang), index) =>
+        whereClause += s"""(tags.name='${tagName}' AND tags.lang='${tagLang}')"""
+        if (index != (length - 1)) whereClause += " OR "
+    }
+
+    if (whereClause != "") {
+      whereClause = "WHERE " + whereClause
+    }
+    // If tagList is empty, then there should be unexisting condition
+    else {
+      whereClause = "WHERE false != false"
+    }
+
+    if (distinct) {
+      distinctClause = s"HAVING COUNT(DISTINCT tags.name) = $length"
+    }
+
+    def query(whereClause: String) =
+      s"""
+        |SELECT $Fields, $MembersField
+        |FROM $Table
+        |LEFT JOIN organization_members AS om
+        |  ON om.organization_id = $Table.id
+        |WHERE id IN (
+        |    SELECT organization_id
+        |    FROM organization_tags
+        |    JOIN tags
+        |      ON organization_tags.tag_id = tags.id
+        |    ${whereClause}
+        |    GROUP BY organization_id
+        |    ${distinctClause}
+        |)
+        |GROUP BY $Table.id
+    """.stripMargin
+
+    query(whereClause)
+  }
 
   val AddMember =
     s"""
@@ -121,7 +165,19 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
   }
 
   def list(adminEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Organization]]] = {
-    queryList(SelectAllByEmail, Seq[Any](adminEmail))
+    queryList(SelectAllByAdminEmail, Seq[Any](adminEmail))
+  }
+
+  /**
+   * List organizations by tags
+   *
+   * @param tags (tagName:String, tagLang:String)
+   * @param distinct Boolean If true each organization should have all listed tags,
+   *                 if false organization should have at least one listid tag
+   */
+  def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Organization]]] = {
+    val select = SelectByTags(tags, distinct)
+    queryList(select)
   }
 
   def addMember(organization: Organization, memberEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]] = {

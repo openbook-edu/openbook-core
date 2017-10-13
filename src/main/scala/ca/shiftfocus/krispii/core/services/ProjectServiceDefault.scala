@@ -1045,6 +1045,7 @@ class ProjectServiceDefault(
               case Some(None) => None
               case None => task.settings.mediaData
             },
+            layout = commonArgs.layout.getOrElse(task.settings.layout),
             parentId = commonArgs.parentId match {
               case Some(Some(parentId)) => Some(parentId)
               case Some(None) => None
@@ -1106,6 +1107,7 @@ class ProjectServiceDefault(
               case Some(None) => None
               case None => task.settings.mediaData
             },
+            layout = commonArgs.layout.getOrElse(task.settings.layout),
             parentId = commonArgs.parentId match {
               case Some(Some(parentId)) => Some(parentId)
               case Some(None) => None
@@ -1159,6 +1161,7 @@ class ProjectServiceDefault(
               case Some(None) => None
               case None => task.settings.mediaData
             },
+            layout = commonArgs.layout.getOrElse(task.settings.layout),
             parentId = commonArgs.parentId match {
               case Some(Some(parentId)) => Some(parentId)
               case Some(None) => None

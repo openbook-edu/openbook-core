@@ -108,6 +108,14 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       |RETURNING ${suffix}_id, type, limited
     """.stripMargin
 
+  def Delete(suffix: String): String =
+    s"""
+      |DELETE ${suffix}_limit
+      |WHERE ${suffix}_id = ?
+      | AND type = ?
+      |RETURNING ${suffix}_id, type, limited
+    """.stripMargin
+
   // ###### TEACHERS ###################################################################################################
 
   // --- GET -----------------------------------------------------------------------------------------------------------
@@ -155,6 +163,20 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
     }
   }
 
+  /**
+   * Number of students that are allowed for teacher per course
+   *
+   * @param teacherId
+   * @param conn
+   * @return
+   */
+  def getTeacherStudentLimit(teacherId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
+    getTeacherLimit(teacherId, Limits.student).flatMap {
+      case \/-(limit) => Future successful \/-(limit.toInt)
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
   // --- SET -----------------------------------------------------------------------------------------------------------
 
   /**
@@ -194,6 +216,26 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
     }
   }
 
+  /**
+   * Set Number of students that are allowed for teacher per course
+   *
+   * @param teacherId
+   * @param limit
+   * @param conn
+   * @return
+   */
+  def setTeacherStudentLimit(teacherId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
+    queryOne(Update("teacher"), Seq[Any](limit, teacherId, Limits.student)).flatMap {
+      case \/-(limit) => Future successful \/-(limit.toInt)
+      case -\/(error: RepositoryError.NoResults) => {
+        for {
+          insert <- lift(queryOne(Insert("teacher"), Seq[Any](teacherId, Limits.student, limit)))
+        } yield insert.toInt
+      }
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
   // ###### COURSES ###################################################################################################
 
   // --- GET -----------------------------------------------------------------------------------------------------------
@@ -204,7 +246,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
    * @param courseId
    * @return
    */
-  def getStudentLimit(courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
+  def getCourseStudentLimit(courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
     getCourseLimit(courseId, Limits.student).flatMap {
       case \/-(limit) => Future successful \/-(limit.toInt)
       case -\/(error) => Future successful -\/(error)
@@ -216,7 +258,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   /**
    * Upsert student limit within course
    */
-  def setStudentLimit(courseId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
+  def setCourseStudentLimit(courseId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
     queryOne(Update("course"), Seq[Any](limit, courseId, Limits.student)).flatMap {
       case \/-(limit) => Future successful \/-(limit.toInt)
       case -\/(error: RepositoryError.NoResults) => {

@@ -511,13 +511,23 @@ class SchoolServiceDefault(
   }
 
   /**
+   * Number of students that are allowed for teacher per course
+   *
+   * @param teacherId
+   * @return
+   */
+  override def getTeacherStudentLimit(teacherId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getTeacherStudentLimit(teacherId)
+  }
+
+  /**
    * Get number of students that course is allowed to have
    *
    * @param courseId
    * @return
    */
-  override def getStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
-    limitRepository.getStudentLimit(courseId).flatMap {
+  override def getCourseStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getCourseStudentLimit(courseId).flatMap {
       case \/-(limit) => Future successful \/-(limit)
       case -\/(error: RepositoryError.NoResults) => {
         for {
@@ -580,12 +590,27 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Insert or update number of courses that teacher is allowed to have
+   * Set Number of students that are allowed for teacher per course
+   *
+   * @param teacherId
+   * @param limit
+   * @return
    */
-  override def setStudentLimit(courseId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+  override def setTeacherStudentLimit(teacherId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] = {
     transactional { implicit conn =>
       for {
-        limit <- limitRepository.setStudentLimit(courseId, limit)
+        limit <- limitRepository.setTeacherStudentLimit(teacherId, limit)
+      } yield limit
+    }
+  }
+
+  /**
+   * Insert or update number of courses that teacher is allowed to have
+   */
+  override def setCourseStudentLimit(courseId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+    transactional { implicit conn =>
+      for {
+        limit <- limitRepository.setCourseStudentLimit(courseId, limit)
       } yield limit
     }
   }

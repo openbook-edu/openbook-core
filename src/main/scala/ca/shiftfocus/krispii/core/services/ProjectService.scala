@@ -116,6 +116,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     notesTitle: Option[Option[String]] = None,
     maxGrade: Option[String],
     mediaData: Option[Option[MediaData]],
+    layout: Option[Int],
     parentId: Option[Option[UUID]] = None
   )
 

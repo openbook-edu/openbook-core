@@ -20,6 +20,7 @@ case class CommonTaskSettings(
   hideResponse: Boolean = false,
   allowGfile: Boolean = true,
   mediaData: Option[MediaData] = None,
+  layout: Int = 0,
   parentId: Option[UUID] = None
 )
 
@@ -54,6 +55,7 @@ object CommonTaskSettings {
       case Some(mediaData) => Some(Json.parse(mediaData).as[MediaData])
       case _ => None
     },
+      layout = row("layout").asInstanceOf[Int],
       parentId = Option(row("parent_id")).map(_.asInstanceOf[UUID])
     )
   }
@@ -70,8 +72,9 @@ object CommonTaskSettings {
     (__ \ "hideResponse").read[Boolean] and
     (__ \ "allowGfile").read[Boolean] and
     (__ \ "mediaData").readNullable[MediaData] and
+    (__ \ "layout").read[Int] and
     (__ \ "parentId").readNullable[UUID]
-  )(CommonTaskSettings.apply(_: String, _: String, _: String, _: String, _: String, _: Boolean, _: Option[String], _: Option[String], _: Boolean, _: Boolean, _: Option[MediaData], _: Option[UUID]))
+  )(CommonTaskSettings.apply(_: String, _: String, _: String, _: String, _: String, _: Boolean, _: Option[String], _: Option[String], _: Boolean, _: Boolean, _: Option[MediaData], _: Int, _: Option[UUID]))
 
   implicit val tsWrites: Writes[CommonTaskSettings] = (
     (__ \ "name").write[String] and
@@ -85,6 +88,7 @@ object CommonTaskSettings {
     (__ \ "hideResponse").write[Boolean] and
     (__ \ "allowGfile").write[Boolean] and
     (__ \ "mediaData").writeNullable[MediaData] and
+    (__ \ "layout").write[Int] and
     (__ \ "parentId").writeNullable[UUID]
   )(unlift(CommonTaskSettings.unapply))
 }

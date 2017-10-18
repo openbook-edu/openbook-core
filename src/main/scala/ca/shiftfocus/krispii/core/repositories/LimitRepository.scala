@@ -25,6 +25,7 @@ trait LimitRepository extends Repository {
   // COURSES
   def getCourseStudentLimit(courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
   def setCourseStudentLimit(courseId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
+  def deleteCourseStudentLimit(courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
 
   // PLANS
   def getPlanCourseLimit(planId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]

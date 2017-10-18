@@ -96,6 +96,13 @@ class TagServiceDefault(
     }
   }
 
+  def listOrganizationalByEntity(entityId: UUID, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
+    transactional {
+      implicit conn: Connection =>
+        tagRepository.listOrganizationalByEntity(entityId, entityType)
+    }
+  }
+
   def listByCategory(category: String, lang: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
     transactional {
       implicit conn: Connection =>

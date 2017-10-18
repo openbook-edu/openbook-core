@@ -997,25 +997,24 @@ values('2c86e4e931ee4205bad063ffc7944471', 1, 'nocategory', 'en', NULL);
 
 
 /* ---------------------------- PROJECT TAGS -----------------------------*/
-/**
-testProjectG tags
- */
+/* testProjectG -> pacificsound3003 */
 insert into project_tags(project_id, tag_id) values ('b36919cb2df043b7bb7f36cae797deac', 'ebad4d23f49e4bcba4a3dd523389091a');
+/* testProjectG -> vanille */
 insert into project_tags(project_id, tag_id) values ('b36919cb2df043b7bb7f36cae797deac', '67e13f10c61545a08edf54988bb1c3d2');
 
-/**
-Project B tags
- */
+/* testProjectB -> pacificsound3003 */
 insert into project_tags(project_id, tag_id) values ('e4ae3b9098714339b05c8d39e3aaf65d', 'ebad4d23f49e4bcba4a3dd523389091a');
+/* testProjectB -> fruit */
 insert into project_tags(project_id, tag_id) values ('e4ae3b9098714339b05c8d39e3aaf65d', 'c3f132af9a6f43969ff3694c6bc466a2');
 
-/**
-testProjectH tags
- */
+/* testProjectH -> pacificsound3003 */
 insert into project_tags(project_id, tag_id) values ('00743ada1d3a4912adc8fb8a0b1b7447', 'ebad4d23f49e4bcba4a3dd523389091a');
+/* testProjectH -> vanille */
 insert into project_tags(project_id, tag_id) values ('00743ada1d3a4912adc8fb8a0b1b7447', '67e13f10c61545a08edf54988bb1c3d2');
 
-/* User tags */
+/* ---------------------------- USER TAGS -----------------------------*/
+
+/* testUserA -> admin tag */
 insert into user_tags(user_id, tag_id) values ('36c8c0ca50aa4806afa5916a5e33a81f', 'c704eca6bf4b4be09a4c14d3ed9f6118');
 
 

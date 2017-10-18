@@ -173,7 +173,7 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
    *
    * @param tags (tagName:String, tagLang:String)
    * @param distinct Boolean If true each organization should have all listed tags,
-   *                 if false organization should have at least one listid tag
+   *                 if false organization should have at least one listed tag
    */
   def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Organization]]] = {
     val select = SelectByTags(tags, distinct)

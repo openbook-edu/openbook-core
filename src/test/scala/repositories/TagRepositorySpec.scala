@@ -191,10 +191,62 @@ class TagRepositorySpec
           }
         }
       }
+      "list organizational tags by project" in {
+        val testProject = TestValues.testProjectB
+        val tagsList = TreeMap[Int, ca.shiftfocus.krispii.core.models.Tag](
+          0 -> TestValues.testTagA
+        )
 
+        val result = tagRepository.listOrganizationalByEntity(testProject.id, TaggableEntities.project)
+        val eitherTags = Await.result(result, Duration.Inf)
+        val \/-(tags) = eitherTags
+
+        println(Console.GREEN + "tags = " + tags + Console.RESET)
+
+        tags.size should be(tagsList.size)
+        tagsList.foreach {
+          case (key, tag: ca.shiftfocus.krispii.core.models.Tag) => {
+            tags(key).category should be(tag.category)
+            tags(key).name should be(tag.name)
+            tags(key).lang should be(tag.lang)
+          }
+        }
+      }
       "return empty Vector() project dont have tags" in {
         val result = tagRepository.listByEntity(TestValues.testProjectE.id, TaggableEntities.project)
         Await.result(result, Duration.Inf) should be(\/-(Vector()))
+      }
+    }
+  }
+
+  "TagRepository.isOrganizational" should {
+    inSequence {
+      "be organizational tag" in {
+        val testTag = TestValues.testTagA
+
+        val result = tagRepository.isOrganizational(testTag.name, testTag.lang)
+        val eitherIsOrg = Await.result(result, Duration.Inf)
+        val \/-(isOrg) = eitherIsOrg
+
+        isOrg should be(true)
+      }
+      "not be organizational tag" in {
+        val testTag = TestValues.testTagC
+
+        val result = tagRepository.isOrganizational(testTag.name, testTag.lang)
+        val eitherIsOrg = Await.result(result, Duration.Inf)
+        val \/-(isOrg) = eitherIsOrg
+
+        isOrg should be(false)
+      }
+      "not be organizational if tag not found" in {
+        val testTag = TestValues.testTagX
+
+        val result = tagRepository.isOrganizational(testTag.name, testTag.lang)
+        val eitherIsOrg = Await.result(result, Duration.Inf)
+        val \/-(isOrg) = eitherIsOrg
+
+        isOrg should be(false)
       }
     }
   }

@@ -29,8 +29,12 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
 
   val Fields = "id, version, is_admin, name, lang, frequency"
   val QMarks = Fields.split(", ").map({ field => "?" }).mkString(", ")
-
   val Table = "tags"
+  val Organizational =
+    s"""
+      |INNER JOIN organization_tags AS ot
+      |ON ot.tag_id = t.id
+    """.stripMargin
 
   val Insert = s"""
                   |INSERT INTO $Table ($Fields, category_id)
@@ -45,11 +49,19 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                   |RETURNING $Fields, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name
                   """.stripMargin
 
-  val ListByProject = s"""
-                        SELECT t.id, t.version, t.is_admin, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
-                        JOIN project_tags pt
-                        ON (pt.tag_id = t.id AND pt.project_id = ?);
-                        """.stripMargin
+  def ListByProject(onlyOrganizational: Boolean = false): String = {
+    val org = onlyOrganizational match {
+      case true => Organizational
+      case false => ""
+    }
+
+    s"""
+      SELECT t.id, t.version, t.is_admin, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
+      JOIN project_tags pt
+      ON (pt.tag_id = t.id AND pt.project_id = ?)
+      $org
+    """.stripMargin
+  }
 
   val ListByOrganization = s"""
                         SELECT t.id, t.version, t.is_admin, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
@@ -57,11 +69,19 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                         ON (ot.tag_id = t.id AND ot.organization_id = ?);
                         """.stripMargin
 
-  val ListByUser = s"""
-                        SELECT t.id, t.version, t.is_admin, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
-                        JOIN user_tags ut
-                        ON (ut.tag_id = t.id AND ut.user_id = ?);
-                        """.stripMargin
+  def ListByUser(onlyOrganizational: Boolean = false): String = {
+    val org = onlyOrganizational match {
+      case true => Organizational
+      case false => ""
+    }
+
+    s"""
+      SELECT t.id, t.version, t.is_admin, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
+      JOIN user_tags ut
+      ON (ut.tag_id = t.id AND ut.user_id = ?)
+      $org
+    """.stripMargin
+  }
 
   val ListByCategory = s"""
                               SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) as category_name FROM $Table
@@ -106,6 +126,15 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                        |  ORDER BY dist LIMIT 10) as sub
                        |WHERE dist < 0.9;
                         """.stripMargin
+
+  val IsOrganizational =
+    s"""
+      |SELECT t.id
+      |FROM $Table AS t
+      |$Organizational
+      |WHERE t.name = ?
+      | AND t.lang = ?
+    """.stripMargin
 
   val UntagProject = s"""
                   |DELETE FROM project_tags
@@ -164,9 +193,27 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
 
   override def listByEntity(entityId: UUID, entityType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
     entityType match {
-      case TaggableEntities.project => queryList(ListByProject, Seq[Any](entityId))
+      case TaggableEntities.project => queryList(ListByProject(), Seq[Any](entityId))
       case TaggableEntities.organization => queryList(ListByOrganization, Seq[Any](entityId))
-      case TaggableEntities.user => queryList(ListByUser, Seq[Any](entityId))
+      case TaggableEntities.user => queryList(ListByUser(), Seq[Any](entityId))
+      case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.listByEntity.wrong.entity.type"))
+    }
+  }
+
+  /**
+   * List tags for entity that are also used to tag organizations
+   * For organizations it will behave the same as listByEntity
+   *
+   * @param entityId
+   * @param entityType
+   * @param conn
+   * @return
+   */
+  override def listOrganizationalByEntity(entityId: UUID, entityType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+    entityType match {
+      case TaggableEntities.project => queryList(ListByProject(true), Seq[Any](entityId))
+      case TaggableEntities.organization => queryList(ListByOrganization, Seq[Any](entityId))
+      case TaggableEntities.user => queryList(ListByUser(true), Seq[Any](entityId))
       case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.listByEntity.wrong.entity.type"))
     }
   }
@@ -177,6 +224,19 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
 
   override def find(tagId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(SelectOneById, Seq[Any](tagId))
+  }
+
+  override def isOrganizational(tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Boolean]] = {
+    conn.sendPreparedStatement(IsOrganizational, Seq[Any](tagName, tagLang)).map { result =>
+      if (result.rows.get.length > 0) {
+        \/-(true)
+      }
+      else {
+        \/-(false)
+      }
+    }.recover {
+      case exception: Throwable => throw exception
+    }
   }
 
   override def untag(entityId: UUID, entityType: String, tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {

@@ -270,6 +270,16 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
     }
   }
 
+  // --- DELETE --------------------------------------------------------------------------------------------------------
+
+  def deleteCourseStudentLimit(courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
+    deleteCourseLimit(courseId, Limits.student).flatMap {
+      case \/-(limit) => Future successful \/-(Unit)
+      case -\/(error: RepositoryError.NoResults) => Future successful \/-(Unit)
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
   // ###### PLANS ######################################################################################################
 
   // --- GET -----------------------------------------------------------------------------------------------------------
@@ -477,6 +487,10 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
 
   private def getOrganizationLimit(organizationId: UUID, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
     queryOne(Select("organization"), Seq[Any](organizationId, limitType))
+  }
+
+  private def deleteCourseLimit(courseId: UUID, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
+    queryOne(Delete("course"), Seq[Any](courseId, limitType))
   }
 }
 

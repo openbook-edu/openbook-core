@@ -10,6 +10,7 @@ import ca.shiftfocus.krispii.core.models._
 import scala.concurrent.Future
 import java.awt.Color
 
+import com.github.mauricio.async.db.Connection
 import org.joda.time.DateTime
 
 import scalaz.\/
@@ -88,8 +89,8 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
 
   // Course
   def getCourseStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Int]]
-
   def setCourseStudentLimit(courseId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
+  def deleteCourseStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Unit]]
 
   // Plan
   def getPlanStudentLimit(planId: String): Future[\/[ErrorUnion#Fail, Int]]

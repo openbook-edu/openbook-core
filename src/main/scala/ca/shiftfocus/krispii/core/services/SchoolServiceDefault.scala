@@ -522,6 +522,7 @@ class SchoolServiceDefault(
 
   /**
    * Get number of students that course is allowed to have
+   * Limit by course has priority, if that is empty, then we get limit by teacher.
    *
    * @param courseId
    * @return
@@ -532,25 +533,7 @@ class SchoolServiceDefault(
       case -\/(error: RepositoryError.NoResults) => {
         for {
           course <- lift(courseRepository.find(courseId))
-          teacherTags <- lift(tagRepository.listByEntity(course.teacherId, TaggableEntities.user))
-          teacherOrganizations <- lift(organizationRepository.listByTags(teacherTags.map(tag => (tag.name, tag.lang)), false))
-          // Get the highest value from all organizations
-          maxStudentLimit <- lift {
-            if (teacherOrganizations.isEmpty) Future successful -\/(error)
-            else {
-              serializedT(teacherOrganizations)(organization => {
-                limitRepository.getOrganizationStudentLimit(organization.id).map {
-                  case \/-(limit) => \/-(limit)
-                  case -\/(error: RepositoryError.NoResults) => \/-(0)
-                  case -\/(error) => -\/(error)
-                }
-              })
-            }
-          }
-          result <- lift {
-            if (maxStudentLimit.max == 0) Future successful -\/(error)
-            else Future successful \/-(maxStudentLimit.max)
-          }
+          result <- lift(limitRepository.getTeacherStudentLimit(course.teacherId))
         } yield result
       }
       case -\/(error) => Future successful -\/(error)
@@ -612,6 +595,14 @@ class SchoolServiceDefault(
       for {
         limit <- limitRepository.setCourseStudentLimit(courseId, limit)
       } yield limit
+    }
+  }
+
+  override def deleteCourseStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Unit]] = {
+    transactional { implicit conn =>
+      for {
+        result <- limitRepository.deleteCourseStudentLimit(courseId)
+      } yield result
     }
   }
 

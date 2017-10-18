@@ -19,6 +19,7 @@ trait TagService extends Service[ErrorUnion#Fail] {
   def listAdminByKey(key: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
   def listAdminByKey(key: String, userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
   def listByEntity(entityId: UUID, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
+  def listOrganizationalByEntity(entityId: UUID, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
   def listByCategory(category: String, lang: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
 
   def createTag(name: String, lang: String, category: Option[String]): Future[\/[ErrorUnion#Fail, Tag]]

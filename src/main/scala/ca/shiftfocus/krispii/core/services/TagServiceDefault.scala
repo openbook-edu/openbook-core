@@ -4,21 +4,37 @@ import java.util.UUID
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error.{ ErrorUnion, RepositoryError, ServiceError }
-import ca.shiftfocus.krispii.core.models.{ Tag, TagCategory, TaggableEntities }
+import ca.shiftfocus.krispii.core.lib.ScalaCachePool
+import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories.{ TagCategoryRepository, TagRepository, _ }
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
+import org.joda.time.DateTime
+import play.api.Configuration
+import play.api.libs.json.{ JsObject, Json }
 
 import scala.concurrent.Future
 import scalaz.{ -\/, \/, \/- }
 
 class TagServiceDefault(
     val db: DB,
+    val scalaCache: ScalaCachePool,
     val tagRepository: TagRepository,
-    val tagCategoryRepository: TagCategoryRepository
+    val tagCategoryRepository: TagCategoryRepository,
+    val organizationRepository: OrganizationRepository,
+    val limitRepository: LimitRepository,
+    val userRepository: UserRepository,
+    val courseRepository: CourseRepository,
+    val paymentService: PaymentService,
+    val config: Configuration
 ) extends TagService {
+  val trialDays = config.getInt("default.trial.days").get
+  val defaultStudentLimit = config.getInt("default.student.limit").get
+  val defaultStorageLimit = config.getInt("default.storage.limit.gb").get
+  val defaultCourseLimit = config.getInt("default.course.limit").get
 
   implicit def conn: Connection = db.pool
+  implicit def cache: ScalaCachePool = scalaCache
 
   // ########## TAGS ###################################################################################################
 
@@ -37,6 +53,12 @@ class TagServiceDefault(
           }
         )
         tag <- lift(tagRepository.tag(entityId, entityType, existingTag.name, existingTag.lang))
+        _ <- lift {
+          entityType match {
+            case TaggableEntities.user => setUserLimitsByOrganization(entityId, existingTag.name, existingTag.lang)
+            case _ => Future successful \/-(Unit)
+          }
+        }
       } yield tag
     }
   }
@@ -48,6 +70,12 @@ class TagServiceDefault(
         tag <- lift(tagRepository.find(tagName, tagLang))
         frequency = if (tag.frequency - 1 < 0) 0 else (tag.frequency - 1)
         updatedTag <- lift(if (shouldUpdateFrequency) updateFrequency(tag.name, tag.lang, tag.frequency - 1) else Future successful \/-(tag))
+        _ <- lift {
+          entityType match {
+            case TaggableEntities.user => unsetUserLimitsByOrganization(entityId, tag.name, tag.lang)
+            case _ => Future successful \/-(Unit)
+          }
+        }
       } yield untagged
     }
   }
@@ -206,5 +234,120 @@ class TagServiceDefault(
       _ <- predicate(existingTagCategory.version == version)(ServiceError.OfflineLockFail)
       deletedTagCategory <- lift(tagCategoryRepository.delete(existingTagCategory))
     } yield deletedTagCategory
+  }
+
+  private def setUserLimitsByOrganization(userId: UUID, tagName: String, tagLang: String): Future[\/[ErrorUnion#Fail, Unit]] = {
+    for {
+      user <- lift(userRepository.find(userId))
+      organizations <- lift(organizationRepository.listByTags(IndexedSeq((tagName, tagLang))))
+      _ <- lift {
+        if (organizations.nonEmpty) {
+          val organization = organizations.head
+          for {
+            limitsJson <- lift(getOrganizationLimits(organization.id))
+            // Set limits
+            studentLimit = (limitsJson \ "studentLimit").asOpt[Int].getOrElse(0)
+            storageLimit = (limitsJson \ "storageLimit").asOpt[Float].getOrElse(0.toFloat)
+            courseLimit = (limitsJson \ "courseLimit").asOpt[Int].getOrElse(0)
+            dateLimit = (limitsJson \ "dateLimit").asOpt[DateTime].getOrElse(new DateTime)
+            courses <- lift(courseRepository.list(user, true))
+            _ <- lift(limitRepository.setTeacherStudentLimit(user.id, studentLimit))
+            // Delete all custom course student limits
+            _ <- lift(serializedT(courses)(course => limitRepository.deleteCourseStudentLimit(course.id)))
+            _ <- lift(limitRepository.setStorageLimit(user.id, storageLimit))
+            _ <- lift(limitRepository.setCourseLimit(user.id, courseLimit))
+            // Get teacher payment account, if there is no account than create one
+            account <- lift(paymentService.getAccount(user.id).flatMap {
+              case \/-(account) => paymentService.updateAccount(
+                account.id,
+                account.version,
+                AccountStatus.group,
+                Some(dateLimit),
+                account.customer
+              )
+              case -\/(error: RepositoryError.NoResults) => {
+                (for {
+                  newAccount <- lift(paymentService.createAccount(user.id, AccountStatus.group, Some(dateLimit)))
+                  log <- lift(paymentService.createLog(PaymentLogType.info, s"Create account for = ${user.email}", Json.toJson(newAccount).toString, Some(newAccount.userId)))
+                } yield newAccount).run
+              }
+              case -\/(error: ErrorUnion#Fail) => Future successful -\/(error)
+            })
+          } yield ()
+        }
+        else Future successful \/-(Unit)
+      }
+    } yield ()
+  }
+
+  // TODO - Check if there is another organization tag, if so, set limits using it.
+  private def unsetUserLimitsByOrganization(userId: UUID, tagName: String, tagLang: String): Future[\/[ErrorUnion#Fail, Unit]] = {
+    for {
+      user <- lift(userRepository.find(userId))
+      organizations <- lift(organizationRepository.listByTags(IndexedSeq((tagName, tagLang))))
+      _ <- lift {
+        if (organizations.nonEmpty) {
+          for {
+            // Set limits
+            _ <- lift(limitRepository.setTeacherStudentLimit(user.id, defaultStudentLimit))
+            courses <- lift(courseRepository.list(user, true))
+            // Delete all custom course student limits
+            _ <- lift(serializedT(courses)(course => limitRepository.deleteCourseStudentLimit(course.id)))
+            _ <- lift(limitRepository.setStorageLimit(user.id, defaultStorageLimit))
+            _ <- lift(limitRepository.setCourseLimit(user.id, defaultCourseLimit))
+            // Get teacher payment account and set activeUntil = user.createdAt + default.trial.days)
+            activeUntil = user.createdAt.plusDays(trialDays)
+            account <- lift(paymentService.getAccount(user.id).flatMap {
+              case \/-(account) => paymentService.updateAccount(
+                account.id,
+                account.version,
+                AccountStatus.trial,
+                Some(activeUntil),
+                account.customer
+              )
+              case -\/(error: RepositoryError.NoResults) => Future successful \/-(Unit)
+              case -\/(error: ErrorUnion#Fail) => Future successful -\/(error)
+            })
+          } yield ()
+        }
+        else Future successful \/-(Unit)
+      }
+    } yield ()
+  }
+
+  private def getOrganizationLimits(organizationId: UUID): Future[\/[ErrorUnion#Fail, JsObject]] = {
+    for {
+      storageLimit <- lift(limitRepository.getOrganizationStorageLimit(organizationId).map {
+        case \/-(limit) => \/-(Some(BigDecimal(limit).setScale(4, BigDecimal.RoundingMode.HALF_UP)))
+        case -\/(error: RepositoryError.NoResults) => \/-(None)
+        case -\/(error) => -\/(error)
+      })
+      courseLimit <- lift(limitRepository.getOrganizationCourseLimit(organizationId).map {
+        case \/-(limit) => \/-(Some(limit))
+        case -\/(error: RepositoryError.NoResults) => \/-(None)
+        case -\/(error) => -\/(error)
+      })
+      studentLimit <- lift(limitRepository.getOrganizationStudentLimit(organizationId).map {
+        case \/-(limit) => \/-(Some(limit))
+        case -\/(error: RepositoryError.NoResults) => \/-(None)
+        case -\/(error) => -\/(error)
+      })
+      memberLimit <- lift(limitRepository.getOrganizationMemberLimit(organizationId).map {
+        case \/-(limit) => \/-(Some(limit))
+        case -\/(error: RepositoryError.NoResults) => \/-(None)
+        case -\/(error) => -\/(error)
+      })
+      dateLimit <- lift(limitRepository.getOrganizationDateLimit(organizationId).map {
+        case \/-(limit) => \/-(Some(limit))
+        case -\/(error: RepositoryError.NoResults) => \/-(None)
+        case -\/(error) => -\/(error)
+      })
+    } yield Json.obj(
+      "storageLimit" -> Json.toJson(storageLimit),
+      "courseLimit" -> Json.toJson(courseLimit),
+      "studentLimit" -> Json.toJson(studentLimit),
+      "memberLimit" -> Json.toJson(memberLimit),
+      "dateLimit" -> Json.toJson(dateLimit)
+    )
   }
 }

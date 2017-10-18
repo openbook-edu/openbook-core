@@ -110,7 +110,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
 
   def Delete(suffix: String): String =
     s"""
-      |DELETE ${suffix}_limit
+      |DELETE FROM ${suffix}_limit
       |WHERE ${suffix}_id = ?
       | AND type = ?
       |RETURNING ${suffix}_id, type, limited

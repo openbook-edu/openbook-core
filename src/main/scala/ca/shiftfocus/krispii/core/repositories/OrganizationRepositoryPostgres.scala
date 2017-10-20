@@ -71,6 +71,16 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
        |GROUP BY $Table.id
      """.stripMargin
 
+  val SelectAllByMemberEmail =
+    s"""
+       |SELECT $Fields, $MembersField
+       |FROM $Table
+       |JOIN organization_members AS om
+       |  ON om.organization_id = $Table.id
+       |    AND om.member_email = ?
+       |GROUP BY $Table.id
+     """.stripMargin
+
   def SelectByTags(tags: IndexedSeq[(String, String)], distinct: Boolean): String = {
     var whereClause = ""
     var distinctClause = ""
@@ -164,8 +174,12 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
     queryList(SelectAll)
   }
 
-  def list(adminEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Organization]]] = {
+  def listByAdmin(adminEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Organization]]] = {
     queryList(SelectAllByAdminEmail, Seq[Any](adminEmail))
+  }
+
+  def listByMember(memberEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Organization]]] = {
+    queryList(SelectAllByMemberEmail, Seq[Any](memberEmail))
   }
 
   /**

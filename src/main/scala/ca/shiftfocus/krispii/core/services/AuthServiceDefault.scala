@@ -31,7 +31,11 @@ class AuthServiceDefault(
     val accountRepository: AccountRepository,
     val stripeRepository: StripeRepository,
     val paymentLogRepository: PaymentLogRepository,
-    val emailChangeRepository: EmailChangeRepository
+    val emailChangeRepository: EmailChangeRepository,
+    val tagRepository: TagRepository,
+    // Bad idea to include services, but duplicating the code may be even worse
+    val organizationService: OrganizationService,
+    val tagService: TagService
 ) extends AuthService {
 
   implicit def conn: Connection = db.pool
@@ -241,34 +245,41 @@ class AuthServiceDefault(
     surname: String,
     id: UUID = UUID.randomUUID
   ): Future[\/[ErrorUnion#Fail, User]] = {
-    transactional { implicit conn =>
-      val webcrank = Passwords.scrypt()
-      val token = Token.getNext
-      for {
-        validEmail <- lift(validateEmail(email.trim.toLowerCase))
-        validUsername <- lift(validateUsername(username.trim))
-        _ <- predicate(InputUtils.isValidPassword(password.trim))(ServiceError.BadInput("core.AuthServiceDefault.password.short"))
-        passwordHash = Some(webcrank.crypt(password.trim))
-        newUser <- lift {
-          val newUser = User(
-            id = id,
-            username = username.trim,
-            email = validEmail,
-            hash = passwordHash,
-            givenname = givenname.trim,
-            surname = surname.trim,
-            accountType = "krispii"
-          )
-          userRepository.insert(newUser)
+    for {
+      result <- lift {
+        transactional { implicit conn =>
+          val webcrank = Passwords.scrypt()
+          val token = Token.getNext
+          for {
+            validEmail <- lift(validateEmail(email.trim.toLowerCase))
+            validUsername <- lift(validateUsername(username.trim))
+            _ <- predicate(InputUtils.isValidPassword(password.trim))(ServiceError.BadInput("core.AuthServiceDefault.password.short"))
+            passwordHash = Some(webcrank.crypt(password.trim))
+            newUser <- lift {
+              val newUser = User(
+                id = id,
+                username = username.trim,
+                email = validEmail,
+                hash = passwordHash,
+                givenname = givenname.trim,
+                surname = surname.trim,
+                accountType = "krispii"
+              )
+              userRepository.insert(newUser)
+            }
+            user = newUser.copy(token = Some(UserToken(id, token, activation)))
+            _ <- lift(userTokenRepository.insert(newUser.id, token, activation))
+          } yield user
         }
-        user = newUser.copy(token = Some(UserToken(id, token, activation)))
-        _ <- lift(userTokenRepository.insert(newUser.id, token, activation))
-      } yield user
-    }
+      }
+      // Put it outside transactional, as we need user to be in a database before we tag him.
+      _ <- lift(tagOrganizationUser(result))
+    } yield result
   }
 
   /**
    * If deleted user exists then move his account, subscriptions and logs to a new user with the same email
+   * @see TagServiceDefault.syncWithDeletedUser()
    *
    * @param newUser
    * @return
@@ -349,25 +360,31 @@ class AuthServiceDefault(
     givenname: String,
     surname: String
   ): Future[\/[ErrorUnion#Fail, User]] = {
-    transactional { implicit conn =>
-      val webcrank = Passwords.scrypt()
-      val newUser = User(
-        id = UUID.randomUUID(),
-        username = email.trim,
-        email = email.trim.toLowerCase,
-        hash = Some(webcrank.crypt("google_password")),
-        givenname = givenname,
-        surname = surname,
-        accountType = "google"
-      )
-      Logger.debug("creating google user")
-      Logger.debug(newUser.toString)
-      val fUser = for {
-        user <- lift(userRepository.insert(newUser))
-        _ = Logger.debug("user created")
-      } yield user
-      fUser.run
-    }
+    for {
+      result <- lift {
+        transactional { implicit conn =>
+          val webcrank = Passwords.scrypt()
+          val newUser = User(
+            id = UUID.randomUUID(),
+            username = email.trim,
+            email = email.trim.toLowerCase,
+            hash = Some(webcrank.crypt("google_password")),
+            givenname = givenname,
+            surname = surname,
+            accountType = "google"
+          )
+          Logger.debug("creating google user")
+          Logger.debug(newUser.toString)
+
+          for {
+            user <- lift(userRepository.insert(newUser))
+            _ = Logger.debug("user created")
+          } yield user
+        }
+      }
+      // Put it outside transactional, as we need user to be in a database before we tag him.
+      _ <- lift(tagOrganizationUser(result))
+    } yield result
   }
 
   /**
@@ -1088,5 +1105,26 @@ class AuthServiceDefault(
       //      oldEmailResult <- lift(sendAsyncEmail(emailForOld))
       //      newEmailResult <- lift(sendAsyncEmail(emailForNew))
     } yield deleted
+  }
+
+  /**
+    * If user is in the list of organization members, then we tag him with a tags that organization has
+    *
+    * @param user
+    * @return
+    */
+  private def tagOrganizationUser(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[Unit]]] = {
+    organizationService.listByMember(user.email).flatMap {
+      case \/-(organizationList) => {
+        serializedT(organizationList) { organization =>
+          for {
+            organizationTags <- lift(tagService.listByEntity(organization.id, TaggableEntities.organization))
+            // Tag
+            _ <- lift(serializedT(organizationTags)(tag => tagService.tag(user.id, TaggableEntities.user, tag.name, tag.lang)))
+          } yield ()
+        }
+      }
+      case -\/(error) => Future successful -\/(error)
+    }
   }
 }

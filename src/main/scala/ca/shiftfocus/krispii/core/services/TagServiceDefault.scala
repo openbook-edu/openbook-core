@@ -25,8 +25,12 @@ class TagServiceDefault(
     val limitRepository: LimitRepository,
     val userRepository: UserRepository,
     val courseRepository: CourseRepository,
-    val paymentService: PaymentService,
-    val config: Configuration
+    val accountRepository: AccountRepository,
+    val stripeRepository: StripeRepository,
+    val paymentLogRepository: PaymentLogRepository,
+    val config: Configuration,
+    // Bad idea to include services, but duplicating the code may be even worse
+    val paymentService: PaymentService
 ) extends TagService {
   val trialDays = config.getInt("default.trial.days").get
   val defaultStudentLimit = config.getInt("default.student.limit").get
@@ -38,6 +42,16 @@ class TagServiceDefault(
 
   // ########## TAGS ###################################################################################################
 
+  /**
+    * Tag entity with a tag
+    * For users if tag is also used in organization, then we set user's limits according to the limits of this organization
+    *
+   * @param entityId
+   * @param entityType
+   * @param tagName
+   * @param lang
+   * @return
+   */
   override def tag(entityId: UUID, entityType: String, tagName: String, lang: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn: Connection =>
       for {
@@ -52,31 +66,56 @@ class TagServiceDefault(
             ))
           }
         )
-        tag <- lift(tagRepository.tag(entityId, entityType, existingTag.name, existingTag.lang))
+        // If entity is already taged with this tag, then do nothing
+        _ <- lift(tagRepository.tag(entityId, entityType, existingTag.name, existingTag.lang).map {
+          case \/-(success) => \/-(success)
+          case -\/(RepositoryError.PrimaryKeyConflict) => \/-()
+          case -\/(error) => -\/(error)
+        })
         _ <- lift {
           entityType match {
             case TaggableEntities.user => setUserLimitsByOrganization(entityId, existingTag.name, existingTag.lang)
             case _ => Future successful \/-(Unit)
           }
         }
-      } yield tag
+      } yield ()
     }
   }
 
+  /**
+    * Untag entity
+    * For users: if we want to recalculate user limits, we need to UNTAG USERS FIRST AND ONLY THEN ORGANIZATION.
+    * Beacause we check if tag is used in organization, in this case we know that it is organization tag, and we want
+    * to change user limits.
+    * If user has another organization tag (or tags), we set limits (max limits) from that organization(s).
+    *
+    * @param entityId
+    * @param entityType
+    * @param tagName
+    * @param tagLang
+    * @param shouldUpdateFrequency
+    * @return
+    */
   override def untag(entityId: UUID, entityType: String, tagName: String, tagLang: String, shouldUpdateFrequency: Boolean): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn: Connection =>
-      for {
-        untagged <- lift(tagRepository.untag(entityId, entityType, tagName, tagLang))
-        tag <- lift(tagRepository.find(tagName, tagLang))
-        frequency = if (tag.frequency - 1 < 0) 0 else (tag.frequency - 1)
-        updatedTag <- lift(if (shouldUpdateFrequency) updateFrequency(tag.name, tag.lang, tag.frequency - 1) else Future successful \/-(tag))
-        _ <- lift {
-          entityType match {
-            case TaggableEntities.user => unsetUserLimitsByOrganization(entityId, tag.name, tag.lang)
-            case _ => Future successful \/-(Unit)
-          }
+      // If entity doesn't have this tag, then do nothing
+      tagRepository.untag(entityId, entityType, tagName, tagLang).flatMap {
+        case \/-(success) => {
+          for {
+            tag <- lift(tagRepository.find(tagName, tagLang))
+            frequency = if (tag.frequency - 1 < 0) 0 else (tag.frequency - 1)
+            updatedTag <- lift(if (shouldUpdateFrequency) updateFrequency(tag.name, tag.lang, tag.frequency - 1) else Future successful \/-(tag))
+            _ <- lift {
+              entityType match {
+                case TaggableEntities.user => unsetUserLimitsByOrganization(entityId, tag.name, tag.lang)
+                case _ => Future successful \/-(Unit)
+              }
+            }
+          } yield ()
         }
-      } yield untagged
+        case -\/(error: RepositoryError.NoResults) => Future successful \/-()
+        case -\/(error) => Future successful -\/(error)
+      }
     }
   }
 
@@ -238,41 +277,16 @@ class TagServiceDefault(
 
   private def setUserLimitsByOrganization(userId: UUID, tagName: String, tagLang: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     for {
-      user <- lift(userRepository.find(userId))
-      organizations <- lift(organizationRepository.listByTags(IndexedSeq((tagName, tagLang))))
+      newOrganizations <- lift(organizationRepository.listByTags(IndexedSeq((tagName, tagLang))))
       _ <- lift {
-        if (organizations.nonEmpty) {
-          val organization = organizations.head
+        if (newOrganizations.nonEmpty) {
           for {
-            limitsJson <- lift(getOrganizationLimits(organization.id))
-            // Set limits
-            studentLimit = (limitsJson \ "studentLimit").asOpt[Int].getOrElse(0)
-            storageLimit = (limitsJson \ "storageLimit").asOpt[Float].getOrElse(0.toFloat)
-            courseLimit = (limitsJson \ "courseLimit").asOpt[Int].getOrElse(0)
-            dateLimit = (limitsJson \ "dateLimit").asOpt[DateTime].getOrElse(new DateTime)
-            courses <- lift(courseRepository.list(user, true))
-            _ <- lift(limitRepository.setTeacherStudentLimit(user.id, studentLimit))
-            // Delete all custom course student limits
-            _ <- lift(serializedT(courses)(course => limitRepository.deleteCourseStudentLimit(course.id)))
-            _ <- lift(limitRepository.setStorageLimit(user.id, storageLimit))
-            _ <- lift(limitRepository.setCourseLimit(user.id, courseLimit))
-            // Get teacher payment account, if there is no account than create one
-            account <- lift(paymentService.getAccount(user.id).flatMap {
-              case \/-(account) => paymentService.updateAccount(
-                account.id,
-                account.version,
-                AccountStatus.group,
-                Some(dateLimit),
-                account.customer
-              )
-              case -\/(error: RepositoryError.NoResults) => {
-                (for {
-                  newAccount <- lift(paymentService.createAccount(user.id, AccountStatus.group, Some(dateLimit)))
-                  log <- lift(paymentService.createLog(PaymentLogType.info, s"Create account for = ${user.email}", Json.toJson(newAccount).toString, Some(newAccount.userId)))
-                } yield newAccount).run
-              }
-              case -\/(error: ErrorUnion#Fail) => Future successful -\/(error)
-            })
+            user <- lift(userRepository.find(userId))
+            userTags <- lift(tagRepository.listByEntity(user.id, TaggableEntities.user))
+            currentOrganizations <- lift(organizationRepository.listByTags(userTags.map(tag => (tag.name, tag.lang)), false))
+            resultOrganizations = (currentOrganizations ++ newOrganizations).distinct
+            maxLimitJson <- lift(getOrganizationsMaxLimits(resultOrganizations))
+            _ <- lift(setUserLimits(maxLimitJson, user))
           } yield ()
         }
         else Future successful \/-(Unit)
@@ -280,34 +294,70 @@ class TagServiceDefault(
     } yield ()
   }
 
-  // TODO - Check if there is another organization tag, if so, set limits using it.
+  /**
+   * If deleted user exists then move his account, subscriptions and logs to a new user with the same email
+   * @see AuthServiceDefault.syncWithDeletedUser()
+   *
+   * @param newUser
+   * @return
+   */
+  private def syncWithDeletedUser(newUser: User): Future[\/[ErrorUnion#Fail, Account]] = {
+    for {
+      // Check if user was deleted and has stripe account and subscriptions
+      account <- lift(userRepository.findDeleted(newUser.email).flatMap {
+        // If deleted user is found
+        case \/-(deletedUser) => {
+          // We need to check if emails match 100%, because deleted user can be: deleted_1487883998_some.email@example.com,
+          // and new user can be email@example.com, which will also match sql LIKE query: '%email@example.com'
+          // @see userRepository.delete and userRepository.findDeleted
+          // So we need to clean deleted email to compare it
+          val oldEmail = deletedUser.email.replaceAll("^deleted_[0-9]{10}_", "")
+          val newEmail = newUser.email
+
+          if (oldEmail == newEmail) {
+            for {
+              // Move account from old user to a new user
+              account <- lift(accountRepository.getByUserId(deletedUser.id).flatMap {
+                case \/-(account) => accountRepository.update(account.copy(userId = newUser.id))
+                case -\/(error) => Future successful -\/(error)
+              })
+              // Move subscriptions from old user to a new user
+              subscriptions <- lift(stripeRepository.moveSubscriptions(deletedUser.id, newUser.id))
+              // Move payment logs from old user to a new user
+              paymentLogs <- lift(paymentLogRepository.move(deletedUser.id, newUser.id))
+            } yield (account)
+          }
+          else Future successful -\/(RepositoryError.NoResults("core.TagServiceDefault.syncWithDeletedUser.no.user"))
+        }
+        case -\/(error) => Future successful -\/(error)
+      })
+    } yield account
+  }
+
+  /**
+    * If user still has organization tag(s), we get that organization(s) and set limits (max limits) using it (them).
+    *
+    * @param userId
+    * @param tagName
+    * @param tagLang
+    * @return
+    */
   private def unsetUserLimitsByOrganization(userId: UUID, tagName: String, tagLang: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     for {
-      user <- lift(userRepository.find(userId))
-      organizations <- lift(organizationRepository.listByTags(IndexedSeq((tagName, tagLang))))
+      removedOrganizations <- lift(organizationRepository.listByTags(IndexedSeq((tagName, tagLang))))
       _ <- lift {
-        if (organizations.nonEmpty) {
+        if (removedOrganizations.nonEmpty) {
           for {
-            // Set limits
-            _ <- lift(limitRepository.setTeacherStudentLimit(user.id, defaultStudentLimit))
-            courses <- lift(courseRepository.list(user, true))
-            // Delete all custom course student limits
-            _ <- lift(serializedT(courses)(course => limitRepository.deleteCourseStudentLimit(course.id)))
-            _ <- lift(limitRepository.setStorageLimit(user.id, defaultStorageLimit))
-            _ <- lift(limitRepository.setCourseLimit(user.id, defaultCourseLimit))
-            // Get teacher payment account and set activeUntil = user.createdAt + default.trial.days)
-            activeUntil = user.createdAt.plusDays(trialDays)
-            account <- lift(paymentService.getAccount(user.id).flatMap {
-              case \/-(account) => paymentService.updateAccount(
-                account.id,
-                account.version,
-                AccountStatus.trial,
-                Some(activeUntil),
-                account.customer
-              )
-              case -\/(error: RepositoryError.NoResults) => Future successful \/-(Unit)
-              case -\/(error: ErrorUnion#Fail) => Future successful -\/(error)
-            })
+            user <- lift(userRepository.find(userId))
+            userTags <- lift(tagRepository.listByEntity(user.id, TaggableEntities.user))
+            // In case if tag wasn't removed from user, we filter it
+            filteredUserTags = userTags.filter(tag => tag.name != tagName || (tag.name == tagName && tag.lang != tagLang))
+            remainedOrganizations <- lift(organizationRepository.listByTags(filteredUserTags.map(tag => (tag.name, tag.lang)), false))
+            // In case if removed organizations have multiple tags and they still present in the list, we filter them
+            filteredRemainedOrganizations = remainedOrganizations.filter(org => !removedOrganizations.contains(org))
+            // If user is a part of more then one organization, then we get max limit values from them
+            maxLimitJson <- lift(getOrganizationsMaxLimits(filteredRemainedOrganizations))
+            _ <- lift(setUserLimits(maxLimitJson, user))
           } yield ()
         }
         else Future successful \/-(Unit)
@@ -315,39 +365,123 @@ class TagServiceDefault(
     } yield ()
   }
 
-  private def getOrganizationLimits(organizationId: UUID): Future[\/[ErrorUnion#Fail, JsObject]] = {
+  private def setUserLimits(limitsJson: JsObject, user: User): Future[\/[ErrorUnion#Fail, Unit]] = {
+    val studentLimit = (limitsJson \ "studentLimit").asOpt[Int].getOrElse(defaultStudentLimit)
+    val storageLimit = (limitsJson \ "storageLimit").asOpt[Float].getOrElse(defaultStorageLimit.toFloat)
+    val courseLimit = (limitsJson \ "courseLimit").asOpt[Int].getOrElse(defaultCourseLimit)
+    val dateLimit = (limitsJson \ "dateLimit").asOpt[DateTime]
+    val accountStatus = dateLimit match {
+      case Some(activeUntil) => AccountStatus.group
+      case _ => AccountStatus.trial
+    }
+
     for {
-      storageLimit <- lift(limitRepository.getOrganizationStorageLimit(organizationId).map {
-        case \/-(limit) => \/-(Some(BigDecimal(limit).setScale(4, BigDecimal.RoundingMode.HALF_UP)))
-        case -\/(error: RepositoryError.NoResults) => \/-(None)
-        case -\/(error) => -\/(error)
+      _ <- lift(limitRepository.setTeacherStudentLimit(user.id, studentLimit))
+      _ <- lift(limitRepository.setStorageLimit(user.id, storageLimit))
+      _ <- lift(limitRepository.setCourseLimit(user.id, courseLimit))
+      // Delete all custom course student limits
+      courses <- lift(courseRepository.list(user, true))
+      _ <- lift(serializedT(courses)(course => limitRepository.deleteCourseStudentLimit(course.id)))
+
+      // Get teacher payment account, if there is no account than create one
+      account <- lift(paymentService.getAccount(user.id).flatMap {
+        case \/-(account) => {
+          paymentService.updateAccount(
+            account.id,
+            account.version,
+            accountStatus,
+            Some(dateLimit.getOrElse(user.createdAt.plusDays(trialDays))),
+            account.customer
+          )
+        }
+        case -\/(error: RepositoryError.NoResults) => {
+          // Account can exist from times when user was marked as deleted
+          syncWithDeletedUser(user).flatMap {
+            case \/-(account) => {
+              paymentService.updateAccount(
+                account.id,
+                account.version,
+                accountStatus,
+                Some(dateLimit.getOrElse(user.createdAt.plusDays(trialDays))),
+                account.customer
+              )
+            }
+            case -\/(error: RepositoryError.NoResults) => {
+              (for {
+                newAccount <- lift(paymentService.createAccount(user.id, accountStatus, Some(dateLimit.getOrElse(user.createdAt.plusDays(trialDays)))))
+                log <- lift(paymentService.createLog(PaymentLogType.info, s"Create account for = ${user.email}", Json.toJson(newAccount).toString, Some(newAccount.userId)))
+              } yield newAccount).run
+            }
+            case -\/(error: ErrorUnion#Fail) => Future successful -\/(error)
+          }
+        }
+        case -\/(error: ErrorUnion#Fail) => Future successful -\/(error)
       })
-      courseLimit <- lift(limitRepository.getOrganizationCourseLimit(organizationId).map {
-        case \/-(limit) => \/-(Some(limit))
-        case -\/(error: RepositoryError.NoResults) => \/-(None)
-        case -\/(error) => -\/(error)
-      })
-      studentLimit <- lift(limitRepository.getOrganizationStudentLimit(organizationId).map {
-        case \/-(limit) => \/-(Some(limit))
-        case -\/(error: RepositoryError.NoResults) => \/-(None)
-        case -\/(error) => -\/(error)
-      })
-      memberLimit <- lift(limitRepository.getOrganizationMemberLimit(organizationId).map {
-        case \/-(limit) => \/-(Some(limit))
-        case -\/(error: RepositoryError.NoResults) => \/-(None)
-        case -\/(error) => -\/(error)
-      })
-      dateLimit <- lift(limitRepository.getOrganizationDateLimit(organizationId).map {
-        case \/-(limit) => \/-(Some(limit))
-        case -\/(error: RepositoryError.NoResults) => \/-(None)
-        case -\/(error) => -\/(error)
-      })
+    } yield ()
+  }
+
+  // Go threw organization list and get max limits values
+  private def getOrganizationsMaxLimits(organizationList: IndexedSeq[Organization]): Future[\/[ErrorUnion#Fail, JsObject]] = {
+    for {
+      storageLimit <- lift(serializedT(organizationList)(organization => {
+        limitRepository.getOrganizationStorageLimit(organization.id).map {
+          case \/-(limit) => \/-(Some(BigDecimal(limit).setScale(4, BigDecimal.RoundingMode.HALF_UP)))
+          case -\/(error: RepositoryError.NoResults) => \/-(None)
+          case -\/(error) => -\/(error)
+        }
+      }))
+      courseLimit <- lift(serializedT(organizationList)(organization => {
+        limitRepository.getOrganizationCourseLimit(organization.id).map {
+          case \/-(limit) => \/-(Some(limit))
+          case -\/(error: RepositoryError.NoResults) => \/-(None)
+          case -\/(error) => -\/(error)
+        }
+      }))
+      studentLimit <- lift(serializedT(organizationList)(organization => {
+        limitRepository.getOrganizationStudentLimit(organization.id).map {
+          case \/-(limit) => \/-(Some(limit))
+          case -\/(error: RepositoryError.NoResults) => \/-(None)
+          case -\/(error) => -\/(error)
+        }
+      }))
+      memberLimit <- lift(serializedT(organizationList)(organization => {
+        limitRepository.getOrganizationMemberLimit(organization.id).map {
+          case \/-(limit) => \/-(Some(limit))
+          case -\/(error: RepositoryError.NoResults) => \/-(None)
+          case -\/(error) => -\/(error)
+        }
+      }))
+      dateLimit <- lift(serializedT(organizationList)(organization => {
+        limitRepository.getOrganizationDateLimit(organization.id).map {
+          case \/-(limit) => \/-(Some(limit))
+          case -\/(error: RepositoryError.NoResults) => \/-(None)
+          case -\/(error) => -\/(error)
+        }
+      }))
     } yield Json.obj(
-      "storageLimit" -> Json.toJson(storageLimit),
-      "courseLimit" -> Json.toJson(courseLimit),
-      "studentLimit" -> Json.toJson(studentLimit),
-      "memberLimit" -> Json.toJson(memberLimit),
-      "dateLimit" -> Json.toJson(dateLimit)
+      "storageLimit" -> Json.toJson(storageLimit.flatten match {
+        case limitList if limitList.nonEmpty => Some(limitList.max)
+        case _ => None
+      }),
+      "courseLimit" -> Json.toJson(courseLimit.flatten match {
+        case limitList if limitList.nonEmpty => Some(limitList.max)
+        case _ => None
+      }),
+      "studentLimit" -> Json.toJson(studentLimit.flatten match {
+        case limitList if limitList.nonEmpty => Some(limitList.max)
+        case _ => None
+      }),
+      "memberLimit" -> Json.toJson(memberLimit.flatten match {
+        case limitList if limitList.nonEmpty => Some(limitList.max)
+        case _ => None
+      }),
+      "dateLimit" -> Json.toJson(dateLimit.flatten match {
+        case limitList if limitList.nonEmpty => {
+          implicit def dateTimeOrdering: Ordering[DateTime] = Ordering.fromLessThan(_ isBefore _)
+          Some(limitList.max)
+        }
+        case _ => None
+      })
     )
   }
 }

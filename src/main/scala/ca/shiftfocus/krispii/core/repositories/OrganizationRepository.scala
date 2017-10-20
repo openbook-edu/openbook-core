@@ -12,7 +12,8 @@ import scalaz.\/
 trait OrganizationRepository extends Repository {
   def find(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]]
   def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Organization]]]
-  def list(adminEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Organization]]]
+  def listByAdmin(adminEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Organization]]]
+  def listByMember(memberEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Organization]]]
   def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Organization]]]
   def addMember(organization: Organization, memberEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]]
   def deleteMember(organization: Organization, memberEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]]

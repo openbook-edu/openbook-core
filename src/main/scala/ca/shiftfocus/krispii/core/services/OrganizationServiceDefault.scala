@@ -26,8 +26,12 @@ class OrganizationServiceDefault(
     organizationRepository.list
   }
 
-  def list(adminEmail: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] = {
-    organizationRepository.list(adminEmail)
+  def listByAdmin(adminEmail: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] = {
+    organizationRepository.listByAdmin(adminEmail)
+  }
+
+  def listByMember(memberEmail: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] = {
+    organizationRepository.listByMember(memberEmail)
   }
 
   def addMember(organizationId: UUID, memberEmail: String): Future[\/[ErrorUnion#Fail, Organization]] = {

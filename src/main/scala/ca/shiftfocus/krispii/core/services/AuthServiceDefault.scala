@@ -840,6 +840,7 @@ class AuthServiceDefault(
           }
         }
         deleted <- lift(userTokenRepository.delete(userId, activation))
+        _ <- lift(tagOrganizationUser(user))
       } yield (user, token, roles, deleted)
 
       result.run.map {
@@ -1016,8 +1017,13 @@ class AuthServiceDefault(
     transactional { implicit conn =>
       (for {
         _ <- predicate(InputUtils.isValidEmail(newEmail.trim))(ServiceError.BadInput("core.services.AuthServiceDefault.requestEmailChange.email.bad.format"))
+        // Find will also search by username and it can find the same user if newEmail will match username,
+        // so we need to check if user id is equal
         emailUnique <- lift(userRepository.find(newEmail).map {
-          case \/-(user) => \/-(false)
+          case \/-(existingUser) => {
+            if (existingUser.id == user.id) \/-(true)
+            else \/-(false)
+          }
           case -\/(error: RepositoryError.NoResults) => \/-(true)
           case -\/(error) => -\/(error)
         })
@@ -1054,32 +1060,40 @@ class AuthServiceDefault(
   }
 
   override def confirmEmailChange(email: String, token: String)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]] = {
-    transactional { implicit conn =>
-      for {
-        changeRequest <- lift(emailChangeRepository.find(email))
-        _ <- predicate(changeRequest.token == token)(ServiceError.BadInput("core.services.AuthServiceDefault.confirmEmailChange.wrong.token"))
-        user <- lift(userRepository.find(changeRequest.userId))
-        updatedUser <- lift(userRepository.update(user.copy(email = email)))
-        deletedRequest <- lift(emailChangeRepository.delete(changeRequest))
+    for {
+      result <- lift {
+        transactional { implicit conn =>
+          for {
+            changeRequest <- lift(emailChangeRepository.find(email))
+            _ <- predicate(changeRequest.token == token)(ServiceError.BadInput("core.services.AuthServiceDefault.confirmEmailChange.wrong.token"))
+            user <- lift(userRepository.find(changeRequest.userId))
+            updatedUser <- lift(userRepository.update(user.copy(email = email)))
+            deletedRequest <- lift(emailChangeRepository.delete(changeRequest))
 
-        emailForOld = Email(
-          messagesApi("emailchange.confirm.subject.old")(lang), //subject
-          messagesApi("emailchange.confirm.from")(lang), //from
-          Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
-          bodyHtml = Some(messagesApi("emailchange.confirm.message.old", user.givenname, user.surname)(lang)) //text
-        )
+            emailForOld = Email(
+              messagesApi("emailchange.confirm.subject.old")(lang), //subject
+              messagesApi("emailchange.confirm.from")(lang), //from
+              Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
+              bodyHtml = Some(messagesApi("emailchange.confirm.message.old", user.givenname, user.surname)(lang)) //text
+            )
 
-        emailForNew = Email(
-          messagesApi("emailchange.confirm.subject.new")(lang), //subject
-          messagesApi("emailchange.confirm.from")(lang), //from
-          Seq(user.givenname + " " + user.surname + " <" + email + ">"), //to
-          bodyHtml = Some(messagesApi("emailchange.confirm.message.new", user.givenname, user.surname)(lang)) //text
-        )
+            emailForNew = Email(
+              messagesApi("emailchange.confirm.subject.new")(lang), //subject
+              messagesApi("emailchange.confirm.from")(lang), //from
+              Seq(user.givenname + " " + user.surname + " <" + email + ">"), //to
+              bodyHtml = Some(messagesApi("emailchange.confirm.message.new", user.givenname, user.surname)(lang)) //text
+            )
 
-        oldEmailResult <- lift(sendAsyncEmail(emailForOld))
-        newEmailResult <- lift(sendAsyncEmail(emailForNew))
-      } yield updatedUser
-    }
+            oldEmailResult <- lift(sendAsyncEmail(emailForOld))
+            newEmailResult <- lift(sendAsyncEmail(emailForNew))
+
+          } yield updatedUser
+        }
+      }
+      // Tag user if he is a part of organization, untag if not
+      _ <- lift(tagOrganizationUser(result))
+    } yield result
+
   }
 
   override def cancelEmailChange(userId: UUID)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, EmailChangeRequest]] = {
@@ -1108,23 +1122,41 @@ class AuthServiceDefault(
   }
 
   /**
-    * If user is in the list of organization members, then we tag him with a tags that organization has
-    *
-    * @param user
-    * @return
-    */
-  private def tagOrganizationUser(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[Unit]]] = {
-    organizationService.listByMember(user.email).flatMap {
-      case \/-(organizationList) => {
-        serializedT(organizationList) { organization =>
-          for {
-            organizationTags <- lift(tagService.listByEntity(organization.id, TaggableEntities.organization))
-            // Tag
-            _ <- lift(serializedT(organizationTags)(tag => tagService.tag(user.id, TaggableEntities.user, tag.name, tag.lang)))
-          } yield ()
+   * If user is in the list of organization members, then we tag him with a tags that organization has
+   *
+   * @param user
+   * @return
+   */
+  private def tagOrganizationUser(user: User): Future[\/[ErrorUnion#Fail, Unit]] = {
+    for {
+      userOrgTags <- lift(tagService.listOrganizationalByEntity(user.id, TaggableEntities.user))
+      orgTags <- lift(organizationService.listByMember(user.email).flatMap {
+        case \/-(organizationList) => {
+          serializedT(organizationList) { organization =>
+            tagService.listByEntity(organization.id, TaggableEntities.organization)
+          }
+        }
+        case -\/(error) => Future successful -\/(error)
+      }.map {
+        case \/-(orgTags) => \/-(orgTags.flatten)
+        case -\/(error) => -\/(error)
+      })
+      _ <- lift {
+        serializedT(userOrgTags ++ orgTags) { tag =>
+          // If user is not in organization anymore
+          if (userOrgTags.contains(tag) && !orgTags.contains(tag)) {
+            tagService.untag(user.id, TaggableEntities.user, tag.name, tag.lang, false)
+          }
+          // If user should be added to an organization
+          else if (orgTags.contains(tag) && !userOrgTags.contains(tag)) {
+            tagService.tag(user.id, TaggableEntities.user, tag.name, tag.lang)
+          }
+          // If user has already this tag
+          else {
+            Future successful \/-(Unit)
+          }
         }
       }
-      case -\/(error) => Future successful -\/(error)
-    }
+    } yield ()
   }
 }

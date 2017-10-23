@@ -43,9 +43,9 @@ class TagServiceDefault(
   // ########## TAGS ###################################################################################################
 
   /**
-    * Tag entity with a tag
-    * For users if tag is also used in organization, then we set user's limits according to the limits of this organization
-    *
+   * Tag entity with a tag
+   * For users if tag is also used in organization, then we set user's limits according to the limits of this organization
+   *
    * @param entityId
    * @param entityType
    * @param tagName
@@ -83,19 +83,19 @@ class TagServiceDefault(
   }
 
   /**
-    * Untag entity
-    * For users: if we want to recalculate user limits, we need to UNTAG USERS FIRST AND ONLY THEN ORGANIZATION.
-    * Beacause we check if tag is used in organization, in this case we know that it is organization tag, and we want
-    * to change user limits.
-    * If user has another organization tag (or tags), we set limits (max limits) from that organization(s).
-    *
-    * @param entityId
-    * @param entityType
-    * @param tagName
-    * @param tagLang
-    * @param shouldUpdateFrequency
-    * @return
-    */
+   * Untag entity
+   * For users: if we want to recalculate user limits, we need to UNTAG USERS FIRST AND ONLY THEN ORGANIZATION.
+   * Beacause we check if tag is used in organization, in this case we know that it is organization tag, and we want
+   * to change user limits.
+   * If user has another organization tag (or tags), we set limits (max limits) from that organization(s).
+   *
+   * @param entityId
+   * @param entityType
+   * @param tagName
+   * @param tagLang
+   * @param shouldUpdateFrequency
+   * @return
+   */
   override def untag(entityId: UUID, entityType: String, tagName: String, tagLang: String, shouldUpdateFrequency: Boolean): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn: Connection =>
       // If entity doesn't have this tag, then do nothing
@@ -335,13 +335,13 @@ class TagServiceDefault(
   }
 
   /**
-    * If user still has organization tag(s), we get that organization(s) and set limits (max limits) using it (them).
-    *
-    * @param userId
-    * @param tagName
-    * @param tagLang
-    * @return
-    */
+   * If user still has organization tag(s), we get that organization(s) and set limits (max limits) using it (them).
+   *
+   * @param userId
+   * @param tagName
+   * @param tagLang
+   * @return
+   */
   private def unsetUserLimitsByOrganization(userId: UUID, tagName: String, tagLang: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     for {
       removedOrganizations <- lift(organizationRepository.listByTags(IndexedSeq((tagName, tagLang))))

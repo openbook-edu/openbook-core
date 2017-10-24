@@ -460,19 +460,19 @@ class TagServiceDefault(
       }))
     } yield Json.obj(
       "storageLimit" -> Json.toJson(storageLimit.flatten match {
-        case limitList if limitList.nonEmpty => Some(limitList.max)
+        case limitList if limitList.nonEmpty => Some(limitList.sum)
         case _ => None
       }),
       "courseLimit" -> Json.toJson(courseLimit.flatten match {
-        case limitList if limitList.nonEmpty => Some(limitList.max)
+        case limitList if limitList.nonEmpty => Some(limitList.sum)
         case _ => None
       }),
       "studentLimit" -> Json.toJson(studentLimit.flatten match {
-        case limitList if limitList.nonEmpty => Some(limitList.max)
+        case limitList if limitList.nonEmpty => Some(limitList.sum)
         case _ => None
       }),
       "memberLimit" -> Json.toJson(memberLimit.flatten match {
-        case limitList if limitList.nonEmpty => Some(limitList.max)
+        case limitList if limitList.nonEmpty => Some(limitList.sum)
         case _ => None
       }),
       "dateLimit" -> Json.toJson(dateLimit.flatten match {

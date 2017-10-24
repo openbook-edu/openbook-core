@@ -34,6 +34,17 @@ class OrganizationServiceDefault(
     organizationRepository.listByMember(memberEmail)
   }
 
+  /**
+   * List organizations by tags
+   *
+   * @param tags (tagName:String, tagLang:String)
+   * @param distinct Boolean If true each organization should have all listed tags,
+   *                 if false organization should have at least one listed tag
+   */
+  def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] = {
+    organizationRepository.listByTags(tags, distinct)
+  }
+
   def addMember(organizationId: UUID, memberEmail: String): Future[\/[ErrorUnion#Fail, Organization]] = {
     (for {
       existingOrganization <- lift(organizationRepository.find(organizationId))

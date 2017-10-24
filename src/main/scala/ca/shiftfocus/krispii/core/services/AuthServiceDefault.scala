@@ -89,6 +89,17 @@ class AuthServiceDefault(
   }
 
   /**
+   * List users by tags
+   *
+   * @param tags (tagName:String, tagLang:String)
+   * @param distinct Boolean If true each user should have all listed tags,
+   *                 if false user should have at least one listed tag
+   */
+  def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    userRepository.listByTags(tags, distinct)
+  }
+
+  /**
    * Authenticates a given identifier/password combination.
    *
    * @param identifier

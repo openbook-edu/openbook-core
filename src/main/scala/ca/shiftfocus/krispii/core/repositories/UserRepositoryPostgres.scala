@@ -24,7 +24,9 @@ import scalacache._
 import scalacache.redis._
 import scala.concurrent.duration._
 
-class UserRepositoryPostgres extends UserRepository with PostgresRepository[User] {
+class UserRepositoryPostgres(
+    val tagRepository: TagRepository
+) extends UserRepository with PostgresRepository[User] {
 
   override val entityName = "User"
 
@@ -117,6 +119,48 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |FROM users
        |ORDER BY dist LIMIT 10) as sub  where dist < 0.9;
     """.stripMargin
+
+  def SelectByTags(tags: IndexedSeq[(String, String)], distinct: Boolean): String = {
+    var whereClause = ""
+    var distinctClause = ""
+    val length = tags.length
+
+    tags.zipWithIndex.map {
+      case ((tagName, tagLang), index) =>
+        whereClause += s"""(tags.name='${tagName}' AND tags.lang='${tagLang}')"""
+        if (index != (length - 1)) whereClause += " OR "
+    }
+
+    if (whereClause != "") {
+      whereClause = "WHERE " + whereClause
+    }
+    // If tagList is empty, then there should be unexisting condition
+    else {
+      whereClause = "WHERE false != false"
+    }
+
+    if (distinct) {
+      distinctClause = s"HAVING COUNT(DISTINCT tags.name) = $length"
+    }
+
+    def query(whereClause: String) =
+      s"""
+         |SELECT $Fields
+         |FROM $Table
+         |WHERE id IN (
+         |    SELECT user_id
+         |    FROM user_tags
+         |    JOIN tags
+         |      ON user_tags.tag_id = tags.id
+         |    ${whereClause}
+         |    GROUP BY user_id
+         |    ${distinctClause}
+         |)
+         |GROUP BY $Table.id
+    """.stripMargin
+
+    query(whereClause)
+  }
 
   val Insert = {
     s"""
@@ -267,6 +311,17 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
 
   override def list(conversation: Conversation)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
     queryList(SelectAllWithConversation, Seq[Any](conversation.id))
+  }
+
+  /**
+   * List users by tags
+   *
+   * @param tags (tagName:String, tagLang:String)
+   * @param distinct Boolean If true each user should have all listed tags,
+   *                 if false user should have at least one listed tag
+   */
+  override def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    queryList(SelectByTags(tags, distinct))
   }
 
   /**

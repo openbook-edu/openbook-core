@@ -58,6 +58,8 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    */
   def list(rolesFilter: IndexedSeq[String]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
+  def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]
+
   /**
    * Find a user by their UUID.
    *

@@ -14,6 +14,7 @@ trait OrganizationService extends Service[ErrorUnion#Fail] {
   def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]]
   def listByAdmin(adminEmail: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]]
   def listByMember(memberEmail: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]]
+  def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]]
   def addMember(organizationId: UUID, memberEmail: String): Future[\/[ErrorUnion#Fail, Organization]]
   def deleteMember(organizationId: UUID, memberEmail: String): Future[\/[ErrorUnion#Fail, Organization]]
   def create(title: String): Future[\/[ErrorUnion#Fail, Organization]]

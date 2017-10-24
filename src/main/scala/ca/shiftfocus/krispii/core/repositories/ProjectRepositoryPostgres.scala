@@ -101,8 +101,9 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
        |WHERE slug = ?
      """.stripMargin
 
-  def SelectByTags(tags: IndexedSeq[(String, String)]): String = {
+  def SelectByTags(tags: IndexedSeq[(String, String)], distinct: Boolean): String = {
     var whereClause = ""
+    var distinctClause = ""
     val length = tags.length
 
     tags.zipWithIndex.map {
@@ -114,20 +115,29 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
     if (whereClause != "") {
       whereClause = "WHERE " + whereClause
     }
+    // If tagList is empty, then there should be unexisting condition
+    else {
+      whereClause = "WHERE false != false"
+    }
 
-    def query(whereClause: String) = s"""
-       |SELECT *
-       |FROM projects
-       |WHERE id IN (
-       |    SELECT project_id
-       |    FROM project_tags
-       |    LEFT JOIN tags
-       |      ON project_tags.tag_id = tags.id
-       |    ${whereClause}
-       |    GROUP BY project_id
-       |    HAVING COUNT(DISTINCT tags.name) = $length
-       |) AND is_master = true
+    if (distinct) {
+      distinctClause = s"HAVING COUNT(DISTINCT tags.name) = $length"
+    }
 
+    def query(whereClause: String) =
+      s"""
+         SELECT *
+         |FROM projects
+         |WHERE id IN (
+         |    SELECT project_id
+         |    FROM project_tags
+         |    LEFT JOIN tags
+         |      ON project_tags.tag_id = tags.id
+         |    ${whereClause}
+         |    GROUP BY project_id
+         |    ${distinctClause}
+         |) AND is_master = true
+         |GROUP BY $Table.id
     """.stripMargin
 
     query(whereClause)
@@ -203,12 +213,15 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   }
 
   /**
-   * List projects by tags
-   *
-   * @param tags (tagName:String, tagLang:String)
-   */
-  override def listByTags(tags: IndexedSeq[(String, String)])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
-    val select = SelectByTags(tags)
+    * List projects by tags
+    *
+    * @param tags (tagName:String, tagLang:String)
+    * @param distinct Boolean If true each project should have all listed tags,
+    *                 if false project should have at least one listed tag
+    * @return
+    */
+  override def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+    val select = SelectByTags(tags, distinct)
     (for {
       projectList <- lift(queryList(select))
       result <- liftSeq {

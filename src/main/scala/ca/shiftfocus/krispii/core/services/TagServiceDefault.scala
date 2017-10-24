@@ -29,6 +29,8 @@ class TagServiceDefault(
     val stripeRepository: StripeRepository,
     val paymentLogRepository: PaymentLogRepository,
     val config: Configuration,
+    val projectRepository: ProjectRepository,
+    val roleRepository: RoleRepository,
     // Bad idea to include services, but duplicating the code may be even worse
     val paymentService: PaymentService
 ) extends TagService {
@@ -98,24 +100,34 @@ class TagServiceDefault(
    */
   override def untag(entityId: UUID, entityType: String, tagName: String, tagLang: String, shouldUpdateFrequency: Boolean): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn: Connection =>
-      // If entity doesn't have this tag, then do nothing
-      tagRepository.untag(entityId, entityType, tagName, tagLang).flatMap {
-        case \/-(success) => {
-          for {
-            tag <- lift(tagRepository.find(tagName, tagLang))
-            frequency = if (tag.frequency - 1 < 0) 0 else (tag.frequency - 1)
-            updatedTag <- lift(if (shouldUpdateFrequency) updateFrequency(tag.name, tag.lang, tag.frequency - 1) else Future successful \/-(tag))
-            _ <- lift {
-              entityType match {
-                case TaggableEntities.user => unsetUserLimitsByOrganization(entityId, tag.name, tag.lang)
-                case _ => Future successful \/-(Unit)
-              }
+      for {
+        _ <- lift {
+          // If entity doesn't have this tag, then do nothing
+          tagRepository.untag(entityId, entityType, tagName, tagLang).flatMap {
+            case \/-(success) => {
+              for {
+                tag <- lift(tagRepository.find(tagName, tagLang))
+                frequency = if (tag.frequency - 1 < 0) 0 else (tag.frequency - 1)
+                updatedTag <- lift(if (shouldUpdateFrequency) updateFrequency(tag.name, tag.lang, tag.frequency - 1) else Future successful \/-(tag))
+                _ <- lift {
+                  entityType match {
+                    case TaggableEntities.user => unsetUserLimitsByOrganization(entityId, tag.name, tag.lang)
+                    case _ => Future successful \/-(Unit)
+                  }
+                }
+              } yield ()
             }
-          } yield ()
+            case -\/(error: RepositoryError.NoResults) => Future successful \/-()
+            case -\/(error) => Future successful -\/(error)
+          }
         }
-        case -\/(error: RepositoryError.NoResults) => Future successful \/-()
-        case -\/(error) => Future successful -\/(error)
-      }
+        _ <- lift {
+          entityType match {
+            case TaggableEntities.project => updateProjectMaster(entityId, tagName, tagLang)
+            case _ => Future successful \/-(Unit)
+          }
+        }
+      } yield ()
     }
   }
 
@@ -420,7 +432,7 @@ class TagServiceDefault(
     } yield ()
   }
 
-  // Go threw organization list and get max limits values
+  // Go threw organization list and get sum of limits values except date limit, here we get max value
   private def getOrganizationsMaxLimits(organizationList: IndexedSeq[Organization]): Future[\/[ErrorUnion#Fail, JsObject]] = {
     for {
       storageLimit <- lift(serializedT(organizationList)(organization => {
@@ -483,5 +495,35 @@ class TagServiceDefault(
         case _ => None
       })
     )
+  }
+
+  /**
+   * If we untag last organization tag from a project, and project owner is not manager, then we set project isMaster = false
+   *
+   * @param projectId
+   * @param tagName
+   * @param tagLang
+   * @return
+   */
+  private def updateProjectMaster(projectId: UUID, tagName: String, tagLang: String): Future[\/[ErrorUnion#Fail, Unit]] = {
+    for {
+      project <- lift(projectRepository.find(projectId))
+      course <- lift(courseRepository.find(project.courseId))
+      teacher <- lift(userRepository.find(course.teacherId))
+      teacherRoles <- lift(roleRepository.list(teacher))
+      organizationProjectTags <- lift(tagRepository.listOrganizationalByEntity(projectId, TaggableEntities.project))
+      _ <- lift {
+        // Check if user tries to untag the last organization tag
+        // If project doesn't belong to a manager (but to a orgManger), then we set isMaster = false
+        if (!teacherRoles.map(_.name).contains("manager") &&
+          project.isMaster &&
+          organizationProjectTags.length == 1 &&
+          organizationProjectTags.head.name == tagName &&
+          organizationProjectTags.head.lang == tagLang) {
+          projectRepository.update(project.copy(isMaster = false))
+        }
+        else Future successful (\/-(Unit))
+      }
+    } yield ()
   }
 }

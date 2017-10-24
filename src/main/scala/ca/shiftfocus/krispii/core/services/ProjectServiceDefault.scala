@@ -97,10 +97,12 @@ class ProjectServiceDefault(
    * List projects by tags
    *
    * @param tags (tagName:String, tagLang:String)
+   * @param distinct Boolean If true each project should have all listed tags,
+   *                 if false project should have at least one listed tag
    * @return
    */
-  def listProjectsByTags(tags: IndexedSeq[(String, String)]): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
-    projectRepository.listByTags(tags)
+  def listProjectsByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
+    projectRepository.listByTags(tags, distinct)
   }
 
   /**

@@ -70,6 +70,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     lastTaskId: Option[Option[UUID]]
   ): Future[\/[ErrorUnion#Fail, Project]]
 
+  def setMaster(id: UUID, version: Long, isMaster: Boolean): Future[\/[ErrorUnion#Fail, Project]]
   def updateSlug(id: UUID, version: Long, slug: String): Future[\/[ErrorUnion#Fail, Project]]
   def delete(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Project]]
 

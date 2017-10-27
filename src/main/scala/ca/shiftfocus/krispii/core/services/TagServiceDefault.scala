@@ -142,6 +142,10 @@ class TagServiceDefault(
     } yield cloned
   }
 
+  def isOrganizational(name: String, lang: String): Future[\/[ErrorUnion#Fail, Boolean]] = {
+    tagRepository.isOrganizational(name, lang)
+  }
+
   def findTag(tagId: UUID): Future[\/[ErrorUnion#Fail, Tag]] = {
     tagRepository.find(tagId)
   }

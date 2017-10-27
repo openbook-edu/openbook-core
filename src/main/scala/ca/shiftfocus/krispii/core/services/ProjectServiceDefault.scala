@@ -403,6 +403,16 @@ class ProjectServiceDefault(
     }
   }
 
+  def setMaster(id: UUID, version: Long, isMaster: Boolean): Future[\/[ErrorUnion#Fail, Project]] = {
+    transactional { implicit conn: Connection =>
+      for {
+        existingProject <- lift(projectRepository.find(id))
+        _ <- predicate(existingProject.version == version)(ServiceError.OfflineLockFail)
+        updatedProject <- lift(projectRepository.update(existingProject.copy(isMaster = isMaster)))
+      } yield updatedProject
+    }
+  }
+
   /**
    * Update a project's slug. This is a URL-friendly unique identifier for the project.
    *

@@ -12,6 +12,7 @@ trait TagService extends Service[ErrorUnion#Fail] {
   def tag(entityId: UUID, entityType: String, tagName: String, lang: String): Future[\/[ErrorUnion#Fail, Unit]]
   def untag(entityId: UUID, entityType: String, tagName: String, tagLang: String, shouldUpdateFrequency: Boolean): Future[\/[ErrorUnion#Fail, Unit]]
   def cloneTags(newProjectId: UUID, oldProjectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]]
+  def isOrganizational(name: String, lang: String): Future[\/[ErrorUnion#Fail, Boolean]]
 
   def findTag(tagId: UUID): Future[\/[ErrorUnion#Fail, Tag]]
   def findTagByName(name: String, lang: String): Future[\/[ErrorUnion#Fail, Tag]]

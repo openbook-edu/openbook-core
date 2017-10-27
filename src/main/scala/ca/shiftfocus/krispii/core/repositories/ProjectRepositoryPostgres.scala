@@ -213,13 +213,13 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   }
 
   /**
-    * List projects by tags
-    *
-    * @param tags (tagName:String, tagLang:String)
-    * @param distinct Boolean If true each project should have all listed tags,
-    *                 if false project should have at least one listed tag
-    * @return
-    */
+   * List projects by tags
+   *
+   * @param tags (tagName:String, tagLang:String)
+   * @param distinct Boolean If true each project should have all listed tags,
+   *                 if false project should have at least one listed tag
+   * @return
+   */
   override def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
     val select = SelectByTags(tags, distinct)
     (for {

@@ -21,6 +21,7 @@ case class Account(
 
 object AccountStatus {
   val inactive = "account.status.inactive"
+  val limited = "account.status.limited"
   val free = "account.status.free"
   val trial = "account.status.trial"
   val paid = "account.status.paid"
@@ -33,6 +34,7 @@ object AccountStatus {
   def getAll: IndexedSeq[String] = {
     IndexedSeq(
       inactive,
+      limited,
       free,
       trial,
       paid,

@@ -710,8 +710,10 @@ class PaymentServiceDefault(
     for {
       hasAccess <- lift(accountRepository.getByUserId(userId).map {
         case \/-(account) => \/-(
-          if (account.status == AccountStatus.free || // FREE
-            account.activeUntil.isDefined && account.activeUntil.get.isAfterNow) { // Active until date is greater then now
+          if (account.status == AccountStatus.free ||
+            account.status == AccountStatus.limited ||
+            (account.activeUntil.isDefined && account.activeUntil.get.isAfterNow)) // Active until date is greater then now
+          {
             true
           }
           else {

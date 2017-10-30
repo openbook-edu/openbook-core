@@ -108,7 +108,7 @@ class TagServiceDefault(
               for {
                 tag <- lift(tagRepository.find(tagName, tagLang))
                 frequency = if (tag.frequency - 1 < 0) 0 else (tag.frequency - 1)
-                updatedTag <- lift(if (shouldUpdateFrequency) updateFrequency(tag.name, tag.lang, tag.frequency - 1) else Future successful \/-(tag))
+                updatedTag <- lift(if (shouldUpdateFrequency) updateFrequency(tag.name, tag.lang, frequency) else Future successful \/-(tag))
                 _ <- lift {
                   entityType match {
                     case TaggableEntities.user => unsetUserLimitsByOrganization(entityId, tag.name, tag.lang)
@@ -183,6 +183,13 @@ class TagServiceDefault(
     transactional {
       implicit conn: Connection =>
         tagRepository.listOrganizationalByEntity(entityId, entityType)
+    }
+  }
+
+  def listAdminByEntity(entityId: UUID, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
+    transactional {
+      implicit conn: Connection =>
+        tagRepository.listAdminByEntity(entityId, entityType)
     }
   }
 

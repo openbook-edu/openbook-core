@@ -19,6 +19,7 @@ trait TagRepository extends Repository {
   def delete(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]]
   def listByEntity(entityId: UUID, entityType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]
   def listOrganizationalByEntity(entityId: UUID, entityType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]
+  def listAdminByEntity(entityId: UUID, entityType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]
   def find(name: String, lang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]]
   def find(tagId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]]
   def isOrganizational(tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Boolean]]

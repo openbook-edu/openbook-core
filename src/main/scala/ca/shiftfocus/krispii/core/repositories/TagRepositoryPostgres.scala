@@ -49,37 +49,47 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                   |RETURNING $Fields, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name
                   """.stripMargin
 
-  def ListByProject(onlyOrganizational: Boolean = false): String = {
-    val org = onlyOrganizational match {
-      case true => Organizational
-      case false => ""
+  def ListByProject(tagType: String = ""): String = {
+    val condition = tagType match {
+      case "organizational" => Organizational
+      case "admin" => "WHERE t.is_admin = true"
+      case _ => ""
     }
 
     s"""
       SELECT t.id, t.version, t.is_admin, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
       JOIN project_tags pt
       ON (pt.tag_id = t.id AND pt.project_id = ?)
-      $org
+      $condition
     """.stripMargin
   }
 
-  val ListByOrganization = s"""
-                        SELECT t.id, t.version, t.is_admin, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
-                        JOIN organization_tags ot
-                        ON (ot.tag_id = t.id AND ot.organization_id = ?);
-                        """.stripMargin
+  def ListByOrganization(tagType: String = ""): String = {
+    val condition = tagType match {
+      case "admin" => "WHERE t.is_admin = true"
+      case _ => ""
+    }
 
-  def ListByUser(onlyOrganizational: Boolean = false): String = {
-    val org = onlyOrganizational match {
-      case true => Organizational
-      case false => ""
+    s"""
+      SELECT t.id, t.version, t.is_admin, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
+      JOIN organization_tags ot
+      ON (ot.tag_id = t.id AND ot.organization_id = ?);
+      $condition
+    """.stripMargin
+  }
+
+  def ListByUser(tagType: String = ""): String = {
+    val condition = tagType match {
+      case "organizational" => Organizational
+      case "admin" => "WHERE t.is_admin = true"
+      case _ => ""
     }
 
     s"""
       SELECT t.id, t.version, t.is_admin, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
       JOIN user_tags ut
       ON (ut.tag_id = t.id AND ut.user_id = ?)
-      $org
+      $condition
     """.stripMargin
   }
 
@@ -194,7 +204,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   override def listByEntity(entityId: UUID, entityType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
     entityType match {
       case TaggableEntities.project => queryList(ListByProject(), Seq[Any](entityId))
-      case TaggableEntities.organization => queryList(ListByOrganization, Seq[Any](entityId))
+      case TaggableEntities.organization => queryList(ListByOrganization(), Seq[Any](entityId))
       case TaggableEntities.user => queryList(ListByUser(), Seq[Any](entityId))
       case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.listByEntity.wrong.entity.type"))
     }
@@ -211,9 +221,18 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
    */
   override def listOrganizationalByEntity(entityId: UUID, entityType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
     entityType match {
-      case TaggableEntities.project => queryList(ListByProject(true), Seq[Any](entityId))
-      case TaggableEntities.organization => queryList(ListByOrganization, Seq[Any](entityId))
-      case TaggableEntities.user => queryList(ListByUser(true), Seq[Any](entityId))
+      case TaggableEntities.project => queryList(ListByProject("organizational"), Seq[Any](entityId))
+      case TaggableEntities.organization => queryList(ListByOrganization(), Seq[Any](entityId))
+      case TaggableEntities.user => queryList(ListByUser("organizational"), Seq[Any](entityId))
+      case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.listByEntity.wrong.entity.type"))
+    }
+  }
+
+  override def listAdminByEntity(entityId: UUID, entityType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+    entityType match {
+      case TaggableEntities.project => queryList(ListByProject("admin"), Seq[Any](entityId))
+      case TaggableEntities.organization => queryList(ListByOrganization("admin"), Seq[Any](entityId))
+      case TaggableEntities.user => queryList(ListByUser("admin"), Seq[Any](entityId))
       case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.listByEntity.wrong.entity.type"))
     }
   }

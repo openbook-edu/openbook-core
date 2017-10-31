@@ -4,8 +4,8 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.{ ErrorUnion, RepositoryError, ServiceError }
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
-import ca.shiftfocus.krispii.core.models.{ Account, AccountStatus, PaymentLog }
-import ca.shiftfocus.krispii.core.repositories.{ AccountRepository, PaymentLogRepository, StripeRepository, UserRepository }
+import ca.shiftfocus.krispii.core.models.{ Account, AccountStatus, PaymentLog, TaggableEntities }
+import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import com.stripe.exception.InvalidRequestException
@@ -27,7 +27,8 @@ class PaymentServiceDefault(
     val userRepository: UserRepository,
     val accountRepository: AccountRepository,
     val stripeRepository: StripeRepository,
-    val paymentLogRepository: PaymentLogRepository
+    val paymentLogRepository: PaymentLogRepository,
+    val tagRepository: TagRepository
 ) extends PaymentService {
 
   implicit def conn: Connection = db.pool
@@ -77,6 +78,7 @@ class PaymentServiceDefault(
           activeUntil = activeUntil
         )
       ))
+      _ <- lift(tagUntagUserBasedOnStatus(userId, status))
     } yield account
   }
 
@@ -125,6 +127,7 @@ class PaymentServiceDefault(
         case None => existingAccount.overduePlanId
       }
       )))
+      _ <- lift(tagUntagUserBasedOnStatus(updatedAccount.userId, status))
     } yield updatedAccount.copy(subscriptions = subscriptions)
   }
 
@@ -713,7 +716,7 @@ class PaymentServiceDefault(
           if (account.status == AccountStatus.free ||
             account.status == AccountStatus.limited ||
             (account.activeUntil.isDefined && account.activeUntil.get.isAfterNow)) // Active until date is greater then now
-          {
+            {
             true
           }
           else {
@@ -786,6 +789,48 @@ class PaymentServiceDefault(
         userId = userId
       )
     )
+  }
+
+  private def tagUntagUserBasedOnStatus(userId: UUID, newStatus: String): Future[\/[ErrorUnion#Fail, Unit]] = {
+    newStatus match {
+      // Untag user when switch to these statuses
+      case AccountStatus.limited |
+        AccountStatus.canceled |
+        AccountStatus.onhold |
+        AccountStatus.inactive |
+        AccountStatus.error |
+        AccountStatus.overdue |
+        AccountStatus.paid =>
+        {
+          (for {
+            tag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // krispii tag, use id, because we can change tag names
+            _ <- lift {
+              tagRepository.untag(userId, TaggableEntities.user, tag.name, tag.lang).map {
+                case \/-(success) => \/-(success)
+                case -\/(error: RepositoryError.NoResults) => \/-()
+                case -\/(error) => -\/(error)
+              }
+            }
+          } yield ()).run
+        }
+      // Tag user when switch to these statuses
+      case AccountStatus.free |
+        AccountStatus.group |
+        AccountStatus.trial =>
+        {
+          (for {
+            tag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // krispii tag, use id, because we can change tag names
+            _ <- lift {
+              tagRepository.tag(userId, TaggableEntities.user, tag.name, tag.lang).map {
+                case \/-(success) => \/-(success)
+                case -\/(RepositoryError.PrimaryKeyConflict) => \/-()
+                case -\/(error) => -\/(error)
+              }
+            }
+          } yield ()).run
+        }
+      case _ => Future successful \/-()
+    }
   }
 }
 

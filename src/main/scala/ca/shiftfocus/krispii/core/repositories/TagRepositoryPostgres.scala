@@ -20,6 +20,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
       row("id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
       row("is_admin").asInstanceOf[Boolean],
+      row("is_hidden").asInstanceOf[Boolean],
       row("name").asInstanceOf[String],
       row("lang").asInstanceOf[String],
       Option(row("category_name").asInstanceOf[String]),
@@ -27,7 +28,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     )
   }
 
-  val Fields = "id, version, is_admin, name, lang, frequency"
+  val Fields = "id, version, is_admin, is_hidden, name, lang, frequency"
   val QMarks = Fields.split(", ").map({ field => "?" }).mkString(", ")
   val Table = "tags"
   val Organizational =
@@ -57,7 +58,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     }
 
     s"""
-      SELECT t.id, t.version, t.is_admin, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
+      SELECT t.id, t.version, t.is_admin, t.is_hidden, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
       JOIN project_tags pt
       ON (pt.tag_id = t.id AND pt.project_id = ?)
       $condition
@@ -71,7 +72,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     }
 
     s"""
-      SELECT t.id, t.version, t.is_admin, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
+      SELECT t.id, t.version, t.is_admin, t.is_hidden, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
       JOIN organization_tags ot
       ON (ot.tag_id = t.id AND ot.organization_id = ?);
       $condition
@@ -86,7 +87,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     }
 
     s"""
-      SELECT t.id, t.version, t.is_admin, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
+      SELECT t.id, t.version, t.is_admin, t.is_hidden, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
       JOIN user_tags ut
       ON (ut.tag_id = t.id AND ut.user_id = ?)
       $condition
@@ -184,18 +185,18 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
 
   val Update = s"""
                   UPDATE $Table
-                  SET version = ?, is_admin = ?, name = ?, lang = ?, category_id = (SELECT id FROM tag_categories WHERE name = ? AND lang = ?), frequency = ?
+                  SET version = ?, is_admin = ?, is_hidden = ?, name = ?, lang = ?, category_id = (SELECT id FROM tag_categories WHERE name = ? AND lang = ?), frequency = ?
                   WHERE id = ?
                     AND version = ?
                   RETURNING $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name
                 """
 
   override def create(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
-    queryOne(Insert, Seq[Any](tag.id, tag.version, tag.isAdmin, tag.name, tag.lang, tag.frequency, tag.category, tag.lang, tag.category, tag.lang))
+    queryOne(Insert, Seq[Any](tag.id, tag.version, tag.isAdmin, tag.isHidden, tag.name, tag.lang, tag.frequency, tag.category, tag.lang, tag.category, tag.lang))
   }
 
   override def update(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
-    queryOne(Update, Seq[Any]((tag.version + 1), tag.isAdmin, tag.name, tag.lang, tag.category, tag.lang, tag.frequency, tag.id, tag.version))
+    queryOne(Update, Seq[Any]((tag.version + 1), tag.isAdmin, tag.isHidden, tag.name, tag.lang, tag.category, tag.lang, tag.frequency, tag.id, tag.version))
   }
   override def delete(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(Delete, Seq[Any](tag.id, tag.version))

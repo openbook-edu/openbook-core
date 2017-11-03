@@ -215,6 +215,7 @@ class TagServiceDefault(
     id: UUID,
     version: Long,
     isAdmin: Option[Boolean],
+    isHidden: Option[Boolean],
     name: Option[String],
     lang: Option[String],
     category: Option[Option[String]]
@@ -224,6 +225,7 @@ class TagServiceDefault(
       _ <- predicate(existingTag.version == version)(ServiceError.OfflineLockFail)
       toUpdate = existingTag.copy(
         isAdmin = isAdmin.getOrElse(existingTag.isAdmin),
+        isHidden = isHidden.getOrElse(existingTag.isHidden),
         name = name.getOrElse(existingTag.name),
         lang = lang.getOrElse(existingTag.lang),
         category = category match {

@@ -98,6 +98,7 @@ class PaymentServiceDefault(
     id: UUID,
     version: Long,
     status: String,
+    trialStartedAt: Option[Option[DateTime]],
     activeUntil: Option[DateTime],
     customer: Option[JsValue],
     overdueStartedAt: Option[Option[DateTime]] = None,
@@ -109,6 +110,11 @@ class PaymentServiceDefault(
       subscriptions <- lift(stripeRepository.listSubscriptions(existingAccount.userId))
       updatedAccount <- lift(accountRepository.update(existingAccount.copy(
         status = status,
+        trialStartedAt = trialStartedAt match {
+        case Some(Some(trialStartedAt)) => Some(trialStartedAt)
+        case Some(None) => None
+        case None => existingAccount.trialStartedAt
+      },
         activeUntil = activeUntil,
         customer = customer,
         overdueStartedAt = overdueStartedAt match {
@@ -127,7 +133,7 @@ class PaymentServiceDefault(
         case None => existingAccount.overduePlanId
       }
       )))
-      _ <- lift(tagUntagUserBasedOnStatus(updatedAccount.userId, status))
+      _ <- lift(tagUntagUserBasedOnStatus(updatedAccount.userId, status, Some(existingAccount.status)))
     } yield updatedAccount.copy(subscriptions = subscriptions)
   }
 
@@ -791,8 +797,10 @@ class PaymentServiceDefault(
     )
   }
 
-  private def tagUntagUserBasedOnStatus(userId: UUID, newStatus: String): Future[\/[ErrorUnion#Fail, Unit]] = {
+  private def tagUntagUserBasedOnStatus(userId: UUID, newStatus: String, oldStatus: Option[String] = None): Future[\/[ErrorUnion#Fail, Unit]] = {
     newStatus match {
+      // Do nothing if status hasn't been changed
+      case someNewStatus if oldStatus.isDefined && oldStatus.get == someNewStatus => Future successful \/-()
       // Untag user when switch to these statuses
       case AccountStatus.limited |
         AccountStatus.canceled |

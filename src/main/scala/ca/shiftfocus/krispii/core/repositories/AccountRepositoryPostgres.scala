@@ -23,6 +23,7 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
       row("status").asInstanceOf[String],
       Option(row("customer")).map(customer => Json.parse(customer.asInstanceOf[String])),
       IndexedSeq.empty[JsValue],
+      Option(row("trial_started_at")).map(_.asInstanceOf[DateTime]),
       Option(row("active_until")).map(_.asInstanceOf[DateTime]),
       Option(row("overdue_started_at")).map(_.asInstanceOf[DateTime]),
       Option(row("overdue_ended_at")).map(_.asInstanceOf[DateTime]),
@@ -31,8 +32,8 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
   }
 
   val Table = "accounts"
-  val Fields = "id, version, user_id, status, customer, active_until, overdue_started_at, overdue_ended_at, overdue_plan_id"
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val Fields = "id, version, user_id, status, customer, trial_started_at, active_until, overdue_started_at, overdue_ended_at, overdue_plan_id"
+  val QMarks = Fields.split(", ").map({ field => "?" }).mkString(", ")
 
   val Select =
     s"""
@@ -65,7 +66,7 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
   val Update =
     s"""
        |UPDATE $Table
-       |SET version = ?, user_id = ?, status = ?, customer = ?, active_until = ?, overdue_started_at = ?, overdue_ended_at = ?, overdue_plan_id = ?
+       |SET version = ?, user_id = ?, status = ?, customer = ?, trial_started_at = ?, active_until = ?, overdue_started_at = ?, overdue_ended_at = ?, overdue_plan_id = ?
        |WHERE id = ?
        |RETURNING $Fields
      """.stripMargin
@@ -110,7 +111,8 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
 
   def insert(account: Account)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
-      account.id, 1, account.userId, account.status, account.customer, account.activeUntil, account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId
+      account.id, 1, account.userId, account.status, account.customer, account.trialStartedAt, account.activeUntil,
+      account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId
     )
 
     for {
@@ -122,7 +124,8 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
 
   def update(account: Account)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
-      account.version + 1, account.userId, account.status, account.customer, account.activeUntil, account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId, account.id
+      account.version + 1, account.userId, account.status, account.customer, account.trialStartedAt,
+      account.activeUntil, account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId, account.id
     )
 
     for {

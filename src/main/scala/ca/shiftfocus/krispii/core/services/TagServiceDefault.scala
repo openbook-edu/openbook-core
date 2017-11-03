@@ -413,6 +413,7 @@ class TagServiceDefault(
             account.id,
             account.version,
             accountStatus,
+            None,
             Some(dateLimit.getOrElse(user.createdAt.plusDays(trialDays))),
             account.customer
           )
@@ -425,6 +426,7 @@ class TagServiceDefault(
                 account.id,
                 account.version,
                 accountStatus,
+                None,
                 Some(dateLimit.getOrElse(user.createdAt.plusDays(trialDays))),
                 account.customer
               )

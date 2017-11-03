@@ -17,6 +17,7 @@ case class User(
     surname: String,
     alias: Option[String] = None,
     roles: IndexedSeq[Role] = IndexedSeq.empty[Role],
+    tags: IndexedSeq[Tag] = IndexedSeq.empty[Tag],
     token: Option[UserToken] = None,
     accountType: String,
     // We should show this field only to admins, that's why it is not included in Json writes, and is included in Json adminWrites
@@ -58,6 +59,7 @@ object User {
         "surname" -> user.surname,
         "alias" -> user.alias,
         "roles" -> user.roles,
+        "tags" -> user.tags,
         "accountType" -> user.accountType,
         "createdAt" -> user.createdAt,
         "updatedAt" -> user.updatedAt
@@ -74,6 +76,7 @@ object User {
         "surname" -> user.surname,
         "alias" -> user.alias,
         "roles" -> user.roles,
+        "tags" -> user.tags,
         "accountType" -> user.accountType,
         "isDeleted" -> user.isDeleted,
         "createdAt" -> user.createdAt,
@@ -100,6 +103,7 @@ object UserInfo {
         "givenname" -> userInfo.user.givenname,
         "surname" -> userInfo.user.surname,
         "alias" -> userInfo.user.alias,
+        "tags" -> userInfo.user.tags,
         "accountType" -> userInfo.user.accountType,
         "createdAt" -> userInfo.user.createdAt,
         "updatedAt" -> userInfo.user.updatedAt

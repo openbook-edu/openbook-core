@@ -811,13 +811,17 @@ class PaymentServiceDefault(
         AccountStatus.paid =>
         {
           (for {
+            userTags <- lift(tagRepository.listByEntity(userId, TaggableEntities.user))
             tag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // krispii tag, use id, because we can change tag names
             _ <- lift {
-              tagRepository.untag(userId, TaggableEntities.user, tag.name, tag.lang).map {
-                case \/-(success) => \/-(success)
-                case -\/(error: RepositoryError.NoResults) => \/-()
-                case -\/(error) => -\/(error)
+              if (userTags.contains(tag)) {
+                tagRepository.untag(userId, TaggableEntities.user, tag.name, tag.lang).map {
+                  case \/-(success) => \/-(success)
+                  case -\/(error: RepositoryError.NoResults) => \/-()
+                  case -\/(error) => -\/(error)
+                }
               }
+              else Future successful \/-(Unit)
             }
           } yield ()).run
         }
@@ -827,17 +831,21 @@ class PaymentServiceDefault(
         AccountStatus.trial =>
         {
           (for {
+            userTags <- lift(tagRepository.listByEntity(userId, TaggableEntities.user))
             tag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // krispii tag, use id, because we can change tag names
             _ <- lift {
-              tagRepository.tag(userId, TaggableEntities.user, tag.name, tag.lang).map {
-                case \/-(success) => \/-(success)
-                case -\/(RepositoryError.PrimaryKeyConflict) => \/-()
-                case -\/(error) => -\/(error)
+              if (!userTags.contains(tag)) {
+                tagRepository.tag(userId, TaggableEntities.user, tag.name, tag.lang).map {
+                  case \/-(success) => \/-(success)
+                  case -\/(RepositoryError.PrimaryKeyConflict) => \/-()
+                  case -\/(error) => -\/(error)
+                }
               }
+              else Future successful \/-(Unit)
             }
           } yield ()).run
         }
-      case _ => Future successful \/-()
+      case _ => Future successful \/-(Unit)
     }
   }
 }

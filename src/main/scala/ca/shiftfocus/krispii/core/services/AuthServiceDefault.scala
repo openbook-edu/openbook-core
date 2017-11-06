@@ -1141,13 +1141,9 @@ class AuthServiceDefault(
   private def tagOrganizationUser(user: User): Future[\/[ErrorUnion#Fail, Unit]] = {
     for {
       userOrgTags <- lift(tagService.listOrganizationalByEntity(user.id, TaggableEntities.user))
-      orgTags <- lift(organizationService.listByMember(user.email).flatMap {
-        case \/-(organizationList) => {
-          serializedT(organizationList) { organization =>
-            tagService.listByEntity(organization.id, TaggableEntities.organization)
-          }
-        }
-        case -\/(error) => Future successful -\/(error)
+      userOrganizations <- lift(organizationService.listByMember(user.email))
+      orgTags <- lift(serializedT(userOrganizations) { organization =>
+        tagService.listByEntity(organization.id, TaggableEntities.organization)
       }.map {
         case \/-(orgTags) => \/-(orgTags.flatten)
         case -\/(error) => -\/(error)

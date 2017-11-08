@@ -397,7 +397,7 @@ class TagServiceDefault(
     val dateLimit = (limitsJson \ "dateLimit").asOpt[DateTime]
     val accountStatus = dateLimit match {
       case Some(activeUntil) => AccountStatus.group
-      case _ => AccountStatus.trial
+      case _ => AccountStatus.limited
     }
 
     for {

@@ -2,22 +2,23 @@ package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.error.{ ErrorUnion, RepositoryError, ServiceError }
+import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
-import ca.shiftfocus.krispii.core.models.{ Account, AccountStatus, PaymentLog, TaggableEntities }
+import ca.shiftfocus.krispii.core.models.stripe.StripePlan
+import ca.shiftfocus.krispii.core.models.{Account, AccountStatus, PaymentLog, TaggableEntities}
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import com.stripe.exception.InvalidRequestException
 import com.stripe.model._
-import com.stripe.net.{ APIResource, RequestOptions }
+import com.stripe.net.{APIResource, RequestOptions}
 import org.joda.time.DateTime
-import play.api.libs.json.{ JsObject, JsValue, Json }
+import play.api.libs.json.{JsObject, JsValue, Json}
 
 import collection.JavaConversions._
 import scala.collection.immutable.TreeMap
 import scala.concurrent.Future
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class PaymentServiceDefault(
@@ -28,7 +29,8 @@ class PaymentServiceDefault(
     val accountRepository: AccountRepository,
     val stripeRepository: StripeRepository,
     val paymentLogRepository: PaymentLogRepository,
-    val tagRepository: TagRepository
+    val tagRepository: TagRepository,
+    val stripePlanRepository: StripePlanRepository
 ) extends PaymentService {
 
   implicit def conn: Connection = db.pool
@@ -176,6 +178,39 @@ class PaymentServiceDefault(
     catch {
       case e => -\/(ServiceError.ExternalService(e.toString))
     }
+  }
+
+  def findPlanInDb(id: UUID): Future[\/[ErrorUnion#Fail, StripePlan]] = {
+    stripePlanRepository.find(id)
+  }
+
+  def findPlanInDb(planId: String): Future[\/[ErrorUnion#Fail, StripePlan]] = {
+    stripePlanRepository.find(planId)
+  }
+
+  def savePlanInDb(planId: String, title: String): Future[\/[ErrorUnion#Fail, StripePlan]] = {
+    stripePlanRepository.create(StripePlan(
+      stripeId = planId,
+      title = title
+    ))
+  }
+
+  def updatePlanInDb(id: UUID, version: Long, title: String): Future[\/[ErrorUnion#Fail, StripePlan]] = {
+    for {
+      existingStripePlan <- lift(stripePlanRepository.find(id))
+      _ <- predicate(existingStripePlan.version == version)(RepositoryError.OfflineLockFail)
+      updatedStripePlan <- lift(stripePlanRepository.update(existingStripePlan.copy(
+        title = title
+      )))
+    } yield updatedStripePlan
+  }
+
+  def deletePlanFromDb(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, StripePlan]] = {
+    for {
+      existingStripePlan <- lift(stripePlanRepository.find(id))
+      _ <- predicate(existingStripePlan.version == version)(RepositoryError.OfflineLockFail)
+      deletedStripePlan <- lift(stripePlanRepository.delete(existingStripePlan))
+    } yield deletedStripePlan
   }
 
   /**

@@ -94,6 +94,21 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     """.stripMargin
   }
 
+  def ListByPlan(tagType: String = ""): String = {
+    val condition = tagType match {
+      case "organizational" => Organizational
+      case "admin" => "WHERE t.is_admin = true"
+      case _ => ""
+    }
+
+    s"""
+      SELECT t.id, t.version, t.is_admin, t.is_hidden, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
+      JOIN stripe_plan_tags spt
+      ON (spt.tag_id = t.id AND spt.plan_id = ?)
+      $condition
+    """.stripMargin
+  }
+
   val ListByCategory = s"""
                               SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) as category_name FROM $Table
                               WHERE category_id = (SELECT id FROM tag_categories WHERE name = ? AND lang = ?) AND lang = ?
@@ -165,6 +180,12 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                   | AND tag_id = (SELECT id FROM tags WHERE name = ? AND lang = ?)
                 """.stripMargin
 
+  val UntagPlan = s"""
+                  |DELETE FROM stripe_plan_tags
+                  |WHERE plan_id = ?
+                  | AND tag_id = (SELECT id FROM tags WHERE name = ? AND lang = ?)
+                """.stripMargin
+
   val TagProject =
     s"""
        |INSERT INTO project_tags(project_id, tag_id)
@@ -180,6 +201,12 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   val TagUser =
     s"""
        |INSERT INTO user_tags(user_id, tag_id)
+       |VALUES (?, (SELECT id FROM tags WHERE name = ? AND lang = ? ))
+     """.stripMargin
+
+  val TagPlan =
+    s"""
+       |INSERT INTO stripe_plan_tags(plan_id, tag_id)
        |VALUES (?, (SELECT id FROM tags WHERE name = ? AND lang = ? ))
      """.stripMargin
 
@@ -207,6 +234,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
       case TaggableEntities.project => queryList(ListByProject(), Seq[Any](entityId))
       case TaggableEntities.organization => queryList(ListByOrganization(), Seq[Any](entityId))
       case TaggableEntities.user => queryList(ListByUser(), Seq[Any](entityId))
+      case TaggableEntities.plan => queryList(ListByPlan(), Seq[Any](entityId))
       case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.listByEntity.wrong.entity.type"))
     }
   }
@@ -225,6 +253,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
       case TaggableEntities.project => queryList(ListByProject("organizational"), Seq[Any](entityId))
       case TaggableEntities.organization => queryList(ListByOrganization(), Seq[Any](entityId))
       case TaggableEntities.user => queryList(ListByUser("organizational"), Seq[Any](entityId))
+      case TaggableEntities.plan => queryList(ListByPlan("organizational"), Seq[Any](entityId))
       case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.listByEntity.wrong.entity.type"))
     }
   }
@@ -234,6 +263,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
       case TaggableEntities.project => queryList(ListByProject("admin"), Seq[Any](entityId))
       case TaggableEntities.organization => queryList(ListByOrganization("admin"), Seq[Any](entityId))
       case TaggableEntities.user => queryList(ListByUser("admin"), Seq[Any](entityId))
+      case TaggableEntities.plan => queryList(ListByPlan("admin"), Seq[Any](entityId))
       case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.listByEntity.wrong.entity.type"))
     }
   }
@@ -266,6 +296,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
           case TaggableEntities.project => Future successful \/-(UntagProject)
           case TaggableEntities.organization => Future successful \/-(UntagOrganization)
           case TaggableEntities.user => Future successful \/-(UntagUser)
+          case TaggableEntities.plan => Future successful \/-(UntagPlan)
           case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.untag.wrong.entity.type"))
         }
       }
@@ -311,6 +342,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
           case TaggableEntities.project => Future successful \/-(TagProject)
           case TaggableEntities.organization => Future successful \/-(TagOrganization)
           case TaggableEntities.user => Future successful \/-(TagUser)
+          case TaggableEntities.plan => Future successful \/-(TagPlan)
           case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.tag.wrong.entity.type"))
         }
       }

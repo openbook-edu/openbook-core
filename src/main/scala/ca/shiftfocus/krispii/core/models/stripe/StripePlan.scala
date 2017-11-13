@@ -6,12 +6,12 @@ import org.joda.time.DateTime
 import play.api.libs.json._
 
 case class StripePlan(
-    id: UUID = UUID.randomUUID(),
-    version: Long = 1L,
-    stripeId: String,
-    title: String,
-    createdAt: DateTime = new DateTime,
-    updatedAt: DateTime = new DateTime
+  id: UUID = UUID.randomUUID(),
+  version: Long = 1L,
+  stripeId: String,
+  title: String,
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
 )
 
 object StripePlan {

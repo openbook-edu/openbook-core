@@ -4,9 +4,9 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.ErrorUnion
 import ca.shiftfocus.krispii.core.models.stripe.StripePlan
-import ca.shiftfocus.krispii.core.models.{Account, PaymentLog}
+import ca.shiftfocus.krispii.core.models.{ Account, PaymentLog }
 import ca.shiftfocus.krispii.core.services.datasource.DB
-import com.stripe.model.{Card, Invoice, InvoiceItem}
+import com.stripe.model.{ Card, Invoice, InvoiceItem }
 import com.stripe.net.RequestOptions
 import org.joda.time.DateTime
 import play.api.libs.json.JsValue
@@ -29,6 +29,7 @@ trait PaymentService extends Service[ErrorUnion#Fail] {
 
   def listPlansFromStripe: Future[\/[ErrorUnion#Fail, IndexedSeq[JsValue]]]
   def fetchPlanFromStripe(planId: String): Future[\/[ErrorUnion#Fail, JsValue]]
+  def listPlansFromDb: Future[\/[ErrorUnion#Fail, IndexedSeq[StripePlan]]]
   def findPlanInDb(id: UUID): Future[\/[ErrorUnion#Fail, StripePlan]]
   def findPlanInDb(planId: String): Future[\/[ErrorUnion#Fail, StripePlan]]
   def savePlanInDb(planId: String, title: String): Future[\/[ErrorUnion#Fail, StripePlan]]

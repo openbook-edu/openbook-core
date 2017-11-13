@@ -4,7 +4,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.stripe.StripePlan
-import com.github.mauricio.async.db.{Connection, RowData}
+import com.github.mauricio.async.db.{ Connection, RowData }
 import org.joda.time.DateTime
 
 import scala.concurrent.Future
@@ -28,6 +28,12 @@ class StripePlanRepositoryPostgres extends StripePlanRepository with PostgresRep
   val QMarks = Fields.split(", ").map({ field => "?" }).mkString(", ")
   val FieldsWithQMarks = Fields.split(", ").map({ field => s"${field} = ?" }).mkString(", ")
   val Table = "stripe_plans"
+
+  val SelectAll =
+    s"""
+      |SELECT $Fields
+      |FROM $Table
+    """.stripMargin
 
   val SelectOneById =
     s"""
@@ -66,6 +72,10 @@ class StripePlanRepositoryPostgres extends StripePlanRepository with PostgresRep
       | AND version = ?
       |RETURNING $Fields
     """.stripMargin
+
+  def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[StripePlan]]] = {
+    queryList(SelectAll)
+  }
 
   def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripePlan]] = {
     queryOne(SelectOneById, Seq[Any](id))

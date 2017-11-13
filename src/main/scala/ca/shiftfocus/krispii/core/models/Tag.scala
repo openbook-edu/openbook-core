@@ -34,6 +34,7 @@ object TaggableEntities {
   val project = "project"
   val organization = "organization"
   val user = "user"
+  val plan = "plan"
 }
 
 object Tag {

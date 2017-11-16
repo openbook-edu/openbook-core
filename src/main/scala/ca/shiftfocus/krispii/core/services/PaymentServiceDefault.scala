@@ -842,12 +842,13 @@ class PaymentServiceDefault(
       case someNewStatus if oldStatus.isDefined && oldStatus.get == someNewStatus => Future successful \/-()
       // Untag user when switch to these statuses
       case AccountStatus.limited |
-        AccountStatus.canceled |
-        AccountStatus.onhold |
         AccountStatus.inactive |
-        AccountStatus.error |
         AccountStatus.overdue |
         AccountStatus.paid =>
+        // We don't need to do anything in case of these statuses:
+        //         AccountStatus.canceled |
+        //         AccountStatus.onhold |
+        //         AccountStatus.error |
         {
           (for {
             userTags <- lift(tagRepository.listByEntity(userId, TaggableEntities.user))

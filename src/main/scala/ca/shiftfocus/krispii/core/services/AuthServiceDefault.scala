@@ -95,8 +95,15 @@ class AuthServiceDefault(
    * @param distinct Boolean If true each user should have all listed tags,
    *                 if false user should have at least one listed tag
    */
-  def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+  def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     userRepository.listByTags(tags, distinct)
+  }
+
+  def listByTeacher(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
+    for {
+      teacher <- lift(userRepository.find(userId))
+      students <- lift(userRepository.list(teacher))
+    } yield students
   }
 
   /**

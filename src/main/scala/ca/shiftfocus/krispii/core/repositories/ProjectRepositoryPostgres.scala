@@ -250,7 +250,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
       project <- lift(find(projectId))
       newProject = {
         if (project.isMaster) project.copy(id = UUID.randomUUID(), isMaster = false, courseId = courseId, parentId = Some(project.id), parentVersion = Some(project.version), enabled = true, createdAt = new DateTime, updatedAt = new DateTime)
-        else project.copy(id = UUID.randomUUID(), courseId = courseId, createdAt = new DateTime, updatedAt = new DateTime)
+        else project.copy(id = UUID.randomUUID(), courseId = courseId, parentId = Some(project.id), parentVersion = Some(project.version), createdAt = new DateTime, updatedAt = new DateTime)
       }
     } yield newProject).run
   }

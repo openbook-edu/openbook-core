@@ -157,6 +157,7 @@ class SchoolServiceDefault(
     archived: Option[Boolean],
     schedulingEnabled: Option[Boolean],
     theaterMode: Option[Boolean],
+    lastProjectId: Option[Option[UUID]],
     chatEnabled: Option[Boolean]
   ): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
@@ -176,6 +177,11 @@ class SchoolServiceDefault(
           archived = archived.getOrElse(existingCourse.archived),
           schedulingEnabled = schedulingEnabled.getOrElse(existingCourse.schedulingEnabled),
           theaterMode = theaterMode.getOrElse(existingCourse.theaterMode),
+          lastProjectId = lastProjectId match {
+            case Some(Some(lastProjectId)) => Some(lastProjectId)
+            case Some(None) => None
+            case None => existingCourse.lastProjectId
+          },
           chatEnabled = chatEnabled.getOrElse(existingCourse.chatEnabled)
         )
         updatedCourse <- lift(courseRepository.update(toUpdate))

@@ -31,6 +31,7 @@ class TagServiceDefault(
     val config: Configuration,
     val projectRepository: ProjectRepository,
     val roleRepository: RoleRepository,
+    val userPreferenceRepository: UserPreferenceRepository,
     // Bad idea to include services, but duplicating the code may be even worse
     val paymentService: PaymentService
 ) extends TagService {
@@ -312,6 +313,17 @@ class TagServiceDefault(
             resultOrganizations = (currentOrganizations ++ newOrganizations).distinct
             maxLimitJson <- lift(getOrganizationsMaxLimits(resultOrganizations))
             _ <- lift(setUserLimits(maxLimitJson, user))
+            _ <- lift {
+              // If user doesn't have organizations, that means he haven't seen welcome popup for organization
+              if (currentOrganizations.isEmpty) {
+                userPreferenceRepository.set(UserPreference(
+                  userId = userId,
+                  prefName = "teacher_check",
+                  state = "show"
+                ))
+              }
+              else Future successful \/-(Unit)
+            }
           } yield ()
         }
         else Future successful \/-(Unit)

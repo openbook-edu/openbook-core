@@ -155,6 +155,10 @@ class TagServiceDefault(
     tagRepository.find(name, lang)
   }
 
+  def listPopular(lang: String, limit: Int = 0, skipedCategories: IndexedSeq[String] = IndexedSeq.empty[String]): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
+    tagRepository.listPopular(lang, limit, skipedCategories)
+  }
+
   override def listByKey(key: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
     transactional { implicit conn: Connection =>
       tagRepository.trigramSearch(key)

@@ -173,8 +173,8 @@ INSERT INTO projects (id, course_id, version, name, slug, description, long_desc
 VALUES ('c9b4cfceaed448fd94f5c980763dfddc', '217c5622ff9e43728e6a95fb3bae300b', 1, 'test project A', 'test-project-slug-A', 'test project A description',  'test project A long description', 'any', 'sas', '2014-08-09 14:01:19.545-04', '2014-08-10 14:01:19.545-04');
 
 /* project B -> course B -> user B (teacher) */
-INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability,  project_type, created_at, updated_at)
-VALUES ('e4ae3b9098714339b05c8d39e3aaf65d', '404c800a53854e6b867e365a1e6b00de', 2, 'test project B', 'test-project-slug-B', 'test project B description',  'test project B long description', 'free', 'default_project', '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
+INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability,  enabled, project_type, created_at, updated_at)
+VALUES ('e4ae3b9098714339b05c8d39e3aaf65d', '404c800a53854e6b867e365a1e6b00de', 2, 'test project B', 'test-project-slug-B', 'test project B description',  'test project B long description', 'free', false, 'default_project', '2014-08-11 14:01:19.545-04', '2014-08-12 14:01:19.545-04');
 
 /* project C -> course B -> user B (teacher) */
 INSERT INTO projects (id, course_id, version, name, slug, description, long_description, availability, project_type, created_at, updated_at)

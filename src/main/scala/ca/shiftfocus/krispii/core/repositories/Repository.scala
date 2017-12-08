@@ -52,4 +52,6 @@ trait Repository extends Lifting[RepositoryError.Fail] {
   def cacheExceptionKey(id: UUID): String = s"exception[${id.toString}]"
   def cacheExceptionsKey(courseId: UUID): String = s"exceptions[${courseId.toString}]"
   def cacheExceptionsKey(courseId: UUID, userId: UUID): String = s"exceptions[${courseId.toString},${userId.toString}]"
+
+  def cachePopularTagsKey(lang: String): String = s"popular_tags[${lang}]"
 }

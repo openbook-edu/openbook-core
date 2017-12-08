@@ -10,7 +10,8 @@ import scalaz._
 
 class ConversationRepositorySpec
     extends TestEnvironment {
-  val userRepository = new UserRepositoryPostgres()
+  val tagRepository = new TagRepositoryPostgres()
+  val userRepository = new UserRepositoryPostgres(tagRepository)
   val roleRepository = new RoleRepositoryPostgres(userRepository)
   val conversationRepository = new ConversationRepositoryPostgres(userRepository, roleRepository)
 

@@ -440,7 +440,7 @@ object TestValues {
       help = "test help text testLongAnswerTaskA",
       notesTitle = Some("test longAnswerTask A notes title"),
       responseTitle = Some("test longAnswerTask A response title"),
-      mediaData = Some(MediaData(Some("s3"), Some("some_video.mp4"), Some("video/mp4"), Some(4123456)))
+      mediaData = Some(MediaData(Some("s3"), Some("some_video.mp4"), Some("video/mp4"), Some("some_video.mp4"), Some(4123456)))
     ),
     dependencyId = None,
     maxGrade = "55",
@@ -1875,7 +1875,7 @@ object TestValues {
     title = "testVideoComponentL title",
     questions = "testVideoComponentL questions",
     thingsToThinkAbout = "testVideoComponentL thingsToThinkAbout",
-    mediaData = MediaData(Some("s3"), Some("some_video.mp4"), Some("video/mp4"), Some(4123456)),
+    mediaData = MediaData(Some("s3"), Some("some_video.mp4"), Some("video/mp4"), Some("some_video.mp4"), Some(4123456)),
     width = 640,
     height = 480,
     order = 3,
@@ -1920,7 +1920,7 @@ object TestValues {
     title = "testAudioComponentM title",
     questions = "testAudioComponentM questions",
     thingsToThinkAbout = "testAudioComponentM thingsToThinkAbout",
-    mediaData = MediaData(Some("s3"), Some("some_audio.mp3"), Some("audio/mp3"), Some(2236480)),
+    mediaData = MediaData(Some("s3"), Some("some_audio.mp3"), Some("audio/mp3"), Some("some_audio.mp3"), Some(2236480)),
     order = 0,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))

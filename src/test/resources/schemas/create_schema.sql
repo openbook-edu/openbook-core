@@ -453,6 +453,7 @@ create table tags(
   id uuid UNIQUE,
   version bigint,
   is_admin boolean DEFAULT false,
+  is_hidden boolean DEFAULT false,
   name text,
   lang text,
   category_id uuid references tag_categories(id) ON DELETE CASCADE,

@@ -21,18 +21,15 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
       id = row("id").asInstanceOf[UUID],
       version = row("version").asInstanceOf[Long],
       title = row("title").asInstanceOf[String],
-      adminEmail = Option(row("admin_email").asInstanceOf[String]) match {
-      case Some(adminEmail) => Some(adminEmail)
-      case _ => None
-    },
       tags = IndexedSeq.empty[Tag],
+      admins = Try(row("admins").asInstanceOf[String].split(",").to[IndexedSeq]).toOption.getOrElse(IndexedSeq.empty[String]),
       members = Try(row("members").asInstanceOf[String].split(",").to[IndexedSeq]).toOption.getOrElse(IndexedSeq.empty[String]),
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )
   }
 
-  val Fields = "id, version, title, admin_email, created_at, updated_at"
+  val Fields = "id, version, title, created_at, updated_at"
   val Table = "organizations"
   val QMarks = Fields.split(", ").map({ field => "?" }).mkString(", ")
   val FieldsWithQMarks = Fields.split(", ").map({ field => s"${field} = ?" }).mkString(", ")
@@ -42,42 +39,51 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
        |string_agg(member_email, ',') AS members
      """.stripMargin
 
-  val SelectOne =
+  val AdminsField =
     s"""
-       |SELECT $Fields, $MembersField
-       |FROM $Table
+       |string_agg(admin_email, ',') AS admins
+     """.stripMargin
+
+  val Join =
+    s"""
        |LEFT JOIN organization_members AS om
        |  ON om.organization_id = $Table.id
+       |LEFT JOIN organization_admins AS oa
+       |  ON oa.organization_id = $Table.id
+     """.stripMargin
+
+  val SelectOne =
+    s"""
+       |SELECT $Fields, $MembersField, $AdminsField
+       |FROM $Table
+       |$Join
        |WHERE id = ?
        |GROUP BY $Table.id
      """.stripMargin
 
   val SelectAll =
     s"""
-       |SELECT $Fields, $MembersField
+       |SELECT $Fields, $MembersField, $AdminsField
        |FROM $Table
-       |LEFT JOIN organization_members AS om
-       |  ON om.organization_id = $Table.id
+       |$Join
        |GROUP BY $Table.id
      """.stripMargin
 
   val SelectAllByAdminEmail =
     s"""
-       |SELECT $Fields, $MembersField
+       |SELECT $Fields, $MembersField, $AdminsField
        |FROM $Table
-       |LEFT JOIN organization_members AS om
-       |  ON om.organization_id = $Table.id
-       |WHERE admin_email = ?
+       |$Join
+       |WHERE oa.admin_email = ?
        |GROUP BY $Table.id
      """.stripMargin
 
   val SelectAllByMemberEmail =
     s"""
-       |SELECT $Fields, $MembersField
+       |SELECT $Fields, $MembersField, $AdminsField
        |FROM $Table
-       |JOIN organization_members AS om
-       |  ON om.organization_id = $Table.id
-       |    AND om.member_email = ?
+       |$Join
+       |WHERE om.member_email = ?
        |GROUP BY $Table.id
      """.stripMargin
 
@@ -106,10 +112,9 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
 
     def query(whereClause: String) =
       s"""
-        |SELECT $Fields, $MembersField
+        |SELECT $Fields, $MembersField, $AdminsField
         |FROM $Table
-        |LEFT JOIN organization_members AS om
-        |  ON om.organization_id = $Table.id
+        |$Join
         |WHERE id IN (
         |    SELECT organization_id
         |    FROM organization_tags
@@ -137,6 +142,21 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
        |DELETE FROM organization_members
        |WHERE organization_id = ?
        |  AND member_email = ?
+       |RETURNING *
+     """.stripMargin
+
+  val AddAdmin =
+    s"""
+       |INSERT INTO organization_admins (organization_id, admin_email)
+       |VALUES (?, ?)
+       |RETURNING *
+     """.stripMargin
+
+  val DeleteAdmin =
+    s"""
+       |DELETE FROM organization_admins
+       |WHERE organization_id = ?
+       |  AND admin_email = ?
        |RETURNING *
      """.stripMargin
 
@@ -246,10 +266,61 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
     } yield organizationWithoutMember
   }
 
+  def addAdmin(organization: Organization, adminEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]] = {
+    for {
+      _ <- lift {
+        conn.sendPreparedStatement(AddAdmin, Array[Any](organization.id, adminEmail)).map { result =>
+          result.rows match {
+            case Some(resultSet) => resultSet.headOption match {
+              case Some(firstRow) => \/-(firstRow)
+              case None => -\/(RepositoryError.NoResults(s"ResultSet returned no rows. Could not add admin to organization"))
+            }
+            case None => -\/(RepositoryError.NoResults(s"No ResultSet was returned. Could not add admin to organization"))
+          }
+        }.recover {
+          case exception: GenericDatabaseException =>
+            val fields = exception.errorMessage.fields
+            (fields.get('t'), fields.get('n')) match {
+              case (Some(table), Some(nField)) if nField endsWith "_pkey" =>
+                \/.left(RepositoryError.PrimaryKeyConflict)
+
+              case (Some(table), Some(nField)) if nField endsWith "_key" =>
+                \/.left(RepositoryError.UniqueKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length - 4).mkString), nField))
+
+              case (Some(table), Some(nField)) if nField endsWith "_fkey" =>
+                \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length - 5).mkString), nField))
+
+              case _ => \/.left(RepositoryError.DatabaseError("Unhandled GenericDataabaseException", Some(exception)))
+            }
+          case exception: Throwable => -\/(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
+        }
+      }
+      organizationWithAdmin <- lift(queryOne(SelectOne, Seq[Any](organization.id)))
+    } yield organizationWithAdmin
+  }
+
+  def deleteAdmin(organization: Organization, adminEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]] = {
+    for {
+      _ <- lift {
+        conn.sendPreparedStatement(DeleteAdmin, Array[Any](organization.id, adminEmail)).map { result =>
+          result.rows match {
+            case Some(resultSet) => resultSet.headOption match {
+              case Some(firstRow) => \/-(firstRow)
+              case None => -\/(RepositoryError.NoResults(s"ResultSet returned no rows. Could not remove admin from organization"))
+            }
+            case None => -\/(RepositoryError.NoResults(s"No ResultSet was returned. Could not remove admin from organization"))
+          }
+        }.recover {
+          case exception: Throwable => -\/(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
+        }
+      }
+      organizationWithoutAdmin <- lift(queryOne(SelectOne, Seq[Any](organization.id)))
+    } yield organizationWithoutAdmin
+  }
+
   def insert(organization: Organization)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]] = {
     val params = Seq[Any](
-      organization.id, organization.version, organization.title,
-      organization.adminEmail, organization.createdAt, organization.updatedAt
+      organization.id, organization.version, organization.title, organization.createdAt, organization.updatedAt
     )
 
     queryOne(Insert, params)
@@ -258,12 +329,15 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
   def update(organization: Organization)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]] = {
     val params = Seq[Any](
       organization.id, organization.version + 1, organization.title,
-      organization.adminEmail, organization.createdAt, new DateTime(),
+      organization.createdAt, new DateTime(),
       organization.id, organization.version
     )
 
     queryOne(Update, params).map {
-      case \/-(org) => \/-(org.copy(members = organization.members))
+      case \/-(org) => \/-(org.copy(
+        admins = organization.admins,
+        members = organization.members
+      ))
       case -\/(error) => -\/(error)
     }
   }
@@ -272,7 +346,10 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
     val params = Seq[Any](organization.id, organization.version)
 
     queryOne(Delete, params).map {
-      case \/-(org) => \/-(org.copy(members = organization.members))
+      case \/-(org) => \/-(org.copy(
+        admins = organization.admins,
+        members = organization.members
+      ))
       case -\/(error) => -\/(error)
     }
   }

@@ -6,6 +6,7 @@ case class MediaData(
     host: Option[String] = None,
     data: Option[String] = None,
     dataType: Option[String] = None,
+    serverFileName: Option[String] = None,
     hash: Option[String] = None,
     // We store the size of a file in Bytes
     size: Option[Long] = None,
@@ -19,6 +20,7 @@ case class MediaData(
         this.host == anotherMediaData.host &&
           this.data == anotherMediaData.data &&
           this.dataType == anotherMediaData.dataType &&
+          this.serverFileName == anotherMediaData.serverFileName &&
           this.hash == anotherMediaData.hash &&
           this.size == anotherMediaData.size &&
           this.isPublic == anotherMediaData.isPublic &&
@@ -38,6 +40,7 @@ object MediaData {
           (json \ "host").asOpt[String],
           (json \ "data").asOpt[String],
           (json \ "dataType").asOpt[String],
+          (json \ "serverFileName").asOpt[String],
           (json \ "hash").asOpt[String],
           (json \ "size").asOpt[Long],
           (json \ "isPublic").asOpt[Boolean],
@@ -53,6 +56,7 @@ object MediaData {
         "host" -> mediaData.host,
         "data" -> mediaData.data,
         "dataType" -> mediaData.dataType,
+        "serverFileName" -> mediaData.serverFileName,
         "hash" -> mediaData.hash,
         "size" -> mediaData.size,
         "isPublic" -> mediaData.isPublic,

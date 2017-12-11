@@ -31,6 +31,7 @@ class TagServiceDefault(
     val config: Configuration,
     val projectRepository: ProjectRepository,
     val roleRepository: RoleRepository,
+    val userPreferenceRepository: UserPreferenceRepository,
     // Bad idea to include services, but duplicating the code may be even worse
     val paymentService: PaymentService
 ) extends TagService {
@@ -152,6 +153,10 @@ class TagServiceDefault(
 
   def findTagByName(name: String, lang: String): Future[\/[ErrorUnion#Fail, Tag]] = {
     tagRepository.find(name, lang)
+  }
+
+  def listPopular(lang: String, limit: Int = 0, skipedCategories: IndexedSeq[String] = IndexedSeq.empty[String]): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
+    tagRepository.listPopular(lang, limit, skipedCategories)
   }
 
   override def listByKey(key: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
@@ -312,6 +317,17 @@ class TagServiceDefault(
             resultOrganizations = (currentOrganizations ++ newOrganizations).distinct
             maxLimitJson <- lift(getOrganizationsMaxLimits(resultOrganizations))
             _ <- lift(setUserLimits(maxLimitJson, user))
+            _ <- lift {
+              // If user doesn't have organizations, that means he haven't seen welcome popup for organization
+              if (currentOrganizations.isEmpty) {
+                userPreferenceRepository.set(UserPreference(
+                  userId = userId,
+                  prefName = "teacher_check",
+                  state = "show"
+                ))
+              }
+              else Future successful \/-(Unit)
+            }
           } yield ()
         }
         else Future successful \/-(Unit)

@@ -21,6 +21,7 @@ case class Course(
   schedulingEnabled: Boolean = false,
   projects: Option[IndexedSeq[Project]] = None,
   theaterMode: Boolean = false,
+  lastProjectId: Option[UUID] = None,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 )
@@ -64,6 +65,7 @@ object Course {
     (__ \ "schedulingEnabled").write[Boolean] and
     (__ \ "projects").writeNullable[IndexedSeq[Project]] and
     (__ \ "theaterMode").write[Boolean] and
+    (__ \ "lastProjectId").writeNullable[UUID] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Course.unapply))

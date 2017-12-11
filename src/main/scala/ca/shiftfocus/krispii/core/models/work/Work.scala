@@ -297,6 +297,7 @@ object MatchingAnswer {
 case class MediaAnswer(
   mediaType: Option[String] = None,
   fileName: Option[String] = None,
+  serverFileName: Option[String] = None,
   // We store the size of a file in Bytes
   size: Option[Long] = None,
   isPublic: Option[Boolean] = None
@@ -308,6 +309,7 @@ object MediaAnswer {
         MediaAnswer(
           (json \ "mediaType").asOpt[String],
           (json \ "fileName").asOpt[String],
+          (json \ "serverFileName").asOpt[String],
           (json \ "size").asOpt[Long],
           (json \ "isPublic").asOpt[Boolean]
         )
@@ -319,6 +321,8 @@ object MediaAnswer {
       Json.obj(
         "mediaType" -> mediaAnswer.mediaType,
         "fileName" -> mediaAnswer.fileName,
+        "fileName" -> mediaAnswer.fileName,
+        "serverFileName" -> mediaAnswer.serverFileName,
         "size" -> mediaAnswer.size,
         "isPublic" -> mediaAnswer.isPublic
       )

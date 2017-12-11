@@ -2,7 +2,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.{ Role, User }
-import ca.shiftfocus.krispii.core.repositories.UserRepositoryPostgres
+import ca.shiftfocus.krispii.core.repositories.{ TagRepositoryPostgres, UserRepositoryPostgres }
 import org.scalatest.Matchers._
 import org.scalatest._
 
@@ -15,7 +15,8 @@ import play.api.Logger
 
 class UserRepositorySpec
     extends TestEnvironment {
-  val userRepository = new UserRepositoryPostgres
+  val tagRepository = new TagRepositoryPostgres()
+  val userRepository = new UserRepositoryPostgres(tagRepository)
 
   "UserRepository.findDeleted" should {
     inSequence {

@@ -229,6 +229,18 @@ class UserRepositoryPostgres(
        |ORDER BY $OrderBy
     """.stripMargin
 
+  val SelectAllWithTeacher =
+    s"""
+       |SELECT $FieldsWithoutHash
+       |FROM $Table, users_courses, courses
+       |WHERE $Table.id = users_courses.user_id
+       |  AND users_courses.course_id = courses.id
+       |  AND courses.teacher_id = ?
+       |  AND $Table.is_deleted = FALSE
+       |  AND courses.is_deleted = FALSE
+       |ORDER BY $OrderBy
+    """.stripMargin
+
   val SelectAllWithConversation =
     s"""
        |SELECT $FieldsWithoutHash
@@ -311,6 +323,17 @@ class UserRepositoryPostgres(
 
   override def list(conversation: Conversation)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
     queryList(SelectAllWithConversation, Seq[Any](conversation.id))
+  }
+
+  /**
+   * List students for a given teacher
+   * @param user
+   * @param conn
+   * @param cache
+   * @return
+   */
+  override def list(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    queryList(SelectAllWithTeacher, Seq[Any](user.id))
   }
 
   /**

@@ -17,6 +17,8 @@ trait OrganizationRepository extends Repository {
   def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Organization]]]
   def addMember(organization: Organization, memberEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]]
   def deleteMember(organization: Organization, memberEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]]
+  def addAdmin(organization: Organization, adminEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]]
+  def deleteAdmin(organization: Organization, adminEmail: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]]
   def insert(organization: Organization)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]]
   def update(organization: Organization)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]]
   def delete(organization: Organization)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Organization]]

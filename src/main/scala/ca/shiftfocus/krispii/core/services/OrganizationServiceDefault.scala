@@ -59,6 +59,20 @@ class OrganizationServiceDefault(
     } yield organizationWithoutMember).run
   }
 
+  def addAdmin(organizationId: UUID, adminEmail: String): Future[\/[ErrorUnion#Fail, Organization]] = {
+    (for {
+      existingOrganization <- lift(organizationRepository.find(organizationId))
+      organizationWithMember <- lift(organizationRepository.addAdmin(existingOrganization, adminEmail))
+    } yield organizationWithMember).run
+  }
+
+  def deleteAdmin(organizationId: UUID, adminEmail: String): Future[\/[ErrorUnion#Fail, Organization]] = {
+    (for {
+      existingOrganization <- lift(organizationRepository.find(organizationId))
+      organizationWithoutMember <- lift(organizationRepository.deleteAdmin(existingOrganization, adminEmail))
+    } yield organizationWithoutMember).run
+  }
+
   def create(title: String): Future[\/[ErrorUnion#Fail, Organization]] = {
     organizationRepository.insert(Organization(
       title = title
@@ -68,20 +82,14 @@ class OrganizationServiceDefault(
   def update(
     id: UUID,
     version: Long,
-    title: Option[String],
-    adminEmail: Option[Option[String]]
+    title: Option[String]
   ): Future[\/[ErrorUnion#Fail, Organization]] = {
     transactional { implicit conn =>
       (for {
         existingOrganization <- lift(organizationRepository.find(id))
         _ <- predicate(existingOrganization.version == version)(ServiceError.OfflineLockFail)
         updated <- lift(organizationRepository.update(existingOrganization.copy(
-          title = title.getOrElse(existingOrganization.title),
-          adminEmail = adminEmail match {
-            case Some(Some(adminEmail)) => Some(adminEmail)
-            case Some(None) => None
-            case None => existingOrganization.adminEmail
-          }
+          title = title.getOrElse(existingOrganization.title)
         )))
       } yield updated).run
     }

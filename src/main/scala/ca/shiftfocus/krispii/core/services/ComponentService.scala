@@ -15,28 +15,35 @@ trait ComponentService extends Service[ErrorUnion#Fail] {
   val componentRepository: ComponentRepository
 
   def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
+  def listMasterLimit(limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
   def listByPart(partId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
   def listByProject(projectId: UUID, forceAll: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
   def listByTeacher(teacherId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]]
   def find(id: UUID): Future[\/[ErrorUnion#Fail, Component]]
 
-  def createAudio(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, audioData: MediaData, order: Int): Future[\/[ErrorUnion#Fail, Component]]
-  def createBook(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, fileData: MediaData, order: Int): Future[\/[ErrorUnion#Fail, Component]]
-  def createText(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, content: String, order: Int): Future[\/[ErrorUnion#Fail, Component]]
-  def createGenericHTML(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, htmlContent: String, order: Int): Future[\/[ErrorUnion#Fail, Component]]
-  def createRubric(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String, rubricContent: String, order: Int): Future[\/[ErrorUnion#Fail, Component]]
-  def createVideo(ownerId: UUID, title: String, questions: String, thingsToThinkAbout: String,
-    videoData: MediaData, height: Int, width: Int, order: Int): Future[\/[ErrorUnion#Fail, Component]]
+  def createAudio(id: UUID, ownerId: UUID, title: String, description: String, questions: String, thingsToThinkAbout: String, audioData: MediaData, order: Int, parentId: Option[UUID] = None, parentVersion: Option[Long] = None): Future[\/[ErrorUnion#Fail, Component]]
+  def createImage(id: UUID, ownerId: UUID, title: String, description: String, questions: String, thingsToThinkAbout: String, imageData: MediaData, order: Int, parentId: Option[UUID] = None, parentVersion: Option[Long] = None): Future[\/[ErrorUnion#Fail, Component]]
+  def createBook(id: UUID, ownerId: UUID, title: String, description: String, questions: String, thingsToThinkAbout: String, fileData: MediaData, order: Int, parentId: Option[UUID] = None, parentVersion: Option[Long] = None): Future[\/[ErrorUnion#Fail, Component]]
+  def createText(id: UUID, ownerId: UUID, title: String, description: String, questions: String, thingsToThinkAbout: String, content: String, order: Int, parentId: Option[UUID] = None, parentVersion: Option[Long] = None): Future[\/[ErrorUnion#Fail, Component]]
+  def createGenericHTML(id: UUID, ownerId: UUID, title: String, description: String, questions: String, thingsToThinkAbout: String, htmlContent: String, order: Int, parentId: Option[UUID] = None, parentVersion: Option[Long] = None): Future[\/[ErrorUnion#Fail, Component]]
+  def createRubric(id: UUID, ownerId: UUID, title: String, description: String, questions: String, thingsToThinkAbout: String, rubricContent: String, order: Int, parentId: Option[UUID] = None, parentVersion: Option[Long] = None): Future[\/[ErrorUnion#Fail, Component]]
+  def createVideo(id: UUID, ownerId: UUID, title: String, description: String, questions: String, thingsToThinkAbout: String,
+    videoData: MediaData, height: Int, width: Int, order: Int, parentId: Option[UUID] = None, parentVersion: Option[Long] = None): Future[\/[ErrorUnion#Fail, Component]]
 
-  def updateAudio(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
-    audioData: Option[MediaData], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
-  def updateBook(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String], fileData: Option[MediaData], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
-  def updateText(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
-    content: Option[String], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
-  def updateVideo(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
-    videoData: Option[MediaData], height: Option[Int], width: Option[Int], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
-  def updateGenericHTML(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String], htmlContent: Option[String], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
-  def updateRubric(id: UUID, version: Long, ownerId: UUID, title: Option[String], questions: Option[String], thingsToThinkAbout: Option[String], rubricContent: Option[String], order: Option[Int]): Future[\/[ErrorUnion#Fail, Component]]
+  def updateAudio(id: UUID, version: Long, ownerId: UUID, title: Option[String], description: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
+    audioData: Option[MediaData], order: Option[Int], isPrivate: Option[Boolean], parentId: Option[Option[UUID]] = None, parentVersion: Option[Option[Long]] = None): Future[\/[ErrorUnion#Fail, Component]]
+  def updateImage(id: UUID, version: Long, ownerId: UUID, title: Option[String], description: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
+    imageData: Option[MediaData], order: Option[Int], isPrivate: Option[Boolean], parentId: Option[Option[UUID]] = None, parentVersion: Option[Option[Long]] = None): Future[\/[ErrorUnion#Fail, Component]]
+  def updateBook(id: UUID, version: Long, ownerId: UUID, title: Option[String], description: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
+    fileData: Option[MediaData], order: Option[Int], isPrivate: Option[Boolean], parentId: Option[Option[UUID]] = None, parentVersion: Option[Option[Long]] = None): Future[\/[ErrorUnion#Fail, Component]]
+  def updateText(id: UUID, version: Long, ownerId: UUID, title: Option[String], description: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
+    content: Option[String], order: Option[Int], isPrivate: Option[Boolean], parentId: Option[Option[UUID]] = None, parentVersion: Option[Option[Long]] = None): Future[\/[ErrorUnion#Fail, Component]]
+  def updateVideo(id: UUID, version: Long, ownerId: UUID, title: Option[String], description: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
+    videoData: Option[MediaData], height: Option[Int], width: Option[Int], order: Option[Int], isPrivate: Option[Boolean], parentId: Option[Option[UUID]] = None, parentVersion: Option[Option[Long]] = None): Future[\/[ErrorUnion#Fail, Component]]
+  def updateGenericHTML(id: UUID, version: Long, ownerId: UUID, title: Option[String], description: Option[String], questions: Option[String],
+    thingsToThinkAbout: Option[String], htmlContent: Option[String], order: Option[Int], isPrivate: Option[Boolean], parentId: Option[Option[UUID]] = None, parentVersion: Option[Option[Long]] = None): Future[\/[ErrorUnion#Fail, Component]]
+  def updateRubric(id: UUID, version: Long, ownerId: UUID, title: Option[String], description: Option[String], questions: Option[String],
+    thingsToThinkAbout: Option[String], rubricContent: Option[String], order: Option[Int], isPrivate: Option[Boolean], parentId: Option[Option[UUID]] = None, parentVersion: Option[Option[Long]] = None): Future[\/[ErrorUnion#Fail, Component]]
 
   def delete(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Component]]
 

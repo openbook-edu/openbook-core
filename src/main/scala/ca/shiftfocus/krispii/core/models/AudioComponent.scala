@@ -18,6 +18,10 @@ case class AudioComponent(
     thingsToThinkAbout: String,
     mediaData: MediaData = MediaData(),
     order: Int,
+    isPrivate: Boolean = false,
+    description: String = "",
+    parentId: Option[UUID] = None,
+    parentVersion: Option[Long] = None,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) extends Component with DataCarrier {
@@ -32,6 +36,7 @@ case class AudioComponent(
           this.thingsToThinkAbout == anotherAudioComponent.thingsToThinkAbout &&
           this.mediaData == anotherAudioComponent.mediaData &&
           this.order == anotherAudioComponent.order
+        this.isPrivate == anotherAudioComponent.isPrivate
       }
       case _ => false
     }
@@ -52,6 +57,10 @@ object AudioComponent {
     (__ \ "thingsToThinkAbout").write[String] and
     (__ \ "audioData").write[MediaData] and
     (__ \ "order").write[Int] and
+    (__ \ "isPrivate").write[Boolean] and
+    (__ \ "description").write[String] and
+    (__ \ "parentId").writeNullable[UUID] and
+    (__ \ "parentVersion").writeNullable[Long] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(AudioComponent.unapply))
@@ -64,7 +73,11 @@ case class AudioComponentPost(
   questions: Option[String],
   thingsToThinkAbout: Option[String],
   audioData: MediaData,
-  order: Int
+  order: Int,
+  isPrivate: Boolean,
+  description: String,
+  parentId: Option[UUID],
+  parentVersion: Option[Long]
 )
 object AudioComponentPost {
   implicit val projectPostReads = (
@@ -73,7 +86,11 @@ object AudioComponentPost {
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and
     (__ \ "audioData").read[MediaData] and
-    (__ \ "order").read[Int]
+    (__ \ "order").read[Int] and
+    (__ \ "isPrivate").read[Boolean] and
+    (__ \ "description").read[String] and
+    (__ \ "parentId").readNullable[UUID] and
+    (__ \ "parentVersion").readNullable[Long]
   )(AudioComponentPost.apply _)
 }
 
@@ -83,7 +100,11 @@ case class AudioComponentPut(
   questions: Option[String],
   thingsToThinkAbout: Option[String],
   audioData: MediaData,
-  order: Int
+  order: Int,
+  isPrivate: Boolean,
+  description: String,
+  parentId: Option[UUID],
+  parentVersion: Option[Long]
 )
 object AudioComponentPut {
   implicit val projectPutReads = (
@@ -92,6 +113,10 @@ object AudioComponentPut {
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and
     (__ \ "audioData").read[MediaData] and
-    (__ \ "order").read[Int]
+    (__ \ "order").read[Int] and
+    (__ \ "isPrivate").read[Boolean] and
+    (__ \ "description").read[String] and
+    (__ \ "parentId").readNullable[UUID] and
+    (__ \ "parentVersion").readNullable[Long]
   )(AudioComponentPut.apply _)
 }

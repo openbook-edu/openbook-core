@@ -3,13 +3,15 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
+import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models.{ Account, AccountStatus }
 import com.github.mauricio.async.db.{ Connection, RowData }
 import org.joda.time.DateTime
 import play.api.libs.json.{ JsValue, Json }
+import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
-import scalaz.\/
+import scalaz.{ -\/, \/, \/- }
 
 class AccountRepositoryPostgres extends AccountRepository with PostgresRepository[Account] {
   override val entityName = "Account"
@@ -21,13 +23,17 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
       row("status").asInstanceOf[String],
       Option(row("customer")).map(customer => Json.parse(customer.asInstanceOf[String])),
       IndexedSeq.empty[JsValue],
-      Option(row("active_until")).map(_.asInstanceOf[DateTime])
+      Option(row("trial_started_at")).map(_.asInstanceOf[DateTime]),
+      Option(row("active_until")).map(_.asInstanceOf[DateTime]),
+      Option(row("overdue_started_at")).map(_.asInstanceOf[DateTime]),
+      Option(row("overdue_ended_at")).map(_.asInstanceOf[DateTime]),
+      Option(row("overdue_plan_id")).map(_.asInstanceOf[String])
     )
   }
 
   val Table = "accounts"
-  val Fields = "id, version, user_id, status, customer, active_until"
-  val QMarks = "?, ?, ?, ?, ?, ?"
+  val Fields = "id, version, user_id, status, customer, trial_started_at, active_until, overdue_started_at, overdue_ended_at, overdue_plan_id"
+  val QMarks = Fields.split(", ").map({ field => "?" }).mkString(", ")
 
   val Select =
     s"""
@@ -60,42 +66,81 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
   val Update =
     s"""
        |UPDATE $Table
-       |SET version = ?, status = ?, customer = ?, active_until = ?
+       |SET version = ?, user_id = ?, status = ?, customer = ?, trial_started_at = ?, active_until = ?, overdue_started_at = ?, overdue_ended_at = ?, overdue_plan_id = ?
        |WHERE id = ?
        |RETURNING $Fields
      """.stripMargin
 
-  // TODO - add cache
-  def get(accountId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
-    queryOne(Select, Seq[Any](accountId))
+  val Delete =
+    s"""
+       |DELETE FROM $Table
+       |WHERE user_id = ?
+       |RETURNING $Fields
+     """.stripMargin
+
+  def get(accountId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Account]] = {
+    cache.getCached[Account](cacheAccountKey(accountId)).flatMap {
+      case \/-(account) => Future successful \/-(account)
+      case -\/(noResults: RepositoryError.NoResults) =>
+        for {
+          account <- lift(queryOne(Select, Seq[Any](accountId)))
+          _ <- lift(cache.putCache[Account](cacheAccountKey(account.id))(account, ttl))
+          _ <- lift(cache.putCache[Account](cacheAccountUserKey(account.userId))(account, ttl))
+        } yield account
+      case -\/(error) => Future successful -\/(error)
+    }
   }
 
-  // TODO - add cache
-  def getByUserId(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
-    queryOne(SelectByUserId, Seq[Any](userId))
+  def getByUserId(userId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Account]] = {
+    cache.getCached[Account](cacheAccountUserKey(userId)).flatMap {
+      case \/-(account) => Future successful \/-(account)
+      case -\/(noResults: RepositoryError.NoResults) =>
+        for {
+          account <- lift(queryOne(SelectByUserId, Seq[Any](userId)))
+          _ <- lift(cache.putCache[Account](cacheAccountKey(account.id))(account, ttl))
+          _ <- lift(cache.putCache[Account](cacheAccountUserKey(account.userId))(account, ttl))
+        } yield account
+      case -\/(error) => Future successful -\/(error)
+    }
   }
 
-  // TODO - add cache
+  // Can't use cache here for now
   def getByCustomerId(customerId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     queryOne(SelectByCustomerId, Seq[Any](customerId))
   }
 
-  // TODO - add cache
-  def insert(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
+  def insert(account: Account)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
-      account.id, 1, account.userId, account.status, account.customer, account.activeUntil
+      account.id, 1, account.userId, account.status, account.customer, account.trialStartedAt, account.activeUntil,
+      account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId
     )
 
-    queryOne(Insert, params)
+    for {
+      inserted <- lift(queryOne(Insert, params))
+      _ <- lift(cache.removeCached(cacheAccountKey(inserted.id)))
+      _ <- lift(cache.removeCached(cacheAccountUserKey(inserted.userId)))
+    } yield inserted
   }
 
-  // TODO - add cache
-  def update(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
+  def update(account: Account)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
-      account.version + 1, account.status, account.customer, account.activeUntil, account.id
+      account.version + 1, account.userId, account.status, account.customer, account.trialStartedAt,
+      account.activeUntil, account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId, account.id
     )
 
-    queryOne(Update, params)
+    for {
+      updated <- lift(queryOne(Update, params))
+      _ <- lift(cache.removeCached(cacheAccountKey(updated.id)))
+      _ <- lift(cache.removeCached(cacheAccountUserKey(updated.userId)))
+    } yield updated
+  }
+
+  def delete(userId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Account]] = {
+    for {
+      deleted <- lift(queryOne(Delete, Seq[Any](userId)))
+      _ <- lift(cache.removeCached(cacheAccountKey(deleted.id)))
+      _ <- lift(cache.removeCached(cacheAccountUserKey(deleted.userId)))
+    } yield deleted
   }
 }
 

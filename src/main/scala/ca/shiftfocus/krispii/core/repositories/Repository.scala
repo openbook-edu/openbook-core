@@ -18,6 +18,9 @@ trait Repository extends Lifting[RepositoryError.Fail] {
   def cacheUserKey(id: UUID): String = s"user[${id.toString}]"
   def cacheUsernameKey(username: String): String = s"userId[$username]"
 
+  def cacheAccountKey(id: UUID): String = s"account[${id.toString}]"
+  def cacheAccountUserKey(id: UUID): String = s"accountUser[${id.toString}]"
+
   def cacheRoleKey(id: UUID): String = s"role[${id.toString}]"
   def cacheRoleNameKey(name: String): String = s"roleId[$name]"
   def cacheRolesKey(userId: UUID): String = s"roles[${userId.toString}]"
@@ -49,4 +52,6 @@ trait Repository extends Lifting[RepositoryError.Fail] {
   def cacheExceptionKey(id: UUID): String = s"exception[${id.toString}]"
   def cacheExceptionsKey(courseId: UUID): String = s"exceptions[${courseId.toString}]"
   def cacheExceptionsKey(courseId: UUID, userId: UUID): String = s"exceptions[${courseId.toString},${userId.toString}]"
+
+  def cachePopularTagsKey(lang: String): String = s"popular_tags[${lang}]"
 }

@@ -23,10 +23,13 @@ class ProjectServiceDefault(
     val scalaCache: ScalaCachePool,
     val authService: AuthService,
     val schoolService: SchoolService,
+    val documentService: DocumentService,
     val courseRepository: CourseRepository,
     val projectRepository: ProjectRepository,
     val partRepository: PartRepository,
     val taskRepository: TaskRepository,
+    val workRepository: WorkRepository,
+    val projectTokenRepository: ProjectTokenRepository,
     val componentRepository: ComponentRepository
 ) extends ProjectService {
 
@@ -90,9 +93,18 @@ class ProjectServiceDefault(
     } yield projects.flatten
   }
 
-  def listProjectsByTags(tags: IndexedSeq[String]): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
-    projectRepository.listByTags(tags)
+  /**
+   * List projects by tags
+   *
+   * @param tags (tagName:String, tagLang:String)
+   * @param distinct Boolean If true each project should have all listed tags,
+   *                 if false project should have at least one listed tag
+   * @return
+   */
+  def listProjectsByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
+    projectRepository.listByTags(tags, distinct)
   }
+
   /**
    * Find a single project by slug.
    *
@@ -149,14 +161,45 @@ class ProjectServiceDefault(
     } yield components
   }
 
-  def insertTasks(tasks: IndexedSeq[Task], part: Part): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = {
+  /**
+   * We insert tasks that are inside part object. These function is used when we copy a project.
+   *
+   * @param parts
+   * @return
+   */
+  def insertTasks(parts: IndexedSeq[Part]): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = {
     transactional { implicit conn: Connection =>
-      for {
-        tasks <- lift(serializedT(tasks)(task => {
-          Logger.error(s" inserting task ${part.toString}")
-          taskRepository.insert(task)
-        }))
-      } yield tasks
+      {
+        val empty: Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = Future.successful(\/-(IndexedSeq.empty[Task]))
+        // Go threw every part and get all tasks
+        for {
+          allTasks <- lift(parts.foldLeft(empty) { (fAccumulated, part) =>
+            (for {
+              accumulated <- lift(fAccumulated)
+            } yield accumulated ++ part.tasks).run
+          })
+
+          documentTasks = allTasks.filter(task => task.isInstanceOf[DocumentTask]).map(task => task.asInstanceOf[DocumentTask])
+          noDependenciesTasks = documentTasks.filter(task => task.dependencyId.isEmpty)
+          dependenciesTasks = documentTasks.filter(task => !task.dependencyId.isEmpty)
+          // First we need to insert tasks without dependecies
+          _ <- lift(serializedT(noDependenciesTasks)(task => {
+            taskRepository.insert(task)
+          }).flatMap {
+            // After we can insert tasks with dependecies
+            case \/-(taskList) => {
+              serializedT(dependenciesTasks)(task => {
+                taskRepository.insert(task)
+              })
+            }
+            case -\/(error) => Future successful -\/(error)
+          })
+
+          otherTasks <- lift(serializedT(allTasks.filter(task => !task.isInstanceOf[DocumentTask]))(task => {
+            taskRepository.insert(task)
+          }))
+        } yield allTasks
+      }
     }
   }
 
@@ -181,32 +224,48 @@ class ProjectServiceDefault(
   }
 
   /**
-   * insert array of tasks in for
+   * If master then we should create new components with
    *
    * @param projectId
    * @param courseId
    * @param userId
    * @return
    */
-  override def copyMasterProject(projectId: UUID, courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]] = {
+  override def copyProject(projectId: UUID, courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
-
-      val futureProject = for {
+      for {
+        project <- lift(projectRepository.find(projectId))
+        // Project
         clonedProject <- lift(projectRepository.cloneProject(projectId, courseId))
         newProject <- lift(insertProject(clonedProject))
+        // Parts, tasks
         clonedParts <- lift(projectRepository.cloneProjectParts(projectId, userId, clonedProject.id))
-        clonedComponents <- lift(projectRepository.cloneProjectComponents(projectId, userId))
-        parts <- lift(insertParts(clonedParts))
-        components <- lift(insertComponents(clonedComponents))
-        partsWithAdditions <- lift(serializedT(clonedParts)(part => {
-          for {
-            tasks <- lift(insertTasks(part.tasks, part))
-            partComponents <- lift(insertPartsComponents(components, part))
-          } yield tasks
-        }))
+        _ <- lift(insertParts(clonedParts))
+        tasks <- lift(insertTasks(clonedParts))
+
+        _ <- lift {
+          // Insert master project components
+          if (project.isMaster) {
+            for {
+              clonedComponents <- lift(projectRepository.cloneProjectComponents(projectId, userId))
+              components <- lift(insertComponents(clonedComponents))
+              partsWithAdditions <- lift(serializedT(clonedParts)(part => {
+                // Get only components that are for the current part
+                val filteredComponents = components.filter(c => part.components.find(_.title == c.title).isDefined)
+                insertPartsComponents(filteredComponents, part)
+              }))
+            } yield components
+          }
+          // If we just copy a project
+          else {
+            // Link components with parts
+            serializedT(clonedParts)(part => {
+              insertPartsComponents(part.components, part)
+            })
+          }
+        }
         //we need to return the newProject not the clonedProject because the latter one doesn't have the updated slug
       } yield newProject.copy(parts = clonedParts)
-      futureProject
     }
   }
 
@@ -250,7 +309,8 @@ class ProjectServiceDefault(
    *
    * @param name The new name to give the project.
    * @param slug The new slug to give the project.
-   * @param parentId The id of the parent project, if the parent project is empty then the project is a master project.
+   * @param parentId The id of the parent project.
+   * @param parentVersion The version of the parent project.
    * @param description The new description for the project.
    * @return the updated project.
    */
@@ -262,6 +322,7 @@ class ProjectServiceDefault(
     longDescription: String,
     availability: String,
     parentId: Option[UUID] = None,
+    parentVersion: Option[Long] = None,
     isMaster: Boolean = false,
     enabled: Boolean = false,
     projectType: String
@@ -270,6 +331,7 @@ class ProjectServiceDefault(
     val newProject = Project(
       courseId = courseId,
       parentId = parentId,
+      parentVersion = parentVersion,
       name = name,
       slug = slug,
       enabled = enabled,
@@ -309,7 +371,8 @@ class ProjectServiceDefault(
     availability: Option[String],
     enabled: Option[Boolean],
     projectType: Option[String],
-    status: Option[String]
+    status: Option[String],
+    lastTaskId: Option[Option[UUID]]
   ): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
       for {
@@ -328,9 +391,24 @@ class ProjectServiceDefault(
             case Some(newStatus) if !newStatus.trim.isEmpty => Some(newStatus)
             case Some(newStatus) if newStatus.trim.isEmpty => None
             case None => existingProject.status
+          },
+          lastTaskId = lastTaskId match {
+            case Some(Some(lastTaskId)) => Some(lastTaskId)
+            case Some(None) => None
+            case None => existingProject.lastTaskId
           }
         )
         updatedProject <- lift(projectRepository.update(toUpdate))
+      } yield updatedProject
+    }
+  }
+
+  def setMaster(id: UUID, version: Long, isMaster: Boolean): Future[\/[ErrorUnion#Fail, Project]] = {
+    transactional { implicit conn: Connection =>
+      for {
+        existingProject <- lift(projectRepository.find(id))
+        _ <- predicate(existingProject.version == version)(ServiceError.OfflineLockFail)
+        updatedProject <- lift(projectRepository.update(existingProject.copy(isMaster = isMaster)))
       } yield updatedProject
     }
   }
@@ -399,8 +477,23 @@ class ProjectServiceDefault(
    * @param partId the id of the part
    * @return a vector of this project's parts
    */
-  override def findPart(partId: UUID, fetchParts: Boolean = true): Future[\/[ErrorUnion#Fail, Part]] = {
-    partRepository.find(partId, fetchParts)
+  override def findPart(partId: UUID, fetchTasks: Boolean = true): Future[\/[ErrorUnion#Fail, Part]] = {
+    partRepository.find(partId, fetchTasks)
+  }
+
+  /**
+   * Find a single part by its position within a project.
+   *
+   * @param projectId
+   * @param position
+   * @param fetchParts
+   * @return
+   */
+  override def findPartByPosition(projectId: UUID, position: Int, fetchParts: Boolean = true): Future[\/[ErrorUnion#Fail, Part]] = {
+    for {
+      project <- lift(projectRepository.find(projectId))
+      part <- lift(partRepository.find(project, position, fetchParts))
+    } yield part
   }
 
   /**
@@ -732,6 +825,23 @@ class ProjectServiceDefault(
   /**
    * Find a task by its ID.
    */
+  override def listTask(partId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = {
+    for {
+      part <- lift(partRepository.find(partId))
+      taskList <- lift(taskRepository.list(part))
+    } yield taskList
+  }
+
+  override def listTeacherTasks(teacherId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = {
+    for {
+      teacher <- lift(authService.find(teacherId))
+      taskList <- lift(taskRepository.list(teacher))
+    } yield taskList
+  }
+
+  /**
+   * Find a task by its ID.
+   */
   override def findTask(taskId: UUID): Future[\/[ErrorUnion#Fail, Task]] = {
     taskRepository.find(taskId)
   }
@@ -878,9 +988,6 @@ class ProjectServiceDefault(
               }
 
               val orderedTasks = updatedTasks.sortWith(_.position < _.position)
-              println("Going to re-order them thar tasks")
-              println(ntList.map({ task => s"Task(${task.settings.title}, ${task.position})" }).mkString(", "))
-              println(orderedTasks.map({ task => s"Task(${task.settings.title}, ${task.position})" }).mkString(", "))
               serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, taskList, _)).map {
                 case -\/(error) => -\/(error)
                 case \/-(tasks) => \/-(tasks.filter(_.id == taskId).head)
@@ -936,9 +1043,12 @@ class ProjectServiceDefault(
           settings = task.settings.copy(
             title = commonArgs.name.getOrElse(task.settings.title),
             description = commonArgs.description.getOrElse(task.settings.description),
+            instructions = commonArgs.instructions.getOrElse(task.settings.instructions),
+            tagline = commonArgs.tagline.getOrElse(task.settings.tagline),
             help = commonArgs.help.getOrElse(task.settings.help),
             notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
             hideResponse = commonArgs.hideResponse.getOrElse(task.settings.hideResponse),
+            allowGfile = commonArgs.allowGfile.getOrElse(task.settings.allowGfile),
             notesTitle = commonArgs.notesTitle match {
               case Some(Some(newNotesTitle)) => Some(newNotesTitle)
               case Some(None) => None
@@ -948,6 +1058,17 @@ class ProjectServiceDefault(
               case Some(Some(newResponseTitle)) => Some(newResponseTitle)
               case Some(None) => None
               case None => task.settings.responseTitle
+            },
+            mediaData = commonArgs.mediaData match {
+              case Some(Some(mediaData)) => Some(mediaData)
+              case Some(None) => None
+              case None => task.settings.mediaData
+            },
+            layout = commonArgs.layout.getOrElse(task.settings.layout),
+            parentId = commonArgs.parentId match {
+              case Some(Some(parentId)) => Some(parentId)
+              case Some(None) => None
+              case None => task.settings.parentId
             }
           ),
           dependencyId = dependencyId match {
@@ -985,8 +1106,11 @@ class ProjectServiceDefault(
             title = commonArgs.name.getOrElse(task.settings.title),
             help = commonArgs.help.getOrElse(task.settings.help),
             description = commonArgs.description.getOrElse(task.settings.description),
+            instructions = commonArgs.instructions.getOrElse(task.settings.instructions),
+            tagline = commonArgs.tagline.getOrElse(task.settings.tagline),
             notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
             hideResponse = commonArgs.hideResponse.getOrElse(task.settings.hideResponse),
+            allowGfile = commonArgs.allowGfile.getOrElse(task.settings.allowGfile),
             notesTitle = commonArgs.notesTitle match {
               case Some(Some(newNotesTitle)) => Some(newNotesTitle)
               case Some(None) => None
@@ -996,6 +1120,17 @@ class ProjectServiceDefault(
               case Some(Some(newResponseTitle)) => Some(newResponseTitle)
               case Some(None) => None
               case None => task.settings.responseTitle
+            },
+            mediaData = commonArgs.mediaData match {
+              case Some(Some(mediaData)) => Some(mediaData)
+              case Some(None) => None
+              case None => task.settings.mediaData
+            },
+            layout = commonArgs.layout.getOrElse(task.settings.layout),
+            parentId = commonArgs.parentId match {
+              case Some(Some(parentId)) => Some(parentId)
+              case Some(None) => None
+              case None => task.settings.parentId
             }
           ),
           questions = questions.getOrElse(questionTask.questions)
@@ -1024,9 +1159,12 @@ class ProjectServiceDefault(
           settings = task.settings.copy(
             title = commonArgs.name.getOrElse(task.settings.title),
             description = commonArgs.description.getOrElse(task.settings.description),
+            instructions = commonArgs.instructions.getOrElse(task.settings.instructions),
+            tagline = commonArgs.tagline.getOrElse(task.settings.tagline),
             help = commonArgs.help.getOrElse(task.settings.help),
             notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
             hideResponse = commonArgs.hideResponse.getOrElse(task.settings.hideResponse),
+            allowGfile = commonArgs.allowGfile.getOrElse(task.settings.allowGfile),
             notesTitle = commonArgs.notesTitle match {
               case Some(Some(newNotesTitle)) => Some(newNotesTitle)
               case Some(None) => None
@@ -1036,6 +1174,17 @@ class ProjectServiceDefault(
               case Some(Some(newResponseTitle)) => Some(newResponseTitle)
               case Some(None) => None
               case None => task.settings.responseTitle
+            },
+            mediaData = commonArgs.mediaData match {
+              case Some(Some(mediaData)) => Some(mediaData)
+              case Some(None) => None
+              case None => task.settings.mediaData
+            },
+            layout = commonArgs.layout.getOrElse(task.settings.layout),
+            parentId = commonArgs.parentId match {
+              case Some(Some(parentId)) => Some(parentId)
+              case Some(None) => None
+              case None => task.settings.parentId
             }
           ),
           mediaType = mediaType.getOrElse(mediaTask.mediaType)
@@ -1087,6 +1236,140 @@ class ProjectServiceDefault(
       project <- lift(find(projectSlug))
       hasProject <- lift(courseRepository.hasProject(user, project))
     } yield hasProject
+  }
+
+  /**
+   * Check if a task contains a student work
+   *
+   * - For document task we check if there is at least one revision
+   * - For media task we check if there is at least one file uploaded by a student
+   *
+   * @param taskId
+   * @return
+   */
+  override def hasTaskWork(taskId: UUID): Future[\/[ErrorUnion#Fail, Boolean]] = {
+    for {
+      task <- lift(findTask(taskId))
+      workList <- lift(workRepository.list(task))
+      // Get the list of works info
+      isEmptyList <- lift(task match {
+        case task: DocumentTask => {
+          val documentIds = workList.map {
+            case work: DocumentWork => Some(work.documentId)
+            case _ => None
+          }.flatten
+
+          // Check if all the document works have just an empty document without revisions
+          val empty: Future[\/[ErrorUnion#Fail, IndexedSeq[Boolean]]] = Future.successful(\/-(IndexedSeq.empty[Boolean]))
+          // Go threw every document id and check if there are any revisions
+          documentIds.foldLeft(empty) { (fAccumulated, nextItem) =>
+            (for {
+              accumulated <- lift(fAccumulated)
+              revisions <- lift(documentService.listRevisions(nextItem))
+              // If revisions list is not empty that means there is a student work
+            } yield accumulated :+ revisions.nonEmpty).run
+          }
+        }
+
+        case task: MediaTask => {
+          val resultList = workList.map {
+            case work: MediaWork => {
+              // Check if user has uploaded a file
+              if (work.fileData.fileName.isDefined) true
+              else false
+            }
+            case _ => false
+          }
+
+          Future successful \/-(resultList)
+        }
+
+        case _ => Future successful \/-(IndexedSeq(workList.isEmpty))
+      })
+      // If list contains true, that means at least one student work exists
+    } yield isEmptyList.contains(true)
+  }
+
+  /**
+   * Check if a part contains a student work
+   *
+   * - For document task we check if there is at least one revision
+   * - For media task we check if there is at least one file uploaded by a student
+   *
+   * @param partId
+   * @return
+   */
+  override def hasPartWork(partId: UUID): Future[\/[ErrorUnion#Fail, Boolean]] = {
+    for {
+      part <- lift(findPart(partId))
+
+      // Get the list of works info
+      taskEmptyList <- lift {
+        val empty: Future[\/[ErrorUnion#Fail, IndexedSeq[Boolean]]] = Future.successful(\/-(IndexedSeq.empty[Boolean]))
+
+        part.tasks.foldLeft(empty) { (fAccumulated, nextItem) =>
+          (for {
+            accumulated <- lift(fAccumulated)
+            workList <- lift(workRepository.list(nextItem))
+            workEmptyList <- lift {
+              nextItem match {
+                case task: DocumentTask => {
+                  val documentIds = workList.map {
+                    case work: DocumentWork => Some(work.documentId)
+                    case _ => None
+                  }.flatten
+
+                  // Check if all the document works have just an empty document without revisions
+                  val empty: Future[\/[ErrorUnion#Fail, IndexedSeq[Boolean]]] = Future.successful(\/-(IndexedSeq.empty[Boolean]))
+                  // Go threw every document id and check if there are any revisions
+                  documentIds.foldLeft(empty) { (fAccumulated, nextItem) =>
+                    (for {
+                      accumulated <- lift(fAccumulated)
+                      revisions <- lift(documentService.listRevisions(nextItem))
+                      // If revisions list is not empty that means there is a student work
+                    } yield accumulated :+ revisions.nonEmpty).run
+                  }
+                }
+
+                case task: MediaTask => {
+                  val resultList = workList.map {
+                    case work: MediaWork => {
+                      // Check if user has uploaded a file
+                      if (work.fileData.fileName.isDefined) true
+                      else false
+                    }
+                    case _ => false
+                  }
+
+                  Future successful \/-(resultList)
+                }
+
+                case _ => Future successful \/-(IndexedSeq(workList.isEmpty))
+              }
+            }
+          } yield accumulated :+ workEmptyList.contains(true)).run
+        }
+      }
+      // If list contains true, that means at least one student work exists
+    } yield taskEmptyList.contains(true)
+  }
+
+  def getToken(token: String): Future[\/[ErrorUnion#Fail, ProjectToken]] = {
+    projectTokenRepository.get(token)
+  }
+
+  def createToken(projectId: UUID, email: String): Future[\/[ErrorUnion#Fail, ProjectToken]] = {
+    projectTokenRepository.insert(ProjectToken(
+      projectId,
+      email
+    ))
+  }
+
+  def deleteToken(token: String): Future[\/[ErrorUnion#Fail, ProjectToken]] = {
+    for {
+      token <- lift(projectTokenRepository.get(token))
+      deletedToken <- lift(projectTokenRepository.delete(token))
+    } yield deletedToken
   }
 
   /**

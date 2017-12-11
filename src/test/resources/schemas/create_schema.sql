@@ -7,6 +7,7 @@ CREATE TABLE users (
   givenname text,
   surname text,
   account_type text,
+  alias text,
   created_at timestamp with time zone,
   updated_at timestamp with time zone,
   is_deleted boolean DEFAULT FALSE
@@ -98,6 +99,7 @@ CREATE TABLE projects (
   enabled boolean DEFAULT false,
   project_type text,
   status text,
+  parent_version bigint,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
@@ -160,6 +162,7 @@ CREATE TABLE tasks (
   part_id uuid NOT NULL REFERENCES parts(id) ON DELETE CASCADE,
   name text,
   description text,
+  instructions text,
   position int,
   task_type int,
   notes_allowed boolean DEFAULT true,
@@ -167,6 +170,9 @@ CREATE TABLE tasks (
   notes_title text,
   help_text text,
   max_grade text DEFAULT '0',
+  media_data jsonb,
+  hide_response boolean NOT NULL DEFAULT false,
+  allow_gfile boolean NOT NULL DEFAULT true,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
@@ -210,6 +216,7 @@ CREATE TABLE components (
   things_to_think_about text,
   type text,
   ord integer DEFAULT 0,
+  is_private boolean DEFAULT false,
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );
@@ -247,6 +254,11 @@ CREATE TABLE video_components (
 CREATE TABLE audio_components (
   component_id uuid PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
   audio_data jsonb
+);
+
+CREATE TABLE image_components (
+  component_id uuid PRIMARY KEY REFERENCES components(id) ON DELETE CASCADE,
+  image_data jsonb
 );
 
 CREATE TABLE book_components (
@@ -429,15 +441,92 @@ CREATE TABLE course_limit (
   PRIMARY KEY (course_id, type)
 );
 
-create table tags(name text, lang text, category text, frequency integer DEFAULT 0, PRIMARY KEY(name, lang));
-create table tag_categories(name text, lang text, PRIMARY KEY(name, lang));
+create table tag_categories(
+  id uuid UNIQUE,
+  version bigint,
+  name text,
+  lang text,
+  PRIMARY KEY(name, lang)
+);
+
+create table tags(
+  id uuid UNIQUE,
+  version bigint,
+  is_admin boolean DEFAULT false,
+  is_hidden boolean DEFAULT false,
+  name text,
+  lang text,
+  category_id uuid references tag_categories(id) ON DELETE CASCADE,
+  frequency integer DEFAULT 0,
+  PRIMARY KEY(name, lang)
+);
 
 CREATE INDEX trgm_tag_idx ON tags USING gist (name gist_trgm_ops);
 
 create table project_tags(
   project_id uuid references projects(id) ON DELETE CASCADE,
-  tag_name text,
-  PRIMARY KEY(project_id, tag_name));
+  tag_id uuid references tags(id) ON DELETE RESTRICT,
+  PRIMARY KEY(project_id, tag_id));
+
+CREATE TABLE user_tags (
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  tag_id uuid NOT NULL REFERENCES tags(id) ON DELETE RESTRICT,
+  PRIMARY KEY (user_id, tag_id)
+);
+
+CREATE TABLE accounts (
+    id uuid PRIMARY KEY,
+    version bigint,
+	  user_id uuid UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+	  status text,
+	  customer jsonb,
+	  active_until timestamp with time zone,
+	  overdue_started_at timestamp with time zone,
+	  overdue_ended_at timestamp with time zone,
+	  overdue_plan_id text
+);
+
+CREATE TABLE users_subscriptions (
+	  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+	  subscription jsonb
+);
+
+CREATE TABLE stripe_events (
+    id text PRIMARY KEY,
+    type text,
+	  event jsonb,
+	  created_at timestamp with time zone
+);
+
+CREATE TABLE plan_limit (
+  plan_id text,
+  type text,
+  limited integer,
+  PRIMARY KEY (plan_id, type)
+);
+
+CREATE TABLE gfiles (
+  id uuid PRIMARY KEY,
+  work_id uuid NOT NULL REFERENCES work(id) ON DELETE CASCADE,
+  file_id text NOT NULL,
+  mime_type text NOT NULL,
+  file_type text NOT NULL,
+  file_name text NOT NULL,
+  embed_url text NOT NULL,
+  url text NOT NULL,
+  created_at timestamp with time zone,
+  shared_email text,
+  UNIQUE (work_id, file_id)
+);
+
+CREATE TABLE payment_logs (
+  id uuid PRIMARY KEY,
+  user_id uuid REFERENCES users(id) ON DELETE CASCADE,
+  log_type text NOT NULL,
+  description text NOT NULL,
+  data text,
+  created_at timestamp with time zone
+);
 
 /* USER PREFERENCES */
 
@@ -458,6 +547,78 @@ CREATE TABLE users_preferences (
     state text,
     PRIMARY KEY (user_id, pref_id)
 );
+
+CREATE TABLE project_tokens (
+  project_id uuid NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  email text NOT NULL,
+  token text NOT NULL,
+  created_at timestamp with time zone
+);
+
+CREATE TABLE conversations (
+  id uuid PRIMARY KEY,
+  owner_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  version bigint,
+  title text,
+  shared boolean DEFAULT false,
+  entity_id uuid,
+  entity_type text,
+  created_at timestamp with time zone,
+  updated_at timestamp with time zone
+);
+
+CREATE TABLE messages (
+  id uuid PRIMARY KEY,
+  conversation_id uuid NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  user_id  uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  content text,
+  revision_id text,
+  revision_type text,
+  revision_version text,
+  created_at timestamp with time zone
+);
+
+CREATE TABLE users_conversations (
+  conversation_id uuid NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  last_access_at timestamp with time zone DEFAULT current_timestamp,
+  created_at timestamp with time zone
+);
+
+CREATE TABLE last_read_message (
+  conversation_id uuid NOT NULL REFERENCES conversations(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  message_id uuid NOT NULL REFERENCES messages(id) ON DELETE CASCADE,
+  read_at timestamp with time zone,
+  PRIMARY KEY (conversation_id, user_id)
+);
+
+CREATE TABLE organizations (
+  id uuid PRIMARY KEY,
+  version bigint NOT NULL,
+  title text NOT NULL,
+  admin_email text,
+  created_at timestamp with time zone NOT NULL,
+  updated_at timestamp with time zone NOT NULL
+);
+
+CREATE TABLE organization_limit (
+  organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  type text,
+  limited bigint,
+  PRIMARY KEY (organization_id, type)
+);
+
+CREATE TABLE organization_members (
+  organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  member_email text NOT NULL,
+  PRIMARY KEY (organization_id, member_email)
+);
+
+create table organization_tags(
+  organization_id uuid references organizations(id) ON DELETE CASCADE,
+  tag_id uuid references tags(id) ON DELETE RESTRICT,
+  PRIMARY KEY(organization_id, tag_id));
 
 CREATE OR REPLACE FUNCTION get_slug(_slug text, _table text, _id uuid) RETURNS text AS $$
 DECLARE

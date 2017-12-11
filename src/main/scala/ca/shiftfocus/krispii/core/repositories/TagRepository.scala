@@ -14,17 +14,21 @@ import scala.concurrent.Future
 import scalacache.ScalaCache
 import scalaz.{ \/, EitherT }
 
-/**
- * Created by vzaytseva on 31/05/16.
- */
 trait TagRepository extends Repository {
-  def create(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]]
-  def delete(tagName: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]]
-  def listByProjectId(projectId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]
-  def find(name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]]
-  def untag(projectId: UUID, tagName: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
-  def tag(projectId: UUID, tagName: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
-  def listByCategory(category: String, lang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]
-  def trigramSearch(key: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]
-  def update(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]]
+  def create(tag: Tag)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Tag]]
+  def delete(tag: Tag)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Tag]]
+  def listPopular(lang: String, limit: Int = 0, skipedCategories: IndexedSeq[String] = IndexedSeq.empty[String])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]
+  def listByEntity(entityId: UUID, entityType: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]
+  def listOrganizationalByEntity(entityId: UUID, entityType: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]
+  def listAdminByEntity(entityId: UUID, entityType: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]
+  def find(name: String, lang: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Tag]]
+  def find(tagId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Tag]]
+  def isOrganizational(tagName: String, tagLang: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Boolean]]
+  def untag(entityId: UUID, entityType: String, tagName: String, tagLang: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]]
+  def tag(entityId: UUID, entityType: String, tagName: String, tagLang: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]]
+  def listByCategory(category: String, lang: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]
+  def trigramSearch(key: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]
+  def trigramSearchAdmin(key: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]
+  def trigramSearchAdmin(key: String, userId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]]
+  def update(tag: Tag)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Tag]]
 }

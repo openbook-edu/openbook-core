@@ -36,6 +36,7 @@ scalacOptions in ThisBuild ++= Seq(
 )
 
 libraryDependencies ++= Seq(
+  "com.typesafe.play" % "play-ws_2.11" % "2.4.11",
   // We depend on several parts of the Play project
   "com.typesafe.play" %% "play-json" % "2.4.0",
   "com.typesafe.play" %% "play-jdbc-evolutions" % "2.4.0",
@@ -54,8 +55,9 @@ libraryDependencies ++= Seq(
   "ca.shiftfocus" %% "sflib" % "1.0.6",
   "junit" % "junit" % "4.12" % "test",
   "ws.kahn" %% "ot" % "1.0-SNAPSHOT",
-  "com.stripe" % "stripe-java" % "2.5.0",
-  "ws.kahn" %% "ot" % "1.0-SNAPSHOT",  "org.scalamock" % "scalamock-scalatest-support_2.11" % "3.2.2" % "test"
+  "com.stripe" % "stripe-java" % "3.3.0",
+  "ws.kahn" %% "ot" % "1.0-SNAPSHOT",
+  "org.scalamock" % "scalamock-scalatest-support_2.11" % "3.2.2" % "test"
 )
 
 addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % "0.1.12")

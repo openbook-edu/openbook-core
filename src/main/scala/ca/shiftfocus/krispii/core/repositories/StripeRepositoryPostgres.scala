@@ -40,6 +40,23 @@ class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[
        |UPDATE users_subscriptions
        |SET subscription = ?
        |WHERE user_id = ?
+       |  AND subscription::jsonb->>'id' = ?
+       |RETURNING subscription as data
+     """.stripMargin
+
+  val MoveSubscriptions =
+    s"""
+       |UPDATE users_subscriptions
+       |SET user_id = ?
+       |WHERE user_id = ?
+       |RETURNING subscription as data
+     """.stripMargin
+
+  val DeleteSubscription =
+    s"""
+       |DELETE FROM users_subscriptions
+       |WHERE user_id = ?
+       |  AND subscription::jsonb->>'id' = ?
        |RETURNING subscription as data
      """.stripMargin
 
@@ -71,8 +88,16 @@ class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[
     queryOne(InsertSubscription, Seq[Any](userId, subscription))
   }
 
-  def updateSubscription(userId: UUID, subscription: JsValue)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]] = {
-    queryOne(UpdateSubscription, Seq[Any](subscription, userId))
+  def updateSubscription(userId: UUID, subscriptionId: String, subscription: JsValue)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]] = {
+    queryOne(UpdateSubscription, Seq[Any](subscription, userId, subscriptionId))
+  }
+
+  def moveSubscriptions(oldUserId: UUID, newUserId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JsValue]]] = {
+    queryList(MoveSubscriptions, Seq[Any](newUserId, oldUserId))
+  }
+
+  def deleteSubscription(userId: UUID, subscriptionId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]] = {
+    queryOne(DeleteSubscription, Seq[Any](userId, subscriptionId))
   }
 
   // EVENTS

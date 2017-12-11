@@ -10,6 +10,8 @@ import scala.concurrent.Future
 import scalaz.\/
 
 trait UserPreferenceRepository extends Repository {
+  def get(userId: UUID, pref: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, UserPreference]]
   def list(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[UserPreference]]]
   def set(userPreference: UserPreference)(implicit conn: Connection): Future[\/[RepositoryError.Fail, UserPreference]]
+  def delete(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[UserPreference]]]
 }

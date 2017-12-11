@@ -26,6 +26,7 @@ class ComponentRepositoryPostgres()
   override def constructor(row: RowData): Component = {
     row("type").asInstanceOf[String] match {
       case "audio" => constructAudio(row)
+      case "image" => constructImage(row)
       case "text" => constructText(row)
       case "video" => constructVideo(row)
       case "generic_html" => constructGeneric(row)
@@ -44,6 +45,41 @@ class ComponentRepositoryPostgres()
       row("things_to_think_about").asInstanceOf[String],
       Json.parse(row("audio_data").asInstanceOf[String]).as[MediaData],
       row("ord").asInstanceOf[Int],
+      row("is_private").asInstanceOf[Boolean],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
+      row("created_at").asInstanceOf[DateTime],
+      row("updated_at").asInstanceOf[DateTime]
+    )
+  }
+
+  private def constructImage(row: RowData): ImageComponent = {
+    ImageComponent(
+      row("id").asInstanceOf[UUID],
+      row("version").asInstanceOf[Long],
+      row("owner_id").asInstanceOf[UUID],
+      row("title").asInstanceOf[String],
+      row("questions").asInstanceOf[String],
+      row("things_to_think_about").asInstanceOf[String],
+      Json.parse(row("image_data").asInstanceOf[String]).as[MediaData],
+      row("ord").asInstanceOf[Int],
+      row("is_private").asInstanceOf[Boolean],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -58,7 +94,17 @@ class ComponentRepositoryPostgres()
       row("questions").asInstanceOf[String],
       row("things_to_think_about").asInstanceOf[String],
       row("ord").asInstanceOf[Int],
+      row("is_private").asInstanceOf[Boolean],
       row("html_content").asInstanceOf[String],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -73,7 +119,17 @@ class ComponentRepositoryPostgres()
       row("questions").asInstanceOf[String],
       row("things_to_think_about").asInstanceOf[String],
       row("ord").asInstanceOf[Int],
+      row("is_private").asInstanceOf[Boolean],
       row("rubric_content").asInstanceOf[String],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -89,6 +145,16 @@ class ComponentRepositoryPostgres()
       row("things_to_think_about").asInstanceOf[String],
       row("content").asInstanceOf[String],
       row("ord").asInstanceOf[Int],
+      row("is_private").asInstanceOf[Boolean],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -106,6 +172,16 @@ class ComponentRepositoryPostgres()
       row("width").asInstanceOf[Int],
       row("height").asInstanceOf[Int],
       row("ord").asInstanceOf[Int],
+      row("is_private").asInstanceOf[Boolean],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -121,6 +197,16 @@ class ComponentRepositoryPostgres()
       row("things_to_think_about").asInstanceOf[String],
       Json.parse(row("file_data").asInstanceOf[String]).as[MediaData],
       row("ord").asInstanceOf[Int],
+      row("is_private").asInstanceOf[Boolean],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -129,7 +215,7 @@ class ComponentRepositoryPostgres()
   // -- Common query components --------------------------------------------------------------------------------------
 
   val Table = "components"
-  val CommonFields = "id, version, owner_id, title, questions, things_to_think_about, ord, created_at, updated_at, type"
+  val CommonFields = "id, version, owner_id, title, questions, things_to_think_about, ord, is_private, description, parent_id, parent_version, created_at, updated_at, type"
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
   }
@@ -142,10 +228,11 @@ class ComponentRepositoryPostgres()
        |  video_components.video_data,
        |  video_components.width,
        |  video_components.height,
-       |  audio_components.audio_data
+       |  audio_components.audio_data,
+       |  image_components.image_data
      """.stripMargin
 
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val GroupBy = s"${Table}.id"
   val OrderBy = s"${Table}.ord ASC"
   val Join =
@@ -156,6 +243,7 @@ class ComponentRepositoryPostgres()
       |LEFT JOIN  book_components ON $Table.id = book_components.component_id
       |LEFT JOIN  video_components ON $Table.id = video_components.component_id
       |LEFT JOIN  audio_components ON $Table.id = audio_components.component_id
+      |LEFT JOIN  image_components ON $Table.id = image_components.component_id
      """.stripMargin
 
   // -- Select queries -----------------------------------------------------------------------------------------------
@@ -166,6 +254,22 @@ class ComponentRepositoryPostgres()
       |FROM $Table
       |$Join
       |ORDER BY $OrderBy
+  """.stripMargin
+
+  def SelectMasterLimit(limit: String, offset: Int) =
+    s"""
+      |SELECT * FROM
+        |(SELECT distinct on ($Table.id) ${CommonFieldsWithTable(Table)}, $SpecificFields
+        |FROM $Table
+        |$Join
+        |INNER JOIN  parts_components ON $Table.id = parts_components.component_id
+        |INNER JOIN  parts ON parts.id = parts_components.part_id
+        |INNER JOIN  projects ON projects.id = parts.project_id
+        | AND projects.is_master = true
+        | AND projects.enabled = true
+        |ORDER BY $Table.id) AS mc
+      |ORDER BY mc.title
+      |LIMIT $limit OFFSET $offset
   """.stripMargin
 
   val SelectOne =
@@ -197,7 +301,6 @@ class ComponentRepositoryPostgres()
       |INNER JOIN parts
       | ON parts_components.part_id = parts.id
       | AND parts.project_id = ?
-      |GROUP BY $GroupBy, $SpecificFields
       |ORDER BY $OrderBy
   """.stripMargin
 
@@ -257,6 +360,17 @@ class ComponentRepositoryPostgres()
       |           RETURNING audio_data)
       |SELECT ${CommonFieldsWithTable("c")}, a.audio_data
       |FROM c, a
+  """.stripMargin
+
+  val InsertImage =
+    s"""
+      |WITH c AS ($Insert),
+      |     i AS (INSERT INTO image_components (component_id, image_data)
+      |           SELECT id as component_id, ? as image_data
+      |           FROM c
+      |           RETURNING image_data)
+      |SELECT ${CommonFieldsWithTable("c")}, i.image_data
+      |FROM c, i
   """.stripMargin
 
   val InsertText =
@@ -322,6 +436,8 @@ class ComponentRepositoryPostgres()
       |SET version = ?, owner_id = ?,
       |    title = ?, questions = ?,
       |    things_to_think_about = ?, ord = ?,
+      |    is_private = ?, description = ?,
+      |    parent_id = ?, parent_version = ?,
       |    updated_at = ?
       |WHERE id = ?
       |  AND version = ?
@@ -394,6 +510,17 @@ class ComponentRepositoryPostgres()
       |          a.audio_data
     """.stripMargin
 
+  val UpdateImage =
+    s"""
+      |WITH component AS ($Update)
+      |UPDATE image_components as i
+      |SET image_data = ?
+      |FROM component
+      |WHERE component_id = component.id
+      |RETURNING $CommonFields,
+      |          i.image_data
+    """.stripMargin
+
   // -- Delete queries -----------------------------------------------------------------------------------------------
 
   val RemoveFromPart =
@@ -414,6 +541,7 @@ class ComponentRepositoryPostgres()
       |DELETE FROM $Table
       |USING
       | audio_components,
+      | image_components,
       | text_components,
       | video_components,
       | generic_html_components,
@@ -433,6 +561,18 @@ class ComponentRepositoryPostgres()
    */
   override def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     queryList(SelectAll)
+  }
+
+  /**
+   * Select limited from master projects
+   */
+  override def listMasterLimit(limit: Int = 0, offset: Int = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+    val queryLimit = {
+      if (limit == 0) "ALL"
+      else limit.toString
+    }
+
+    queryList(SelectMasterLimit(queryLimit, offset))
   }
 
   /**
@@ -558,6 +698,10 @@ class ComponentRepositoryPostgres()
       component.questions,
       component.thingsToThinkAbout,
       component.order,
+      component.isPrivate,
+      component.description,
+      component.parentId,
+      component.parentVersion,
       new DateTime,
       new DateTime
     )
@@ -586,6 +730,10 @@ class ComponentRepositoryPostgres()
         Component.Audio,
         Json.toJson(audioComponent.mediaData)
       )
+      case imageComponent: ImageComponent => commonData ++ Array[Any](
+        Component.Image,
+        Json.toJson(imageComponent.mediaData)
+      )
       case bookComponent: BookComponent => commonData ++ Array[Any](
         Component.Book,
         Json.toJson(bookComponent.mediaData)
@@ -599,6 +747,7 @@ class ComponentRepositoryPostgres()
       case rubricComponent: RubricComponent => InsertRubric
       case videoComponent: VideoComponent => InsertVideo
       case audioComponent: AudioComponent => InsertAudio
+      case imageComponent: ImageComponent => InsertImage
       case bookComponent: BookComponent => InsertBook
     }
 
@@ -621,6 +770,10 @@ class ComponentRepositoryPostgres()
       component.questions,
       component.thingsToThinkAbout,
       component.order,
+      component.isPrivate,
+      component.description,
+      component.parentId,
+      component.parentVersion,
       new DateTime,
       component.id,
       component.version
@@ -645,6 +798,9 @@ class ComponentRepositoryPostgres()
       case audioComponent: AudioComponent => commonData ++ Array[Any](
         Json.toJson(audioComponent.mediaData)
       )
+      case imageComponent: ImageComponent => commonData ++ Array[Any](
+        Json.toJson(imageComponent.mediaData)
+      )
       case bookComponent: BookComponent => commonData ++ Array[Any](
         Json.toJson(bookComponent.mediaData)
       )
@@ -657,6 +813,7 @@ class ComponentRepositoryPostgres()
       case rubricComponent: RubricComponent => UpdateRubric
       case videoComponent: VideoComponent => UpdateVideo
       case audioComponent: AudioComponent => UpdateAudio
+      case imageComponent: ImageComponent => UpdateImage
       case bookComponent: BookComponent => UpdateBook
     }
 

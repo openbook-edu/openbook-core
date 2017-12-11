@@ -2,11 +2,16 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.lib.concurrent.FutureMonad
-import ca.shiftfocus.krispii.core.repositories.{ ChatRepository, UserRepository, CourseRepository }
+import ca.shiftfocus.krispii.core.repositories.{ ChatRepository, CourseRepository, UserRepository }
 import java.util.UUID
+
 import ca.shiftfocus.krispii.core.models._
+
 import scala.concurrent.Future
-import java.awt.Color // scalastyle:ignore
+import java.awt.Color
+
+import com.github.mauricio.async.db.Connection
+import org.joda.time.DateTime
 
 import scalaz.\/
 
@@ -33,7 +38,10 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
     slug: Option[String],
     color: Option[Color],
     enabled: Option[Boolean],
+    archived: Option[Boolean],
     schedulingEnabled: Option[Boolean],
+    theaterMode: Option[Boolean],
+    lastProjectId: Option[Option[UUID]],
     chatEnabled: Option[Boolean]
   ): Future[\/[ErrorUnion#Fail, Course]]
   def deleteCourse(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Course]]
@@ -70,20 +78,40 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
   def findLinkByCourse(courseId: UUID): Future[\/[ErrorUnion#Fail, Link]]
   def deleteLink(courseId: UUID): Future[\/[ErrorUnion#Fail, Link]]
 
+  // Teacher
   def getCourseLimit(teacherId: UUID): Future[\/[ErrorUnion#Fail, Int]]
-  def getPlanCourseLimit(planId: String): Future[\/[ErrorUnion#Fail, Int]]
-  def getStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Int]]
-  def getPlanStudentLimit(planId: String): Future[\/[ErrorUnion#Fail, Int]]
-
-  def getStorageLimit(teacherId: UUID): Future[\/[ErrorUnion#Fail, Float]]
-  def getPlanStorageLimit(plantId: String): Future[\/[ErrorUnion#Fail, Float]]
   def getStorageUsed(teacherId: UUID): Future[\/[ErrorUnion#Fail, Float]]
+  def getStorageLimit(teacherId: UUID): Future[\/[ErrorUnion#Fail, Float]]
+  def getTeacherStudentLimit(teacherId: UUID): Future[\/[ErrorUnion#Fail, Int]]
 
   def setCourseLimit(teacherId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
   def setStorageLimit(teacherId: UUID, limit: Float): Future[\/[ErrorUnion#Fail, Float]]
-  def setStudentLimit(courseId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
+  def setTeacherStudentLimit(teacherId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
+
+  // Course
+  def getCourseStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Int]]
+  def setCourseStudentLimit(courseId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
+  def deleteCourseStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Unit]]
+
+  // Plan
+  def getPlanStudentLimit(planId: String): Future[\/[ErrorUnion#Fail, Int]]
+  def getPlanCourseLimit(planId: String): Future[\/[ErrorUnion#Fail, Int]]
+  def getPlanStorageLimit(plantId: String): Future[\/[ErrorUnion#Fail, Float]]
 
   def setPlanStorageLimit(palnId: String, limitValue: Float): Future[\/[ErrorUnion#Fail, Float]]
   def setPlanCourseLimit(palnId: String, limitValue: Int): Future[\/[ErrorUnion#Fail, Int]]
   def setPlanStudentLimit(palnId: String, limitValue: Int): Future[\/[ErrorUnion#Fail, Int]]
+
+  // Organization
+  def getOrganizationStudentLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, Int]]
+  def getOrganizationCourseLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, Int]]
+  def getOrganizationStorageLimit(organizationtId: UUID): Future[\/[ErrorUnion#Fail, Float]]
+  def getOrganizationDateLimit(organizationtId: UUID): Future[\/[ErrorUnion#Fail, DateTime]]
+  def getOrganizationMemberLimit(organizationtId: UUID): Future[\/[ErrorUnion#Fail, Int]]
+
+  def setOrganizationStorageLimit(organizationId: UUID, limit: Float): Future[\/[ErrorUnion#Fail, Float]]
+  def setOrganizationCourseLimit(organizationId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
+  def setOrganizationStudentLimit(organizationId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
+  def setOrganizationDateLimit(organizationId: UUID, limit: DateTime): Future[\/[ErrorUnion#Fail, DateTime]]
+  def setOrganizationMemberLimit(organizationtId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
 }

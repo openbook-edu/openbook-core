@@ -14,6 +14,10 @@ abstract class Component {
   val questions: String
   val thingsToThinkAbout: String
   val order: Int
+  val isPrivate: Boolean
+  val description: String
+  val parentId: Option[UUID]
+  val parentVersion: Option[Long]
   val createdAt: DateTime
   val updatedAt: DateTime
 }
@@ -21,6 +25,7 @@ abstract class Component {
 object Component {
 
   val Audio = "audio"
+  val Image = "image"
   val Text = "text"
   val Video = "video"
   val GenericHTML = "generic_html"
@@ -39,6 +44,26 @@ object Component {
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
           mediaData = (js \ "audio_data").as[MediaData],
           order = (js \ "order").as[Int],
+          isPrivate = (js \ "isPrivate").as[Boolean],
+          description = (js \ "description").as[String],
+          parentId = Option((js \ "parentId").as[UUID]),
+          parentVersion = Option((js \ "parentVersion").as[Long]),
+          createdAt = (js \ "createdAt").as[DateTime],
+          updatedAt = (js \ "updatedAt").as[DateTime]
+        )
+        case Component.Image => ImageComponent(
+          id = (js \ "id").as[UUID],
+          version = (js \ "version").as[Long],
+          ownerId = (js \ "ownerId").as[UUID],
+          title = (js \ "title").as[String],
+          questions = (js \ "questions").as[String],
+          thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
+          mediaData = (js \ "image_data").as[MediaData],
+          order = (js \ "order").as[Int],
+          isPrivate = (js \ "isPrivate").as[Boolean],
+          description = (js \ "description").as[String],
+          parentId = Option((js \ "parentId").as[UUID]),
+          parentVersion = Option((js \ "parentVersion").as[Long]),
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
@@ -51,6 +76,10 @@ object Component {
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
           content = (js \ "content").as[String],
           order = (js \ "order").as[Int],
+          isPrivate = (js \ "isPrivate").as[Boolean],
+          description = (js \ "description").as[String],
+          parentId = Option((js \ "parentId").as[UUID]),
+          parentVersion = Option((js \ "parentVersion").as[Long]),
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
@@ -63,6 +92,10 @@ object Component {
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
           htmlContent = (js \ "content").as[String],
           order = (js \ "order").as[Int],
+          isPrivate = (js \ "isPrivate").as[Boolean],
+          description = (js \ "description").as[String],
+          parentId = Option((js \ "parentId").as[UUID]),
+          parentVersion = Option((js \ "parentVersion").as[Long]),
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
@@ -75,6 +108,10 @@ object Component {
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
           rubricContent = (js \ "content").as[String],
           order = (js \ "order").as[Int],
+          isPrivate = (js \ "isPrivate").as[Boolean],
+          description = (js \ "description").as[String],
+          parentId = Option((js \ "parentId").as[UUID]),
+          parentVersion = Option((js \ "parentVersion").as[Long]),
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
@@ -87,6 +124,10 @@ object Component {
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
           mediaData = (js \ "file_data").as[MediaData],
           order = (js \ "order").as[Int],
+          isPrivate = (js \ "isPrivate").as[Boolean],
+          description = (js \ "description").as[String],
+          parentId = Option((js \ "parentId").as[UUID]),
+          parentVersion = Option((js \ "parentVersion").as[Long]),
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
@@ -101,6 +142,10 @@ object Component {
           width = (js \ "width").as[Int],
           height = (js \ "height").as[Int],
           order = (js \ "order").as[Int],
+          isPrivate = (js \ "isPrivate").as[Boolean],
+          description = (js \ "description").as[String],
+          parentId = Option((js \ "parentId").as[UUID]),
+          parentVersion = Option((js \ "parentVersion").as[Long]),
           createdAt = (js \ "createdAt").as[DateTime],
           updatedAt = (js \ "updatedAt").as[DateTime]
         )
@@ -115,6 +160,9 @@ object Component {
       ))
       case component: AudioComponent => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
         "type" -> Component.Audio
+      ))
+      case component: ImageComponent => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
+        "type" -> Component.Image
       ))
       case component: TextComponent => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
         "type" -> Component.Text
@@ -136,9 +184,12 @@ case class MediaData(
     host: Option[String] = None,
     data: Option[String] = None,
     dataType: Option[String] = None,
+    serverFileName: Option[String] = None,
     // We store the size of a file in Bytes
     size: Option[Long] = None,
-    isPublic: Option[Boolean] = None
+    isPublic: Option[Boolean] = None,
+    thumbName: Option[String] = None,
+    thumbSize: Option[Long] = None
 ) {
   override def equals(anotherObject: Any): Boolean = {
     anotherObject match {
@@ -146,8 +197,11 @@ case class MediaData(
         this.host == anotherMediaData.host &&
           this.data == anotherMediaData.data &&
           this.dataType == anotherMediaData.dataType &&
+          this.serverFileName == anotherMediaData.serverFileName &&
           this.size == anotherMediaData.size &&
-          this.isPublic == anotherMediaData.isPublic
+          this.isPublic == anotherMediaData.isPublic &&
+          this.thumbName == anotherMediaData.thumbName &&
+          this.thumbSize == anotherMediaData.thumbSize
       }
       case _ => false
     }
@@ -162,8 +216,11 @@ object MediaData {
           (json \ "host").asOpt[String],
           (json \ "data").asOpt[String],
           (json \ "dataType").asOpt[String],
+          (json \ "serverFileName").asOpt[String],
           (json \ "size").asOpt[Long],
-          (json \ "isPublic").asOpt[Boolean]
+          (json \ "isPublic").asOpt[Boolean],
+          (json \ "thumbName").asOpt[String],
+          (json \ "thumbSize").asOpt[Long]
         )
       )
     }
@@ -174,8 +231,11 @@ object MediaData {
         "host" -> mediaData.host,
         "data" -> mediaData.data,
         "dataType" -> mediaData.dataType,
+        "serverFileName" -> mediaData.serverFileName,
         "size" -> mediaData.size,
-        "isPublic" -> mediaData.isPublic
+        "isPublic" -> mediaData.isPublic,
+        "thumbName" -> mediaData.thumbName,
+        "thumbSize" -> mediaData.thumbSize
       )
     }
   }

@@ -15,6 +15,7 @@ case class Project(
     id: UUID = UUID.randomUUID,
     courseId: UUID,
     parentId: Option[UUID] = None,
+    parentVersion: Option[Long] = None,
     isMaster: Boolean = false,
     version: Long = 1L,
     name: String,
@@ -27,6 +28,7 @@ case class Project(
     parts: IndexedSeq[Part],
     tags: IndexedSeq[Tag] = IndexedSeq(),
     status: Option[String] = None,
+    lastTaskId: Option[UUID] = None,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) {
@@ -49,6 +51,19 @@ case class Project(
       case _ => false
     }
   }
+
+  /**
+   * Check if project object contains at least one task
+   *
+   * @return
+   */
+  def isProjectEmpty: Boolean = {
+    this.parts.map { part =>
+      if (part.tasks.nonEmpty) return false;
+    }
+
+    return true;
+  }
 }
 
 object Project {
@@ -69,6 +84,7 @@ object Project {
     (__ \ "id").write[UUID] and
     (__ \ "courseId").write[UUID] and
     (__ \ "parentId").writeNullable[UUID] and
+    (__ \ "parentVersion").writeNullable[Long] and
     (__ \ "isMaster").write[Boolean] and
     (__ \ "version").write[Long] and
     (__ \ "name").write[String] and
@@ -81,6 +97,7 @@ object Project {
     (__ \ "parts").write[IndexedSeq[Part]] and
     (__ \ "tags").write[IndexedSeq[Tag]] and
     (__ \ "status").write[Option[String]] and
+    (__ \ "lastTaskId").write[Option[UUID]] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Project.unapply))

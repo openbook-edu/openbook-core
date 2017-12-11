@@ -15,10 +15,13 @@ case class Course(
   color: Color,
   slug: String,
   enabled: Boolean = true,
+  archived: Boolean = false,
   deleted: Boolean = false,
   chatEnabled: Boolean = true,
   schedulingEnabled: Boolean = false,
   projects: Option[IndexedSeq[Project]] = None,
+  theaterMode: Boolean = false,
+  lastProjectId: Option[UUID] = None,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 )
@@ -56,10 +59,13 @@ object Course {
     (__ \ "color").write[Color] and
     (__ \ "slug").write[String] and
     (__ \ "enabled").write[Boolean] and
+    (__ \ "archived").write[Boolean] and
     (__ \ "deleted").write[Boolean] and
     (__ \ "chatEnabled").write[Boolean] and
     (__ \ "schedulingEnabled").write[Boolean] and
     (__ \ "projects").writeNullable[IndexedSeq[Project]] and
+    (__ \ "theaterMode").write[Boolean] and
+    (__ \ "lastProjectId").writeNullable[UUID] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Course.unapply))
@@ -89,6 +95,7 @@ case class CoursePut(
   color: Option[Color],
   slug: Option[String],
   enabled: Option[Boolean],
+  archived: Option[Boolean],
   deleted: Option[Boolean],
   chatEnabled: Option[Boolean],
   schedulingEnabled: Option[Boolean]
@@ -102,6 +109,7 @@ object CoursePut {
     (__ \ "color").readNullable[Color] and
     (__ \ "slug").readNullable[String] and
     (__ \ "enabled").readNullable[Boolean] and
+    (__ \ "archived").readNullable[Boolean] and
     (__ \ "deleted").readNullable[Boolean] and
     (__ \ "chatEnabled").readNullable[Boolean] and
     (__ \ "schedulingEnabled").readNullable[Boolean]

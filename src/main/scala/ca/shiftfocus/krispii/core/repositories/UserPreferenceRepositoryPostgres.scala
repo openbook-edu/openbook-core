@@ -31,6 +31,16 @@ class UserPreferenceRepositoryPostgres extends UserPreferenceRepository with Pos
        |JOIN preferences p
        |  ON p.id = pref_id
        |WHERE user_id = ?
+       |  AND p.machine_name = ?
+     """.stripMargin
+
+  val SelectAllByUser =
+    s"""
+       |SELECT $Fields, machine_name
+       |FROM $Table
+       |JOIN preferences p
+       |  ON p.id = pref_id
+       |WHERE user_id = ?
      """.stripMargin
 
   val Update = {
@@ -69,8 +79,22 @@ class UserPreferenceRepositoryPostgres extends UserPreferenceRepository with Pos
      """.stripMargin
   }
 
+  val DeleteAllForUser =
+    s"""
+       |DELETE FROM $Table
+       |USING
+       |  preferences
+       |WHERE user_id = ?
+       | AND preferences.id = $Table.pref_id
+       |RETURNING $Fields, machine_name
+     """.stripMargin
+
+  def get(userId: UUID, pref: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, UserPreference]] = {
+    queryOne(SelectByUser, Seq[Any](userId, pref))
+  }
+
   def list(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[UserPreference]]] = {
-    queryList(SelectByUser, Seq[Any](userId))
+    queryList(SelectAllByUser, Seq[Any](userId))
   }
 
   // Upsert for user preferences. If preference name or preference allowed value don't exist then NoResults will be returned
@@ -84,5 +108,16 @@ class UserPreferenceRepositoryPostgres extends UserPreferenceRepository with Pos
       }
       case -\/(error) => Future successful -\/(error)
     }
+  }
+
+  /**
+   * Delete all for a user
+   *
+   * @param userId
+   * @param conn
+   * @return
+   */
+  def delete(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[UserPreference]]] = {
+    queryList(DeleteAllForUser, Seq[Any](userId))
   }
 }

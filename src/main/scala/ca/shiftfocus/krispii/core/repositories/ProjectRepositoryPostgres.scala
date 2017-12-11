@@ -3,13 +3,14 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models
-import ca.shiftfocus.krispii.core.models.tasks.{ QuestionTask, DocumentTask, Task }
-import com.github.mauricio.async.db.{ RowData, Connection }
+import ca.shiftfocus.krispii.core.models.tasks.{ DocumentTask, MediaTask, QuestionTask, Task }
+import com.github.mauricio.async.db.{ Connection, RowData }
 import play.api.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
+
 import scala.concurrent.Future
 import org.joda.time.DateTime
 
@@ -28,6 +29,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
       row("id").asInstanceOf[UUID],
       row("course_id").asInstanceOf[UUID],
       Option(row("parent_id")).map(_.asInstanceOf[UUID]),
+      Option(row("parent_version")).map(_.asInstanceOf[Long]),
       row("is_master").asInstanceOf[Boolean],
       row("version").asInstanceOf[Long],
       row("name").asInstanceOf[String],
@@ -43,6 +45,10 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
         case Some(status) => Some(status)
         case _ => None
       },
+      Option(row("last_task_id").asInstanceOf[UUID]) match {
+        case Some(lastTaskId) => Some(lastTaskId)
+        case _ => None
+      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -51,9 +57,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   val Table = "projects"
   val ProjectsTagsTable = "project_tags"
   val TagsTable = "tags"
-  val Fields = "id, version, course_id, name, slug, parent_id, is_master, description, long_description, availability, enabled, project_type, status, created_at, updated_at"
+  val Fields = "id, version, course_id, name, slug, parent_id, parent_version, is_master, description, long_description, availability, enabled, project_type, status, last_task_id, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.created_at DESC"
 
   // User CRUD operations
@@ -96,41 +101,46 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
        |WHERE slug = ?
      """.stripMargin
 
-  def SelectByTags(tags: IndexedSeq[String]): String = {
-    var inClause = ""
+  def SelectByTags(tags: IndexedSeq[(String, String)], distinct: Boolean): String = {
+    var whereClause = ""
+    var distinctClause = ""
     val length = tags.length
 
-    Logger.debug("staring zipping: " + length)
     tags.zipWithIndex.map {
-      case (current, index) =>
-        inClause += s"""'$current'"""
-        Logger.debug(inClause)
-        if (index != (length - 1)) inClause += ", "
+      case ((tagName, tagLang), index) =>
+        whereClause += s"""(tags.name='${tagName}' AND tags.lang='${tagLang}')"""
+        if (index != (length - 1)) whereClause += " OR "
     }
-    Logger.debug(inClause)
-    s"""
-       |SELECT *
-       |FROM projects
-       |WHERE id IN (
-       |    SELECT project_id
-       |    FROM project_tags
-       |    WHERE tag_name in ($inClause)
-       |    GROUP BY project_id
-       |    HAVING COUNT(DISTINCT tag_name) = $length
-       |) AND is_master = true
 
+    if (whereClause != "") {
+      whereClause = "WHERE " + whereClause
+    }
+    // If tagList is empty, then there should be unexisting condition
+    else {
+      whereClause = "WHERE false != false"
+    }
+
+    if (distinct) {
+      distinctClause = s"HAVING COUNT(DISTINCT tags.name) = $length"
+    }
+
+    def query(whereClause: String) =
+      s"""
+         SELECT *
+         |FROM projects
+         |WHERE id IN (
+         |    SELECT project_id
+         |    FROM project_tags
+         |    LEFT JOIN tags
+         |      ON project_tags.tag_id = tags.id
+         |    ${whereClause}
+         |    GROUP BY project_id
+         |    ${distinctClause}
+         |) AND is_master = true
+         |GROUP BY $Table.id
     """.stripMargin
-    //    s"""
-    //       SELECT p.* from projects p INNER JOIN
-    //       (
-    //         SELECT project_id
-    //         FROM project_tags
-    //         WHERE tag_name in ($inClause)
-    //         GROUP BY project_id
-    //         HAVING COUNT(DISTINCT tag_name) = $length
-    //       ) t ON p.id = t.project_id
-    //
-    //    """
+
+    query(whereClause)
   }
 
   val ListByCourse =
@@ -156,7 +166,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   val Insert =
     s"""
       |INSERT INTO $Table ($Fields)
-      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      |VALUES (?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       |RETURNING $Fields
     """.stripMargin
 
@@ -164,7 +174,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   val Update =
     s"""
       |UPDATE $Table
-      |SET course_id = ?, name = ?, parent_id = ?, is_master = ?, slug = get_slug(?, '$Table', ?), description = ?, long_description = ?, availability = ?, enabled = ?, project_type = ?, status = ?, version = ?, updated_at = ?
+      |SET course_id = ?, name = ?, parent_id = ?, parent_version = ?, is_master = ?, slug = get_slug(?, '$Table', ?), description = ?, long_description = ?, availability = ?, enabled = ?, project_type = ?, status = ?, last_task_id = ?, version = ?, updated_at = ?
       |WHERE id = ?
       |  AND version = ?
       |RETURNING $Fields
@@ -202,23 +212,23 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
     } yield result).run
   }
 
-  override def listByTags(tags: IndexedSeq[String])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
-    val select = SelectByTags(tags)
+  /**
+   * List projects by tags
+   *
+   * @param tags (tagName:String, tagLang:String)
+   * @param distinct Boolean If true each project should have all listed tags,
+   *                 if false project should have at least one listed tag
+   * @return
+   */
+  override def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+    val select = SelectByTags(tags, distinct)
     (for {
       projectList <- lift(queryList(select))
-      _ = Logger.debug(projectList.toString)
       result <- liftSeq {
         projectList.map { project =>
           (for {
-            partList <- {
-              lift(partRepository.list(project))
-            }
-            _ = println(Console.GREEN + "---------------" + Console.RESET)
-            _ = println(Console.GREEN + project.name + Console.RESET)
-            _ = println(Console.GREEN + partList + Console.RESET)
-            tagList <- {
-              lift(tagRepository.listByProjectId(project.id))
-            }
+            partList <- lift(partRepository.list(project))
+            tagList <- lift(tagRepository.listByEntity(project.id, TaggableEntities.project))
             result = project.copy(parts = partList, tags = tagList)
           } yield result).run
         }
@@ -238,11 +248,10 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   override def cloneProject(projectId: UUID, courseId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
       project <- lift(find(projectId))
-      _ = Logger.debug("old project")
-      _ = Logger.debug(project.toString)
-      newProject = project.copy(id = UUID.randomUUID(), isMaster = false, courseId = courseId, parentId = Some(project.id), enabled = true)
-      _ = Logger.debug("new project")
-      _ = Logger.debug(newProject.toString)
+      newProject = {
+        if (project.isMaster) project.copy(id = UUID.randomUUID(), isMaster = false, courseId = courseId, parentId = Some(project.id), parentVersion = Some(project.version), enabled = true, createdAt = new DateTime, updatedAt = new DateTime)
+        else project.copy(id = UUID.randomUUID(), courseId = courseId, createdAt = new DateTime, updatedAt = new DateTime)
+      }
     } yield newProject).run
   }
 
@@ -256,9 +265,10 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
     (for {
       project <- lift(find(projectId))
       parts <- lift(partRepository.list(project))
+      // We clone task but with old part ids!!!
+      clonedTasks <- lift(cloneTasks(parts))
       clonedParts <- lift(serializedT(parts)(part => {
         for {
-          tasks <- lift(taskRepository.list(part))
           components <- lift(componentRepository.list(part))
           partId = UUID.randomUUID
           clonedPart = part.copy(
@@ -266,8 +276,17 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
             projectId = newProjectId,
             createdAt = new DateTime,
             updatedAt = new DateTime,
-            tasks = cloneTasks(tasks, partId),
-            components = cloneComponents(components, ownerId)
+            // All parts should be enabled by default
+            enabled = true,
+            // We cloned task with old part ids, we should update them
+            tasks = clonedTasks.filter(_.partId == part.id).map {
+            case task: DocumentTask => task.copy(partId = partId)
+            case task: MediaTask => task.copy(partId = partId)
+          }.asInstanceOf[IndexedSeq[Task]],
+            components = {
+            if (project.isMaster) cloneComponents(components, ownerId)
+            else components
+          }
           )
         } yield clonedPart
       }))
@@ -295,63 +314,76 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
    * @return
    */
   def cloneComponents(components: IndexedSeq[Component], ownerId: UUID): IndexedSeq[Component] = {
-    components.map(component => {
-      component match {
-        case c: VideoComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
-        case c: AudioComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
-        case c: TextComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
-        case c: GenericHTMLComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
-        case c: RubricComponent =>
-          c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId)
-      }
-    })
+    components.map {
+      case c: VideoComponent =>
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+      case c: AudioComponent =>
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+      case c: ImageComponent =>
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+      case c: BookComponent =>
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+      case c: TextComponent =>
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+      case c: GenericHTMLComponent =>
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+      case c: RubricComponent =>
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+    }
   }
 
   /**
-   * Cloning the tasks of a Part.
+   * Cloning all project task.
+   * N.B. Part ids in the tasks are not updated, because at this point we don't know new part ids.
    *
-   * @param tasks
+   * @param parts All parts of a project
    * @return
    */
-  def cloneTasks(tasks: IndexedSeq[Task], partId: UUID): IndexedSeq[Task] = {
-    //map that will contain as a key the old UUID of the task and the value will be the new UUID
-    val dependencies = collection.mutable.Map[UUID, UUID]()
-    val documentTasks = tasks.filter(task => task.isInstanceOf[DocumentTask])
-      .map(task => task.asInstanceOf[DocumentTask])
-      .sortBy(_.dependencyId)
-    val noDependenciesTasks = documentTasks.filter(task => task.dependencyId.isEmpty)
-    val clonedWithoutDependencies = noDependenciesTasks.map(task => {
-      val newId = UUID.randomUUID
-      dependencies(task.id) = newId
-      task.copy(id = newId, partId = partId, createdAt = new DateTime, updatedAt = new DateTime)
-    })
-    val dependenciesTasks = documentTasks.filter(task => !task.dependencyId.isEmpty)
-    val clonedWithDependencies = dependenciesTasks.map(task => {
-      val newId = UUID.randomUUID
-      val dependencyId = dependencies get task.dependencyId.get
-      if (dependencyId.isEmpty) {
-        dependencies(task.dependencyId.get) = UUID.randomUUID
-      }
-      task.copy(id = newId, partId = partId, dependencyId = Some(dependencies(task.dependencyId.get)), createdAt = new DateTime, updatedAt = new DateTime)
-    })
+  def cloneTasks(parts: IndexedSeq[Part])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
+    val empty: Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = Future.successful(\/-(IndexedSeq.empty[Task]))
+    // Go threw every part and get all tasks
+    for {
+      allTasks <- lift(parts.foldLeft(empty) { (fAccumulated, part) =>
+        (for {
+          accumulated <- lift(fAccumulated)
+          tasks <- lift(taskRepository.list(part))
+        } yield accumulated ++ tasks).run
+      })
+      //map that will contain as a key the old UUID of the task and the value will be the new UUID
+      dependencies = collection.mutable.Map[UUID, UUID]()
+      documentTasks = allTasks.filter(task => task.isInstanceOf[DocumentTask])
+        .map(task => task.asInstanceOf[DocumentTask])
+        .sortBy(_.dependencyId)
 
-    val otherTasks = tasks.filter(task => !task.isInstanceOf[DocumentTask])
+      noDependenciesTasks = documentTasks.filter(task => task.dependencyId.isEmpty)
+      clonedWithoutDependencies = noDependenciesTasks.map(task => {
+        val newId = UUID.randomUUID
+        dependencies(task.id) = newId
+        task.copy(id = newId, partId = task.partId, settings = task.settings.copy(parentId = Some(task.id)), createdAt = new DateTime, updatedAt = new DateTime)
+      })
 
-    val otherCloned = otherTasks.map(task => cloneTask(task, partId))
+      dependenciesTasks = documentTasks.filter(task => !task.dependencyId.isEmpty)
+      clonedWithDependencies = dependenciesTasks.map(task => {
+        val newId = UUID.randomUUID
+        val dependencyId = dependencies get task.dependencyId.get
+        if (dependencyId.isEmpty) {
+          dependencies(task.dependencyId.get) = UUID.randomUUID
+        }
+        task.copy(id = newId, partId = task.partId, dependencyId = Some(dependencies(task.dependencyId.get)), settings = task.settings.copy(parentId = Some(task.id)), createdAt = new DateTime, updatedAt = new DateTime)
+      })
 
-    (clonedWithDependencies union clonedWithoutDependencies union otherCloned).sortBy(t => t.position)
+      otherTasks = allTasks.filter(task => !task.isInstanceOf[DocumentTask])
+      otherCloned = otherTasks.map(task => cloneTask(task, task.partId))
+    } yield (clonedWithDependencies union clonedWithoutDependencies union otherCloned).sortBy(t => t.position)
   }
 
   private def cloneTask(task: Task, partId: UUID): Task = {
     task match {
       case t: DocumentTask => {
-        task.asInstanceOf[DocumentTask].copy(id = UUID.randomUUID, partId = partId, createdAt = new DateTime, updatedAt = new DateTime)
+        task.asInstanceOf[DocumentTask].copy(id = UUID.randomUUID, partId = partId, settings = task.settings.copy(parentId = Some(task.id)), createdAt = new DateTime, updatedAt = new DateTime)
       }
-      case t: QuestionTask => task.asInstanceOf[QuestionTask].copy(id = UUID.randomUUID, partId = partId, createdAt = new DateTime, updatedAt = new DateTime)
+      case t: MediaTask => task.asInstanceOf[MediaTask].copy(id = UUID.randomUUID, partId = partId, settings = task.settings.copy(parentId = Some(task.id)), createdAt = new DateTime, updatedAt = new DateTime)
+      case t: QuestionTask => task.asInstanceOf[QuestionTask].copy(id = UUID.randomUUID, partId = partId, settings = task.settings.copy(parentId = Some(task.id)), createdAt = new DateTime, updatedAt = new DateTime)
     }
   }
 
@@ -475,8 +507,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
    */
   override def insert(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
-      project.id, 1, project.courseId, project.name, project.slug, project.id, project.parentId, project.isMaster,
-      project.description, project.longDescription, project.availability, project.enabled, project.projectType, project.status, new DateTime, new DateTime
+      project.id, 1, project.courseId, project.name, project.slug, project.id, project.parentId, project.parentVersion, project.isMaster,
+      project.description, project.longDescription, project.availability, project.enabled, project.projectType, project.status, project.lastTaskId, new DateTime, new DateTime
     )
 
     for {
@@ -494,8 +526,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
    */
   override def update(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
-      project.courseId, project.name, project.parentId, project.isMaster, project.slug, project.id, project.description, project.longDescription,
-      project.availability, project.enabled, project.projectType, project.status, project.version + 1, new DateTime, project.id, project.version
+      project.courseId, project.name, project.parentId, project.parentVersion, project.isMaster, project.slug, project.id, project.description, project.longDescription,
+      project.availability, project.enabled, project.projectType, project.status, project.lastTaskId, project.version + 1, new DateTime, project.id, project.version
     )
 
     (for {

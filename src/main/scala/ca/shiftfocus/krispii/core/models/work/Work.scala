@@ -2,6 +2,9 @@ package ca.shiftfocus.krispii.core.models.work
 
 import ca.shiftfocus.krispii.core.models.document.Document
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.models.Gfile
+import ca.shiftfocus.krispii.core.models.tasks.Task
 import ca.shiftfocus.krispii.core.models.tasks.questions._
 import org.joda.time.DateTime
 import play.api.libs.json._
@@ -12,8 +15,10 @@ sealed trait Work {
   val studentId: UUID
   val taskId: UUID
   val version: Long
+  val workType: Int
   val isComplete: Boolean
   val grade: String
+  val gFiles: IndexedSeq[Gfile]
   val createdAt: DateTime
   val updatedAt: DateTime
   def responseToString: String = {
@@ -29,6 +34,7 @@ object Work {
         "studentId" -> work.studentId,
         "taskId" -> work.taskId,
         "version" -> work.version,
+        "workType" -> work.workType,
         "response" -> {
           work match {
             case specific: DocumentWork if specific.response.isDefined => Json.toJson(specific.response.get)
@@ -38,6 +44,7 @@ object Work {
         },
         "isComplete" -> work.isComplete,
         "grade" -> work.grade,
+        "gFiles" -> work.gFiles,
         "createdAt" -> work.createdAt,
         "updatedAt" -> work.updatedAt
       )
@@ -56,9 +63,11 @@ final case class DocumentWork(
     taskId: UUID,
     documentId: UUID,
     version: Long = 1L,
+    workType: Int = Task.Document,
     response: Option[Document] = None,
     isComplete: Boolean = false,
     grade: String,
+    gFiles: IndexedSeq[Gfile] = IndexedSeq.empty[Gfile],
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) extends Work {
@@ -75,9 +84,11 @@ final case class QuestionWork(
     studentId: UUID,
     taskId: UUID,
     version: Long = 1L,
+    workType: Int = Task.Question,
     response: Answers = Answers(),
     isComplete: Boolean = false,
     grade: String,
+    gFiles: IndexedSeq[Gfile] = IndexedSeq.empty[Gfile],
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) extends Work {
@@ -91,9 +102,11 @@ final case class MediaWork(
     studentId: UUID,
     taskId: UUID,
     version: Long = 1L,
+    workType: Int = Task.Media,
     fileData: MediaAnswer = MediaAnswer(),
     isComplete: Boolean = false,
     grade: String,
+    gFiles: IndexedSeq[Gfile] = IndexedSeq.empty[Gfile],
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) extends Work {
@@ -284,6 +297,7 @@ object MatchingAnswer {
 case class MediaAnswer(
   mediaType: Option[String] = None,
   fileName: Option[String] = None,
+  serverFileName: Option[String] = None,
   // We store the size of a file in Bytes
   size: Option[Long] = None,
   isPublic: Option[Boolean] = None
@@ -295,6 +309,7 @@ object MediaAnswer {
         MediaAnswer(
           (json \ "mediaType").asOpt[String],
           (json \ "fileName").asOpt[String],
+          (json \ "serverFileName").asOpt[String],
           (json \ "size").asOpt[Long],
           (json \ "isPublic").asOpt[Boolean]
         )
@@ -306,6 +321,8 @@ object MediaAnswer {
       Json.obj(
         "mediaType" -> mediaAnswer.mediaType,
         "fileName" -> mediaAnswer.fileName,
+        "fileName" -> mediaAnswer.fileName,
+        "serverFileName" -> mediaAnswer.serverFileName,
         "size" -> mediaAnswer.size,
         "isPublic" -> mediaAnswer.isPublic
       )

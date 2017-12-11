@@ -3,27 +3,30 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
-import com.github.mauricio.async.db.{ RowData, Connection, ResultSet }
+import com.github.mauricio.async.db.{ Connection, ResultSet, RowData }
 import play.api.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
+
 import play.api.i18n.Messages
+
 import scala.concurrent.Future
 import org.joda.time.DateTime
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
 import scala.util.Try
-import scalaz.{ \/, -\/, \/- }
+import scalaz.{ -\/, \/, \/- }
 import scalaz.syntax.either._
-
 import scalacache._
 import scalacache.redis._
 import scala.concurrent.duration._
 
-class UserRepositoryPostgres extends UserRepository with PostgresRepository[User] {
+class UserRepositoryPostgres(
+    val tagRepository: TagRepository
+) extends UserRepository with PostgresRepository[User] {
 
   override val entityName = "User"
 
@@ -37,21 +40,22 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
       givenname = row("givenname").asInstanceOf[String],
       surname = row("surname").asInstanceOf[String],
       alias = Option(row("alias").asInstanceOf[String]) match {
-      case Some(notesTitle) => Some(notesTitle)
+      case Some(alias) => Some(alias)
       case _ => None
     },
       accountType = row("account_type").asInstanceOf[String],
+      isDeleted = row("is_deleted").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
     )
   }
 
   val Table = "users"
-  val Fields = "id, version, created_at, updated_at, username, email, password_hash, givenname, surname, alias, account_type"
-  val FieldsWithoutTable = "id, version, created_at, updated_at, username, email, givenname, surname, alias, account_type"
+  val Fields = "id, version, created_at, updated_at, username, email, password_hash, givenname, surname, alias, account_type, is_deleted"
+  val FieldsWithoutTable = "id, version, created_at, updated_at, username, email, givenname, surname, alias, account_type, is_deleted"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val FieldsWithoutHash = FieldsWithTable.replace(s"${Table}.password_hash,", "")
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.surname ASC, ${Table}.givenname ASC"
 
   // User CRUD operations
@@ -63,12 +67,29 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |ORDER BY $OrderBy
      """.stripMargin
 
+  val SelectAllRange =
+    s"""
+       |SELECT $FieldsWithoutHash
+       |FROM $Table
+       |WHERE is_deleted = FALSE
+       |ORDER BY created_at DESC
+       |LIMIT ? OFFSET ?
+     """.stripMargin
+
   val SelectOne =
     s"""
        |SELECT $Fields
        |FROM $Table
        |WHERE id = ?
-       |AND is_deleted = FALSE
+       |  AND is_deleted = FALSE
+       |LIMIT 1
+     """.stripMargin
+
+  val SelectOneAdmin =
+    s"""
+       |SELECT $Fields
+       |FROM $Table
+       |WHERE id = ?
        |LIMIT 1
      """.stripMargin
 
@@ -80,15 +101,66 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |  AND users_roles.role_id = ?
        |  AND is_deleted = FALSE
      """.stripMargin
+
   /**
    * if you know how to make this query prettier, by all means, go ahead.
    */
-  val SelectAllByKey =
+  val SelectAllByKeyNotDeleted =
+    s"""
+       |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> ? AS dist
+       |FROM users
+       |WHERE is_deleted = false
+       |ORDER BY dist LIMIT 10) as sub  where dist < 0.9;
+    """.stripMargin
+
+  val SelectAllByKeyWithDeleted =
     s"""
        |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> ? AS dist
        |FROM users
        |ORDER BY dist LIMIT 10) as sub  where dist < 0.9;
     """.stripMargin
+
+  def SelectByTags(tags: IndexedSeq[(String, String)], distinct: Boolean): String = {
+    var whereClause = ""
+    var distinctClause = ""
+    val length = tags.length
+
+    tags.zipWithIndex.map {
+      case ((tagName, tagLang), index) =>
+        whereClause += s"""(tags.name='${tagName}' AND tags.lang='${tagLang}')"""
+        if (index != (length - 1)) whereClause += " OR "
+    }
+
+    if (whereClause != "") {
+      whereClause = "WHERE " + whereClause
+    }
+    // If tagList is empty, then there should be unexisting condition
+    else {
+      whereClause = "WHERE false != false"
+    }
+
+    if (distinct) {
+      distinctClause = s"HAVING COUNT(DISTINCT tags.name) = $length"
+    }
+
+    def query(whereClause: String) =
+      s"""
+         |SELECT $Fields
+         |FROM $Table
+         |WHERE id IN (
+         |    SELECT user_id
+         |    FROM user_tags
+         |    JOIN tags
+         |      ON user_tags.tag_id = tags.id
+         |    ${whereClause}
+         |    GROUP BY user_id
+         |    ${distinctClause}
+         |)
+         |GROUP BY $Table.id
+    """.stripMargin
+
+    query(whereClause)
+  }
 
   val Insert = {
     s"""
@@ -101,7 +173,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   val UpdateNoPass = {
     s"""
        |UPDATE $Table
-       |SET username = ?, email = ?, givenname = ?, surname = ?, alias = ?, version = ?, updated_at = ?
+       |SET username = ?, email = ?, givenname = ?, surname = ?, alias = ?, account_type = ?, is_deleted = ?, version = ?, updated_at = current_timestamp
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $FieldsWithoutHash
@@ -111,7 +183,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   val UpdateWithPass = {
     s"""
        |UPDATE $Table
-        |SET username = ?, email = ?, password_hash = ?, givenname = ?, surname = ?, alias = ?, version = ?, updated_at = ?
+        |SET username = ?, email = ?, password_hash = ?, givenname = ?, surname = ?, alias = ?, account_type = ?, is_deleted = ?, version = ?, updated_at = current_timestamp
         |WHERE id = ?
         |  AND version = ?
         |RETURNING $FieldsWithoutHash
@@ -121,7 +193,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   val Delete =
     s"""
        |UPDATE $Table
-       |SET is_deleted = TRUE
+       |SET is_deleted = TRUE, updated_at = current_timestamp, username = ?, email = ?
        |WHERE id = ?
        |AND version = ?
        |RETURNING $FieldsWithoutHash
@@ -136,12 +208,45 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
        |LIMIT 1
      """.stripMargin
 
+  // sql LIKE statement is not working with parameters so we are using string replace
+  val SelectDeletedByEmail =
+    s"""
+       |SELECT $Fields
+       |FROM $Table
+       |WHERE (email like '%{identifier}')
+       |AND is_deleted = TRUE
+       |ORDER BY created_at DESC
+       |LIMIT 1
+     """.stripMargin
+
   val SelectAllWithCourse =
     s"""
        |SELECT $FieldsWithoutHash
        |FROM $Table, users_courses
        |WHERE $Table.id = users_courses.user_id
        |  AND users_courses.course_id = ?
+       |  AND is_deleted = FALSE
+       |ORDER BY $OrderBy
+    """.stripMargin
+
+  val SelectAllWithTeacher =
+    s"""
+       |SELECT $FieldsWithoutHash
+       |FROM $Table, users_courses, courses
+       |WHERE $Table.id = users_courses.user_id
+       |  AND users_courses.course_id = courses.id
+       |  AND courses.teacher_id = ?
+       |  AND $Table.is_deleted = FALSE
+       |  AND courses.is_deleted = FALSE
+       |ORDER BY $OrderBy
+    """.stripMargin
+
+  val SelectAllWithConversation =
+    s"""
+       |SELECT $FieldsWithoutHash
+       |FROM $Table, users_conversations as uc
+       |WHERE $Table.id = uc.user_id
+       |  AND uc.conversation_id = ?
        |  AND is_deleted = FALSE
        |ORDER BY $OrderBy
     """.stripMargin
@@ -170,6 +275,10 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
     queryList(SelectAll)
   }
 
+  override def listRange(limit: Int, offset: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    queryList(SelectAllRange, Array[Any](limit, offset))
+  }
+
   /**
    * List users with a specified set of user Ids.
    *
@@ -177,7 +286,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @return a future disjunction containing either the users, or a failure
    */
   override def list(userIds: IndexedSeq[UUID])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    serializedT(userIds)(find).map(_.map { userList =>
+    serializedT(userIds)(find(_)).map(_.map { userList =>
       userList.map { user =>
         user.copy(hash = None)
       }
@@ -212,21 +321,52 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
     }
   }
 
+  override def list(conversation: Conversation)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    queryList(SelectAllWithConversation, Seq[Any](conversation.id))
+  }
+
+  /**
+   * List students for a given teacher
+   * @param user
+   * @param conn
+   * @param cache
+   * @return
+   */
+  override def list(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    queryList(SelectAllWithTeacher, Seq[Any](user.id))
+  }
+
+  /**
+   * List users by tags
+   *
+   * @param tags (tagName:String, tagLang:String)
+   * @param distinct Boolean If true each user should have all listed tags,
+   *                 if false user should have at least one listed tag
+   */
+  override def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    queryList(SelectByTags(tags, distinct))
+  }
+
   /**
    * Find a user by ID.
    *
    * @param id the UUID of the user to search for.
    * @return a future disjunction containing either the user, or a failure
    */
-  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]] = {
+  override def find(id: UUID, includeDeleted: Boolean = false)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]] = {
     cache.getCached[User](cacheUserKey(id)).flatMap {
       case \/-(user) => Future successful \/.right[RepositoryError.Fail, User](user)
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case -\/(noResults: RepositoryError.NoResults) => {
+        val query = {
+          if (includeDeleted) SelectOneAdmin
+          else SelectOne
+        }
         for {
-          user <- lift(queryOne(SelectOne, Seq[Any](id)))
+          user <- lift(queryOne(query, Seq[Any](id)))
           _ <- lift(cache.putCache[UUID](cacheUsernameKey(user.username))(user.id, ttl))
           _ <- lift(cache.putCache[User](cacheUserKey(user.id))(user, ttl))
         } yield user
+      }
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -257,6 +397,19 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   }
 
   /**
+   * Find a deleted user by their identifiers, using sql LIKE '%identifier'. I.E. email or surname should ends with identifier.
+   * Be careful, because deleted user can be: deleted_1487883998_some.email@example.com,
+   * and new user can be email@example.com, which will also match sql LIKE query: '%email@example.com'
+   *
+   * @param identifier a String representing their e-mail or username.
+   * @return a future disjunction containing either the user, or a failure
+   */
+  override def findDeleted(identifier: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]] = {
+    // sql LIKE statement is not working with parameters so we are using string replace
+    queryOne(SelectDeletedByEmail.replace("{identifier}", identifier))
+  }
+
+  /**
    * Save a new User.
    *
    * Because we're using UUID, we assume we can always successfully create
@@ -268,7 +421,7 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   override def insert(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
     val params = Seq[Any](
       user.id, 1, new DateTime, new DateTime, user.username, user.email,
-      user.hash, user.givenname, user.surname, user.alias, user.accountType
+      user.hash, user.givenname, user.surname, user.alias, user.accountType, user.isDeleted
     )
     queryOne(Insert, params)
   }
@@ -289,12 +442,12 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
         user.hash match {
           case Some(hash) =>
             queryOne(UpdateWithPass, Seq[Any](
-              user.username, user.email, hash, user.givenname, user.surname, user.alias,
-              user.version + 1, new DateTime, user.id, user.version
+              user.username, user.email, hash, user.givenname, user.surname, user.alias, user.accountType, user.isDeleted,
+              user.version + 1, user.id, user.version
             ))
           case None => queryOne(UpdateNoPass, Seq[Any](
-            user.username, user.email, user.givenname, user.surname, user.alias,
-            user.version + 1, new DateTime, user.id, user.version
+            user.username, user.email, user.givenname, user.surname, user.alias, user.accountType, user.isDeleted,
+            user.version + 1, user.id, user.version
           ))
         }
       }
@@ -304,14 +457,20 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
   }
 
   /**
-   * Delete a user from the database.
+   * Mark user as deleted and update username and email.
    *
    * @param user the user to be deleted
    * @return a future disjunction containing either the deleted user, or a failure
    */
   override def delete(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]] = {
+    val timestamp = System.currentTimeMillis / 1000
     for {
-      deleted <- lift(queryOne(Delete, Seq[Any](user.id, user.version)))
+      deleted <- lift(queryOne(Delete, Seq[Any](
+        (s"deleted_${timestamp}_" + user.username),
+        (s"deleted_${timestamp}_" + user.email),
+        user.id,
+        user.version
+      )))
       _ <- lift(cache.removeCached(cacheUserKey(deleted.id)))
       _ <- lift(cache.removeCached(cacheUsernameKey(deleted.username)))
     } yield deleted
@@ -322,7 +481,12 @@ class UserRepositoryPostgres extends UserRepository with PostgresRepository[User
    * @param key
    * @param conn
    */
-  def triagramSearch(key: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    queryList(SelectAllByKey, Seq[Any](key))
+  def triagramSearch(key: String, includeDeleted: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    val query = {
+      if (includeDeleted) SelectAllByKeyWithDeleted
+      else SelectAllByKeyNotDeleted
+    }
+
+    queryList(query, Seq[Any](key))
   }
 }

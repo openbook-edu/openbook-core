@@ -7,15 +7,20 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
 case class TagCategory(
+  id: UUID = UUID.randomUUID(),
+  version: Long = 1L,
   name: String,
   lang: String
-) {}
+)
 
 object TagCategory {
   implicit val tagCategoryWrites = new Writes[TagCategory] {
     def writes(tagCategory: TagCategory): JsValue = {
       Json.obj(
-        "name" -> tagCategory.name
+        "id" -> tagCategory.id,
+        "version" -> tagCategory.version,
+        "name" -> tagCategory.name,
+        "lang" -> tagCategory.lang
       )
     }
   }

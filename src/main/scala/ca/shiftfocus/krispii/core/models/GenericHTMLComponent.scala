@@ -17,7 +17,11 @@ case class GenericHTMLComponent(
   questions: String,
   thingsToThinkAbout: String,
   order: Int,
+  isPrivate: Boolean = false,
   htmlContent: String,
+  description: String = "",
+  parentId: Option[UUID] = None,
+  parentVersion: Option[Long] = None,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) extends Component
@@ -32,7 +36,11 @@ object GenericHTMLComponent {
     (__ \ "questions").write[String] and
     (__ \ "thingsToThinkAbout").write[String] and
     (__ \ "order").write[Int] and
+    (__ \ "isPrivate").write[Boolean] and
     (__ \ "htmlContent").write[String] and
+    (__ \ "description").write[String] and
+    (__ \ "parentId").writeNullable[UUID] and
+    (__ \ "parentVersion").writeNullable[Long] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(GenericHTMLComponent.unapply))
@@ -45,7 +53,11 @@ case class GenericHTMLComponentPost(
   questions: Option[String],
   thingsToThinkAbout: Option[String],
   order: Int,
-  htmlContent: String
+  isPrivate: Boolean,
+  htmlContent: String,
+  description: String,
+  parentId: Option[UUID],
+  parentVersion: Option[Long]
 )
 
 object GenericHTMLComponentPost {
@@ -55,7 +67,11 @@ object GenericHTMLComponentPost {
     (__ \ "questions").readNullable[String] and
     (__ \ "thingsToThinkAbout").readNullable[String] and
     (__ \ "order").read[Int] and
-    (__ \ "htmlContent").read[String]
+    (__ \ "isPrivate").read[Boolean] and
+    (__ \ "htmlContent").read[String] and
+    (__ \ "description").read[String] and
+    (__ \ "parentId").readNullable[UUID] and
+    (__ \ "parentVersion").readNullable[Long]
   )(GenericHTMLComponentPost.apply _)
 }
 
@@ -65,7 +81,11 @@ case class GenericHTMLComponentPut(
   questions: String,
   thingsToThinkAbout: String,
   order: Int,
-  htmlContent: String
+  isPrivate: Boolean,
+  htmlContent: String,
+  description: String,
+  parentId: Option[UUID],
+  parentVersion: Option[Long]
 )
 
 object GenericHTMLComponentPut {
@@ -75,6 +95,10 @@ object GenericHTMLComponentPut {
     (__ \ "questions").read[String] and
     (__ \ "thingsToThinkAbout").read[String] and
     (__ \ "order").read[Int] and
-    (__ \ "htmlContent").read[String]
+    (__ \ "isPrivate").read[Boolean] and
+    (__ \ "htmlContent").read[String] and
+    (__ \ "description").read[String] and
+    (__ \ "parentId").readNullable[UUID] and
+    (__ \ "parentVersion").readNullable[Long]
   )(GenericHTMLComponentPut.apply _)
 }

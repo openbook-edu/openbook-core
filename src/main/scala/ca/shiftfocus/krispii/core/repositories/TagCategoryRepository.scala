@@ -1,9 +1,5 @@
 package ca.shiftfocus.krispii.core.repositories
 
-/**
- * Created by vzaytseva on 20/06/16.
- */
-
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
@@ -19,11 +15,12 @@ import scala.concurrent.Future
 import scalacache.ScalaCache
 import scalaz.{ EitherT, \/ }
 
-/**
- * Created by vzaytseva on 31/05/16.
- */
 trait TagCategoryRepository extends Repository {
-  def create(tagCategory: TagCategory)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TagCategory]]
-  def delete(tagCategoryName: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TagCategory]]
+  def find(tagCategoryId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TagCategory]]
+  def findByName(name: String, lang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TagCategory]]
   def listByLanguage(lang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[TagCategory]]]
+
+  def create(tagCategory: TagCategory)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TagCategory]]
+  def update(tagCategory: TagCategory)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TagCategory]]
+  def delete(tagCategory: TagCategory)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TagCategory]]
 }

@@ -28,7 +28,9 @@ class SchoolServiceDefault(
   val chatRepository: ChatRepository,
   val wordRepository: WordRepository,
   val linkRepository: LinkRepository,
-  val limitRepository: LimitRepository
+  val limitRepository: LimitRepository,
+  val tagRepository: TagRepository,
+  val organizationRepository: OrganizationRepository
 )
     extends SchoolService {
 
@@ -112,7 +114,6 @@ class SchoolServiceDefault(
     courseRepository.find(slug)
   }
 
-  // TODO validate slug
   /**
    * Create a new course.
    *
@@ -138,7 +139,7 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Create a new course.
+   * Update course.
    *
    * @param id the UUID of the course this course belongs to
    * @param teacherId the optional UUID of the user teaching this course
@@ -153,7 +154,10 @@ class SchoolServiceDefault(
     slug: Option[String],
     color: Option[Color],
     enabled: Option[Boolean],
+    archived: Option[Boolean],
     schedulingEnabled: Option[Boolean],
+    theaterMode: Option[Boolean],
+    lastProjectId: Option[Option[UUID]],
     chatEnabled: Option[Boolean]
   ): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
@@ -170,7 +174,14 @@ class SchoolServiceDefault(
           slug = slug.getOrElse(existingCourse.slug),
           color = color.getOrElse(existingCourse.color),
           enabled = enabled.getOrElse(existingCourse.enabled),
+          archived = archived.getOrElse(existingCourse.archived),
           schedulingEnabled = schedulingEnabled.getOrElse(existingCourse.schedulingEnabled),
+          theaterMode = theaterMode.getOrElse(existingCourse.theaterMode),
+          lastProjectId = lastProjectId match {
+            case Some(Some(lastProjectId)) => Some(lastProjectId)
+            case Some(None) => None
+            case None => existingCourse.lastProjectId
+          },
           chatEnabled = chatEnabled.getOrElse(existingCourse.chatEnabled)
         )
         updatedCourse <- lift(courseRepository.update(toUpdate))
@@ -179,19 +190,19 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Delete a course from the system.
+   * Mark a course as deleted.
    *
    * @param id the unique ID of the course to update
    * @param version the latest version of the course for O.O.L.
-   * @return a boolean indicating success or failure
+   * @return course
    */
   override def deleteCourse(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
       for {
         existingCourse <- lift(courseRepository.find(id))
         _ <- predicate(existingCourse.version == version)(ServiceError.OfflineLockFail)
-        wasDeleted <- lift(courseRepository.delete(existingCourse))
-      } yield wasDeleted
+        deletedCourse <- lift(courseRepository.delete(existingCourse))
+      } yield deletedCourse
     }
   }
 
@@ -278,7 +289,7 @@ class SchoolServiceDefault(
       teacher <- lift(authService.find(teacherId))
       userCourses <- lift(courseRepository.list(user, false))
       filteredCourses = userCourses.filter(_.teacherId == teacherId)
-      _ <- predicate(filteredCourses.nonEmpty)(RepositoryError.NoResults(s"User ${userId.toString} is not in any courses wiht teacher ${teacherId.toString}"))
+      _ <- predicate(filteredCourses.nonEmpty)(RepositoryError.NoResults(s"User ${userId.toString} is not in any courses with teacher ${teacherId.toString}"))
     } yield user
   }
 
@@ -506,13 +517,33 @@ class SchoolServiceDefault(
   }
 
   /**
+   * Number of students that are allowed for teacher per course
+   *
+   * @param teacherId
+   * @return
+   */
+  override def getTeacherStudentLimit(teacherId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getTeacherStudentLimit(teacherId)
+  }
+
+  /**
    * Get number of students that course is allowed to have
+   * Limit by course has priority, if that is empty, then we get limit by teacher.
    *
    * @param courseId
    * @return
    */
-  override def getStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
-    limitRepository.getStudentLimit(courseId)
+  override def getCourseStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getCourseStudentLimit(courseId).flatMap {
+      case \/-(limit) => Future successful \/-(limit)
+      case -\/(error: RepositoryError.NoResults) => {
+        for {
+          course <- lift(courseRepository.find(courseId))
+          result <- lift(limitRepository.getTeacherStudentLimit(course.teacherId))
+        } yield result
+      }
+      case -\/(error) => Future successful -\/(error)
+    }
   }
 
   /**
@@ -548,13 +579,36 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Insert or update number of courses that teacher is allowed to have
+   * Set Number of students that are allowed for teacher per course
+   *
+   * @param teacherId
+   * @param limit
+   * @return
    */
-  override def setStudentLimit(courseId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+  override def setTeacherStudentLimit(teacherId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] = {
     transactional { implicit conn =>
       for {
-        limit <- limitRepository.setStudentLimit(courseId, limit)
+        limit <- limitRepository.setTeacherStudentLimit(teacherId, limit)
       } yield limit
+    }
+  }
+
+  /**
+   * Insert or update number of courses that teacher is allowed to have
+   */
+  override def setCourseStudentLimit(courseId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+    transactional { implicit conn =>
+      for {
+        limit <- limitRepository.setCourseStudentLimit(courseId, limit)
+      } yield limit
+    }
+  }
+
+  override def deleteCourseStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Unit]] = {
+    transactional { implicit conn =>
+      for {
+        result <- limitRepository.deleteCourseStudentLimit(courseId)
+      } yield result
     }
   }
 
@@ -577,6 +631,40 @@ class SchoolServiceDefault(
    */
   override def setPlanStudentLimit(palnId: String, limitValue: Int): Future[\/[ErrorUnion#Fail, Int]] = {
     limitRepository.setPlanStudentLimit(palnId, limitValue)
+  }
+
+  // Organization
+  def getOrganizationStudentLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getOrganizationStudentLimit(organizationId)
+  }
+
+  def getOrganizationCourseLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getOrganizationCourseLimit(organizationId)
+  }
+  def getOrganizationStorageLimit(organizationtId: UUID): Future[\/[ErrorUnion#Fail, Float]] = {
+    limitRepository.getOrganizationStorageLimit(organizationtId)
+  }
+  def getOrganizationDateLimit(organizationtId: UUID): Future[\/[ErrorUnion#Fail, DateTime]] = {
+    limitRepository.getOrganizationDateLimit(organizationtId)
+  }
+  def getOrganizationMemberLimit(organizationtId: UUID): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.getOrganizationMemberLimit(organizationtId)
+  }
+
+  def setOrganizationStorageLimit(organizationId: UUID, limit: Float): Future[\/[ErrorUnion#Fail, Float]] = {
+    limitRepository.setOrganizationStorageLimit(organizationId, limit)
+  }
+  def setOrganizationCourseLimit(organizationId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.setOrganizationCourseLimit(organizationId, limit)
+  }
+  def setOrganizationStudentLimit(organizationId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.setOrganizationStudentLimit(organizationId, limit)
+  }
+  def setOrganizationDateLimit(organizationId: UUID, limit: DateTime): Future[\/[ErrorUnion#Fail, DateTime]] = {
+    limitRepository.setOrganizationDateLimit(organizationId, limit)
+  }
+  def setOrganizationMemberLimit(organizationtId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] = {
+    limitRepository.setOrganizationMemberLimit(organizationtId, limit)
   }
 
   /**

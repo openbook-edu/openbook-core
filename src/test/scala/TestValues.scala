@@ -157,6 +157,19 @@ object TestValues {
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
+
+  val testUserK = User(
+    id = UUID.fromString("11eb9ca0-26dc-42d0-89f8-f5952dcbe2e4"),
+    version = 1L,
+    email = "deleted_1487958454_testUserK@example.com",
+    username = "deleted_1487958454_testUserK",
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
+    givenname = "TestK",
+    surname = "UserK",
+    accountType = "google",
+    createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
   /* ---------------------- ROLES ---------------------- */
 
   val testRoleAuth = Role(
@@ -330,7 +343,7 @@ object TestValues {
   )
 
   /**
-   *  Course without students
+   * Course without students
    */
   val testCourseG = Course(
     id = UUID.fromString("b24abba8-e6c7-4700-900c-e66ed0185a70"),
@@ -426,7 +439,8 @@ object TestValues {
       notesAllowed = true,
       help = "test help text testLongAnswerTaskA",
       notesTitle = Some("test longAnswerTask A notes title"),
-      responseTitle = Some("test longAnswerTask A response title")
+      responseTitle = Some("test longAnswerTask A response title"),
+      mediaData = Some(MediaData(Some("s3"), Some("some_video.mp4"), Some("video/mp4"), Some("some_video.mp4"), Some(4123456)))
     ),
     dependencyId = None,
     maxGrade = "55",
@@ -1861,7 +1875,7 @@ object TestValues {
     title = "testVideoComponentL title",
     questions = "testVideoComponentL questions",
     thingsToThinkAbout = "testVideoComponentL thingsToThinkAbout",
-    mediaData = MediaData(Some("s3"), Some("some_video.mp4"), Some("video/mp4"), Some(4123456)),
+    mediaData = MediaData(Some("s3"), Some("some_video.mp4"), Some("video/mp4"), Some("some_video.mp4"), Some(4123456)),
     width = 640,
     height = 480,
     order = 3,
@@ -1906,7 +1920,7 @@ object TestValues {
     title = "testAudioComponentM title",
     questions = "testAudioComponentM questions",
     thingsToThinkAbout = "testAudioComponentM thingsToThinkAbout",
-    mediaData = MediaData(Some("s3"), Some("some_audio.mp3"), Some("audio/mp3"), Some(2236480)),
+    mediaData = MediaData(Some("s3"), Some("some_audio.mp3"), Some("audio/mp3"), Some("some_audio.mp3"), Some(2236480)),
     order = 0,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2054,6 +2068,33 @@ object TestValues {
     questions = "testBookComponentO questions",
     thingsToThinkAbout = "testBookComponentO thingsToThinkAbout",
     mediaData = MediaData(data = Some("some text from a book"), dataType = Some("epub"), size = Some(4)),
+    order = 0,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testImageComponentA = ImageComponent(
+    id = UUID.fromString("b88d6fc1-40b5-4231-8516-86b8bc6736fe"),
+    version = 1L,
+    ownerId = testUserB.id,
+    title = "testImageComponentA title",
+    questions = "testImageComponentA questions",
+    thingsToThinkAbout = "testImageComponentA thingsToThinkAbout",
+    mediaData = MediaData(data = Some("imageA.jpg"), dataType = Some("s3"), size = Some(4)),
+    order = 0,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  // Not in db
+  val testImageComponentB = ImageComponent(
+    id = UUID.fromString("de589325-426d-4eb8-881d-65e9f1b10763"),
+    version = 1L,
+    ownerId = testUserB.id,
+    title = "testImageComponentB title",
+    questions = "testImageComponentB questions",
+    thingsToThinkAbout = "testImageComponentB thingsToThinkAbout",
+    mediaData = MediaData(data = Some("imageB.jpg"), dataType = Some("s3"), size = Some(4)),
     order = 0,
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2760,59 +2801,86 @@ object TestValues {
     tokenType = "password_reset"
   )
   /* ---------------------- TAGS ---------------------- */
-  //8b6dc674-d1ae-11e5-9080-08626681851d
+
+  val testTagCategoryA = TagCategory(
+    id = UUID.fromString("3728ce32-42eb-4ede-b259-76cc42be5ab6"),
+    name = "level",
+    lang = "fr"
+  )
+  val testTagCategoryB = TagCategory(
+    id = UUID.fromString("9de6a5af-ffd4-45ed-af72-8e88ebd447fc"),
+    name = "subject",
+    lang = "en"
+  )
+  val testTagCategoryC = TagCategory(
+    id = UUID.fromString("6fbe56bb-e72e-4bfd-ae0f-a07c2c2015f4"),
+    name = "school",
+    lang = "en"
+  )
+  val testTagCategoryD = TagCategory(
+    id = UUID.fromString("5f7b0bf0-15a0-4198-ac16-c5444304991e"),
+    name = "futility",
+    lang = "en"
+  )
+
   val testTagA = Tag(
+    id = UUID.fromString("ebad4d23-f49e-4bcb-a4a3-dd523389091a"),
     name = "pacificsound3003",
     lang = "en",
-    category = "subject",
+    category = Some("subject"),
     frequency = 0
   )
   val testTagB = Tag(
+    id = UUID.fromString("67e13f10-c615-45a0-8edf-54988bb1c3d2"),
     name = "vanille",
     lang = "fr",
-    category = "level",
+    category = Some("level"),
     frequency = 0
   )
   val testTagC = Tag(
+    id = UUID.fromString("c3f132af-9a6f-4396-9ff3-694c6bc466a2"),
     name = "fruit",
     lang = "fr",
-    category = "level",
+    category = Some("level"),
+    frequency = 0
+  )
+  // Admin tag
+  val testTagF = Tag(
+    id = UUID.fromString("c3f132af-9a6f-4396-9ff3-694c6bc466a2"),
+    isAdmin = true,
+    name = "admin tag",
+    lang = "en",
+    category = Some("subject"),
     frequency = 0
   )
   /**
    * no project is tagged with this tag, but it still exists
    */
   val testTagD = Tag(
+    id = UUID.fromString("e48866ac-ef8e-4502-b1be-3545ee04dc29"),
     name = "seductive",
+    lang = "fr",
+    category = Some("level"),
+    frequency = 0
+  )
+
+  // No category
+  val testTagE = Tag(
+    id = UUID.fromString("2c86e4e9-31ee-4205-bad0-63ffc7944471"),
+    name = "nocategory",
     lang = "en",
-    category = "level",
+    category = None,
     frequency = 0
   )
   /**
    * no tag in the database
    */
   val testTagX = Tag(
+    id = UUID.fromString("e2556012-e24a-4f56-ae3f-62c82c79d27b"),
     name = "orange",
     lang = "fr",
-    category = "round_things",
+    category = Some(testTagCategoryA.name),
     frequency = 0
-  )
-
-  val testTagCategoryA = TagCategory(
-    name = "level",
-    lang = "en"
-  )
-  val testTagCategoryB = TagCategory(
-    name = "subject",
-    lang = "fr"
-  )
-  val testTagCategoryC = TagCategory(
-    name = "shit",
-    lang = "en"
-  )
-  val testTagCategoryD = TagCategory(
-    name = "futility",
-    lang = "en"
   )
 
   /* ---------------------- USER PREFERENCES ---------------------- */
@@ -2829,5 +2897,47 @@ object TestValues {
     prefName = "lang",
     state = "en"
   )
-}
 
+  /* ---------------------- PROJECT TOKENS ---------------------- */
+  val testProjectTokenA = ProjectToken(
+    projectId = testProjectA.id,
+    email = "some@email.com",
+    token = "26944803-6dbd-487b-b83d-f222f87c0703",
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* ---------------------- ORGANIZATIONS ---------------------- */
+  val testOrganizationA = Organization(
+    id = UUID.fromString("8c27b83b-af4f-4e7f-9ecf-8f6b5ec9bfb0"),
+    version = 1L,
+    title = "testOrganizationA",
+    adminEmail = Some(testUserA.email),
+    tags = IndexedSeq.empty[Tag],
+    members = IndexedSeq(testUserB.email, "unexisting_user@example.com"),
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* Not in db */
+  val testOrganizationB = Organization(
+    id = UUID.fromString("8fa9b903-9326-4c4b-a525-0ebd963537e2"),
+    version = 1L,
+    title = "testOrganizationB",
+    adminEmail = Some(testUserA.email),
+    tags = IndexedSeq.empty[Tag],
+    members = IndexedSeq.empty[String],
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testOrganizationC = Organization(
+    id = UUID.fromString("e26bb8d3-ecfe-4a61-a808-1c3539086066"),
+    version = 1L,
+    title = "testOrganizationC",
+    adminEmail = Some(testUserA.email),
+    tags = IndexedSeq.empty[Tag],
+    members = IndexedSeq.empty[String],
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+}

@@ -39,7 +39,6 @@ trait WorkService extends Service[ErrorUnion#Fail] {
     isComplete: Option[Boolean] = None,
     grade: Option[String] = None
   ): Future[\/[ErrorUnion#Fail, QuestionWork]]
-
   def updateMediaWork(
     userId: UUID,
     taskId: UUID,
@@ -48,14 +47,16 @@ trait WorkService extends Service[ErrorUnion#Fail] {
     isComplete: Option[Boolean] = None,
     grade: Option[String] = None
   ): Future[\/[ErrorUnion#Fail, MediaWork]]
-
   def updateAnswer(workId: UUID, version: Long, questionId: UUID, answer: Answer): Future[\/[ErrorUnion#Fail, QuestionWork]]
+
+  def deleteWork(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]]
 
   // Task feedbacks
   def listFeedbacks(studentId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[TaskFeedback]]]
   def listFeedbacks(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[TaskFeedback]]]
   def findFeedback(studentId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, TaskFeedback]]
   def createFeedback(studentId: UUID, taskId: UUID): Future[\/[ErrorUnion#Fail, TaskFeedback]]
+  def deleteFeedback(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[TaskFeedback]]]
 
   // Task notes
   def listTaskScratchpads(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[TaskScratchpad]]]
@@ -67,4 +68,18 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   def findProjectScratchpad(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, ProjectScratchpad]]
   def createProjectScratchpad(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, ProjectScratchpad]]
 
+  // ########## GOOGLE FILES ###########################################################################################
+  def getGfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Gfile]]
+  def createGfile(
+    workId: UUID,
+    fileId: String,
+    mimeType: String,
+    fileType: String,
+    fileName: String,
+    embedUrl: String,
+    url: String,
+    sharedEmail: Option[String]
+  ): Future[\/[ErrorUnion#Fail, Work]]
+  def updateGfile(gFileId: UUID, sharedEmail: Option[Option[String]], permissionId: Option[Option[String]], revisionId: Option[Option[String]]): Future[\/[ErrorUnion#Fail, Work]]
+  def deleteGfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Work]]
 }

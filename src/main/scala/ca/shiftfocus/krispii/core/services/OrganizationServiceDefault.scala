@@ -4,7 +4,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.repositories.OrganizationRepository
+import ca.shiftfocus.krispii.core.repositories.{ OrganizationRepository, UserRepository }
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 
@@ -13,7 +13,8 @@ import scalaz.\/
 
 class OrganizationServiceDefault(
     val db: DB,
-    val organizationRepository: OrganizationRepository
+    val organizationRepository: OrganizationRepository,
+    val userRepository: UserRepository
 ) extends OrganizationService {
 
   implicit def conn: Connection = db.pool
@@ -43,6 +44,10 @@ class OrganizationServiceDefault(
    */
   def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] = {
     organizationRepository.listByTags(tags, distinct)
+  }
+
+  def searchMembers(key: String, organizationList: IndexedSeq[Organization]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
+    userRepository.searchOrganizationMembers(key, organizationList)
   }
 
   def addMember(organizationId: UUID, memberEmail: String): Future[\/[ErrorUnion#Fail, Organization]] = {

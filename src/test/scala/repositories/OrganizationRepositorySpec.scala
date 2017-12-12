@@ -42,7 +42,7 @@ class OrganizationRepositorySpec
           1 -> TestValues.testOrganizationC
         )
 
-        val result = organizationRepository.listByAdmin(organizationList(0).adminEmail.get)
+        val result = organizationRepository.listByAdmin(organizationList(0).admins.head)
         val eitherOrganizations = Await.result(result, Duration.Inf)
         val \/-(organizations) = eitherOrganizations
 

@@ -53,8 +53,8 @@ class UserRepositoryPostgres(
   val Table = "users"
   val Fields = "id, version, created_at, updated_at, username, email, password_hash, givenname, surname, alias, account_type, is_deleted"
   val FieldsWithoutTable = "id, version, created_at, updated_at, username, email, givenname, surname, alias, account_type, is_deleted"
-  val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
-  val FieldsWithoutHash = FieldsWithTable.replace(s"${Table}.password_hash,", "")
+  def FieldsWithTable(table: String = Table) = Fields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
+  val FieldsWithoutHash = FieldsWithTable().replace(s"${Table}.password_hash,", "")
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.surname ASC, ${Table}.givenname ASC"
 
@@ -119,6 +119,26 @@ class UserRepositoryPostgres(
        |FROM users
        |ORDER BY dist LIMIT 10) as sub  where dist < 0.9;
     """.stripMargin
+
+  def SelectOrgMembersByKey(param: String, organizationList: IndexedSeq[Organization]) = {
+    val orgIdList = organizationList.map(_.id.toString).mkString(", ")
+
+    s"""
+       |SELECT ${FieldsWithTable("sub")}
+       |FROM (
+       |  SELECT *
+       |  FROM $Table
+       |  WHERE surname ILIKE '${param}%' OR givenname ILIKE '${param}%' OR email ILIKE '${param}%'
+       |    OR surname ILIKE '%${param}' OR givenname ILIKE '%${param}' OR email ILIKE '%${param}'
+       |    OR surname ILIKE '%${param}%' OR givenname ILIKE '%${param}%' OR email ILIKE '%${param}%'
+       |) AS sub
+       |INNER JOIN organization_members AS om
+       |  ON om.member_email = sub.email
+       |  AND om.organization_id IN ('$orgIdList')
+       |ORDER BY sub.givenname ASC LIMIT 10
+    """.
+      stripMargin
+  }
 
   def SelectByTags(tags: IndexedSeq[(String, String)], distinct: Boolean): String = {
     var whereClause = ""
@@ -488,5 +508,12 @@ class UserRepositoryPostgres(
     }
 
     queryList(query, Seq[Any](key))
+  }
+
+  def searchOrganizationMembers(key: String, organizationList: IndexedSeq[Organization])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    for {
+      _ <- predicate(organizationList.nonEmpty)(RepositoryError.BadParam("core.UserRepositoryPostgres.searchOrganizationTeammate.org.empty"))
+      result <- lift(queryList(SelectOrgMembersByKey(key, organizationList)))
+    } yield result
   }
 }

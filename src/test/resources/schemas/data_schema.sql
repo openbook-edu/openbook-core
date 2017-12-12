@@ -1155,6 +1155,9 @@ VALUES  ('e26bb8d3ecfe4a61a8081c3539086066', 1, 'testOrganizationC', 'testUserA@
 
 /* ---------------------- ORGANIZATION MEMBERS ---------------------- */
 INSERT INTO organization_members(organization_id, member_email)
+VALUES  ('8c27b83baf4f4e7f9ecf8f6b5ec9bfb0', 'testUserA@example.com');
+
+INSERT INTO organization_members(organization_id, member_email)
 VALUES  ('8c27b83baf4f4e7f9ecf8f6b5ec9bfb0', 'testUserB@example.com');
 
 INSERT INTO organization_members(organization_id, member_email)

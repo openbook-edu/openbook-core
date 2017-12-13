@@ -235,6 +235,7 @@ class ProjectServiceDefault(
     transactional { implicit conn: Connection =>
       for {
         project <- lift(projectRepository.find(projectId))
+        course <- lift(courseRepository.find(project.courseId))
         // Project
         clonedProject <- lift(projectRepository.cloneProject(projectId, courseId))
         newProject <- lift(insertProject(clonedProject))
@@ -242,37 +243,27 @@ class ProjectServiceDefault(
         clonedParts <- lift(projectRepository.cloneProjectParts(projectId, userId, clonedProject.id))
         _ <- lift(insertParts(clonedParts))
         tasks <- lift(insertTasks(clonedParts))
-
         _ <- lift {
-          // Insert master project components
-          if (project.isMaster) {
-            for {
-              clonedComponents <- lift(projectRepository.cloneProjectComponents(projectId, userId))
-              components <- lift(insertComponents(clonedComponents))
-              partsWithAdditions <- lift(serializedT(clonedParts)(part => {
-                // Get only components that are for the current part
-                val filteredComponents = components.filter(c => part.components.find(_.title == c.title).isDefined)
-                insertPartsComponents(filteredComponents, part)
-              }))
-            } yield components
+          // If we have new components owner, we need insert in DB new components and then link them
+          if (course.teacherId != userId) {
+            val clonedComponents = clonedParts.flatMap(_.components)
+            insertComponents(clonedComponents)
           }
-          // If we just copy a project
-          else {
-            // Link components with parts
-            serializedT(clonedParts)(part => {
-              insertPartsComponents(part.components, part)
-            })
-          }
+          // If we just copy a project, components are already in DB, we just need to link new parts with this components
+          else Future successful \/-(Unit)
         }
-        //we need to return the newProject not the clonedProject because the latter one doesn't have the updated slug
+        // Link components with parts
+        _ <- lift(serializedT(clonedParts)(part => {
+          linkPartsComponents(part.components, part)
+        }))
+        // We need to return the newProject not the clonedProject because the latter one doesn't have the updated slug
       } yield newProject.copy(parts = clonedParts)
     }
   }
 
-  def insertPartsComponents(components: IndexedSeq[Component], part: Part): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
+  def linkPartsComponents(components: IndexedSeq[Component], part: Part): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
     for {
       components <- lift(serializedT(components)(component => {
-        Logger.error("executing for component " + component.id)
         for {
           added <- lift(componentRepository.addToPart(component, part))
         } yield component
@@ -1386,7 +1377,7 @@ class ProjectServiceDefault(
   //  partsWithAdditions <- lift(serializedT(clonedParts)(part => {
   //    for {
   //      tasks <- lift(insertTasks(part.tasks, part))
-  //      partComponents <- lift(insertPartsComponents(components, part))
+  //      partComponents <- lift(linkPartsComponents(components, part))
   //    } yield tasks
   //  }))
 }

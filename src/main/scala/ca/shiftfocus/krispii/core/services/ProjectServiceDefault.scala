@@ -1346,7 +1346,19 @@ class ProjectServiceDefault(
   }
 
   def getToken(token: String): Future[\/[ErrorUnion#Fail, ProjectToken]] = {
-    projectTokenRepository.get(token)
+    projectTokenRepository.find(token)
+  }
+
+  def listToken(projectId: UUID, email: String): Future[\/[ErrorUnion#Fail, IndexedSeq[ProjectToken]]] = {
+    projectTokenRepository.list(projectId, email)
+  }
+
+  def listTokenByProject(projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[ProjectToken]]] = {
+    projectTokenRepository.listByProject(projectId)
+  }
+
+  def listTokenByEmail(email: String): Future[\/[ErrorUnion#Fail, IndexedSeq[ProjectToken]]] = {
+    projectTokenRepository.listByEmail(email)
   }
 
   def createToken(projectId: UUID, email: String): Future[\/[ErrorUnion#Fail, ProjectToken]] = {
@@ -1358,7 +1370,7 @@ class ProjectServiceDefault(
 
   def deleteToken(token: String): Future[\/[ErrorUnion#Fail, ProjectToken]] = {
     for {
-      token <- lift(projectTokenRepository.get(token))
+      token <- lift(projectTokenRepository.find(token))
       deletedToken <- lift(projectTokenRepository.delete(token))
     } yield deletedToken
   }

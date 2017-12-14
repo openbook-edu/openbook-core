@@ -121,7 +121,7 @@ class UserRepositoryPostgres(
     """.stripMargin
 
   def SelectOrgMembersByKey(param: String, organizationList: IndexedSeq[Organization]) = {
-    val orgIdList = organizationList.map(_.id.toString).mkString(", ")
+    val orgIdList = organizationList.map(org => s"'${org.id.toString}'").mkString(", ")
 
     s"""
        |SELECT ${FieldsWithTable("sub")}
@@ -134,7 +134,7 @@ class UserRepositoryPostgres(
        |) AS sub
        |INNER JOIN organization_members AS om
        |  ON om.member_email = sub.email
-       |  AND om.organization_id IN ('$orgIdList')
+       |  AND om.organization_id IN ($orgIdList)
        |ORDER BY sub.givenname ASC LIMIT 10
     """.
       stripMargin

@@ -131,6 +131,9 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
   def hasPartWork(partId: UUID): Future[\/[ErrorUnion#Fail, Boolean]]
 
   def getToken(token: String): Future[\/[ErrorUnion#Fail, ProjectToken]]
+  def listToken(projectId: UUID, email: String): Future[\/[ErrorUnion#Fail, IndexedSeq[ProjectToken]]]
+  def listTokenByProject(projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[ProjectToken]]]
+  def listTokenByEmail(email: String): Future[\/[ErrorUnion#Fail, IndexedSeq[ProjectToken]]]
   def createToken(projectId: UUID, email: String): Future[\/[ErrorUnion#Fail, ProjectToken]]
   def deleteToken(token: String): Future[\/[ErrorUnion#Fail, ProjectToken]]
 }

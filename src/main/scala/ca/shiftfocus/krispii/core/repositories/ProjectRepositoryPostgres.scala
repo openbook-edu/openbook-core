@@ -18,7 +18,14 @@ import scala.util.Try
 import scalacache.ScalaCache
 import scalaz._
 
-class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepository: TaskRepository, val componentRepository: ComponentRepository, val tagRepository: TagRepository)
+class ProjectRepositoryPostgres(
+  val userRepository: UserRepository,
+  val courseRepository: CourseRepository,
+  val partRepository: PartRepository,
+  val taskRepository: TaskRepository,
+  val componentRepository: ComponentRepository,
+  val tagRepository: TagRepository
+)
     extends ProjectRepository with PostgresRepository[Project] {
 
   override val entityName = "Project"
@@ -250,7 +257,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
       project <- lift(find(projectId))
       newProject = {
         if (project.isMaster) project.copy(id = UUID.randomUUID(), isMaster = false, courseId = courseId, parentId = Some(project.id), parentVersion = Some(project.version), enabled = true, createdAt = new DateTime, updatedAt = new DateTime)
-        else project.copy(id = UUID.randomUUID(), courseId = courseId, createdAt = new DateTime, updatedAt = new DateTime)
+        else project.copy(id = UUID.randomUUID(), courseId = courseId, parentId = Some(project.id), parentVersion = Some(project.version), createdAt = new DateTime, updatedAt = new DateTime)
       }
     } yield newProject).run
   }
@@ -264,9 +271,10 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
   def cloneProjectParts(projectId: UUID, ownerId: UUID, newProjectId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
     (for {
       project <- lift(find(projectId))
+      course <- lift(courseRepository.find(project.courseId))
       parts <- lift(partRepository.list(project))
       // We clone task but with old part ids!!!
-      clonedTasks <- lift(cloneTasks(parts))
+      clonedTasks <- lift(cloneTasks(parts, project.isMaster))
       clonedParts <- lift(serializedT(parts)(part => {
         for {
           components <- lift(componentRepository.list(part))
@@ -284,7 +292,8 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
             case task: MediaTask => task.copy(partId = partId)
           }.asInstanceOf[IndexedSeq[Task]],
             components = {
-            if (project.isMaster) cloneComponents(components, ownerId)
+            // If we have new components owner
+            if (course.teacherId != ownerId) cloneComponents(components, ownerId, project.isMaster)
             else components
           }
           )
@@ -299,11 +308,11 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
    * @param projectId
    * @return
    */
-  def cloneProjectComponents(projectId: UUID, ownerId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+  def cloneProjectComponents(projectId: UUID, ownerId: UUID, isMaster: Boolean)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     (for {
       project <- lift(find(projectId))
       projectComponents <- lift(componentRepository.list(project))
-      clonedProjectComponents = cloneComponents(projectComponents, ownerId)
+      clonedProjectComponents = cloneComponents(projectComponents, ownerId, isMaster)
     } yield clonedProjectComponents).run
   }
 
@@ -313,22 +322,22 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
    *
    * @return
    */
-  def cloneComponents(components: IndexedSeq[Component], ownerId: UUID): IndexedSeq[Component] = {
+  def cloneComponents(components: IndexedSeq[Component], ownerId: UUID, isMaster: Boolean): IndexedSeq[Component] = {
     components.map {
       case c: VideoComponent =>
-        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = if (isMaster) Some(c.id) else c.parentId, parentVersion = if (isMaster) Some(c.version) else c.parentVersion)
       case c: AudioComponent =>
-        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = if (isMaster) Some(c.id) else c.parentId, parentVersion = if (isMaster) Some(c.version) else c.parentVersion)
       case c: ImageComponent =>
-        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = if (isMaster) Some(c.id) else c.parentId, parentVersion = if (isMaster) Some(c.version) else c.parentVersion)
       case c: BookComponent =>
-        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = if (isMaster) Some(c.id) else c.parentId, parentVersion = if (isMaster) Some(c.version) else c.parentVersion)
       case c: TextComponent =>
-        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = if (isMaster) Some(c.id) else c.parentId, parentVersion = if (isMaster) Some(c.version) else c.parentVersion)
       case c: GenericHTMLComponent =>
-        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = if (isMaster) Some(c.id) else c.parentId, parentVersion = if (isMaster) Some(c.version) else c.parentVersion)
       case c: RubricComponent =>
-        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = Some(c.id), parentVersion = Some(c.version))
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = if (isMaster) Some(c.id) else c.parentId, parentVersion = if (isMaster) Some(c.version) else c.parentVersion)
     }
   }
 
@@ -339,7 +348,7 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
    * @param parts All parts of a project
    * @return
    */
-  def cloneTasks(parts: IndexedSeq[Part])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
+  def cloneTasks(parts: IndexedSeq[Part], isMaster: Boolean)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
     val empty: Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = Future.successful(\/-(IndexedSeq.empty[Task]))
     // Go threw every part and get all tasks
     for {
@@ -359,7 +368,14 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
       clonedWithoutDependencies = noDependenciesTasks.map(task => {
         val newId = UUID.randomUUID
         dependencies(task.id) = newId
-        task.copy(id = newId, partId = task.partId, settings = task.settings.copy(parentId = Some(task.id)), createdAt = new DateTime, updatedAt = new DateTime)
+        // If project is master then we save info about parent task
+        task.copy(
+          id = newId,
+          partId = task.partId,
+          settings = task.settings.copy(parentId = if (isMaster) Some(task.id) else task.settings.parentId),
+          createdAt = new DateTime,
+          updatedAt = new DateTime
+        )
       })
 
       dependenciesTasks = documentTasks.filter(task => !task.dependencyId.isEmpty)
@@ -369,21 +385,47 @@ class ProjectRepositoryPostgres(val partRepository: PartRepository, val taskRepo
         if (dependencyId.isEmpty) {
           dependencies(task.dependencyId.get) = UUID.randomUUID
         }
-        task.copy(id = newId, partId = task.partId, dependencyId = Some(dependencies(task.dependencyId.get)), settings = task.settings.copy(parentId = Some(task.id)), createdAt = new DateTime, updatedAt = new DateTime)
+        task.copy(
+          id = newId,
+          partId = task.partId,
+          dependencyId = Some(dependencies(task.dependencyId.get)),
+          settings = task.settings.copy(parentId = if (isMaster) Some(task.id) else task.settings.parentId),
+          createdAt = new DateTime,
+          updatedAt = new DateTime
+        )
       })
 
       otherTasks = allTasks.filter(task => !task.isInstanceOf[DocumentTask])
-      otherCloned = otherTasks.map(task => cloneTask(task, task.partId))
+      otherCloned = otherTasks.map(task => cloneTask(task, task.partId, isMaster))
     } yield (clonedWithDependencies union clonedWithoutDependencies union otherCloned).sortBy(t => t.position)
   }
 
-  private def cloneTask(task: Task, partId: UUID): Task = {
+  private def cloneTask(task: Task, partId: UUID, isMaster: Boolean): Task = {
+    // If project is master then we save info about parent task
     task match {
       case t: DocumentTask => {
-        task.asInstanceOf[DocumentTask].copy(id = UUID.randomUUID, partId = partId, settings = task.settings.copy(parentId = Some(task.id)), createdAt = new DateTime, updatedAt = new DateTime)
+        task.asInstanceOf[DocumentTask].copy(
+          id = UUID.randomUUID,
+          partId = partId,
+          settings = task.settings.copy(parentId = if (isMaster) Some(task.id) else task.settings.parentId),
+          createdAt = new DateTime,
+          updatedAt = new DateTime
+        )
       }
-      case t: MediaTask => task.asInstanceOf[MediaTask].copy(id = UUID.randomUUID, partId = partId, settings = task.settings.copy(parentId = Some(task.id)), createdAt = new DateTime, updatedAt = new DateTime)
-      case t: QuestionTask => task.asInstanceOf[QuestionTask].copy(id = UUID.randomUUID, partId = partId, settings = task.settings.copy(parentId = Some(task.id)), createdAt = new DateTime, updatedAt = new DateTime)
+      case t: MediaTask => task.asInstanceOf[MediaTask].copy(
+        id = UUID.randomUUID,
+        partId = partId,
+        settings = task.settings.copy(parentId = if (isMaster) Some(task.id) else task.settings.parentId),
+        createdAt = new DateTime,
+        updatedAt = new DateTime
+      )
+      case t: QuestionTask => task.asInstanceOf[QuestionTask].copy(
+        id = UUID.randomUUID,
+        partId = partId,
+        settings = task.settings.copy(parentId = if (isMaster) Some(task.id) else task.settings.parentId),
+        createdAt = new DateTime,
+        updatedAt = new DateTime
+      )
     }
   }
 

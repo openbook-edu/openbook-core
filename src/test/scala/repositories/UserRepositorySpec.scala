@@ -1,7 +1,7 @@
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.{ Role, User }
+import ca.shiftfocus.krispii.core.models.{ Organization, Role, User }
 import ca.shiftfocus.krispii.core.repositories.{ TagRepositoryPostgres, UserRepositoryPostgres }
 import org.scalatest.Matchers._
 import org.scalatest._
@@ -18,28 +18,65 @@ class UserRepositorySpec
   val tagRepository = new TagRepositoryPostgres()
   val userRepository = new UserRepositoryPostgres(tagRepository)
 
-  "UserRepository.findDeleted" should {
+  "UserRepository.organizationTeammateSearch" should {
     inSequence {
-      "find Deleted user" in {
-        val testUser = TestValues.testUserK
-        val email = testUser.email.replaceAll("^deleted_[1-9]{10}_", "")
+      "find teammates by key" in {
+        val key = "Test"
+        val testUserList = TreeMap[Int, User](
+          0 -> TestValues.testUserA,
+          1 -> TestValues.testUserB
+        )
+        val orgList = IndexedSeq(
+          TestValues.testOrganizationA
+        )
 
-        val result = userRepository.findDeleted(email)
-        val eitherUser = Await.result(result, Duration.Inf)
-        val \/-(user) = eitherUser
+        val result = userRepository.searchOrganizationTeammate(key, orgList)
+        val eitherUsers = Await.result(result, Duration.Inf)
+        val \/-(users) = eitherUsers
 
-        user.id should be(testUser.id)
-        user.version should be(testUser.version)
-        user.email should be(testUser.email)
-        user.username should be(testUser.username)
-        user.hash should be(testUser.hash)
-        user.givenname should be(testUser.givenname)
-        user.surname should be(testUser.surname)
-        user.createdAt.toString() should be(testUser.createdAt.toString())
-        user.updatedAt.toString() should be(testUser.updatedAt.toString())
+        println(Console.GREEN + users + Console.RESET)
+
+        users.size should be(testUserList.size)
+
+        testUserList.foreach {
+          case (key, user: User) => {
+            users(key).id should be(user.id)
+            users(key).version should be(user.version)
+            users(key).email should be(user.email)
+            users(key).username should be(user.username)
+            users(key).hash should be(None)
+            users(key).givenname should be(user.givenname)
+            users(key).surname should be(user.surname)
+            users(key).createdAt.toString should be(user.createdAt.toString)
+            users(key).updatedAt.toString should be(user.updatedAt.toString)
+          }
+        }
       }
     }
   }
+
+  //  "UserRepository.findDeleted" should {
+  //    inSequence {
+  //      "find Deleted user" in {
+  //        val testUser = TestValues.testUserK
+  //        val email = testUser.email.replaceAll("^deleted_[1-9]{10}_", "")
+  //
+  //        val result = userRepository.findDeleted(email)
+  //        val eitherUser = Await.result(result, Duration.Inf)
+  //        val \/-(user) = eitherUser
+  //
+  //        user.id should be(testUser.id)
+  //        user.version should be(testUser.version)
+  //        user.email should be(testUser.email)
+  //        user.username should be(testUser.username)
+  //        user.hash should be(testUser.hash)
+  //        user.givenname should be(testUser.givenname)
+  //        user.surname should be(testUser.surname)
+  //        user.createdAt.toString() should be(testUser.createdAt.toString())
+  //        user.updatedAt.toString() should be(testUser.updatedAt.toString())
+  //      }
+  //    }
+  //  }
 }
 //
 //  "UserRepository.list" should {

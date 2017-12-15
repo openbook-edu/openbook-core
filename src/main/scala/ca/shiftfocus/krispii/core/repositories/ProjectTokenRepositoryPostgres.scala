@@ -34,6 +34,28 @@ class ProjectTokenRepositoryPostgres extends ProjectTokenRepository with Postgre
      |WHERE token = ?
      """.stripMargin
 
+  val SelectByProjectAndEmail =
+    s"""
+     |SELECT $Fields
+     |FROM $Table
+     |WHERE project_id = ?
+     | AND email = ?
+     """.stripMargin
+
+  val SelectByProject =
+    s"""
+     |SELECT $Fields
+     |FROM $Table
+     |WHERE project_id = ?
+     """.stripMargin
+
+  val SelectByEmail =
+    s"""
+     |SELECT $Fields
+     |FROM $Table
+     |WHERE email = ?
+     """.stripMargin
+
   val Insert =
     s"""
      |INSERT INTO $Table ($Fields)
@@ -48,8 +70,20 @@ class ProjectTokenRepositoryPostgres extends ProjectTokenRepository with Postgre
      |RETURNING $Fields
      """.stripMargin
 
-  def get(token: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, ProjectToken]] = {
+  def find(token: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, ProjectToken]] = {
     queryOne(Select, Seq[Any](token))
+  }
+
+  def list(projectId: UUID, email: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[ProjectToken]]] = {
+    queryList(SelectByProjectAndEmail, Seq[Any](projectId, email))
+  }
+
+  def listByProject(projectId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[ProjectToken]]] = {
+    queryList(SelectByProject, Seq[Any](projectId))
+  }
+
+  def listByEmail(email: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[ProjectToken]]] = {
+    queryList(SelectByEmail, Seq[Any](email))
   }
 
   def insert(projectToken: ProjectToken)(implicit conn: Connection): Future[\/[RepositoryError.Fail, ProjectToken]] = {

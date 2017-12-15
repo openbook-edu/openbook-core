@@ -1147,11 +1147,11 @@ INSERT INTO last_read_message(conversation_id, user_id, message_id, read_at)
 VALUES  ('380eb1ad0cb74e2aadbff3165f181bd8', '36c8c0ca50aa4806afa5916a5e33a81f', 'f708b72e03af494dbe34356e78a0b643', '2014-08-05 14:01:19.545-04');
 
 /* ---------------------- ORGANIZATIONS ---------------------- */
-INSERT INTO organizations(id, version, title, admin_email, created_at, updated_at)
-VALUES  ('8c27b83baf4f4e7f9ecf8f6b5ec9bfb0', 1, 'testOrganizationA', 'testUserA@example.com', '2014-08-05 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
+INSERT INTO organizations(id, version, title, created_at, updated_at)
+VALUES  ('8c27b83baf4f4e7f9ecf8f6b5ec9bfb0', 1, 'testOrganizationA', '2014-08-05 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
 
-INSERT INTO organizations(id, version, title, admin_email, created_at, updated_at)
-VALUES  ('e26bb8d3ecfe4a61a8081c3539086066', 1, 'testOrganizationC', 'testUserA@example.com', '2014-08-05 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
+INSERT INTO organizations(id, version, title, created_at, updated_at)
+VALUES  ('e26bb8d3ecfe4a61a8081c3539086066', 1, 'testOrganizationC', '2014-08-05 14:01:19.545-04', '2014-08-05 14:01:19.545-04');
 
 /* ---------------------- ORGANIZATION MEMBERS ---------------------- */
 INSERT INTO organization_members(organization_id, member_email)
@@ -1162,6 +1162,19 @@ VALUES  ('8c27b83baf4f4e7f9ecf8f6b5ec9bfb0', 'testUserB@example.com');
 
 INSERT INTO organization_members(organization_id, member_email)
 VALUES  ('8c27b83baf4f4e7f9ecf8f6b5ec9bfb0', 'unexisting_user@example.com');
+
+/* ---------------------- ORGANIZATION ADMINS ---------------------- */
+/*testOrganizationA*/
+INSERT INTO organization_admins(organization_id, admin_email)
+VALUES  ('8c27b83baf4f4e7f9ecf8f6b5ec9bfb0', 'testUserA@example.com');
+
+/*testOrganizationA*/
+INSERT INTO organization_admins(organization_id, admin_email)
+VALUES  ('8c27b83baf4f4e7f9ecf8f6b5ec9bfb0', 'testUserB@example.com');
+
+/*testOrganizationC*/
+INSERT INTO organization_admins(organization_id, admin_email)
+VALUES  ('e26bb8d3ecfe4a61a8081c3539086066', 'testUserA@example.com');
 
 /* ---------------------------- ORGANIZATION TAGS -----------------------------*/
 /* testOrganizationA -> pacificsound3003 */

@@ -30,7 +30,7 @@ class UserRepositorySpec
           TestValues.testOrganizationA
         )
 
-        val result = userRepository.searchOrganizationTeammate(key, orgList)
+        val result = userRepository.searchOrganizationMembers(key, orgList)
         val eitherUsers = Await.result(result, Duration.Inf)
         val \/-(users) = eitherUsers
 

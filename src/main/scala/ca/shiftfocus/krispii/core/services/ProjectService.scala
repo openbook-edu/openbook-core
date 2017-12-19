@@ -53,7 +53,7 @@ trait ProjectService extends Service[ErrorUnion#Fail] {
     projectType: String
   ): Future[\/[ErrorUnion#Fail, Project]]
 
-  def copyProject(projectId: UUID, courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]]
+  def copyProject(projectId: UUID, courseId: UUID, userId: UUID, newProjectStatus: Option[String] = None): Future[\/[ErrorUnion#Fail, Project]]
 
   def updateInfo(
     id: UUID,

@@ -231,13 +231,13 @@ class ProjectServiceDefault(
    * @param userId
    * @return
    */
-  override def copyProject(projectId: UUID, courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]] = {
+  override def copyProject(projectId: UUID, courseId: UUID, userId: UUID, newProjectStatus: Option[String] = None): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
       for {
         project <- lift(projectRepository.find(projectId))
         course <- lift(courseRepository.find(project.courseId))
         // Project
-        clonedProject <- lift(projectRepository.cloneProject(projectId, courseId))
+        clonedProject <- lift(projectRepository.cloneProject(projectId, courseId, newProjectStatus))
         newProject <- lift(insertProject(clonedProject))
         // Parts, tasks
         clonedParts <- lift(projectRepository.cloneProjectParts(projectId, userId, clonedProject.id))

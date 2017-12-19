@@ -31,7 +31,7 @@ trait ProjectRepository extends Repository {
   def delete(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]]
   def trigramSearch(key: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]]
 
-  def cloneProject(projectId: UUID, courseId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]]
+  def cloneProject(projectId: UUID, courseId: UUID, newProjectStatus: Option[String] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]]
 
   def cloneProjectParts(projectId: UUID, ownerId: UUID, newProjectId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]]
 

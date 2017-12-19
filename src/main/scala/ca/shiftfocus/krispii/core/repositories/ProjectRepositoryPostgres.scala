@@ -252,12 +252,12 @@ class ProjectRepositoryPostgres(
    * @param cache
    * @return
    */
-  override def cloneProject(projectId: UUID, courseId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
+  override def cloneProject(projectId: UUID, courseId: UUID, newProjectStatus: Option[String] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
       project <- lift(find(projectId))
       newProject = {
-        if (project.isMaster) project.copy(id = UUID.randomUUID(), isMaster = false, courseId = courseId, parentId = Some(project.id), parentVersion = Some(project.version), enabled = true, createdAt = new DateTime, updatedAt = new DateTime)
-        else project.copy(id = UUID.randomUUID(), courseId = courseId, parentId = Some(project.id), parentVersion = Some(project.version), createdAt = new DateTime, updatedAt = new DateTime)
+        if (project.isMaster) project.copy(id = UUID.randomUUID(), isMaster = false, courseId = courseId, parentId = Some(project.id), parentVersion = Some(project.version), enabled = true, status = if (newProjectStatus.isDefined) newProjectStatus else project.status, createdAt = new DateTime, updatedAt = new DateTime)
+        else project.copy(id = UUID.randomUUID(), courseId = courseId, parentId = Some(project.id), parentVersion = Some(project.version), status = if (newProjectStatus.isDefined) newProjectStatus else project.status, createdAt = new DateTime, updatedAt = new DateTime)
       }
     } yield newProject).run
   }

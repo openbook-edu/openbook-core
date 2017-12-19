@@ -978,9 +978,9 @@ class AuthServiceDefault(
    *
    * @param key the stuff user already typed in
    */
-  override def listByKey(key: String, includeDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
+  override def listByKey(key: String, includeDeleted: Boolean = false, limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     (for {
-      users <- lift(userRepository.triagramSearch(key, includeDeleted))
+      users <- lift(userRepository.triagramSearch(key, includeDeleted, limit, offset))
       result <- liftSeq {
         users.map { user =>
           (for {

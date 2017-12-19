@@ -105,20 +105,71 @@ class UserRepositoryPostgres(
   /**
    * if you know how to make this query prettier, by all means, go ahead.
    */
-  val SelectAllByKeyNotDeleted =
+  def SelectAllByKeyNotDeleted(key: String, limit: String, offset: Int) =
     s"""
-       |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> ? AS dist
-       |FROM users
-       |WHERE is_deleted = false
-       |ORDER BY dist LIMIT 10) as sub  where dist < 0.9;
+     |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> '$key' AS dist
+     |FROM users
+     |WHERE is_deleted = false
+     |ORDER BY dist LIMIT $limit OFFSET $offset) as sub  where dist < 0.9;
     """.stripMargin
 
-  val SelectAllByKeyWithDeleted =
+  def SelectAllByKeyWithDeleted(key: String, limit: String, offset: Int) =
     s"""
-       |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> ? AS dist
+       |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> '$key' AS dist
        |FROM users
-       |ORDER BY dist LIMIT 10) as sub  where dist < 0.9;
+       |ORDER BY dist LIMIT $limit OFFSET $offset) as sub  where dist < 0.9;
     """.stripMargin
+
+  // TODO - finish that
+  def SelectAllByKey(
+    key: String,
+    includeDeleted: Boolean,
+    onlyDeleted: Boolean,
+    includeStudents: Boolean,
+    onlyStudents: Boolean,
+    studentRole: Role,
+    limit: String,
+    offset: Int
+  ) = {
+    var roleClause = ""
+    if (includeStudents) ""
+    else if (onlyStudents) {
+      roleClause =
+        s"""
+          |INNER JOIN users_roles AS ur
+          |ON ur.user_id = sub.id
+          |AND role_id = '${studentRole.id}'
+        """.stripMargin
+    }
+    else {
+      roleClause =
+        s"""
+           |INNER JOIN users_roles AS ur
+           |ON ur.user_id = sub.id
+           |AND role_id != '${studentRole.id}'
+        """.stripMargin
+    }
+
+    val deletedClause = {
+      if (includeDeleted) ""
+      else if (onlyDeleted) "WHERE is_deleted = true"
+      else "WHERE is_deleted = false"
+    }
+
+    s"""
+       |SELECT ${FieldsWithTable("sub")}
+       |FROM (
+       |  SELECT *
+       |  FROM $Table
+       |  WHERE surname ILIKE '${key}%' OR givenname ILIKE '${key}%' OR email ILIKE '${key}%'
+       |    OR surname ILIKE '%${key}' OR givenname ILIKE '%${key}' OR email ILIKE '%${key}'
+       |    OR surname ILIKE '%${key}%' OR givenname ILIKE '%${key}%' OR email ILIKE '%${key}%'
+       |) AS sub
+       |$roleClause
+       |$deletedClause
+       |ORDER BY sub.givenname ASC LIMIT $limit OFFSET $offset
+    """.stripMargin
+  }
 
   def SelectOrgMembersByKey(param: String, organizationList: IndexedSeq[Organization]) = {
     val orgIdList = organizationList.map(org => s"'${org.id.toString}'").mkString(", ")
@@ -501,13 +552,18 @@ class UserRepositoryPostgres(
    * @param key
    * @param conn
    */
-  def triagramSearch(key: String, includeDeleted: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    val query = {
-      if (includeDeleted) SelectAllByKeyWithDeleted
-      else SelectAllByKeyNotDeleted
+  def triagramSearch(key: String, includeDeleted: Boolean, limit: Int = 0, offset: Int = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    val queryLimit = {
+      if (limit == 0) "ALL"
+      else limit.toString
     }
 
-    queryList(query, Seq[Any](key))
+    val query = {
+      if (includeDeleted) SelectAllByKeyWithDeleted(key, queryLimit, offset)
+      else SelectAllByKeyNotDeleted(key, queryLimit, offset)
+    }
+
+    queryList(query)
   }
 
   def searchOrganizationMembers(key: String, organizationList: IndexedSeq[Organization])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {

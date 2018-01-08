@@ -23,6 +23,7 @@ trait ComponentService extends Service[ErrorUnion#Fail] {
 
   def createAudio(id: UUID, ownerId: UUID, title: String, description: String, questions: String, thingsToThinkAbout: String, audioData: MediaData, order: Int, parentId: Option[UUID] = None, parentVersion: Option[Long] = None): Future[\/[ErrorUnion#Fail, Component]]
   def createImage(id: UUID, ownerId: UUID, title: String, description: String, questions: String, thingsToThinkAbout: String, imageData: MediaData, order: Int, parentId: Option[UUID] = None, parentVersion: Option[Long] = None): Future[\/[ErrorUnion#Fail, Component]]
+  def createGoogle(id: UUID, ownerId: UUID, title: String, description: String, questions: String, thingsToThinkAbout: String, googleData: MediaData, order: Int, parentId: Option[UUID] = None, parentVersion: Option[Long] = None): Future[\/[ErrorUnion#Fail, Component]]
   def createBook(id: UUID, ownerId: UUID, title: String, description: String, questions: String, thingsToThinkAbout: String, fileData: MediaData, order: Int, parentId: Option[UUID] = None, parentVersion: Option[Long] = None): Future[\/[ErrorUnion#Fail, Component]]
   def createText(id: UUID, ownerId: UUID, title: String, description: String, questions: String, thingsToThinkAbout: String, content: String, order: Int, parentId: Option[UUID] = None, parentVersion: Option[Long] = None): Future[\/[ErrorUnion#Fail, Component]]
   def createGenericHTML(id: UUID, ownerId: UUID, title: String, description: String, questions: String, thingsToThinkAbout: String, htmlContent: String, order: Int, parentId: Option[UUID] = None, parentVersion: Option[Long] = None): Future[\/[ErrorUnion#Fail, Component]]
@@ -34,6 +35,8 @@ trait ComponentService extends Service[ErrorUnion#Fail] {
     audioData: Option[MediaData], order: Option[Int], isPrivate: Option[Boolean], parentId: Option[Option[UUID]] = None, parentVersion: Option[Option[Long]] = None): Future[\/[ErrorUnion#Fail, Component]]
   def updateImage(id: UUID, version: Long, ownerId: UUID, title: Option[String], description: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
     imageData: Option[MediaData], order: Option[Int], isPrivate: Option[Boolean], parentId: Option[Option[UUID]] = None, parentVersion: Option[Option[Long]] = None): Future[\/[ErrorUnion#Fail, Component]]
+  def updateGoogle(id: UUID, version: Long, ownerId: UUID, title: Option[String], description: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
+    googleData: Option[MediaData], order: Option[Int], isPrivate: Option[Boolean], parentId: Option[Option[UUID]] = None, parentVersion: Option[Option[Long]] = None): Future[\/[ErrorUnion#Fail, Component]]
   def updateBook(id: UUID, version: Long, ownerId: UUID, title: Option[String], description: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],
     fileData: Option[MediaData], order: Option[Int], isPrivate: Option[Boolean], parentId: Option[Option[UUID]] = None, parentVersion: Option[Option[Long]] = None): Future[\/[ErrorUnion#Fail, Component]]
   def updateText(id: UUID, version: Long, ownerId: UUID, title: Option[String], description: Option[String], questions: Option[String], thingsToThinkAbout: Option[String],

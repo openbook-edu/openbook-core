@@ -17,9 +17,19 @@ class SendyServiceDefault(
     val configuration: Configuration
 ) extends SendyService {
 
-  def subscribe(user: User, lang: Lang): Future[\/[ErrorUnion#Fail, Unit]] = {
+  def subscribe(user: User, account: Account, lang: Lang): Future[\/[ErrorUnion#Fail, Unit]] = {
     val maybeSendyUrl = configuration.getString("sendy.url")
-    val maybeSendyListId = configuration.getString(s"sendy.${lang.code}.list.id")
+    val maybeSendyListId = {
+      if (account.status == AccountStatus.limited) {
+        val freeListId = configuration.getString(s"sendy.free.${lang.code}.list.id")
+        // If there is no free user list, use default one
+        freeListId match {
+          case Some(list) => Some(list)
+          case _ => configuration.getString(s"sendy.${lang.code}.list.id")
+        }
+      }
+      else configuration.getString(s"sendy.${lang.code}.list.id")
+    }
 
     (maybeSendyUrl, maybeSendyListId) match {
       case (Some(sendyUrl), Some(sendyListId)) => {

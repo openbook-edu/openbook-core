@@ -19,5 +19,5 @@ trait SendyService extends Service[ErrorUnion#Fail] {
   val wsClient: WSClient
   val configuration: Configuration
 
-  def subscribe(user: User, lang: Lang): Future[\/[ErrorUnion#Fail, Unit]]
+  def subscribe(user: User, account: Account, lang: Lang): Future[\/[ErrorUnion#Fail, Unit]]
 }

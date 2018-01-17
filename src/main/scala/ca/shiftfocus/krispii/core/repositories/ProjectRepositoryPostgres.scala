@@ -324,6 +324,8 @@ class ProjectRepositoryPostgres(
    */
   def cloneComponents(components: IndexedSeq[Component], ownerId: UUID, isMaster: Boolean): IndexedSeq[Component] = {
     components.map {
+      case c: GoogleComponent =>
+        c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = if (isMaster) Some(c.id) else c.parentId, parentVersion = if (isMaster) Some(c.version) else c.parentVersion)
       case c: VideoComponent =>
         c.copy(id = UUID.randomUUID, createdAt = new DateTime, updatedAt = new DateTime, ownerId = ownerId, parentId = if (isMaster) Some(c.id) else c.parentId, parentVersion = if (isMaster) Some(c.version) else c.parentVersion)
       case c: AudioComponent =>

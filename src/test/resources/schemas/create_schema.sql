@@ -597,7 +597,6 @@ CREATE TABLE organizations (
   id uuid PRIMARY KEY,
   version bigint NOT NULL,
   title text NOT NULL,
-  admin_email text,
   created_at timestamp with time zone NOT NULL,
   updated_at timestamp with time zone NOT NULL
 );
@@ -613,6 +612,12 @@ CREATE TABLE organization_members (
   organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
   member_email text NOT NULL,
   PRIMARY KEY (organization_id, member_email)
+);
+
+CREATE TABLE organization_admins (
+  organization_id uuid NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+  admin_email text NOT NULL,
+  PRIMARY KEY (organization_id, admin_email)
 );
 
 create table organization_tags(

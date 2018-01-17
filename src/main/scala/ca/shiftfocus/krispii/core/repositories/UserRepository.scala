@@ -28,6 +28,6 @@ trait UserRepository extends Repository {
   def update(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]]
   def delete(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]]
 
-  def triagramSearch(key: String, includeDeleted: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]
+  def triagramSearch(key: String, includeDeleted: Boolean, limit: Int = 0, offset: Int = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]
   def searchOrganizationMembers(key: String, organizationList: IndexedSeq[Organization])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]
 }

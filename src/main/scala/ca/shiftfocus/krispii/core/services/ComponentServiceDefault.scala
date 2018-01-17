@@ -152,6 +152,35 @@ class ComponentServiceDefault(
     }
   }
 
+  override def createGoogle(
+    id: UUID,
+    ownerId: UUID,
+    title: String,
+    description: String,
+    questions: String,
+    thingsToThinkAbout: String,
+    googleData: MediaData,
+    order: Int,
+    parentId: Option[UUID] = None,
+    parentVersion: Option[Long] = None
+  ): Future[\/[ErrorUnion#Fail, Component]] = {
+    val newComponent = GoogleComponent(
+      id = id,
+      ownerId = ownerId,
+      title = title,
+      description = description,
+      questions = questions,
+      thingsToThinkAbout = thingsToThinkAbout,
+      mediaData = googleData,
+      order = order,
+      parentId = parentId,
+      parentVersion = parentVersion
+    )
+    transactional { implicit conn =>
+      componentRepository.insert(newComponent)
+    }
+  }
+
   override def createBook(
     id: UUID,
     ownerId: UUID,
@@ -378,6 +407,48 @@ class ComponentServiceDefault(
             case Some(Some(parentVersion)) => Some(parentVersion)
             case Some(None) => None
             case None => existingImage.parentVersion
+          }
+        )
+        updatedComponent <- lift(componentRepository.update(componentToUpdate))
+      } yield updatedComponent
+    }
+  }
+
+  override def updateGoogle(id: UUID, version: Long, ownerId: UUID,
+    title: Option[String],
+    description: Option[String],
+    questions: Option[String],
+    thingsToThinkAbout: Option[String],
+    googleData: Option[MediaData],
+    order: Option[Int],
+    isPrivate: Option[Boolean],
+    parentId: Option[Option[UUID]] = None,
+    parentVersion: Option[Option[Long]] = None): Future[\/[ErrorUnion#Fail, Component]] = {
+    transactional { implicit conn =>
+      for {
+        existingComponent <- lift(componentRepository.find(id))
+        _ <- predicate(existingComponent.version == version)(ServiceError.OfflineLockFail)
+        _ <- predicate(existingComponent.isInstanceOf[GoogleComponent])(ServiceError.BadInput("Component type is not google"))
+        existingGoogle = existingComponent.asInstanceOf[GoogleComponent]
+        componentToUpdate = existingGoogle.copy(
+          version = version,
+          ownerId = ownerId,
+          title = title.getOrElse(existingGoogle.title),
+          description = description.getOrElse(existingGoogle.description),
+          questions = questions.getOrElse(existingGoogle.questions),
+          thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingGoogle.thingsToThinkAbout),
+          mediaData = googleData.getOrElse(existingGoogle.mediaData),
+          order = order.getOrElse(existingGoogle.order),
+          isPrivate = isPrivate.getOrElse(existingGoogle.isPrivate),
+          parentId = parentId match {
+            case Some(Some(parentId)) => Some(parentId)
+            case Some(None) => None
+            case None => existingGoogle.parentId
+          },
+          parentVersion = parentVersion match {
+            case Some(Some(parentVersion)) => Some(parentVersion)
+            case Some(None) => None
+            case None => existingGoogle.parentVersion
           }
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))

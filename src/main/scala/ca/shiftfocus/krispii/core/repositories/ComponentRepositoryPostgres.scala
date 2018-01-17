@@ -26,6 +26,7 @@ class ComponentRepositoryPostgres()
   override def constructor(row: RowData): Component = {
     row("type").asInstanceOf[String] match {
       case "audio" => constructAudio(row)
+      case "google" => constructGoogle(row)
       case "image" => constructImage(row)
       case "text" => constructText(row)
       case "video" => constructVideo(row)
@@ -33,6 +34,31 @@ class ComponentRepositoryPostgres()
       case "rubric" => constructRubric(row)
       case "book" => constructBook(row)
     }
+  }
+
+  private def constructGoogle(row: RowData): GoogleComponent = {
+    GoogleComponent(
+      row("id").asInstanceOf[UUID],
+      row("version").asInstanceOf[Long],
+      row("owner_id").asInstanceOf[UUID],
+      row("title").asInstanceOf[String],
+      row("questions").asInstanceOf[String],
+      row("things_to_think_about").asInstanceOf[String],
+      Json.parse(row("google_data").asInstanceOf[String]).as[MediaData],
+      row("ord").asInstanceOf[Int],
+      row("is_private").asInstanceOf[Boolean],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
+      row("created_at").asInstanceOf[DateTime],
+      row("updated_at").asInstanceOf[DateTime]
+    )
   }
 
   private def constructAudio(row: RowData): AudioComponent = {
@@ -229,7 +255,8 @@ class ComponentRepositoryPostgres()
        |  video_components.width,
        |  video_components.height,
        |  audio_components.audio_data,
-       |  image_components.image_data
+       |  image_components.image_data,
+       |  google_components.google_data
      """.stripMargin
 
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
@@ -244,6 +271,7 @@ class ComponentRepositoryPostgres()
       |LEFT JOIN  video_components ON $Table.id = video_components.component_id
       |LEFT JOIN  audio_components ON $Table.id = audio_components.component_id
       |LEFT JOIN  image_components ON $Table.id = image_components.component_id
+      |LEFT JOIN  google_components ON $Table.id = google_components.component_id
      """.stripMargin
 
   // -- Select queries -----------------------------------------------------------------------------------------------
@@ -360,6 +388,17 @@ class ComponentRepositoryPostgres()
       |           RETURNING audio_data)
       |SELECT ${CommonFieldsWithTable("c")}, a.audio_data
       |FROM c, a
+  """.stripMargin
+
+  val InsertGoogle =
+    s"""
+      |WITH c AS ($Insert),
+      |     g AS (INSERT INTO google_components (component_id, google_data)
+      |           SELECT id as component_id, ? as google_data
+      |           FROM c
+      |           RETURNING google_data)
+      |SELECT ${CommonFieldsWithTable("c")}, g.google_data
+      |FROM c, g
   """.stripMargin
 
   val InsertImage =
@@ -521,6 +560,17 @@ class ComponentRepositoryPostgres()
       |          i.image_data
     """.stripMargin
 
+  val UpdateGoogle =
+    s"""
+      |WITH component AS ($Update)
+      |UPDATE google_components as g
+      |SET google_data = ?
+      |FROM component
+      |WHERE component_id = component.id
+      |RETURNING $CommonFields,
+      |          g.google_data
+    """.stripMargin
+
   // -- Delete queries -----------------------------------------------------------------------------------------------
 
   val RemoveFromPart =
@@ -542,6 +592,7 @@ class ComponentRepositoryPostgres()
       |USING
       | audio_components,
       | image_components,
+      | google_components,
       | text_components,
       | video_components,
       | generic_html_components,
@@ -734,6 +785,10 @@ class ComponentRepositoryPostgres()
         Component.Image,
         Json.toJson(imageComponent.mediaData)
       )
+      case googleComponent: GoogleComponent => commonData ++ Array[Any](
+        Component.Google,
+        Json.toJson(googleComponent.mediaData)
+      )
       case bookComponent: BookComponent => commonData ++ Array[Any](
         Component.Book,
         Json.toJson(bookComponent.mediaData)
@@ -748,6 +803,7 @@ class ComponentRepositoryPostgres()
       case videoComponent: VideoComponent => InsertVideo
       case audioComponent: AudioComponent => InsertAudio
       case imageComponent: ImageComponent => InsertImage
+      case googleComponent: GoogleComponent => InsertGoogle
       case bookComponent: BookComponent => InsertBook
     }
 
@@ -801,6 +857,9 @@ class ComponentRepositoryPostgres()
       case imageComponent: ImageComponent => commonData ++ Array[Any](
         Json.toJson(imageComponent.mediaData)
       )
+      case googleComponent: GoogleComponent => commonData ++ Array[Any](
+        Json.toJson(googleComponent.mediaData)
+      )
       case bookComponent: BookComponent => commonData ++ Array[Any](
         Json.toJson(bookComponent.mediaData)
       )
@@ -814,6 +873,7 @@ class ComponentRepositoryPostgres()
       case videoComponent: VideoComponent => UpdateVideo
       case audioComponent: AudioComponent => UpdateAudio
       case imageComponent: ImageComponent => UpdateImage
+      case googleComponent: GoogleComponent => UpdateGoogle
       case bookComponent: BookComponent => UpdateBook
     }
 
@@ -831,5 +891,4 @@ class ComponentRepositoryPostgres()
   override def delete(component: Component)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
     queryOne(Delete, Seq[Any](component.id, component.version))
   }
-
 }

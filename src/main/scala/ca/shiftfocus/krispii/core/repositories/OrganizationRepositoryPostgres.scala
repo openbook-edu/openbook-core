@@ -36,12 +36,12 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
 
   val MembersField =
     s"""
-       |string_agg(member_email, ',') AS members
+       |string_agg(DISTINCT member_email, ',') AS members
      """.stripMargin
 
   val AdminsField =
     s"""
-       |string_agg(admin_email, ',') AS admins
+       |string_agg(DISTINCT admin_email, ',') AS admins
      """.stripMargin
 
   val Join =

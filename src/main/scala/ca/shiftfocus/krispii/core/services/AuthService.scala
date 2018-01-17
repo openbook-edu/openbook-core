@@ -40,7 +40,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   /**
    * List user by similiarity to a key word
    */
-  def listByKey(key: String, includeDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
+  def listByKey(key: String, includeDeleted: Boolean = false, limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
   /**
    * List all users.

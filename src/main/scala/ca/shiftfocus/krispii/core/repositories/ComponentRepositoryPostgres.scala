@@ -839,6 +839,10 @@ class ComponentRepositoryPostgres extends ComponentRepository with PostgresRepos
         Component.Microsoft,
         Json.toJson(microsoftComponent.mediaData).toString()
       )
+      case microsoftComponent: MicrosoftComponent => commonData ++ Array[Any](
+        Component.Microsoft,
+        Json.toJson(microsoftComponent.mediaData)
+      )
       case bookComponent: BookComponent => commonData ++ Array[Any](
         Component.Book,
         Json.toJson(bookComponent.mediaData).toString()
@@ -913,6 +917,9 @@ class ComponentRepositoryPostgres extends ComponentRepository with PostgresRepos
       )
       case microsoftComponent: MicrosoftComponent => commonData ++ Array[Any](
         Json.toJson(microsoftComponent.mediaData).toString()
+      )
+      case microsoftComponent: MicrosoftComponent => commonData ++ Array[Any](
+        Json.toJson(microsoftComponent.mediaData)
       )
       case bookComponent: BookComponent => commonData ++ Array[Any](
         Json.toJson(bookComponent.mediaData).toString()

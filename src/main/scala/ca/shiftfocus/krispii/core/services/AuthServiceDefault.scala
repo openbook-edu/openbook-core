@@ -117,14 +117,12 @@ class AuthServiceDefault(
     transactional { implicit conn =>
       for {
         user <- lift(userRepository.find(identifier.trim))
+        _ <- predicate(user.accountType == "krispii")(ServiceError.ExternalService("core.AuthService.authenticate.user.accountType.wrong"))
         roles <- lift(roleRepository.list(user))
         userHash = user.hash.getOrElse("")
         authUser <- lift(Future.successful {
           if (Passwords.scrypt().verify(password.trim(), userHash)) {
-            if (Passwords.scrypt().verify("google_password", userHash))
-              -\/(ServiceError.ExternalService("This is the google account!"))
-            else
-              \/-(user.copy(roles = roles))
+            \/-(user.copy(roles = roles))
           }
           else {
             -\/(ServiceError.BadInput("The password was invalid."))
@@ -370,13 +368,11 @@ class AuthServiceDefault(
     fUser.run
   }
 
-  /**
-   * Create a new user for Google account
-   */
-  override def createGoogleUser(
+  override def createOpenIdUser(
     email: String,
     givenname: String,
-    surname: String
+    surname: String,
+    accountType: String
   ): Future[\/[ErrorUnion#Fail, User]] = {
     for {
       result <- lift {
@@ -386,17 +382,14 @@ class AuthServiceDefault(
             id = UUID.randomUUID(),
             username = email.trim,
             email = email.trim.toLowerCase,
-            hash = Some(webcrank.crypt("google_password")),
+            hash = Some(webcrank.crypt(UUID.randomUUID().toString)),
             givenname = givenname,
             surname = surname,
-            accountType = "google"
+            accountType = accountType
           )
-          Logger.debug("creating google user")
-          Logger.debug(newUser.toString)
 
           for {
             user <- lift(userRepository.insert(newUser))
-            _ = Logger.debug("user created")
           } yield user
         }
       }
@@ -405,17 +398,14 @@ class AuthServiceDefault(
     } yield result
   }
 
-  /**
-   * User account type to "google" type
-   */
-  override def updateToGoogleUser(
-    email: String
+  override def updateUserAccountType(
+    email: String,
+    newAccountType: String
   ): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
       val fUser = for {
         user <- lift(userRepository.find(email))
-        updatedUser <- lift(userRepository.update(user.copy(accountType = "google")))
-        _ = Logger.debug("user account type was updated to 'google'")
+        updatedUser <- lift(userRepository.update(user.copy(accountType = newAccountType)))
       } yield updatedUser
       fUser.run
     }

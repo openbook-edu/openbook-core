@@ -118,14 +118,16 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     hostname: Option[String]
   )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]]
 
-  def createGoogleUser(
+  def createOpenIdUser(
     email: String,
     givenname: String,
-    surname: String
+    surname: String,
+    accountType: String
   ): Future[\/[ErrorUnion#Fail, User]]
 
-  def updateToGoogleUser(
-    email: String
+  def updateUserAccountType(
+    email: String,
+    newAccountType: String
   ): Future[\/[ErrorUnion#Fail, User]]
 
   /**

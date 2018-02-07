@@ -27,6 +27,7 @@ class ComponentRepositoryPostgres()
     row("type").asInstanceOf[String] match {
       case "audio" => constructAudio(row)
       case "google" => constructGoogle(row)
+      case "microsoft" => constructMicrosoft(row)
       case "image" => constructImage(row)
       case "text" => constructText(row)
       case "video" => constructVideo(row)
@@ -34,6 +35,31 @@ class ComponentRepositoryPostgres()
       case "rubric" => constructRubric(row)
       case "book" => constructBook(row)
     }
+  }
+
+  private def constructMicrosoft(row: RowData): MicrosoftComponent = {
+    MicrosoftComponent(
+      row("id").asInstanceOf[UUID],
+      row("version").asInstanceOf[Long],
+      row("owner_id").asInstanceOf[UUID],
+      row("title").asInstanceOf[String],
+      row("questions").asInstanceOf[String],
+      row("things_to_think_about").asInstanceOf[String],
+      Json.parse(row("microsoft_data").asInstanceOf[String]).as[MediaData],
+      row("ord").asInstanceOf[Int],
+      row("is_private").asInstanceOf[Boolean],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
+      row("created_at").asInstanceOf[DateTime],
+      row("updated_at").asInstanceOf[DateTime]
+    )
   }
 
   private def constructGoogle(row: RowData): GoogleComponent = {
@@ -256,7 +282,8 @@ class ComponentRepositoryPostgres()
        |  video_components.height,
        |  audio_components.audio_data,
        |  image_components.image_data,
-       |  google_components.google_data
+       |  google_components.google_data,
+       |  microsoft_components.microsoft_data
      """.stripMargin
 
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
@@ -272,6 +299,7 @@ class ComponentRepositoryPostgres()
       |LEFT JOIN  audio_components ON $Table.id = audio_components.component_id
       |LEFT JOIN  image_components ON $Table.id = image_components.component_id
       |LEFT JOIN  google_components ON $Table.id = google_components.component_id
+      |LEFT JOIN  microsoft_components ON $Table.id = microsoft_components.component_id
      """.stripMargin
 
   // -- Select queries -----------------------------------------------------------------------------------------------
@@ -398,6 +426,17 @@ class ComponentRepositoryPostgres()
       |           FROM c
       |           RETURNING google_data)
       |SELECT ${CommonFieldsWithTable("c")}, g.google_data
+      |FROM c, g
+  """.stripMargin
+
+  val InsertMicrosoft =
+    s"""
+      |WITH c AS ($Insert),
+      |     g AS (INSERT INTO microsoft_components (component_id, microsoft_data)
+      |           SELECT id as component_id, ? as microsoft_data
+      |           FROM c
+      |           RETURNING microsoft_data)
+      |SELECT ${CommonFieldsWithTable("c")}, g.microsoft_data
       |FROM c, g
   """.stripMargin
 
@@ -571,6 +610,17 @@ class ComponentRepositoryPostgres()
       |          g.google_data
     """.stripMargin
 
+  val UpdateMicrosoft =
+    s"""
+      |WITH component AS ($Update)
+      |UPDATE microsoft_components as g
+      |SET microsoft_data = ?
+      |FROM component
+      |WHERE component_id = component.id
+      |RETURNING $CommonFields,
+      |          g.microsoft_data
+    """.stripMargin
+
   // -- Delete queries -----------------------------------------------------------------------------------------------
 
   val RemoveFromPart =
@@ -593,6 +643,7 @@ class ComponentRepositoryPostgres()
       | audio_components,
       | image_components,
       | google_components,
+      | microsoft_components,
       | text_components,
       | video_components,
       | generic_html_components,
@@ -789,6 +840,10 @@ class ComponentRepositoryPostgres()
         Component.Google,
         Json.toJson(googleComponent.mediaData)
       )
+      case microsoftComponent: MicrosoftComponent => commonData ++ Array[Any](
+        Component.Microsoft,
+        Json.toJson(microsoftComponent.mediaData)
+      )
       case bookComponent: BookComponent => commonData ++ Array[Any](
         Component.Book,
         Json.toJson(bookComponent.mediaData)
@@ -804,6 +859,7 @@ class ComponentRepositoryPostgres()
       case audioComponent: AudioComponent => InsertAudio
       case imageComponent: ImageComponent => InsertImage
       case googleComponent: GoogleComponent => InsertGoogle
+      case microsoftComponent: MicrosoftComponent => InsertMicrosoft
       case bookComponent: BookComponent => InsertBook
     }
 
@@ -860,6 +916,9 @@ class ComponentRepositoryPostgres()
       case googleComponent: GoogleComponent => commonData ++ Array[Any](
         Json.toJson(googleComponent.mediaData)
       )
+      case microsoftComponent: MicrosoftComponent => commonData ++ Array[Any](
+        Json.toJson(microsoftComponent.mediaData)
+      )
       case bookComponent: BookComponent => commonData ++ Array[Any](
         Json.toJson(bookComponent.mediaData)
       )
@@ -874,6 +933,7 @@ class ComponentRepositoryPostgres()
       case audioComponent: AudioComponent => UpdateAudio
       case imageComponent: ImageComponent => UpdateImage
       case googleComponent: GoogleComponent => UpdateGoogle
+      case microsoftComponent: MicrosoftComponent => UpdateMicrosoft
       case bookComponent: BookComponent => UpdateBook
     }
 

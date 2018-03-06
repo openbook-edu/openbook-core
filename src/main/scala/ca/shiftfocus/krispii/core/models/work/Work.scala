@@ -9,6 +9,8 @@ import ca.shiftfocus.krispii.core.models.tasks.questions._
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
+import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 sealed trait Work {
   val id: UUID

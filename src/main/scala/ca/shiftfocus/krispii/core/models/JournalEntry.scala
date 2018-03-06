@@ -6,6 +6,8 @@ import play.api.i18n.Messages
 import play.api.libs.json._
 import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
+import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 case class JournalEntry(
   id: UUID = UUID.randomUUID,

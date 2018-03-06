@@ -15,6 +15,8 @@ import play.api.libs.json.{ JsObject, Json }
 
 import scala.concurrent.Future
 import scalaz.{ -\/, \/, \/- }
+import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 class TagServiceDefault(
     val db: DB,
@@ -35,10 +37,10 @@ class TagServiceDefault(
     // Bad idea to include services, but duplicating the code may be even worse
     val paymentService: PaymentService
 ) extends TagService {
-  val trialDays = config.getInt("default.trial.days").get
-  val defaultStudentLimit = config.getInt("default.student.limit").get
-  val defaultStorageLimit = config.getInt("default.storage.limit.gb").get
-  val defaultCourseLimit = config.getInt("default.course.limit").get
+  val trialDays = config.get[Option[Int]]("default.trial.days").get
+  val defaultStudentLimit = config.get[Option[Int]]("default.student.limit").get
+  val defaultStorageLimit = config.get[Option[Int]]("default.storage.limit.gb").get
+  val defaultCourseLimit = config.get[Option[Int]]("default.course.limit").get
 
   implicit def conn: Connection = db.pool
   implicit def cache: ScalaCachePool = scalaCache

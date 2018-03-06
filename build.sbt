@@ -4,7 +4,7 @@ organization := "ca.shiftfocus"
 
 version := scala.io.Source.fromFile("VERSION").mkString("").trim
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.11.12"
 
 crossScalaVersions := Seq("2.10.4", "2.11.6")
 
@@ -36,15 +36,16 @@ scalacOptions in ThisBuild ++= Seq(
 )
 
 libraryDependencies ++= Seq(
-  "com.typesafe.play" % "play-ws_2.11" % "2.4.11",
   // We depend on several parts of the Play project
-  "com.typesafe.play" %% "play-json" % "2.4.0",
-  "com.typesafe.play" %% "play-jdbc-evolutions" % "2.4.0",
+  "com.typesafe.play" %% "play-ws" % "2.6.7",
+  "com.typesafe.play" %% "play-json" % "2.6.7",
+  "com.typesafe.play" %% "play-jdbc-evolutions" % "2.6.7",
   "com.typesafe.play" %% "play-mailer" % "3.0.1",
+  "com.typesafe.play" %% "play-json-joda" % "2.6.7",
   // We heavily depend on scalaz's \/ and associated types
   "org.scalaz" %% "scalaz-core" % "7.1.2",
-  "com.github.mauricio" %% "postgresql-async" % "0.2.18",
-  "joda-time" % "joda-time" % "2.1",
+  "com.github.mauricio" %% "postgresql-async" % "0.2.20",
+  "joda-time" % "joda-time" % "2.9.9",
   "net.sf.uadetector" % "uadetector-resources" % "2014.04",
   "com.github.cb372" %% "scalacache-redis" % "0.6.1",
   "org.scalatest" % "scalatest_2.11" % "2.2.4" % "test",

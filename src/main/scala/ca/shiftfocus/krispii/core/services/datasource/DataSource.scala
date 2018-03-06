@@ -21,7 +21,7 @@ trait DB {
  */
 class PostgresDB(val dbconfig: Configuration, val poolConfig: PoolConfiguration) extends DB {
   val config = ConfigFactory.load()
-  //val cacheExpiry = Option(config.getInt("app.cache.expires")).getOrElse(5)
+  //val cacheExpiry = Option(config.get[Option[Int]]("app.cache.expires")).getOrElse(5)
   lazy val factory = new PostgreSQLConnectionFactory(dbconfig)
   override def pool: Connection = connectionPool
 

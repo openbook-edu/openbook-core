@@ -11,6 +11,8 @@ import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 import org.joda.time.LocalDate
 import org.joda.time.LocalTime
+import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 case class CourseSchedule(
     id: UUID = UUID.randomUUID,

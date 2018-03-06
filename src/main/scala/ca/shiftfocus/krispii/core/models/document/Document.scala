@@ -9,6 +9,8 @@ import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import ws.kahn.ot._
+import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 case class Document(
     id: UUID = UUID.randomUUID,

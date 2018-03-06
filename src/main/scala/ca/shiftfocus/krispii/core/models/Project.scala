@@ -1,11 +1,17 @@
 package ca.shiftfocus.krispii.core.models
 
+import java.awt.peer.TrayIconPeer
+
+import com.github.mauricio.async.db.RowData
 import java.util.UUID
+
 import org.joda.time.DateTime
+import play.api.Logger
 import play.api.libs.json._
 import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 case class Project(
     id: UUID = UUID.randomUUID,
@@ -67,7 +73,7 @@ object Project {
   object Availability {
     val AnyTime = "any"
     val FreeTime = "free"
-    val CourseTime = "group"
+    val CourseTime = "course"
   }
 
   object Type {

@@ -3,8 +3,9 @@ package ca.shiftfocus.krispii.core.models
 import java.util.UUID
 
 import org.joda.time.DateTime
-import play.api.libs.json.{JsValue, Json, Writes}
+import play.api.libs.json.{ JsValue, Json, Writes }
 import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 case class UserLog(
   id: UUID = UUID.randomUUID(),
@@ -15,7 +16,7 @@ case class UserLog(
 )
 
 object UserLog {
-  implicit val userLogWrites = new Writes[UserLog] {
+  implicit val usegLogWrites = new Writes[UserLog] {
     def writes(userLog: UserLog): JsValue = {
       Json.obj(
         "id" -> userLog.id,

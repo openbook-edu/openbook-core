@@ -6,6 +6,7 @@ import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 case class BookComponent(
   id: UUID = UUID.randomUUID,
@@ -33,7 +34,7 @@ object BookComponent {
     (__ \ "title").write[String] and
     (__ \ "questions").write[String] and
     (__ \ "thingsToThinkAbout").write[String] and
-    (__ \ "fileData").write[MediaData] and // illogical and dangerous: write "fileData", but read "media_data"
+    (__ \ "fileData").write[MediaData] and
     (__ \ "order").write[Int] and
     (__ \ "isPrivate").write[Boolean] and
     (__ \ "description").write[String] and

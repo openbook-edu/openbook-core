@@ -1,5 +1,9 @@
 package ca.shiftfocus.krispii.core.models
 
+/**
+ * Created by vzaytseva on 21/01/16.
+ */
+
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.models.document.Document
@@ -8,6 +12,7 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json.Writes._
 import play.api.libs.json._
 import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 case class ProjectScratchpadOutOfDateException(msg: String) extends Exception
 case class ProjectScratchpadAlreadyExistsException(msg: String) extends Exception

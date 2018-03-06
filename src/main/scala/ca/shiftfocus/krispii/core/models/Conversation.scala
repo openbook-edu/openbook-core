@@ -2,10 +2,11 @@ package ca.shiftfocus.krispii.core.models
 
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.models.user.User
 import org.joda.time.DateTime
+import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 case class Conversation(
   id: UUID = UUID.randomUUID(),

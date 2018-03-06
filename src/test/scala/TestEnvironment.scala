@@ -40,7 +40,7 @@ abstract class TestEnvironment(writeToDb: Boolean = true)
     host = config.getString("db.postgresql.host"), //"localhost",
     password = Some(config.getString("db.postgresql.password")), //"test_user"),
     database = Some(config.getString("db.postgresql.database")), //"testdb")
-    port = config.getInt("db.postgresql.port")
+    port = config.get[Option[Int]]("db.postgresql.port")
   )
 
   private val poolConfig = new PoolConfiguration(

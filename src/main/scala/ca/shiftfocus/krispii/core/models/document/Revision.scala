@@ -1,15 +1,11 @@
 package ca.shiftfocus.krispii.core.models.document
 
-import ca.shiftfocus.krispii.core.models.User
 import java.util.UUID
-import java.security.MessageDigest
-import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
-import ws.kahn.ot._
+import ca.shiftfocus.otlib._
 import play.api.libs.json.JodaWrites._
-import play.api.libs.json.JodaReads._
 
 case class Revision(
     documentId: UUID,

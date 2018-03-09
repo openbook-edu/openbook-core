@@ -7,9 +7,7 @@ import ca.shiftfocus.krispii.core.models._
 import com.github.mauricio.async.db.{ Connection, RowData }
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
-
 import scala.concurrent.Future
-import scala.util.Try
 import scalaz.\/
 
 class UserLogRepositoryPostgres extends UserLogRepository with PostgresRepository[UserLog] {

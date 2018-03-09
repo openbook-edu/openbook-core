@@ -1,29 +1,20 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import java.util.NoSuchElementException
-
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
+import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig }
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models.tasks.questions.Question
-import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
-import com.github.mauricio.async.db.{ ResultSet, RowData, Connection }
+import com.github.mauricio.async.db.{ Connection, RowData }
 import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext.Implicits.global
-import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks._
 import java.util.UUID
-
 import scala.concurrent.Future
 import org.joda.time.DateTime
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+import scalaz.{ -\/, \/, \/- }
 
-import scala.util.Try
-import scalacache.ScalaCache
-import scalaz.{ \/-, -\/, \/ }
-
-class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task] with SpecificTaskConstructors {
+class TaskRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends TaskRepository with PostgresRepository[Task] with SpecificTaskConstructors with CacheRepository {
 
   override val entityName = "Task"
 
@@ -310,13 +301,13 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
    * @param part The part to return tasks from.
    * @return a vector of the returned tasks
    */
-  override def list(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
-    cache.getCached[IndexedSeq[Task]](cacheTasksKey(part.id)).flatMap {
+  override def list(part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
+    cache[IndexedSeq[Task]].getCached(cacheTasksKey(part.id)).flatMap {
       case \/-(taskList) => Future successful \/-(taskList)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           taskList <- lift(queryList(SelectByPartId, Array[Any](part.id)))
-          _ <- lift(cache.putCache[IndexedSeq[Task]](cacheTasksKey(part.id))(taskList, ttl))
+          _ <- lift(cache[IndexedSeq[Task]].putCache(cacheTasksKey(part.id))(taskList, ttl))
         } yield taskList
       case -\/(error) => Future successful -\/(error)
     }
@@ -348,13 +339,13 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
    * @param id the UUID to search for
    * @return an optional task if one was found
    */
-  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]] = {
-    cache.getCached[Task](cacheTaskKey(id)).flatMap {
+  override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]] = {
+    cache[Task].getCached(cacheTaskKey(id)).flatMap {
       case \/-(task) => Future successful \/-(task)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           task <- lift(queryOne(SelectOne, Seq[Any](id)))
-          _ <- lift(cache.putCache[Task](cacheTaskKey(id))(task, ttl))
+          _ <- lift(cache[Task].putCache(cacheTaskKey(id))(task, ttl))
         } yield task
       case -\/(error) => Future successful -\/(error)
     }
@@ -369,14 +360,14 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
    * @param taskNum the number of the task within its part
    * @return an optional task if one was found
    */
-  override def find(project: Project, part: Part, taskNum: Int)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]] = {
-    cache.getCached[UUID](cacheTaskPosKey(project.id, part.id, taskNum)).flatMap {
+  override def find(project: Project, part: Part, taskNum: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]] = {
+    cache[UUID].getCached(cacheTaskPosKey(project.id, part.id, taskNum)).flatMap {
       case \/-(taskId) => this.find(taskId)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           task <- lift(queryOne(SelectByPosition, Seq[Any](part.position, project.id, taskNum)))
-          _ <- lift(cache.putCache[Task](cacheTaskKey(task.id))(task, ttl))
-          _ <- lift(cache.putCache[Task](cacheTaskPosKey(project.id, part.id, taskNum))(task, ttl))
+          _ <- lift(cache[Task].putCache(cacheTaskKey(task.id))(task, ttl))
+          _ <- lift(cache[Task].putCache(cacheTaskPosKey(project.id, part.id, taskNum))(task, ttl))
         } yield task
       case -\/(error) => Future successful -\/(error)
     }
@@ -411,7 +402,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
    * @param task The task to be inserted
    * @return the new task
    */
-  override def insert(task: Task)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]] = {
+  override def insert(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]] = {
     // All tasks have these properties.
     val commonData = Seq[Any](
       task.id,
@@ -465,7 +456,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
    * @param task The task to be updated.
    * @return the updated task
    */
-  override def update(task: Task, oldPartId: Option[UUID] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]] = {
+  override def update(task: Task, oldPartId: Option[UUID] = None)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]] = {
     // Start with the data common to all task types.
     val commonData = Seq[Any](
       task.partId,
@@ -521,7 +512,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
    * @param task The task to delete.
    * @return A boolean indicating whether the operation was successful.
    */
-  override def delete(task: Task)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Task]] = {
+  override def delete(task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]] = {
     val query = task match {
       case document: DocumentTask => DeleteDocumentTask
       case question: QuestionTask => DeleteQuestionTask
@@ -540,7 +531,7 @@ class TaskRepositoryPostgres extends TaskRepository with PostgresRepository[Task
    * @param part the part to delete tasks from.
    * @return A boolean indicating whether the operation was successful.
    */
-  override def delete(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
+  override def delete(part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
     for {
       deleted <- lift(queryList(DeleteByPart, Array[Any](part.id)))
       _ <- liftSeq(deleted.map({ task => cache.removeCached(cacheTaskKey(task.id)) }))

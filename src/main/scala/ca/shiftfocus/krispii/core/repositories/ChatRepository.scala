@@ -1,8 +1,6 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.models.{ User, Course, Chat }
-import ca.shiftfocus.krispii.core.models.document.Revision
-import ca.shiftfocus.krispii.core.models.document.Document
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import java.util.UUID
 import com.github.mauricio.async.db.Connection

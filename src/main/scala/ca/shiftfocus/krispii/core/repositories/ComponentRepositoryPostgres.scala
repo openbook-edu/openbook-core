@@ -1,24 +1,18 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
-import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
-import com.github.mauricio.async.db.{ Connection, ResultSet, RowData }
+import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig }
+import com.github.mauricio.async.db.{ Connection, RowData }
 import play.api.Logger
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
-
 import scala.concurrent.Future
 import org.joda.time.DateTime
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import play.api.libs.json.Json
-
-import scalacache.ScalaCache
 import scalaz.{ -\/, \/, \/- }
 
-class ComponentRepositoryPostgres()
+class ComponentRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig)
     extends ComponentRepository with PostgresRepository[Component] {
 
   override val entityName = "Component"
@@ -683,7 +677,7 @@ class ComponentRepositoryPostgres()
    * @param part the part to search in
    * @return an array of components
    */
-  override def list(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+  override def list(part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     Logger.debug(s"inside component.list ${part.toString}")
     queryList(SelectByPartId, Array[Any](part.id))
   }
@@ -694,7 +688,7 @@ class ComponentRepositoryPostgres()
    * @param project the project to search within
    * @return an array of components
    */
-  override def list(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+  override def list(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     queryList(SelectByProjectId, Array[Any](project.id))
   }
 
@@ -704,7 +698,7 @@ class ComponentRepositoryPostgres()
    * @param teacher the owner of components
    * @return an array of components
    */
-  override def list(teacher: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+  override def list(teacher: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     queryList(SelectByOwner, Array[Any](teacher.id))
   }
 
@@ -725,7 +719,7 @@ class ComponentRepositoryPostgres()
    * @param id the 128-bit UUID, as a byte array, to search for.
    * @return an optional RowData object containing the results
    */
-  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
+  override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Component]] = {
     queryOne(SelectOne, Array[Any](id))
   }
 
@@ -736,7 +730,7 @@ class ComponentRepositoryPostgres()
    * @param part the part to add this component to
    * @return a boolean indicating whether the operation was successful
    */
-  override def addToPart(component: Component, part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def addToPart(component: Component, part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       _ <- lift(queryNumRows(AddToPart, Array[Any](component.id, part.id, new DateTime))(_ == 1).map {
         case \/-(true) => \/-(())
@@ -753,7 +747,7 @@ class ComponentRepositoryPostgres()
    * @param part the part to remove this component from
    * @return a boolean indicating whether the operation was successful
    */
-  override def removeFromPart(component: Component, part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def removeFromPart(component: Component, part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       _ <- lift(queryNumRows(RemoveFromPart, Array[Any](component.id, part.id))(_ == 1).map {
         case \/-(true) => \/-(())
@@ -770,7 +764,7 @@ class ComponentRepositoryPostgres()
    * @param conn
    * @return
    */
-  override def removeFromPart(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+  override def removeFromPart(part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     (for {
       componentsInPart <- lift(list(part))
       _ <- predicate(componentsInPart.nonEmpty)(RepositoryError.NoResults(s"Either the part ${part.id} doesn't have components or the part doesn't exist"))
@@ -873,7 +867,7 @@ class ComponentRepositoryPostgres()
    * @param component the component to be updated
    * @return the updated component
    */
-  override def update(component: Component)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
+  override def update(component: Component)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Component]] = {
     // Common properties.
     val commonData = Seq[Any](
       component.version + 1,
@@ -948,7 +942,7 @@ class ComponentRepositoryPostgres()
    * @param conn
    * @return
    */
-  override def delete(component: Component)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
+  override def delete(component: Component)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Component]] = {
     queryOne(Delete, Seq[Any](component.id, component.version))
   }
 }

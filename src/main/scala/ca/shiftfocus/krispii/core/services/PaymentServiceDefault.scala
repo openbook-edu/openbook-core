@@ -1,9 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
-
 import ca.shiftfocus.krispii.core.error.{ ErrorUnion, RepositoryError, ServiceError }
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models.stripe.StripePlan
 import ca.shiftfocus.krispii.core.models.{ Account, AccountStatus, PaymentLog, TaggableEntities }
 import ca.shiftfocus.krispii.core.repositories._
@@ -14,8 +12,7 @@ import com.stripe.model._
 import com.stripe.net.{ APIResource, RequestOptions }
 import org.joda.time.DateTime
 import play.api.libs.json.{ JsObject, JsValue, Json }
-
-import collection.JavaConversions._
+import collection.JavaConverters._
 import scala.collection.immutable.TreeMap
 import scala.concurrent.Future
 import scalaz.{ -\/, \/, \/- }
@@ -23,7 +20,6 @@ import scala.concurrent.ExecutionContext.Implicits.global
 
 class PaymentServiceDefault(
     val db: DB,
-    val scalaCache: ScalaCachePool,
     val requestOptions: RequestOptions,
     val userRepository: UserRepository,
     val accountRepository: AccountRepository,
@@ -34,7 +30,6 @@ class PaymentServiceDefault(
 ) extends PaymentService {
 
   implicit def conn: Connection = db.pool
-  implicit def cache: ScalaCachePool = scalaCache
 
   /**
    * Get user account with subscriptions from krispii db by userId
@@ -152,14 +147,14 @@ class PaymentServiceDefault(
     try {
       val params = new java.util.HashMap[String, Object]()
 
-      val planList: IndexedSeq[JsValue] = Plan.list(params, requestOptions).getData.map(plan => {
+      val planList: IndexedSeq[JsValue] = Plan.list(params, requestOptions).getData.asScala.map(plan => {
         Json.parse(APIResource.GSON.toJson(plan))
       }).toIndexedSeq
 
       \/-(planList)
     }
     catch {
-      case e => -\/(ServiceError.ExternalService(e.toString))
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     }
   }
 
@@ -176,7 +171,7 @@ class PaymentServiceDefault(
       \/-(plan)
     }
     catch {
-      case e => -\/(ServiceError.ExternalService(e.toString))
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     }
   }
 
@@ -269,7 +264,7 @@ class PaymentServiceDefault(
           \/-(result)
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
     } yield customer
@@ -327,7 +322,7 @@ class PaymentServiceDefault(
           \/-(result)
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
     } yield updatedCustomer
@@ -381,7 +376,7 @@ class PaymentServiceDefault(
       \/-(result)
     }
     catch {
-      case e => -\/(ServiceError.ExternalService(e.toString))
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     }
   }
 
@@ -401,7 +396,7 @@ class PaymentServiceDefault(
           Future successful \/-(account.customer.getOrElse(Json.parse("{}")))
         }
         catch {
-          case error => Future successful -\/(ServiceError.ExternalService(error.toString))
+          case error: Throwable => Future successful -\/(ServiceError.ExternalService(error.toString))
         }
       )
       updatedAccount <- lift(accountRepository.update(account.copy(
@@ -431,7 +426,7 @@ class PaymentServiceDefault(
           \/-(subscription)
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
       _ <- lift(stripeRepository.createSubscription(userId, subscription))
@@ -475,7 +470,7 @@ class PaymentServiceDefault(
           \/-(updatedSubsctiption)
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
       _ <- lift(stripeRepository.updateSubscription(userId, updatedSubsctiption.getId, Json.parse(APIResource.GSON.toJson(updatedSubsctiption))))
@@ -511,7 +506,7 @@ class PaymentServiceDefault(
           val subscription: Subscription = Subscription.retrieve(subscriptionId, requestOptions)
           val canceledSubsctiption = {
             if (atPeriodEnd) {
-              var params = new java.util.HashMap[String, Object]()
+              val params = new java.util.HashMap[String, Object]()
               params.put("at_period_end", "true")
               subscription.cancel(params, requestOptions)
             }
@@ -523,7 +518,7 @@ class PaymentServiceDefault(
           \/-(canceledSubsctiption)
         }
         catch {
-          case e => {
+          case e: Throwable => {
             -\/(ServiceError.ExternalService(e.toString))
           }
         })
@@ -565,7 +560,7 @@ class PaymentServiceDefault(
       case e: InvalidRequestException if (e.toString.contains("No upcoming invoices for customer")) => {
         -\/(RepositoryError.NoResults("core.services.PaymentServiceDefault.fetchUpcomingInvoiceFromStripe.no.results"))
       }
-      case e => -\/(ServiceError.ExternalService(e.toString))
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     })
   }
 
@@ -575,12 +570,12 @@ class PaymentServiceDefault(
       params.put("customer", customerId)
 
       val invoiceItemList: InvoiceItemCollection = InvoiceItem.list(params, requestOptions)
-      val result = invoiceItemList.getData.toList
+      val result = invoiceItemList.getData.asScala.toList
 
       \/-(result)
     }
     catch {
-      case e => -\/(ServiceError.ExternalService(e.toString))
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     })
   }
 
@@ -609,7 +604,7 @@ class PaymentServiceDefault(
           \/-(invoiceItem)
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
     } yield Json.parse(APIResource.GSON.toJson(invoiceItem))
@@ -636,7 +631,7 @@ class PaymentServiceDefault(
           }
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
     } yield paymentInfo
@@ -692,7 +687,7 @@ class PaymentServiceDefault(
           \/-(result)
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
     } yield updatedCustomer
@@ -708,8 +703,6 @@ class PaymentServiceDefault(
     for {
       updatedCustomer <- lift(
         Future successful (try {
-          val params = new java.util.HashMap[String, Object]()
-
           val customer: Customer = Customer.retrieve(customerId, requestOptions)
           // Get default payment source and delete it
           val defaultSource = customer.getSources().retrieve(customer.getDefaultSource, requestOptions)
@@ -725,7 +718,7 @@ class PaymentServiceDefault(
           \/-(result)
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
     } yield updatedCustomer
@@ -744,7 +737,7 @@ class PaymentServiceDefault(
       \/-(subscription)
     }
     catch {
-      case e => -\/(ServiceError.ExternalService(e.toString))
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     }
   }
 
@@ -758,15 +751,9 @@ class PaymentServiceDefault(
     for {
       hasAccess <- lift(accountRepository.getByUserId(userId).map {
         case \/-(account) => \/-(
-          if (account.status == AccountStatus.free ||
+          account.status == AccountStatus.free ||
             account.status == AccountStatus.limited ||
-            (account.activeUntil.isDefined && account.activeUntil.get.isAfterNow)) // Active until date is greater then now
-            {
-            true
-          }
-          else {
-            false
-          }
+            (account.activeUntil.isDefined && account.activeUntil.get.isAfterNow) // Active until date is greater then now
         )
         case -\/(error: RepositoryError.NoResults) => \/-(false)
         case -\/(error) => -\/(error)
@@ -787,7 +774,7 @@ class PaymentServiceDefault(
       \/-(event)
     }
     catch {
-      case e => -\/(ServiceError.ExternalService(e.toString))
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     }
   }
 
@@ -839,7 +826,7 @@ class PaymentServiceDefault(
   private def tagUntagUserBasedOnStatus(userId: UUID, newStatus: String, oldStatus: Option[String] = None): Future[\/[ErrorUnion#Fail, Unit]] = {
     newStatus match {
       // Do nothing if status hasn't been changed
-      case someNewStatus if oldStatus.isDefined && oldStatus.get == someNewStatus => Future successful \/-()
+      case someNewStatus if oldStatus.isDefined && oldStatus.get == someNewStatus => Future successful \/-((): Unit)
       // Untag user when switch to these statuses
       case AccountStatus.limited |
         AccountStatus.inactive |
@@ -857,11 +844,11 @@ class PaymentServiceDefault(
               if (userTags.contains(tag)) {
                 tagRepository.untag(userId, TaggableEntities.user, tag.name, tag.lang).map {
                   case \/-(success) => \/-(success)
-                  case -\/(error: RepositoryError.NoResults) => \/-()
+                  case -\/(error: RepositoryError.NoResults) => \/-((): Unit)
                   case -\/(error) => -\/(error)
                 }
               }
-              else Future successful \/-(Unit)
+              else Future successful \/-((): Unit)
             }
           } yield ()).run
         }
@@ -877,15 +864,15 @@ class PaymentServiceDefault(
               if (!userTags.contains(tag)) {
                 tagRepository.tag(userId, TaggableEntities.user, tag.name, tag.lang).map {
                   case \/-(success) => \/-(success)
-                  case -\/(RepositoryError.PrimaryKeyConflict) => \/-()
+                  case -\/(RepositoryError.PrimaryKeyConflict) => \/-((): Unit)
                   case -\/(error) => -\/(error)
                 }
               }
-              else Future successful \/-(Unit)
+              else Future successful \/-((): Unit)
             }
           } yield ()).run
         }
-      case _ => Future successful \/-(Unit)
+      case _ => Future successful \/-((): Unit)
     }
   }
 }

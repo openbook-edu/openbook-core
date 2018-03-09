@@ -3,17 +3,16 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
-import ca.shiftfocus.krispii.core.models.{ Account, AccountStatus }
+import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig }
+import ca.shiftfocus.krispii.core.models.{ Account }
 import com.github.mauricio.async.db.{ Connection, RowData }
 import org.joda.time.DateTime
 import play.api.libs.json.{ JsValue, Json }
 import scala.concurrent.ExecutionContext.Implicits.global
-
 import scala.concurrent.Future
 import scalaz.{ -\/, \/, \/- }
 
-class AccountRepositoryPostgres extends AccountRepository with PostgresRepository[Account] {
+class AccountRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends AccountRepository with PostgresRepository[Account] with CacheRepository {
   override val entityName = "Account"
   override def constructor(row: RowData): Account = {
     Account(
@@ -78,27 +77,27 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
        |RETURNING $Fields
      """.stripMargin
 
-  def get(accountId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Account]] = {
-    cache.getCached[Account](cacheAccountKey(accountId)).flatMap {
+  def get(accountId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
+    cache[Account].getCached(cacheAccountKey(accountId)).flatMap {
       case \/-(account) => Future successful \/-(account)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           account <- lift(queryOne(Select, Seq[Any](accountId)))
-          _ <- lift(cache.putCache[Account](cacheAccountKey(account.id))(account, ttl))
-          _ <- lift(cache.putCache[Account](cacheAccountUserKey(account.userId))(account, ttl))
+          _ <- lift(cache[Account].putCache(cacheAccountKey(account.id))(account, ttl))
+          _ <- lift(cache[Account].putCache(cacheAccountUserKey(account.userId))(account, ttl))
         } yield account
       case -\/(error) => Future successful -\/(error)
     }
   }
 
-  def getByUserId(userId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Account]] = {
-    cache.getCached[Account](cacheAccountUserKey(userId)).flatMap {
+  def getByUserId(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
+    cache[Account].getCached(cacheAccountUserKey(userId)).flatMap {
       case \/-(account) => Future successful \/-(account)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           account <- lift(queryOne(SelectByUserId, Seq[Any](userId)))
-          _ <- lift(cache.putCache[Account](cacheAccountKey(account.id))(account, ttl))
-          _ <- lift(cache.putCache[Account](cacheAccountUserKey(account.userId))(account, ttl))
+          _ <- lift(cache[Account].putCache(cacheAccountKey(account.id))(account, ttl))
+          _ <- lift(cache[Account].putCache(cacheAccountUserKey(account.userId))(account, ttl))
         } yield account
       case -\/(error) => Future successful -\/(error)
     }
@@ -109,7 +108,7 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
     queryOne(SelectByCustomerId, Seq[Any](customerId))
   }
 
-  def insert(account: Account)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Account]] = {
+  def insert(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
       account.id, 1, account.userId, account.status, account.customer, account.trialStartedAt, account.activeUntil,
       account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId
@@ -117,12 +116,12 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
 
     for {
       inserted <- lift(queryOne(Insert, params))
-      _ <- lift(cache.removeCached(cacheAccountKey(inserted.id)))
-      _ <- lift(cache.removeCached(cacheAccountUserKey(inserted.userId)))
+      _ <- lift(cache[Account].removeCached(cacheAccountKey(inserted.id)))
+      _ <- lift(cache[Account].removeCached(cacheAccountUserKey(inserted.userId)))
     } yield inserted
   }
 
-  def update(account: Account)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Account]] = {
+  def update(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
       account.version + 1, account.userId, account.status, account.customer, account.trialStartedAt,
       account.activeUntil, account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId, account.id
@@ -130,16 +129,16 @@ class AccountRepositoryPostgres extends AccountRepository with PostgresRepositor
 
     for {
       updated <- lift(queryOne(Update, params))
-      _ <- lift(cache.removeCached(cacheAccountKey(updated.id)))
-      _ <- lift(cache.removeCached(cacheAccountUserKey(updated.userId)))
+      _ <- lift(cache[Account].removeCached(cacheAccountKey(updated.id)))
+      _ <- lift(cache[Account].removeCached(cacheAccountUserKey(updated.userId)))
     } yield updated
   }
 
-  def delete(userId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Account]] = {
+  def delete(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     for {
       deleted <- lift(queryOne(Delete, Seq[Any](userId)))
-      _ <- lift(cache.removeCached(cacheAccountKey(deleted.id)))
-      _ <- lift(cache.removeCached(cacheAccountUserKey(deleted.userId)))
+      _ <- lift(cache[Account].removeCached(cacheAccountKey(deleted.id)))
+      _ <- lift(cache[Account].removeCached(cacheAccountUserKey(deleted.userId)))
     } yield deleted
   }
 }

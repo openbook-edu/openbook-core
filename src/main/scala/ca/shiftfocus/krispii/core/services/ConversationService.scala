@@ -3,17 +3,12 @@ package ca.shiftfocus.krispii.core.services
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.work._
-import ca.shiftfocus.krispii.core.repositories.{ TaskFeedbackRepository, TaskScratchpadRepository, WorkRepository }
 import org.joda.time.DateTime
-
 import scala.concurrent.Future
 import scalaz.\/
 
 trait ConversationService extends Service[ErrorUnion#Fail] {
-  val scalaCache: ScalaCachePool
 
   // ####### CONVERSATIONS #############################################################################################
 

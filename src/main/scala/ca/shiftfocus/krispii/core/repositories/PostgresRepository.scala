@@ -1,12 +1,9 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.lib.exceptions.ExceptionWriter
-import ca.shiftfocus.krispii.core.models.ComponentScratchpad
 import com.github.mauricio.async.db.exceptions.ConnectionStillRunningQueryException
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{ Connection, RowData, ResultSet }
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scalaz.{ -\/, \/-, \/ }

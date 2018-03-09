@@ -1,10 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models.tasks.questions.Question
 import com.github.mauricio.async.db.Connection
-import com.sun.org.apache.xalan.internal.xsltc.runtime.BasisLibrary
-import org.joda.time.DateTime
 import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error._
@@ -15,12 +12,10 @@ import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
 import scala.concurrent.Future
-import scalacache.ScalaCache
-import scalaz.{ EitherT, \/, -\/, \/- }
+import scalaz.{ \/, -\/, \/- }
 
 class ProjectServiceDefault(
     val db: DB,
-    val scalaCache: ScalaCachePool,
     val authService: AuthService,
     val schoolService: SchoolService,
     val documentService: DocumentService,
@@ -34,7 +29,6 @@ class ProjectServiceDefault(
 ) extends ProjectService {
 
   implicit def conn: Connection = db.pool
-  implicit def cache: ScalaCachePool = scalaCache
 
   /**
    * Lists master projects.
@@ -250,7 +244,7 @@ class ProjectServiceDefault(
             insertComponents(clonedComponents)
           }
           // If we just copy a project, components are already in DB, we just need to link new parts with this components
-          else Future successful \/-(Unit)
+          else Future successful \/-((): Unit)
         }
         // Link components with parts
         _ <- lift(serializedT(clonedParts)(part => {
@@ -1264,11 +1258,8 @@ class ProjectServiceDefault(
 
         case task: MediaTask => {
           val resultList = workList.map {
-            case work: MediaWork => {
-              // Check if user has uploaded a file
-              if (work.fileData.fileName.isDefined) true
-              else false
-            }
+            // Check if user has uploaded a file
+            case work: MediaWork => work.fileData.fileName.isDefined
             case _ => false
           }
 
@@ -1324,11 +1315,8 @@ class ProjectServiceDefault(
 
                 case task: MediaTask => {
                   val resultList = workList.map {
-                    case work: MediaWork => {
-                      // Check if user has uploaded a file
-                      if (work.fileData.fileName.isDefined) true
-                      else false
-                    }
+                    // Check if user has uploaded a file
+                    case work: MediaWork => work.fileData.fileName.isDefined
                     case _ => false
                   }
 

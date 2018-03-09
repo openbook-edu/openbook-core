@@ -1,12 +1,10 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import java.util.UUID
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import com.github.mauricio.async.db.{ Connection, RowData }
 import org.joda.time.DateTime
-
 import scala.concurrent.Future
 import scalaz.{ -\/, \/, \/- }
 
@@ -274,8 +272,8 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
 
   def deleteCourseStudentLimit(courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     deleteCourseLimit(courseId, Limits.student).flatMap {
-      case \/-(limit) => Future successful \/-(Unit)
-      case -\/(error: RepositoryError.NoResults) => Future successful \/-(Unit)
+      case \/-(limit) => Future successful \/-((): Unit)
+      case -\/(error: RepositoryError.NoResults) => Future successful \/-((): Unit)
       case -\/(error) => Future successful -\/(error)
     }
   }

@@ -1,21 +1,15 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
-import ca.shiftfocus.krispii.core.models
+import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig }
 import ca.shiftfocus.krispii.core.models.tasks.{ DocumentTask, MediaTask, QuestionTask, Task }
 import com.github.mauricio.async.db.{ Connection, RowData }
 import play.api.Logger
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
-
 import scala.concurrent.Future
 import org.joda.time.DateTime
-
-import scala.util.Try
-import scalacache.ScalaCache
 import scalaz._
 
 class ProjectRepositoryPostgres(
@@ -24,9 +18,10 @@ class ProjectRepositoryPostgres(
   val partRepository: PartRepository,
   val taskRepository: TaskRepository,
   val componentRepository: ComponentRepository,
-  val tagRepository: TagRepository
+  val tagRepository: TagRepository,
+  val scalaCacheConfig: ScalaCacheConfig
 )
-    extends ProjectRepository with PostgresRepository[Project] {
+    extends ProjectRepository with PostgresRepository[Project] with CacheRepository {
 
   override val entityName = "Project"
 
@@ -119,12 +114,10 @@ class ProjectRepositoryPostgres(
         if (index != (length - 1)) whereClause += " OR "
     }
 
-    if (whereClause != "") {
-      whereClause = "WHERE " + whereClause
-    }
-    // If tagList is empty, then there should be unexisting condition
-    else {
-      whereClause = "WHERE false != false"
+    whereClause = {
+      if (whereClause != "") "WHERE " + whereClause
+      // If tagList is empty, then there should be unexisting condition
+      else "WHERE false != false"
     }
 
     if (distinct) {
@@ -201,7 +194,7 @@ class ProjectRepositoryPostgres(
    * @param showMasters optional parameter, by default is false, if true it will return the master projects.
    * @return a vector of the returned Projects
    */
-  override def list(showMasters: Option[Boolean] = None, enabled: Option[Boolean] = None)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+  override def list(showMasters: Option[Boolean] = None, enabled: Option[Boolean] = None)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
     val showMastersProjects = showMasters.getOrElse(false)
     val Select = if (showMastersProjects) SelectAllMaster else SelectAll
     (for {
@@ -227,7 +220,7 @@ class ProjectRepositoryPostgres(
    *                 if false project should have at least one listed tag
    * @return
    */
-  override def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
+  override def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = {
     val select = SelectByTags(tags, distinct)
     (for {
       projectList <- lift(queryList(select))
@@ -249,10 +242,9 @@ class ProjectRepositoryPostgres(
    * @param projectId
    * @param courseId
    * @param conn
-   * @param cache
    * @return
    */
-  override def cloneProject(projectId: UUID, courseId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
+  override def cloneProject(projectId: UUID, courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
       project <- lift(find(projectId))
       newProject = {
@@ -268,7 +260,7 @@ class ProjectRepositoryPostgres(
    * @param projectId
    * @return
    */
-  def cloneProjectParts(projectId: UUID, ownerId: UUID, newProjectId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
+  def cloneProjectParts(projectId: UUID, ownerId: UUID, newProjectId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
     (for {
       project <- lift(find(projectId))
       course <- lift(courseRepository.find(project.courseId))
@@ -290,6 +282,7 @@ class ProjectRepositoryPostgres(
             tasks = clonedTasks.filter(_.partId == part.id).map {
             case task: DocumentTask => task.copy(partId = partId)
             case task: MediaTask => task.copy(partId = partId)
+            case _ => -\/(RepositoryError.BadParam("core.ProjectRepository.cloneProjectParts.wrong.task.type"))
           }.asInstanceOf[IndexedSeq[Task]],
             components = {
             // If we have new components owner
@@ -308,7 +301,7 @@ class ProjectRepositoryPostgres(
    * @param projectId
    * @return
    */
-  def cloneProjectComponents(projectId: UUID, ownerId: UUID, isMaster: Boolean)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+  def cloneProjectComponents(projectId: UUID, ownerId: UUID, isMaster: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     (for {
       project <- lift(find(projectId))
       projectComponents <- lift(componentRepository.list(project))
@@ -352,7 +345,7 @@ class ProjectRepositoryPostgres(
    * @param parts All parts of a project
    * @return
    */
-  def cloneTasks(parts: IndexedSeq[Part], isMaster: Boolean)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
+  def cloneTasks(parts: IndexedSeq[Part], isMaster: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
     val empty: Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = Future.successful(\/-(IndexedSeq.empty[Task]))
     // Go threw every part and get all tasks
     for {
@@ -439,18 +432,18 @@ class ProjectRepositoryPostgres(
    * @param course The section to return projects from.
    * @return a vector of the returned Projects
    */
-  override def list(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] =
+  override def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] =
     list(course, true)
 
   override def list(course: Course, fetchParts: Boolean) // format: OFF
-                   (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = { // format: ON
+                   (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Project]]] = { // format: ON
     (for {
-      projects <- lift(cache.getCached[IndexedSeq[Project]](cacheProjectsKey(course.id)).flatMap {
+      projects <- lift(cache[IndexedSeq[Project]].getCached(cacheProjectsKey(course.id)).flatMap {
         case \/-(projectList) => Future successful \/-(projectList)
         case -\/(noResults: RepositoryError.NoResults) =>
           for {
             projectList <- lift(queryList(ListByCourse, Seq[Any](course.id)))
-            _ <- lift(cache.putCache[IndexedSeq[Project]](cacheProjectsKey(course.id))(projectList, ttl))
+            _ <- lift(cache[IndexedSeq[Project]].putCache(cacheProjectsKey(course.id))(projectList, ttl))
           } yield projectList
         case -\/(error) => Future successful -\/(error)
       })
@@ -474,16 +467,16 @@ class ProjectRepositoryPostgres(
    * @param id the 128-bit UUID, as a byte array, to search for.
    * @return an optional Project if one was found
    */
-  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = find(id, true)
-  override def find(id: UUID, fetchParts: Boolean)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
+  override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = find(id, true)
+  override def find(id: UUID, fetchParts: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
-      project <- lift(cache.getCached[Project](cacheProjectKey(id)).flatMap {
+      project <- lift(cache[Project].getCached(cacheProjectKey(id)).flatMap {
         case \/-(project) => Future successful \/-(project)
         case -\/(noResults: RepositoryError.NoResults) =>
           for {
             project <- lift(queryOne(SelectOne, Array[Any](id)))
-            _ <- lift(cache.putCache[Project](cacheProjectKey(project.id))(project, ttl))
-            _ <- lift(cache.putCache[UUID](cacheProjectSlugKey(project.slug))(project.id, ttl))
+            _ <- lift(cache[Project].putCache(cacheProjectKey(project.id))(project, ttl))
+            _ <- lift(cache[UUID].putCache(cacheProjectSlugKey(project.slug))(project.id, ttl))
           } yield project
         case -\/(error) => Future successful -\/(error)
       })
@@ -497,17 +490,15 @@ class ProjectRepositoryPostgres(
    * @param projectId the 128-bit UUID, as a byte array, to search for.
    * @return an optional Project if one was found
    */
-  override def find(projectId: UUID, user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] =
+  override def find(projectId: UUID, user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] =
     find(projectId, user, true)
 
-  override def find(projectId: UUID, user: User, fetchParts: Boolean)(implicit
-    conn: Connection,
-    cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
+  override def find(projectId: UUID, user: User, fetchParts: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
       project <- lift(queryOne(SelectOneForUser, Array[Any](projectId, user.id, user.id)))
       parts <- lift(if (fetchParts) partRepository.list(project) else Future successful \/-(IndexedSeq()))
-      _ <- lift(cache.putCache[Project](cacheProjectKey(project.id))(project, ttl))
-      _ <- lift(cache.putCache[UUID](cacheProjectSlugKey(project.slug))(project.id, ttl))
+      _ <- lift(cache[Project].putCache(cacheProjectKey(project.id))(project, ttl))
+      _ <- lift(cache[UUID].putCache(cacheProjectSlugKey(project.slug))(project.id, ttl))
     } yield project.copy(parts = parts)).run
   }
 
@@ -517,16 +508,16 @@ class ProjectRepositoryPostgres(
    * @param slug The project slug to search by.
    * @return an optional RowData object containing the results
    */
-  def find(slug: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = find(slug, true)
-  def find(slug: String, fetchParts: Boolean)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
+  def find(slug: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = find(slug, true)
+  def find(slug: String, fetchParts: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
-      project <- lift(cache.getCached[UUID](cacheProjectSlugKey(slug)).flatMap {
+      project <- lift(cache[UUID].getCached(cacheProjectSlugKey(slug)).flatMap {
         case \/-(projectId) => find(projectId, false)
         case -\/(noResults: RepositoryError.NoResults) =>
           for {
             project <- lift(queryOne(SelectOneBySlug, Seq[Any](slug)))
-            _ <- lift(cache.putCache[Project](cacheProjectKey(project.id))(project, ttl))
-            _ <- lift(cache.putCache[UUID](cacheProjectSlugKey(project.slug))(project.id, ttl))
+            _ <- lift(cache[Project].putCache(cacheProjectKey(project.id))(project, ttl))
+            _ <- lift(cache[UUID].putCache(cacheProjectSlugKey(project.slug))(project.id, ttl))
           } yield project
         case -\/(error) => Future successful -\/(error)
       })
@@ -551,7 +542,7 @@ class ProjectRepositoryPostgres(
    * @param conn An implicit connection object. Can be used in a transactional chain.
    * @return the new project
    */
-  override def insert(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
+  override def insert(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
       project.id, 1, project.courseId, project.name, project.slug, project.id, project.parentId, project.parentVersion, project.isMaster,
       project.description, project.longDescription, project.availability, project.enabled, project.projectType, project.status, project.lastTaskId, new DateTime, new DateTime
@@ -570,7 +561,7 @@ class ProjectRepositoryPostgres(
    * @param conn An implicit connection object. Can be used in a transactional chain.
    * @return the updated project.
    */
-  override def update(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
+  override def update(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
     val params = Seq[Any](
       project.courseId, project.name, project.parentId, project.parentVersion, project.isMaster, project.slug, project.id, project.description, project.longDescription,
       project.availability, project.enabled, project.projectType, project.status, project.lastTaskId, project.version + 1, new DateTime, project.id, project.version
@@ -592,7 +583,7 @@ class ProjectRepositoryPostgres(
    * @param conn An implicit connection object. Can be used in a transactional chain.
    * @return a boolean indicator whether the deletion was successful.
    */
-  override def delete(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Project]] = {
+  override def delete(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
     (for {
       deletedProject <- lift(queryOne(Delete, Array(project.id, project.version)))
       oldParts = project.parts

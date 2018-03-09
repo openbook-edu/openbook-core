@@ -1,10 +1,8 @@
 package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
-
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-
 import scala.concurrent.Future
 import scalaz.\/
 

@@ -7,7 +7,6 @@ import ca.shiftfocus.krispii.core.models._
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{ Connection, RowData }
 import org.joda.time.DateTime
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Try
@@ -35,12 +34,12 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
   val FieldsWithQMarks = Fields.split(", ").map({ field => s"${field} = ?" }).mkString(", ")
 
   val MembersField =
-    s"""
+    """
        |string_agg(DISTINCT member_email, ',') AS members
      """.stripMargin
 
   val AdminsField =
-    s"""
+    """
        |string_agg(DISTINCT admin_email, ',') AS admins
      """.stripMargin
 
@@ -98,12 +97,10 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
         if (index != (length - 1)) whereClause += " OR "
     }
 
-    if (whereClause != "") {
-      whereClause = "WHERE " + whereClause
-    }
-    // If tagList is empty, then there should be unexisting condition
-    else {
-      whereClause = "WHERE false != false"
+    whereClause = {
+      if (whereClause != "") "WHERE " + whereClause
+      // If tagList is empty, then there should be unexisting condition
+      else "WHERE false != false"
     }
 
     if (distinct) {
@@ -131,14 +128,14 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
   }
 
   val AddMember =
-    s"""
+    """
        |INSERT INTO organization_members (organization_id, member_email)
        |VALUES (?, ?)
        |RETURNING *
      """.stripMargin
 
   val DeleteMember =
-    s"""
+    """
        |DELETE FROM organization_members
        |WHERE organization_id = ?
        |  AND member_email = ?
@@ -146,14 +143,14 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
      """.stripMargin
 
   val AddAdmin =
-    s"""
+    """
        |INSERT INTO organization_admins (organization_id, admin_email)
        |VALUES (?, ?)
        |RETURNING *
      """.stripMargin
 
   val DeleteAdmin =
-    s"""
+    """
        |DELETE FROM organization_admins
        |WHERE organization_id = ?
        |  AND admin_email = ?

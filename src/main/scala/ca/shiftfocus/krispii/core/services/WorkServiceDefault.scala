@@ -7,18 +7,14 @@ import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
-
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import com.github.mauricio.async.db.Connection
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.{ -\/, \/, \/- }
-import ws.kahn.ot.Delta
+import scalaz.{ \/, \/- }
+import ca.shiftfocus.otlib.Delta
 
 class WorkServiceDefault(
   val db: DB,
-  val scalaCache: ScalaCachePool,
   val authService: AuthService,
   val schoolService: SchoolService,
   val projectService: ProjectService,
@@ -34,8 +30,6 @@ class WorkServiceDefault(
     extends WorkService {
 
   implicit def conn: Connection = db.pool
-
-  implicit def cache: ScalaCachePool = scalaCache
 
   /**
    * List the latest revision of all of a user's work in a project for a specific
@@ -179,20 +173,6 @@ class WorkServiceDefault(
         case work: QuestionWork => \/-(work.copy(gFiles = gFiles))
       }))
     } yield result.asInstanceOf[Work]
-  }
-
-  // --------- Create ---------------------------------------------------------------------------------------------
-
-  /**
-   * Generic internal work-creating method. This should only be used privately... expose the type-specific
-   * methods to the outside world so that we'll have control over exactly how certain types of work
-   * are creted.
-   *
-   * @param newWork the new work to create
-   * @return a future disjunction containing either a work, or a failure
-   */
-  private def createWork(newWork: Work)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Work]] = {
-    workRepository.insert(newWork)
   }
 
   // --------- Create methods for each work type --------------------------------------------------------------------

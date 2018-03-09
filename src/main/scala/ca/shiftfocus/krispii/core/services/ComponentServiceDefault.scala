@@ -1,7 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
@@ -10,12 +9,11 @@ import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
 
 import scala.concurrent.Future
-import scalacache.ScalaCache
+
 import scalaz.{ -\/, \/-, \/ }
 
 class ComponentServiceDefault(
   val db: DB,
-  val scalaCache: ScalaCachePool,
   val authService: AuthService,
   val projectService: ProjectService,
   val schoolService: SchoolService,
@@ -25,7 +23,6 @@ class ComponentServiceDefault(
     extends ComponentService {
 
   implicit def conn: Connection = db.pool
-  implicit def cache: ScalaCachePool = scalaCache
 
   /**
    * List all components.

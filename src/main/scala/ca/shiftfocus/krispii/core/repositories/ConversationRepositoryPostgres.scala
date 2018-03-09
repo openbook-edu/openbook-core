@@ -3,12 +3,9 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models.{ Conversation, User }
 import com.github.mauricio.async.db.{ Connection, RowData }
 import org.joda.time.DateTime
-import play.api.libs.json.{ JsValue, Json }
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scalaz.{ -\/, \/, \/- }
@@ -108,7 +105,7 @@ class ConversationRepositoryPostgres(
   """.stripMargin
 
   val AddMember =
-    s"""
+    """
        |INSERT INTO users_conversations (conversation_id, user_id, created_at)
        |VALUES (?, ?, ?)
      """.stripMargin
@@ -129,7 +126,7 @@ class ConversationRepositoryPostgres(
        |RETURNING $Fields
      """.stripMargin
 
-  def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Conversation]] = {
+  def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Conversation]] = {
     for {
       conversation <- lift(queryOne(SelectOne, Seq[Any](id)))
       members <- lift(userRepository.list(conversation))
@@ -143,7 +140,7 @@ class ConversationRepositoryPostgres(
     } yield conversation.copy(members = membersWithRoles)
   }
 
-  def list(entityId: UUID, limit: Int = 0, offset: Int = 0)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Conversation]]] = {
+  def list(entityId: UUID, limit: Int = 0, offset: Int = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Conversation]]] = {
     val queryLimit = {
       if (limit == 0) "ALL"
       else limit.toString
@@ -167,7 +164,7 @@ class ConversationRepositoryPostgres(
     } yield conversationsWithMembers
   }
 
-  def list(entityId: UUID, afterDate: DateTime)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Conversation]]] = {
+  def list(entityId: UUID, afterDate: DateTime)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Conversation]]] = {
     for {
       conversationList <- lift(queryList(SelectByEntityIdAfter, Seq[Any](entityId, afterDate)))
       conversationsWithMembers <- liftSeq(conversationList.map { conversation =>
@@ -186,7 +183,7 @@ class ConversationRepositoryPostgres(
     } yield conversationsWithMembers
   }
 
-  def listByUser(entityId: UUID, userId: UUID, limit: Int = 0, offset: Int = 0)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Conversation]]] = {
+  def listByUser(entityId: UUID, userId: UUID, limit: Int = 0, offset: Int = 0)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Conversation]]] = {
     val queryLimit = {
       if (limit == 0) "ALL"
       else limit.toString
@@ -210,7 +207,7 @@ class ConversationRepositoryPostgres(
     } yield conversationsWithMembers
   }
 
-  def listByUser(entityId: UUID, userId: UUID, afterDate: DateTime)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Conversation]]] = {
+  def listByUser(entityId: UUID, userId: UUID, afterDate: DateTime)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Conversation]]] = {
     for {
       conversationList <- lift(queryList(SelectByEntityAndUserIdAfter, Seq[Any](userId, entityId, afterDate)))
       conversationsWithMembers <- liftSeq(conversationList.map { conversation =>
@@ -229,7 +226,7 @@ class ConversationRepositoryPostgres(
     } yield conversationsWithMembers
   }
 
-  def addMember(conversation: Conversation, newMember: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Conversation]] = {
+  def addMember(conversation: Conversation, newMember: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Conversation]] = {
     val params = Seq[Any](conversation.id, newMember.id, new DateTime)
 
     for {
@@ -249,7 +246,7 @@ class ConversationRepositoryPostgres(
     } yield conversation.copy(members = membersWithRoles :+ newMember)
   }
 
-  def insert(conversation: Conversation)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Conversation]] = {
+  def insert(conversation: Conversation)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Conversation]] = {
     val params = Seq[Any](
       conversation.id, conversation.ownerId, conversation.version, conversation.title, conversation.shared,
       conversation.entityId, conversation.entityType, conversation.isDeleted, conversation.createdAt, conversation.updatedAt
@@ -258,7 +255,7 @@ class ConversationRepositoryPostgres(
     queryOne(Insert, params)
   }
 
-  def delete(conversation: Conversation)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Conversation]] = {
+  def delete(conversation: Conversation)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Conversation]] = {
     for {
       deletedConversation <- lift(queryOne(Delete, Seq[Any](conversation.id, conversation.version)))
       members = conversation.members

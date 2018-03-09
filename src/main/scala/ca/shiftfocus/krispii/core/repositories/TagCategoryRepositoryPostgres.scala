@@ -1,11 +1,9 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import java.util.UUID
-
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.TagCategory
 import com.github.mauricio.async.db.{ Connection, RowData }
-
 import scala.concurrent.Future
 import scalaz.\/
 

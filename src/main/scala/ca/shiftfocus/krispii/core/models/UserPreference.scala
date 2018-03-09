@@ -24,7 +24,7 @@ object UserPreference {
       Json.obj(
         "userId" -> userPreference.userId.toString,
         "prefName" -> userPreference.prefName,
-        "state" -> userPreference.state.toString
+        "state" -> userPreference.state
       )
     }
   }

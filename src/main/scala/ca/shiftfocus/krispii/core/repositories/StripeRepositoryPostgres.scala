@@ -1,12 +1,10 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import java.util.UUID
-
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import com.github.mauricio.async.db.{ Connection, RowData }
 import org.joda.time.DateTime
 import play.api.libs.json.{ JsValue, Json }
-
 import scala.concurrent.Future
 import scalaz.\/
 
@@ -22,21 +20,21 @@ class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[
   //------ SUBSCRIPTIONS -----------------------------------------------------------------------------------------------
 
   val ListSubscriptionsByUser =
-    s"""
+    """
       |SELECT subscription as data
       |FROM users_subscriptions
       |WHERE user_id = ?
      """.stripMargin
 
   val InsertSubscription =
-    s"""
+    """
        |INSERT INTO users_subscriptions (user_id, subscription)
        |VALUES (?, ?)
        |RETURNING subscription as data
      """.stripMargin
 
   val UpdateSubscription =
-    s"""
+    """
        |UPDATE users_subscriptions
        |SET subscription = ?
        |WHERE user_id = ?
@@ -45,7 +43,7 @@ class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[
      """.stripMargin
 
   val MoveSubscriptions =
-    s"""
+    """
        |UPDATE users_subscriptions
        |SET user_id = ?
        |WHERE user_id = ?
@@ -53,7 +51,7 @@ class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[
      """.stripMargin
 
   val DeleteSubscription =
-    s"""
+    """
        |DELETE FROM users_subscriptions
        |WHERE user_id = ?
        |  AND subscription::jsonb->>'id' = ?
@@ -63,14 +61,14 @@ class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[
   //------ EVENTS ------------------------------------------------------------------------------------------------------
 
   val GetEvent =
-    s"""
+    """
        |SELECT event as data
        |FROM stripe_events
        |WHERE id = ?
      """.stripMargin
 
   val InsertEvent =
-    s"""
+    """
        |INSERT INTO stripe_events (id, type, event, created_at)
        |VALUES (?, ?, ?, ?)
        |RETURNING event as data

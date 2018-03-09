@@ -1,21 +1,17 @@
 package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
-
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models.{ Conversation, Message }
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import org.joda.time.DateTime
-
 import scala.concurrent.Future
 import scalaz.\/
 
 class ConversationServiceDefault(
     val db: DB,
-    val scalaCache: ScalaCachePool,
     val conversationRepository: ConversationRepository,
     val messageRepository: MessageRepository,
     val userRepository: UserRepository,
@@ -23,7 +19,6 @@ class ConversationServiceDefault(
 ) extends ConversationService {
 
   implicit def conn: Connection = db.pool
-  implicit def cache: ScalaCachePool = scalaCache
 
   /**
    * List conversations by entityId

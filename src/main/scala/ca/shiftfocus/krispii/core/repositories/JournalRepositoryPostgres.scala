@@ -1,17 +1,13 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
 import org.joda.time.format.DateTimeFormat
-import play.api.i18n.Messages
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.github.mauricio.async.db.{ Connection, RowData }
 import org.joda.time.DateTime
-
 import scala.concurrent.Future
-import scalacache.ScalaCache
 import scalaz._
 
 class JournalRepositoryPostgres(
@@ -125,7 +121,7 @@ class JournalRepositoryPostgres(
    * @param conn
    * @return
    */
-  override def list(entryType: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
+  override def list(entryType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
     queryListJournal(SelectByType, Seq[Any](entryType))
   }
 
@@ -136,7 +132,7 @@ class JournalRepositoryPostgres(
    * @param conn
    * @return
    */
-  override def list(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
+  override def list(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
     queryListJournal(SelectByUser, Seq[Any](user.id))
   }
 
@@ -149,7 +145,7 @@ class JournalRepositoryPostgres(
    * @return
    */
   override def list(startDate: Option[DateTime] = None, endDate: Option[DateTime] = None) // format: OFF
-                   (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = { // format: ON
+                   (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = { // format: ON
     (startDate, endDate) match {
       case (Some(startDate), None) => queryListJournal(SelectByStartDate, Seq[Any](startDate))
       case (None, Some(endDate)) => queryListJournal(SelectByEndDate, Seq[Any](endDate))
@@ -165,7 +161,7 @@ class JournalRepositoryPostgres(
    * @param conn
    * @return
    */
-  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, JournalEntry]] = {
+  override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]] = {
     queryOneJournal(SelectById, Seq[Any](id))
   }
 
@@ -176,7 +172,7 @@ class JournalRepositoryPostgres(
    * @param conn
    * @return
    */
-  override def insert(journalEntry: JournalEntry)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, JournalEntry]] = {
+  override def insert(journalEntry: JournalEntry)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]] = {
     val createdDate = journalEntry.createdAt
     val formatSuffix = DateTimeFormat.forPattern("YYYYMM")
     val suffix = formatSuffix.print(createdDate)
@@ -197,7 +193,7 @@ class JournalRepositoryPostgres(
    * @param conn
    * @return
    */
-  override def delete(journalEntry: JournalEntry)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, JournalEntry]] = {
+  override def delete(journalEntry: JournalEntry)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]] = {
     queryOneJournal(Delete, Seq[Any](journalEntry.id, journalEntry.version))
   }
 
@@ -208,7 +204,7 @@ class JournalRepositoryPostgres(
    * @param conn
    * @return
    */
-  override def delete(entryType: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
+  override def delete(entryType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
     queryListJournal(DeleteByType, Seq[Any](entryType))
   }
 
@@ -219,7 +215,7 @@ class JournalRepositoryPostgres(
    * @param conn
    * @return
    */
-  override def delete(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
+  override def delete(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
     queryListJournal(DeleteByUser, Seq[Any](user.id))
   }
 
@@ -227,7 +223,7 @@ class JournalRepositoryPostgres(
 
   // TODO - make translation of date format
   private def buildEntryWithMessage(journalEntry: JournalEntry) // format: OFF
-                                   (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, JournalEntry]] = { // format: ON
+                                   (implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]] = { // format: ON
     (for {
       user <- lift(userRepository.find(journalEntry.userId))
       project <- lift(projectRepository.find(journalEntry.projectId))
@@ -241,16 +237,14 @@ class JournalRepositoryPostgres(
     } yield result).run
   }
 
-  private def queryListJournal(queryText: String, parameters: Seq[Any] = Seq.empty[Any]) // format: OFF
-                              (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = { // format: ON
+  private def queryListJournal(queryText: String, parameters: Seq[Any])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JournalEntry]]] = {
     (for {
       entryList <- lift(queryList(queryText, parameters))
       result <- lift(serializedT(entryList)(buildEntryWithMessage(_)))
     } yield result).run
   }
 
-  private def queryOneJournal(queryText: String, parameters: Seq[Any] = Seq.empty[Any]) // format: OFF
-                             (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, JournalEntry]] = { // format: ON
+  private def queryOneJournal(queryText: String, parameters: Seq[Any])(implicit conn: Connection): Future[\/[RepositoryError.Fail, JournalEntry]] = {
     (for {
       entry <- lift(queryOne(queryText, parameters))
       result <- lift(buildEntryWithMessage(entry))

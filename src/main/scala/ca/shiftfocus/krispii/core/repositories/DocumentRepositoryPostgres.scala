@@ -1,22 +1,14 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import java.util.NoSuchElementException
-
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models.document.Revision
 import ca.shiftfocus.krispii.core.models.document.Document
-import ca.shiftfocus.krispii.core.models.User
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import java.util.UUID
-import com.github.mauricio.async.db.{ RowData, ResultSet, Connection }
+import com.github.mauricio.async.db.{ RowData, Connection }
 import play.api.libs.json.Json
-import ws.kahn.ot.exceptions.IncompatibleDeltasException
+import ca.shiftfocus.otlib.exceptions.IncompatibleDeltasException
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
-
-import ws.kahn.ot.{ InsertText, Delta }
-
-import scala.collection.immutable.HashMap
+import ca.shiftfocus.otlib.{ InsertText, Delta }
 import scala.concurrent.Future
 import scalaz.{ \/, -\/, \/- }
 

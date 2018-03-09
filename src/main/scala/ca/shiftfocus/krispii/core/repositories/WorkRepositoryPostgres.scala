@@ -2,17 +2,15 @@ package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.tasks.Task._
 import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.models.work._
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import java.util.UUID
-import com.github.mauricio.async.db.{ ResultSet, RowData, Connection }
+import com.github.mauricio.async.db.{ RowData, Connection }
 import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
 import scala.concurrent.Future
-import scala.util.{ Success, Try }
+import scala.util.{ Try }
 import scalaz.{ \/, -\/, \/- }
 
 class WorkRepositoryPostgres(
@@ -420,6 +418,7 @@ class WorkRepositoryPostgres(
     task match {
       case longAnswerTask: DocumentTask => listDocumentWork(user, longAnswerTask).map(_.map { documentWork => Left(documentWork) })
       case questionTask: QuestionTask => listQuestionWork(user, questionTask).map(_.map { questionWork => Right(questionWork) })
+      case _ => Future successful -\/(RepositoryError.BadParam("core.WorkRepository.list.wrong.task.type"))
     }
   }
 
@@ -474,32 +473,6 @@ class WorkRepositoryPostgres(
       }))
       result <- lift(Future successful (if (questionWorkList.nonEmpty) {
         \/-(questionWorkList)
-      }
-      else {
-        -\/(RepositoryError.NoResults(s"Could not find question work for user ${user.id.toString} for task ${task.id.toString}"))
-      }))
-    } yield result
-  }
-
-  /**
-   * @see list(user: User, task: Task)
-   *
-   * @param user
-   * @param task
-   * @param conn
-   * @return
-   */
-  private def listMediaWork(user: User, task: Task)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[MediaWork]]] = { // scalastyle:ignore
-    for {
-      mediaWorkList <- lift(queryList(SelectAllForUserTask, Seq[Any](user.id, task.id)).map(_.map { workList =>
-        workList.map {
-          case mediaWork: MediaWork => mediaWork
-          case questionWork: QuestionWork => throw new Exception("Somehow instantiated a QuestionWork when selecting MediaWork")
-          case documentWork: DocumentWork => throw new Exception("Somehow instantiated a DocumentWork when selecting QuestionWork")
-        }
-      }))
-      result <- lift(Future successful (if (mediaWorkList.nonEmpty) {
-        \/-(mediaWorkList)
       }
       else {
         -\/(RepositoryError.NoResults(s"Could not find question work for user ${user.id.toString} for task ${task.id.toString}"))

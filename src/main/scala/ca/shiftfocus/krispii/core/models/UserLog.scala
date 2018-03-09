@@ -5,7 +5,6 @@ import java.util.UUID
 import org.joda.time.DateTime
 import play.api.libs.json.{ JsValue, Json, Writes }
 import play.api.libs.json.JodaWrites._
-import play.api.libs.json.JodaReads._
 
 case class UserLog(
   id: UUID = UUID.randomUUID(),

@@ -1,11 +1,9 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import java.util.UUID
-
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.{ LinkWord, Link }
+import ca.shiftfocus.krispii.core.models.{ Link }
 import com.github.mauricio.async.db.Connection
-
 import scala.concurrent.Future
 import scalaz.\/
 

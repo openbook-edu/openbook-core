@@ -15,7 +15,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.junit.JUnitRunner
 import org.scalatest.{ BeforeAndAfter, Suite, MustMatchers, WordSpec }
 import scala.concurrent.duration.Duration
-import scalacache.ScalaCache
+
 import scala.concurrent.{ Future, Await }
 import ca.shiftfocus.krispii.core.repositories._
 
@@ -45,7 +45,7 @@ abstract class TestEnvironment(writeToDb: Boolean = true)
     host = config.getString("db.postgresql.host"), //"localhost",
     password = Some(config.getString("db.postgresql.password")), //"test_user"),
     database = Some(config.getString("db.postgresql.database")), //"testdb")
-    port = config.get[Option[Int]]("db.postgresql.port")
+    port = config.getInt("db.postgresql.port")
   )
 
   private val poolConfig = new PoolConfiguration(
@@ -66,11 +66,11 @@ abstract class TestEnvironment(writeToDb: Boolean = true)
   //--------------------
   //--START CACHE--
   //--------------------
-  val redisCache: scalacache.Cache = stub[scalacache.Cache]
-  class TestCache extends ScalaCache(redisCache)
-  val scalaCache: ScalaCache = stub[TestCache]
-  class TestScalaCachePool extends ScalaCachePool(scalaCache)
-  implicit val cache: ScalaCachePool = stub[TestScalaCachePool]
+  //  val redisCache: scalacache.Cache = stub[scalacache.Cache]
+  //  class TestCache extends ScalaCache(redisCache)
+  //  val scalaCache: ScalaCache = stub[TestCache]
+  //  class TestScalaCachePool extends ScalaCachePool(scalaCache)
+  //  implicit val cache: ScalaCachePool = stub[TestScalaCachePool]
   //------------------
   //--END CACHE--
   //------------------

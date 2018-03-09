@@ -4,8 +4,8 @@
 //import com.github.mauricio.async.db.Connection
 //import org.scalatest.Matchers._
 //import org.scalatest._
-//import ws.kahn.ot.exceptions.IncompatibleDeltasException
-//import ws.kahn.ot.{ Delete, Delta, InsertText, Retain }
+//import ca.shiftfocus.otlib.exceptions.IncompatibleDeltasException
+//import ca.shiftfocus.otlib.{ Delete, Delta, InsertText, Retain }
 //
 //import scala.concurrent.duration.Duration
 //import scala.concurrent.{ Await, Future }

@@ -7,7 +7,7 @@ import ca.shiftfocus.krispii.core.models.tasks.questions._
 import java.util.UUID
 import ca.shiftfocus.krispii.core.models.work._
 import org.joda.time.{ LocalTime, LocalDate, DateTime, DateTimeZone }
-import ws.kahn.ot._
+import ca.shiftfocus.otlib._
 
 object TestValues {
   /* ---------------------- USERS ---------------------- */

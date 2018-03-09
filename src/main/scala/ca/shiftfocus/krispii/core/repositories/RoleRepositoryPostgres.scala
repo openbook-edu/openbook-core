@@ -1,28 +1,18 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import java.util.NoSuchElementException
-
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
+import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig }
 import ca.shiftfocus.lib.concurrent.Lifting
-import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
-import com.github.mauricio.async.db.{ ResultSet, RowData, Connection }
+import com.github.mauricio.async.db.{ Connection, RowData }
 import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
-import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
-import play.api.Play.current
-
-import scala.Some
 import scala.concurrent.Future
 import org.joda.time.DateTime
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import scalacache.ScalaCache
-import scalaz.{ \/, -\/, \/- }
-import scalaz.syntax.either._
+import scalaz.{ -\/, \/, \/- }
 
-class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRepository with PostgresRepository[Role] with Lifting[RepositoryError.Fail] {
+class RoleRepositoryPostgres(val userRepository: UserRepository, val scalaCacheConfig: ScalaCacheConfig) extends RoleRepository with PostgresRepository[Role] with Lifting[RepositoryError.Fail] with CacheRepository {
 
   override val entityName = "Role"
 
@@ -156,13 +146,13 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
   /**
    * List the roles associated with a user.
    */
-  override def list(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Role]]] = {
-    cache.getCached[IndexedSeq[Role]](cacheRolesKey(user.id)).flatMap {
+  override def list(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Role]]] = {
+    cache[IndexedSeq[Role]].getCached(cacheRolesKey(user.id)).flatMap {
       case \/-(roleList) => Future successful \/-(roleList)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           roleList <- lift(queryList(ListRoles, Array[Any](user.id)))
-          _ <- lift(cache.putCache[IndexedSeq[Role]](cacheRolesKey(user.id))(roleList, ttl))
+          _ <- lift(cache[IndexedSeq[Role]].putCache(cacheRolesKey(user.id))(roleList, ttl))
         } yield roleList
       case -\/(error) => Future successful -\/(error)
     }
@@ -174,14 +164,14 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * @param id the 128-bit UUID, as a byte array, to search for.
    * @return an optional RowData object containing the results
    */
-  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Role]] = {
-    cache.getCached[Role](cacheCourseKey(id)).flatMap {
+  override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Role]] = {
+    cache[Role].getCached(cacheCourseKey(id)).flatMap {
       case \/-(role) => Future successful \/-(role)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           role <- lift(queryOne(SelectOne, Array[Any](id)))
-          _ <- lift(cache.putCache[UUID](cacheRoleNameKey(role.name))(role.id, ttl))
-          _ <- lift(cache.putCache[Role](cacheRoleKey(role.id))(role, ttl))
+          _ <- lift(cache[UUID].putCache(cacheRoleNameKey(role.name))(role.id, ttl))
+          _ <- lift(cache[Role].putCache(cacheRoleKey(role.id))(role, ttl))
         } yield role
       case -\/(error) => Future successful -\/(error)
     }
@@ -193,19 +183,19 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * @param name the 128-bit UUID, as a byte array, to search for.
    * @return an optional RowData object containing the results
    */
-  override def find(name: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Role]] = {
-    cache.getCached[UUID](cacheRoleNameKey(name)).flatMap {
+  override def find(name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Role]] = {
+    cache[UUID].getCached(cacheRoleNameKey(name)).flatMap {
       case \/-(roleId) => {
         for {
-          _ <- lift(cache.putCache[UUID](cacheRoleNameKey(name))(roleId, ttl))
+          _ <- lift(cache[UUID].putCache(cacheRoleNameKey(name))(roleId, ttl))
           role <- lift(find(roleId))
         } yield role
       }
       case -\/(noResults: RepositoryError.NoResults) => {
         for {
           role <- lift(queryOne(SelectOneByName, Array[Any](name)))
-          _ <- lift(cache.putCache[UUID](cacheRoleNameKey(name))(role.id, ttl))
-          _ <- lift(cache.putCache[Role](cacheRoleKey(role.id))(role, ttl))
+          _ <- lift(cache[UUID].putCache(cacheRoleNameKey(name))(role.id, ttl))
+          _ <- lift(cache[Role].putCache(cacheRoleKey(role.id))(role, ttl))
         } yield role
       }
       case -\/(error) => Future successful -\/(error)
@@ -219,7 +209,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * @param conn
    * @return
    */
-  override def addUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def addUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     val cleanRoleId = role.id.toString filterNot ("-" contains _)
     val query = AddUsers + userList.map { user =>
       val cleanUserId = user.id.toString filterNot ("-" contains _)
@@ -243,7 +233,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * @param conn
    * @return
    */
-  override def removeUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def removeUsers(role: Role, userList: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     val cleanRoleId = role.id.toString filterNot ("-" contains _)
     val cleanUsersId = userList.map { user =>
       user.id.toString filterNot ("-" contains _)
@@ -277,7 +267,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    *
    * @return id of the saved/new role.
    */
-  override def update(role: Role)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Role]] = {
+  override def update(role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Role]] = {
     val params = Seq[Any](role.name, role.version + 1, new DateTime, role.id, role.version)
 
     for {
@@ -295,7 +285,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
    * @param role
    * @return
    */
-  override def delete(role: Role)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Role]] = {
+  override def delete(role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Role]] = {
     for {
       users <- lift(userRepository.list(role))
       deleted <- lift(queryOne(Delete, Array(role.id, role.version)))
@@ -308,7 +298,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
   /**
    * Associate a role to a user by role object.
    */
-  override def addToUser(user: User, role: Role)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def addToUser(user: User, role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     val params = Seq[Any](user.id, role.id, new DateTime)
     val fResult = queryNumRows(AddRole, params)(_ == 1)
 
@@ -325,7 +315,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
   /**
    * Associate a role to a user by role name.
    */
-  override def addToUser(user: User, name: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def addToUser(user: User, name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       role <- lift(find(name))
       _ <- {
@@ -353,7 +343,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
   /**
    * Remove a role from a user by role object.
    */
-  override def removeFromUser(user: User, role: Role)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def removeFromUser(user: User, role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       _ <- lift(queryNumRows(RemoveRole, Seq(user.id, role.id))(_ == 1).map {
         case \/-(true) => \/-(())
@@ -367,7 +357,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
   /**
    * Remove a role from a user by role name.
    */
-  override def removeFromUser(user: User, name: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def removeFromUser(user: User, name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       user <- lift(userRepository.find(user.id))
       role <- lift(find(name))
@@ -383,7 +373,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
   /**
    * Remove a role from all users by role object.
    */
-  override def removeFromAllUsers(role: Role)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def removeFromAllUsers(role: Role)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       users <- lift(userRepository.list(role))
       _ <- lift(queryNumRows(RemoveFromAllUsers, Seq[Any](role.id))(_ >= 1).map {
@@ -399,7 +389,7 @@ class RoleRepositoryPostgres(val userRepository: UserRepository) extends RoleRep
   /**
    * Remove a role from all users by role name.
    */
-  override def removeFromAllUsers(name: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def removeFromAllUsers(name: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       role <- lift(find(name))
       users <- lift(userRepository.list(role))

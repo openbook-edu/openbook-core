@@ -1,7 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
 import java.awt.Color
-
 import org.joda.time.DateTime
 import play.api.Logger
 import ca.shiftfocus.krispii.core.error._
@@ -10,14 +9,9 @@ import com.github.mauricio.async.db.Connection
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import java.util.UUID
-
-import ca.shiftfocus.krispii.core.models.group.Course
-import ca.shiftfocus.krispii.core.models.user.User
-
 import scala.collection.IndexedSeq
 import scala.concurrent.Future
-import scalaz.{-\/, \/, \/-}
-
+import scalaz.{ \/-, -\/, \/ }
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class SchoolServiceDefault(
@@ -26,7 +20,6 @@ class SchoolServiceDefault(
   val userRepository: UserRepository,
   val courseRepository: CourseRepository,
   val chatRepository: ChatRepository,
-  val lastSeenRepository: LastSeenRepository,
   val wordRepository: WordRepository,
   val linkRepository: LinkRepository,
   val limitRepository: LimitRepository,
@@ -44,7 +37,7 @@ class SchoolServiceDefault(
   /**
    * List all courses.
    *
-   * @return an IndexedSeq of group
+   * @return an IndexedSeq of course
    */
   override def listCourses: Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
     courseRepository.list
@@ -54,11 +47,11 @@ class SchoolServiceDefault(
    * List all courses associated with a specific user.
    *
    * This finds courses for which the given id is set as a
-   * student of the group via an association table.
+   * student of the course via an association table.
    *
    * @param userId the UUID of the user to search for.
    * @param isDeleted defaults to false so it doesn't retrieve deleted courses, if set to true it will retrieve only deleted courses
-   * @return an IndexedSeq of group
+   * @return an IndexedSeq of course
    */
   override def listCoursesByUser(userId: UUID, isDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
     for {
@@ -70,7 +63,7 @@ class SchoolServiceDefault(
   /**
    * List the courses or the given user
    * @param user the UUID of the user to search for.
-   * @return an IndexedSeq of group
+   * @return an IndexedSeq of course
    */
   override def listCoursesByUser(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
     for {
@@ -85,7 +78,7 @@ class SchoolServiceDefault(
    * parameter.
    *
    * @param userId the UUID of the user to search for.
-   * @return an IndexedSeq of group
+   * @return an IndexedSeq of course
    */
   override def listCoursesByTeacher(userId: UUID, isDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Course]]] = {
     for {
@@ -95,40 +88,40 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Find a specific group by id.
+   * Find a specific course by id.
    *
-   * @param id the UUID of the group to find.
-   * @return an optional group
+   * @param id the UUID of the course to find.
+   * @return an optional course
    */
   override def findCourse(id: UUID): Future[\/[ErrorUnion#Fail, Course]] = {
     courseRepository.find(id)
   }
 
   /**
-   * Find a specific group by slug.
+   * Find a specific course by slug.
    *
-   * @param slug the string of the group to find.
-   * @return an optional group
+   * @param slug the string of the course to find.
+   * @return an optional course
    */
   override def findCourse(slug: String): Future[\/[ErrorUnion#Fail, Course]] = {
     courseRepository.find(slug)
   }
 
   /**
-   * Create a new group.
+   * Create a new course.
    *
-   * @param teacherId the optional UUID of the user teaching this group
-   * @param name the name of this group
-   * @return the newly created group
+   * @param teacherId the optional UUID of the user teaching this course
+   * @param name the name of this course
+   * @return the newly created course
    */
   override def createCourse(teacherId: UUID, name: String, color: Color, slug: String): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
       for {
         teacher <- lift(authService.find(teacherId))
-        _ <- predicate(teacher.roles.map(_.name).contains("teacher"))(ServiceError.BadPermissions("Tried to create a group for a user who isn't a teacher."))
+        _ <- predicate(teacher.roles.map(_.name).contains("teacher"))(ServiceError.BadPermissions("Tried to create a course for a user who isn't a teacher."))
         _ <- lift(isValidSlug(slug))
         newCourse = Course(
-          ownerId = teacher.id,
+          teacherId = teacher.id,
           name = name,
           color = color,
           slug = slug
@@ -139,12 +132,12 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Update group.
+   * Update course.
    *
-   * @param id the UUID of the group this group belongs to
-   * @param teacherId the optional UUID of the user teaching this group
-   * @param name the name of this group
-   * @return the newly created group
+   * @param id the UUID of the course this course belongs to
+   * @param teacherId the optional UUID of the user teaching this course
+   * @param name the name of this course
+   * @return the newly created course
    */
   override def updateCourse(
     id: UUID,
@@ -164,12 +157,12 @@ class SchoolServiceDefault(
       for {
         existingCourse <- lift(courseRepository.find(id))
         _ <- predicate(existingCourse.version == version)(ServiceError.OfflineLockFail)
-        tId = teacherId.getOrElse(existingCourse.ownerId)
+        tId = teacherId.getOrElse(existingCourse.teacherId)
         teacher <- lift(authService.find(tId))
         _ <- predicate(slug.isEmpty || !existingCourse.enabled)(ServiceError.BusinessLogicFail("You can only change the slug for disabled courses."))
-        _ <- predicate(teacher.roles.map(_.name).contains("teacher"))(ServiceError.BadPermissions("Tried to update a group for a user who isn't a teacher."))
+        _ <- predicate(teacher.roles.map(_.name).contains("teacher"))(ServiceError.BadPermissions("Tried to update a course for a user who isn't a teacher."))
         toUpdate = existingCourse.copy(
-          ownerId = teacherId.getOrElse(existingCourse.ownerId),
+          teacherId = teacherId.getOrElse(existingCourse.teacherId),
           name = name.getOrElse(existingCourse.name),
           slug = slug.getOrElse(existingCourse.slug),
           color = color.getOrElse(existingCourse.color),
@@ -190,11 +183,11 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Mark a group as deleted.
+   * Mark a course as deleted.
    *
-   * @param id the unique ID of the group to update
-   * @param version the latest version of the group for O.O.L.
-   * @return group
+   * @param id the unique ID of the course to update
+   * @param version the latest version of the course for O.O.L.
+   * @return course
    */
   override def deleteCourse(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Course]] = {
     transactional { implicit conn =>
@@ -206,10 +199,10 @@ class SchoolServiceDefault(
     }
   }
 
-  // Utility functions for group management, assuming you already found a group object.
+  // Utility functions for course management, assuming you already found a course object.
 
   /**
-   * List all students registered to a group.
+   * List all students registered to a course.
    */
   override def listStudents(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     for {
@@ -224,19 +217,19 @@ class SchoolServiceDefault(
 
   // TODO - to remove
   //  /**
-  //   * List all projects belonging to a group.
+  //   * List all projects belonging to a course.
   //   */
-  //  override def listProjects(groupId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
+  //  override def listProjects(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
   //    for {
-  //      group <- lift(courseRepository.find(groupId))
-  //      projects <- lift(listProjects(group))
+  //      course <- lift(courseRepository.find(courseId))
+  //      projects <- lift(listProjects(course))
   //    } yield projects
   //  }
 
   /**
-   * Add students to a group.
+   * Add students to a course.
    *
-   * @param course the group to add users to
+   * @param course the course to add users to
    * @param userIds an IndexedSeq of UUID representing the users to be added.
    * @return a boolean indicating success or failure.
    */
@@ -251,9 +244,9 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Remove students from a group.
+   * Remove students from a course.
    *
-   * @param course the group to remove users from
+   * @param course the course to remove users from
    * @param userIds an IndexedSeq of UUID representing the users to be removed.
    * @return boolean indicating success or failure.
    */
@@ -288,38 +281,13 @@ class SchoolServiceDefault(
       user <- lift(authService.find(userId))
       teacher <- lift(authService.find(teacherId))
       userCourses <- lift(courseRepository.list(user, false))
-      filteredCourses = userCourses.filter(_.ownerId == teacher.id)
+      filteredCourses = userCourses.filter(_.teacherId == teacherId)
       _ <- predicate(filteredCourses.nonEmpty)(RepositoryError.NoResults(s"User ${userId.toString} is not in any courses with teacher ${teacherId.toString}"))
     } yield user
   }
 
   /**
-   * Changes the chatEnabled field only if the new value is actually different from the old one.
-   * TODO: can this be done in a general way for any field of Course? If yes, can it be done in CourseRepository?
-   * @param course: the old Course
-   * @param newValue: new value of chatEnabled
-   * @return either a Course or an error
-   */
-  def updateIfChanged(course: Course, newValue: Boolean): Future[\/[ErrorUnion#Fail, Course]] =
-    if (course.chatEnabled == newValue)
-      Future successful \/-(course)
-    else
-      courseRepository.update(course.copy(chatEnabled = newValue))
-
-  /**
-   * Set chatEnabled to a new value
-   * @param courseId
-   * @param chatEnabled
-   * @return
-   */
-  override def toggleCourseChat(courseId: UUID, chatEnabled: Boolean): Future[\/[ErrorUnion#Fail, Course]] =
-    for {
-      old <- lift(courseRepository.find(courseId))
-      updated <- lift(updateIfChanged(old, chatEnabled))
-    } yield updated
-
-  /**
-   * List all chats for a group.
+   * List all chats for a course.
    *
    * @param courseId
    * @return
@@ -332,7 +300,7 @@ class SchoolServiceDefault(
   }
 
   /**
-   * List a slice of chats for a group.
+   * List a slice of chats for a course.
    *
    * @param courseId
    * @param num
@@ -348,7 +316,7 @@ class SchoolServiceDefault(
   }
 
   /**
-   * List all of one user's chats in a group.
+   * List all of one user's chats in a course.
    *
    * @param courseId
    * @param userId
@@ -363,7 +331,7 @@ class SchoolServiceDefault(
   }
 
   /**
-   * List a slice of one user's chats in a group.
+   * List a slice of one user's chats in a course.
    *
    * @param courseId
    * @param userId
@@ -379,25 +347,6 @@ class SchoolServiceDefault(
       chats <- lift(chatRepository.list(course, user, num, offset))
     } yield chats
   }
-
-  /**
-   * List all chat logs for a course indicating for each log if a reader has already seen it
-   *
-   * @param course: the Course for which to look up the logs
-   * @param reader the User who requested the chat logs
-   * @return an ordered sequence of Chat entries, or an error
-   */
-  override def listChats(course: Course, reader: User, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = for {
-    chats <- lift(chatRepository.list(course))
-    lastSeen <- lift(lastSeenRepository.find(reader.id, course.id, entityType = "course", peek: Boolean))
-    chatsWithSeen = chats.map(chat => chat.copy(seen = chat.createdAt.isBefore(lastSeen)))
-  } yield chatsWithSeen
-
-  override def listChats(courseId: UUID, readerId: UUID, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = for {
-    course <- lift(findCourse(courseId))
-    reader <- lift(userRepository.find(readerId))
-    chatsWithSeen <- lift(listChats(course, reader, peek: Boolean))
-  } yield chatsWithSeen
 
   /**
    * Find a specific chat message.
@@ -416,15 +365,22 @@ class SchoolServiceDefault(
   /**
    * Insert a new chat message.
    *
-   * @param courseId actually course, exam or team ID
+   * @param courseId
    * @param userId
    * @param message
-   * @param shouting
    * @return
    */
-  override def insertChat(courseId: UUID, userId: UUID, message: String, shouting: Boolean): Future[\/[ErrorUnion#Fail, Chat]] = {
-    val newChat = Chat(courseId = courseId, userId = userId, message = message, shouting = shouting)
-    chatRepository.insert(newChat)
+  override def insertChat(courseId: UUID, userId: UUID, message: String): Future[\/[ErrorUnion#Fail, Chat]] = {
+    transactional { implicit conn =>
+      for {
+        course <- lift(findCourse(courseId))
+        user <- lift(userRepository.find(userId))
+        students <- lift(listStudents(course))
+        _ <- predicate(course.teacherId == user.id || students.contains(user))(ServiceError.BadPermissions("You must be a member of a course to chat in it."))
+        newChat = Chat(courseId = course.id, userId = userId, message = message)
+        createdChat <- lift(chatRepository.insert(newChat))
+      } yield createdChat
+    }
   }
 
   /**
@@ -454,14 +410,14 @@ class SchoolServiceDefault(
    * Creating a new link for student registration.
    *
    * @param lang user's language
-   * @param courseId group id
+   * @param courseId course id
    * @return the link for students
    */
   override def createLink(lang: String, courseId: UUID): Future[\/[ErrorUnion#Fail, Link]] = {
     transactional { implicit conn =>
       for {
         word <- lift(wordRepository.get(lang))
-        _ = Logger.debug("Creating link for registration: " + word.toString)
+        _ = Logger.debug(word.toString)
         link <- lift(linkRepository.create(Link(word.word, courseId, new DateTime())))
 
       } yield link
@@ -481,7 +437,7 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Delete a link based on group id. it will save us some parsing XD
+   * Delete a link based on course id. it will save us some parsing XD
    *
    * @param courseId
    * @return
@@ -493,7 +449,7 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Find a link by group id
+   * Find a link by course id
    * @param courseId
    * @return
    */
@@ -554,7 +510,7 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Number of students that are allowed for teacher per group
+   * Number of students that are allowed for teacher per course
    *
    * @param teacherId
    * @return
@@ -564,8 +520,8 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Get number of students that group is allowed to have
-   * Limit by group has priority, if that is empty, then we get limit by teacher.
+   * Get number of students that course is allowed to have
+   * Limit by course has priority, if that is empty, then we get limit by teacher.
    *
    * @param courseId
    * @return
@@ -576,7 +532,7 @@ class SchoolServiceDefault(
       case -\/(error: RepositoryError.NoResults) => {
         for {
           course <- lift(courseRepository.find(courseId))
-          result <- lift(limitRepository.getTeacherStudentLimit(course.ownerId))
+          result <- lift(limitRepository.getTeacherStudentLimit(course.teacherId))
         } yield result
       }
       case -\/(error) => Future successful -\/(error)
@@ -616,7 +572,7 @@ class SchoolServiceDefault(
   }
 
   /**
-   * Set Number of students that are allowed for teacher per group
+   * Set Number of students that are allowed for teacher per course
    *
    * @param teacherId
    * @param limit

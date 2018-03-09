@@ -2,41 +2,26 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
 import com.github.mauricio.async.db.Connection
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
-
-import ca.shiftfocus.krispii.core.models.group._
-import ca.shiftfocus.krispii.core.models.user.User
-import org.joda.time.DateTime
-
+import org.joda.time.LocalTime
+import org.joda.time.LocalDate
 import scala.concurrent.Future
-import scalaz.{-\/, \/, \/-}
+import scalaz.\/
 
 class ScheduleServiceDefault(
     val db: DB,
     val authService: AuthService,
-    val omsService: OmsService,
     val schoolService: SchoolService,
     val projectService: ProjectService,
-    val groupScheduleRepository: GroupScheduleRepository,
-    val groupScheduleExceptionRepository: GroupScheduleExceptionRepository
+    val courseScheduleRepository: CourseScheduleRepository,
+    val courseScheduleExceptionRepository: CourseScheduleExceptionRepository
 ) extends ScheduleService {
 
   implicit def conn: Connection = db.pool
-
-  /**
-   * List all schedules for a specific group.
-   *
-   * @param group the course/exam/team to list for.
-   * @return a vector of the given group's schedules
-   */
-  override def listSchedules(group: Group): Future[\/[ErrorUnion#Fail, IndexedSeq[GroupSchedule]]] = {
-    groupScheduleRepository.list(group)
-  }
 
   /**
    * List all schedules for a specific course.
@@ -44,36 +29,10 @@ class ScheduleServiceDefault(
    * @param id the UUID of the course to list for.
    * @return a vector of the given course's schedules
    */
-  override def listSchedulesByCourseId(id: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[GroupSchedule]]] = {
+  override def listSchedulesByCourse(id: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[CourseSchedule]]] = {
     for {
       course <- lift(schoolService.findCourse(id))
-      schedules <- lift(groupScheduleRepository.list(course.asInstanceOf[Group]))
-    } yield schedules
-  }
-
-  /**
-   * List all schedules for a specific exam.
-   *
-   * @param id the UUID of the exam to list for.
-   * @return a vector of the given exam's schedules
-   */
-  override def listSchedulesByExamId(id: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[GroupSchedule]]] = {
-    for {
-      group <- lift(omsService.findExam(id))
-      schedules <- lift(groupScheduleRepository.list(group))
-    } yield schedules
-  }
-
-  /**
-   * List all schedules for a specific team.
-   *
-   * @param id the UUID of the team to list for.
-   * @return a vector of the given exam's schedules
-   */
-  override def listSchedulesByTeamId(id: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[GroupSchedule]]] = {
-    for {
-      group <- lift(omsService.findExam(id))
-      schedules <- lift(groupScheduleRepository.list(group))
+      schedules <- lift(courseScheduleRepository.list(course))
     } yield schedules
   }
 
@@ -83,117 +42,105 @@ class ScheduleServiceDefault(
    * @param id
    * @return
    */
-  override def findSchedule(id: UUID): Future[\/[ErrorUnion#Fail, GroupSchedule]] = {
-    groupScheduleRepository.find(id)
+  override def findSchedule(id: UUID): Future[\/[ErrorUnion#Fail, CourseSchedule]] = {
+    courseScheduleRepository.find(id)
   }
 
   /**
-   * Create a new group schedule.
+   * Create a new course schedule.
    *
-   * @param group the course, exam or team for which a time is to be scheduled
-   * @param startDate the date on which the scheduled period starts
-   * @param endDate the date on which the scheduled period ends
+   * @param courseId the ID of the course this scheduled time belongs to
+   * @param day the date on which this schedule is scheduled
+   * @param startTime the time of day that the schedule starts
+   * @param endTime the time of day that the schedule ends
    * @param description a brief description may be entered
-   * @return the newly created group schedule
+   * @return the newly created course schedule
    */
   override def createSchedule(
-    group: Group,
-    startDate: DateTime,
-    endDate: DateTime,
+    courseId: UUID,
+    day: LocalDate,
+    startTime: LocalTime,
+    endTime: LocalTime,
     description: String
-  ): Future[\/[ErrorUnion#Fail, GroupSchedule]] = {
-    val newSchedule = GroupSchedule(
-      groupId = group.id,
-      startDate = startDate,
-      endDate = endDate,
-      description = description
-    )
-    groupScheduleRepository.insert(newSchedule)
+  ): Future[\/[ErrorUnion#Fail, CourseSchedule]] = {
+    transactional { implicit conn =>
+      for {
+        course <- lift(schoolService.findCourse(courseId))
+        newSchedule = CourseSchedule(
+          courseId = course.id,
+          day = day,
+          startTime = startTime,
+          endTime = endTime,
+          description = description
+        )
+        createdSchedule <- lift(courseScheduleRepository.insert(newSchedule))
+      } yield createdSchedule
+    }
   }
 
   /**
-   * Update an existing group schedule.
+   * Update an existing course schedule.
    *
-   * @param groupId the ID of the group this scheduled time belongs to
-   * @param startDate the date on which the scheduled period starts
-   * @param endDate the date on which the scheduled period ends
+   * @param courseId the ID of the course this scheduled time belongs to
+   * @param day the date on which this schedule is scheduled
+   * @param startTime the time of day that the schedule starts
+   * @param endTime the time of day that the schedule ends
    * @param description a brief description may be entered
-   * @return the newly created group schedule
+   * @return the newly created course schedule
    */
   override def updateSchedule(id: UUID, version: Long,
-    groupId: Option[UUID],
-    startDate: Option[DateTime],
-    endDate: Option[DateTime],
-    description: Option[String]): Future[\/[ErrorUnion#Fail, GroupSchedule]] = {
+    courseId: Option[UUID],
+    day: Option[LocalDate],
+    startTime: Option[LocalTime],
+    endTime: Option[LocalTime],
+    description: Option[String]): Future[\/[ErrorUnion#Fail, CourseSchedule]] = {
     transactional { implicit conn =>
       for {
-        groupSchedule <- lift(groupScheduleRepository.find(id))
-        _ <- predicate(groupSchedule.version == version)(ServiceError.OfflineLockFail)
-        toUpdate = groupSchedule.copy(
+        courseSchedule <- lift(courseScheduleRepository.find(id))
+        _ <- predicate(courseSchedule.version == version)(ServiceError.OfflineLockFail)
+        toUpdate = courseSchedule.copy(
           version = version,
-          groupId = groupId.getOrElse(groupSchedule.groupId),
-          startDate = startDate.getOrElse(groupSchedule.startDate),
-          endDate = endDate.getOrElse(groupSchedule.endDate),
-          description = description.getOrElse(groupSchedule.description)
+          courseId = courseId.getOrElse(courseSchedule.courseId),
+          day = day.getOrElse(courseSchedule.day),
+          startTime = startTime.getOrElse(courseSchedule.startTime),
+          endTime = endTime.getOrElse(courseSchedule.endTime),
+          description = description.getOrElse(courseSchedule.description)
         )
-        updatedSchedule <- lift(groupScheduleRepository.update(toUpdate))
+        updatedSchedule <- lift(courseScheduleRepository.update(toUpdate))
       } yield updatedSchedule
     }
   }
 
   /**
-   * Deletes a group schedule.
+   * Deletes a course schedule.
    *
    * @param id the ID of the schedule to delete
    * @param version the current version of the schedule for optimistic offline lock
    * @return a boolean indicating success or failure
    */
-  override def deleteSchedule(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, GroupSchedule]] = {
+  override def deleteSchedule(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, CourseSchedule]] = {
     transactional { implicit conn =>
       for {
-        groupSchedule <- lift(groupScheduleRepository.find(id))
-        _ <- predicate(groupSchedule.version == version)(ServiceError.OfflineLockFail)
-        toDelete = groupSchedule.copy(version = version)
-        isDeleted <- lift(groupScheduleRepository.delete(toDelete))
+        courseSchedule <- lift(courseScheduleRepository.find(id))
+        _ <- predicate(courseSchedule.version == version)(ServiceError.OfflineLockFail)
+        toDelete = courseSchedule.copy(version = version)
+        isDeleted <- lift(courseScheduleRepository.delete(toDelete))
       } yield isDeleted
     }
   }
 
   /**
-   * Internal helper function to tell if a schedule or schedule exception is active
-   * @param schedule the schedule or schedule exception to be queried
-   * @param current a DateTime to be queried
-   * @return Boolean
-   */
-  def isScheduledNow(schedule: Schedule, current: DateTime): Boolean =
-    (current.equals(schedule.startDate) ||
-      current.equals(schedule.endDate) ||
-      (current.isBefore(schedule.endDate) && current.isAfter(schedule.startDate)))
-
-  /**
-   * Is a course/exam/team scheduled for the given day and time, irrespective of any user-specific exceptions?
-   * @param group the course/exam/team
-   * @param current DateTime
-   * @return Boolean if the schedule can be looked up, or an error
-   */
-  override def isGroupScheduled(group: Group, current: DateTime): Future[\/[ErrorUnion#Fail, Boolean]] =
-    if (!group.enabled)
-      Future successful \/-(false)
-    else if (!group.schedulingEnabled)
-      Future successful \/-(true)
-    else listSchedules(group).map {
-      case \/-(schedules) => \/-(schedules.exists({ schedule => isScheduledNow(schedule, current) }))
-      case -\/(error) => -\/(error)
-    }
-
-  /**
-   * Lists schedule exceptions for all students/scorers of one course/exam/team.
+   * Lists schedule exceptions for all students for one course.
    *
-   * @param group The group for which to list exceptions
+   * @param courseId
    * @return
    */
-  def listScheduleExceptions(group: Group): Future[\/[ErrorUnion#Fail, IndexedSeq[GroupScheduleException]]] =
-    groupScheduleExceptionRepository.list(group)
+  def listScheduleExceptionsByCourse(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[CourseScheduleException]]] = {
+    for {
+      course <- lift(schoolService.findCourse(courseId))
+      schedules <- lift(courseScheduleExceptionRepository.list(course))
+    } yield schedules
+  }
 
   /**
    * Find a specific schedule exception object by ID.
@@ -201,26 +148,28 @@ class ScheduleServiceDefault(
    * @param id the unique identifier
    * @return a future disjunction containing either a failure, or the schedule exception
    */
-  def findScheduleException(id: UUID): Future[\/[ErrorUnion#Fail, GroupScheduleException]] = {
-    groupScheduleExceptionRepository.find(id)
+  def findScheduleException(id: UUID): Future[\/[ErrorUnion#Fail, CourseScheduleException]] = {
+    courseScheduleExceptionRepository.find(id)
   }
 
   /**
-   * TODO: adapt this to exams and teams when necessary
-   * @param userId the student for whom an exception should be created
-   * @param courseId the ID of the course this exception belongs to
-   * @param startDate the date on which the scheduled period starts
-   * @param endDate the date on which the scheduled period ends
-   * @param description a brief description may be entered
+   *
+   * @param userId
+   * @param courseId
+   * @param day
+   * @param startTime
+   * @param endTime
+   * @param description
    * @return
    */
   def createScheduleException(
     userId: UUID,
     courseId: UUID,
-    startDate: DateTime,
-    endDate: DateTime,
+    day: LocalDate,
+    startTime: LocalTime,
+    endTime: LocalTime,
     description: String
-  ): Future[\/[ErrorUnion#Fail, GroupScheduleException]] = {
+  ): Future[\/[ErrorUnion#Fail, CourseScheduleException]] = {
     transactional { implicit conn =>
       for {
         course <- lift(schoolService.findCourse(courseId))
@@ -229,38 +178,31 @@ class ScheduleServiceDefault(
         _ <- predicate(usersInCourse.contains(user))({
           ServiceError.BusinessLogicFail("User specified not in course")
         })
-        newSchedule = GroupScheduleException(
+        newSchedule = CourseScheduleException(
           userId = user.id,
-          groupId = course.id,
-          startDate = startDate,
-          endDate = endDate,
+          courseId = course.id,
+          day = day,
+          startTime = startTime,
+          endTime = endTime,
           reason = description
         )
-        createdSchedule <- lift(groupScheduleExceptionRepository.insert(newSchedule))
+        createdSchedule <- lift(courseScheduleExceptionRepository.insert(newSchedule))
       } yield createdSchedule
     }
   }
 
-  /**
-   * TODO: adapt this to exams and teams when necessary
-   * @param userIds list of the student for whom exceptions should be created
-   * @param courseId the ID of the course the exceptions are to be created for
-   * @param startDate the date on which the scheduled period starts
-   * @param endDate the date on which the scheduled period ends
-   * @param description a brief description may be entered
-   * @return
-   */
   override def createScheduleExceptions(
     userIds: IndexedSeq[UUID],
     courseId: UUID,
-    startDate: DateTime,
-    endDate: DateTime,
+    day: LocalDate,
+    startTime: LocalTime,
+    endTime: LocalTime,
     description: String,
-    exceptionIds: IndexedSeq[UUID] = IndexedSeq.empty[UUID]
-  ): Future[\/[ErrorUnion#Fail, IndexedSeq[GroupScheduleException]]] =
+    exceptionIds: Option[IndexedSeq[UUID]] = None
+  ): Future[\/[ErrorUnion#Fail, IndexedSeq[CourseScheduleException]]] = {
     transactional { implicit conn =>
       for {
-        _ <- predicate(exceptionIds.isEmpty || exceptionIds.length == userIds.length)({
+        _ <- predicate(exceptionIds.isEmpty || (exceptionIds.get).length == userIds.length)({
           ServiceError.BusinessLogicFail("Invalid number of exception ids")
         })
         course <- lift(schoolService.findCourse(courseId))
@@ -269,103 +211,118 @@ class ScheduleServiceDefault(
         usersInCourse <- lift(schoolService.listStudents(courseId))
         areUsersPresent = usersSpecified.forall((us: User) => usersInCourse.contains(us))
         _ <- predicate(areUsersPresent)({
-          ServiceError.BusinessLogicFail("User(s) specified not in group")
+          ServiceError.BusinessLogicFail("User(s) specified not in course")
         })
 
         newScheduleExceptions = usersSpecifiedInd.map {
-          case (us, idx) => GroupScheduleException(
-            id = exceptionIds(idx),
+          case (us, idx) => CourseScheduleException(
+            id = if (exceptionIds.isDefined) {
+            exceptionIds.get(idx)
+          }
+          else {
+            UUID.randomUUID()
+          },
             userId = us.id,
-            groupId = course.id,
-            startDate = startDate,
-            endDate = endDate,
+            courseId = course.id,
+            day = day,
+            startTime = startTime,
+            endTime = endTime,
             reason = description
           )
         }
-        createdSchedules <- lift(serializedT(newScheduleExceptions)(groupScheduleExceptionRepository.insert))
+        createdSchedules <- lift(serializedT(newScheduleExceptions)(courseScheduleExceptionRepository.insert))
+
       } yield createdSchedules
     }
+  }
 
   /**
    *
-   * @param id the unique ID of an existing exception
-   * @param version the version of the existing exception
-   * @param startDate the date on which the scheduled period starts
-   * @param endDate the date on which the scheduled period ends
-   * @param description a brief description may be entered
+   * @param id
+   * @param version
+   * @param day
+   * @param startTime
+   * @param endTime
+   * @param description
    * @return
    */
-  def updateScheduleException(id: UUID, version: Long, startDate: Option[DateTime], endDate: Option[DateTime],
-    description: Option[String]): Future[\/[ErrorUnion#Fail, GroupScheduleException]] = {
+  def updateScheduleException(id: UUID, version: Long, day: Option[LocalDate], startTime: Option[LocalTime], endTime: Option[LocalTime],
+    description: Option[String]): Future[\/[ErrorUnion#Fail, CourseScheduleException]] = {
     transactional { implicit conn =>
       for {
-        existingException <- lift(groupScheduleExceptionRepository.find(id))
+        existingException <- lift(courseScheduleExceptionRepository.find(id))
         _ <- predicate(existingException.version == version)(ServiceError.OfflineLockFail)
         toUpdate = existingException.copy(
           version = version,
-          startDate = startDate.getOrElse(existingException.startDate),
+          day = day.getOrElse(existingException.day),
+          startTime = startTime.getOrElse(existingException.startTime),
+          endTime = endTime.getOrElse(existingException.endTime),
           reason = description.getOrElse(existingException.reason)
         )
-        updatedSchedule <- lift(groupScheduleExceptionRepository.update(toUpdate))
+        updatedSchedule <- lift(courseScheduleExceptionRepository.update(toUpdate))
       } yield updatedSchedule
     }
   }
 
   /**
-   * Delete a schedule exception
-   * @param id The unique ID of the existing exception
-   * @param version The version of the existing exception
+   *
+   * @param id
+   * @param version
    * @return
    */
-  def deleteScheduleException(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, GroupScheduleException]] = {
+  def deleteScheduleException(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, CourseScheduleException]] = {
     transactional { implicit conn =>
       for {
-        groupScheduleException <- lift(groupScheduleExceptionRepository.find(id))
-        _ <- predicate(groupScheduleException.version == version)(ServiceError.OfflineLockFail)
-        toDelete = groupScheduleException.copy(version = version)
-        isDeleted <- lift(groupScheduleExceptionRepository.delete(toDelete))
+        courseScheduleException <- lift(courseScheduleExceptionRepository.find(id))
+        _ <- predicate(courseScheduleException.version == version)(ServiceError.OfflineLockFail)
+        toDelete = courseScheduleException.copy(version = version)
+        isDeleted <- lift(courseScheduleExceptionRepository.delete(toDelete))
       } yield isDeleted
     }
   }
 
   /**
-   * Is the user scheduled to take part in the course specified by its slug?
-   * @param courseSlug unique name of the course
-   * @param userId unique ID of the user
-   * @return Boolean, if the schedule can be looked up, or an error
+   *
+   * @param courseSlug
+   * @param userId
+   * @param currentDay
+   * @param currentTime
+   * @return
    */
   override def isCourseScheduledForUser(
     courseSlug: String,
     userId: UUID,
-    current: DateTime
+    currentDay: LocalDate,
+    currentTime: LocalTime
   ): Future[\/[ErrorUnion#Fail, Boolean]] = {
     for {
       course <- lift(schoolService.findCourse(courseSlug))
-      scheduled <- lift(isCourseScheduledForUser(course, userId, current))
+      scheduled <- lift(isCourseScheduledForUser(course, userId, currentDay, currentTime))
     } yield scheduled
   }
 
   /**
-   * Is the user scheduled to take part in the course specified by its unique ID?
-   * @param courseId unique ID of the course
-   * @param userId unique ID of the user
-   * @param currentDate DateTime
-   * @return Boolean, if the schedule can be looked up, or an error
+   *
+   * @param courseId
+   * @param userId
+   * @param currentDay
+   * @param currentTime
+   * @return
    */
-  override def isCourseScheduledForUser(courseId: UUID, userId: UUID, currentDate: DateTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
+  override def isCourseScheduledForUser(courseId: UUID, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
     for {
       course <- lift(schoolService.findCourse(courseId))
-      scheduled <- lift(isCourseScheduledForUser(course, userId, currentDate))
+      scheduled <- lift(isCourseScheduledForUser(course, userId, currentDay, currentTime))
     } yield scheduled
   }
 
-  override def isCourseScheduledForUser(course: Course, userId: UUID, current: DateTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
+  override def isCourseScheduledForUser(course: Course, userId: UUID, today: LocalDate, now: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]] = {
     val fCourses = schoolService.listCoursesByUser(userId)
     if (!course.schedulingEnabled) {
       for {
         courses <- lift(fCourses)
         _ <- predicate(courses.contains(course)) {
-          ServiceError.BadPermissions("You must be a teacher or student of the relevant group to access this resource.")
+          ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource.")
         }
       } yield course.enabled
     }
@@ -373,19 +330,35 @@ class ScheduleServiceDefault(
       for {
         courses <- lift(fCourses)
         _ <- predicate(courses.contains(course)) {
-          ServiceError.BadPermissions("You must be a teacher or student of the relevant group to access this resource.")
+          ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource.")
         }
-        schedules <- lift(listSchedules(course))
-        exceptions <- lift(listScheduleExceptions(course))
+        fSchedules = listSchedulesByCourse(course.id)
+        fExceptions = listScheduleExceptionsByCourse(course.id)
+        schedules <- lift(fSchedules)
+        exceptions <- lift(fExceptions)
         userExceptions = exceptions.filter(_.userId == userId)
         blockedUserExceptions = userExceptions.filter(_.block == true)
         regUserExceptions = userExceptions.filter(_.block == false)
-        scheduledForStudent = course.enabled &&
-          schedules.exists({ schedule => isScheduledNow(schedule, current) }) ||
-          !blockedUserExceptions.exists({ scheduleEx => isScheduledNow(scheduleEx, current) }) &&
-          regUserExceptions.exists({ scheduleEx => isScheduledNow(scheduleEx, current) })
+        scheduledForStudent = {
+          if (!course.enabled) false
+          else {
+            (!blockedUserExceptions.exists({ schedule => isScheduleNow(schedule, today, now)
+            })) &&
+              schedules.exists({ schedule => isScheduleNow(schedule, today, now)
+              }) ||
+              regUserExceptions.exists({ schedule => isScheduleNow(schedule, today, now)
+              })
+          }
+        }
       } yield scheduledForStudent
     }
   }
 
+  def isScheduleNow(schedule: Schedule, today: LocalDate, now: LocalTime): Boolean = {
+    today.equals(schedule.day) && (
+      now.equals(schedule.startTime) ||
+      now.equals(schedule.endTime) ||
+      (now.isBefore(schedule.endTime) && now.isAfter(schedule.startTime))
+    )
+  }
 }

@@ -4,13 +4,10 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import java.util.UUID
-
-import ca.shiftfocus.krispii.core.models.user.User
-import com.github.mauricio.async.db.{Connection, RowData}
-
+import com.github.mauricio.async.db.{ RowData, Connection }
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.\/
+import scalaz.{ \/ }
 
 class TaskScratchpadRepositoryPostgres(val documentRepository: DocumentRepository)
     extends TaskScratchpadRepository with PostgresRepository[TaskScratchpad] {

@@ -2,17 +2,15 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
 import com.github.mauricio.async.db.Connection
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.models.user.User
-
 import scala.concurrent.Future
-import scalaz.{-\/, \/, \/-}
+
+import scalaz.{ -\/, \/-, \/ }
 
 class ComponentServiceDefault(
   val db: DB,
@@ -763,7 +761,7 @@ class ComponentServiceDefault(
    * Add a component to a specific part.
    *
    * This associates a component with a project part. When that part is
-   * enabled for a group, users in that group will be able to
+   * enabled for a course, users in that course will be able to
    * access that component in their enabled components list.
    *
    * @param componentId the unique ID of the component to add
@@ -786,7 +784,7 @@ class ComponentServiceDefault(
    * Remove a component from a specific part.
    *
    * This disassociates a component with a project part. When that part is
-   * enabled for a group, users in that group will be able to
+   * enabled for a course, users in that course will be able to
    * access that component in their enabled components list.
    *
    * @param componentId the unique ID of the component to remove

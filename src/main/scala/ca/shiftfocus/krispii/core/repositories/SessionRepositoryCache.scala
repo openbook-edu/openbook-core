@@ -1,17 +1,16 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import java.util.UUID
-
 import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig }
 import ca.shiftfocus.krispii.core.models._
-import org.joda.time.DateTime
-
+import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
+import org.joda.time.DateTime
 import scala.concurrent.Future
-import scala.concurrent.duration._
-import scalaz.{-\/, \/, \/-}
+import concurrent.duration._
+import scalaz.{ -\/, \/, \/- }
 
-class SessionRepositoryCache(val cacheRepository: CacheRepository) extends SessionRepository {
+class SessionRepositoryCache(val scalaCacheConfig: ScalaCacheConfig) extends SessionRepository with CacheRepository {
 
   override val ttl = Some(2.days)
 
@@ -24,7 +23,7 @@ class SessionRepositoryCache(val cacheRepository: CacheRepository) extends Sessi
   override def list(userId: UUID): Future[\/[RepositoryError.Fail, IndexedSeq[Session]]] = {
     val fSessionList = for {
       sessionList <- lift {
-        cacheRepository.cacheSeqSession.getCached(userId.toString).map {
+        cache[IndexedSeq[Session]].getCached(userId.toString).map {
           case \/-(sessions: IndexedSeq[Session]) => \/-(sessions)
           case _ => \/-(IndexedSeq())
         }.recover {
@@ -47,7 +46,7 @@ class SessionRepositoryCache(val cacheRepository: CacheRepository) extends Sessi
       }
       // Update session list only with active sessions
       updatedList <- lift {
-        cacheRepository.cacheSeqSession.putCache(userId.toString)(activeSessionList, ttl).map {
+        cache[IndexedSeq[Session]].putCache(userId.toString)(activeSessionList, ttl).map {
           result => \/-(activeSessionList)
         }.recover {
           case exception => throw exception
@@ -66,17 +65,17 @@ class SessionRepositoryCache(val cacheRepository: CacheRepository) extends Sessi
    * Find a session by its session ID.
    *
    * @param sessionId the UUID of the session to lookup.
-   * @return a Session if one was found, or an error
+   * @return an Option[Session] if one was found
    */
   override def find(sessionId: UUID): Future[\/[RepositoryError.Fail, Session]] = {
-    cacheRepository.cacheSession.getCached(sessionId.toString)
+    cache[Session].getCached(sessionId.toString)
   }
 
   /**
    * Create a new session
    *
    * @param session the new session to create
-   * @return the newly created session or an error
+   * @return the newly created session
    */
   override def create(session: Session): Future[\/[RepositoryError.Fail, Session]] = {
     val sessionWithDates = session.copy(
@@ -86,7 +85,7 @@ class SessionRepositoryCache(val cacheRepository: CacheRepository) extends Sessi
 
     val fSession = for {
       newSession <- lift {
-        cacheRepository.cacheSession.putCache(session.id.toString)(sessionWithDates, ttl).map {
+        cache.putCache(session.id.toString)(sessionWithDates, ttl).map {
           result => \/-(sessionWithDates)
         }.recover {
           case exception => throw exception
@@ -113,7 +112,7 @@ class SessionRepositoryCache(val cacheRepository: CacheRepository) extends Sessi
 
     val fUpdate = for {
       updatedSession <- lift {
-        cacheRepository.cacheSession.putCache(session.id.toString)(sessionWithDates, ttl).map {
+        cache[Session].putCache(session.id.toString)(sessionWithDates, ttl).map {
           result => \/-(sessionWithDates)
         }.recover {
           case exception => throw exception
@@ -138,7 +137,7 @@ class SessionRepositoryCache(val cacheRepository: CacheRepository) extends Sessi
   override def delete(session: Session): Future[\/[RepositoryError.Fail, Session]] = {
     val fRemove = for {
       deletedSession <- lift {
-        cacheRepository.cacheSession.removeCached(session.id.toString).map {
+        cache.removeCached(session.id.toString).map {
           result => \/-(session)
         }.recover {
           case exception => throw exception
@@ -159,7 +158,7 @@ class SessionRepositoryCache(val cacheRepository: CacheRepository) extends Sessi
       sessionList <- lift(list(userId))
       newList = sessionList :+ session
       updatedList <- lift {
-        cacheRepository.cacheSeqSession.putCache(session.userId.toString)(newList, ttl).map {
+        cache[IndexedSeq[Session]].putCache(session.userId.toString)(newList, ttl).map {
           result => \/-(newList)
         }.recover {
           case exception => throw exception
@@ -173,7 +172,7 @@ class SessionRepositoryCache(val cacheRepository: CacheRepository) extends Sessi
       sessionList <- lift(list(userId))
       newList = sessionList.filter(_.id != session.id)
       updatedList <- lift {
-        cacheRepository.cacheSeqSession.putCache(session.userId.toString)(newList, ttl).map {
+        cache[IndexedSeq[Session]].putCache(session.userId.toString)(newList, ttl).map {
           result => \/-(newList)
         }.recover {
           case exception => throw exception

@@ -1,9 +1,11 @@
 import java.io.File
 
-import ca.shiftfocus.krispii.core.lib.ScalaCacheConfig
+import ca.shiftfocus.krispii.core.error.RepositoryError
+import ca.shiftfocus.krispii.core.lib.ScalaCachePool
+import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+import com.github.mauricio.async.db.{ Connection, Configuration }
 import com.github.mauricio.async.db.pool.PoolConfiguration
-import com.github.mauricio.async.db.{Configuration, Connection}
 import com.typesafe.config.ConfigFactory
 import grizzled.slf4j.Logger
 import org.joda.time.DateTime
@@ -11,10 +13,13 @@ import org.joda.time.format.DateTimeFormat
 import org.junit.runner.RunWith
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{BeforeAndAfter, MustMatchers, Suite, WordSpec}
-
-import scala.concurrent.Await
+import org.scalatest.{ BeforeAndAfter, Suite, MustMatchers, WordSpec }
 import scala.concurrent.duration.Duration
+
+import scala.concurrent.{ Future, Await }
+import ca.shiftfocus.krispii.core.repositories._
+
+import scalaz.{ \/-, -\/ }
 
 /**
  * Test Environment
@@ -40,7 +45,7 @@ abstract class TestEnvironment(writeToDb: Boolean = true)
     host = config.getString("db.postgresql.host"), //"localhost",
     password = Some(config.getString("db.postgresql.password")), //"test_user"),
     database = Some(config.getString("db.postgresql.database")), //"testdb")
-    port = config.get[Option[Int]]("db.postgresql.port")
+    port = config.getInt("db.postgresql.port")
   )
 
   private val poolConfig = new PoolConfiguration(
@@ -61,12 +66,11 @@ abstract class TestEnvironment(writeToDb: Boolean = true)
   //--------------------
   //--START CACHE--
   //--------------------
-  val masterConfig: (String, Int) = ("localhost", 6379) // scalastyle:ignore
-  val slaves = Seq.empty[play.api.Configuration]
-  val slaveConfigs: Seq[(String, Int)] = slaves.map { slaveConfig =>
-    (slaveConfig.get[String]("host"), slaveConfig.get[Int]("port"))
-  }
-  lazy val scalaCacheConfig: ScalaCacheConfig = ScalaCacheConfig(masterConfig, slaveConfigs)
+  //  val redisCache: scalacache.Cache = stub[scalacache.Cache]
+  //  class TestCache extends ScalaCache(redisCache)
+  //  val scalaCache: ScalaCache = stub[TestCache]
+  //  class TestScalaCachePool extends ScalaCachePool(scalaCache)
+  //  implicit val cache: ScalaCachePool = stub[TestScalaCachePool]
   //------------------
   //--END CACHE--
   //------------------

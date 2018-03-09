@@ -1,7 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.repositories.{TaskScratchpadRepository, TaskFeedbackRepository, WorkRepository}
+import ca.shiftfocus.krispii.core.repositories.{ TaskScratchpadRepository, TaskFeedbackRepository, WorkRepository }
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.work._
 import java.util.UUID
@@ -82,19 +82,4 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   ): Future[\/[ErrorUnion#Fail, Work]]
   def updateGfile(gFileId: UUID, sharedEmail: Option[Option[String]], permissionId: Option[Option[String]], revisionId: Option[Option[String]]): Future[\/[ErrorUnion#Fail, Work]]
   def deleteGfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Work]]
-
-  // ########## MICROSOFT FILES ###########################################################################################
-  def getMSfile(msFileId: UUID): Future[\/[ErrorUnion#Fail, Gfile]]
-  def createMSfile(
-    workId: UUID,
-    fileId: String,
-    mimeType: String,
-    fileType: String,
-    fileName: String,
-    embedUrl: String,
-    url: String,
-    sharedEmail: Option[String]
-  ): Future[\/[ErrorUnion#Fail, Work]]
-  def updateMSfile(msFileId: UUID, sharedEmail: Option[Option[String]], permissionId: Option[Option[String]], revisionId: Option[Option[String]]): Future[\/[ErrorUnion#Fail, Work]]
-  def deleteMSfile(msFileId: UUID): Future[\/[ErrorUnion#Fail, Work]]
 }

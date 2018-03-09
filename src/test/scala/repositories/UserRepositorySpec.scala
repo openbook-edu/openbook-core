@@ -1,17 +1,17 @@
-//import java.util.UUID
-//
-//import ca.shiftfocus.krispii.core.error.RepositoryError
-//import ca.shiftfocus.krispii.core.models.{ Organization, Role, User }
-//import ca.shiftfocus.krispii.core.repositories.{ TagRepositoryPostgres, UserRepositoryPostgres }
-//import org.scalatest.Matchers._
-//import org.scalatest._
-//
-//import scala.collection.breakOut
-//import scala.collection.immutable.TreeMap
-//import scala.concurrent.duration._
-//import scala.concurrent.{ Await, Future }
-//import scalaz.{ -\/, \/- }
-//import play.api.Logger
+import java.util.UUID
+
+import ca.shiftfocus.krispii.core.error.RepositoryError
+import ca.shiftfocus.krispii.core.models.{ Organization, Role, User }
+import ca.shiftfocus.krispii.core.repositories.{ TagRepositoryPostgres, UserRepositoryPostgres }
+import org.scalatest.Matchers._
+import org.scalatest._
+
+import scala.collection.breakOut
+import scala.collection.immutable.TreeMap
+import scala.concurrent.duration._
+import scala.concurrent.{ Await, Future }
+import scalaz.{ -\/, \/- }
+import play.api.Logger
 
 //class UserRepositorySpec
 //    extends TestEnvironment {
@@ -216,7 +216,7 @@
 //        val result = userRepository.list(testRole)
 //        Await.result(result, Duration.Inf) should be(\/-(Vector()))
 //      }
-//      "list users in a given group" in {
+//      "list users in a given course" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //
@@ -247,7 +247,7 @@
 //          }
 //        }
 //      }
-//      "return empty Vector() if group doesn't exist" in {
+//      "return empty Vector() if course doesn't exist" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //
@@ -256,7 +256,7 @@
 //        val result = userRepository.list(testCourse)
 //        Await.result(result, Duration.Inf) should be(\/-(Vector()))
 //      }
-//      "return empty Vector() if there are no users in the group" in {
+//      "return empty Vector() if there are no users in the course" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //

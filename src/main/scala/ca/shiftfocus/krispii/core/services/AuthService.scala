@@ -2,12 +2,9 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.repositories.{RoleRepository, SessionRepository, UserRepository}
+import ca.shiftfocus.krispii.core.repositories.{ RoleRepository, SessionRepository, UserRepository }
 import java.util.UUID
-
-import ca.shiftfocus.krispii.core.models.user.User
-import play.api.i18n.{Lang, MessagesApi}
-
+import play.api.i18n.{ Lang, MessagesApi }
 import scala.concurrent.Future
 import scalaz.\/
 
@@ -32,33 +29,21 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   def listSessions(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Session]]]
   def findSession(sessionId: UUID): Future[\/[ErrorUnion#Fail, Session]]
   def createSession(userId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]]
-  def createSession(userId: UUID, ipAddress: String, userAgent: String,
-    accessToken: Option[String], refreshToken: Option[String]): Future[\/[ErrorUnion#Fail, Session]]
-
   def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]]
-  def updateSession(sessionId: UUID, ipAddress: String, userAgent: String,
-    accessToken: Option[String], refreshToken: Option[String]): Future[\/[ErrorUnion#Fail, Session]]
-
   def deleteSession(sessionId: UUID): Future[\/[ErrorUnion#Fail, Session]]
 
   /**
-   * List user by similarity to a key word
+   * List user by similiarity to a key word
    */
   def listByKey(key: String, includeDeleted: Boolean = false, limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
   /**
-   * List all users (only for top administrators)
-   * @return a list of users with their roles, or an error
+   * List all users.
+   *
+   * @return a list of users with their roles and courses
    */
   def list: Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
   def listByRange(limit: Int, offset: Int): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
-
-  /**
-   * List all users in all organizations the caller has access to (only for org administrators)
-   * @param user the caller
-   * @return a list of users with their roles, or an error
-   */
-  def listColleagues(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
   /**
    * List users with filter for roles and courses.

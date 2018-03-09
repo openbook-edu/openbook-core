@@ -1,20 +1,13 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.repositories.{ChatRepository, CourseRepository, UserRepository}
+import ca.shiftfocus.krispii.core.repositories.{ ChatRepository, CourseRepository, UserRepository }
 import java.util.UUID
-
 import ca.shiftfocus.krispii.core.models._
-
 import scala.concurrent.Future
 import java.awt.Color
-
-import ca.shiftfocus.krispii.core.models.group.Course
-import ca.shiftfocus.krispii.core.models.user.User
 import org.joda.time.DateTime
 import scalaz.\/
-
-import scala.collection.IndexedSeq
 
 trait SchoolService extends Service[ErrorUnion#Fail] {
   val authService: AuthService
@@ -47,11 +40,11 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
   ): Future[\/[ErrorUnion#Fail, Course]]
   def deleteCourse(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Course]]
 
-  //def listStudents(group: Course): Future[IndexedSeq[User]]
+  //def listStudents(course: Course): Future[IndexedSeq[User]]
   def listStudents(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
   def listStudents(course: Course): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
-  //def listProjects(groupId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
-  //def listProjects(group: Course): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
+  //def listProjects(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
+  //def listProjects(course: Course): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
 
   def findUserForTeacher(userId: UUID, teacherId: UUID): Future[\/[ErrorUnion#Fail, User]]
 
@@ -60,18 +53,15 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
   def removeUser(course: Course, userId: UUID): Future[\/[ErrorUnion#Fail, User]]
   // -- Course chat methods -----
 
-  def toggleCourseChat(courseId: UUID, chatEnabled: Boolean): Future[\/[ErrorUnion#Fail, Course]]
-
   def listChats(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
   def listChats(courseId: UUID, num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
+
   def listChats(courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
   def listChats(courseId: UUID, userId: UUID, num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
-  def listChats(course: Course, reader: User, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
-  def listChats(courseId: UUID, readerId: UUID, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
 
   def findChat(courseId: UUID, messageNum: Long): Future[\/[ErrorUnion#Fail, Chat]]
 
-  def insertChat(courseId: UUID, userId: UUID, message: String, shouting: Boolean): Future[\/[ErrorUnion#Fail, Chat]]
+  def insertChat(courseId: UUID, userId: UUID, message: String): Future[\/[ErrorUnion#Fail, Chat]]
   def updateChat(courseId: UUID, messageNum: Long, hidden: Boolean): Future[\/[ErrorUnion#Fail, Chat]]
   def deleteChat(courseId: UUID, messageNum: Long): Future[\/[ErrorUnion#Fail, Chat]]
 

@@ -1,20 +1,19 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import java.util.UUID
-
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.user.User
-import com.github.mauricio.async.db.{Connection, RowData}
-import org.joda.time.DateTime
+import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig }
+import com.github.mauricio.async.db.{ Connection, RowData }
 import play.api.Logger
-import play.api.libs.json.Json
-
 import scala.concurrent.ExecutionContext.Implicits.global
+import ca.shiftfocus.krispii.core.models._
+import java.util.UUID
 import scala.concurrent.Future
-import scalaz.{-\/, \/, \/-}
+import org.joda.time.DateTime
+import play.api.libs.json.Json
+import scalaz.{ -\/, \/, \/- }
 
-class ComponentRepositoryPostgres extends ComponentRepository with PostgresRepository[Component] {
+class ComponentRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig)
+    extends ComponentRepository with PostgresRepository[Component] {
 
   override val entityName = "Component"
 
@@ -819,25 +818,21 @@ class ComponentRepositoryPostgres extends ComponentRepository with PostgresRepos
       )
       case videoComponent: VideoComponent => commonData ++ Array[Any](
         Component.Video,
-        Json.toJson(videoComponent.mediaData).toString(),
+        Json.toJson(videoComponent.mediaData),
         videoComponent.width,
         videoComponent.height
       )
       case audioComponent: AudioComponent => commonData ++ Array[Any](
         Component.Audio,
-        Json.toJson(audioComponent.mediaData).toString()
+        Json.toJson(audioComponent.mediaData)
       )
       case imageComponent: ImageComponent => commonData ++ Array[Any](
         Component.Image,
-        Json.toJson(imageComponent.mediaData).toString()
+        Json.toJson(imageComponent.mediaData)
       )
       case googleComponent: GoogleComponent => commonData ++ Array[Any](
         Component.Google,
-        Json.toJson(googleComponent.mediaData).toString()
-      )
-      case microsoftComponent: MicrosoftComponent => commonData ++ Array[Any](
-        Component.Microsoft,
-        Json.toJson(microsoftComponent.mediaData).toString()
+        Json.toJson(googleComponent.mediaData)
       )
       case microsoftComponent: MicrosoftComponent => commonData ++ Array[Any](
         Component.Microsoft,
@@ -845,7 +840,7 @@ class ComponentRepositoryPostgres extends ComponentRepository with PostgresRepos
       )
       case bookComponent: BookComponent => commonData ++ Array[Any](
         Component.Book,
-        Json.toJson(bookComponent.mediaData).toString()
+        Json.toJson(bookComponent.mediaData)
       )
       case _ => throw new Exception("I don't know how you did this, but you sent me a component type that doesn't exist.")
     }
@@ -902,27 +897,24 @@ class ComponentRepositoryPostgres extends ComponentRepository with PostgresRepos
         rubricComponent.rubricContent
       )
       case videoComponent: VideoComponent => commonData ++ Array[Any](
-        Json.toJson(videoComponent.mediaData).toString(),
+        Json.toJson(videoComponent.mediaData),
         videoComponent.width,
         videoComponent.height
       )
       case audioComponent: AudioComponent => commonData ++ Array[Any](
-        Json.toJson(audioComponent.mediaData).toString()
+        Json.toJson(audioComponent.mediaData)
       )
       case imageComponent: ImageComponent => commonData ++ Array[Any](
-        Json.toJson(imageComponent.mediaData).toString()
+        Json.toJson(imageComponent.mediaData)
       )
       case googleComponent: GoogleComponent => commonData ++ Array[Any](
-        Json.toJson(googleComponent.mediaData).toString()
-      )
-      case microsoftComponent: MicrosoftComponent => commonData ++ Array[Any](
-        Json.toJson(microsoftComponent.mediaData).toString()
+        Json.toJson(googleComponent.mediaData)
       )
       case microsoftComponent: MicrosoftComponent => commonData ++ Array[Any](
         Json.toJson(microsoftComponent.mediaData)
       )
       case bookComponent: BookComponent => commonData ++ Array[Any](
-        Json.toJson(bookComponent.mediaData).toString()
+        Json.toJson(bookComponent.mediaData)
       )
       case _ => throw new Exception("I don't know how you did this, but you sent me a component type that doesn't exist.")
     }

@@ -4,12 +4,8 @@ import ca.shiftfocus.krispii.core.error.RepositoryError
 import com.github.mauricio.async.db.Connection
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
-
-import ca.shiftfocus.krispii.core.models.group.Course
-import ca.shiftfocus.krispii.core.models.user.User
-
 import scala.concurrent.Future
-import scalaz.\/
+import scalaz.{ \/ }
 
 trait CourseRepository extends Repository {
   val userRepository: UserRepository

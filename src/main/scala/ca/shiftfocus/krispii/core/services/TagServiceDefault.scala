@@ -1,10 +1,8 @@
 package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error.{ ErrorUnion, RepositoryError, ServiceError }
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories.{ TagCategoryRepository, TagRepository, _ }
 import ca.shiftfocus.krispii.core.services.datasource.DB
@@ -12,7 +10,6 @@ import com.github.mauricio.async.db.Connection
 import org.joda.time.DateTime
 import play.api.Configuration
 import play.api.libs.json.{ JsObject, Json }
-
 import scala.concurrent.Future
 import scalaz.{ -\/, \/, \/- }
 import play.api.libs.json.JodaWrites._
@@ -20,7 +17,6 @@ import play.api.libs.json.JodaReads._
 
 class TagServiceDefault(
     val db: DB,
-    val scalaCache: ScalaCachePool,
     val tagRepository: TagRepository,
     val tagCategoryRepository: TagCategoryRepository,
     val organizationRepository: OrganizationRepository,
@@ -43,7 +39,6 @@ class TagServiceDefault(
   val defaultCourseLimit = config.get[Option[Int]]("default.course.limit").get
 
   implicit def conn: Connection = db.pool
-  implicit def cache: ScalaCachePool = scalaCache
 
   // ########## TAGS ###################################################################################################
 
@@ -74,13 +69,13 @@ class TagServiceDefault(
         // If entity is already taged with this tag, then do nothing
         _ <- lift(tagRepository.tag(entityId, entityType, existingTag.name, existingTag.lang).map {
           case \/-(success) => \/-(success)
-          case -\/(RepositoryError.PrimaryKeyConflict) => \/-()
+          case -\/(RepositoryError.PrimaryKeyConflict) => \/-((): Unit)
           case -\/(error) => -\/(error)
         })
         _ <- lift {
           entityType match {
             case TaggableEntities.user => setUserLimitsByOrganization(entityId, existingTag.name, existingTag.lang)
-            case _ => Future successful \/-(Unit)
+            case _ => Future successful \/-((): Unit)
           }
         }
       } yield ()
@@ -115,19 +110,19 @@ class TagServiceDefault(
                 _ <- lift {
                   entityType match {
                     case TaggableEntities.user => unsetUserLimitsByOrganization(entityId, tag.name, tag.lang)
-                    case _ => Future successful \/-(Unit)
+                    case _ => Future successful \/-((): Unit)
                   }
                 }
               } yield ()
             }
-            case -\/(error: RepositoryError.NoResults) => Future successful \/-()
+            case -\/(error: RepositoryError.NoResults) => Future successful \/-((): Unit)
             case -\/(error) => Future successful -\/(error)
           }
         }
         _ <- lift {
           entityType match {
             case TaggableEntities.project => updateProjectMaster(entityId, tagName, tagLang)
-            case _ => Future successful \/-(Unit)
+            case _ => Future successful \/-((): Unit)
           }
         }
       } yield ()
@@ -328,11 +323,11 @@ class TagServiceDefault(
                   state = "show"
                 ))
               }
-              else Future successful \/-(Unit)
+              else Future successful \/-((): Unit)
             }
           } yield ()
         }
-        else Future successful \/-(Unit)
+        else Future successful \/-((): Unit)
       }
     } yield ()
   }
@@ -403,7 +398,7 @@ class TagServiceDefault(
             _ <- lift(setUserLimits(maxLimitJson, user))
           } yield ()
         }
-        else Future successful \/-(Unit)
+        else Future successful \/-((): Unit)
       }
     } yield ()
   }
@@ -470,7 +465,7 @@ class TagServiceDefault(
     for {
       storageLimit <- lift(serializedT(organizationList)(organization => {
         limitRepository.getOrganizationStorageLimit(organization.id).map {
-          case \/-(limit) => \/-(Some(BigDecimal(limit).setScale(4, BigDecimal.RoundingMode.HALF_UP)))
+          case \/-(limit) => \/-(Some(BigDecimal.decimal(limit).setScale(4, BigDecimal.RoundingMode.HALF_UP)))
           case -\/(error: RepositoryError.NoResults) => \/-(None)
           case -\/(error) => -\/(error)
         }
@@ -555,7 +550,7 @@ class TagServiceDefault(
           organizationProjectTags.head.lang == tagLang) {
           projectRepository.update(project.copy(isMaster = false))
         }
-        else Future successful (\/-(Unit))
+        else Future successful (\/-((): Unit))
       }
     } yield ()
   }

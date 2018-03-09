@@ -1,13 +1,12 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import java.util.UUID
-import play.api.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import com.github.mauricio.async.db.{Connection, RowData}
+import com.github.mauricio.async.db.{ Connection, RowData }
 import org.joda.time.DateTime
 import scala.concurrent.Future
-import scalaz.{-\/, \/, \/-}
+import scalaz.{ -\/, \/, \/- }
 
 class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Long] {
   override val entityName = "Limit"
@@ -394,7 +393,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
     // Limit is unix timestamp
     getOrganizationLimit(organizationId, Limits.activeUntil).flatMap {
       // We need milliseconds here
-      case \/-(limit) => Future successful \/-({ Logger.info(s"Org data limit: ${limit} ms"); new DateTime(limit * 1000) })
+      case \/-(limit) => Future successful \/-(new DateTime(limit * 1000))
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -473,27 +472,22 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   // ###### PRIVATE METHODS ############################################################################################
 
   private def getTeacherLimit(teacherId: UUID, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
-    Logger.info(s"Checking ${limitType} limits for teacher no. ${teacherId}")
     queryOne(Select("teacher"), Seq[Any](teacherId, limitType))
   }
 
   private def getCourseLimit(courseId: UUID, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
-    Logger.info(s"Checking ${limitType} limits for course no. ${courseId}")
     queryOne(Select("course"), Seq[Any](courseId, limitType))
   }
 
   private def getPlanLimit(planId: String, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
-    Logger.info(s"Checking ${limitType} limits for plan no. ${planId}")
     queryOne(Select("plan"), Seq[Any](planId, limitType))
   }
 
   private def getOrganizationLimit(organizationId: UUID, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
-    Logger.info(s"Checking ${limitType} limits for organization no. ${organizationId}")
     queryOne(Select("organization"), Seq[Any](organizationId, limitType))
   }
 
   private def deleteCourseLimit(courseId: UUID, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
-    Logger.info(s"Deleting ${limitType} limits for course no. ${courseId}")
     queryOne(Delete("course"), Seq[Any](courseId, limitType))
   }
 }

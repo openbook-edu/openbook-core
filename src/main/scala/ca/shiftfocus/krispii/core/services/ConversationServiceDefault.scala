@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models.{Conversation, Message}
+import ca.shiftfocus.krispii.core.models.{ Conversation, Message }
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection

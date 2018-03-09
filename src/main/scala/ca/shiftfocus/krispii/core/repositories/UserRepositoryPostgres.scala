@@ -1,23 +1,20 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import java.util.UUID
-
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.group.Course
-import ca.shiftfocus.krispii.core.models.user.User
-import com.github.mauricio.async.db.{Connection, RowData}
-import org.joda.time.DateTime
-
+import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig }
+import com.github.mauricio.async.db.{ Connection, RowData }
 import scala.concurrent.ExecutionContext.Implicits.global
+import ca.shiftfocus.krispii.core.models._
+import java.util.UUID
 import scala.concurrent.Future
+import org.joda.time.DateTime
 import scala.util.Try
-import scalaz.{-\/, \/, \/-}
+import scalaz.{ -\/, \/, \/- }
 
 class UserRepositoryPostgres(
     val tagRepository: TagRepository,
-    val cacheRepository: CacheRepository
-) extends UserRepository with PostgresRepository[User] {
+    val scalaCacheConfig: ScalaCacheConfig
+) extends UserRepository with PostgresRepository[User] with CacheRepository {
 
   override val entityName = "User"
 
@@ -161,22 +158,6 @@ class UserRepositoryPostgres(
     """.stripMargin
   }
 
-  def ListOrgMembers(organizationList: IndexedSeq[Organization]) = {
-    val orgIdList = organizationList.map(org => s"'${org.id.toString}'").mkString(", ")
-
-    s"""
-       |SELECT ${FieldsWithTable("sub")}
-       |FROM (
-       |  SELECT *
-       |  FROM $Table
-       |) AS sub
-       |INNER JOIN organization_members AS om
-       |  ON om.member_email = sub.email
-       |  AND om.organization_id IN ($orgIdList)
-       |ORDER BY sub.givenname ASC
-    """.
-      stripMargin
-  }
   def SelectOrgMembersByKey(param: String, organizationList: IndexedSeq[Organization]) = {
     val orgIdList = organizationList.map(org => s"'${org.id.toString}'").mkString(", ")
 
@@ -304,16 +285,6 @@ class UserRepositoryPostgres(
        |ORDER BY $OrderBy
     """.stripMargin
 
-  val SelectAllWithTeam =
-    s"""
-       |SELECT $FieldsWithoutHash
-       |FROM $Table, teams_scorers
-       |WHERE $Table.id = teams_scorers.scorer_id
-       |  AND teams_scorers.team_id = ?
-       |  AND is_deleted = FALSE
-       |ORDER BY $OrderBy
-    """.stripMargin
-
   val SelectAllWithTeacher =
     s"""
        |SELECT $FieldsWithoutHash
@@ -379,7 +350,7 @@ class UserRepositoryPostgres(
   }
 
   /**
-   * List all users who have a certain role.
+   * List all users who have a role.
    *
    * @param role
    * @param conn
@@ -390,17 +361,17 @@ class UserRepositoryPostgres(
   }
 
   /**
-   * List student users in a given group.
+   * List users in a given course.
    *
-   * @return a future disjunction containing either the student users, or a failure
+   * @return a future disjunction containing either the users, or a failure
    */
   override def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    cacheRepository.cacheSeqUser.getCached(cacheStudentsKey(course.id)).flatMap {
+    cache[IndexedSeq[User]].getCached(cacheStudentsKey(course.id)).flatMap {
       case \/-(userList) => Future successful \/.right[RepositoryError.Fail, IndexedSeq[User]](userList)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           userList <- lift(queryList(SelectAllWithCourse, Seq[Any](course.id)))
-          _ <- lift(cacheRepository.cacheSeqUser.putCache(cacheStudentsKey(course.id))(userList, ttl))
+          _ <- lift(cache[IndexedSeq[User]].putCache(cacheUserKey(course.id))(userList, ttl))
         } yield userList
       case -\/(error) => Future successful -\/(error)
     }
@@ -412,12 +383,12 @@ class UserRepositoryPostgres(
 
   /**
    * List students for a given teacher
-   * @param teacher
+   * @param user
    * @param conn
    * @return
    */
-  override def list(teacher: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    queryList(SelectAllWithTeacher, Seq[Any](teacher.id))
+  override def list(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    queryList(SelectAllWithTeacher, Seq[Any](user.id))
   }
 
   /**
@@ -432,26 +403,13 @@ class UserRepositoryPostgres(
   }
 
   /**
-   * List all members of the given organization.
-   * Admins of these organizations will only be listed if they are also ordinary members.
-   * @param organizationList: indexed seq of Organizations to list for
-   * @return IndexedSeq of Users, or an error
-   */
-  def listOrganizationMembers(organizationList: IndexedSeq[Organization])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    for {
-      _ <- predicate(organizationList.nonEmpty)(RepositoryError.BadParam("core.UserRepositoryPostgres.searchOrganizationTeammate.org.empty"))
-      result <- lift(queryList(ListOrgMembers(organizationList)))
-    } yield result
-  }
-
-  /**
    * Find a user by ID.
    *
    * @param id the UUID of the user to search for.
    * @return a future disjunction containing either the user, or a failure
    */
   override def find(id: UUID, includeDeleted: Boolean = false)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
-    cacheRepository.cacheUser.getCached(cacheUserKey(id)).flatMap {
+    cache[User].getCached(cacheUserKey(id)).flatMap {
       case \/-(user) => Future successful \/.right[RepositoryError.Fail, User](user)
       case -\/(noResults: RepositoryError.NoResults) => {
         val query = {
@@ -460,9 +418,8 @@ class UserRepositoryPostgres(
         }
         for {
           user <- lift(queryOne(query, Seq[Any](id)))
-          _ <- lift(cacheRepository.cacheUUID.putCache(cacheUsernameKey(user.username))(user.id, ttl))
-          _ <- lift(cacheRepository.cacheUUID.putCache(cacheUsernameKey(user.email))(user.id, ttl))
-          _ <- lift(cacheRepository.cacheUser.putCache(cacheUserKey(user.id))(user, ttl))
+          _ <- lift(cache[UUID].putCache(cacheUsernameKey(user.username))(user.id, ttl))
+          _ <- lift(cache[User].putCache(cacheUserKey(user.id))(user, ttl))
         } yield user
       }
       case -\/(error) => Future successful -\/(error)
@@ -476,14 +433,18 @@ class UserRepositoryPostgres(
    * @return a future disjunction containing either the user, or a failure
    */
   override def find(identifier: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
-    cacheRepository.cacheUUID.getCached(cacheUsernameKey(identifier)).flatMap {
-      case \/-(userId) => find(userId)
+    cache[UUID].getCached(cacheUsernameKey(identifier)).flatMap {
+      case \/-(userId) => {
+        for {
+          _ <- lift(cache[UUID].putCache(cacheUsernameKey(identifier))(userId, ttl))
+          user <- lift(find(userId))
+        } yield user
+      }
       case -\/(noResults: RepositoryError.NoResults) => {
         for {
           user <- lift(queryOne(SelectOneByIdentifier, Seq[Any](identifier, identifier)))
-          _ <- lift(cacheRepository.cacheUUID.putCache(cacheUsernameKey(user.username))(user.id, ttl))
-          _ <- lift(cacheRepository.cacheUUID.putCache(cacheUsernameKey(user.email))(user.id, ttl))
-          _ <- lift(cacheRepository.cacheUser.putCache(cacheUserKey(user.id))(user, ttl))
+          _ <- lift(cache[UUID].putCache(cacheUsernameKey(identifier))(user.id, ttl))
+          _ <- lift(cache[User].putCache(cacheUserKey(user.id))(user, ttl))
         } yield user
       }
       case -\/(error) => Future successful -\/(error)
@@ -545,9 +506,8 @@ class UserRepositoryPostgres(
           ))
         }
       }
-      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheUserKey(updated.id)))
-      _ <- lift(cacheRepository.cacheUUID.removeCached(cacheUsernameKey(updated.username)))
-      _ <- lift(cacheRepository.cacheUUID.removeCached(cacheUsernameKey(updated.email)))
+      _ <- lift(cache.removeCached(cacheUserKey(updated.id)))
+      _ <- lift(cache.removeCached(cacheUsernameKey(updated.username)))
     } yield updated
   }
 
@@ -566,9 +526,8 @@ class UserRepositoryPostgres(
         user.id,
         user.version
       )))
-      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheUserKey(deleted.id)))
-      _ <- lift(cacheRepository.cacheUUID.removeCached(cacheUsernameKey(deleted.username)))
-      _ <- lift(cacheRepository.cacheUUID.removeCached(cacheUsernameKey(deleted.email)))
+      _ <- lift(cache.removeCached(cacheUserKey(deleted.id)))
+      _ <- lift(cache.removeCached(cacheUsernameKey(deleted.username)))
     } yield deleted
   }
 

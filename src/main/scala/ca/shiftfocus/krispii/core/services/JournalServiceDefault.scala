@@ -10,7 +10,6 @@ import java.util.UUID
 import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.Connection
 import org.joda.time.DateTime
-
 import scala.concurrent.Future
 import scalaz._
 

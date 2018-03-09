@@ -2,7 +2,6 @@ package ca.shiftfocus.krispii.core.models.work
 
 import ca.shiftfocus.krispii.core.models.document.Document
 import java.util.UUID
-
 import ca.shiftfocus.krispii.core.models.Gfile
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import ca.shiftfocus.krispii.core.models.tasks.questions._
@@ -10,7 +9,6 @@ import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.functional.syntax._
 import play.api.libs.json.JodaWrites._
-import play.api.libs.json.JodaReads._
 
 sealed trait Work {
   val id: UUID

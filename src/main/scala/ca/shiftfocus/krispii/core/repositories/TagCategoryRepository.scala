@@ -5,7 +5,7 @@ import com.github.mauricio.async.db.Connection
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
 import scala.concurrent.Future
-import scalaz.{\/}
+import scalaz.{ \/ }
 
 trait TagCategoryRepository extends Repository {
   def find(tagCategoryId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, TagCategory]]

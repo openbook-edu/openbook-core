@@ -5,17 +5,13 @@ import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.models.work._
 import java.util.UUID
-
-import ca.shiftfocus.krispii.core.models.user.User
-import com.github.mauricio.async.db.{Connection, RowData}
+import com.github.mauricio.async.db.{ RowData, Connection }
 import play.api.libs.json.Json
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
-
 import scala.concurrent.Future
-import scala.util.Try
-import scalaz.{-\/, \/, \/-}
+import scala.util.{ Try }
+import scalaz.{ \/, -\/, \/- }
 
 class WorkRepositoryPostgres(
     val documentRepository: DocumentRepository,
@@ -648,7 +644,7 @@ class WorkRepositoryPostgres(
     val params: Seq[Any] = work match {
       case specific: DocumentWork => baseParams ++ Array[Any](Task.Document, specific.documentId)
       case specific: QuestionWork => baseParams ++ Array[Any](Task.Question)
-      case specific: MediaWork => baseParams ++ Array[Any](Task.Media, Json.toJson(specific.fileData).toString())
+      case specific: MediaWork => baseParams ++ Array[Any](Task.Media, Json.toJson(specific.fileData))
     }
 
     queryOne(query, params)
@@ -696,7 +692,7 @@ class WorkRepositoryPostgres(
       new DateTime,
       work.id,
       work.version,
-      Json.toJson(work.response).toString(),
+      Json.toJson(work.response),
       work.id
     )).map(_.map(_.asInstanceOf[QuestionWork]))
   }
@@ -709,7 +705,7 @@ class WorkRepositoryPostgres(
       new DateTime,
       work.id,
       work.version,
-      Json.toJson(work.fileData).toString(),
+      Json.toJson(work.fileData),
       work.id
     )).map(_.map(_.asInstanceOf[MediaWork]))
   }

@@ -1,18 +1,17 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import java.util.UUID
-
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models._
-import com.github.mauricio.async.db.{Connection, RowData}
-import org.joda.time.DateTime
-
+import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig }
+import com.github.mauricio.async.db.{ Connection, RowData }
 import scala.concurrent.ExecutionContext.Implicits.global
+import ca.shiftfocus.krispii.core.models._
+import java.util.UUID
 import scala.concurrent.Future
-import scalaz.{-\/, \/, \/-}
+import org.joda.time.DateTime
+import scalaz.{ -\/, \/, \/- }
 
-class PartRepositoryPostgres(val taskRepository: TaskRepository, val componentRepository: ComponentRepository, val cacheRepository: CacheRepository)
-    extends PartRepository with PostgresRepository[Part] {
+class PartRepositoryPostgres(val taskRepository: TaskRepository, val componentRepository: ComponentRepository, val scalaCacheConfig: ScalaCacheConfig)
+    extends PartRepository with PostgresRepository[Part] with CacheRepository {
 
   override val entityName = "Part"
 
@@ -155,13 +154,13 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository, val componentRe
   override def list(project: Project, fetchTasks: Boolean, fetchComponents: Boolean = false) // format: OFF
                    (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = { // format: ON
     (for {
-      partList <- lift(cacheRepository.cacheSeqPart.getCached(cachePartsKey(project.id)).flatMap {
+      partList <- lift(cache[IndexedSeq[Part]].getCached(cachePartsKey(project.id)).flatMap {
         case \/-(partList) => { Future successful \/-(partList) }
 
         case -\/(noResults: RepositoryError.NoResults) =>
           for {
             partList <- lift(queryList(SelectByProjectId, Seq[Any](project.id)))
-            _ <- lift(cacheRepository.cacheSeqPart.putCache(cachePartsKey(project.id))(partList, ttl))
+            _ <- lift(cache[IndexedSeq[Part]].putCache(cachePartsKey(project.id))(partList, ttl))
           } yield partList
         case -\/(error) => Future successful -\/(error)
       })
@@ -220,12 +219,12 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository, val componentRe
   override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Part]] = find(id, true)
   override def find(id: UUID, fetchTasks: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Part]] = {
     (for {
-      part <- lift(cacheRepository.cachePart.getCached(cachePartKey(id)).flatMap {
+      part <- lift(cache[Part].getCached(cachePartKey(id)).flatMap {
         case \/-(part) => Future successful \/-(part)
         case -\/(noResults: RepositoryError.NoResults) =>
           for {
             part <- lift(queryOne(SelectOne, Seq[Any](id)))
-            _ <- lift(cacheRepository.cachePart.putCache(cachePartKey(part.id))(part, ttl))
+            _ <- lift(cache[Part].putCache(cachePartsKey(part.id))(part, ttl))
           } yield part
         case -\/(error) => Future successful -\/(error)
       })
@@ -246,14 +245,14 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository, val componentRe
 
   override def find(project: Project, position: Int, fetchTasks: Boolean) // format: OFF
                    (implicit conn: Connection): Future[\/[RepositoryError.Fail, Part]] = { // format: ON
-    cacheRepository.cacheUUID.getCached(cachePartPosKey(project.id, position)).flatMap {
+    cache[UUID].getCached(cachePartPosKey(project.id, position)).flatMap {
       case \/-(partId) => find(partId)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           part <- lift(queryOne(FindByProjectPosition, Seq[Any](project.id, position)))
           taskList <- lift(if (fetchTasks) taskRepository.list(part) else Future successful \/-(IndexedSeq()))
-          _ <- lift(cacheRepository.cachePart.putCache(cachePartKey(part.id))(part, ttl))
-          _ <- lift(cacheRepository.cacheUUID.putCache(cachePartPosKey(project.id, part.position))(part.id, ttl))
+          _ <- lift(cache[Part].putCache(cachePartsKey(part.id))(part, ttl))
+          _ <- lift(cache[UUID].putCache(cachePartPosKey(project.id, part.position))(part.id, ttl))
         } yield part.copy(tasks = taskList)
       case -\/(error) => Future successful -\/(error)
     }
@@ -273,7 +272,7 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository, val componentRe
 
     for {
       inserted <- lift(queryOne(Insert, params))
-      _ <- lift(cacheRepository.cachePart.removeCached(cachePartsKey(part.projectId)))
+      _ <- lift(cache.removeCached(cachePartsKey(part.projectId)))
     } yield inserted
   }
 
@@ -291,9 +290,9 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository, val componentRe
 
     (for {
       updatedPart <- lift(queryOne(Update, params))
-      _ <- lift(cacheRepository.cachePart.removeCached(cachePartKey(part.id)))
-      _ <- lift(cacheRepository.cacheSeqPart.removeCached(cachePartsKey(part.projectId)))
-      _ <- lift(cacheRepository.cacheUUID.removeCached(cachePartPosKey(part.projectId, part.position)))
+      _ <- lift(cache.removeCached(cachePartKey(part.id)))
+      _ <- lift(cache.removeCached(cachePartsKey(part.projectId)))
+      _ <- lift(cache.removeCached(cachePartPosKey(part.projectId, part.position)))
       oldTasks = part.tasks
     } yield updatedPart.copy(tasks = oldTasks)).run
   }
@@ -307,9 +306,9 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository, val componentRe
   def delete(part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Part]] = {
     (for {
       deletedPart <- lift(queryOne(Delete, Seq[Any](part.id, part.version)))
-      _ <- lift(cacheRepository.cachePart.removeCached(cachePartKey(part.id)))
-      _ <- lift(cacheRepository.cacheSeqPart.removeCached(cachePartsKey(part.projectId)))
-      _ <- lift(cacheRepository.cacheUUID.removeCached(cachePartPosKey(part.projectId, part.position)))
+      _ <- lift(cache.removeCached(cachePartKey(part.id)))
+      _ <- lift(cache.removeCached(cachePartsKey(part.projectId)))
+      _ <- lift(cache.removeCached(cachePartPosKey(part.projectId, part.position)))
       oldTasks = part.tasks
     } yield deletedPart.copy(tasks = oldTasks)).run
   }
@@ -323,8 +322,8 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository, val componentRe
   def delete(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Part]]] = {
     (for {
       deletedParts <- lift(queryList(DeleteByProject, Seq[Any](project.id)))
-      _ <- liftSeq(deletedParts.map({ part => cacheRepository.cachePart.removeCached(cachePartKey(part.id)) }))
-      _ <- lift(cacheRepository.cacheSeqPart.removeCached(cachePartsKey(project.id)))
+      _ <- liftSeq(deletedParts.map({ part => cache.removeCached(cachePartKey(part.id)) }))
+      _ <- lift(cache.removeCached(cachePartsKey(project.id)))
       deletedPartsWithTasks <- liftSeq(deletedParts.map { part =>
         (for {
           tasks <- lift(taskRepository.list(part))

@@ -2,43 +2,43 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.helpers.Token
-import ca.shiftfocus.krispii.core.lib.InputUtils
+import ca.shiftfocus.krispii.core.lib.{ InputUtils }
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
-
-import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.Connection
 import org.apache.commons.mail.EmailException
 import play.api.Logger
-import play.api.libs.mailer.{Email, MailerClient}
-
+import play.api.libs.mailer.{ Email, MailerClient }
 import scala.concurrent.ExecutionContext.Implicits.global
-import play.api.i18n.{Lang, MessagesApi}
-
+import play.api.i18n.{ Lang, MessagesApi }
 import scala.concurrent.Future
-import scalaz.{-\/, \/, \/-}
+
+import scalaz.{ -\/, \/, \/- }
 import webcrank.password._
 
 class AuthServiceDefault(
     val db: DB,
-    val mailerClient: MailerClient,
-    val accountRepository: AccountRepository,
-    val emailChangeRepository: EmailChangeRepository,
-    val paymentLogRepository: PaymentLogRepository,
-    val roleRepository: RoleRepository,
-    val sessionRepository: SessionRepository,
-    val tagRepository: TagRepository,
     val userRepository: UserRepository,
+    val roleRepository: RoleRepository,
     val userTokenRepository: UserTokenRepository,
+    val sessionRepository: SessionRepository,
+    val mailerClient: MailerClient,
     val wordRepository: WordRepository,
+    val accountRepository: AccountRepository,
+    val stripeRepository: StripeRepository,
+    val paymentLogRepository: PaymentLogRepository,
+    val emailChangeRepository: EmailChangeRepository,
+    val tagRepository: TagRepository,
     // Bad idea to include services, but duplicating the code may be even worse
     val organizationService: OrganizationService,
     val tagService: TagService
 ) extends AuthService {
 
   implicit def conn: Connection = db.pool
+
+  implicit def cache: ScalaCachePool = scalaCache
 
   /**
    * token types
@@ -47,12 +47,13 @@ class AuthServiceDefault(
   val activation = "activation"
 
   /**
-   * List all users (only for top administrators)
-   * @return an IndexedSeq of users with their roles
+   * List all users.
+   *
+   * @return an IndexedSeq of user
    */
   override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     (for {
-      users <- lift(userRepository.list)
+      users <- lift(userRepository.list(db.pool))
       result <- liftSeq {
         users.map { user =>
           val fRoles = roleRepository.list(user)
@@ -63,20 +64,6 @@ class AuthServiceDefault(
       }
     } yield result).run
   }
-
-  /**
-   * List all members of all organizations that the caller is orgAdministrator or member in
-   * @param user the caller
-   * @return a list of users with their roles, or an error
-   */
-  override def listColleagues(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] =
-    for {
-      asAdmin <- lift(organizationService.listByAdmin(user.email))
-      asMember <- lift(organizationService.listByMember(user.email))
-      organizations = asAdmin ++ asMember
-      _ = Logger.debug(s"${user.email} is admin or member in the organizations: ${organizations.map(_.title)}")
-      users <- lift(organizationService.listMembers(organizations))
-    } yield users
 
   override def listByRange(offset: Int, limit: Int): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     (for {
@@ -148,11 +135,10 @@ class AuthServiceDefault(
       for {
         user <- lift(userRepository.find(identifier))
         roles <- lift(roleRepository.list(user))
-        // _ = Logger.debug(s"Authenticating ${identifier} without password, roles=${roles}")
+        _ = Logger.debug("roles" + roles.toString)
         userHash = user.hash.getOrElse("")
         authUser = user.copy(roles = roles)
-        _ = Logger.info(s"Authenticating ${identifier} without password, account type=${authUser.accountType}, roles=" +
-          authUser.roles.map(_.name.toLowerCase()))
+        _ = Logger.debug(authUser.toString)
       } yield authUser
     }
   }
@@ -177,31 +163,21 @@ class AuthServiceDefault(
     sessionRepository.find(sessionId)
   }
 
-  override def createSession(userId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]] =
-    createSession(userId, ipAddress, userAgent, None, None)
-
   /**
    * Create a new session.
    *
    * @param userId
    * @param ipAddress
    * @param userAgent
-   * @param accessToken: optional Google or Microsoft access token
-   * @param refreshToken: optional Microsoft refresh token
    * @return
    */
-  override def createSession(userId: UUID, ipAddress: String, userAgent: String,
-    accessToken: Option[String], refreshToken: Option[String]): Future[\/[ErrorUnion#Fail, Session]] =
+  override def createSession(userId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]] = {
     sessionRepository.create(Session(
       userId = userId,
       ipAddress = ipAddress,
-      userAgent = userAgent,
-      accessToken = accessToken,
-      refreshToken = refreshToken
+      userAgent = userAgent
     ))
-
-  override def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]] =
-    updateSession(sessionId, ipAddress, userAgent, None, None)
+  }
 
   /**
    * Update an existing session.
@@ -211,14 +187,12 @@ class AuthServiceDefault(
    * @param userAgent
    * @return
    */
-  override def updateSession(sessionId: UUID, ipAddress: String, userAgent: String, accessToken: Option[String], refreshToken: Option[String]): Future[\/[ErrorUnion#Fail, Session]] = {
+  override def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]] = {
     val fUpdated = for {
       session <- lift(sessionRepository.find(sessionId))
       updated <- lift(sessionRepository.update(session.copy(
         ipAddress = ipAddress,
-        userAgent = userAgent,
-        accessToken = accessToken.orElse(session.accessToken),
-        refreshToken = refreshToken.orElse(session.refreshToken)
+        userAgent = userAgent
       )))
     } yield updated
 
@@ -307,14 +281,11 @@ class AuthServiceDefault(
               )
               userRepository.insert(newUser)
             }
-            _ = Logger.info(s"New user ${newUser.email} tentatively created, will now create token")
             user = newUser.copy(token = Some(UserToken(id, token, activation)))
             _ <- lift(userTokenRepository.insert(newUser.id, token, activation))
-            _ = Logger.info(s"Activation token for ${user.email} created")
           } yield user
         }
       }
-      _ = Logger.info(s"Provisionally created user ${result.email} with token, will now look up pre-existing organization tags")
       // Put it outside transactional, as we need user to be in a database before we tag him.
       _ <- lift(tagOrganizationUser(result))
     } yield result
@@ -324,12 +295,12 @@ class AuthServiceDefault(
    * If deleted user exists then move his account, subscriptions and logs to a new user with the same email
    * @see TagServiceDefault.syncWithDeletedUser()
    *
-   * @param newUser User
-   * @return in the Future, a krispii Account or an error
+   * @param newUser
+   * @return
    */
   def syncWithDeletedUser(newUser: User): Future[\/[ErrorUnion#Fail, Account]] = {
     for {
-      // Check if user was deleted and has an account (stripe or group)
+      // Check if user was deleted and has stripe account and subscriptions
       account <- lift(userRepository.findDeleted(newUser.email).flatMap {
         // If deleted user is found
         case \/-(deletedUser) => {
@@ -347,6 +318,8 @@ class AuthServiceDefault(
                 case \/-(account) => accountRepository.update(account.copy(userId = newUser.id))
                 case -\/(error) => Future successful -\/(error)
               })
+              // Move subscriptions from old user to a new user
+              subscriptions <- lift(stripeRepository.moveSubscriptions(deletedUser.id, newUser.id))
               // Move payment logs from old user to a new user
               paymentLogs <- lift(paymentLogRepository.move(deletedUser.id, newUser.id))
             } yield (account)
@@ -379,21 +352,18 @@ class AuthServiceDefault(
     role: String,
     hostname: Option[String]
   )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]] = {
-    val futureUser = for {
+    val fUser = for {
       user <- lift(this.create(username, email, password, givenname, surname))
-      _ = Logger.info(s"User ${user.email} created, will now add role ${role}")
       _ <- lift(addRole(user.id, role))
-      _ = Logger.info(s"Added role ${role} to ${user.email}")
       emailForNew = Email(
         messagesApi("activate.confirm.subject.new")(lang), //subject
         messagesApi("activate.confirm.from")(lang), //from
         Seq(givenname + " " + surname + " <" + email + ">"), //to
         bodyHtml = Some(messagesApi("activate.confirm.message", hostname.get, user.id.toString, user.token.get.token)(lang)) //text
       )
-      messageId <- lift(sendAsyncEmail(emailForNew))
-      _ = Logger.info(s"Sent activation email to ${user.email}, message ID is ${messageId}")
+      _ <- lift(sendAsyncEmail(emailForNew))
     } yield user
-    futureUser.run
+    fUser.run
   }
 
   override def createOpenIdUser(
@@ -707,10 +677,13 @@ class AuthServiceDefault(
    */
   override def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Role]] = {
     transactional { implicit conn =>
+      val fUser = userRepository.find(userId)
+      val fRole = roleRepository.find(roleName)
+
       for {
-        user <- lift(userRepository.find(userId))
-        role <- lift(roleRepository.find(roleName)) // only because addRole MUST return a Role
-        _ <- lift(roleRepository.addToUser(user, role))
+        user <- lift(fUser)
+        role <- lift(fRole)
+        roleAdded <- lift(roleRepository.addToUser(user, role))
       } yield role
     }
   }
@@ -726,7 +699,7 @@ class AuthServiceDefault(
     transactional { implicit conn =>
       for {
         user <- lift(userRepository.find(userId))
-        _ <- lift(serializedT(roleNames)(roleRepository.addToUser(user, _)))
+        rolesAdded <- lift(serializedT(roleNames)(roleRepository.addToUser(user, _)))
       } yield user
     }
   }
@@ -988,7 +961,6 @@ class AuthServiceDefault(
   override def listByKey(key: String, includeDeleted: Boolean = false, limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     (for {
       users <- lift(userRepository.triagramSearch(key, includeDeleted, limit, offset))
-      _ = Logger.info(s"Users matching key ${key}: ${users}")
       result <- liftSeq {
         users.map { user =>
           (for {

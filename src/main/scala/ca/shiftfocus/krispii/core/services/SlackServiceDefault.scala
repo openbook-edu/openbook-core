@@ -1,12 +1,9 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.services.datasource.DB
-import play.api.i18n.Lang
 import play.api.libs.ws.WSClient
 import play.api.{ Configuration, Logger }
-
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scalaz.{ \/, \/- }
@@ -27,19 +24,19 @@ class SlackServiceDefault(
   ): Future[\/[ErrorUnion#Fail, Unit]] = {
     val urlData = url match {
       case Some(url) => url
-      case _ => configuration.getString(s"slack.${scope}.url").getOrElse("")
+      case _ => configuration.get[Option[String]](s"slack.${scope}.url").getOrElse("")
     }
     val channelData = channel match {
       case Some(channel) => url
-      case _ => configuration.getString(s"slack.${scope}.channel").getOrElse("")
+      case _ => configuration.get[Option[String]](s"slack.${scope}.channel").getOrElse("")
     }
     val usernameData = username match {
       case Some(channel) => url
-      case _ => configuration.getString(s"slack.${scope}.username").getOrElse("")
+      case _ => configuration.get[Option[String]](s"slack.${scope}.username").getOrElse("")
     }
     val icon_emojiData = icon match {
       case Some(channel) => url
-      case _ => configuration.getString(s"slack.${scope}.icon_emoji").getOrElse("")
+      case _ => configuration.get[Option[String]](s"slack.${scope}.icon_emoji").getOrElse("")
     }
     val postBody =
       s"""payload={
@@ -50,9 +47,9 @@ class SlackServiceDefault(
           |}""".stripMargin
 
     try {
-      wsClient.url(urlData).withHeaders("Content-Type" -> "application/x-www-form-urlencoded; charset=utf-8").post(postBody).map { response =>
-        if (response.body.toString != "ok") {
-          Logger.error(s"[SLACK ERROR] failed to send a message: ${text}. With an error: " + response.body.toString)
+      wsClient.url(urlData).withHttpHeaders("Content-Type" -> "application/x-www-form-urlencoded; charset=utf-8").post(postBody).map { response =>
+        if (response.body != "ok") {
+          Logger.error(s"[SLACK ERROR] failed to send a message: ${text}. With an error: " + response.body)
         }
       }.recover {
         case e => Logger.error(s"[SLACK ERROR] failed to send a message: ${text}. With an error: " + e.toString)
@@ -64,6 +61,6 @@ class SlackServiceDefault(
       }
     }
 
-    Future successful \/-()
+    Future successful \/-((): Unit)
   }
 }

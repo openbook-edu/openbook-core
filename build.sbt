@@ -52,7 +52,7 @@ libraryDependencies ++= Seq(
   "org.slf4j" % "slf4j-simple" % "1.7.25",
   "org.clapper" %% "grizzled-slf4j" % "1.3.2",
   "junit" % "junit" % "4.12" % "test",
-  "com.stripe" % "stripe-java" % "3.3.0",
+  "com.stripe" % "stripe-java" % "5.33.2",
   "org.scalamock" %% "scalamock-scalatest-support" % "3.6.0" % "test",
   "ca.shiftfocus" % "webcrank-password_2.11" % "0.4.1",
   "org.scalaz" %% "scalaz-core" % "7.2.20",

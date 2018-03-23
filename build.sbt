@@ -54,7 +54,7 @@ libraryDependencies ++= Seq(
   "junit" % "junit" % "4.12" % "test",
   "com.stripe" % "stripe-java" % "5.33.2",
   "org.scalamock" %% "scalamock-scalatest-support" % "3.6.0" % "test",
-  "ca.shiftfocus" % "webcrank-password_2.11" % "0.4.1",
+  "ca.shiftfocus" %% "webcrank-password" % "0.5.0",
   "org.scalaz" %% "scalaz-core" % "7.2.20",
   "ca.shiftfocus" %% "sflib" % "1.0.8",
   "ca.shiftfocus" %% "otlib" % "1.0.0"

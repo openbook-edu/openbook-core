@@ -1,17 +1,16 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig }
-import ca.shiftfocus.krispii.core.models.tasks.Task
+import java.util.UUID
 import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.lib.ScalaCacheConfig
+import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.questions.Question
+import ca.shiftfocus.krispii.core.models.tasks.{ Task, _ }
 import com.github.mauricio.async.db.{ Connection, RowData }
+import org.joda.time.DateTime
 import play.api.libs.json.Json
 import scala.concurrent.ExecutionContext.Implicits.global
-import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.tasks._
-import java.util.UUID
 import scala.concurrent.Future
-import org.joda.time.DateTime
 import scalaz.{ -\/, \/, \/- }
 
 class TaskRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends TaskRepository with PostgresRepository[Task] with SpecificTaskConstructors with CacheRepository {
@@ -419,7 +418,7 @@ class TaskRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends Tas
       task.settings.allowGfile,
       task.settings.notesTitle,
       task.settings.help,
-      Json.toJson(task.settings.mediaData),
+      task.settings.mediaData.flatMap(d => Some(Json.toJson(d).toString())),
       task.settings.layout,
       task.settings.parentId,
       task.maxGrade,
@@ -446,7 +445,7 @@ class TaskRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends Tas
     // Send the query
     for {
       inserted <- lift(queryOne(query, dataArray))
-      _ <- lift(cache.removeCached(cacheTasksKey(task.partId)))
+      _ <- lift(cache[IndexedSeq[Task]].removeCached(cacheTasksKey(task.partId)))
     } yield inserted
   }
 
@@ -471,7 +470,7 @@ class TaskRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends Tas
       task.settings.allowGfile,
       task.settings.notesTitle,
       task.settings.help,
-      Json.toJson(task.settings.mediaData),
+      task.settings.mediaData.flatMap(d => Some(Json.toJson(d).toString())),
       task.settings.layout,
       task.settings.parentId,
       task.version + 1,

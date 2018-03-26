@@ -499,29 +499,31 @@ class TagServiceDefault(
         }
       }))
     } yield Json.obj(
-      "storageLimit" -> Json.toJson(storageLimit.flatten match {
+      "storageLimit" -> {
+        (storageLimit.flatten match {
+          case limitList if limitList.nonEmpty => Some(limitList.sum)
+          case _ => None
+        }).flatMap(d => Some(Json.toJson(d).toString()))
+      },
+      "courseLimit" -> (courseLimit.flatten match {
         case limitList if limitList.nonEmpty => Some(limitList.sum)
         case _ => None
-      }),
-      "courseLimit" -> Json.toJson(courseLimit.flatten match {
+      }).flatMap(d => Some(Json.toJson(d).toString())),
+      "studentLimit" -> (studentLimit.flatten match {
         case limitList if limitList.nonEmpty => Some(limitList.sum)
         case _ => None
-      }),
-      "studentLimit" -> Json.toJson(studentLimit.flatten match {
+      }).flatMap(d => Some(Json.toJson(d).toString())),
+      "memberLimit" -> (memberLimit.flatten match {
         case limitList if limitList.nonEmpty => Some(limitList.sum)
         case _ => None
-      }),
-      "memberLimit" -> Json.toJson(memberLimit.flatten match {
-        case limitList if limitList.nonEmpty => Some(limitList.sum)
-        case _ => None
-      }),
-      "dateLimit" -> Json.toJson(dateLimit.flatten match {
+      }).flatMap(d => Some(Json.toJson(d).toString())),
+      "dateLimit" -> (dateLimit.flatten match {
         case limitList if limitList.nonEmpty => {
           implicit def dateTimeOrdering: Ordering[DateTime] = Ordering.fromLessThan(_ isBefore _)
           Some(limitList.max)
         }
         case _ => None
-      })
+      }).flatMap(d => Some(Json.toJson(d).toString()))
     )
   }
 

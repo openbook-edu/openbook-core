@@ -171,6 +171,9 @@ CREATE TABLE tasks (
   help_text text,
   max_grade text DEFAULT '0',
   media_data jsonb,
+  parent_id uuid,
+  tagline text,
+  layout integer,
   hide_response boolean NOT NULL DEFAULT false,
   allow_gfile boolean NOT NULL DEFAULT true,
   created_at timestamp with time zone,
@@ -217,6 +220,9 @@ CREATE TABLE components (
   type text,
   ord integer DEFAULT 0,
   is_private boolean DEFAULT false,
+  parent_id uuid,
+  parent_version bigint,
+  description text DEFAULT '',
   created_at timestamp with time zone,
   updated_at timestamp with time zone
 );

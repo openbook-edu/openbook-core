@@ -644,7 +644,7 @@ class WorkRepositoryPostgres(
     val params: Seq[Any] = work match {
       case specific: DocumentWork => baseParams ++ Array[Any](Task.Document, specific.documentId)
       case specific: QuestionWork => baseParams ++ Array[Any](Task.Question)
-      case specific: MediaWork => baseParams ++ Array[Any](Task.Media, Json.toJson(specific.fileData))
+      case specific: MediaWork => baseParams ++ Array[Any](Task.Media, Json.toJson(specific.fileData).toString())
     }
 
     queryOne(query, params)
@@ -692,7 +692,7 @@ class WorkRepositoryPostgres(
       new DateTime,
       work.id,
       work.version,
-      Json.toJson(work.response),
+      Json.toJson(work.response).toString(),
       work.id
     )).map(_.map(_.asInstanceOf[QuestionWork]))
   }
@@ -705,7 +705,7 @@ class WorkRepositoryPostgres(
       new DateTime,
       work.id,
       work.version,
-      Json.toJson(work.fileData),
+      Json.toJson(work.fileData).toString(),
       work.id
     )).map(_.map(_.asInstanceOf[MediaWork]))
   }

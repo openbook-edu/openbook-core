@@ -818,29 +818,29 @@ class ComponentRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig)
       )
       case videoComponent: VideoComponent => commonData ++ Array[Any](
         Component.Video,
-        Json.toJson(videoComponent.mediaData),
+        Json.toJson(videoComponent.mediaData).toString(),
         videoComponent.width,
         videoComponent.height
       )
       case audioComponent: AudioComponent => commonData ++ Array[Any](
         Component.Audio,
-        Json.toJson(audioComponent.mediaData)
+        Json.toJson(audioComponent.mediaData).toString()
       )
       case imageComponent: ImageComponent => commonData ++ Array[Any](
         Component.Image,
-        Json.toJson(imageComponent.mediaData)
+        Json.toJson(imageComponent.mediaData).toString()
       )
       case googleComponent: GoogleComponent => commonData ++ Array[Any](
         Component.Google,
-        Json.toJson(googleComponent.mediaData)
+        Json.toJson(googleComponent.mediaData).toString()
       )
       case microsoftComponent: MicrosoftComponent => commonData ++ Array[Any](
         Component.Microsoft,
-        Json.toJson(microsoftComponent.mediaData)
+        Json.toJson(microsoftComponent.mediaData).toString()
       )
       case bookComponent: BookComponent => commonData ++ Array[Any](
         Component.Book,
-        Json.toJson(bookComponent.mediaData)
+        Json.toJson(bookComponent.mediaData).toString()
       )
       case _ => throw new Exception("I don't know how you did this, but you sent me a component type that doesn't exist.")
     }
@@ -897,24 +897,24 @@ class ComponentRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig)
         rubricComponent.rubricContent
       )
       case videoComponent: VideoComponent => commonData ++ Array[Any](
-        Json.toJson(videoComponent.mediaData),
+        Json.toJson(videoComponent.mediaData).toString(),
         videoComponent.width,
         videoComponent.height
       )
       case audioComponent: AudioComponent => commonData ++ Array[Any](
-        Json.toJson(audioComponent.mediaData)
+        Json.toJson(audioComponent.mediaData).toString()
       )
       case imageComponent: ImageComponent => commonData ++ Array[Any](
-        Json.toJson(imageComponent.mediaData)
+        Json.toJson(imageComponent.mediaData).toString()
       )
       case googleComponent: GoogleComponent => commonData ++ Array[Any](
-        Json.toJson(googleComponent.mediaData)
+        Json.toJson(googleComponent.mediaData).toString()
       )
       case microsoftComponent: MicrosoftComponent => commonData ++ Array[Any](
-        Json.toJson(microsoftComponent.mediaData)
+        Json.toJson(microsoftComponent.mediaData).toString()
       )
       case bookComponent: BookComponent => commonData ++ Array[Any](
-        Json.toJson(bookComponent.mediaData)
+        Json.toJson(bookComponent.mediaData).toString()
       )
       case _ => throw new Exception("I don't know how you did this, but you sent me a component type that doesn't exist.")
     }

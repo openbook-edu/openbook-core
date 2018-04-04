@@ -1,19 +1,19 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig }
-import com.github.mauricio.async.db.{ Connection, RowData }
-import play.api.Logger
-import scala.concurrent.ExecutionContext.Implicits.global
-import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
-import scala.concurrent.Future
+
+import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.models._
+import com.github.mauricio.async.db.{ Connection, RowData }
 import org.joda.time.DateTime
+import play.api.Logger
 import play.api.libs.json.Json
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scalaz.{ -\/, \/, \/- }
 
-class ComponentRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig)
-    extends ComponentRepository with PostgresRepository[Component] {
+class ComponentRepositoryPostgres extends ComponentRepository with PostgresRepository[Component] {
 
   override val entityName = "Component"
 

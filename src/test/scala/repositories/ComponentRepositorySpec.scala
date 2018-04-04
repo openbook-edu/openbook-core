@@ -1,20 +1,14 @@
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories.ComponentRepositoryPostgres
 import org.scalatest.Matchers._
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import scalacache.Cache
 import scalaz._
 
 class ComponentRepositorySpec
     extends TestEnvironment {
-  val componentRepository = new ComponentRepositoryPostgres(scalaCacheConfig) {
-    def master[A]: Cache[A] = stub[Cache[A]]
-    class TestScalaCachePool extends ScalaCachePool(master)
-    def cache[A]: ScalaCachePool[A] = stub[TestScalaCachePool].asInstanceOf[ScalaCachePool[A]]
-  }
+  val componentRepository = new ComponentRepositoryPostgres
   //
   //  "ComponentRepository.list" should {
   //    inSequence {

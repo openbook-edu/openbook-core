@@ -1,18 +1,19 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig }
-import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.models._
 import com.github.mauricio.async.db.{ Connection, RowData }
+import org.joda.time.{ DateTime, LocalDate, LocalTime }
+
 import scala.concurrent.ExecutionContext.Implicits.global
-import org.joda.time.DateTime
-import org.joda.time.LocalTime
-import org.joda.time.LocalDate
 import scala.concurrent.Future
 import scalaz.{ -\/, \/, \/- }
 
-class CourseScheduleRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends CourseScheduleRepository with PostgresRepository[CourseSchedule] with CacheRepository {
+class CourseScheduleRepositoryPostgres(
+    val cacheRepository: CacheRepository
+) extends CourseScheduleRepository with PostgresRepository[CourseSchedule] {
 
   override val entityName = "CourseSchedule"
 
@@ -84,12 +85,12 @@ class CourseScheduleRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) e
    * List all schedules for a given course
    */
   override def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[CourseSchedule]]] = {
-    cache[IndexedSeq[CourseSchedule]].getCached(cacheSchedulesKey(course.id)).flatMap {
+    cacheRepository.cacheSeqCourseSchedule.getCached(cacheSchedulesKey(course.id)).flatMap {
       case \/-(schedules) => Future successful \/-(schedules)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           schedules <- lift(queryList(SelectByCourseId, Seq[Any](course.id)))
-          _ <- lift(cache[IndexedSeq[CourseSchedule]].putCache(cacheSchedulesKey(course.id))(schedules, ttl))
+          _ <- lift(cacheRepository.cacheSeqCourseSchedule.putCache(cacheSchedulesKey(course.id))(schedules, ttl))
         } yield schedules
       case -\/(error) => Future successful -\/(error)
     }
@@ -103,12 +104,12 @@ class CourseScheduleRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) e
    * @return an optional task if one was found
    */
   override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
-    cache[CourseSchedule].getCached(cacheScheduleKey(id)).flatMap {
+    cacheRepository.cacheCourseSchedule.getCached(cacheScheduleKey(id)).flatMap {
       case \/-(schedules) => Future successful \/-(schedules)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           schedule <- lift(queryOne(SelectOne, Seq[Any](id)))
-          _ <- lift(cache[CourseSchedule].putCache(cacheScheduleKey(id))(schedule, ttl))
+          _ <- lift(cacheRepository.cacheCourseSchedule.putCache(cacheScheduleKey(id))(schedule, ttl))
         } yield schedule
       case -\/(error) => Future successful -\/(error)
     }
@@ -134,8 +135,8 @@ class CourseScheduleRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) e
         courseSchedule.endTime,
         courseSchedule.description
       )))
-      _ <- lift(cache.removeCached(cacheScheduleKey(newSchedule.id)))
-      _ <- lift(cache.removeCached(cacheSchedulesKey(newSchedule.courseId)))
+      _ <- lift(cacheRepository.cacheCourseSchedule.removeCached(cacheScheduleKey(newSchedule.id)))
+      _ <- lift(cacheRepository.cacheSeqCourseSchedule.removeCached(cacheSchedulesKey(newSchedule.courseId)))
     } yield newSchedule
   }
 
@@ -158,8 +159,8 @@ class CourseScheduleRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) e
         courseSchedule.id,
         courseSchedule.version
       )))
-      _ <- lift(cache.removeCached(cacheScheduleKey(updated.id)))
-      _ <- lift(cache.removeCached(cacheSchedulesKey(updated.courseId)))
+      _ <- lift(cacheRepository.cacheCourseSchedule.removeCached(cacheScheduleKey(updated.id)))
+      _ <- lift(cacheRepository.cacheSeqCourseSchedule.removeCached(cacheSchedulesKey(updated.courseId)))
     } yield updated
   }
 
@@ -172,8 +173,8 @@ class CourseScheduleRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) e
   override def delete(courseSchedule: CourseSchedule)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
     for {
       deleted <- lift(queryOne(Delete, Seq[Any](courseSchedule.id, courseSchedule.version)))
-      _ <- lift(cache.removeCached(cacheScheduleKey(deleted.id)))
-      _ <- lift(cache.removeCached(cacheSchedulesKey(deleted.courseId)))
+      _ <- lift(cacheRepository.cacheCourseSchedule.removeCached(cacheScheduleKey(deleted.id)))
+      _ <- lift(cacheRepository.cacheSeqCourseSchedule.removeCached(cacheSchedulesKey(deleted.courseId)))
     } yield deleted
   }
 }

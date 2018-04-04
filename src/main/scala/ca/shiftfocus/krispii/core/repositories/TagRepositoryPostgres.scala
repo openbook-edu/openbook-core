@@ -2,18 +2,16 @@ package ca.shiftfocus.krispii.core.repositories
 
 import java.util.UUID
 
-import com.github.mauricio.async.db.RowData
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig }
 import ca.shiftfocus.krispii.core.models.{ Tag, TaggableEntities }
-import com.github.mauricio.async.db.Connection
+import com.github.mauricio.async.db.{ Connection, RowData }
 
-import scala.concurrent.duration._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
+import scala.concurrent.duration._
 import scalaz.{ -\/, \/, \/- }
 
-class TagRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends TagRepository with PostgresRepository[Tag] with CacheRepository {
+class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRepository with PostgresRepository[Tag] {
 
   override val entityName = "Tag"
 
@@ -298,7 +296,7 @@ class TagRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends TagR
    * @return
    */
   override def listPopular(lang: String, limit: Int = 0, skipedCategories: IndexedSeq[String] = IndexedSeq.empty[String])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
-    cache[IndexedSeq[Tag]].getCached(cachePopularTagsKey(lang)).flatMap {
+    cacheRepository.cacheSeqTag.getCached(cachePopularTagsKey(lang)).flatMap {
       case \/-(tagList) => Future successful \/-(tagList)
       case -\/(noResults: RepositoryError.NoResults) => {
         val queryLimit = {
@@ -308,7 +306,7 @@ class TagRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends TagR
 
         for {
           tagList <- lift(queryList(SelectAllPopular(lang, queryLimit, skipedCategories)))
-          _ <- lift(cache[IndexedSeq[Tag]].putCache(cachePopularTagsKey(lang))(tagList, Some(24.hours)))
+          _ <- lift(cacheRepository.cacheSeqTag.putCache(cachePopularTagsKey(lang))(tagList, Some(24.hours)))
         } yield tagList
       }
       case -\/(error) => Future successful -\/(error)

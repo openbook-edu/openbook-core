@@ -72,7 +72,7 @@ case class ScalaCachePool[A](master: Cache[A], slaves: Seq[Cache[A]] = IndexedSe
   }
 }
 
-object ScalaCachePool extends {
+object ScalaCachePool {
   def buildRedis[A: ClassTag](scalaCacheConfig: ScalaCacheConfig): ScalaCachePool[A] = {
     val (masterHost, masterPort) = scalaCacheConfig.masterConfig
     val runtimeClass = classTag[A].runtimeClass

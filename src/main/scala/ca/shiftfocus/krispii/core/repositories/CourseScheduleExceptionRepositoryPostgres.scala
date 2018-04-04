@@ -1,21 +1,22 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig }
-import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.models._
 import com.github.mauricio.async.db.{ Connection, RowData }
-import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.{ DateTime, LocalDate, LocalTime }
+
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scalaz.{ -\/, \/, \/- }
 
 class CourseScheduleExceptionRepositoryPostgres(
   val userRepository: UserRepository,
   val courseScheduleRepository: CourseScheduleRepository,
-  val scalaCacheConfig: ScalaCacheConfig
+  val cacheRepository: CacheRepository
 )
-    extends CourseScheduleExceptionRepository with PostgresRepository[CourseScheduleException] with CacheRepository {
+    extends CourseScheduleExceptionRepository with PostgresRepository[CourseScheduleException] {
 
   override val entityName = "CourseScheduleException"
 
@@ -102,12 +103,12 @@ class CourseScheduleExceptionRepositoryPostgres(
    */
   override def list(user: User, course: Course) // format: OFF
                    (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[CourseScheduleException]]] = { // format: ON
-    cache[IndexedSeq[CourseScheduleException]].getCached(cacheExceptionsKey(course.id, user.id)).flatMap {
+    cacheRepository.cacheSeqCourseScheduleException.getCached(cacheExceptionsKey(course.id, user.id)).flatMap {
       case \/-(schedules) => Future successful \/-(schedules)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           schedules <- lift(queryList(SelectForUserAndCourse, Array[Any](user.id, course.id)))
-          _ <- lift(cache[IndexedSeq[CourseScheduleException]].putCache(cacheExceptionsKey(course.id, user.id))(schedules, ttl))
+          _ <- lift(cacheRepository.cacheSeqCourseScheduleException.putCache(cacheExceptionsKey(course.id, user.id))(schedules, ttl))
         } yield schedules
       case -\/(error) => Future successful -\/(error)
     }
@@ -118,12 +119,12 @@ class CourseScheduleExceptionRepositoryPostgres(
    */
   override def list(course: Course) // format: OFF
                    (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[CourseScheduleException]]] = { // format: ON
-    cache[IndexedSeq[CourseScheduleException]].getCached(cacheExceptionsKey(course.id)).flatMap {
+    cacheRepository.cacheSeqCourseScheduleException.getCached(cacheExceptionsKey(course.id)).flatMap {
       case \/-(schedules) => Future successful \/-(schedules)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           schedules <- lift(queryList(SelectForCourse, Seq[Any](course.id)))
-          _ <- lift(cache[IndexedSeq[CourseScheduleException]].putCache(cacheExceptionsKey(course.id))(schedules, ttl))
+          _ <- lift(cacheRepository.cacheSeqCourseScheduleException.putCache(cacheExceptionsKey(course.id))(schedules, ttl))
         } yield schedules
       case -\/(error) => Future successful -\/(error)
     }
@@ -137,12 +138,12 @@ class CourseScheduleExceptionRepositoryPostgres(
    * @return an optional task if one was found
    */
   override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseScheduleException]] = {
-    cache[CourseScheduleException].getCached(cacheExceptionKey(id)).flatMap {
+    cacheRepository.cacheCourseScheduleException.getCached(cacheExceptionKey(id)).flatMap {
       case \/-(schedules) => Future successful \/-(schedules)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           schedule <- lift(queryOne(SelectOne, Seq[Any](id)))
-          _ <- lift(cache[CourseScheduleException].putCache(cacheExceptionKey(id))(schedule, ttl))
+          _ <- lift(cacheRepository.cacheCourseScheduleException.putCache(cacheExceptionKey(id))(schedule, ttl))
         } yield schedule
       case -\/(error) => Future successful -\/(error)
     }
@@ -170,9 +171,9 @@ class CourseScheduleExceptionRepositoryPostgres(
         courseScheduleException.reason,
         courseScheduleException.block
       )))
-      _ <- lift(cache.removeCached(cacheExceptionKey(inserted.id)))
-      _ <- lift(cache.removeCached(cacheExceptionsKey(inserted.courseId)))
-      _ <- lift(cache.removeCached(cacheExceptionsKey(inserted.courseId, inserted.userId)))
+      _ <- lift(cacheRepository.cacheCourseScheduleException.removeCached(cacheExceptionKey(inserted.id)))
+      _ <- lift(cacheRepository.cacheSeqCourseScheduleException.removeCached(cacheExceptionsKey(inserted.courseId)))
+      _ <- lift(cacheRepository.cacheSeqCourseScheduleException.removeCached(cacheExceptionsKey(inserted.courseId, inserted.userId)))
     } yield inserted
   }
 
@@ -198,9 +199,9 @@ class CourseScheduleExceptionRepositoryPostgres(
         courseScheduleException.id,
         courseScheduleException.version
       )))
-      _ <- lift(cache.removeCached(cacheExceptionKey(updated.id)))
-      _ <- lift(cache.removeCached(cacheExceptionsKey(updated.courseId)))
-      _ <- lift(cache.removeCached(cacheExceptionsKey(updated.courseId, updated.userId)))
+      _ <- lift(cacheRepository.cacheCourseScheduleException.removeCached(cacheExceptionKey(updated.id)))
+      _ <- lift(cacheRepository.cacheSeqCourseScheduleException.removeCached(cacheExceptionsKey(updated.courseId)))
+      _ <- lift(cacheRepository.cacheSeqCourseScheduleException.removeCached(cacheExceptionsKey(updated.courseId, updated.userId)))
     } yield updated
   }
 
@@ -214,9 +215,9 @@ class CourseScheduleExceptionRepositoryPostgres(
                      (implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseScheduleException]] = { // format: ON
     for {
       deleted <- lift(queryOne(Delete, Array(courseScheduleException.id, courseScheduleException.version)))
-      _ <- lift(cache.removeCached(cacheExceptionKey(deleted.id)))
-      _ <- lift(cache.removeCached(cacheExceptionsKey(deleted.courseId)))
-      _ <- lift(cache.removeCached(cacheExceptionsKey(deleted.courseId, deleted.userId)))
+      _ <- lift(cacheRepository.cacheCourseScheduleException.removeCached(cacheExceptionKey(deleted.id)))
+      _ <- lift(cacheRepository.cacheSeqCourseScheduleException.removeCached(cacheExceptionsKey(deleted.courseId)))
+      _ <- lift(cacheRepository.cacheSeqCourseScheduleException.removeCached(cacheExceptionsKey(deleted.courseId, deleted.userId)))
     } yield deleted
   }
 }

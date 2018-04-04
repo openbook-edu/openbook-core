@@ -3,7 +3,7 @@ import java.io.File
 import ca.shiftfocus.krispii.core.lib.ScalaCacheConfig
 import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import com.github.mauricio.async.db.pool.PoolConfiguration
-import com.github.mauricio.async.db.{ Configuration, Connection }
+import com.github.mauricio.async.db.{Configuration, Connection}
 import com.typesafe.config.ConfigFactory
 import grizzled.slf4j.Logger
 import org.joda.time.DateTime
@@ -11,7 +11,7 @@ import org.joda.time.format.DateTimeFormat
 import org.junit.runner.RunWith
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.junit.JUnitRunner
-import org.scalatest.{ BeforeAndAfter, MustMatchers, Suite, WordSpec }
+import org.scalatest.{BeforeAndAfter, MustMatchers, Suite, WordSpec}
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration

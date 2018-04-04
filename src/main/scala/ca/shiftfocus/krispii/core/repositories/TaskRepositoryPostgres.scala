@@ -1,19 +1,20 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import java.util.UUID
+
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCacheConfig
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.questions.Question
 import ca.shiftfocus.krispii.core.models.tasks.{ Task, _ }
 import com.github.mauricio.async.db.{ Connection, RowData }
 import org.joda.time.DateTime
 import play.api.libs.json.Json
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scalaz.{ -\/, \/, \/- }
 
-class TaskRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends TaskRepository with PostgresRepository[Task] with SpecificTaskConstructors with CacheRepository {
+class TaskRepositoryPostgres(val cacheRepository: CacheRepository) extends TaskRepository with PostgresRepository[Task] with SpecificTaskConstructors {
 
   override val entityName = "Task"
 
@@ -301,12 +302,12 @@ class TaskRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends Tas
    * @return a vector of the returned tasks
    */
   override def list(part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
-    cache[IndexedSeq[Task]].getCached(cacheTasksKey(part.id)).flatMap {
+    cacheRepository.cacheSeqTask.getCached(cacheTasksKey(part.id)).flatMap {
       case \/-(taskList) => Future successful \/-(taskList)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           taskList <- lift(queryList(SelectByPartId, Array[Any](part.id)))
-          _ <- lift(cache[IndexedSeq[Task]].putCache(cacheTasksKey(part.id))(taskList, ttl))
+          _ <- lift(cacheRepository.cacheSeqTask.putCache(cacheTasksKey(part.id))(taskList, ttl))
         } yield taskList
       case -\/(error) => Future successful -\/(error)
     }
@@ -339,12 +340,12 @@ class TaskRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends Tas
    * @return an optional task if one was found
    */
   override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]] = {
-    cache[Task].getCached(cacheTaskKey(id)).flatMap {
+    cacheRepository.cacheTask.getCached(cacheTaskKey(id)).flatMap {
       case \/-(task) => Future successful \/-(task)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           task <- lift(queryOne(SelectOne, Seq[Any](id)))
-          _ <- lift(cache[Task].putCache(cacheTaskKey(id))(task, ttl))
+          _ <- lift(cacheRepository.cacheTask.putCache(cacheTaskKey(id))(task, ttl))
         } yield task
       case -\/(error) => Future successful -\/(error)
     }
@@ -360,13 +361,13 @@ class TaskRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends Tas
    * @return an optional task if one was found
    */
   override def find(project: Project, part: Part, taskNum: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Task]] = {
-    cache[UUID].getCached(cacheTaskPosKey(project.id, part.id, taskNum)).flatMap {
+    cacheRepository.cacheUUID.getCached(cacheTaskPosKey(project.id, part.id, taskNum)).flatMap {
       case \/-(taskId) => this.find(taskId)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           task <- lift(queryOne(SelectByPosition, Seq[Any](part.position, project.id, taskNum)))
-          _ <- lift(cache[Task].putCache(cacheTaskKey(task.id))(task, ttl))
-          _ <- lift(cache[Task].putCache(cacheTaskPosKey(project.id, part.id, taskNum))(task, ttl))
+          _ <- lift(cacheRepository.cacheTask.putCache(cacheTaskKey(task.id))(task, ttl))
+          _ <- lift(cacheRepository.cacheTask.putCache(cacheTaskPosKey(project.id, part.id, taskNum))(task, ttl))
         } yield task
       case -\/(error) => Future successful -\/(error)
     }
@@ -445,7 +446,7 @@ class TaskRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends Tas
     // Send the query
     for {
       inserted <- lift(queryOne(query, dataArray))
-      _ <- lift(cache[IndexedSeq[Task]].removeCached(cacheTasksKey(task.partId)))
+      _ <- lift(cacheRepository.cacheSeqTask.removeCached(cacheTasksKey(task.partId)))
     } yield inserted
   }
 
@@ -497,11 +498,11 @@ class TaskRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends Tas
     for {
       updated <- lift(queryOne(query, dataArray))
       _ <- lift(oldPartId match {
-        case Some(oldId) => cache.removeCached(cacheTasksKey(oldId))
+        case Some(oldId) => cacheRepository.cacheSeqTask.removeCached(cacheTasksKey(oldId))
         case None => Future successful \/-(())
       })
-      _ <- lift(cache.removeCached(cacheTaskKey(task.id)))
-      _ <- lift(cache.removeCached(cacheTasksKey(task.partId)))
+      _ <- lift(cacheRepository.cacheTask.removeCached(cacheTaskKey(task.id)))
+      _ <- lift(cacheRepository.cacheSeqTask.removeCached(cacheTasksKey(task.partId)))
     } yield updated
   }
 
@@ -519,8 +520,8 @@ class TaskRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends Tas
     }
     for {
       deleted <- lift(queryOne(query, Seq(task.id, task.version)))
-      _ <- lift(cache.removeCached(cacheTaskKey(task.id)))
-      _ <- lift(cache.removeCached(cacheTasksKey(task.partId)))
+      _ <- lift(cacheRepository.cacheTask.removeCached(cacheTaskKey(task.id)))
+      _ <- lift(cacheRepository.cacheSeqTask.removeCached(cacheTasksKey(task.partId)))
     } yield deleted
   }
 
@@ -533,8 +534,8 @@ class TaskRepositoryPostgres(val scalaCacheConfig: ScalaCacheConfig) extends Tas
   override def delete(part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Task]]] = {
     for {
       deleted <- lift(queryList(DeleteByPart, Array[Any](part.id)))
-      _ <- liftSeq(deleted.map({ task => cache.removeCached(cacheTaskKey(task.id)) }))
-      _ <- lift(cache.removeCached(cacheTasksKey(part.id)))
+      _ <- liftSeq(deleted.map({ task => cacheRepository.cacheTask.removeCached(cacheTaskKey(task.id)) }))
+      _ <- lift(cacheRepository.cacheSeqTask.removeCached(cacheTasksKey(part.id)))
     } yield deleted
   }
 }

@@ -1,20 +1,16 @@
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
+import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.repositories.TaskRepositoryPostgres
 import org.scalatest.Matchers._
 
-import scala.concurrent.duration.Duration
 import scala.concurrent.{ Await, Future }
-import scalacache.Cache
+import scala.concurrent.duration.Duration
 import scalaz._
 
 class TaskRepositorySpec
     extends TestEnvironment {
-  val taskRepository = new TaskRepositoryPostgres(scalaCacheConfig) {
-    def master[A]: Cache[A] = stub[Cache[A]]
-    class TestScalaCachePool extends ScalaCachePool(master)
-    def cache[A]: ScalaCachePool[A] = stub[TestScalaCachePool].asInstanceOf[ScalaCachePool[A]]
-  }
+  val cache = new TestCacheRepository(scalaCacheConfig)
+  val taskRepository = new TaskRepositoryPostgres(cache)
 
   //  "TaskRepository.list" should {
   //    inSequence {
@@ -79,8 +75,8 @@ class TaskRepositorySpec
   //          TestValues.testMatchingTaskM
   //        )
   //
-  //        (taskRepository.cache[IndexedSeq[Task]].getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
-  //        (taskRepository.cache[IndexedSeq[Task]].putCache(_: String)(_: IndexedSeq[Task], _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+  //        (taskRepository.cacheRepository.cacheSeqTask.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+  //        (taskRepository.cacheRepository.cacheSeqTask.putCache(_: String)(_: IndexedSeq[Task], _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
   //
   //        val result = taskRepository.list(testPart)
   //        val eitherTasks = Await.result(result, Duration.Inf)
@@ -115,8 +111,8 @@ class TaskRepositorySpec
   //      "return empty Vector() if part doesn't exist" in {
   //        val testPart = TestValues.testPartD
   //
-  //        (taskRepository.cache[String].getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
-  //        (taskRepository.cache[String].putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+  //        (taskRepository.cacheRepository.cacheString.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+  //        (taskRepository.cacheRepository.cacheString.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
   //
   //        val result = taskRepository.list(testPart)
   //        Await.result(result, Duration.Inf) should be(\/-(Vector()))
@@ -181,118 +177,118 @@ class TaskRepositorySpec
   //    }
   //        }
   //
-  //  "TaskRepository.find" should {
-  //    inSequence {
-  //      "find a a single entry by ID" in {
-  //        val testTask = TestValues.testShortAnswerTaskB
-  //
-  //        (taskRepository.cache[String].getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
-  //        (taskRepository.cache[String].putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
-  //
-  //        val result = taskRepository.find(testTask.id)
-  //        val eitherTask = Await.result(result, Duration.Inf)
-  //        val \/-(task: Task) = eitherTask
-  //
-  //        task.id should be(testTask.id)
-  //        task.version should be(testTask.version)
-  //        task.partId should be(testTask.partId)
-  //        task.taskType should be(testTask.taskType)
-  //        task.position should be(testTask.position)
-  //        task.settings.toString should be(testTask.settings.toString)
-  //        task.createdAt.toString should be(testTask.createdAt.toString)
-  //        task.updatedAt.toString should be(testTask.updatedAt.toString)
-  //
-  //        //Specific
-  //        task match {
-  //          case documentTask: DocumentTask => {
-  //            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
-  //          }
-  //          case questionTask: QuestionTask => {
-  //            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
-  //          }
-  //          case _ => throw new Exception("Invalid task type.")
-  //        }
-  //      }
-  //      "return RepositoryError.NoResults if tas hasn't been found" in {
-  //        val testTask = TestValues.testLongAnswerTaskF
-  //
-  //        (taskRepository.cache[String].getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
-  //        (taskRepository.cache[String].putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
-  //
-  //        val result = taskRepository.find(testTask.id)
-  //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
-  //      }
-  //      "find a task given its position within a part, its part's position within a project, and its project" in {
-  //        val testProject = TestValues.testProjectA
-  //        val testPart = TestValues.testPartB
-  //        val testTask = TestValues.testOrderingTaskD
-  //        val taskPosition = testTask.position
-  //
-  //        (taskRepository.cache[String].getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
-  //        (taskRepository.cache[String].putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
-  //
-  //        val result = taskRepository.find(testProject, testPart, taskPosition)
-  //        val eitherTask = Await.result(result, Duration.Inf)
-  //        val \/-(task: Task) = eitherTask
-  //
-  //        task.id should be(testTask.id)
-  //        task.version should be(testTask.version)
-  //        task.partId should be(testTask.partId)
-  //        task.taskType should be(testTask.taskType)
-  //        task.position should be(testTask.position)
-  //        task.settings.toString should be(testTask.settings.toString)
-  //        task.createdAt.toString should be(testTask.createdAt.toString)
-  //        task.updatedAt.toString should be(testTask.updatedAt.toString)
-  //
-  //        //Specific
-  //        task match {
-  //          case documentTask: DocumentTask => {
-  //            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
-  //          }
-  //          case questionTask: QuestionTask => {
-  //            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
-  //          }
-  //          case _ => throw new Exception("Invalid task type.")
-  //        }
-  //      }
-  //      "return RepositoryError.NoResults if project is wrong" in {
-  //        val testProject = TestValues.testProjectB
-  //        val testPart = TestValues.testPartB
-  //        val testTask = TestValues.testOrderingTaskD
-  //        val taskPosition = testTask.position
-  //
-  //        (taskRepository.cache[String].getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
-  //        (taskRepository.cache[String].putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
-  //
-  //        val result = taskRepository.find(testProject, testPart, taskPosition)
-  //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
-  //      }
-  //      "return RepositoryError.NoResults if part is wrong" in {
-  //        val testProject = TestValues.testProjectA
-  //        val testPart = TestValues.testPartA
-  //        val testTask = TestValues.testOrderingTaskD
-  //        val taskPosition = testTask.position
-  //
-  //        (taskRepository.cache[String].getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
-  //        (taskRepository.cache[String].putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
-  //
-  //        val result = taskRepository.find(testProject, testPart, taskPosition)
-  //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
-  //      }
-  //      "return RepositoryError.NoResults if task position is wrong" in {
-  //        val testProject = TestValues.testProjectA
-  //        val testPart = TestValues.testPartB
-  //        val testTask = TestValues.testOrderingTaskD
-  //        val taskPosition = testTask.position + 99
-  //
-  //        (taskRepository.cache[String].getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
-  //        (taskRepository.cache[String].putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
-  //
-  //        val result = taskRepository.find(testProject, testPart, taskPosition)
-  //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
-  //      }
-  //    }
-  //  }
+  "TaskRepository.find" should {
+    inSequence {
+      "find a a single entry by ID" in {
+        val testTask = TestValues.testShortAnswerTaskB
+
+        (cache.cacheTask.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+        (cache.cacheTask.putCache(_: String)(_: Task, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+
+        val result = taskRepository.find(testTask.id)
+        val eitherTask = Await.result(result, Duration.Inf)
+        val \/-(task: Task) = eitherTask
+
+        task.id should be(testTask.id)
+        task.version should be(testTask.version)
+        task.partId should be(testTask.partId)
+        task.taskType should be(testTask.taskType)
+        task.position should be(testTask.position)
+        task.settings.toString should be(testTask.settings.toString)
+        task.createdAt.toString should be(testTask.createdAt.toString)
+        task.updatedAt.toString should be(testTask.updatedAt.toString)
+
+        //Specific
+        task match {
+          case documentTask: DocumentTask => {
+            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
+          }
+          case questionTask: QuestionTask => {
+            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
+          }
+          case _ => throw new Exception("Invalid task type.")
+        }
+      }
+      //      "return RepositoryError.NoResults if tas hasn't been found" in {
+      //        val testTask = TestValues.testLongAnswerTaskF
+      //
+      //        (taskRepository.cacheRepository.cacheString.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+      //        (taskRepository.cacheRepository.cacheString.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+      //
+      //        val result = taskRepository.find(testTask.id)
+      //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
+      //      }
+      //      "find a task given its position within a part, its part's position within a project, and its project" in {
+      //        val testProject = TestValues.testProjectA
+      //        val testPart = TestValues.testPartB
+      //        val testTask = TestValues.testOrderingTaskD
+      //        val taskPosition = testTask.position
+      //
+      //        (taskRepository.cacheRepository.cacheString.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+      //        (taskRepository.cacheRepository.cacheString.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+      //
+      //        val result = taskRepository.find(testProject, testPart, taskPosition)
+      //        val eitherTask = Await.result(result, Duration.Inf)
+      //        val \/-(task: Task) = eitherTask
+      //
+      //        task.id should be(testTask.id)
+      //        task.version should be(testTask.version)
+      //        task.partId should be(testTask.partId)
+      //        task.taskType should be(testTask.taskType)
+      //        task.position should be(testTask.position)
+      //        task.settings.toString should be(testTask.settings.toString)
+      //        task.createdAt.toString should be(testTask.createdAt.toString)
+      //        task.updatedAt.toString should be(testTask.updatedAt.toString)
+      //
+      //        //Specific
+      //        task match {
+      //          case documentTask: DocumentTask => {
+      //            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
+      //          }
+      //          case questionTask: QuestionTask => {
+      //            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
+      //          }
+      //          case _ => throw new Exception("Invalid task type.")
+      //        }
+      //      }
+      //      "return RepositoryError.NoResults if project is wrong" in {
+      //        val testProject = TestValues.testProjectB
+      //        val testPart = TestValues.testPartB
+      //        val testTask = TestValues.testOrderingTaskD
+      //        val taskPosition = testTask.position
+      //
+      //        (taskRepository.cacheRepository.cacheString.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+      //        (taskRepository.cacheRepository.cacheString.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+      //
+      //        val result = taskRepository.find(testProject, testPart, taskPosition)
+      //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
+      //      }
+      //      "return RepositoryError.NoResults if part is wrong" in {
+      //        val testProject = TestValues.testProjectA
+      //        val testPart = TestValues.testPartA
+      //        val testTask = TestValues.testOrderingTaskD
+      //        val taskPosition = testTask.position
+      //
+      //        (taskRepository.cacheRepository.cacheString.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+      //        (taskRepository.cacheRepository.cacheString.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+      //
+      //        val result = taskRepository.find(testProject, testPart, taskPosition)
+      //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
+      //      }
+      //      "return RepositoryError.NoResults if task position is wrong" in {
+      //        val testProject = TestValues.testProjectA
+      //        val testPart = TestValues.testPartB
+      //        val testTask = TestValues.testOrderingTaskD
+      //        val taskPosition = testTask.position + 99
+      //
+      //        (taskRepository.cacheRepository.cacheString.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
+      //        (taskRepository.cacheRepository.cacheString.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
+      //
+      //        val result = taskRepository.find(testProject, testPart, taskPosition)
+      //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Task")))
+      //      }
+    }
+  }
   //
   //  "TaskRepository.findNow" should {
   //    inSequence {
@@ -411,242 +407,242 @@ class TaskRepositorySpec
   //    }
   //  }
   //
-  "TaskRepository.insert" should {
-    inSequence {
-      "insert new LongAnswer task" in {
-        val testTask = TestValues.testLongAnswerTaskF
-
-        (taskRepository.cache[String].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
-
-        val result = taskRepository.insert(testTask)
-        val eitherTask = Await.result(result, Duration.Inf)
-        val \/-(task: Task) = eitherTask
-
-        println(Console.GREEN + "result = " + task.settings.toString + Console.RESET)
-
-        task.id should be(testTask.id)
-        task.version should be(1L)
-        task.partId should be(testTask.partId)
-        task.position should be(testTask.position)
-        task.taskType should be(testTask.taskType)
-        task.settings.help should be(testTask.settings.help)
-        task.settings.toString should be(testTask.settings.toString)
-
-        //Specific
-        task match {
-          case documentTask: DocumentTask => {
-            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
-          }
-          case questionTask: QuestionTask => {
-            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
-          }
-          case _ => throw new Exception("Invalid task type.")
-        }
-      }
-      //      "insert new media task" in {
-      //        val testTask = TestValues.testMediaTaskB
-      //
-      //        (taskRepository.cache[IndexedSeq[Task]].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
-      //
-      //        val result = taskRepository.insert(testTask)
-      //        val eitherTask = Await.result(result, Duration.Inf)
-      //        val \/-(task: Task) = eitherTask
-      //
-      //        task.id should be(testTask.id)
-      //        task.version should be(1L)
-      //        task.partId should be(testTask.partId)
-      //        task.position should be(testTask.position)
-      //        task.taskType should be(testTask.taskType)
-      //        task.settings.help should be(testTask.settings.help)
-      //        task.settings.toString should be(testTask.settings.toString)
-      //
-      //        //Specific
-      //        task match {
-      //          case documentTask: DocumentTask => {
-      //            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
-      //          }
-      //          case questionTask: QuestionTask => {
-      //            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
-      //          }
-      //          case mediaTask: MediaTask => {
-      //            mediaTask.mediaType should be(testTask.asInstanceOf[MediaTask].mediaType)
-      //          }
-      //          case _ => throw new Exception("Invalid task type.")
-      //        }
-      //      }
-      //      "return RepositoryError.PrimaryKeyConflict if LongAnswer task already exists" in {
-      //        val testTask = TestValues.testLongAnswerTaskA
-      //
-      //        val result = taskRepository.insert(testTask)
-      //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
-      //      }
-      //      "insert new ShortAnswer task" in {
-      //        val testTask = TestValues.testShortAnswerTaskG
-      //
-      //        (taskRepository.cache[IndexedSeq[Task]].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
-      //
-      //        val result = taskRepository.insert(testTask)
-      //        val eitherTask = Await.result(result, Duration.Inf)
-      //        val \/-(task: Task) = eitherTask
-      //
-      //        task.id should be(testTask.id)
-      //        task.version should be(1L)
-      //        task.partId should be(testTask.partId)
-      //        task.position should be(testTask.position)
-      //        task.taskType should be(testTask.taskType)
-      //        task.settings.toString should be(testTask.settings.toString)
-      //
-      //        //Specific
-      //        task match {
-      //          case documentTask: DocumentTask => {
-      //            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
-      //          }
-      //          case questionTask: QuestionTask => {
-      //            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
-      //          }
-      //          case _ => throw new Exception("Invalid task type.")
-      //        }
-      //      }
-      //      "return RepositoryError.PrimaryKeyConflict if ShortAnswer task already exists" in {
-      //        val testTask = TestValues.testShortAnswerTaskB
-      //
-      //        val result = taskRepository.insert(testTask)
-      //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
-      //      }
-      //      "insert new MultipleChoice task" in {
-      //        val testTask = TestValues.testMultipleChoiceTaskH
-      //
-      //        (taskRepository.cache[IndexedSeq[Task]].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
-      //
-      //        val result = taskRepository.insert(testTask)
-      //        val eitherTask = Await.result(result, Duration.Inf)
-      //        val \/-(task: Task) = eitherTask
-      //
-      //        task.id should be(testTask.id)
-      //        task.version should be(1L)
-      //        task.partId should be(testTask.partId)
-      //        task.taskType should be(testTask.taskType)
-      //        task.position should be(testTask.position)
-      //        task.settings.toString should be(testTask.settings.toString)
-      //
-      //        //Specific
-      //        task match {
-      //          case documentTask: DocumentTask => {
-      //            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
-      //          }
-      //          case questionTask: QuestionTask => {
-      //            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
-      //          }
-      //          case _ => throw new Exception("Invalid task type.")
-      //        }
-      //      }
-      //      "return RepositoryError.PrimaryKeyConflict if MultipleChoice task already exists" in {
-      //        val testTask = TestValues.testMultipleChoiceTaskC
-      //
-      //        val result = taskRepository.insert(testTask)
-      //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
-      //      }
-      //      "insert new Ordering task" in {
-      //        val testTask = TestValues.testOrderingTaskI
-      //
-      //        (taskRepository.cache[IndexedSeq[Task]].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
-      //
-      //        val result = taskRepository.insert(testTask)
-      //        val eitherTask = Await.result(result, Duration.Inf)
-      //        val \/-(task: Task) = eitherTask
-      //
-      //        task.id should be(testTask.id)
-      //        task.version should be(1L)
-      //        task.partId should be(testTask.partId)
-      //        task.position should be(testTask.position)
-      //        task.taskType should be(testTask.taskType)
-      //        task.settings.toString should be(testTask.settings.toString)
-      //
-      //        //Specific
-      //        task match {
-      //          case documentTask: DocumentTask => {
-      //            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
-      //          }
-      //          case questionTask: QuestionTask => {
-      //            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
-      //          }
-      //          case _ => throw new Exception("Invalid task type.")
-      //        }
-      //      }
-      //      "return RepositoryError.PrimaryKeyConflict if Ordering task already exists" in {
-      //        val testTask = TestValues.testOrderingTaskD
-      //
-      //        val result = taskRepository.insert(testTask)
-      //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
-      //      }
-      //      "insert new Matching task" in {
-      //        val testTask = TestValues.testMatchingTaskJ
-      //
-      //        (taskRepository.cache[IndexedSeq[Task]].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
-      //
-      //        val result = taskRepository.insert(testTask)
-      //        val eitherTask = Await.result(result, Duration.Inf)
-      //        val \/-(task: Task) = eitherTask
-      //
-      //        task.id should be(testTask.id)
-      //        task.version should be(1L)
-      //        task.partId should be(testTask.partId)
-      //        task.position should be(testTask.position)
-      //        task.taskType should be(testTask.taskType)
-      //        task.settings.toString should be(testTask.settings.toString)
-      //
-      //        //Specific
-      //        task match {
-      //          case documentTask: DocumentTask => {
-      //            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
-      //          }
-      //          case questionTask: QuestionTask => {
-      //            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
-      //          }
-      //          case _ => throw new Exception("Invalid task type.")
-      //        }
-      //      }
-      //      "return RepositoryError.PrimaryKeyConflict if Matching task already exists" in {
-      //        val testTask = TestValues.testMatchingTaskE
-      //
-      //        val result = taskRepository.insert(testTask)
-      //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
-      //      }
-      //      "insert new Blanks task" in {
-      //        val testTask = TestValues.testBlanksTaskQ
-      //
-      //        (taskRepository.cache[IndexedSeq[Task]].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
-      //
-      //        val result = taskRepository.insert(testTask)
-      //        val eitherTask = Await.result(result, Duration.Inf)
-      //        val \/-(task: Task) = eitherTask
-      //
-      //        task.id should be(testTask.id)
-      //        task.version should be(1L)
-      //        task.partId should be(testTask.partId)
-      //        task.position should be(testTask.position)
-      //        task.taskType should be(testTask.taskType)
-      //        task.settings.toString should be(testTask.settings.toString)
-      //
-      //        //Specific
-      //        task match {
-      //          case documentTask: DocumentTask => {
-      //            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
-      //          }
-      //          case questionTask: QuestionTask => {
-      //            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
-      //          }
-      //          case _ => throw new Exception("Invalid task type.")
-      //        }
-      //      }
-      //      "return RepositoryError.PrimaryKeyConflict if Blanks task already exists" in {
-      //        val testTask = TestValues.testBlanksTaskP
-      //
-      //        val result = taskRepository.insert(testTask)
-      //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
-      //      }
-    }
-  }
+  //  "TaskRepository.insert" should {
+  //    inSequence {
+  //      "insert new LongAnswer task" in {
+  //        val testTask = TestValues.testLongAnswerTaskF
+  //
+  //        (taskRepository.cacheRepository.cacheString.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //
+  //        val result = taskRepository.insert(testTask)
+  //        val eitherTask = Await.result(result, Duration.Inf)
+  //        val \/-(task: Task) = eitherTask
+  //
+  //        println(Console.GREEN + "result = " + task.settings.toString + Console.RESET)
+  //
+  //        task.id should be(testTask.id)
+  //        task.version should be(1L)
+  //        task.partId should be(testTask.partId)
+  //        task.position should be(testTask.position)
+  //        task.taskType should be(testTask.taskType)
+  //        task.settings.help should be(testTask.settings.help)
+  //        task.settings.toString should be(testTask.settings.toString)
+  //
+  //        //Specific
+  //        task match {
+  //          case documentTask: DocumentTask => {
+  //            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
+  //          }
+  //          case questionTask: QuestionTask => {
+  //            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
+  //          }
+  //          case _ => throw new Exception("Invalid task type.")
+  //        }
+  //      }
+  //      "insert new media task" in {
+  //        val testTask = TestValues.testMediaTaskB
+  //
+  //        (taskRepository.cacheRepository.cacheSeqTask.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //
+  //        val result = taskRepository.insert(testTask)
+  //        val eitherTask = Await.result(result, Duration.Inf)
+  //        val \/-(task: Task) = eitherTask
+  //
+  //        task.id should be(testTask.id)
+  //        task.version should be(1L)
+  //        task.partId should be(testTask.partId)
+  //        task.position should be(testTask.position)
+  //        task.taskType should be(testTask.taskType)
+  //        task.settings.help should be(testTask.settings.help)
+  //        task.settings.toString should be(testTask.settings.toString)
+  //
+  //        //Specific
+  //        task match {
+  //          case documentTask: DocumentTask => {
+  //            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
+  //          }
+  //          case questionTask: QuestionTask => {
+  //            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
+  //          }
+  //          case mediaTask: MediaTask => {
+  //            mediaTask.mediaType should be(testTask.asInstanceOf[MediaTask].mediaType)
+  //          }
+  //          case _ => throw new Exception("Invalid task type.")
+  //        }
+  //      }
+  //      "return RepositoryError.PrimaryKeyConflict if LongAnswer task already exists" in {
+  //        val testTask = TestValues.testLongAnswerTaskA
+  //
+  //        val result = taskRepository.insert(testTask)
+  //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+  //      }
+  //      "insert new ShortAnswer task" in {
+  //        val testTask = TestValues.testShortAnswerTaskG
+  //
+  //        (taskRepository.cacheRepository.cacheSeqTask.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //
+  //        val result = taskRepository.insert(testTask)
+  //        val eitherTask = Await.result(result, Duration.Inf)
+  //        val \/-(task: Task) = eitherTask
+  //
+  //        task.id should be(testTask.id)
+  //        task.version should be(1L)
+  //        task.partId should be(testTask.partId)
+  //        task.position should be(testTask.position)
+  //        task.taskType should be(testTask.taskType)
+  //        task.settings.toString should be(testTask.settings.toString)
+  //
+  //        //Specific
+  //        task match {
+  //          case documentTask: DocumentTask => {
+  //            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
+  //          }
+  //          case questionTask: QuestionTask => {
+  //            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
+  //          }
+  //          case _ => throw new Exception("Invalid task type.")
+  //        }
+  //      }
+  //      "return RepositoryError.PrimaryKeyConflict if ShortAnswer task already exists" in {
+  //        val testTask = TestValues.testShortAnswerTaskB
+  //
+  //        val result = taskRepository.insert(testTask)
+  //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+  //      }
+  //      "insert new MultipleChoice task" in {
+  //        val testTask = TestValues.testMultipleChoiceTaskH
+  //
+  //        (taskRepository.cacheRepository.cacheSeqTask.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //
+  //        val result = taskRepository.insert(testTask)
+  //        val eitherTask = Await.result(result, Duration.Inf)
+  //        val \/-(task: Task) = eitherTask
+  //
+  //        task.id should be(testTask.id)
+  //        task.version should be(1L)
+  //        task.partId should be(testTask.partId)
+  //        task.taskType should be(testTask.taskType)
+  //        task.position should be(testTask.position)
+  //        task.settings.toString should be(testTask.settings.toString)
+  //
+  //        //Specific
+  //        task match {
+  //          case documentTask: DocumentTask => {
+  //            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
+  //          }
+  //          case questionTask: QuestionTask => {
+  //            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
+  //          }
+  //          case _ => throw new Exception("Invalid task type.")
+  //        }
+  //      }
+  //      "return RepositoryError.PrimaryKeyConflict if MultipleChoice task already exists" in {
+  //        val testTask = TestValues.testMultipleChoiceTaskC
+  //
+  //        val result = taskRepository.insert(testTask)
+  //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+  //      }
+  //      "insert new Ordering task" in {
+  //        val testTask = TestValues.testOrderingTaskI
+  //
+  //        (taskRepository.cacheRepository.cacheSeqTask.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //
+  //        val result = taskRepository.insert(testTask)
+  //        val eitherTask = Await.result(result, Duration.Inf)
+  //        val \/-(task: Task) = eitherTask
+  //
+  //        task.id should be(testTask.id)
+  //        task.version should be(1L)
+  //        task.partId should be(testTask.partId)
+  //        task.position should be(testTask.position)
+  //        task.taskType should be(testTask.taskType)
+  //        task.settings.toString should be(testTask.settings.toString)
+  //
+  //        //Specific
+  //        task match {
+  //          case documentTask: DocumentTask => {
+  //            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
+  //          }
+  //          case questionTask: QuestionTask => {
+  //            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
+  //          }
+  //          case _ => throw new Exception("Invalid task type.")
+  //        }
+  //      }
+  //      "return RepositoryError.PrimaryKeyConflict if Ordering task already exists" in {
+  //        val testTask = TestValues.testOrderingTaskD
+  //
+  //        val result = taskRepository.insert(testTask)
+  //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+  //      }
+  //      "insert new Matching task" in {
+  //        val testTask = TestValues.testMatchingTaskJ
+  //
+  //        (taskRepository.cacheRepository.cacheSeqTask.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //
+  //        val result = taskRepository.insert(testTask)
+  //        val eitherTask = Await.result(result, Duration.Inf)
+  //        val \/-(task: Task) = eitherTask
+  //
+  //        task.id should be(testTask.id)
+  //        task.version should be(1L)
+  //        task.partId should be(testTask.partId)
+  //        task.position should be(testTask.position)
+  //        task.taskType should be(testTask.taskType)
+  //        task.settings.toString should be(testTask.settings.toString)
+  //
+  //        //Specific
+  //        task match {
+  //          case documentTask: DocumentTask => {
+  //            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
+  //          }
+  //          case questionTask: QuestionTask => {
+  //            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
+  //          }
+  //          case _ => throw new Exception("Invalid task type.")
+  //        }
+  //      }
+  //      "return RepositoryError.PrimaryKeyConflict if Matching task already exists" in {
+  //        val testTask = TestValues.testMatchingTaskE
+  //
+  //        val result = taskRepository.insert(testTask)
+  //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+  //      }
+  //      "insert new Blanks task" in {
+  //        val testTask = TestValues.testBlanksTaskQ
+  //
+  //        (taskRepository.cacheRepository.cacheSeqTask.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //
+  //        val result = taskRepository.insert(testTask)
+  //        val eitherTask = Await.result(result, Duration.Inf)
+  //        val \/-(task: Task) = eitherTask
+  //
+  //        task.id should be(testTask.id)
+  //        task.version should be(1L)
+  //        task.partId should be(testTask.partId)
+  //        task.position should be(testTask.position)
+  //        task.taskType should be(testTask.taskType)
+  //        task.settings.toString should be(testTask.settings.toString)
+  //
+  //        //Specific
+  //        task match {
+  //          case documentTask: DocumentTask => {
+  //            documentTask.dependencyId should be(testTask.asInstanceOf[DocumentTask].dependencyId)
+  //          }
+  //          case questionTask: QuestionTask => {
+  //            questionTask.questions.toString should be(testTask.asInstanceOf[QuestionTask].questions.toString)
+  //          }
+  //          case _ => throw new Exception("Invalid task type.")
+  //        }
+  //      }
+  //      "return RepositoryError.PrimaryKeyConflict if Blanks task already exists" in {
+  //        val testTask = TestValues.testBlanksTaskP
+  //
+  //        val result = taskRepository.insert(testTask)
+  //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+  //      }
+  //    }
+  //  }
   //
   //  "TaskRepository.update" should {
   //    inSequence {
@@ -664,7 +660,7 @@ class TaskRepositorySpec
   //          )
   //        )
   //
-  //        (taskRepository.cache[String].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //        (taskRepository.cacheRepository.cacheString.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
   //
   //        val result = taskRepository.update(updatedTask)
   //        val eitherTask = Await.result(result, Duration.Inf)
@@ -706,7 +702,7 @@ class TaskRepositorySpec
   //          )
   //        )
   //
-  //        (taskRepository.cache[String].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //        (taskRepository.cacheRepository.cacheString.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
   //
   //        val result = taskRepository.update(updatedTask)
   //        val eitherTask = Await.result(result, Duration.Inf)
@@ -747,7 +743,7 @@ class TaskRepositorySpec
   //          questions = testTask.questions :+ TestValues.testOrderingQuestionC
   //        )
   //
-  //        (taskRepository.cache[String].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //        (taskRepository.cacheRepository.cacheString.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
   //
   //        val result = taskRepository.update(updatedTask)
   //        val eitherTask = Await.result(result, Duration.Inf)
@@ -788,7 +784,7 @@ class TaskRepositorySpec
   //          questions = testTask.questions :+ TestValues.testOrderingQuestionC
   //        )
   //
-  //        (taskRepository.cache[String].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //        (taskRepository.cacheRepository.cacheString.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
   //
   //        val result = taskRepository.update(updatedTask)
   //        val eitherTask = Await.result(result, Duration.Inf)
@@ -829,7 +825,7 @@ class TaskRepositorySpec
   //          questions = testTask.questions :+ TestValues.testMatchingQuestionD
   //        )
   //
-  //        (taskRepository.cache[String].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //        (taskRepository.cacheRepository.cacheString.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
   //
   //        val result = taskRepository.update(updatedTask)
   //        val eitherTask = Await.result(result, Duration.Inf)
@@ -870,7 +866,7 @@ class TaskRepositorySpec
   //          questions = testTask.questions :+ TestValues.testOrderingQuestionC
   //        )
   //
-  //        (taskRepository.cache[String].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //        (taskRepository.cacheRepository.cacheString.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
   //
   //        val result = taskRepository.update(updatedTask)
   //        val eitherTask = Await.result(result, Duration.Inf)
@@ -911,7 +907,7 @@ class TaskRepositorySpec
   //          questions = testTask.questions :+ TestValues.testOrderingQuestionC
   //        )
   //
-  //        (taskRepository.cache[String].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //        (taskRepository.cacheRepository.cacheString.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
   //
   //        val result = taskRepository.update(updatedTask)
   //        val eitherTask = Await.result(result, Duration.Inf)
@@ -982,7 +978,7 @@ class TaskRepositorySpec
   //      "delete a task that doesn't have references in work table" in {
   //        val testTask = TestValues.testMatchingTaskK
   //
-  //        (taskRepository.cache[String].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //        (taskRepository.cacheRepository.cacheString.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
   //
   //        val result = taskRepository.delete(testTask)
   //        val eitherTask = Await.result(result, Duration.Inf)
@@ -1042,7 +1038,7 @@ class TaskRepositorySpec
   //          TestValues.testMatchingTaskM
   //        )
   //
-  //        (taskRepository.cache[String].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //        (taskRepository.cacheRepository.cacheString.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
   //
   //        val result = taskRepository.delete(testPart)
   //        val eitherTasks = Await.result(result, Duration.Inf)
@@ -1077,7 +1073,7 @@ class TaskRepositorySpec
   //      "return empty Vector() if Part doesn't have Tasks" in {
   //        val testPart = TestValues.testPartH
   //
-  //        (taskRepository.cache[String].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //        (taskRepository.cacheRepository.cacheString.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
   //
   //        val result = taskRepository.delete(testPart)
   //        Await.result(result, Duration.Inf) should be(\/-(Vector()))
@@ -1085,7 +1081,7 @@ class TaskRepositorySpec
   //      "return empty Vector() if Part doesn't exist" in {
   //        val testPart = TestValues.testPartD
   //
-  //        (taskRepository.cache[String].removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
+  //        (taskRepository.cacheRepository.cacheString.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
   //
   //        val result = taskRepository.delete(testPart)
   //        Await.result(result, Duration.Inf) should be(\/-(Vector()))

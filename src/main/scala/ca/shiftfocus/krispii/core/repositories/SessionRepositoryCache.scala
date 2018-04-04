@@ -1,16 +1,17 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig }
-import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
-import scala.concurrent.ExecutionContext.Implicits.global
+
+import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.models._
 import org.joda.time.DateTime
+
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import concurrent.duration._
+import scala.concurrent.duration._
 import scalaz.{ -\/, \/, \/- }
 
-class SessionRepositoryCache(val scalaCacheConfig: ScalaCacheConfig) extends SessionRepository with CacheRepository {
+class SessionRepositoryCache(val cacheRepository: CacheRepository) extends SessionRepository {
 
   override val ttl = Some(2.days)
 
@@ -23,7 +24,7 @@ class SessionRepositoryCache(val scalaCacheConfig: ScalaCacheConfig) extends Ses
   override def list(userId: UUID): Future[\/[RepositoryError.Fail, IndexedSeq[Session]]] = {
     val fSessionList = for {
       sessionList <- lift {
-        cache[IndexedSeq[Session]].getCached(userId.toString).map {
+        cacheRepository.cacheSeqSession.getCached(userId.toString).map {
           case \/-(sessions: IndexedSeq[Session]) => \/-(sessions)
           case _ => \/-(IndexedSeq())
         }.recover {
@@ -46,7 +47,7 @@ class SessionRepositoryCache(val scalaCacheConfig: ScalaCacheConfig) extends Ses
       }
       // Update session list only with active sessions
       updatedList <- lift {
-        cache[IndexedSeq[Session]].putCache(userId.toString)(activeSessionList, ttl).map {
+        cacheRepository.cacheSeqSession.putCache(userId.toString)(activeSessionList, ttl).map {
           result => \/-(activeSessionList)
         }.recover {
           case exception => throw exception
@@ -68,7 +69,7 @@ class SessionRepositoryCache(val scalaCacheConfig: ScalaCacheConfig) extends Ses
    * @return an Option[Session] if one was found
    */
   override def find(sessionId: UUID): Future[\/[RepositoryError.Fail, Session]] = {
-    cache[Session].getCached(sessionId.toString)
+    cacheRepository.cacheSession.getCached(sessionId.toString)
   }
 
   /**
@@ -85,7 +86,7 @@ class SessionRepositoryCache(val scalaCacheConfig: ScalaCacheConfig) extends Ses
 
     val fSession = for {
       newSession <- lift {
-        cache.putCache(session.id.toString)(sessionWithDates, ttl).map {
+        cacheRepository.cacheSession.putCache(session.id.toString)(sessionWithDates, ttl).map {
           result => \/-(sessionWithDates)
         }.recover {
           case exception => throw exception
@@ -112,7 +113,7 @@ class SessionRepositoryCache(val scalaCacheConfig: ScalaCacheConfig) extends Ses
 
     val fUpdate = for {
       updatedSession <- lift {
-        cache[Session].putCache(session.id.toString)(sessionWithDates, ttl).map {
+        cacheRepository.cacheSession.putCache(session.id.toString)(sessionWithDates, ttl).map {
           result => \/-(sessionWithDates)
         }.recover {
           case exception => throw exception
@@ -137,7 +138,7 @@ class SessionRepositoryCache(val scalaCacheConfig: ScalaCacheConfig) extends Ses
   override def delete(session: Session): Future[\/[RepositoryError.Fail, Session]] = {
     val fRemove = for {
       deletedSession <- lift {
-        cache.removeCached(session.id.toString).map {
+        cacheRepository.cacheSession.removeCached(session.id.toString).map {
           result => \/-(session)
         }.recover {
           case exception => throw exception
@@ -158,7 +159,7 @@ class SessionRepositoryCache(val scalaCacheConfig: ScalaCacheConfig) extends Ses
       sessionList <- lift(list(userId))
       newList = sessionList :+ session
       updatedList <- lift {
-        cache[IndexedSeq[Session]].putCache(session.userId.toString)(newList, ttl).map {
+        cacheRepository.cacheSeqSession.putCache(session.userId.toString)(newList, ttl).map {
           result => \/-(newList)
         }.recover {
           case exception => throw exception
@@ -172,7 +173,7 @@ class SessionRepositoryCache(val scalaCacheConfig: ScalaCacheConfig) extends Ses
       sessionList <- lift(list(userId))
       newList = sessionList.filter(_.id != session.id)
       updatedList <- lift {
-        cache[IndexedSeq[Session]].putCache(session.userId.toString)(newList, ttl).map {
+        cacheRepository.cacheSeqSession.putCache(session.userId.toString)(newList, ttl).map {
           result => \/-(newList)
         }.recover {
           case exception => throw exception

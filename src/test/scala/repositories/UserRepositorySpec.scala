@@ -1,17 +1,17 @@
-import java.util.UUID
-
-import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.{ Organization, Role, User }
-import ca.shiftfocus.krispii.core.repositories.{ TagRepositoryPostgres, UserRepositoryPostgres }
-import org.scalatest.Matchers._
-import org.scalatest._
-
-import scala.collection.breakOut
-import scala.collection.immutable.TreeMap
-import scala.concurrent.duration._
-import scala.concurrent.{ Await, Future }
-import scalaz.{ -\/, \/- }
-import play.api.Logger
+//import java.util.UUID
+//
+//import ca.shiftfocus.krispii.core.error.RepositoryError
+//import ca.shiftfocus.krispii.core.models.{ Organization, Role, User }
+//import ca.shiftfocus.krispii.core.repositories.{ TagRepositoryPostgres, UserRepositoryPostgres }
+//import org.scalatest.Matchers._
+//import org.scalatest._
+//
+//import scala.collection.breakOut
+//import scala.collection.immutable.TreeMap
+//import scala.concurrent.duration._
+//import scala.concurrent.{ Await, Future }
+//import scalaz.{ -\/, \/- }
+//import play.api.Logger
 
 //class UserRepositorySpec
 //    extends TestEnvironment {

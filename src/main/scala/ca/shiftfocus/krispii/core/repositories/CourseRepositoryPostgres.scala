@@ -1,20 +1,20 @@
 package ca.shiftfocus.krispii.core.repositories
 
+import java.awt.Color
+import java.util.{ NoSuchElementException, UUID }
+
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig }
 import ca.shiftfocus.krispii.core.models._
 import com.github.mauricio.async.db.exceptions.ConnectionStillRunningQueryException
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{ Connection, RowData }
-import java.awt.Color
-import java.util.NoSuchElementException
-import java.util.UUID
 import org.joda.time.DateTime
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.{ \/, -\/, \/- }
+import scalaz.{ -\/, \/, \/- }
 
-class CourseRepositoryPostgres(val userRepository: UserRepository, val scalaCacheConfig: ScalaCacheConfig) extends CourseRepository with PostgresRepository[Course] with CacheRepository {
+class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepository: CacheRepository) extends CourseRepository with PostgresRepository[Course] {
 
   override val entityName = "Course"
 
@@ -238,12 +238,12 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val scalaCach
 
     if (asTeacher) {
       val key = cacheTeachingKey(user.id)
-      cache[IndexedSeq[Course]].getCached(key).flatMap {
+      cacheRepository.cacheSeqCourse.getCached(key).flatMap {
         case \/-(courseList) => Future successful \/-(courseList)
         case -\/(noResults: RepositoryError.NoResults) =>
           for {
             courseList <- lift(queryList(if (asTeacher) ListByTeacherId else ListCourses, Seq[Any](user.id)))
-            _ <- lift(cache[IndexedSeq[Course]].putCache(key)(courseList, ttl))
+            _ <- lift(cacheRepository.cacheSeqCourse.putCache(key)(courseList, ttl))
           } yield courseList
         case -\/(error) => Future successful -\/(error)
       }
@@ -298,13 +298,13 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val scalaCach
    * @return an optional RowData object containing the results
    */
   override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = {
-    cache[Course].getCached(cacheCourseKey(id)).flatMap {
+    cacheRepository.cacheCourse.getCached(cacheCourseKey(id)).flatMap {
       case \/-(course) => Future successful \/-(course)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           course <- lift(queryOne(SelectOne, Array[Any](id)))
-          _ <- lift(cache[UUID].putCache(cacheCourseSlugKey(course.slug))(course.id, ttl))
-          _ <- lift(cache[Course].putCache(cacheCourseKey(course.id))(course, ttl))
+          _ <- lift(cacheRepository.cacheUUID.putCache(cacheCourseSlugKey(course.slug))(course.id, ttl))
+          _ <- lift(cacheRepository.cacheCourse.putCache(cacheCourseKey(course.id))(course, ttl))
         } yield course
       case -\/(error) => Future successful -\/(error)
     }
@@ -317,18 +317,18 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val scalaCach
    * @return an optional RowData object containing the results
    */
   override def find(slug: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = {
-    cache[UUID].getCached(cacheCourseSlugKey(slug)).flatMap {
+    cacheRepository.cacheUUID.getCached(cacheCourseSlugKey(slug)).flatMap {
       case \/-(courseId) => {
         for {
-          _ <- lift(cache[UUID].putCache(cacheCourseSlugKey(slug))(courseId, ttl))
+          _ <- lift(cacheRepository.cacheUUID.putCache(cacheCourseSlugKey(slug))(courseId, ttl))
           course <- lift(find(courseId))
         } yield course
       }
       case -\/(noResults: RepositoryError.NoResults) => {
         for {
           course <- lift(queryOne(SelectOneBySlug, Seq[Any](slug)))
-          _ <- lift(cache[UUID].putCache(cacheCourseSlugKey(slug))(course.id, ttl))
-          _ <- lift(cache[Course].putCache(cacheCourseKey(course.id))(course, ttl))
+          _ <- lift(cacheRepository.cacheUUID.putCache(cacheCourseSlugKey(slug))(course.id, ttl))
+          _ <- lift(cacheRepository.cacheCourse.putCache(cacheCourseKey(course.id))(course, ttl))
         } yield course
       }
       case -\/(error) => Future successful -\/(error)
@@ -345,7 +345,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val scalaCach
         case \/-(false) => -\/(RepositoryError.NoResults(s"Could not add ${user.id.toString} to course ${course.id.toString}"))
         case -\/(error) => -\/(error)
       })
-      _ <- lift(cache.removeCached(cacheStudentsKey(course.id)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(course.id)))
     } yield ()
   }
 
@@ -359,7 +359,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val scalaCach
         case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the user could not be removed from the course."))
         case -\/(error) => -\/(error)
       })
-      _ <- lift(cache.removeCached(cacheStudentsKey(course.id)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(course.id)))
     } yield ()
   }
 
@@ -405,7 +405,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val scalaCach
         case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the users could not be added to the course."))
         case -\/(error) => -\/(error)
       })
-      _ <- lift(cache.removeCached(cacheStudentsKey(course.id)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(course.id)))
     } yield ()
   }
 
@@ -430,7 +430,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val scalaCach
         case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the users could not be removed from the course."))
         case -\/(error) => -\/(error)
       })
-      _ <- lift(cache.removeCached(cacheStudentsKey(course.id)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(course.id)))
     } yield ()
   }
 
@@ -448,7 +448,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val scalaCach
         case \/-(false) => -\/(RepositoryError.DatabaseError("No rows were affected"))
         case -\/(error) => -\/(error)
       })
-      _ <- lift(cache.removeCached(cacheStudentsKey(course.id)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(course.id)))
     } yield ()
   }
 
@@ -467,7 +467,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val scalaCach
 
     for {
       inserted <- lift(queryOne(Insert, params))
-      _ <- lift(cache.removeCached(cacheTeachingKey(course.teacherId)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeachingKey(course.teacherId)))
     } yield inserted
   }
 
@@ -487,11 +487,11 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val scalaCach
     for {
       updated <- lift(queryOne(Update, params))
       students <- lift(userRepository.list(updated))
-      _ <- lift(cache.removeCached(cacheStudentsKey(updated.id)))
-      _ <- lift(cache.removeCached(cacheCourseKey(updated.id)))
-      _ <- lift(cache.removeCached(cacheCourseSlugKey(updated.slug)))
-      _ <- lift(cache.removeCached(cacheTeachingKey(course.teacherId)))
-      _ <- liftSeq { students.map { student => cache.removeCached(cacheCoursesKey(student.id)) } }
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(updated.id)))
+      _ <- lift(cacheRepository.cacheCourse.removeCached(cacheCourseKey(updated.id)))
+      _ <- lift(cacheRepository.cacheUUID.removeCached(cacheCourseSlugKey(updated.slug)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeachingKey(course.teacherId)))
+      _ <- liftSeq { students.map { student => cacheRepository.cacheSeqCourse.removeCached(cacheCoursesKey(student.id)) } }
     } yield updated
   }
 
@@ -507,11 +507,11 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val scalaCach
     for {
       deleted <- lift(queryOne(Delete, Array(course.id)))
       students <- lift(userRepository.list(deleted))
-      _ <- lift(cache.removeCached(cacheStudentsKey(deleted.id)))
-      _ <- lift(cache.removeCached(cacheCourseKey(deleted.id)))
-      _ <- lift(cache.removeCached(cacheCourseSlugKey(deleted.slug)))
-      _ <- lift(cache.removeCached(cacheTeachingKey(course.teacherId)))
-      _ <- liftSeq { students.map { student => cache.removeCached(cacheCoursesKey(student.id)) } }
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(deleted.id)))
+      _ <- lift(cacheRepository.cacheCourse.removeCached(cacheCourseKey(deleted.id)))
+      _ <- lift(cacheRepository.cacheUUID.removeCached(cacheCourseSlugKey(deleted.slug)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeachingKey(course.teacherId)))
+      _ <- liftSeq { students.map { student => cacheRepository.cacheSeqCourse.removeCached(cacheCoursesKey(student.id)) } }
     } yield deleted
   }
 }

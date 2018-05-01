@@ -273,7 +273,7 @@ class PartRepositoryPostgres(val taskRepository: TaskRepository, val componentRe
 
     for {
       inserted <- lift(queryOne(Insert, params))
-      _ <- lift(cacheRepository.cachePart.removeCached(cachePartKey(part.projectId)))
+      _ <- lift(cacheRepository.cachePart.removeCached(cachePartsKey(part.projectId)))
     } yield inserted
   }
 

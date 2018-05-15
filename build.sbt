@@ -37,11 +37,11 @@ scalacOptions in ThisBuild ++= Seq(
 
 libraryDependencies ++= Seq(
   // We depend on several parts of the Play project
-  "com.typesafe.play" %% "play-ws" % "2.6.7",
-  "com.typesafe.play" %% "play-json" % "2.6.7",
-  "com.typesafe.play" %% "play-jdbc-evolutions" % "2.6.7",
+  "com.typesafe.play" %% "play-ws" % "2.6.13",
+  "com.typesafe.play" %% "play-json" % "2.6.9",
+  "com.typesafe.play" %% "play-jdbc-evolutions" % "2.6.13",
+  "com.typesafe.play" %% "play-json-joda" % "2.6.9",
   "com.typesafe.play" %% "play-mailer" % "6.0.1",
-  "com.typesafe.play" %% "play-json-joda" % "2.6.7",
   // We heavily depend on scalaz's \/ and associated types
   "com.github.mauricio" %% "postgresql-async" % "0.2.21",
   "joda-time" % "joda-time" % "2.9.9",

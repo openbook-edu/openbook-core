@@ -1,21 +1,25 @@
 package ca.shiftfocus.krispii.core.lib
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
+import redis.clients.jedis.JedisPool
+
 import scalacache.modes.scalaFuture._
-import scalacache.serialization.binary._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
-import scala.reflect._
 import scala.util.Random
-import scalacache.Cache
+import scalacache.{ Cache, CacheConfig }
 import scalacache.redis.RedisCache
+import scalacache.serialization.Codec
 import scalaz.{ -\/, \/, \/- }
 
 case class ScalaCacheConfig(masterConfig: (String, Int), slaveConfigs: Seq[(String, Int)])
 
-case class ScalaCachePool[A](master: Cache[A], slaves: Seq[Cache[A]] = IndexedSeq()) {
-  val pool = slaves.toIndexedSeq
+case class ScalaCachePool[A](val scalaCacheConfig: ScalaCacheConfig)(implicit config: CacheConfig, codec: Codec[A]) {
+  private val (masterHost, masterPort) = scalaCacheConfig.masterConfig
+  private val master: Cache[A] = new RedisCache[A](new JedisPool(masterHost, masterPort))
+  private val slaves: Seq[Cache[A]] = scalaCacheConfig.slaveConfigs.map { case ((slaveHost, slavePort)) => new RedisCache[A](new JedisPool(masterHost, masterPort)) }
+  private val pool = slaves.toIndexedSeq
 
   def randomInstance: Cache[A] = {
     if (slaves.isEmpty) {
@@ -69,15 +73,5 @@ case class ScalaCachePool[A](master: Cache[A], slaves: Seq[Cache[A]] = IndexedSe
       case failed: RuntimeException => -\/(RepositoryError.DatabaseError("Failed to remove from cache.", Some(failed)))
       case exception: Throwable => throw exception
     }
-  }
-}
-
-object ScalaCachePool {
-  def buildRedis[A: ClassTag](scalaCacheConfig: ScalaCacheConfig): ScalaCachePool[A] = {
-    val (masterHost, masterPort) = scalaCacheConfig.masterConfig
-    val runtimeClass = classTag[A].runtimeClass
-    lazy val master: Cache[runtimeClass.type] = RedisCache[runtimeClass.type](masterHost, masterPort)
-    lazy val slaves: Seq[Cache[runtimeClass.type]] = scalaCacheConfig.slaveConfigs.map { case ((slaveHost, slavePort)) => RedisCache[runtimeClass.type](slaveHost, slavePort) }
-    (new ScalaCachePool[runtimeClass.type](master, slaves.toIndexedSeq)).asInstanceOf[ScalaCachePool[A]]
   }
 }

@@ -1,0 +1,19 @@
+Krispii-api extends krispii-core. I will look at core first.
+
+Everything imports or extends one of the models in ca.shiftfocus.krispii.core.models:
+
+1. Role: 
+Gets a random user ID, create time and update time...
+
+Case class Role and companion object, which defines JSON Writes
+method.
+Why is this marked as implicit? For other methods to use implicitly? Recommended by JSON in Play.
+Weird pattern matching: double underscores mean JsPath, backslash means the value that belongs to the key given after the backslash. Role is unapplied (returns Option of a tuple), then unlisted to extract the tuple itself.
+
+2 Tag:
+Abstract class extends Ordered of itself ???
+Companion object implements JSON Write of Tag. Looks simpler than for Role, not sure if the difference is relevant.
+
+2. User
+Several values in User are optional (Option can be Some or None).
+User has an indexed sequence of Roles and one of Tags, and may have a Token.

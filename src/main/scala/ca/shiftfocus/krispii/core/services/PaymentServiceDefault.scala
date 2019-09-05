@@ -59,6 +59,7 @@ class PaymentServiceDefault(
 
   /**
    * Create krispii user account in database
+   * TODO: on top of the limited account.status add a list of admin tags
    *
    * @param userId
    * @param status
@@ -81,12 +82,13 @@ class PaymentServiceDefault(
 
   /**
    *  Update krispii user account information in database
+   * TODO: update list of admin tags associated with the subscription
    *
    * @param id
    * @param version
    * @param status
    * @param activeUntil
-   * @param customer
+   * @param customer The Stripe customer ID?
    * @param overdueStartedAt The Date when overdue period has started
    * @param overdueEndedAt The Date when overdue period has ended
    * @return  Account with subscriptions
@@ -159,7 +161,7 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Get a plan info from stipe by id
+   * Get a plan info from stripe by id
    *
    * @param planId
    * @return
@@ -829,6 +831,8 @@ class PaymentServiceDefault(
   * At the moment, very simplistic: three hard coded subscription tags ("Krispii", "SexEd", "EduSex").
   * Putting user on limited, inactive, overdue and paid (why?) status leads to removal of these tags.
   * Putting user on free, group or trial status leads to automatic addition of the "Krispii" tag.
+  * Do this only for free and trial, not for group status?
+  * 
   * Short-term: delete Krispii tag manually from SexEd subscribers when they register?
   *
   * Need to make this much more flexible: class of subscription tags, which are all removed when unpaid, but not automatically added.

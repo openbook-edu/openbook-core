@@ -87,4 +87,13 @@ Roles.Manager mainly in Projects.scala, can see lists of projects.
 Users.scala: list depends on somebody's role.
 
 
+What is already implemented in Courses.list is
+1. If I am an administrator querying a specific student, I can see schoolService.list(CoursesByUser(studentId))
+
+2. If I am not an administrator and if the student ID I am querying is my own (context.user.id), I get a list from schoolService.listCoursesByUser which also checks for each item if paymentService.hasAccess(nextItem.teacherId).
+
+3. If I am a teacher (and not an administrator!) I cannot list any courses.
+
+4. If I am an administrator and not querying any specific student, I get schoolService.listCourses
+
 

@@ -1,21 +1,21 @@
 package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
-import ca.shiftfocus.krispii.core.error.{ ErrorUnion, RepositoryError, ServiceError }
+import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
 import ca.shiftfocus.krispii.core.models.stripe.StripePlan
-import ca.shiftfocus.krispii.core.models.{ Account, AccountStatus, PaymentLog, TaggableEntities }
+import ca.shiftfocus.krispii.core.models.{Account, AccountStatus, PaymentLog, TaggableEntities}
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import com.stripe.exception.InvalidRequestException
 import com.stripe.model._
-import com.stripe.net.{ APIResource, RequestOptions }
+import com.stripe.net.{APIResource, RequestOptions}
 import org.joda.time.DateTime
-import play.api.libs.json.{ JsObject, JsValue, Json }
+import play.api.libs.json.{JsObject, JsValue, Json}
 import collection.JavaConverters._
 import scala.collection.immutable.TreeMap
 import scala.concurrent.Future
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class PaymentServiceDefault(
@@ -825,24 +825,24 @@ class PaymentServiceDefault(
     )
   }
 
-/**
-  * Remove subscription tags from users who have lost their subscription status.
-  *
-  * At the moment, very simplistic: three hard coded subscription tags ("Krispii", "SexEd", "EduSex").
-  * Putting user on limited, inactive, overdue and paid (why?) status leads to removal of these tags.
-  * Putting user on free, group or trial status leads to automatic addition of the "Krispii" tag.
-  * Do this only for free and trial, not for group status?
-  * 
-  * Short-term: delete Krispii tag manually from SexEd subscribers when they register?
-  *
-  * Need to make this much more flexible: class of subscription tags, which are all removed when unpaid, but not automatically added.
-  * They will have to be added in connection with the payment.
-  *
-  * @param userId
-  * @param newStatus
-  * @param oldStatus 
-  * @return: error or Unit
-  */
+  /**
+   * Remove subscription tags from users who have lost their subscription status.
+   *
+   * At the moment, very simplistic: three hard coded subscription tags ("Krispii", "SexEd", "EduSex").
+   * Putting user on limited, inactive, overdue and paid (why?) status leads to removal of these tags.
+   * Putting user on free, group or trial status leads to automatic addition of the "Krispii" tag.
+   * Do this only for free and trial, not for group status?
+   *
+   * Short-term: delete Krispii tag manually from SexEd subscribers when they register?
+   *
+   * Need to make this much more flexible: class of subscription tags, which are all removed when unpaid, but not automatically added.
+   * They will have to be added in connection with the payment.
+   *
+   * @param userId
+   * @param newStatus
+   * @param oldStatus
+   * @return: error or Unit
+   */
   private def tagUntagUserBasedOnStatus(userId: UUID, newStatus: String, oldStatus: Option[String] = None): Future[\/[ErrorUnion#Fail, Unit]] = {
     newStatus match {
       // Do nothing if status hasn't been changed
@@ -869,19 +869,21 @@ class PaymentServiceDefault(
                   case -\/(error: RepositoryError.NoResults) => \/-((): Unit)
                   case -\/(error) => -\/(error)
                 }
-              } else if (userTags.contains(sexEdEnTag)) {
+              }
+              else if (userTags.contains(sexEdEnTag)) {
                 tagRepository.untag(userId, TaggableEntities.user, sexEdEnTag.name, sexEdEnTag.lang).map {
                   case \/-(success) => \/-(success)
                   case -\/(error: RepositoryError.NoResults) => \/-((): Unit)
                   case -\/(error) => -\/(error)
                 }
-              } else if (userTags.contains(sexEdFrTag)) {
+              }
+              else if (userTags.contains(sexEdFrTag)) {
                 tagRepository.untag(userId, TaggableEntities.user, sexEdFrTag.name, sexEdFrTag.lang).map {
                   case \/-(success) => \/-(success)
                   case -\/(error: RepositoryError.NoResults) => \/-((): Unit)
                   case -\/(error) => -\/(error)
                 }
-              } 
+              }
               else Future successful \/-((): Unit)
             }
           } yield ()).run

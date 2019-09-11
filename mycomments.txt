@@ -97,3 +97,7 @@ What is already implemented in Courses.list is
 4. If I am an administrator and not querying any specific student, I get schoolService.listCourses
 
 
+KRISPII-WEB
+
+Role switching (teacher to student is in app-common-components-account-userForm.es6, but this just calls app-common-roleSwitch.es6, which redirects to /api/users/switch-to-student/ID.
+

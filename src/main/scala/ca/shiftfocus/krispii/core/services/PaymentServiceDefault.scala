@@ -828,7 +828,7 @@ class PaymentServiceDefault(
   /**
    * Remove subscription tags from users who have lost their subscription status.
    *
-   * At the moment, very simplistic: three hard coded subscription tags ("Krispii", "SexEd", "EduSex").
+   * At the moment, very simplistic: three hard coded subscription tags ("Krispii", "SexEd"/"EduSex", "Trial").
    * Putting user on limited, inactive, overdue and paid (why?) status leads to removal of these tags.
    * Putting user on free, group or trial status leads to automatic addition of the "Krispii" tag.
    * Do this only for free and trial, not for group status?
@@ -862,6 +862,7 @@ class PaymentServiceDefault(
             krispiiTag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // use id, because we can change tag names
             sexEdEnTag <- lift(tagRepository.find(UUID.fromString("cfe039c7-1fb3-4ee6-847b-afe17cae2817")))
             sexEdFrTag <- lift(tagRepository.find(UUID.fromString("ee3fff69-23f8-4d51-9f52-2ece5ea20006")))
+            // trialTag <- lift(tagRepository.find(UUID.fromString("29479566-3a50-4d36-bc20-f45ff4d4b2d4"))) maybe not necessary to remove trial tag
             _ <- lift {
               if (userTags.contains(krispiiTag)) {
                 tagRepository.untag(userId, TaggableEntities.user, krispiiTag.name, krispiiTag.lang).map {
@@ -888,17 +889,18 @@ class PaymentServiceDefault(
             }
           } yield ()).run
         }
-      // Tag user when switch to these statuses. This has to change completely so people don't always get access to all content!
+      // Give user trial tag when switch to these statuses. Need to give projectBuilderTag, krispiiTag and/or sexEdTag somewhere else!
       case AccountStatus.free |
         AccountStatus.group |
         AccountStatus.trial =>
         {
           (for {
             userTags <- lift(tagRepository.listByEntity(userId, TaggableEntities.user))
-            tag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // krispii tag, use id, because we can change tag names
+            // tag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // krispii tag, use id, because we can change tag names
+            trialTag <- lift(tagRepository.find(UUID.fromString("29479566-3a50-4d36-bc20-f45ff4d4b2d4"))) // all users get this tag to access trial material
             _ <- lift {
-              if (!userTags.contains(tag)) {
-                tagRepository.tag(userId, TaggableEntities.user, tag.name, tag.lang).map {
+              if (!userTags.contains(trialTag)) {
+                tagRepository.tag(userId, TaggableEntities.user, trialTag.name, trialTag.lang).map {
                   case \/-(success) => \/-(success)
                   case -\/(RepositoryError.PrimaryKeyConflict) => \/-((): Unit)
                   case -\/(error) => -\/(error)

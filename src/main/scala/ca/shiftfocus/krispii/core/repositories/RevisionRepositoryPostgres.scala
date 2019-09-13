@@ -4,12 +4,12 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models.document.Revision
 import ca.shiftfocus.krispii.core.models.document.Document
 import java.util.UUID
-import com.github.mauricio.async.db.{ RowData, Connection }
+import com.github.mauricio.async.db.{RowData, Connection}
 import play.api.libs.json.Json
 import org.joda.time.DateTime
 import ca.shiftfocus.otlib.Delta
 import scala.concurrent.Future
-import scalaz.{ \/, \/- }
+import scalaz.{\/, \/-}
 
 class RevisionRepositoryPostgres extends RevisionRepository with PostgresRepository[Revision] {
 

@@ -2,16 +2,16 @@ package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
-import ca.shiftfocus.krispii.core.error.{ ErrorUnion, RepositoryError, ServiceError }
+import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.repositories.{ TagCategoryRepository, TagRepository, _ }
+import ca.shiftfocus.krispii.core.repositories.{TagCategoryRepository, TagRepository, _}
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import org.joda.time.DateTime
 import play.api.Configuration
-import play.api.libs.json.{ JsObject, Json }
+import play.api.libs.json.{JsObject, Json}
 import scala.concurrent.Future
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 import play.api.libs.json.JodaWrites._
 import play.api.libs.json.JodaReads._
 

@@ -11,7 +11,7 @@ import ca.shiftfocus.krispii.core.repositories._
 import java.util.UUID
 import scala.collection.IndexedSeq
 import scala.concurrent.Future
-import scalaz.{ \/-, -\/, \/ }
+import scalaz.{\/-, -\/, \/}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class SchoolServiceDefault(

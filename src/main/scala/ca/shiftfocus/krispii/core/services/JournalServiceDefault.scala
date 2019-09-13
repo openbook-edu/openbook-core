@@ -2,12 +2,10 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error.ErrorUnion
 import ca.shiftfocus.krispii.core.models.JournalEntry._
-import ca.shiftfocus.krispii.core.models.JournalEntry
+import ca.shiftfocus.krispii.core.models.{User, JournalEntry}
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import java.util.UUID
-
-import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.Connection
 import org.joda.time.DateTime
 import scala.concurrent.Future

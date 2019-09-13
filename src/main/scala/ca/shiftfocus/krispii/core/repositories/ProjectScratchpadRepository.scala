@@ -1,7 +1,6 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.user.User
 import ca.shiftfocus.krispii.core.models.{Project, _}
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.Future

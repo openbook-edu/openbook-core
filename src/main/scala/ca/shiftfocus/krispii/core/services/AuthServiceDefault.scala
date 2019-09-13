@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.helpers.Token
-import ca.shiftfocus.krispii.core.lib.{ InputUtils }
+import ca.shiftfocus.krispii.core.lib.{InputUtils}
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
@@ -10,12 +10,12 @@ import java.util.UUID
 import com.github.mauricio.async.db.Connection
 import org.apache.commons.mail.EmailException
 import play.api.Logger
-import play.api.libs.mailer.{ Email, MailerClient }
+import play.api.libs.mailer.{Email, MailerClient}
 import scala.concurrent.ExecutionContext.Implicits.global
-import play.api.i18n.{ Lang, MessagesApi }
+import play.api.i18n.{Lang, MessagesApi}
 import scala.concurrent.Future
 
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 import webcrank.password._
 
 class AuthServiceDefault(

@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.services.datasource
 import com.github.mauricio.async.db.Configuration
 import com.github.mauricio.async.db.Connection
 import com.github.mauricio.async.db.postgresql.pool.PostgreSQLConnectionFactory
-import com.github.mauricio.async.db.pool.{ PoolConfiguration, ConnectionPool }
+import com.github.mauricio.async.db.pool.{PoolConfiguration, ConnectionPool}
 import com.typesafe.config._
 
 trait DB {

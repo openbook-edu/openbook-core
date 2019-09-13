@@ -3,13 +3,13 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.{ Tag, TaggableEntities }
-import com.github.mauricio.async.db.{ Connection, RowData }
+import ca.shiftfocus.krispii.core.models.{Tag, TaggableEntities}
+import com.github.mauricio.async.db.{Connection, RowData}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 
 class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRepository with PostgresRepository[Tag] {
 

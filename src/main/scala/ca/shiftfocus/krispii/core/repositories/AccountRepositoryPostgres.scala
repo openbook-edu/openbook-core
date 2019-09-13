@@ -4,13 +4,13 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.Account
-import com.github.mauricio.async.db.{ Connection, RowData }
+import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
-import play.api.libs.json.{ JsValue, Json }
+import play.api.libs.json.{JsValue, Json}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 
 class AccountRepositoryPostgres(
     val cacheRepository: CacheRepository

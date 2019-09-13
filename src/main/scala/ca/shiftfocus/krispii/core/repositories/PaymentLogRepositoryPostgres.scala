@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.PaymentLog
-import com.github.mauricio.async.db.{ Connection, RowData }
+import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import scala.concurrent.Future
 import scalaz.\/

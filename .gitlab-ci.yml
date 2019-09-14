@@ -1,5 +1,7 @@
 ci_compile:
     stage: build
+    tags:
+        - krispii
     only:
         - edge
         - pipeline-testing

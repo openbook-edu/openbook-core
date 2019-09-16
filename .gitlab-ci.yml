@@ -1,7 +1,10 @@
 ci_compile:
     stage: build
+    tags:
+        - krispii
     only:
         - edge
+        - pipeline-testing
     script:
         - sbt -Dsbt.log.noformat=true clean compile compile:doc publishLocal
         - "curl --request POST --form token=0ab10ae8c48c27f1270f5c1c8332fa --form ref=edge https://gitlab.shiftfocus.ca/api/v4/projects/28/trigger/pipeline"

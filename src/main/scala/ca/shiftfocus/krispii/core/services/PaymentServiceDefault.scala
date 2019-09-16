@@ -828,15 +828,14 @@ class PaymentServiceDefault(
   /**
    * Remove subscription tags from users who have lost their subscription status.
    *
-   * At the moment, very simplistic: three hard coded subscription tags ("Krispii", "SexEd"/"EduSex", "Trial").
-   * Putting user on limited, inactive, overdue and paid (why?) status leads to removal of these tags.
-   * Putting user on free, group or trial status leads to automatic addition of the "Krispii" tag.
-   * Do this only for free and trial, not for group status?
+   * At the moment, two hard coded subscription tags ("Krispii", "SexEd"/"EduSex").
+   * Putting user on limited, inactive or overdue status leads to removal of these tags.
+   * The "Trial" and "ProjectBuilder" tags are not currently removed, but at least the ProjectBuilder
+   * tag should be removed (understand how to remove several tags at once in the for comprehension).
+   * Putting user on free, group or trial status leads to automatic addition of the "Trial" tag.
    *
-   * Short-term: delete Krispii tag manually from SexEd subscribers when they register?
-   *
-   * Need to make this much more flexible: class of subscription tags, which are all removed when unpaid, but not automatically added.
-   * They will have to be added in connection with the payment.
+   * Do this more flexibly: use tagAdminByEntity to see the tags that HAD been subscribed to and remove them.
+   * OR: each tag has its own expiration date.
    *
    * @param userId
    * @param newStatus
@@ -850,8 +849,8 @@ class PaymentServiceDefault(
       // Untag user when switch to these statuses
       case AccountStatus.limited |
         AccountStatus.inactive |
-        AccountStatus.overdue |
-        AccountStatus.paid =>
+        AccountStatus.overdue =>
+        // | AccountStatus.paid =>
         // We don't need to do anything in case of these statuses:
         //         AccountStatus.canceled |
         //         AccountStatus.onhold |
@@ -861,7 +860,7 @@ class PaymentServiceDefault(
             userTags <- lift(tagRepository.listByEntity(userId, TaggableEntities.user))
             krispiiTag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // use id, because we can change tag names
             sexEdEnTag <- lift(tagRepository.find(UUID.fromString("cfe039c7-1fb3-4ee6-847b-afe17cae2817")))
-            sexEdFrTag <- lift(tagRepository.find(UUID.fromString("ee3fff69-23f8-4d51-9f52-2ece5ea20006")))
+            sexEdFrTag <- lift(tagRepository.find(UUID.fromString("ee3fff69-23f8-4d51-9f52-2ece5ea20006"))) // probably forget about French tag version
             // trialTag <- lift(tagRepository.find(UUID.fromString("29479566-3a50-4d36-bc20-f45ff4d4b2d4"))) maybe not necessary to remove trial tag
             _ <- lift {
               if (userTags.contains(krispiiTag)) {
@@ -889,7 +888,8 @@ class PaymentServiceDefault(
             }
           } yield ()).run
         }
-      // Give user trial tag when switch to these statuses. Need to give projectBuilderTag, krispiiTag and/or sexEdTag somewhere else!
+      /* Give user trial tag when switching to these statuses (maybe not strictly necessary, but seems logical). 
+         ProjectBuilderTag, krispiiTag and/or sexEdTag are given in krispii-api Payment.scala tagUserAccordingPlan. */
       case AccountStatus.free |
         AccountStatus.group |
         AccountStatus.trial =>

@@ -5,7 +5,7 @@ import com.github.mauricio.async.db.Connection
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
 import scala.concurrent.Future
-import scalaz.{ \/ }
+import scalaz.{\/}
 
 trait CourseScheduleRepository extends Repository {
   def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[CourseSchedule]]]

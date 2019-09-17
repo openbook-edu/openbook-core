@@ -4,13 +4,13 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-import com.github.mauricio.async.db.{ Connection, RowData }
+import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Try
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 
 class UserRepositoryPostgres(
     val tagRepository: TagRepository,

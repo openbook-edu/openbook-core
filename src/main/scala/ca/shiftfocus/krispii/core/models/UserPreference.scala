@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.models
 
 import java.util.UUID
 
-import play.api.libs.json.{ JsValue, Json, Writes }
+import play.api.libs.json.{JsValue, Json, Writes}
 
 /**
  * Preferences (id, machine name) should be added manually to a database

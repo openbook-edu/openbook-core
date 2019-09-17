@@ -3,10 +3,10 @@ package ca.shiftfocus.krispii.core.services
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import play.api.libs.ws.WSClient
-import play.api.{ Configuration, Logger }
+import play.api.{Configuration, Logger}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.{ \/, \/- }
+import scalaz.{\/, \/-}
 
 class SlackServiceDefault(
     val db: DB,

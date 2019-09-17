@@ -10,7 +10,7 @@ import java.util.UUID
 
 import scala.concurrent.Future
 
-import scalaz.{ -\/, \/-, \/ }
+import scalaz.{-\/, \/-, \/}
 
 class ComponentServiceDefault(
   val db: DB,

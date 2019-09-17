@@ -4,7 +4,7 @@ import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import java.util.UUID
 import scala.concurrent.Future
-import scalaz.{ \/ }
+import scalaz.{\/}
 
 trait SessionRepository extends Repository {
   def list(userId: UUID): Future[\/[RepositoryError.Fail, IndexedSeq[Session]]]

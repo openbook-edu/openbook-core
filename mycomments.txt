@@ -1,0 +1,103 @@
+Krispii-api extends krispii-core. I will look at core first.
+
+Everything imports or extends one of the models in ca.shiftfocus.krispii.core.models:
+
+(Some classes are in subfolders of models, not sure why)
+
+1. Role: 
+Gets a random user ID, create time and update time...
+
+Case class Role and companion object, which defines JSON Writes
+method.
+Why is this marked as implicit? For other methods to use implicitly? Recommended by JSON in Play.
+Weird pattern matching: double underscores mean JsPath, backslash means the value that belongs to the key given after the backslash. Role is unapplied (returns Option of a tuple), then unlisted to extract the tuple itself.
+
+2. Tag:
+Abstract class extends Ordered of itself ???
+Companion object implements JSON Write of Tag. Looks simpler than for Role, not sure if the difference is relevant.
+
+3. Course:
+Field slug? teacherId, indexed seq of projects, theaterMode. Exactly one teacherId. No marks.
+
+Class and companion object CoursePost??, CoursePut??
+
+4. User
+Several values in User are optional (Option can be Some or None).
+User has an indexed sequence of Roles and one of Tags, and may have a Token 
+(Described in helpers/Token.scala).
+accountType is a string. Where are they defined, and are they validated?
+
+Companion object defines a write method and an adminWrites method which also write isDeleted.
+
+UserInfo case class and companion object define Roles (again! Why?) and an indexed sequence of Course. The user roles are converted to lower case and deep merged (with the roles of User itself?). The courses are written as "sections".
+
+5. Account seems to be independent of User?? Subscriptions is an indexed sequence of JsValues, so arbitrarily complex. acccountType is a String and apparently not validated.
+
+Object AccountStatus (not a companion object) has a limited number of status variables (boolean-like) that are implemented as strings. Account itself only seems to be interested in active/inactive status. AccountStatus is written and read by several methods in the services layer.
+
+6. Component can be a text file, image, video etc.
+
+
+REPOSITORIES
+
+Create, Read, Update, Delete.
+Create: create entire list? List? Create new entry: insert()
+Read: all users: list, doesn't matter if a certain User is given or not?
+      Certain User: find() by uuid or name
+
+Use scalaz disjunction operator. Not sure if this does anything beyond telling the reader that the result of a database operation is either an error  or a true result. Future already implements this, as it is a descendant of Either...
+
+The basic trait Repository is based on Patros' Lifting type which I cannot seem to be able to download.
+
+RoleRepository is connected to a UserRepository. list() will give all possible roles. Several methods implement many-to-many relationships with users. 
+
+AccountRepository can be called upon by either account ID, user ID or customer ID. Customer refers to Stripe plans. There is no CustomerRepository.
+
+The hard work is done in the *Postgres.scala versions of each repository.
+
+SERVICES
+
+datasource/DataSource.scala: only one implementation of DB (database) that loads configurations from a ConfigFactory.
+
+Service again extends Lifting (need to read about that).
+
+The *Service.scala files only implement abstract traits. The *ServiceDefault.scala files do stuff.
+
+Creating a new User is in AuthServiceDefault.scala. create will create with accountType "krispii". createWithRole adds an arbitrary string as role. updateUserAccountType changes accountType to an arbitrary string.
+
+SchoolService has methods like findUserForTeacher.
+
+WorkService has methods like listFeedbacks, updateAnswer etc.
+
+
+
+KRISPII-API
+
+All Controllers (with plural s) extend ApiControllerSecured.scala. The trait ApiControllerSecured defines an internal object Roles with seven static string values: Authenticated (basic ?), Student, Teacher, Manager, OrgManager, Administrator and OrgAdministrator.
+
+In Roles.scala, Roles extends ApiControllerSecured, so Roles methods reference Roles.Administrator etc. 
+Def addUserRole (parameters): type EssentialAction = IsAuthenticated /* from ApiControllerSecured */ , then the function body 
+EssentialAction is a class that descends from a function, but a specialized function, so instead of saying addUserRole is a simple function object {}, we say addUserRole is a IsAuthenticatedFunction with parameters and body.
+
+Roles.Administrator is used a lot, mainly in Courses.scala. One important privilege of Administrator is to see deletes users and deleted projects.
+
+Roles.Manager mainly in Projects.scala, can see lists of projects.
+
+
+Users.scala: list depends on somebody's role.
+
+
+What is already implemented in Courses.list is
+1. If I am an administrator querying a specific student, I can see schoolService.list(CoursesByUser(studentId))
+
+2. If I am not an administrator and if the student ID I am querying is my own (context.user.id), I get a list from schoolService.listCoursesByUser which also checks for each item if paymentService.hasAccess(nextItem.teacherId).
+
+3. If I am a teacher (and not an administrator!) I cannot list any courses.
+
+4. If I am an administrator and not querying any specific student, I get schoolService.listCourses
+
+
+KRISPII-WEB
+
+Role switching (teacher to student is in app-common-components-account-userForm.es6, but this just calls app-common-roleSwitch.es6, which redirects to /api/users/switch-to-student/ID.
+

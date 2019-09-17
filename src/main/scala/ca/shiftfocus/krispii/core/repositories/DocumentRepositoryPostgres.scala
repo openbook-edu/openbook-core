@@ -3,14 +3,14 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models.document.Document
 import java.util.UUID
-import com.github.mauricio.async.db.{ RowData, Connection }
+import com.github.mauricio.async.db.{RowData, Connection}
 import play.api.libs.json.Json
 import ca.shiftfocus.otlib.exceptions.IncompatibleDeltasException
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
-import ca.shiftfocus.otlib.{ InsertText, Delta }
+import ca.shiftfocus.otlib.{InsertText, Delta}
 import scala.concurrent.Future
-import scalaz.{ \/, -\/, \/- }
+import scalaz.{\/, -\/, \/-}
 
 class DocumentRepositoryPostgres(val revisionRepository: RevisionRepository)
     extends DocumentRepository with PostgresRepository[Document] {

@@ -3,12 +3,12 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.{ Conversation, User }
-import com.github.mauricio.async.db.{ Connection, RowData }
+import ca.shiftfocus.krispii.core.models.{Conversation, User}
+import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 
 /**
  * Work with database tables: users_subscriptions, stripe_events

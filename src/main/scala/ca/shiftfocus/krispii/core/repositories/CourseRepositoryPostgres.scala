@@ -1,18 +1,18 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import java.awt.Color
-import java.util.{ NoSuchElementException, UUID }
+import java.util.{NoSuchElementException, UUID}
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
 import com.github.mauricio.async.db.exceptions.ConnectionStillRunningQueryException
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
-import com.github.mauricio.async.db.{ Connection, RowData }
+import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 
 class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepository: CacheRepository) extends CourseRepository with PostgresRepository[Course] {
 

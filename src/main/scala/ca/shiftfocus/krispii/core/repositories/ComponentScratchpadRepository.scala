@@ -4,7 +4,7 @@ import ca.shiftfocus.krispii.core.error.RepositoryError
 import com.github.mauricio.async.db.Connection
 import ca.shiftfocus.krispii.core.models._
 import scala.concurrent.Future
-import scalaz.{ \/ }
+import scalaz.{\/}
 
 trait ComponentScratchpadRepository extends Repository {
   val userRepository: UserRepository

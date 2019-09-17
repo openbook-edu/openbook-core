@@ -1,7 +1,7 @@
 package ca.shiftfocus.krispii.core.helpers
 
 import java.nio.ByteBuffer
-import java.security.{ MessageDigest, SecureRandom }
+import java.security.{MessageDigest, SecureRandom}
 
 /**
  * Created by ryanez on 16/02/16.

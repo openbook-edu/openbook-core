@@ -1,21 +1,21 @@
 package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
-import ca.shiftfocus.krispii.core.error.{ ErrorUnion, RepositoryError, ServiceError }
+import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
 import ca.shiftfocus.krispii.core.models.stripe.StripePlan
-import ca.shiftfocus.krispii.core.models.{ Account, AccountStatus, PaymentLog, TaggableEntities }
+import ca.shiftfocus.krispii.core.models.{Account, AccountStatus, PaymentLog, TaggableEntities}
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import com.stripe.exception.InvalidRequestException
 import com.stripe.model._
-import com.stripe.net.{ APIResource, RequestOptions }
+import com.stripe.net.{APIResource, RequestOptions}
 import org.joda.time.DateTime
-import play.api.libs.json.{ JsObject, JsValue, Json }
+import play.api.libs.json.{JsObject, JsValue, Json}
 import collection.JavaConverters._
 import scala.collection.immutable.TreeMap
 import scala.concurrent.Future
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class PaymentServiceDefault(
@@ -59,6 +59,7 @@ class PaymentServiceDefault(
 
   /**
    * Create krispii user account in database
+   * TODO: on top of the limited account.status add a list of admin tags
    *
    * @param userId
    * @param status
@@ -81,12 +82,13 @@ class PaymentServiceDefault(
 
   /**
    *  Update krispii user account information in database
+   * TODO: update list of admin tags associated with the subscription
    *
    * @param id
    * @param version
    * @param status
    * @param activeUntil
-   * @param customer
+   * @param customer The Stripe customer ID?
    * @param overdueStartedAt The Date when overdue period has started
    * @param overdueEndedAt The Date when overdue period has ended
    * @return  Account with subscriptions
@@ -159,7 +161,7 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Get a plan info from stipe by id
+   * Get a plan info from stripe by id
    *
    * @param planId
    * @return
@@ -446,15 +448,15 @@ class PaymentServiceDefault(
    */
   def updateSubscribtionPlan(userId: UUID, subscriptionId: String, newPlanId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
-      updatedSubsctiption <- lift(
+      updatedSubscription <- lift(
         Future successful (try {
           val params = new java.util.HashMap[String, Object]()
           params.put("plan", newPlanId)
 
           val subscription: Subscription = Subscription.retrieve(subscriptionId, requestOptions)
           val currentPlan: Plan = subscription.getPlan
-          val updatedSubsctiption = subscription.update(params, requestOptions)
-          val newPlan: Plan = updatedSubsctiption.getPlan
+          val updatedSubscription = subscription.update(params, requestOptions)
+          val newPlan: Plan = updatedSubscription.getPlan
 
           // If we switch plans and
           // If plans intervals match then we should manually create an invoice and force payment
@@ -467,14 +469,14 @@ class PaymentServiceDefault(
             Invoice.create(invoiceParams, requestOptions)
           }
 
-          \/-(updatedSubsctiption)
+          \/-(updatedSubscription)
         }
         catch {
           case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
-      _ <- lift(stripeRepository.updateSubscription(userId, updatedSubsctiption.getId, Json.parse(APIResource.GSON.toJson(updatedSubsctiption))))
-    } yield Json.parse(APIResource.GSON.toJson(updatedSubsctiption))
+      _ <- lift(stripeRepository.updateSubscription(userId, updatedSubscription.getId, Json.parse(APIResource.GSON.toJson(updatedSubscription))))
+    } yield Json.parse(APIResource.GSON.toJson(updatedSubscription))
   }
 
   /**
@@ -486,8 +488,8 @@ class PaymentServiceDefault(
    */
   def updateSubscription(userId: UUID, subscriptionId: String, subscription: JsValue): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
-      updateddSubsctiption <- lift(stripeRepository.updateSubscription(userId, subscriptionId, subscription))
-    } yield updateddSubsctiption
+      updatedSubscription <- lift(stripeRepository.updateSubscription(userId, subscriptionId, subscription))
+    } yield updatedSubscription
   }
 
   /**
@@ -501,10 +503,10 @@ class PaymentServiceDefault(
    */
   def cancelSubscription(userId: UUID, subscriptionId: String, atPeriodEnd: Boolean): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
-      canceledSubsctiption <- lift(
+      canceledSubscription <- lift(
         Future successful (try {
           val subscription: Subscription = Subscription.retrieve(subscriptionId, requestOptions)
-          val canceledSubsctiption = {
+          val canceledSubscription = {
             if (atPeriodEnd) {
               val params = new java.util.HashMap[String, Object]()
               params.put("at_period_end", "true")
@@ -515,7 +517,7 @@ class PaymentServiceDefault(
             }
           }
 
-          \/-(canceledSubsctiption)
+          \/-(canceledSubscription)
         }
         catch {
           case e: Throwable => {
@@ -525,13 +527,13 @@ class PaymentServiceDefault(
       )
       _ <- (
         if (atPeriodEnd) {
-          lift(stripeRepository.updateSubscription(userId, canceledSubsctiption.getId, Json.parse(APIResource.GSON.toJson(canceledSubsctiption))))
+          lift(stripeRepository.updateSubscription(userId, canceledSubscription.getId, Json.parse(APIResource.GSON.toJson(canceledSubscription))))
         }
         else {
-          lift(stripeRepository.deleteSubscription(userId, canceledSubsctiption.getId))
+          lift(stripeRepository.deleteSubscription(userId, canceledSubscription.getId))
         }
       )
-    } yield Json.parse(APIResource.GSON.toJson(canceledSubsctiption))
+    } yield Json.parse(APIResource.GSON.toJson(canceledSubscription))
   }
 
   /**
@@ -543,8 +545,8 @@ class PaymentServiceDefault(
    */
   def deleteSubscription(userId: UUID, subscriptionId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
-      deletedSubsctiption <- lift(stripeRepository.deleteSubscription(userId, subscriptionId))
-    } yield deletedSubsctiption
+      deletedSubscription <- lift(stripeRepository.deleteSubscription(userId, subscriptionId))
+    } yield deletedSubscription
   }
 
   def fetchUpcomingInvoiceFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, Invoice]] = {
@@ -823,6 +825,23 @@ class PaymentServiceDefault(
     )
   }
 
+  /**
+   * Remove subscription tags from users who have lost their subscription status.
+   *
+   * At the moment, two hard coded subscription tags ("Krispii", "SexEd"/"EduSex").
+   * Putting user on limited, inactive or overdue status leads to removal of these tags.
+   * The "Trial" and "ProjectBuilder" tags are not currently removed, but at least the ProjectBuilder
+   * tag should be removed (understand how to remove several tags at once in the for comprehension).
+   * Putting user on free, group or trial status leads to automatic addition of the "Trial" tag.
+   *
+   * Do this more flexibly: use tagAdminByEntity to see the tags that HAD been subscribed to and remove them.
+   * OR: each tag has its own expiration date.
+   *
+   * @param userId
+   * @param newStatus
+   * @param oldStatus
+   * @return: error or Unit
+   */
   private def tagUntagUserBasedOnStatus(userId: UUID, newStatus: String, oldStatus: Option[String] = None): Future[\/[ErrorUnion#Fail, Unit]] = {
     newStatus match {
       // Do nothing if status hasn't been changed
@@ -830,8 +849,8 @@ class PaymentServiceDefault(
       // Untag user when switch to these statuses
       case AccountStatus.limited |
         AccountStatus.inactive |
-        AccountStatus.overdue |
-        AccountStatus.paid =>
+        AccountStatus.overdue =>
+        // | AccountStatus.paid =>
         // We don't need to do anything in case of these statuses:
         //         AccountStatus.canceled |
         //         AccountStatus.onhold |
@@ -839,10 +858,27 @@ class PaymentServiceDefault(
         {
           (for {
             userTags <- lift(tagRepository.listByEntity(userId, TaggableEntities.user))
-            tag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // krispii tag, use id, because we can change tag names
+            krispiiTag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // use id, because we can change tag names
+            sexEdEnTag <- lift(tagRepository.find(UUID.fromString("cfe039c7-1fb3-4ee6-847b-afe17cae2817")))
+            sexEdFrTag <- lift(tagRepository.find(UUID.fromString("ee3fff69-23f8-4d51-9f52-2ece5ea20006"))) // probably forget about French tag version
+            // trialTag <- lift(tagRepository.find(UUID.fromString("29479566-3a50-4d36-bc20-f45ff4d4b2d4"))) maybe not necessary to remove trial tag
             _ <- lift {
-              if (userTags.contains(tag)) {
-                tagRepository.untag(userId, TaggableEntities.user, tag.name, tag.lang).map {
+              if (userTags.contains(krispiiTag)) {
+                tagRepository.untag(userId, TaggableEntities.user, krispiiTag.name, krispiiTag.lang).map {
+                  case \/-(success) => \/-(success)
+                  case -\/(error: RepositoryError.NoResults) => \/-((): Unit)
+                  case -\/(error) => -\/(error)
+                }
+              }
+              else if (userTags.contains(sexEdEnTag)) {
+                tagRepository.untag(userId, TaggableEntities.user, sexEdEnTag.name, sexEdEnTag.lang).map {
+                  case \/-(success) => \/-(success)
+                  case -\/(error: RepositoryError.NoResults) => \/-((): Unit)
+                  case -\/(error) => -\/(error)
+                }
+              }
+              else if (userTags.contains(sexEdFrTag)) {
+                tagRepository.untag(userId, TaggableEntities.user, sexEdFrTag.name, sexEdFrTag.lang).map {
                   case \/-(success) => \/-(success)
                   case -\/(error: RepositoryError.NoResults) => \/-((): Unit)
                   case -\/(error) => -\/(error)
@@ -852,17 +888,19 @@ class PaymentServiceDefault(
             }
           } yield ()).run
         }
-      // Tag user when switch to these statuses
+      /* Give user trial tag when switching to these statuses (maybe not strictly necessary, but seems logical). 
+         ProjectBuilderTag, krispiiTag and/or sexEdTag are given in krispii-api Payment.scala tagUserAccordingPlan. */
       case AccountStatus.free |
         AccountStatus.group |
         AccountStatus.trial =>
         {
           (for {
             userTags <- lift(tagRepository.listByEntity(userId, TaggableEntities.user))
-            tag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // krispii tag, use id, because we can change tag names
+            // tag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // krispii tag, use id, because we can change tag names
+            trialTag <- lift(tagRepository.find(UUID.fromString("29479566-3a50-4d36-bc20-f45ff4d4b2d4"))) // all users get this tag to access trial material
             _ <- lift {
-              if (!userTags.contains(tag)) {
-                tagRepository.tag(userId, TaggableEntities.user, tag.name, tag.lang).map {
+              if (!userTags.contains(trialTag)) {
+                tagRepository.tag(userId, TaggableEntities.user, trialTag.name, trialTag.lang).map {
                   case \/-(success) => \/-(success)
                   case -\/(RepositoryError.PrimaryKeyConflict) => \/-((): Unit)
                   case -\/(error) => -\/(error)

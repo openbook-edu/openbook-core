@@ -4,7 +4,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models._
-import com.github.mauricio.async.db.{ Connection, RowData }
+import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import scala.concurrent.Future

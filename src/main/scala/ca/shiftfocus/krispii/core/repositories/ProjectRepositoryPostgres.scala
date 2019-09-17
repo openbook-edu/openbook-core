@@ -4,8 +4,8 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.tasks.{ DocumentTask, MediaTask, QuestionTask, Task }
-import com.github.mauricio.async.db.{ Connection, RowData }
+import ca.shiftfocus.krispii.core.models.tasks.{DocumentTask, MediaTask, QuestionTask, Task}
+import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import play.api.Logger
 

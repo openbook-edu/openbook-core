@@ -9,7 +9,7 @@ import org.joda.time.DateTime
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 
 class SessionRepositoryCache(val cacheRepository: CacheRepository) extends SessionRepository {
 

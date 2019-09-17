@@ -8,10 +8,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.util.Random
-import scalacache.{ Cache, CacheConfig }
+import scalacache.{Cache, CacheConfig}
 import scalacache.redis.RedisCache
 import scalacache.serialization.Codec
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 
 case class ScalaCacheConfig(masterConfig: (String, Int), slaveConfigs: Seq[(String, Int)])
 

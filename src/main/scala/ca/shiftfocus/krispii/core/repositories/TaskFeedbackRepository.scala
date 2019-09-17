@@ -5,7 +5,7 @@ import com.github.mauricio.async.db.Connection
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import scala.concurrent.Future
-import scalaz.{ \/ }
+import scalaz.{\/}
 
 trait TaskFeedbackRepository extends Repository {
 

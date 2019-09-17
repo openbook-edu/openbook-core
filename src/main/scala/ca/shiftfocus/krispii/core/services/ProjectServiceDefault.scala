@@ -12,7 +12,7 @@ import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
 import scala.concurrent.Future
-import scalaz.{ \/, -\/, \/- }
+import scalaz.{\/, -\/, \/-}
 
 class ProjectServiceDefault(
     val db: DB,

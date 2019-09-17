@@ -2,9 +2,9 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.repositories.{ RoleRepository, SessionRepository, UserRepository }
+import ca.shiftfocus.krispii.core.repositories.{RoleRepository, SessionRepository, UserRepository}
 import java.util.UUID
-import play.api.i18n.{ Lang, MessagesApi }
+import play.api.i18n.{Lang, MessagesApi}
 import scala.concurrent.Future
 import scalaz.\/
 

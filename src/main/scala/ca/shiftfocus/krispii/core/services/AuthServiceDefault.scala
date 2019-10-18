@@ -133,10 +133,10 @@ class AuthServiceDefault(
       for {
         user <- lift(userRepository.find(identifier))
         roles <- lift(roleRepository.list(user))
-        _ = Logger.debug("roles" + roles.toString)
+        _ = Logger.info("roles" + roles.toString)
         userHash = user.hash.getOrElse("")
         authUser = user.copy(roles = roles)
-        _ = Logger.debug(authUser.toString)
+        _ = Logger.info("User authenticated: " + authUser.toString)
       } yield authUser
     }
   }

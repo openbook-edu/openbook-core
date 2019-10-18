@@ -117,7 +117,7 @@ class ProjectScratchpadRepositoryPostgres(val documentRepository: DocumentReposi
    * @return the newly created ProjectScratchpad
    */
   override def insert(scratchpad: ProjectScratchpad)(implicit conn: Connection): Future[\/[RepositoryError.Fail, ProjectScratchpad]] = {
-    Logger.debug(scratchpad.toString)
+    Logger.debug("Scratchpad: " + scratchpad.toString)
     (for {
       projectScratchpad <- lift(queryOne(Insert, Array[Any](
         scratchpad.userId,

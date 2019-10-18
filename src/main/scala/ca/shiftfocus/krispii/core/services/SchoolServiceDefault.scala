@@ -417,7 +417,7 @@ class SchoolServiceDefault(
     transactional { implicit conn =>
       for {
         word <- lift(wordRepository.get(lang))
-        _ = Logger.debug(word.toString)
+        _ = Logger.debug("Creating link for registration: " + word.toString)
         link <- lift(linkRepository.create(Link(word.word, courseId, new DateTime())))
 
       } yield link

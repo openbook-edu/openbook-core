@@ -133,10 +133,10 @@ class AuthServiceDefault(
       for {
         user <- lift(userRepository.find(identifier))
         roles <- lift(roleRepository.list(user))
-        _ = Logger.info("roles" + roles.toString)
+        _ = Logger.info("Authenticating without password, roles=" + roles.toString)
         userHash = user.hash.getOrElse("")
         authUser = user.copy(roles = roles)
-        _ = Logger.info("User authenticated: " + authUser.toString)
+        _ = Logger.info("Authenticating without password, user=" + authUser.toString)
       } yield authUser
     }
   }
@@ -959,6 +959,7 @@ class AuthServiceDefault(
   override def listByKey(key: String, includeDeleted: Boolean = false, limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     (for {
       users <- lift(userRepository.triagramSearch(key, includeDeleted, limit, offset))
+      _ = Logger.info(users.toString)
       result <- liftSeq {
         users.map { user =>
           (for {

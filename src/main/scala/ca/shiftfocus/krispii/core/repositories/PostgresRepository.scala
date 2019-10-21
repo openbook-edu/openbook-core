@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
+import play.api.Logger
 import com.github.mauricio.async.db.exceptions.ConnectionStillRunningQueryException
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{Connection, RowData, ResultSet}
@@ -65,6 +66,8 @@ trait PostgresRepository[A] {
    */
   protected def queryList(queryText: String, parameters: Seq[Any] = Seq.empty[Any]) // format: OFF
                          (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[A]]] = { // format: ON
+    Logger.debug("Query text: " + queryText);
+    Logger.debug("Parameters: " + parameters.toString);
     val fRes = if (parameters.nonEmpty) {
       conn.sendPreparedStatement(queryText, parameters)
     }

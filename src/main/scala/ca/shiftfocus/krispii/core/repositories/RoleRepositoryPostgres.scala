@@ -327,7 +327,7 @@ class RoleRepositoryPostgres(
 
         lift(fResult.map {
           case \/-(true) => {
-            Logger.error(name)
+            Logger.info("User was associated with role " + name)
             \/-(())
           }
           case \/-(false) => {

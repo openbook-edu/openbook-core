@@ -75,6 +75,7 @@ trait PostgresRepository[A] {
       conn.sendQuery(queryText)
     }
 
+    Logger.debug("Query results: " + fRes.toString)
     fRes.map {
       res => { buildEntityList(res.rows, constructor) }
     }.recover {

@@ -961,7 +961,7 @@ class AuthServiceDefault(
   override def listByKey(key: String, includeDeleted: Boolean = false, limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     (for {
       users <- lift(userRepository.triagramSearch(key, includeDeleted, limit, offset))
-      _ = Logger.info(users.toString)
+      _ = Logger.info(s"Users matching key ${key}: ${users}")
       result <- liftSeq {
         users.map { user =>
           (for {

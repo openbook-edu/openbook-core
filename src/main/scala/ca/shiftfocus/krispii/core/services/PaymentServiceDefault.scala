@@ -85,12 +85,12 @@ class PaymentServiceDefault(
    * TODO: update list of admin tags associated with the subscription
    *
    * @param id
-   * @param version
-   * @param status
+   * @param version How many times the account has already been updated before
+   * @param status One of the predefined strings "trial", "limited" etc.
    * @param activeUntil
    * @param customer The Stripe customer ID?
-   * @param overdueStartedAt The Date when overdue period has started
-   * @param overdueEndedAt The Date when overdue period has ended
+   * @param overdueStartedAt The Date when overdue period has started TODO for each subscription!
+   * @param overdueEndedAt The Date when overdue period has ended TODO for each subscription!
    * @return  Account with subscriptions
    */
   def updateAccount(

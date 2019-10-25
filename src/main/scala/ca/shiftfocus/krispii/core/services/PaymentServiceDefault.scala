@@ -82,7 +82,7 @@ class PaymentServiceDefault(
 
   /**
    *  Update krispii user account information in database
-   * TODO: update list of admin tags associated with the subscription
+   * TODO: update list of payment plan tags associated with the subscription
    *
    * @param id
    * @param version How many times the account has already been updated before
@@ -94,46 +94,50 @@ class PaymentServiceDefault(
    * @return  Account with subscriptions
    */
   def updateAccount(
-    id: UUID,
-    version: Long,
-    status: String,
-    trialStartedAt: Option[Option[DateTime]],
-    activeUntil: Option[DateTime],
-    customer: Option[JsValue],
-    overdueStartedAt: Option[Option[DateTime]] = None,
-    overdueEndedAt: Option[Option[DateTime]] = None,
-    overduePlanId: Option[Option[String]] = None
-  ): Future[\/[ErrorUnion#Fail, Account]] = {
+      id: UUID,
+      version: Long,
+      status: String,
+      trialStartedAt: Option[Option[DateTime]],
+      activeUntil: Option[DateTime],
+      customer: Option[JsValue],
+      overdueStartedAt: Option[Option[DateTime]] = None,
+      overdueEndedAt: Option[Option[DateTime]] = None,
+      overduePlanId: Option[Option[String]] = None
+      ): Future[\/[ErrorUnion#Fail, Account]] = {
     for {
       existingAccount <- lift(accountRepository.get(id))
+      // existingAccount should already contain subscriptions - why look them up again?
+      // apparently subscriptions are not automatically updated, see below
       subscriptions <- lift(stripeRepository.listSubscriptions(existingAccount.userId))
+      // subscriptions will in most cases be empty because people subscribe through invoices!
       updatedAccount <- lift(accountRepository.update(existingAccount.copy(
         status = status,
         trialStartedAt = trialStartedAt match {
-        case Some(Some(trialStartedAt)) => Some(trialStartedAt)
-        case Some(None) => None
-        case None => existingAccount.trialStartedAt
-      },
+          case Some(Some(trialStartedAt)) => Some(trialStartedAt)
+          case Some(None) => None
+          case None => existingAccount.trialStartedAt
+        },
         activeUntil = activeUntil,
         customer = customer,
         overdueStartedAt = overdueStartedAt match {
-        case Some(Some(overdueAt)) => Some(overdueAt)
-        case Some(None) => None
-        case None => existingAccount.overdueStartedAt
-      },
+          case Some(Some(overdueAt)) => Some(overdueAt)
+          case Some(None) => None
+          case None => existingAccount.overdueStartedAt
+        },
         overdueEndedAt = overdueEndedAt match {
-        case Some(Some(overdueAt)) => Some(overdueAt)
-        case Some(None) => None
-        case None => existingAccount.overdueEndedAt
-      },
+          case Some(Some(overdueAt)) => Some(overdueAt)
+          case Some(None) => None
+          case None => existingAccount.overdueEndedAt
+        },
         overduePlanId = overduePlanId match {
-        case Some(Some(overduePlanId)) => Some(overduePlanId)
-        case Some(None) => None
-        case None => existingAccount.overduePlanId
-      }
+          case Some(Some(overduePlanId)) => Some(overduePlanId)
+          case Some(None) => None
+          case None => existingAccount.overduePlanId
+        }
       )))
+      // accountRepository.update has ignored subscriptions
       _ <- lift(tagUntagUserBasedOnStatus(updatedAccount.userId, status, Some(existingAccount.status)))
-    } yield updatedAccount.copy(subscriptions = subscriptions)
+    } yield updatedAccount.copy(subscriptions = subscriptions) // but subscriptions are returned nevertheless
   }
 
   def deleteAccount(userId: UUID): Future[\/[ErrorUnion#Fail, Account]] = {
@@ -834,7 +838,7 @@ class PaymentServiceDefault(
    * tag should be removed (understand how to remove several tags at once in the for comprehension).
    * Putting user on free, group or trial status leads to automatic addition of the "Trial" tag.
    *
-   * Do this more flexibly: use tagAdminByEntity to see the tags that HAD been subscribed to and remove them.
+   * TODO: use tagAdminByEntity to see the tags that HAD been subscribed to and remove them.
    * OR: each tag has its own expiration date.
    *
    * @param userId

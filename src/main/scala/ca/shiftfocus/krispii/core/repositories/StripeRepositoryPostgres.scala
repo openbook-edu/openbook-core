@@ -1,10 +1,14 @@
 package ca.shiftfocus.krispii.core.repositories
 
+import java.io.{PrintWriter, StringWriter}
 import java.util.UUID
+
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
+import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
+
 import scala.concurrent.Future
 import scalaz.\/
 
@@ -79,6 +83,14 @@ class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[
   // SUBSCRIPTIONS
 
   def listSubscriptions(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JsValue]]] = {
+    Logger.debug("in StripeRepositoryPostgres listSubscriptions")
+    val sw = new StringWriter
+    val st = new RuntimeException
+    st.printStackTrace(new PrintWriter(sw))
+    Logger.debug(sw.toString)
+    // val st = new RuntimeException().getStackTrace.mkString("\n")
+    // st.take(10).foreach {Logger.debug)
+    // Logger.debug(st)
     queryList(ListSubscriptionsByUser, Seq[Any](userId))
   }
 

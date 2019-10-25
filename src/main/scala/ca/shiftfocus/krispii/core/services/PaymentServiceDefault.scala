@@ -11,6 +11,7 @@ import com.stripe.exception.InvalidRequestException
 import com.stripe.model._
 import com.stripe.net.{APIResource, RequestOptions}
 import org.joda.time.DateTime
+import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
 import collection.JavaConverters._
 import scala.collection.immutable.TreeMap
@@ -94,16 +95,16 @@ class PaymentServiceDefault(
    * @return  Account with subscriptions
    */
   def updateAccount(
-      id: UUID,
-      version: Long,
-      status: String,
-      trialStartedAt: Option[Option[DateTime]],
-      activeUntil: Option[DateTime],
-      customer: Option[JsValue],
-      overdueStartedAt: Option[Option[DateTime]] = None,
-      overdueEndedAt: Option[Option[DateTime]] = None,
-      overduePlanId: Option[Option[String]] = None
-      ): Future[\/[ErrorUnion#Fail, Account]] = {
+    id: UUID,
+    version: Long,
+    status: String,
+    trialStartedAt: Option[Option[DateTime]],
+    activeUntil: Option[DateTime],
+    customer: Option[JsValue],
+    overdueStartedAt: Option[Option[DateTime]] = None,
+    overdueEndedAt: Option[Option[DateTime]] = None,
+    overduePlanId: Option[Option[String]] = None
+  ): Future[\/[ErrorUnion#Fail, Account]] = {
     for {
       existingAccount <- lift(accountRepository.get(id))
       // existingAccount should already contain subscriptions - why look them up again?
@@ -113,27 +114,27 @@ class PaymentServiceDefault(
       updatedAccount <- lift(accountRepository.update(existingAccount.copy(
         status = status,
         trialStartedAt = trialStartedAt match {
-          case Some(Some(trialStartedAt)) => Some(trialStartedAt)
-          case Some(None) => None
-          case None => existingAccount.trialStartedAt
-        },
+        case Some(Some(trialStartedAt)) => Some(trialStartedAt)
+        case Some(None) => None
+        case None => existingAccount.trialStartedAt
+      },
         activeUntil = activeUntil,
         customer = customer,
         overdueStartedAt = overdueStartedAt match {
-          case Some(Some(overdueAt)) => Some(overdueAt)
-          case Some(None) => None
-          case None => existingAccount.overdueStartedAt
-        },
+        case Some(Some(overdueAt)) => Some(overdueAt)
+        case Some(None) => None
+        case None => existingAccount.overdueStartedAt
+      },
         overdueEndedAt = overdueEndedAt match {
-          case Some(Some(overdueAt)) => Some(overdueAt)
-          case Some(None) => None
-          case None => existingAccount.overdueEndedAt
-        },
+        case Some(Some(overdueAt)) => Some(overdueAt)
+        case Some(None) => None
+        case None => existingAccount.overdueEndedAt
+      },
         overduePlanId = overduePlanId match {
-          case Some(Some(overduePlanId)) => Some(overduePlanId)
-          case Some(None) => None
-          case None => existingAccount.overduePlanId
-        }
+        case Some(Some(overduePlanId)) => Some(overduePlanId)
+        case Some(None) => None
+        case None => existingAccount.overduePlanId
+      }
       )))
       // accountRepository.update has ignored subscriptions
       _ <- lift(tagUntagUserBasedOnStatus(updatedAccount.userId, status, Some(existingAccount.status)))
@@ -832,19 +833,16 @@ class PaymentServiceDefault(
   /**
    * Remove subscription tags from users who have lost their subscription status.
    *
-   * At the moment, two hard coded subscription tags ("Krispii", "SexEd"/"EduSex").
-   * Putting user on limited, inactive or overdue status leads to removal of these tags.
-   * The "Trial" and "ProjectBuilder" tags are not currently removed, but at least the ProjectBuilder
-   * tag should be removed (understand how to remove several tags at once in the for comprehension).
-   * Putting user on free, group or trial status leads to automatic addition of the "Trial" tag.
+   * Putting user on limited, inactive or overdue status leads to removal of ALL admin tags.
+   * This would be a problem if the user was member of more than one organization with different permissions!
+   * TODO: each subscription/group membership has its own expiry status.
    *
-   * TODO: use tagAdminByEntity to see the tags that HAD been subscribed to and remove them.
-   * OR: each tag has its own expiration date.
+   * Putting user on free, group or trial status leads to automatic addition of the "Trial" tag.
    *
    * @param userId
    * @param newStatus
    * @param oldStatus
-   * @return: error or Unit
+   * @return: Nothing or error message
    */
   private def tagUntagUserBasedOnStatus(userId: UUID, newStatus: String, oldStatus: Option[String] = None): Future[\/[ErrorUnion#Fail, Unit]] = {
     newStatus match {
@@ -854,51 +852,34 @@ class PaymentServiceDefault(
       case AccountStatus.limited |
         AccountStatus.inactive |
         AccountStatus.overdue =>
+        {
         // | AccountStatus.paid =>
         // We don't need to do anything in case of these statuses:
         //         AccountStatus.canceled |
         //         AccountStatus.onhold |
         //         AccountStatus.error |
-        {
-          (for {
-            userTags <- lift(tagRepository.listByEntity(userId, TaggableEntities.user))
-            krispiiTag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // use id, because we can change tag names
-            sexEdEnTag <- lift(tagRepository.find(UUID.fromString("cfe039c7-1fb3-4ee6-847b-afe17cae2817")))
-            sexEdFrTag <- lift(tagRepository.find(UUID.fromString("ee3fff69-23f8-4d51-9f52-2ece5ea20006"))) // probably forget about French tag version
-            // trialTag <- lift(tagRepository.find(UUID.fromString("29479566-3a50-4d36-bc20-f45ff4d4b2d4"))) maybe not necessary to remove trial tag
-            _ <- lift {
-              if (userTags.contains(krispiiTag)) {
-                tagRepository.untag(userId, TaggableEntities.user, krispiiTag.name, krispiiTag.lang).map {
-                  case \/-(success) => \/-(success)
-                  case -\/(error: RepositoryError.NoResults) => \/-((): Unit)
-                  case -\/(error) => -\/(error)
-                }
+         val futureResult = for {
+            removeTags <- lift(tagRepository.listAdminByEntity(userId, TaggableEntities.user))
+            _ = Logger.info(s"Admin tags to be removed from user with id ${userId}: ${removeTags}")
+            _ <- lift(serializedT(removeTags)(tag => {
+              Logger.info(s"Removing tag ${tag.name}")
+              tagRepository.untag(userId, TaggableEntities.user, tag.name, tag.lang).map {
+                case \/-(success) => \/-(success)
+                case -\/(error: RepositoryError.NoResults) => \/-((): Unit)
+                case -\/(error) => -\/(error)
               }
-              else if (userTags.contains(sexEdEnTag)) {
-                tagRepository.untag(userId, TaggableEntities.user, sexEdEnTag.name, sexEdEnTag.lang).map {
-                  case \/-(success) => \/-(success)
-                  case -\/(error: RepositoryError.NoResults) => \/-((): Unit)
-                  case -\/(error) => -\/(error)
-                }
-              }
-              else if (userTags.contains(sexEdFrTag)) {
-                tagRepository.untag(userId, TaggableEntities.user, sexEdFrTag.name, sexEdFrTag.lang).map {
-                  case \/-(success) => \/-(success)
-                  case -\/(error: RepositoryError.NoResults) => \/-((): Unit)
-                  case -\/(error) => -\/(error)
-                }
-              }
-              else Future successful \/-((): Unit)
-            }
-          } yield ()).run
+            }))
+            } yield ()
+          futureResult.run
         }
-      /* Give user trial tag when switching to these statuses (maybe not strictly necessary, but seems logical). 
-         ProjectBuilderTag, krispiiTag and/or sexEdTag are given in krispii-api Payment.scala tagUserAccordingPlan. */
+      /* Give user trial tag when switching to these statuses (maybe not strictly necessary, but seems logical).
+         ProjectBuilderTag, krispiiTag and/or sexEdTag are given in krispii-api Payment.scala tagUserAccordingPlan
+         (for stripe payment) resp. copyOrgAdminSettings (for members recruited by an orgadmin). */
       case AccountStatus.free |
         AccountStatus.group |
         AccountStatus.trial =>
         {
-          (for {
+          val futureResult = for {
             userTags <- lift(tagRepository.listByEntity(userId, TaggableEntities.user))
             // tag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // krispii tag, use id, because we can change tag names
             trialTag <- lift(tagRepository.find(UUID.fromString("29479566-3a50-4d36-bc20-f45ff4d4b2d4"))) // all users get this tag to access trial material
@@ -912,7 +893,8 @@ class PaymentServiceDefault(
               }
               else Future successful \/-((): Unit)
             }
-          } yield ()).run
+          } yield ()
+          futureResult.run
         }
       case _ => Future successful \/-((): Unit)
     }

@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
+// import java.io.{PrintWriter, StringWriter}
 import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
 import ca.shiftfocus.krispii.core.models.stripe.StripePlan
 import ca.shiftfocus.krispii.core.models.{Account, AccountStatus, PaymentLog, TaggableEntities}
@@ -845,6 +846,11 @@ class PaymentServiceDefault(
    * @return: Nothing or error message
    */
   private def tagUntagUserBasedOnStatus(userId: UUID, newStatus: String, oldStatus: Option[String] = None): Future[\/[ErrorUnion#Fail, Unit]] = {
+    /* val sw = new StringWriter
+    val st = new RuntimeException
+    st.printStackTrace(new PrintWriter(sw))
+    Logger.debug(sw.toString) */
+    Logger.debug(s"In tagUntagUserBasedOnStatus, oldStatus for user ${userId} is ${oldStatus}, new status is ${newStatus}")
     newStatus match {
       // Do nothing if status hasn't been changed
       case someNewStatus if oldStatus.isDefined && oldStatus.get == someNewStatus => Future successful \/-((): Unit)
@@ -853,14 +859,14 @@ class PaymentServiceDefault(
         AccountStatus.inactive |
         AccountStatus.overdue =>
         {
-        // | AccountStatus.paid =>
-        // We don't need to do anything in case of these statuses:
-        //         AccountStatus.canceled |
-        //         AccountStatus.onhold |
-        //         AccountStatus.error |
-         val futureResult = for {
+          // | AccountStatus.paid =>
+          // We don't need to do anything in case of these statuses:
+          //         AccountStatus.canceled |
+          //         AccountStatus.onhold |
+          //         AccountStatus.error |
+          val futureResult = for {
             removeTags <- lift(tagRepository.listAdminByEntity(userId, TaggableEntities.user))
-            _ = Logger.info(s"Admin tags to be removed from user with id ${userId}: ${removeTags}")
+            _ = Logger.info(s"Admin tags to be removed from user with id ${userId} because subscription or trial expired: ${removeTags}")
             _ <- lift(serializedT(removeTags)(tag => {
               Logger.info(s"Removing tag ${tag.name}")
               tagRepository.untag(userId, TaggableEntities.user, tag.name, tag.lang).map {
@@ -869,7 +875,7 @@ class PaymentServiceDefault(
                 case -\/(error) => -\/(error)
               }
             }))
-            } yield ()
+          } yield ()
           futureResult.run
         }
       /* Give user trial tag when switching to these statuses (maybe not strictly necessary, but seems logical).

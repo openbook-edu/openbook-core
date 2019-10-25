@@ -84,10 +84,10 @@ class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[
 
   def listSubscriptions(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JsValue]]] = {
     Logger.debug("in StripeRepositoryPostgres listSubscriptions")
-    val sw = new StringWriter
-    val st = new RuntimeException
-    st.printStackTrace(new PrintWriter(sw))
-    Logger.debug(sw.toString)
+    // val sw = new StringWriter
+    // val st = new RuntimeException
+    // st.printStackTrace(new PrintWriter(sw))
+    /// Logger.debug(sw.toString)
     // val st = new RuntimeException().getStackTrace.mkString("\n")
     // st.take(10).foreach {Logger.debug)
     // Logger.debug(st)

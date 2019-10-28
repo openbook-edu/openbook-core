@@ -24,6 +24,10 @@ trait PostgresRepository[A] {
    * @return
    */
   protected def queryOne(queryText: String, parameters: Seq[Any] = Seq.empty[Any])(implicit conn: Connection): Future[\/[RepositoryError.Fail, A]] = {
+    Logger.debug(s"Parameters ${parameters} for queryOne when called by...")
+    Thread.currentThread.getStackTrace.drop(2).foreach {
+      trElem => if (trElem.toString contains "krispii") Logger.debug(s"  $trElem")
+    }
     val fRes = if (parameters.nonEmpty) {
       conn.sendPreparedStatement(queryText, parameters)
     }
@@ -66,8 +70,11 @@ trait PostgresRepository[A] {
    */
   protected def queryList(queryText: String, parameters: Seq[Any] = Seq.empty[Any]) // format: OFF
                          (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[A]]] = { // format: ON
-    Logger.debug("Query text: " + queryText);
-    Logger.debug("Parameters: " + parameters.toString);
+    Logger.debug(s"Parameters ${parameters} for queryList when called by...")
+    Thread.currentThread.getStackTrace.foreach {
+      trElem => if (trElem.toString contains "krispii") Logger.debug(s"  $trElem")
+    }
+
     val fRes = if (parameters.nonEmpty) {
       conn.sendPreparedStatement(queryText, parameters)
     }

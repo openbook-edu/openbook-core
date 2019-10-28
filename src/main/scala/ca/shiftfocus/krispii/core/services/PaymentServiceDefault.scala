@@ -854,11 +854,14 @@ class PaymentServiceDefault(
     // Logger.debug(sw.toString)
     Logger.info(s"In tagUntagUserBasedOnStatus, old status for user ${userId} is ${oldStatus}, new status is ${newStatus}")
     Logger.debug("From tagUntagUserBasedOnStatus, begin stacks of all threads:")
-    Thread.getAllStackTraces.asScala.foreach {
+    /* Thread.getAllStackTraces.asScala.foreach {
       case (threadNo, threadTrace) => {
         Logger.debug(s"Thread no. ${threadNo}")
         threadTrace.foreach { trElem => if (trElem.toString contains "krispii") Logger.debug(s"  at $trElem") }
       }
+    } */
+    Thread.currentThread.getStackTrace.drop(2).foreach {
+      trElem => if (trElem.toString contains "krispii") Logger.debug(s"  $trElem")
     }
     Logger.debug("From tagUntagUserBasedOnStatus, finished stacks.")
     newStatus match {

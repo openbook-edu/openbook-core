@@ -2,6 +2,7 @@ package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
 // import java.io.{PrintWriter, StringWriter}
+import scala.collection.JavaConverters._
 import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
 import ca.shiftfocus.krispii.core.models.stripe.StripePlan
 import ca.shiftfocus.krispii.core.models.{Account, AccountStatus, PaymentLog, TaggableEntities}
@@ -138,6 +139,7 @@ class PaymentServiceDefault(
       }
       )))
       // accountRepository.update has ignored subscriptions
+      _ = Logger.info(s"In updateAccount, old status for user ${existingAccount.userId} is ${existingAccount.status}, new status is to be ${status}")
       _ <- lift(tagUntagUserBasedOnStatus(updatedAccount.userId, status, Some(existingAccount.status)))
     } yield updatedAccount.copy(subscriptions = subscriptions) // but subscriptions are returned nevertheless
   }
@@ -846,11 +848,19 @@ class PaymentServiceDefault(
    * @return: Nothing or error message
    */
   private def tagUntagUserBasedOnStatus(userId: UUID, newStatus: String, oldStatus: Option[String] = None): Future[\/[ErrorUnion#Fail, Unit]] = {
-    /* val sw = new StringWriter
-    val st = new RuntimeException
-    st.printStackTrace(new PrintWriter(sw))
-    Logger.debug(sw.toString) */
-    Logger.debug(s"In tagUntagUserBasedOnStatus, oldStatus for user ${userId} is ${oldStatus}, new status is ${newStatus}")
+    // val sw = new StringWriter
+    // val st = new RuntimeException
+    // st.printStackTrace(new PrintWriter(sw))
+    // Logger.debug(sw.toString)
+    Logger.info(s"In tagUntagUserBasedOnStatus, old status for user ${userId} is ${oldStatus}, new status is ${newStatus}")
+    Logger.debug("From tagUntagUserBasedOnStatus, begin stacks of all threads:")
+    Thread.getAllStackTraces.asScala.foreach {
+      case (threadNo, threadTrace) => {
+        Logger.debug(s"Thread no. ${threadNo}")
+        threadTrace.foreach { trElem => if (trElem.toString contains "krispii") Logger.debug(s"  at $trElem") }
+      }
+    }
+    Logger.debug("From tagUntagUserBasedOnStatus, finished stacks.")
     newStatus match {
       // Do nothing if status hasn't been changed
       case someNewStatus if oldStatus.isDefined && oldStatus.get == someNewStatus => Future successful \/-((): Unit)
@@ -878,10 +888,10 @@ class PaymentServiceDefault(
           } yield ()
           futureResult.run
         }
-      /* Give user trial tag when switching to these statuses (maybe not strictly necessary, but seems logical).
-         ProjectBuilderTag, krispiiTag and/or sexEdTag are given in krispii-api Payment.scala tagUserAccordingPlan
+      /* Nothing needs to be given here.
+         ProjectBuilderTag, trialTag, krispiiTag, and/or sexEdTag are given in krispii-api Payment.scala tagUserAccordingPlan
          (for stripe payment) resp. copyOrgAdminSettings (for members recruited by an orgadmin). */
-      case AccountStatus.free |
+      /* case AccountStatus.free |
         AccountStatus.group |
         AccountStatus.trial =>
         {
@@ -901,7 +911,7 @@ class PaymentServiceDefault(
             }
           } yield ()
           futureResult.run
-        }
+        } */
       case _ => Future successful \/-((): Unit)
     }
   }

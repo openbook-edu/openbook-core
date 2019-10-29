@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
 import ca.shiftfocus.krispii.core.models._
@@ -8,8 +9,9 @@ import ca.shiftfocus.krispii.core.repositories.{TagCategoryRepository, TagReposi
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import org.joda.time.DateTime
-import play.api.Configuration
+import play.api.{Configuration, Logger}
 import play.api.libs.json.{JsObject, Json}
+
 import scala.concurrent.Future
 import scalaz.{-\/, \/, \/-}
 import play.api.libs.json.JodaWrites._
@@ -66,7 +68,7 @@ class TagServiceDefault(
             ))
           }
         )
-        // If entity is already taged with this tag, then do nothing
+        // If entity is already tagged with this tag, then do nothing
         _ <- lift(tagRepository.tag(entityId, entityType, existingTag.name, existingTag.lang).map {
           case \/-(success) => \/-(success)
           case -\/(RepositoryError.PrimaryKeyConflict) => \/-((): Unit)
@@ -309,10 +311,12 @@ class TagServiceDefault(
         if (newOrganizations.nonEmpty) {
           for {
             user <- lift(userRepository.find(userId))
+            _ = Logger.info(s"Setting limits for ${user.email} who was tagged with ${tagName}:")
             userTags <- lift(tagRepository.listByEntity(user.id, TaggableEntities.user))
             currentOrganizations <- lift(organizationRepository.listByTags(userTags.map(tag => (tag.name, tag.lang)), false))
             resultOrganizations = (currentOrganizations ++ newOrganizations).distinct
             maxLimitJson <- lift(getOrganizationsMaxLimits(resultOrganizations))
+            _ = Logger.info(s"From organization(s) ${resultOrganizations}, max limits are ${maxLimitJson}!")
             _ <- lift(setUserLimits(maxLimitJson, user))
             _ <- lift {
               // If user doesn't have organizations, that means he haven't seen welcome popup for organization
@@ -374,6 +378,8 @@ class TagServiceDefault(
 
   /**
    * If user still has organization tag(s), we get that organization(s) and set limits (max limits) using it (them).
+   * If user now is member of no organzation anymore, status will be set to limited because of the lack of
+   * an "active until" date.
    *
    * @param userId
    * @param tagName
@@ -395,6 +401,7 @@ class TagServiceDefault(
             filteredRemainedOrganizations = remainedOrganizations.filter(org => !removedOrganizations.contains(org))
             // If user is a part of more then one organization, then we get max limit values from them
             maxLimitJson <- lift(getOrganizationsMaxLimits(filteredRemainedOrganizations))
+            _ = Logger.info(s"unsetting limits for ${user.email} to ${maxLimitJson}")
             _ <- lift(setUserLimits(maxLimitJson, user))
           } yield ()
         }
@@ -403,17 +410,24 @@ class TagServiceDefault(
     } yield ()
   }
 
-  private def setUserLimits(limitsJson: JsObject, user: User): Future[\/[ErrorUnion#Fail, Unit]] = {
+  private def setUserLimits(limitsJson: JsObject, user: User): Future[\/[ErrorUnion#Fail, Account]] = {
     val studentLimit = (limitsJson \ "studentLimit").asOpt[Int].getOrElse(defaultStudentLimit)
     val storageLimit = (limitsJson \ "storageLimit").asOpt[Float].getOrElse(defaultStorageLimit.toFloat)
     val courseLimit = (limitsJson \ "courseLimit").asOpt[Int].getOrElse(defaultCourseLimit)
     val dateLimit = (limitsJson \ "dateLimit").asOpt[DateTime]
+    Logger.info(s"in setUserLimit, date limit for ${user.email} is ${dateLimit}")
     val accountStatus = dateLimit match {
-      case Some(activeUntil) => AccountStatus.group
-      case _ => AccountStatus.limited
+      case Some(activeUntil) => {
+        Logger.info(s"${user.email} will be set to group membership until ${activeUntil}")
+        AccountStatus.group
+      }
+      case _ => {
+        Logger.info(s"In the absence of a date limit, ${user.email} will be set to limited status")
+        AccountStatus.limited
+      }
     }
 
-    for {
+    (for {
       _ <- lift(limitRepository.setTeacherStudentLimit(user.id, studentLimit))
       _ <- lift(limitRepository.setStorageLimit(user.id, storageLimit))
       _ <- lift(limitRepository.setCourseLimit(user.id, courseLimit))
@@ -457,73 +471,79 @@ class TagServiceDefault(
         }
         case -\/(error: ErrorUnion#Fail) => Future successful -\/(error)
       })
-    } yield ()
+    } yield account).run
   }
 
-  // Go threw organization list and get sum of limits values except date limit, here we get max value
+  // Go through organization list and get sum of limits values except date limit, here we get max value
   private def getOrganizationsMaxLimits(organizationList: IndexedSeq[Organization]): Future[\/[ErrorUnion#Fail, JsObject]] = {
     for {
-      storageLimit <- lift(serializedT(organizationList)(organization => {
+      storageLimits <- lift(serializedT(organizationList)(organization => {
         limitRepository.getOrganizationStorageLimit(organization.id).map {
-          case \/-(limit) => \/-(Some(BigDecimal.decimal(limit).setScale(4, BigDecimal.RoundingMode.HALF_UP)))
+          case \/-(limit: Float) => \/-(Some(BigDecimal.decimal(limit).setScale(4, BigDecimal.RoundingMode.HALF_UP)))
           case -\/(error: RepositoryError.NoResults) => \/-(None)
           case -\/(error) => -\/(error)
+          case _ => \/-({ Logger.error(s"Problem with format of storage limits for organization ${organization.title}"); None })
         }
       }))
-      courseLimit <- lift(serializedT(organizationList)(organization => {
+      courseLimits <- lift(serializedT(organizationList)(organization => {
         limitRepository.getOrganizationCourseLimit(organization.id).map {
-          case \/-(limit) => \/-(Some(limit))
+          case \/-(limit: Int) => \/-(Some(limit))
           case -\/(error: RepositoryError.NoResults) => \/-(None)
           case -\/(error) => -\/(error)
+          case _ => \/-({ Logger.error(s"Problem with format of course limits for organization ${organization.title}"); None })
         }
       }))
-      studentLimit <- lift(serializedT(organizationList)(organization => {
+      studentLimits <- lift(serializedT(organizationList)(organization => {
         limitRepository.getOrganizationStudentLimit(organization.id).map {
-          case \/-(limit) => \/-(Some(limit))
+          case \/-(limit: Int) => \/-(Some(limit))
           case -\/(error: RepositoryError.NoResults) => \/-(None)
           case -\/(error) => -\/(error)
+          case _ => \/-({ Logger.error(s"Problem with format of student limits for organization ${organization.title}"); None })
         }
       }))
-      memberLimit <- lift(serializedT(organizationList)(organization => {
+      memberLimits <- lift(serializedT(organizationList)(organization => {
         limitRepository.getOrganizationMemberLimit(organization.id).map {
-          case \/-(limit) => \/-(Some(limit))
+          case \/-(limit: Int) => \/-(Some(limit))
           case -\/(error: RepositoryError.NoResults) => \/-(None)
           case -\/(error) => -\/(error)
+          case _ => \/-({ Logger.error(s"Problem with format of member limits for organization ${organization.title}"); None })
         }
       }))
-      dateLimit <- lift(serializedT(organizationList)(organization => {
+      dateLimits <- lift(serializedT(organizationList)(organization => {
         limitRepository.getOrganizationDateLimit(organization.id).map {
-          case \/-(limit) => \/-(Some(limit))
+          case \/-(limit: DateTime) => \/-(Some(limit))
           case -\/(error: RepositoryError.NoResults) => \/-(None)
           case -\/(error) => -\/(error)
+          case _ => \/-({ Logger.error(s"Problem with format of date limits for organization ${organization.title}"); None })
         }
       }))
     } yield Json.obj(
       "storageLimit" -> {
-        (storageLimit.flatten match {
+        (storageLimits.flatten match {
           case limitList if limitList.nonEmpty => Some(limitList.sum)
           case _ => None
         }).flatMap(d => Some(Json.toJson(d).toString()))
       },
-      "courseLimit" -> (courseLimit.flatten match {
+      "courseLimit" -> (courseLimits.flatten match {
         case limitList if limitList.nonEmpty => Some(limitList.sum)
         case _ => None
       }).flatMap(d => Some(Json.toJson(d).toString())),
-      "studentLimit" -> (studentLimit.flatten match {
+      "studentLimit" -> (studentLimits.flatten match {
         case limitList if limitList.nonEmpty => Some(limitList.sum)
         case _ => None
       }).flatMap(d => Some(Json.toJson(d).toString())),
-      "memberLimit" -> (memberLimit.flatten match {
+      "memberLimit" -> (memberLimits.flatten match {
         case limitList if limitList.nonEmpty => Some(limitList.sum)
         case _ => None
       }).flatMap(d => Some(Json.toJson(d).toString())),
-      "dateLimit" -> (dateLimit.flatten match {
+      "dateLimit" -> (dateLimits.flatten match {
         case limitList if limitList.nonEmpty => {
           implicit def dateTimeOrdering: Ordering[DateTime] = Ordering.fromLessThan(_ isBefore _)
           Some(limitList.max)
         }
         case _ => None
-      }).flatMap(d => Some(Json.toJson(d).toString()))
+        // }).flatMap(d => Some(Json.toJson(d).toString()))
+      }).flatMap(d => Some(Json.toJson(d))) // looks like it already was a String
     )
   }
 

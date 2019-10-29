@@ -394,7 +394,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
     // Limit is unix timestamp
     getOrganizationLimit(organizationId, Limits.activeUntil).flatMap {
       // We need milliseconds here
-      case \/-(limit) => Future successful \/-(new DateTime(limit * 1000))
+      case \/-(limit) => Future successful \/-({ Logger.info(s"Org data limit: ${limit} ms"); new DateTime(limit * 1000) })
       case -\/(error) => Future successful -\/(error)
     }
   }

@@ -681,13 +681,10 @@ class AuthServiceDefault(
    */
   override def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Role]] = {
     transactional { implicit conn =>
-      val fUser = userRepository.find(userId)
-      val fRole = roleRepository.find(roleName)
-
       for {
-        user <- lift(fUser)
-        role <- lift(fRole)
-        roleAdded <- lift(roleRepository.addToUser(user, role))
+        user <- lift(userRepository.find(userId))
+        role <- lift(roleRepository.find(roleName)) // only because addRole MUST return a Role
+        _ <- lift(roleRepository.addToUser(user, role))
       } yield role
     }
   }
@@ -703,7 +700,7 @@ class AuthServiceDefault(
     transactional { implicit conn =>
       for {
         user <- lift(userRepository.find(userId))
-        rolesAdded <- lift(serializedT(roleNames)(roleRepository.addToUser(user, _)))
+        _ <- lift(serializedT(roleNames)(roleRepository.addToUser(user, _)))
       } yield user
     }
   }

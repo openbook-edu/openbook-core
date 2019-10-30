@@ -281,11 +281,14 @@ class AuthServiceDefault(
               )
               userRepository.insert(newUser)
             }
+            _ = Logger.info(s"New user ${newUser.email} tentatively created, will now create token")
             user = newUser.copy(token = Some(UserToken(id, token, activation)))
             _ <- lift(userTokenRepository.insert(newUser.id, token, activation))
+            _ = Logger.info(s"Activation token for ${user.email} created")
           } yield user
         }
       }
+      _ = Logger.info(s"Provisionally created user ${result.email} with token, will now look up pre-existing organization tags")
       // Put it outside transactional, as we need user to be in a database before we tag him.
       _ <- lift(tagOrganizationUser(result))
     } yield result
@@ -352,18 +355,21 @@ class AuthServiceDefault(
     role: String,
     hostname: Option[String]
   )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]] = {
-    val fUser = for {
+    val futureUser = for {
       user <- lift(this.create(username, email, password, givenname, surname))
+      _ = Logger.info(s"User {user.email} created, will now add role ${role}")
       _ <- lift(addRole(user.id, role))
+      _ = Logger.info(s"Added role ${role} to ${user.email}")
       emailForNew = Email(
         messagesApi("activate.confirm.subject.new")(lang), //subject
         messagesApi("activate.confirm.from")(lang), //from
         Seq(givenname + " " + surname + " <" + email + ">"), //to
         bodyHtml = Some(messagesApi("activate.confirm.message", hostname.get, user.id.toString, user.token.get.token)(lang)) //text
       )
-      _ <- lift(sendAsyncEmail(emailForNew))
+      messageId <- lift(sendAsyncEmail(emailForNew))
+      _ = Logger.info(s"Sent activation email to ${user.email}, message ID is ${messageId}")
     } yield user
-    fUser.run
+    futureUser.run
   }
 
   override def createOpenIdUser(

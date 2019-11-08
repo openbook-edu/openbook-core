@@ -307,6 +307,10 @@ class WorkServiceDefault(
    *
    * Because the contents of the work are handled by the Document service, this method only
    * serves to update the work's completed status UPD: and grade.
+   * @param userId
+   * @param taskId
+   * @param isComplete Boolean
+   * @param grade Option[String]: if missing, not updated, TODO: if "", delete grade!
    */
   def updateDocumentWork(userId: UUID, taskId: UUID, isComplete: Boolean, grade: Option[String]): Future[\/[ErrorUnion#Fail, DocumentWork]] = {
     transactional { implicit conn =>

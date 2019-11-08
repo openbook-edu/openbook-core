@@ -4,11 +4,12 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.UserPreference
-import com.github.mauricio.async.db.{ Connection, RowData }
-import scala.concurrent.ExecutionContext.Implicits.global
+import com.github.mauricio.async.db.{Connection, RowData}
+import play.api.Logger
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 
 class UserPreferenceRepositoryPostgres extends UserPreferenceRepository with PostgresRepository[UserPreference] {
   override val entityName = "UserPreference"
@@ -100,13 +101,20 @@ class UserPreferenceRepositoryPostgres extends UserPreferenceRepository with Pos
   // Upsert for user preferences. If preference name or preference allowed value don't exist then NoResults will be returned
   def set(userPreference: UserPreference)(implicit conn: Connection): Future[\/[RepositoryError.Fail, UserPreference]] = {
     queryOne(Update, Seq[Any](userPreference.prefName, userPreference.state, userPreference.state, userPreference.userId)).flatMap {
-      case \/-(preference) => Future successful \/-(preference)
+      case \/-(preference) => Future successful \/-({
+        Logger.info(s"Successfully set ${userPreference.prefName} to ${userPreference.state} for user no. ${userPreference.userId}")
+        preference
+      })
       case -\/(error: RepositoryError.NoResults) => {
         for {
           insert <- lift(queryOne(Insert, Seq[Any](userPreference.prefName, userPreference.state, userPreference.userId, userPreference.state)))
+          _ = Logger.info(s"User no. ${userPreference.userId} had no preference for ${userPreference.prefName}; now setting it to ${userPreference.state}...")
         } yield insert
       }
-      case -\/(error) => Future successful -\/(error)
+      case -\/(error) => Future successful -\/({
+        Logger.error(s"${error} while setting ${userPreference.prefName} to ${userPreference.state} for user no. ${userPreference.userId}")
+        error
+      })
     }
   }
 

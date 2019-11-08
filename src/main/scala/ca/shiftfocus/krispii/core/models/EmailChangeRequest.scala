@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.models
 import java.util.UUID
 
 import play.api.libs.functional.syntax._
-import play.api.libs.json.{ Writes, _ }
+import play.api.libs.json.{Writes, _}
 
 case class EmailChangeRequest(
   userId: UUID,

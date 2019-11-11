@@ -106,9 +106,10 @@ class UserPreferenceRepositoryPostgres extends UserPreferenceRepository with Pos
         preference
       })
       case -\/(error: RepositoryError.NoResults) => {
+        Logger.info(s"User no. ${userPreference.userId} had no preference for ${userPreference.prefName}; will now set it to ${userPreference.state}...")
         for {
           insert <- lift(queryOne(Insert, Seq[Any](userPreference.prefName, userPreference.state, userPreference.userId, userPreference.state)))
-          _ = Logger.info(s"User no. ${userPreference.userId} had no preference for ${userPreference.prefName}; now setting it to ${userPreference.state}...")
+          _ = Logger.info(s"User no. ${userPreference.userId} had no preference for ${userPreference.prefName}; now set it to ${userPreference.state}...")
         } yield insert
       }
       case -\/(error) => Future successful -\/({

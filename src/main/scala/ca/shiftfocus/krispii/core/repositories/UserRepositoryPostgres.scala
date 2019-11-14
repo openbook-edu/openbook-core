@@ -4,13 +4,13 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-import com.github.mauricio.async.db.{ Connection, RowData }
+import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Try
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 
 class UserRepositoryPostgres(
     val tagRepository: TagRepository,
@@ -96,7 +96,7 @@ class UserRepositoryPostgres(
    */
   def SelectAllByKeyNotDeleted(key: String, limit: String, offset: Int) =
     s"""
-     |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> '$key' AS dist
+     |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> '$key' OR surname <-> '$key' AS dist
      |FROM users
      |WHERE is_deleted = false
      |ORDER BY dist LIMIT $limit OFFSET $offset) as sub  where dist < 0.9;
@@ -104,7 +104,7 @@ class UserRepositoryPostgres(
 
   def SelectAllByKeyWithDeleted(key: String, limit: String, offset: Int) =
     s"""
-       |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> '$key' AS dist
+       |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> '$key' OR surname <-> '$key' AS dist
        |FROM users
        |ORDER BY dist LIMIT $limit OFFSET $offset) as sub  where dist < 0.9;
     """.stripMargin

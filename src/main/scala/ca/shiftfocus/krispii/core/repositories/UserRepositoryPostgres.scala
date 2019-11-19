@@ -96,17 +96,17 @@ class UserRepositoryPostgres(
    */
   def SelectAllByKeyNotDeleted(key: String, limit: String, offset: Int) =
     s"""
-     |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> '$key' AS dist, surname <-> '$key' As dist2, givenname <-> '$key' As dist3
+     |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> '$key' AS dist, surname <-> '$key' AS distSurname, givenname <-> '$key' AS distGivenname
      |FROM users
      |WHERE is_deleted = false
-     |ORDER BY dist LIMIT $limit OFFSET $offset) as sub  where dist < 0.9 or dist2 < 0.9;
+     |ORDER BY dist LIMIT $limit OFFSET $offset) as sub  where dist < 0.9 or distSurname < 0.9 or distGivenname < 0.9;
     """.stripMargin
 
   def SelectAllByKeyWithDeleted(key: String, limit: String, offset: Int) =
     s"""
-       |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> '$key' AS dist, surname <-> '$key' As dist2, givenname <-> '$key' As dist3
+       |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> '$key' AS dist, surname <-> '$key' AS distSurname, givenname <-> '$key' AS distGivenname
        |FROM users
-       |ORDER BY dist LIMIT $limit OFFSET $offset) as sub  where dist < 0.9 or dist2 < 0.9 or dist3 < 0.9;
+       |ORDER BY dist LIMIT $limit OFFSET $offset) as sub  where dist < 0.9 or distSurname < 0.9 or distGivenname < 0.9;
     """.stripMargin
 
   // TODO - finish that

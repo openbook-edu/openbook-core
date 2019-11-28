@@ -96,18 +96,34 @@ class UserRepositoryPostgres(
    */
   def SelectAllByKeyNotDeleted(key: String, limit: String, offset: Int) =
     s"""
-     |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, (email || surname || givenname <-> '$key') AS dist
-     |FROM users
-     |WHERE is_deleted = false
-     |ORDER BY dist DESC  LIMIT $limit OFFSET $offset) as sub  where dist < 0.9 
+     |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable
+     |    FROM users
+     |    WHERE is_deleted = false
+     |    AND (surname ILIKE '${key}%' OR givenname ILIKE '${key}%' OR email ILIKE '${key}%'
+     |    OR surname ILIKE '%${key}' OR givenname ILIKE '%${key}' OR email ILIKE '%${key}'
+     |    OR surname ILIKE '%${key}%' OR givenname ILIKE '%${key}%' OR email ILIKE '%${key}%')
+     |) as sub
+     |ORDER BY sub.givenname DESC  LIMIT $limit OFFSET $offset
     """.stripMargin
 
-//still have to work on this the first method is not selecting well
+// |INNER JOIN preferences as
+      // |ON
+      //     |(INNER JOIN  user_preferences as up  
+      //         |ON (INNER JOIN users_roles AS ur
+      //         |ON ur.user_id = sub.id
+      //       |ON up.user_id = sub.id) as subpreferences
+      // |ON preferences.id = subpreferences.preferences_id 
+      // |AND preferences.name = "teacher_check"
+
   def SelectAllByKeyWithDeleted(key: String, limit: String, offset: Int) =
     s"""
-       |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable, email <-> '$key' AS dist, surname <-> '$key' AS distSurname, givenname <-> '$key' AS distGivenname
-       |FROM users
-       |ORDER BY dist,distSurname,distGivenname DESC  LIMIT $limit OFFSET $offset) as sub  where dist < 0.9 or distSurname < 0.9 or distGivenname < 0.9;
+     |SELECT $FieldsWithoutTable from (SELECT $FieldsWithoutTable
+     |    FROM users
+     |    WHERE surname ILIKE '${key}%' OR givenname ILIKE '${key}%' OR email ILIKE '${key}%'
+     |    OR surname ILIKE '%${key}' OR givenname ILIKE '%${key}' OR email ILIKE '%${key}'
+     |    OR surname ILIKE '%${key}%' OR givenname ILIKE '%${key}%' OR email ILIKE '%${key}%'
+     |) as sub
+     |ORDER BY sub.givenname DESC  LIMIT $limit OFFSET $offset
     """.stripMargin
 
   // TODO - finish that
@@ -135,17 +151,6 @@ class UserRepositoryPostgres(
            |INNER JOIN users_roles AS ur
            |ON ur.user_id = sub.id
            |AND role_id != '${studentRole.id}'
-        """.stripMargin
-        s"""
-           |INNER JOIN preferences as
-           |ON
-              (|INNER JOIN  user_preferences as up  
-               |ON (|INNER JOIN users_roles AS ur
-                  |ON ur.user_id = sub.id
-                  |AND role_id = '${studentRole.id}') 
-               |ON up.user_id = sub.id) as subpreferences
-           |ON preferences.id = subpreferences.preferences_id 
-           |AND preferences.name = "teacher_check"
         """.stripMargin
       }
     }

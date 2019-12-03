@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.lib
 
-import org.joda.time.{ LocalDate, LocalTime }
+import org.joda.time.{LocalDate, LocalTime}
 import org.joda.time.format.DateTimeFormat
 import play.api.libs.json._
 

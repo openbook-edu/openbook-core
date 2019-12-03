@@ -3,10 +3,10 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import com.github.mauricio.async.db.{ Connection, RowData }
+import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import scala.concurrent.Future
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 
 class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Long] {
   override val entityName = "Limit"

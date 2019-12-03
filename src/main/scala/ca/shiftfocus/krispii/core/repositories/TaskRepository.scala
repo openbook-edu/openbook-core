@@ -6,7 +6,7 @@ import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import java.util.UUID
 import scala.concurrent.Future
-import scalaz.{ \/ }
+import scalaz.{\/}
 
 trait TaskRepository extends Repository {
 

@@ -4,7 +4,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.UserToken
-import com.github.mauricio.async.db.{ Connection }
+import com.github.mauricio.async.db.{Connection}
 import scala.concurrent.Future
 import scalaz.\/
 /**

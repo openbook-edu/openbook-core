@@ -10,7 +10,7 @@ import java.util.UUID
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.{ \/, \/- }
+import scalaz.{\/, \/-}
 import ca.shiftfocus.otlib.Delta
 
 class WorkServiceDefault(

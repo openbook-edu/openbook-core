@@ -1,6 +1,6 @@
 package ca.shiftfocus.krispii.core.models
 
-import ca.shiftfocus.krispii.core.lib.{ LocalDateTimeJson }
+import ca.shiftfocus.krispii.core.lib.{LocalDateTimeJson}
 import java.util.UUID
 import org.joda.time.DateTime
 import play.api.libs.json._

@@ -4,11 +4,11 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.UserPreference
-import com.github.mauricio.async.db.{ Connection, RowData }
+import com.github.mauricio.async.db.{Connection, RowData}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
-import scalaz.{ -\/, \/, \/- }
+import scalaz.{-\/, \/, \/-}
 
 class UserPreferenceRepositoryPostgres extends UserPreferenceRepository with PostgresRepository[UserPreference] {
   override val entityName = "UserPreference"

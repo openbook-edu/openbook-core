@@ -1,7 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.repositories.{ ComponentRepository }
+import ca.shiftfocus.krispii.core.repositories.{ComponentRepository}
 import java.util.UUID
 import ca.shiftfocus.krispii.core.models._
 import scala.concurrent.Future

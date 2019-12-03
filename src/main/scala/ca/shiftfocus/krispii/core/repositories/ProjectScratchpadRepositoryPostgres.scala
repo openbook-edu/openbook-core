@@ -2,8 +2,8 @@ package ca.shiftfocus.krispii.core.repositories
 
 import java.util.UUID
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models.{ Project, _ }
-import com.github.mauricio.async.db.{ Connection, RowData }
+import ca.shiftfocus.krispii.core.models.{Project, _}
+import com.github.mauricio.async.db.{Connection, RowData}
 import play.Logger
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

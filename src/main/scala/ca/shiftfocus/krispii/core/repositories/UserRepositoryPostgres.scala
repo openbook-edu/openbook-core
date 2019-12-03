@@ -103,17 +103,21 @@ class UserRepositoryPostgres(
      |    OR surname ILIKE '%${key}' OR givenname ILIKE '%${key}' OR email ILIKE '%${key}'
      |    OR surname ILIKE '%${key}%' OR givenname ILIKE '%${key}%' OR email ILIKE '%${key}%')
      |) as sub
+     |LEFT JOIN (
+       select status, user_id
+       from accounts) as acc
+     |ON sub.id = acc.user_id
      |ORDER BY sub.givenname DESC  LIMIT $limit OFFSET $offset
     """.stripMargin
 
-// |INNER JOIN preferences as
-      // |ON
-      //     |(INNER JOIN  user_preferences as up  
-      //         |ON (INNER JOIN users_roles AS ur
-      //         |ON ur.user_id = sub.id
-      //       |ON up.user_id = sub.id) as subpreferences
-      // |ON preferences.id = subpreferences.preferences_id 
-      // |AND preferences.name = "teacher_check"
+  // |INNER JOIN preferences as
+  // |ON
+  //     |(INNER JOIN  user_preferences as up  
+  //         |ON (INNER JOIN users_roles AS ur
+  //         |ON ur.user_id = sub.id
+  //       |ON up.user_id = sub.id) as subpreferences
+  // |ON preferences.id = subpreferences.preferences_id 
+  // |AND preferences.name = "teacher_check"
 
   def SelectAllByKeyWithDeleted(key: String, limit: String, offset: Int) =
     s"""

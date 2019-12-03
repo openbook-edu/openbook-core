@@ -4,10 +4,10 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.UserToken
-import com.github.mauricio.async.db.{ Connection, RowData }
+import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import scala.concurrent.Future
-import scalaz.{ \/ }
+import scalaz.{\/}
 
 class UserTokenRepositoryPostgres extends UserTokenRepository with PostgresRepository[UserToken] {
 

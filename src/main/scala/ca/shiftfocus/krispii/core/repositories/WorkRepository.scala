@@ -4,7 +4,7 @@ import ca.shiftfocus.krispii.core.error.RepositoryError
 import com.github.mauricio.async.db.Connection
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.Task
-import ca.shiftfocus.krispii.core.models.work.{ QuestionWork, DocumentWork, Work }
+import ca.shiftfocus.krispii.core.models.work.{QuestionWork, DocumentWork, Work}
 import java.util.UUID
 import scala.concurrent.Future
 import scalaz.\/

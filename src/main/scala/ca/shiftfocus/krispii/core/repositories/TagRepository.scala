@@ -5,7 +5,7 @@ import ca.shiftfocus.krispii.core.error.RepositoryError
 import com.github.mauricio.async.db.Connection
 import java.util.UUID
 import scala.concurrent.Future
-import scalaz.{ \/ }
+import scalaz.{\/}
 
 trait TagRepository extends Repository {
   def create(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]]

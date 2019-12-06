@@ -357,7 +357,7 @@ class AuthServiceDefault(
   )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]] = {
     val futureUser = for {
       user <- lift(this.create(username, email, password, givenname, surname))
-      _ = Logger.info(s"User {user.email} created, will now add role ${role}")
+      _ = Logger.info(s"User ${user.email} created, will now add role ${role}")
       _ <- lift(addRole(user.id, role))
       _ = Logger.info(s"Added role ${role} to ${user.email}")
       emailForNew = Email(

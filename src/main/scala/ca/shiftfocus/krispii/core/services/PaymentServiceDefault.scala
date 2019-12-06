@@ -855,7 +855,7 @@ class PaymentServiceDefault(
     Logger.info(s"In tagUntagUserBasedOnStatus, old status for user ${userId} is ${oldStatus}, new status is ${newStatus} when called in stack..." +
       Thread.currentThread.getStackTrace.filter(trElem => {
         (trElem.toString contains "krispii")
-      }).mkString("...", "\n...", ""))
+      }).mkString("\n...", "\n...", ""))
     newStatus match {
       // Do nothing if status hasn't been changed
       case someNewStatus if oldStatus.isDefined && oldStatus.get == someNewStatus => Future successful \/-((): Unit)

@@ -852,18 +852,10 @@ class PaymentServiceDefault(
     // val st = new RuntimeException
     // st.printStackTrace(new PrintWriter(sw))
     // Logger.debug(sw.toString)
-    Logger.info(s"In tagUntagUserBasedOnStatus, old status for user ${userId} is ${oldStatus}, new status is ${newStatus}")
-    Logger.debug("From tagUntagUserBasedOnStatus, begin stacks of all threads:")
-    /* Thread.getAllStackTraces.asScala.foreach {
-      case (threadNo, threadTrace) => {
-        Logger.debug(s"Thread no. ${threadNo}")
-        threadTrace.foreach { trElem => if (trElem.toString contains "krispii") Logger.debug(s"  at $trElem") }
-      }
-    } */
-    Thread.currentThread.getStackTrace.drop(2).foreach {
-      trElem => if (trElem.toString contains "krispii") Logger.debug(s"  $trElem")
-    }
-    Logger.debug("From tagUntagUserBasedOnStatus, finished stacks.")
+    Logger.info(s"In tagUntagUserBasedOnStatus, old status for user ${userId} is ${oldStatus}, new status is ${newStatus} when called in stack..." +
+      Thread.currentThread.getStackTrace.filter(trElem => {
+        (trElem.toString contains "krispii")
+      }).mkString("\n...", "\n...", ""))
     newStatus match {
       // Do nothing if status hasn't been changed
       case someNewStatus if oldStatus.isDefined && oldStatus.get == someNewStatus => Future successful \/-((): Unit)

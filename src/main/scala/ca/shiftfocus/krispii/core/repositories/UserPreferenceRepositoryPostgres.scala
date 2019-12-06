@@ -100,12 +100,14 @@ class UserPreferenceRepositoryPostgres extends UserPreferenceRepository with Pos
 
   // Upsert for user preferences. If preference name or preference allowed value don't exist then NoResults will be returned
   def set(userPreference: UserPreference)(implicit conn: Connection): Future[\/[RepositoryError.Fail, UserPreference]] = {
+    Logger.info("Now setting user preferences")
     queryOne(Update, Seq[Any](userPreference.prefName, userPreference.state, userPreference.state, userPreference.userId)).flatMap {
       case \/-(preference) => Future successful \/-({
         Logger.info(s"Successfully set ${userPreference.prefName} to ${userPreference.state} for user no. ${userPreference.userId}")
         preference
       })
       case -\/(error: RepositoryError.NoResults) => {
+        Logger.info(s"User no. ${userPreference.userId} had no preference for ${userPreference.prefName}; will now set it to ${userPreference.state}...")
         for {
           insert <- lift(queryOne(Insert, Seq[Any](userPreference.prefName, userPreference.state, userPreference.userId, userPreference.state)))
           _ = Logger.info(s"User no. ${userPreference.userId} had no preference for ${userPreference.prefName}; now setting it to ${userPreference.state}...")

@@ -2,7 +2,6 @@ package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
 // import java.io.{PrintWriter, StringWriter}
-import scala.collection.JavaConverters._
 import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
 import ca.shiftfocus.krispii.core.models.stripe.StripePlan
 import ca.shiftfocus.krispii.core.models.{Account, AccountStatus, PaymentLog, TaggableEntities}
@@ -15,11 +14,12 @@ import com.stripe.net.{APIResource, RequestOptions}
 import org.joda.time.DateTime
 import play.api.Logger
 import play.api.libs.json.{JsObject, JsValue, Json}
-import collection.JavaConverters._
-import scala.collection.immutable.TreeMap
-import scala.concurrent.Future
 import scalaz.{-\/, \/, \/-}
+
+import scala.collection.JavaConverters._
+import scala.collection.immutable.TreeMap
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class PaymentServiceDefault(
     val db: DB,
@@ -852,10 +852,11 @@ class PaymentServiceDefault(
     // val st = new RuntimeException
     // st.printStackTrace(new PrintWriter(sw))
     // Logger.debug(sw.toString)
-    Logger.info(s"In tagUntagUserBasedOnStatus, old status for user ${userId} is ${oldStatus}, new status is ${newStatus} when called in stack..." +
-      Thread.currentThread.getStackTrace.filter(trElem => {
+    Logger.info(s"In tagUntagUserBasedOnStatus, old status for user ${userId} is ${oldStatus}, new status is ${newStatus}")
+    /* Logger.debug(s"In tagUntagUserBasedOnStatus, old status for user ${userId} is ${oldStatus}, new status is ${newStatus} when called in stack..." +
+        Thread.currentThread.getStackTrace.filter(trElem => {
         (trElem.toString contains "krispii")
-      }).mkString("\n...", "\n...", ""))
+      }).mkString("\n...", "\n...", "")) */
     newStatus match {
       // Do nothing if status hasn't been changed
       case someNewStatus if oldStatus.isDefined && oldStatus.get == someNewStatus => Future successful \/-((): Unit)
@@ -883,10 +884,10 @@ class PaymentServiceDefault(
           } yield ()
           futureResult.run
         }
-      /* Nothing needs to be given here.
-         ProjectBuilderTag, trialTag, krispiiTag, and/or sexEdTag are given in krispii-api Payment.scala tagUserAccordingPlan
-         (for stripe payment) resp. copyOrgAdminSettings (for members recruited by an orgadmin). */
-      /* case AccountStatus.free |
+      /* ProjectBuilderTag, trialTag, krispiiTag, and/or sexEdTag are given in krispii-api Payment.scala tagUserAccordingPlan
+         (for stripe payment) resp. copyOrgAdminSettings (for members recruited by an orgadmin).
+         trialTag need only be given to free and trial, but it won't hurt to give it to paid.group, too. */
+      case AccountStatus.free |
         AccountStatus.group |
         AccountStatus.trial =>
         {
@@ -896,6 +897,7 @@ class PaymentServiceDefault(
             trialTag <- lift(tagRepository.find(UUID.fromString("29479566-3a50-4d36-bc20-f45ff4d4b2d4"))) // all users get this tag to access trial material
             _ <- lift {
               if (!userTags.contains(trialTag)) {
+                Logger.info(s"Trying to give trial tag to user with ID ${userId}")
                 tagRepository.tag(userId, TaggableEntities.user, trialTag.name, trialTag.lang).map {
                   case \/-(success) => \/-(success)
                   case -\/(RepositoryError.PrimaryKeyConflict) => \/-((): Unit)
@@ -906,7 +908,7 @@ class PaymentServiceDefault(
             }
           } yield ()
           futureResult.run
-        } */
+        }
       case _ => Future successful \/-((): Unit)
     }
   }

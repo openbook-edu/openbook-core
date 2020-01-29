@@ -327,11 +327,11 @@ class RoleRepositoryPostgres(
 
         lift(fResult.map {
           case \/-(true) => {
-            Logger.info("User was associated with role " + name)
+            Logger.info(s"${user.email} was associated with role ${name}.")
             \/-(())
           }
           case \/-(false) => {
-            -\/(RepositoryError.DatabaseError("The query succeeded but somehow nothing was modified."))
+            -\/(RepositoryError.DatabaseError(s"Role ${name} could not be associated with ${user.email}."))
           }
           case -\/(error) => {
             -\/(error)

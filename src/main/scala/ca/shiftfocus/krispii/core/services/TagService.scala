@@ -3,14 +3,10 @@ package ca.shiftfocus.krispii.core.services
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
-
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
-
 import scala.concurrent.Future
 import scalaz.\/
 
 trait TagService extends Service[ErrorUnion#Fail] {
-  val scalaCache: ScalaCachePool
 
   /************************************ Tags******************************************/
   def tag(entityId: UUID, entityType: String, tagName: String, lang: String): Future[\/[ErrorUnion#Fail, Unit]]

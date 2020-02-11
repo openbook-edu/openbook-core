@@ -1,12 +1,10 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import java.util.UUID
-
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.work.Work
-import ca.shiftfocus.krispii.core.models.{ Account, Gfile }
+import ca.shiftfocus.krispii.core.models.{Gfile}
 import com.github.mauricio.async.db.Connection
-
 import scala.concurrent.Future
 import scalaz.\/
 

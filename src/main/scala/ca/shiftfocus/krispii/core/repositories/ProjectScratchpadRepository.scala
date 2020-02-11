@@ -1,13 +1,8 @@
 package ca.shiftfocus.krispii.core.repositories
 
-/**
- * Created by vzaytseva on 21/01/16.
- */
-
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.{ Project, _ }
+import ca.shiftfocus.krispii.core.models.{Project, _}
 import com.github.mauricio.async.db.Connection
-
 import scala.concurrent.Future
 import scalaz.\/
 

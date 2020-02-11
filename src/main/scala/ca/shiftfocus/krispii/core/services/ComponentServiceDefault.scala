@@ -1,7 +1,6 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
@@ -10,12 +9,11 @@ import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
 
 import scala.concurrent.Future
-import scalacache.ScalaCache
-import scalaz.{ -\/, \/-, \/ }
+
+import scalaz.{-\/, \/-, \/}
 
 class ComponentServiceDefault(
   val db: DB,
-  val scalaCache: ScalaCachePool,
   val authService: AuthService,
   val projectService: ProjectService,
   val schoolService: SchoolService,
@@ -25,7 +23,6 @@ class ComponentServiceDefault(
     extends ComponentService {
 
   implicit def conn: Connection = db.pool
-  implicit def cache: ScalaCachePool = scalaCache
 
   /**
    * List all components.
@@ -172,6 +169,35 @@ class ComponentServiceDefault(
       questions = questions,
       thingsToThinkAbout = thingsToThinkAbout,
       mediaData = googleData,
+      order = order,
+      parentId = parentId,
+      parentVersion = parentVersion
+    )
+    transactional { implicit conn =>
+      componentRepository.insert(newComponent)
+    }
+  }
+
+  override def createMicrosoft(
+    id: UUID,
+    ownerId: UUID,
+    title: String,
+    description: String,
+    questions: String,
+    thingsToThinkAbout: String,
+    microsoftData: MediaData,
+    order: Int,
+    parentId: Option[UUID] = None,
+    parentVersion: Option[Long] = None
+  ): Future[\/[ErrorUnion#Fail, Component]] = {
+    val newComponent = MicrosoftComponent(
+      id = id,
+      ownerId = ownerId,
+      title = title,
+      description = description,
+      questions = questions,
+      thingsToThinkAbout = thingsToThinkAbout,
+      mediaData = microsoftData,
       order = order,
       parentId = parentId,
       parentVersion = parentVersion
@@ -449,6 +475,48 @@ class ComponentServiceDefault(
             case Some(Some(parentVersion)) => Some(parentVersion)
             case Some(None) => None
             case None => existingGoogle.parentVersion
+          }
+        )
+        updatedComponent <- lift(componentRepository.update(componentToUpdate))
+      } yield updatedComponent
+    }
+  }
+
+  override def updateMicrosoft(id: UUID, version: Long, ownerId: UUID,
+    title: Option[String],
+    description: Option[String],
+    questions: Option[String],
+    thingsToThinkAbout: Option[String],
+    microsoftData: Option[MediaData],
+    order: Option[Int],
+    isPrivate: Option[Boolean],
+    parentId: Option[Option[UUID]] = None,
+    parentVersion: Option[Option[Long]] = None): Future[\/[ErrorUnion#Fail, Component]] = {
+    transactional { implicit conn =>
+      for {
+        existingComponent <- lift(componentRepository.find(id))
+        _ <- predicate(existingComponent.version == version)(ServiceError.OfflineLockFail)
+        _ <- predicate(existingComponent.isInstanceOf[MicrosoftComponent])(ServiceError.BadInput("Component type is not microsoft"))
+        existingMicrosoft = existingComponent.asInstanceOf[MicrosoftComponent]
+        componentToUpdate = existingMicrosoft.copy(
+          version = version,
+          ownerId = ownerId,
+          title = title.getOrElse(existingMicrosoft.title),
+          description = description.getOrElse(existingMicrosoft.description),
+          questions = questions.getOrElse(existingMicrosoft.questions),
+          thingsToThinkAbout = thingsToThinkAbout.getOrElse(existingMicrosoft.thingsToThinkAbout),
+          mediaData = microsoftData.getOrElse(existingMicrosoft.mediaData),
+          order = order.getOrElse(existingMicrosoft.order),
+          isPrivate = isPrivate.getOrElse(existingMicrosoft.isPrivate),
+          parentId = parentId match {
+            case Some(Some(parentId)) => Some(parentId)
+            case Some(None) => None
+            case None => existingMicrosoft.parentId
+          },
+          parentVersion = parentVersion match {
+            case Some(Some(parentVersion)) => Some(parentVersion)
+            case Some(None) => None
+            case None => existingMicrosoft.parentVersion
           }
         )
         updatedComponent <- lift(componentRepository.update(componentToUpdate))

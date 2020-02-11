@@ -1,13 +1,9 @@
 package ca.shiftfocus.krispii.core.services
 
 import java.awt.Color
-
 import org.joda.time.DateTime
 import play.api.Logger
-
-// scalastyle:ignore
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import ca.shiftfocus.krispii.core.models._
@@ -15,13 +11,11 @@ import ca.shiftfocus.krispii.core.repositories._
 import java.util.UUID
 import scala.collection.IndexedSeq
 import scala.concurrent.Future
-import scalacache.ScalaCache
-import scalaz.{ \/-, -\/, \/ }
+import scalaz.{\/-, -\/, \/}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class SchoolServiceDefault(
   val db: DB,
-  val scalaCache: ScalaCachePool,
   val authService: AuthService,
   val userRepository: UserRepository,
   val courseRepository: CourseRepository,
@@ -35,7 +29,6 @@ class SchoolServiceDefault(
     extends SchoolService {
 
   implicit def conn: Connection = db.pool
-  implicit def cache: ScalaCachePool = scalaCache
 
   /*
    * Methods for Courses
@@ -424,7 +417,7 @@ class SchoolServiceDefault(
     transactional { implicit conn =>
       for {
         word <- lift(wordRepository.get(lang))
-        _ = Logger.debug(word.toString)
+        _ = Logger.debug("Creating link for registration: " + word.toString)
         link <- lift(linkRepository.create(Link(word.word, courseId, new DateTime())))
 
       } yield link

@@ -1,18 +1,12 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.lib.concurrent.FutureMonad
-import ca.shiftfocus.krispii.core.repositories.{ ChatRepository, CourseRepository, UserRepository }
+import ca.shiftfocus.krispii.core.repositories.{ChatRepository, CourseRepository, UserRepository}
 import java.util.UUID
-
 import ca.shiftfocus.krispii.core.models._
-
 import scala.concurrent.Future
 import java.awt.Color
-
-import com.github.mauricio.async.db.Connection
 import org.joda.time.DateTime
-
 import scalaz.\/
 
 trait SchoolService extends Service[ErrorUnion#Fail] {

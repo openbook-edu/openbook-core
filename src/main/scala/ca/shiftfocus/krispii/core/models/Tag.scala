@@ -3,9 +3,6 @@ package ca.shiftfocus.krispii.core.models
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.helpers.NaturalOrderComparator
-import org.joda.time.DateTime
-import play.Logger
-import play.api.libs.functional.syntax._
 import play.api.libs.json._
 
 case class Tag(

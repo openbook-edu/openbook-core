@@ -5,11 +5,11 @@ import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import play.api.i18n.Lang
 import play.api.libs.ws.WSClient
-import play.api.{ Configuration, Logger }
+import play.api.{Configuration, Logger}
 import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.concurrent.Future
-import scalaz.{ \/, \/- }
+import scalaz.{\/, \/-}
 
 class SendyServiceDefault(
     val db: DB,
@@ -18,17 +18,17 @@ class SendyServiceDefault(
 ) extends SendyService {
 
   def subscribe(user: User, account: Account, lang: Lang): Future[\/[ErrorUnion#Fail, Unit]] = {
-    val maybeSendyUrl = configuration.getString("sendy.url")
+    val maybeSendyUrl = configuration.get[Option[String]]("sendy.url")
     val maybeSendyListId = {
       if (account.status == AccountStatus.limited) {
-        val freeListId = configuration.getString(s"sendy.free.${lang.code}.list.id")
+        val freeListId = configuration.get[Option[String]](s"sendy.free.${lang.code}.list.id")
         // If there is no free user list, use default one
         freeListId match {
           case Some(list) => Some(list)
-          case _ => configuration.getString(s"sendy.${lang.code}.list.id")
+          case _ => configuration.get[Option[String]](s"sendy.${lang.code}.list.id")
         }
       }
-      else configuration.getString(s"sendy.${lang.code}.list.id")
+      else configuration.get[Option[String]](s"sendy.${lang.code}.list.id")
     }
 
     (maybeSendyUrl, maybeSendyListId) match {
@@ -40,8 +40,8 @@ class SendyServiceDefault(
           "boolean" -> Seq("true")
         )
 
-        wsClient.url(sendyUrl + "/subscribe").withHeaders("Content-Type" -> "application/x-www-form-urlencoded").post(postBody).map { response =>
-          val result = response.body.toString
+        wsClient.url(sendyUrl + "/subscribe").withHttpHeaders("Content-Type" -> "application/x-www-form-urlencoded").post(postBody).map { response =>
+          val result = response.body
           if (result != "1") {
             Logger.error(s"[SENDY ERROR] For ${user.email}: " + result)
           }
@@ -54,6 +54,6 @@ class SendyServiceDefault(
       case _ => Logger.error(s"[SENDY ERROR] For ${user.email}: Missing configuration: sendy.url and " + s"sendy.${lang.code}.list.id")
     }
 
-    Future successful \/-()
+    Future successful \/-((): Unit)
   }
 }

@@ -1,29 +1,28 @@
 package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
-
-import ca.shiftfocus.krispii.core.error.{ ErrorUnion, RepositoryError, ServiceError }
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
+// import java.io.{PrintWriter, StringWriter}
+import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
 import ca.shiftfocus.krispii.core.models.stripe.StripePlan
-import ca.shiftfocus.krispii.core.models.{ Account, AccountStatus, PaymentLog, TaggableEntities }
+import ca.shiftfocus.krispii.core.models.{Account, AccountStatus, PaymentLog, TaggableEntities}
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import com.stripe.exception.InvalidRequestException
 import com.stripe.model._
-import com.stripe.net.{ APIResource, RequestOptions }
+import com.stripe.net.{APIResource, RequestOptions}
 import org.joda.time.DateTime
-import play.api.libs.json.{ JsObject, JsValue, Json }
+import play.api.Logger
+import play.api.libs.json.{JsObject, JsValue, Json}
+import scalaz.{-\/, \/, \/-}
 
-import collection.JavaConversions._
+import scala.collection.JavaConverters._
 import scala.collection.immutable.TreeMap
-import scala.concurrent.Future
-import scalaz.{ -\/, \/, \/- }
 import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 
 class PaymentServiceDefault(
     val db: DB,
-    val scalaCache: ScalaCachePool,
     val requestOptions: RequestOptions,
     val userRepository: UserRepository,
     val accountRepository: AccountRepository,
@@ -34,7 +33,6 @@ class PaymentServiceDefault(
 ) extends PaymentService {
 
   implicit def conn: Connection = db.pool
-  implicit def cache: ScalaCachePool = scalaCache
 
   /**
    * Get user account with subscriptions from krispii db by userId
@@ -64,6 +62,7 @@ class PaymentServiceDefault(
 
   /**
    * Create krispii user account in database
+   * TODO: on top of the limited account.status add a list of admin tags
    *
    * @param userId
    * @param status
@@ -86,14 +85,15 @@ class PaymentServiceDefault(
 
   /**
    *  Update krispii user account information in database
+   * TODO: update list of payment plan tags associated with the subscription
    *
    * @param id
-   * @param version
-   * @param status
+   * @param version How many times the account has already been updated before
+   * @param status One of the predefined strings "trial", "limited" etc.
    * @param activeUntil
-   * @param customer
-   * @param overdueStartedAt The Date when overdue period has started
-   * @param overdueEndedAt The Date when overdue period has ended
+   * @param customer The Stripe customer ID?
+   * @param overdueStartedAt The Date when overdue period has started TODO for each subscription!
+   * @param overdueEndedAt The Date when overdue period has ended TODO for each subscription!
    * @return  Account with subscriptions
    */
   def updateAccount(
@@ -109,7 +109,10 @@ class PaymentServiceDefault(
   ): Future[\/[ErrorUnion#Fail, Account]] = {
     for {
       existingAccount <- lift(accountRepository.get(id))
+      // existingAccount should already contain subscriptions - why look them up again?
+      // apparently subscriptions are not automatically updated, see below
       subscriptions <- lift(stripeRepository.listSubscriptions(existingAccount.userId))
+      // subscriptions will in most cases be empty because people subscribe through invoices!
       updatedAccount <- lift(accountRepository.update(existingAccount.copy(
         status = status,
         trialStartedAt = trialStartedAt match {
@@ -135,8 +138,10 @@ class PaymentServiceDefault(
         case None => existingAccount.overduePlanId
       }
       )))
+      // accountRepository.update has ignored subscriptions
+      _ = Logger.info(s"In updateAccount, old status for user ${existingAccount.userId} is ${existingAccount.status}, new status is to be ${status}")
       _ <- lift(tagUntagUserBasedOnStatus(updatedAccount.userId, status, Some(existingAccount.status)))
-    } yield updatedAccount.copy(subscriptions = subscriptions)
+    } yield updatedAccount.copy(subscriptions = subscriptions) // but subscriptions are returned nevertheless
   }
 
   def deleteAccount(userId: UUID): Future[\/[ErrorUnion#Fail, Account]] = {
@@ -152,19 +157,19 @@ class PaymentServiceDefault(
     try {
       val params = new java.util.HashMap[String, Object]()
 
-      val planList: IndexedSeq[JsValue] = Plan.list(params, requestOptions).getData.map(plan => {
+      val planList: IndexedSeq[JsValue] = Plan.list(params, requestOptions).getData.asScala.map(plan => {
         Json.parse(APIResource.GSON.toJson(plan))
       }).toIndexedSeq
 
       \/-(planList)
     }
     catch {
-      case e => -\/(ServiceError.ExternalService(e.toString))
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     }
   }
 
   /**
-   * Get a plan info from stipe by id
+   * Get a plan info from stripe by id
    *
    * @param planId
    * @return
@@ -176,7 +181,7 @@ class PaymentServiceDefault(
       \/-(plan)
     }
     catch {
-      case e => -\/(ServiceError.ExternalService(e.toString))
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     }
   }
 
@@ -269,7 +274,7 @@ class PaymentServiceDefault(
           \/-(result)
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
     } yield customer
@@ -327,7 +332,7 @@ class PaymentServiceDefault(
           \/-(result)
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
     } yield updatedCustomer
@@ -381,7 +386,7 @@ class PaymentServiceDefault(
       \/-(result)
     }
     catch {
-      case e => -\/(ServiceError.ExternalService(e.toString))
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     }
   }
 
@@ -401,7 +406,7 @@ class PaymentServiceDefault(
           Future successful \/-(account.customer.getOrElse(Json.parse("{}")))
         }
         catch {
-          case error => Future successful -\/(ServiceError.ExternalService(error.toString))
+          case error: Throwable => Future successful -\/(ServiceError.ExternalService(error.toString))
         }
       )
       updatedAccount <- lift(accountRepository.update(account.copy(
@@ -431,7 +436,7 @@ class PaymentServiceDefault(
           \/-(subscription)
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
       _ <- lift(stripeRepository.createSubscription(userId, subscription))
@@ -451,15 +456,15 @@ class PaymentServiceDefault(
    */
   def updateSubscribtionPlan(userId: UUID, subscriptionId: String, newPlanId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
-      updatedSubsctiption <- lift(
+      updatedSubscription <- lift(
         Future successful (try {
           val params = new java.util.HashMap[String, Object]()
           params.put("plan", newPlanId)
 
           val subscription: Subscription = Subscription.retrieve(subscriptionId, requestOptions)
           val currentPlan: Plan = subscription.getPlan
-          val updatedSubsctiption = subscription.update(params, requestOptions)
-          val newPlan: Plan = updatedSubsctiption.getPlan
+          val updatedSubscription = subscription.update(params, requestOptions)
+          val newPlan: Plan = updatedSubscription.getPlan
 
           // If we switch plans and
           // If plans intervals match then we should manually create an invoice and force payment
@@ -472,14 +477,14 @@ class PaymentServiceDefault(
             Invoice.create(invoiceParams, requestOptions)
           }
 
-          \/-(updatedSubsctiption)
+          \/-(updatedSubscription)
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
-      _ <- lift(stripeRepository.updateSubscription(userId, updatedSubsctiption.getId, Json.parse(APIResource.GSON.toJson(updatedSubsctiption))))
-    } yield Json.parse(APIResource.GSON.toJson(updatedSubsctiption))
+      _ <- lift(stripeRepository.updateSubscription(userId, updatedSubscription.getId, Json.parse(APIResource.GSON.toJson(updatedSubscription))))
+    } yield Json.parse(APIResource.GSON.toJson(updatedSubscription))
   }
 
   /**
@@ -491,8 +496,8 @@ class PaymentServiceDefault(
    */
   def updateSubscription(userId: UUID, subscriptionId: String, subscription: JsValue): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
-      updateddSubsctiption <- lift(stripeRepository.updateSubscription(userId, subscriptionId, subscription))
-    } yield updateddSubsctiption
+      updatedSubscription <- lift(stripeRepository.updateSubscription(userId, subscriptionId, subscription))
+    } yield updatedSubscription
   }
 
   /**
@@ -506,12 +511,12 @@ class PaymentServiceDefault(
    */
   def cancelSubscription(userId: UUID, subscriptionId: String, atPeriodEnd: Boolean): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
-      canceledSubsctiption <- lift(
+      canceledSubscription <- lift(
         Future successful (try {
           val subscription: Subscription = Subscription.retrieve(subscriptionId, requestOptions)
-          val canceledSubsctiption = {
+          val canceledSubscription = {
             if (atPeriodEnd) {
-              var params = new java.util.HashMap[String, Object]()
+              val params = new java.util.HashMap[String, Object]()
               params.put("at_period_end", "true")
               subscription.cancel(params, requestOptions)
             }
@@ -520,23 +525,23 @@ class PaymentServiceDefault(
             }
           }
 
-          \/-(canceledSubsctiption)
+          \/-(canceledSubscription)
         }
         catch {
-          case e => {
+          case e: Throwable => {
             -\/(ServiceError.ExternalService(e.toString))
           }
         })
       )
       _ <- (
         if (atPeriodEnd) {
-          lift(stripeRepository.updateSubscription(userId, canceledSubsctiption.getId, Json.parse(APIResource.GSON.toJson(canceledSubsctiption))))
+          lift(stripeRepository.updateSubscription(userId, canceledSubscription.getId, Json.parse(APIResource.GSON.toJson(canceledSubscription))))
         }
         else {
-          lift(stripeRepository.deleteSubscription(userId, canceledSubsctiption.getId))
+          lift(stripeRepository.deleteSubscription(userId, canceledSubscription.getId))
         }
       )
-    } yield Json.parse(APIResource.GSON.toJson(canceledSubsctiption))
+    } yield Json.parse(APIResource.GSON.toJson(canceledSubscription))
   }
 
   /**
@@ -548,8 +553,8 @@ class PaymentServiceDefault(
    */
   def deleteSubscription(userId: UUID, subscriptionId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
-      deletedSubsctiption <- lift(stripeRepository.deleteSubscription(userId, subscriptionId))
-    } yield deletedSubsctiption
+      deletedSubscription <- lift(stripeRepository.deleteSubscription(userId, subscriptionId))
+    } yield deletedSubscription
   }
 
   def fetchUpcomingInvoiceFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, Invoice]] = {
@@ -565,7 +570,7 @@ class PaymentServiceDefault(
       case e: InvalidRequestException if (e.toString.contains("No upcoming invoices for customer")) => {
         -\/(RepositoryError.NoResults("core.services.PaymentServiceDefault.fetchUpcomingInvoiceFromStripe.no.results"))
       }
-      case e => -\/(ServiceError.ExternalService(e.toString))
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     })
   }
 
@@ -575,12 +580,12 @@ class PaymentServiceDefault(
       params.put("customer", customerId)
 
       val invoiceItemList: InvoiceItemCollection = InvoiceItem.list(params, requestOptions)
-      val result = invoiceItemList.getData.toList
+      val result = invoiceItemList.getData.asScala.toList
 
       \/-(result)
     }
     catch {
-      case e => -\/(ServiceError.ExternalService(e.toString))
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     })
   }
 
@@ -609,7 +614,7 @@ class PaymentServiceDefault(
           \/-(invoiceItem)
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
     } yield Json.parse(APIResource.GSON.toJson(invoiceItem))
@@ -636,7 +641,7 @@ class PaymentServiceDefault(
           }
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
     } yield paymentInfo
@@ -692,7 +697,7 @@ class PaymentServiceDefault(
           \/-(result)
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
     } yield updatedCustomer
@@ -708,8 +713,6 @@ class PaymentServiceDefault(
     for {
       updatedCustomer <- lift(
         Future successful (try {
-          val params = new java.util.HashMap[String, Object]()
-
           val customer: Customer = Customer.retrieve(customerId, requestOptions)
           // Get default payment source and delete it
           val defaultSource = customer.getSources().retrieve(customer.getDefaultSource, requestOptions)
@@ -725,7 +728,7 @@ class PaymentServiceDefault(
           \/-(result)
         }
         catch {
-          case e => -\/(ServiceError.ExternalService(e.toString))
+          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
         })
       )
     } yield updatedCustomer
@@ -744,7 +747,7 @@ class PaymentServiceDefault(
       \/-(subscription)
     }
     catch {
-      case e => -\/(ServiceError.ExternalService(e.toString))
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     }
   }
 
@@ -758,15 +761,9 @@ class PaymentServiceDefault(
     for {
       hasAccess <- lift(accountRepository.getByUserId(userId).map {
         case \/-(account) => \/-(
-          if (account.status == AccountStatus.free ||
+          account.status == AccountStatus.free ||
             account.status == AccountStatus.limited ||
-            (account.activeUntil.isDefined && account.activeUntil.get.isAfterNow)) // Active until date is greater then now
-            {
-            true
-          }
-          else {
-            false
-          }
+            (account.activeUntil.isDefined && account.activeUntil.get.isAfterNow) // Active until date is greater then now
         )
         case -\/(error: RepositoryError.NoResults) => \/-(false)
         case -\/(error) => -\/(error)
@@ -787,7 +784,7 @@ class PaymentServiceDefault(
       \/-(event)
     }
     catch {
-      case e => -\/(ServiceError.ExternalService(e.toString))
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     }
   }
 
@@ -836,56 +833,83 @@ class PaymentServiceDefault(
     )
   }
 
+  /**
+   * Remove subscription tags from users who have lost their subscription status.
+   *
+   * Putting user on limited, inactive or overdue status leads to removal of ALL admin tags.
+   * This would be a problem if the user was member of more than one organization with different permissions!
+   * TODO: each subscription/group membership has its own expiry status.
+   *
+   * Putting user on free, group or trial status leads to automatic addition of the "Trial" tag.
+   *
+   * @param userId
+   * @param newStatus
+   * @param oldStatus
+   * @return: Nothing or error message
+   */
   private def tagUntagUserBasedOnStatus(userId: UUID, newStatus: String, oldStatus: Option[String] = None): Future[\/[ErrorUnion#Fail, Unit]] = {
+    // val sw = new StringWriter
+    // val st = new RuntimeException
+    // st.printStackTrace(new PrintWriter(sw))
+    // Logger.debug(sw.toString)
+    Logger.info(s"In tagUntagUserBasedOnStatus, old status for user ${userId} is ${oldStatus}, new status is ${newStatus}")
+    /* Logger.debug(s"In tagUntagUserBasedOnStatus, old status for user ${userId} is ${oldStatus}, new status is ${newStatus} when called in stack..." +
+        Thread.currentThread.getStackTrace.filter(trElem => {
+        (trElem.toString contains "krispii")
+      }).mkString("\n...", "\n...", "")) */
     newStatus match {
       // Do nothing if status hasn't been changed
-      case someNewStatus if oldStatus.isDefined && oldStatus.get == someNewStatus => Future successful \/-()
+      case someNewStatus if oldStatus.isDefined && oldStatus.get == someNewStatus => Future successful \/-((): Unit)
       // Untag user when switch to these statuses
       case AccountStatus.limited |
         AccountStatus.inactive |
-        AccountStatus.overdue |
-        AccountStatus.paid =>
-        // We don't need to do anything in case of these statuses:
-        //         AccountStatus.canceled |
-        //         AccountStatus.onhold |
-        //         AccountStatus.error |
+        AccountStatus.overdue =>
         {
-          (for {
-            userTags <- lift(tagRepository.listByEntity(userId, TaggableEntities.user))
-            tag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // krispii tag, use id, because we can change tag names
-            _ <- lift {
-              if (userTags.contains(tag)) {
-                tagRepository.untag(userId, TaggableEntities.user, tag.name, tag.lang).map {
-                  case \/-(success) => \/-(success)
-                  case -\/(error: RepositoryError.NoResults) => \/-()
-                  case -\/(error) => -\/(error)
-                }
+          // | AccountStatus.paid =>
+          // We don't need to do anything in case of these statuses:
+          //         AccountStatus.canceled |
+          //         AccountStatus.onhold |
+          //         AccountStatus.error |
+          val futureResult = for {
+            removeTags <- lift(tagRepository.listAdminByEntity(userId, TaggableEntities.user))
+            _ = Logger.info(s"Admin tags to be removed from user with id ${userId} because subscription or trial expired: ${removeTags}")
+            _ <- lift(serializedT(removeTags)(tag => {
+              Logger.info(s"Removing tag ${tag.name}")
+              tagRepository.untag(userId, TaggableEntities.user, tag.name, tag.lang).map {
+                case \/-(success) => \/-(success)
+                case -\/(error: RepositoryError.NoResults) => \/-((): Unit)
+                case -\/(error) => -\/(error)
               }
-              else Future successful \/-(Unit)
-            }
-          } yield ()).run
+            }))
+          } yield ()
+          futureResult.run
         }
-      // Tag user when switch to these statuses
+      /* ProjectBuilderTag, trialTag, krispiiTag, and/or sexEdTag are given in krispii-api Payment.scala tagUserAccordingPlan
+         (for stripe payment) resp. copyOrgAdminSettings (for members recruited by an orgadmin).
+         trialTag need only be given to free and trial, but it won't hurt to give it to paid.group, too. */
       case AccountStatus.free |
         AccountStatus.group |
         AccountStatus.trial =>
         {
-          (for {
+          val futureResult = for {
             userTags <- lift(tagRepository.listByEntity(userId, TaggableEntities.user))
-            tag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // krispii tag, use id, because we can change tag names
+            // tag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // krispii tag, use id, because we can change tag names
+            trialTag <- lift(tagRepository.find(UUID.fromString("29479566-3a50-4d36-bc20-f45ff4d4b2d4"))) // all users get this tag to access trial material
             _ <- lift {
-              if (!userTags.contains(tag)) {
-                tagRepository.tag(userId, TaggableEntities.user, tag.name, tag.lang).map {
+              if (!userTags.contains(trialTag)) {
+                Logger.info(s"Trying to give trial tag to user with ID ${userId}")
+                tagRepository.tag(userId, TaggableEntities.user, trialTag.name, trialTag.lang).map {
                   case \/-(success) => \/-(success)
-                  case -\/(RepositoryError.PrimaryKeyConflict) => \/-()
+                  case -\/(RepositoryError.PrimaryKeyConflict) => \/-((): Unit)
                   case -\/(error) => -\/(error)
                 }
               }
-              else Future successful \/-(Unit)
+              else Future successful \/-((): Unit)
             }
-          } yield ()).run
+          } yield ()
+          futureResult.run
         }
-      case _ => Future successful \/-(Unit)
+      case _ => Future successful \/-((): Unit)
     }
   }
 }

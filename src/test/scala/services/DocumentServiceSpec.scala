@@ -8,8 +8,8 @@
 //import org.joda.time.DateTime
 //import org.scalatest._
 //import Matchers._
-//import ws.kahn.ot._
-//import ws.kahn.ot.exceptions._
+//import ca.shiftfocus.otlib._
+//import ca.shiftfocus.otlib.exceptions._
 //import ca.shiftfocus.krispii.core.services.datasource.DB
 //import scala.concurrent.{ Await, Future }
 //import scala.concurrent.duration.Duration

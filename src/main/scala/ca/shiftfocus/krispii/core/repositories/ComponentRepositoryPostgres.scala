@@ -1,25 +1,19 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
-import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
-import com.github.mauricio.async.db.{ Connection, ResultSet, RowData }
-import play.api.Logger
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
 
-import scala.concurrent.Future
+import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.models._
+import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
+import play.api.Logger
 import play.api.libs.json.Json
 
-import scalacache.ScalaCache
-import scalaz.{ -\/, \/, \/- }
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scalaz.{-\/, \/, \/-}
 
-class ComponentRepositoryPostgres()
-    extends ComponentRepository with PostgresRepository[Component] {
+class ComponentRepositoryPostgres extends ComponentRepository with PostgresRepository[Component] {
 
   override val entityName = "Component"
 
@@ -27,6 +21,7 @@ class ComponentRepositoryPostgres()
     row("type").asInstanceOf[String] match {
       case "audio" => constructAudio(row)
       case "google" => constructGoogle(row)
+      case "microsoft" => constructMicrosoft(row)
       case "image" => constructImage(row)
       case "text" => constructText(row)
       case "video" => constructVideo(row)
@@ -34,6 +29,31 @@ class ComponentRepositoryPostgres()
       case "rubric" => constructRubric(row)
       case "book" => constructBook(row)
     }
+  }
+
+  private def constructMicrosoft(row: RowData): MicrosoftComponent = {
+    MicrosoftComponent(
+      row("id").asInstanceOf[UUID],
+      row("version").asInstanceOf[Long],
+      row("owner_id").asInstanceOf[UUID],
+      row("title").asInstanceOf[String],
+      row("questions").asInstanceOf[String],
+      row("things_to_think_about").asInstanceOf[String],
+      Json.parse(row("microsoft_data").asInstanceOf[String]).as[MediaData],
+      row("ord").asInstanceOf[Int],
+      row("is_private").asInstanceOf[Boolean],
+      row("description").asInstanceOf[String],
+      Option(row("parent_id").asInstanceOf[UUID]) match {
+        case Some(parentId) => Some(parentId)
+        case _ => None
+      },
+      Option(row("parent_version").asInstanceOf[Long]) match {
+        case Some(parentVersion) => Some(parentVersion)
+        case _ => None
+      },
+      row("created_at").asInstanceOf[DateTime],
+      row("updated_at").asInstanceOf[DateTime]
+    )
   }
 
   private def constructGoogle(row: RowData): GoogleComponent = {
@@ -256,7 +276,8 @@ class ComponentRepositoryPostgres()
        |  video_components.height,
        |  audio_components.audio_data,
        |  image_components.image_data,
-       |  google_components.google_data
+       |  google_components.google_data,
+       |  microsoft_components.microsoft_data
      """.stripMargin
 
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
@@ -272,6 +293,7 @@ class ComponentRepositoryPostgres()
       |LEFT JOIN  audio_components ON $Table.id = audio_components.component_id
       |LEFT JOIN  image_components ON $Table.id = image_components.component_id
       |LEFT JOIN  google_components ON $Table.id = google_components.component_id
+      |LEFT JOIN  microsoft_components ON $Table.id = microsoft_components.component_id
      """.stripMargin
 
   // -- Select queries -----------------------------------------------------------------------------------------------
@@ -398,6 +420,17 @@ class ComponentRepositoryPostgres()
       |           FROM c
       |           RETURNING google_data)
       |SELECT ${CommonFieldsWithTable("c")}, g.google_data
+      |FROM c, g
+  """.stripMargin
+
+  val InsertMicrosoft =
+    s"""
+      |WITH c AS ($Insert),
+      |     g AS (INSERT INTO microsoft_components (component_id, microsoft_data)
+      |           SELECT id as component_id, ? as microsoft_data
+      |           FROM c
+      |           RETURNING microsoft_data)
+      |SELECT ${CommonFieldsWithTable("c")}, g.microsoft_data
       |FROM c, g
   """.stripMargin
 
@@ -571,6 +604,17 @@ class ComponentRepositoryPostgres()
       |          g.google_data
     """.stripMargin
 
+  val UpdateMicrosoft =
+    s"""
+      |WITH component AS ($Update)
+      |UPDATE microsoft_components as g
+      |SET microsoft_data = ?
+      |FROM component
+      |WHERE component_id = component.id
+      |RETURNING $CommonFields,
+      |          g.microsoft_data
+    """.stripMargin
+
   // -- Delete queries -----------------------------------------------------------------------------------------------
 
   val RemoveFromPart =
@@ -593,6 +637,7 @@ class ComponentRepositoryPostgres()
       | audio_components,
       | image_components,
       | google_components,
+      | microsoft_components,
       | text_components,
       | video_components,
       | generic_html_components,
@@ -632,7 +677,7 @@ class ComponentRepositoryPostgres()
    * @param part the part to search in
    * @return an array of components
    */
-  override def list(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+  override def list(part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     Logger.debug(s"inside component.list ${part.toString}")
     queryList(SelectByPartId, Array[Any](part.id))
   }
@@ -643,7 +688,7 @@ class ComponentRepositoryPostgres()
    * @param project the project to search within
    * @return an array of components
    */
-  override def list(project: Project)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+  override def list(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     queryList(SelectByProjectId, Array[Any](project.id))
   }
 
@@ -653,7 +698,7 @@ class ComponentRepositoryPostgres()
    * @param teacher the owner of components
    * @return an array of components
    */
-  override def list(teacher: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+  override def list(teacher: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     queryList(SelectByOwner, Array[Any](teacher.id))
   }
 
@@ -674,7 +719,7 @@ class ComponentRepositoryPostgres()
    * @param id the 128-bit UUID, as a byte array, to search for.
    * @return an optional RowData object containing the results
    */
-  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
+  override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Component]] = {
     queryOne(SelectOne, Array[Any](id))
   }
 
@@ -685,7 +730,7 @@ class ComponentRepositoryPostgres()
    * @param part the part to add this component to
    * @return a boolean indicating whether the operation was successful
    */
-  override def addToPart(component: Component, part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def addToPart(component: Component, part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       _ <- lift(queryNumRows(AddToPart, Array[Any](component.id, part.id, new DateTime))(_ == 1).map {
         case \/-(true) => \/-(())
@@ -702,7 +747,7 @@ class ComponentRepositoryPostgres()
    * @param part the part to remove this component from
    * @return a boolean indicating whether the operation was successful
    */
-  override def removeFromPart(component: Component, part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def removeFromPart(component: Component, part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       _ <- lift(queryNumRows(RemoveFromPart, Array[Any](component.id, part.id))(_ == 1).map {
         case \/-(true) => \/-(())
@@ -719,7 +764,7 @@ class ComponentRepositoryPostgres()
    * @param conn
    * @return
    */
-  override def removeFromPart(part: Part)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
+  override def removeFromPart(part: Part)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Component]]] = {
     (for {
       componentsInPart <- lift(list(part))
       _ <- predicate(componentsInPart.nonEmpty)(RepositoryError.NoResults(s"Either the part ${part.id} doesn't have components or the part doesn't exist"))
@@ -773,25 +818,29 @@ class ComponentRepositoryPostgres()
       )
       case videoComponent: VideoComponent => commonData ++ Array[Any](
         Component.Video,
-        Json.toJson(videoComponent.mediaData),
+        Json.toJson(videoComponent.mediaData).toString(),
         videoComponent.width,
         videoComponent.height
       )
       case audioComponent: AudioComponent => commonData ++ Array[Any](
         Component.Audio,
-        Json.toJson(audioComponent.mediaData)
+        Json.toJson(audioComponent.mediaData).toString()
       )
       case imageComponent: ImageComponent => commonData ++ Array[Any](
         Component.Image,
-        Json.toJson(imageComponent.mediaData)
+        Json.toJson(imageComponent.mediaData).toString()
       )
       case googleComponent: GoogleComponent => commonData ++ Array[Any](
         Component.Google,
-        Json.toJson(googleComponent.mediaData)
+        Json.toJson(googleComponent.mediaData).toString()
+      )
+      case microsoftComponent: MicrosoftComponent => commonData ++ Array[Any](
+        Component.Microsoft,
+        Json.toJson(microsoftComponent.mediaData).toString()
       )
       case bookComponent: BookComponent => commonData ++ Array[Any](
         Component.Book,
-        Json.toJson(bookComponent.mediaData)
+        Json.toJson(bookComponent.mediaData).toString()
       )
       case _ => throw new Exception("I don't know how you did this, but you sent me a component type that doesn't exist.")
     }
@@ -804,6 +853,7 @@ class ComponentRepositoryPostgres()
       case audioComponent: AudioComponent => InsertAudio
       case imageComponent: ImageComponent => InsertImage
       case googleComponent: GoogleComponent => InsertGoogle
+      case microsoftComponent: MicrosoftComponent => InsertMicrosoft
       case bookComponent: BookComponent => InsertBook
     }
 
@@ -817,7 +867,7 @@ class ComponentRepositoryPostgres()
    * @param component the component to be updated
    * @return the updated component
    */
-  override def update(component: Component)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
+  override def update(component: Component)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Component]] = {
     // Common properties.
     val commonData = Seq[Any](
       component.version + 1,
@@ -847,21 +897,24 @@ class ComponentRepositoryPostgres()
         rubricComponent.rubricContent
       )
       case videoComponent: VideoComponent => commonData ++ Array[Any](
-        Json.toJson(videoComponent.mediaData),
+        Json.toJson(videoComponent.mediaData).toString(),
         videoComponent.width,
         videoComponent.height
       )
       case audioComponent: AudioComponent => commonData ++ Array[Any](
-        Json.toJson(audioComponent.mediaData)
+        Json.toJson(audioComponent.mediaData).toString()
       )
       case imageComponent: ImageComponent => commonData ++ Array[Any](
-        Json.toJson(imageComponent.mediaData)
+        Json.toJson(imageComponent.mediaData).toString()
       )
       case googleComponent: GoogleComponent => commonData ++ Array[Any](
-        Json.toJson(googleComponent.mediaData)
+        Json.toJson(googleComponent.mediaData).toString()
+      )
+      case microsoftComponent: MicrosoftComponent => commonData ++ Array[Any](
+        Json.toJson(microsoftComponent.mediaData).toString()
       )
       case bookComponent: BookComponent => commonData ++ Array[Any](
-        Json.toJson(bookComponent.mediaData)
+        Json.toJson(bookComponent.mediaData).toString()
       )
       case _ => throw new Exception("I don't know how you did this, but you sent me a component type that doesn't exist.")
     }
@@ -874,6 +927,7 @@ class ComponentRepositoryPostgres()
       case audioComponent: AudioComponent => UpdateAudio
       case imageComponent: ImageComponent => UpdateImage
       case googleComponent: GoogleComponent => UpdateGoogle
+      case microsoftComponent: MicrosoftComponent => UpdateMicrosoft
       case bookComponent: BookComponent => UpdateBook
     }
 
@@ -888,7 +942,7 @@ class ComponentRepositoryPostgres()
    * @param conn
    * @return
    */
-  override def delete(component: Component)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Component]] = {
+  override def delete(component: Component)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Component]] = {
     queryOne(Delete, Seq[Any](component.id, component.version))
   }
 }

@@ -1,13 +1,5 @@
 package ca.shiftfocus.krispii.core.lib
 
-import ca.shiftfocus.krispii.core.error.{ ErrorUnion, ServiceError }
-
-import scala.concurrent.Future
-import scalaz.{ -\/, \/, \/- }
-
-/**
- * Created by aostapenco on 7/22/15.
- */
 object InputUtils {
   /**
    * Validate e-mail address.

@@ -5,10 +5,8 @@ import java.util.UUID
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import play.api.libs.json.JodaWrites._
 
-/**
- * Created by ryanez on 13/04/16.
- */
 case class RubricComponent(
   id: UUID = UUID.randomUUID,
   version: Long = 1L,

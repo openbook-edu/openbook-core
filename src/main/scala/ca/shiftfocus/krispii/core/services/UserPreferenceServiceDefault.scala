@@ -1,13 +1,11 @@
 package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
-
 import ca.shiftfocus.krispii.core.error.ErrorUnion
 import ca.shiftfocus.krispii.core.models.UserPreference
 import ca.shiftfocus.krispii.core.repositories.UserPreferenceRepository
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
-
 import scala.concurrent.Future
 import scalaz.\/
 

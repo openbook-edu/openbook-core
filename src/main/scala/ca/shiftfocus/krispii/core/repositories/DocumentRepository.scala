@@ -1,6 +1,5 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.models.document.Revision
 import ca.shiftfocus.krispii.core.models.document.Document
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import java.util.UUID

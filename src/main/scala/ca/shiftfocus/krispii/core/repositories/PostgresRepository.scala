@@ -1,15 +1,13 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.lib.exceptions.ExceptionWriter
-import ca.shiftfocus.krispii.core.models.ComponentScratchpad
+import play.api.Logger
 import com.github.mauricio.async.db.exceptions.ConnectionStillRunningQueryException
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
-import com.github.mauricio.async.db.{ Connection, RowData, ResultSet }
-
+import com.github.mauricio.async.db.{Connection, RowData, ResultSet}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.{ -\/, \/-, \/ }
+import scalaz.{-\/, \/-, \/}
 
 trait PostgresRepository[A] {
 
@@ -26,6 +24,12 @@ trait PostgresRepository[A] {
    * @return
    */
   protected def queryOne(queryText: String, parameters: Seq[Any] = Seq.empty[Any])(implicit conn: Connection): Future[\/[RepositoryError.Fail, A]] = {
+    // somewhat ugly line that puts all information into one Logger entry
+    Logger.debug(s"Parameters ${parameters} for queryOne when called in stack...\n" +
+      Thread.currentThread.getStackTrace.filter(trElem => {
+        (trElem.toString contains "krispii") &&
+          !(trElem.toString contains "queryOne")
+      }).mkString("...", "\n...", ""))
     val fRes = if (parameters.nonEmpty) {
       conn.sendPreparedStatement(queryText, parameters)
     }
@@ -68,6 +72,17 @@ trait PostgresRepository[A] {
    */
   protected def queryList(queryText: String, parameters: Seq[Any] = Seq.empty[Any]) // format: OFF
                          (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[A]]] = { // format: ON
+    // somewhat ugly line that puts all information into one Logger entry
+    Logger.debug(s"Parameters ${parameters} for queryList when called in stack...\n" +
+      Thread.currentThread.getStackTrace.filter(trElem => {
+        (trElem.toString contains "krispii") &&
+          !(trElem.toString contains "queryList")
+      }).mkString("...", "\n...", ""))
+
+    /*Thread.currentThread.getStackTrace.foreach {
+      trElem => if (trElem.toString contains "krispii") Logger.debug(s"  $trElem")
+    } */
+
     val fRes = if (parameters.nonEmpty) {
       conn.sendPreparedStatement(queryText, parameters)
     }

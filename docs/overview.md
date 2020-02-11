@@ -11,7 +11,7 @@ The repository layer maps entities into the database and back. The repository la
 
 Method signatures look like this:
 
-    def list(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, A]]
+    def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, A]]
       
 Future goal: clean up and simplify method signatures. Database connection and optional cache should be passed in via the reader monad, and for easier composition the methods should return a monad transformer like (with scalaz) `EitherT[Future, RepoFail, A]`, (with cats) `XorT[Future, RepoFail, A]`, or switch to scalaz's Task like `Task[A]`. Have a look at lceeq-accounts type aliases:
 

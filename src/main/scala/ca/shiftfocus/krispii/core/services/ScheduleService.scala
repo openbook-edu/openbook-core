@@ -1,7 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.repositories.{ CourseScheduleExceptionRepository, CourseScheduleRepository }
+import ca.shiftfocus.krispii.core.repositories.{CourseScheduleExceptionRepository, CourseScheduleRepository}
 import java.util.UUID
 import ca.shiftfocus.krispii.core.models._
 import org.joda.time.LocalTime
@@ -39,5 +39,3 @@ trait ScheduleService extends Service[ErrorUnion#Fail] {
   def isCourseScheduledForUser(courseId: UUID, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]]
   def isCourseScheduledForUser(course: Course, userId: UUID, currentDay: LocalDate, currentTime: LocalTime): Future[\/[ErrorUnion#Fail, Boolean]]
 }
-
-/// Future.sequence(roleNames.map { roleName => roleRepository.addToUser(user, roleName) } )

@@ -1,14 +1,12 @@
 package ca.shiftfocus.krispii.core.models.document
 
 import java.security.MessageDigest
-
-import ca.shiftfocus.krispii.core.models.User
 import java.util.UUID
-import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
-import ws.kahn.ot._
+import ca.shiftfocus.otlib._
+import play.api.libs.json.JodaWrites._
 
 case class Document(
     id: UUID = UUID.randomUUID,

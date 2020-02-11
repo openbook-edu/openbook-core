@@ -6,6 +6,7 @@ import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json.Writes._
 import play.api.libs.json._
+import play.api.libs.json.JodaWrites._
 
 case class GoogleComponent(
     id: UUID = UUID.randomUUID,
@@ -42,10 +43,6 @@ case class GoogleComponent(
 }
 
 object GoogleComponent {
-
-  val SoundCloud = "sound_cloud"
-  val S3 = "s3"
-
   implicit val googleComponentWrites: Writes[GoogleComponent] = (
     (__ \ "id").write[UUID] and
     (__ \ "version").write[Long] and

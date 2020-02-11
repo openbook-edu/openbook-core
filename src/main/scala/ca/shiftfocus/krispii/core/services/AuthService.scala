@@ -1,19 +1,14 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.repositories.{ CourseRepository, RoleRepository, SessionRepository, UserRepository }
+import ca.shiftfocus.krispii.core.repositories.{RoleRepository, SessionRepository, UserRepository}
 import java.util.UUID
-
-import play.api.i18n.{ Lang, MessagesApi }
-
+import play.api.i18n.{Lang, MessagesApi}
 import scala.concurrent.Future
-import scalacache.ScalaCache
 import scalaz.\/
 
 trait AuthService extends Service[ErrorUnion#Fail] {
-  val scalaCache: ScalaCachePool
   val userRepository: UserRepository
   val roleRepository: RoleRepository
   val sessionRepository: SessionRepository
@@ -118,14 +113,16 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     hostname: Option[String]
   )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]]
 
-  def createGoogleUser(
+  def createOpenIdUser(
     email: String,
     givenname: String,
-    surname: String
+    surname: String,
+    accountType: String
   ): Future[\/[ErrorUnion#Fail, User]]
 
-  def updateToGoogleUser(
-    email: String
+  def updateUserAccountType(
+    email: String,
+    newAccountType: String
   ): Future[\/[ErrorUnion#Fail, User]]
 
   /**

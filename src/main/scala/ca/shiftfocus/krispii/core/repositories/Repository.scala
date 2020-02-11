@@ -3,15 +3,7 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.lib.concurrent.Lifting
 import java.util.UUID
-import com.typesafe.config.ConfigFactory
-import scalacache._
-import scalacache.redis._
 import scala.concurrent.duration._
-import scala.concurrent.Future
-import scalacache.ScalaCache
-import scalaz.{ -\/, \/ }
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.util.Random
 
 trait Repository extends Lifting[RepositoryError.Fail] {
   val ttl = Some(15.minutes)

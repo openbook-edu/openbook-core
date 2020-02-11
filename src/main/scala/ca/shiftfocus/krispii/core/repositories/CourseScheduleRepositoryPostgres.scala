@@ -1,20 +1,19 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
-import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import java.util.UUID
-import com.github.mauricio.async.db.{ ResultSet, RowData, Connection }
-import scala.concurrent.ExecutionContext.Implicits.global
-import org.joda.time.DateTime
-import org.joda.time.LocalTime
-import org.joda.time.LocalDate
-import scala.concurrent.Future
-import scalacache.ScalaCache
-import scalaz.{ \/-, \/, -\/ }
 
-class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with PostgresRepository[CourseSchedule] {
+import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.models._
+import com.github.mauricio.async.db.{Connection, RowData}
+import org.joda.time.{DateTime, LocalDate, LocalTime}
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
+import scalaz.{-\/, \/, \/-}
+
+class CourseScheduleRepositoryPostgres(
+    val cacheRepository: CacheRepository
+) extends CourseScheduleRepository with PostgresRepository[CourseSchedule] {
 
   override val entityName = "CourseSchedule"
 
@@ -85,13 +84,13 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
   /**
    * List all schedules for a given course
    */
-  override def list(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[CourseSchedule]]] = {
-    cache.getCached[IndexedSeq[CourseSchedule]](cacheSchedulesKey(course.id)).flatMap {
+  override def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[CourseSchedule]]] = {
+    cacheRepository.cacheSeqCourseSchedule.getCached(cacheSchedulesKey(course.id)).flatMap {
       case \/-(schedules) => Future successful \/-(schedules)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           schedules <- lift(queryList(SelectByCourseId, Seq[Any](course.id)))
-          _ <- lift(cache.putCache[IndexedSeq[CourseSchedule]](cacheSchedulesKey(course.id))(schedules, ttl))
+          _ <- lift(cacheRepository.cacheSeqCourseSchedule.putCache(cacheSchedulesKey(course.id))(schedules, ttl))
         } yield schedules
       case -\/(error) => Future successful -\/(error)
     }
@@ -104,13 +103,13 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
    * @param conn An implicit connection object. Can be used in a transactional chain.
    * @return an optional task if one was found
    */
-  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
-    cache.getCached[CourseSchedule](cacheScheduleKey(id)).flatMap {
+  override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
+    cacheRepository.cacheCourseSchedule.getCached(cacheScheduleKey(id)).flatMap {
       case \/-(schedules) => Future successful \/-(schedules)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           schedule <- lift(queryOne(SelectOne, Seq[Any](id)))
-          _ <- lift(cache.putCache[CourseSchedule](cacheScheduleKey(id))(schedule, ttl))
+          _ <- lift(cacheRepository.cacheCourseSchedule.putCache(cacheScheduleKey(id))(schedule, ttl))
         } yield schedule
       case -\/(error) => Future successful -\/(error)
     }
@@ -123,7 +122,7 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
    * @param courseSchedule The course to be inserted
    * @return the new course
    */
-  override def insert(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
+  override def insert(courseSchedule: CourseSchedule)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
     for {
       newSchedule <- lift(queryOne(Insert, Seq[Any](
         courseSchedule.id,
@@ -136,8 +135,8 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
         courseSchedule.endTime,
         courseSchedule.description
       )))
-      _ <- lift(cache.removeCached(cacheScheduleKey(newSchedule.id)))
-      _ <- lift(cache.removeCached(cacheSchedulesKey(newSchedule.courseId)))
+      _ <- lift(cacheRepository.cacheCourseSchedule.removeCached(cacheScheduleKey(newSchedule.id)))
+      _ <- lift(cacheRepository.cacheSeqCourseSchedule.removeCached(cacheSchedulesKey(newSchedule.courseId)))
     } yield newSchedule
   }
 
@@ -147,7 +146,7 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
    * @param courseSchedule The courseSchedule to be updated.
    * @return the updated course
    */
-  override def update(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
+  override def update(courseSchedule: CourseSchedule)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
     for {
       updated <- lift(queryOne(Update, Seq[Any](
         courseSchedule.courseId,
@@ -160,8 +159,8 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
         courseSchedule.id,
         courseSchedule.version
       )))
-      _ <- lift(cache.removeCached(cacheScheduleKey(updated.id)))
-      _ <- lift(cache.removeCached(cacheSchedulesKey(updated.courseId)))
+      _ <- lift(cacheRepository.cacheCourseSchedule.removeCached(cacheScheduleKey(updated.id)))
+      _ <- lift(cacheRepository.cacheSeqCourseSchedule.removeCached(cacheSchedulesKey(updated.courseId)))
     } yield updated
   }
 
@@ -171,11 +170,11 @@ class CourseScheduleRepositoryPostgres extends CourseScheduleRepository with Pos
    * @param courseSchedule The course to delete.
    * @return A boolean indicating whether the operation was successful.
    */
-  override def delete(courseSchedule: CourseSchedule)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
+  override def delete(courseSchedule: CourseSchedule)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
     for {
       deleted <- lift(queryOne(Delete, Seq[Any](courseSchedule.id, courseSchedule.version)))
-      _ <- lift(cache.removeCached(cacheScheduleKey(deleted.id)))
-      _ <- lift(cache.removeCached(cacheSchedulesKey(deleted.courseId)))
+      _ <- lift(cacheRepository.cacheCourseSchedule.removeCached(cacheScheduleKey(deleted.id)))
+      _ <- lift(cacheRepository.cacheSeqCourseSchedule.removeCached(cacheSchedulesKey(deleted.courseId)))
     } yield deleted
   }
 }

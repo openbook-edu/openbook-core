@@ -1,11 +1,12 @@
 package ca.shiftfocus.krispii.core.models
 
-import java.util.UUID // scalastyle:ignore
+import java.util.UUID
 import java.awt.Color
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
+import play.api.libs.json.JodaWrites._
 
 case class Course(
   id: UUID = UUID.randomUUID,

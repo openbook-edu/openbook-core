@@ -1,16 +1,14 @@
 package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
-
 import ca.shiftfocus.krispii.core.error.ErrorUnion
 import ca.shiftfocus.krispii.core.models.stripe.StripePlan
-import ca.shiftfocus.krispii.core.models.{ Account, PaymentLog }
+import ca.shiftfocus.krispii.core.models.{Account, PaymentLog}
 import ca.shiftfocus.krispii.core.services.datasource.DB
-import com.stripe.model.{ Card, Invoice, InvoiceItem }
+import com.stripe.model.{Card, Invoice, InvoiceItem}
 import com.stripe.net.RequestOptions
 import org.joda.time.DateTime
 import play.api.libs.json.JsValue
-
 import scala.collection.immutable.TreeMap
 import scala.concurrent.Future
 import scalaz.\/

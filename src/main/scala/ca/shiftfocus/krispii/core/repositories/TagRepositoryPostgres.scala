@@ -2,18 +2,16 @@ package ca.shiftfocus.krispii.core.repositories
 
 import java.util.UUID
 
-import com.github.mauricio.async.db.RowData
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
-import ca.shiftfocus.krispii.core.models.{ Tag, TaggableEntities }
-import com.github.mauricio.async.db.Connection
-import scala.concurrent.duration._
+import ca.shiftfocus.krispii.core.models.{Tag, TaggableEntities}
+import com.github.mauricio.async.db.{Connection, RowData}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.{ -\/, \/, \/- }
+import scala.concurrent.duration._
+import scalaz.{-\/, \/, \/-}
 
-class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
+class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRepository with PostgresRepository[Tag] {
 
   override val entityName = "Tag"
 
@@ -35,7 +33,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
   def FieldsWithTable(table: String = Table) = Fields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
   val QMarks = Fields.split(", ").map({ field => "?" }).mkString(", ")
   val Organizational =
-    s"""
+    """
       |INNER JOIN organization_tags AS ot
       |ON ot.tag_id = t.id
     """.stripMargin
@@ -131,12 +129,14 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
 
     if (skipedCategories.nonEmpty) {
       val length = skipedCategories.length
-      inClause = s"AND tc.name NOT IN ("
+      inClause = "AND tc.name NOT IN ("
       skipedCategories.zipWithIndex.map {
         case (category, index) =>
           inClause += s"'${category}'"
-          if (index != (length - 1)) inClause += ", "
-          else inClause += ")"
+          inClause = {
+            if (index != (length - 1)) inClause + ", "
+            else inClause + ")"
+          }
       }
     }
 
@@ -219,50 +219,50 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
       | AND t.lang = ?
     """.stripMargin
 
-  val UntagProject = s"""
+  val UntagProject = """
                   |DELETE FROM project_tags
                   |WHERE project_id = ?
                   | AND tag_id = (SELECT id FROM tags WHERE name = ? AND lang = ?)
                 """.stripMargin
 
-  val UntagOrganization = s"""
+  val UntagOrganization = """
                   |DELETE FROM organization_tags
                   |WHERE organization_id = ?
                   | AND tag_id = (SELECT id FROM tags WHERE name = ? AND lang = ?)
                 """.stripMargin
 
-  val UntagUser = s"""
+  val UntagUser = """
                   |DELETE FROM user_tags
                   |WHERE user_id = ?
                   | AND tag_id = (SELECT id FROM tags WHERE name = ? AND lang = ?)
                 """.stripMargin
 
-  val UntagPlan = s"""
+  val UntagPlan = """
                   |DELETE FROM stripe_plan_tags
                   |WHERE plan_id = ?
                   | AND tag_id = (SELECT id FROM tags WHERE name = ? AND lang = ?)
                 """.stripMargin
 
   val TagProject =
-    s"""
+    """
        |INSERT INTO project_tags(project_id, tag_id)
        |VALUES (?, (SELECT id FROM tags WHERE name = ? AND lang = ? ))
      """.stripMargin
 
   val TagOrganization =
-    s"""
+    """
        |INSERT INTO organization_tags(organization_id, tag_id)
        |VALUES (?, (SELECT id FROM tags WHERE name = ? AND lang = ? ))
      """.stripMargin
 
   val TagUser =
-    s"""
+    """
        |INSERT INTO user_tags(user_id, tag_id)
        |VALUES (?, (SELECT id FROM tags WHERE name = ? AND lang = ? ))
      """.stripMargin
 
   val TagPlan =
-    s"""
+    """
        |INSERT INTO stripe_plan_tags(plan_id, tag_id)
        |VALUES (?, (SELECT id FROM tags WHERE name = ? AND lang = ? ))
      """.stripMargin
@@ -275,14 +275,14 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
                   RETURNING $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name
                 """
 
-  override def create(tag: Tag)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Tag]] = {
+  override def create(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(Insert, Seq[Any](tag.id, tag.version, tag.isAdmin, tag.isHidden, tag.name, tag.lang, tag.frequency, tag.category, tag.lang, tag.category, tag.lang))
   }
 
-  override def update(tag: Tag)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Tag]] = {
+  override def update(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(Update, Seq[Any]((tag.version + 1), tag.isAdmin, tag.isHidden, tag.name, tag.lang, tag.category, tag.lang, tag.frequency, tag.id, tag.version))
   }
-  override def delete(tag: Tag)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Tag]] = {
+  override def delete(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(Delete, Seq[Any](tag.id, tag.version))
   }
 
@@ -295,8 +295,8 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
    * @param conn
    * @return
    */
-  override def listPopular(lang: String, limit: Int = 0, skipedCategories: IndexedSeq[String] = IndexedSeq.empty[String])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
-    cache.getCached[IndexedSeq[Tag]](cachePopularTagsKey(lang)).flatMap {
+  override def listPopular(lang: String, limit: Int = 0, skipedCategories: IndexedSeq[String] = IndexedSeq.empty[String])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+    cacheRepository.cacheSeqTag.getCached(cachePopularTagsKey(lang)).flatMap {
       case \/-(tagList) => Future successful \/-(tagList)
       case -\/(noResults: RepositoryError.NoResults) => {
         val queryLimit = {
@@ -306,14 +306,14 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
 
         for {
           tagList <- lift(queryList(SelectAllPopular(lang, queryLimit, skipedCategories)))
-          _ <- lift(cache.putCache[IndexedSeq[Tag]](cachePopularTagsKey(lang))(tagList, Some(24.hours)))
+          _ <- lift(cacheRepository.cacheSeqTag.putCache(cachePopularTagsKey(lang))(tagList, Some(24.hours)))
         } yield tagList
       }
       case -\/(error) => Future successful -\/(error)
     }
   }
 
-  override def listByEntity(entityId: UUID, entityType: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+  override def listByEntity(entityId: UUID, entityType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
     entityType match {
       case TaggableEntities.project => queryList(ListByProject(), Seq[Any](entityId))
       case TaggableEntities.organization => queryList(ListByOrganization(), Seq[Any](entityId))
@@ -332,7 +332,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
    * @param conn
    * @return
    */
-  override def listOrganizationalByEntity(entityId: UUID, entityType: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+  override def listOrganizationalByEntity(entityId: UUID, entityType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
     entityType match {
       case TaggableEntities.project => queryList(ListByProject("organizational"), Seq[Any](entityId))
       case TaggableEntities.organization => queryList(ListByOrganization(), Seq[Any](entityId))
@@ -342,7 +342,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     }
   }
 
-  override def listAdminByEntity(entityId: UUID, entityType: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+  override def listAdminByEntity(entityId: UUID, entityType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
     entityType match {
       case TaggableEntities.project => queryList(ListByProject("admin"), Seq[Any](entityId))
       case TaggableEntities.organization => queryList(ListByOrganization("admin"), Seq[Any](entityId))
@@ -352,15 +352,15 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     }
   }
 
-  override def find(name: String, lang: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Tag]] = {
+  override def find(name: String, lang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(SelectOneByName, Seq[Any](name, lang))
   }
 
-  override def find(tagId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Tag]] = {
+  override def find(tagId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(SelectOneById, Seq[Any](tagId))
   }
 
-  override def isOrganizational(tagName: String, tagLang: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Boolean]] = {
+  override def isOrganizational(tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Boolean]] = {
     conn.sendPreparedStatement(IsOrganizational, Seq[Any](tagName, tagLang)).map { result =>
       if (result.rows.get.length > 0) {
         \/-(true)
@@ -373,7 +373,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     }
   }
 
-  override def untag(entityId: UUID, entityType: String, tagName: String, tagLang: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def untag(entityId: UUID, entityType: String, tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       query <- lift {
         entityType match {
@@ -399,11 +399,11 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
    * @param key
    * @param conn
    */
-  override def trigramSearch(key: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+  override def trigramSearch(key: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
     queryList(SelectAllByKey, Seq[Any](key))
   }
 
-  override def trigramSearchAdmin(key: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+  override def trigramSearchAdmin(key: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
     queryList(SelectAllAdminByKey, Seq[Any](key))
   }
 
@@ -415,11 +415,11 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
    * @param conn
    * @return
    */
-  override def trigramSearchAdmin(key: String, userId: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+  override def trigramSearchAdmin(key: String, userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
     queryList(SelectAllAdminByKeyForUser, Seq[Any](key, userId))
   }
 
-  override def tag(entityId: UUID, entityType: String, tagName: String, tagLang: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def tag(entityId: UUID, entityType: String, tagName: String, tagLang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       query <- lift {
         entityType match {
@@ -440,7 +440,7 @@ class TagRepositoryPostgres extends TagRepository with PostgresRepository[Tag] {
     } yield result
   }
 
-  def listByCategory(category: String, lang: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
+  def listByCategory(category: String, lang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] = {
     queryList(ListByCategory, Seq[Any](category, lang, lang))
   }
 }

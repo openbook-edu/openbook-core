@@ -2,26 +2,24 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.helpers.Token
-import ca.shiftfocus.krispii.core.lib.{ InputUtils, ScalaCachePool }
+import ca.shiftfocus.krispii.core.lib.{InputUtils}
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
-import ca.shiftfocus.lib.exceptions.ExceptionWriter
 import com.github.mauricio.async.db.Connection
 import org.apache.commons.mail.EmailException
 import play.api.Logger
-import play.api.libs.mailer.{ Email, MailerClient }
+import play.api.libs.mailer.{Email, MailerClient}
 import scala.concurrent.ExecutionContext.Implicits.global
-import play.api.i18n.{ I18nSupport, Lang, MessagesApi }
+import play.api.i18n.{Lang, MessagesApi}
 import scala.concurrent.Future
-import scalacache.ScalaCache
-import scalaz.{ -\/, EitherT, \/, \/- }
+
+import scalaz.{-\/, \/, \/-}
 import webcrank.password._
 
 class AuthServiceDefault(
     val db: DB,
-    val scalaCache: ScalaCachePool,
     val userRepository: UserRepository,
     val roleRepository: RoleRepository,
     val userTokenRepository: UserTokenRepository,
@@ -40,8 +38,6 @@ class AuthServiceDefault(
 
   implicit def conn: Connection = db.pool
 
-  implicit def cache: ScalaCachePool = scalaCache
-
   /**
    * token types
    */
@@ -55,10 +51,10 @@ class AuthServiceDefault(
    */
   override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     (for {
-      users <- lift(userRepository.list(db.pool))
+      users <- lift(userRepository.list)
       result <- liftSeq {
         users.map { user =>
-          val fRoles = roleRepository.list(user)(db.pool, cache)
+          val fRoles = roleRepository.list(user)
           (for {
             roles <- lift(fRoles)
           } yield user.copy(roles = roles)).run
@@ -117,14 +113,12 @@ class AuthServiceDefault(
     transactional { implicit conn =>
       for {
         user <- lift(userRepository.find(identifier.trim))
+        _ <- predicate(user.accountType == "krispii")(ServiceError.ExternalService("core.AuthService.authenticate.user.accountType.wrong"))
         roles <- lift(roleRepository.list(user))
         userHash = user.hash.getOrElse("")
         authUser <- lift(Future.successful {
           if (Passwords.scrypt().verify(password.trim(), userHash)) {
-            if (Passwords.scrypt().verify("google_password", userHash))
-              -\/(ServiceError.ExternalService("This is the google account!"))
-            else
-              \/-(user.copy(roles = roles))
+            \/-(user.copy(roles = roles))
           }
           else {
             -\/(ServiceError.BadInput("The password was invalid."))
@@ -139,10 +133,10 @@ class AuthServiceDefault(
       for {
         user <- lift(userRepository.find(identifier))
         roles <- lift(roleRepository.list(user))
-        _ = Logger.debug("roles" + roles.toString)
+        _ = Logger.info("Authenticating without password, roles=" + roles.toString)
         userHash = user.hash.getOrElse("")
         authUser = user.copy(roles = roles)
-        _ = Logger.debug(authUser.toString)
+        _ = Logger.info("Authenticating without password, user=" + authUser.toString)
       } yield authUser
     }
   }
@@ -285,11 +279,14 @@ class AuthServiceDefault(
               )
               userRepository.insert(newUser)
             }
+            _ = Logger.info(s"New user ${newUser.email} tentatively created, will now create token")
             user = newUser.copy(token = Some(UserToken(id, token, activation)))
             _ <- lift(userTokenRepository.insert(newUser.id, token, activation))
+            _ = Logger.info(s"Activation token for ${user.email} created")
           } yield user
         }
       }
+      _ = Logger.info(s"Provisionally created user ${result.email} with token, will now look up pre-existing organization tags")
       // Put it outside transactional, as we need user to be in a database before we tag him.
       _ <- lift(tagOrganizationUser(result))
     } yield result
@@ -356,27 +353,28 @@ class AuthServiceDefault(
     role: String,
     hostname: Option[String]
   )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]] = {
-    val fUser = for {
+    val futureUser = for {
       user <- lift(this.create(username, email, password, givenname, surname))
+      _ = Logger.info(s"User ${user.email} created, will now add role ${role}")
       _ <- lift(addRole(user.id, role))
+      _ = Logger.info(s"Added role ${role} to ${user.email}")
       emailForNew = Email(
         messagesApi("activate.confirm.subject.new")(lang), //subject
         messagesApi("activate.confirm.from")(lang), //from
         Seq(givenname + " " + surname + " <" + email + ">"), //to
         bodyHtml = Some(messagesApi("activate.confirm.message", hostname.get, user.id.toString, user.token.get.token)(lang)) //text
       )
-      _ <- lift(sendAsyncEmail(emailForNew))
+      messageId <- lift(sendAsyncEmail(emailForNew))
+      _ = Logger.info(s"Sent activation email to ${user.email}, message ID is ${messageId}")
     } yield user
-    fUser.run
+    futureUser.run
   }
 
-  /**
-   * Create a new user for Google account
-   */
-  override def createGoogleUser(
+  override def createOpenIdUser(
     email: String,
     givenname: String,
-    surname: String
+    surname: String,
+    accountType: String
   ): Future[\/[ErrorUnion#Fail, User]] = {
     for {
       result <- lift {
@@ -386,17 +384,14 @@ class AuthServiceDefault(
             id = UUID.randomUUID(),
             username = email.trim,
             email = email.trim.toLowerCase,
-            hash = Some(webcrank.crypt("google_password")),
+            hash = Some(webcrank.crypt(UUID.randomUUID().toString)),
             givenname = givenname,
             surname = surname,
-            accountType = "google"
+            accountType = accountType
           )
-          Logger.debug("creating google user")
-          Logger.debug(newUser.toString)
 
           for {
             user <- lift(userRepository.insert(newUser))
-            _ = Logger.debug("user created")
           } yield user
         }
       }
@@ -405,17 +400,14 @@ class AuthServiceDefault(
     } yield result
   }
 
-  /**
-   * User account type to "google" type
-   */
-  override def updateToGoogleUser(
-    email: String
+  override def updateUserAccountType(
+    email: String,
+    newAccountType: String
   ): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
       val fUser = for {
         user <- lift(userRepository.find(email))
-        updatedUser <- lift(userRepository.update(user.copy(accountType = "google")))
-        _ = Logger.debug("user account type was updated to 'google'")
+        updatedUser <- lift(userRepository.update(user.copy(accountType = newAccountType)))
       } yield updatedUser
       fUser.run
     }
@@ -464,17 +456,12 @@ class AuthServiceDefault(
         _ <- predicate(existingUser.version == version)(ServiceError.OfflineLockFail)
         u_email <- lift(email.map { someEmail => validateEmail(someEmail.trim.toLowerCase, Some(id)) }.getOrElse(Future.successful(\/-(existingUser.email))))
         u_username <- lift(username.map { someUsername => validateUsername(someUsername, Some(id)) }.getOrElse(Future.successful(\/-(existingUser.username))))
-        hash = password match {
-          case Some(pwd) => {
-            if (!InputUtils.isValidPassword(pwd.trim)) {
-              Some("0")
-            }
-            else {
-              val webcrank = Passwords.scrypt()
-              Some(webcrank.crypt(pwd.trim))
-            }
+        hash = password.flatMap { pwd =>
+          if (!InputUtils.isValidPassword(pwd.trim)) Some("0")
+          else {
+            val webcrank = Passwords.scrypt()
+            Some(webcrank.crypt(pwd.trim))
           }
-          case None => None
         }
         _ <- predicate(!(hash.getOrElse("no password") == "0"))(ServiceError.BadInput("Password must be at least 8 characters"))
         userToUpdate = existingUser.copy(
@@ -540,10 +527,7 @@ class AuthServiceDefault(
         userToUpdate = existingUser.copy(
           givenname = givenname.getOrElse(existingUser.givenname),
           surname = surname.getOrElse(existingUser.surname),
-          alias = alias match {
-            case Some(alias) => Some(alias)
-            case None => existingUser.alias
-          }
+          alias = alias.orElse(existingUser.alias)
         )
         updatedUser <- lift(userRepository.update(userToUpdate))
       } yield updatedUser
@@ -697,13 +681,10 @@ class AuthServiceDefault(
    */
   override def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Role]] = {
     transactional { implicit conn =>
-      val fUser = userRepository.find(userId)(db.pool, cache)
-      val fRole = roleRepository.find(roleName)(db.pool, cache)
-
       for {
-        user <- lift(fUser)
-        role <- lift(fRole)
-        roleAdded <- lift(roleRepository.addToUser(user, role))
+        user <- lift(userRepository.find(userId))
+        role <- lift(roleRepository.find(roleName)) // only because addRole MUST return a Role
+        _ <- lift(roleRepository.addToUser(user, role))
       } yield role
     }
   }
@@ -719,7 +700,7 @@ class AuthServiceDefault(
     transactional { implicit conn =>
       for {
         user <- lift(userRepository.find(userId))
-        rolesAdded <- lift(serializedT(roleNames)(roleRepository.addToUser(user, _)))
+        _ <- lift(serializedT(roleNames)(roleRepository.addToUser(user, _)))
       } yield user
     }
   }
@@ -733,8 +714,8 @@ class AuthServiceDefault(
    */
   override def removeRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Role]] = {
     transactional { implicit conn =>
-      val fUser = userRepository.find(userId)(db.pool, cache)
-      val fRole = roleRepository.find(roleName)(db.pool, cache)
+      val fUser = userRepository.find(userId)
+      val fRole = roleRepository.find(roleName)
       for {
         user <- lift(fUser)
         role <- lift(fRole)
@@ -752,8 +733,8 @@ class AuthServiceDefault(
    */
   override def addUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn =>
-      val fRole = roleRepository.find(roleId)(db.pool, cache)
-      val fUsers = userRepository.list(userIds)(db.pool, cache)
+      val fRole = roleRepository.find(roleId)
+      val fUsers = userRepository.list(userIds)
 
       for {
         role <- lift(fRole)
@@ -772,8 +753,8 @@ class AuthServiceDefault(
    */
   override def removeUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn =>
-      val fRole = roleRepository.find(roleId)(db.pool, cache)
-      val fUsers = userRepository.list(userIds)(db.pool, cache)
+      val fRole = roleRepository.find(roleId)
+      val fUsers = userRepository.list(userIds)
 
       for {
         role <- lift(fRole)
@@ -842,7 +823,7 @@ class AuthServiceDefault(
    */
   override def activate(userId: UUID, activationCode: String): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
-      val fUser = userRepository.find(userId)(db.pool, cache)
+      val fUser = userRepository.find(userId)
       val result = for {
         user <- lift(fUser)
         roles <- lift(roleRepository.list(user))
@@ -850,11 +831,11 @@ class AuthServiceDefault(
         _ <- predicate(activationCode == token.token)(ServiceError.BadInput("Wrong activation code!"))
         _ <- lift {
           // If there is no "authenticated" role than add it
-          if (!roles.find(_.name == "authenticated").isDefined) {
+          if (!roles.exists(_.name == "authenticated")) {
             roleRepository.addToUser(user, "authenticated")
           }
           else {
-            Future successful \/-()
+            Future successful \/-((): Unit)
           }
         }
         deleted <- lift(userTokenRepository.delete(userId, activation))
@@ -909,8 +890,9 @@ class AuthServiceDefault(
    */
   override def createPasswordResetToken(user: User, host: String)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]] = {
     transactional { implicit conn =>
-      var nonce = Token.getNext
-      var fToken = for {
+      val nonce = Token.getNext
+
+      (for {
         oldToken <- lift(userTokenRepository.delete(user.id, password_reset).map {
           case \/-(success) => \/-(true)
           case -\/(error: RepositoryError.NoResults) => \/-(true)
@@ -921,18 +903,18 @@ class AuthServiceDefault(
           messagesApi("reset.password.confirm.subject.new")(lang), //subject
           messagesApi("reset.password.confirm.from")(lang), //from
           Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
-          bodyHtml = Some(messagesApi("reset.password.confirm.message", host, nonce.toString)(lang)) //text
+          bodyHtml = Some(messagesApi("reset.password.confirm.message", host, nonce)(lang)) //text
         )
         mail <- lift(sendAsyncEmail(email))
-      } yield token
-      fToken.run
+      } yield token).run
     }
   }
 
   override def createActivationToken(user: User, host: String)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]] = {
     transactional { implicit conn =>
-      var nonce = Token.getNext
-      var fToken = for {
+      val nonce = Token.getNext
+
+      (for {
         oldToken <- lift(userTokenRepository.delete(user.id, activation).map {
           case \/-(success) => \/-(true)
           case -\/(error: RepositoryError.NoResults) => \/-(true)
@@ -946,8 +928,7 @@ class AuthServiceDefault(
           bodyHtml = Some(messagesApi("activate.confirm.message", host, user.id.toString, token.token)(lang)) //text
         )
         mail <- lift(sendAsyncEmail(activationEmail))
-      } yield token
-      fToken.run
+      } yield token).run
     }
   }
 
@@ -981,10 +962,11 @@ class AuthServiceDefault(
   override def listByKey(key: String, includeDeleted: Boolean = false, limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     (for {
       users <- lift(userRepository.triagramSearch(key, includeDeleted, limit, offset))
+      _ = Logger.info(s"Users matching key ${key}: ${users}")
       result <- liftSeq {
         users.map { user =>
           (for {
-            roles <- lift(roleRepository.list(user)(db.pool, cache))
+            roles <- lift(roleRepository.list(user))
           } yield user.copy(roles = roles)).run
         }
       }
@@ -995,11 +977,10 @@ class AuthServiceDefault(
    */
   override def studentPasswordReset(user: User, lang: String): Future[\/[ErrorUnion#Fail, UserToken]] = {
     transactional { implicit conn =>
-      var fToken = for {
+      (for {
         nonce <- lift(wordRepository.get(lang))
         token <- lift(userTokenRepository.insert(user.id, nonce.word, password_reset))
-      } yield token
-      fToken.run
+      } yield token).run
     }
   }
 
@@ -1167,7 +1148,7 @@ class AuthServiceDefault(
           }
           // If user has already this tag
           else {
-            Future successful \/-(Unit)
+            Future successful \/-((): Unit)
           }
         }
       }

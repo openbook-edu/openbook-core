@@ -1,31 +1,20 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
-import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
-import com.github.mauricio.async.db.{ Connection, ResultSet, RowData }
-import play.api.Logger
-
-import scala.concurrent.ExecutionContext.Implicits.global
-import ca.shiftfocus.lib.exceptions.ExceptionWriter
-import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
 
-import play.api.i18n.Messages
-
-import scala.concurrent.Future
+import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.models._
+import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.util.Try
-import scalaz.{ -\/, \/, \/- }
-import scalaz.syntax.either._
-import scalacache._
-import scalacache.redis._
-import scala.concurrent.duration._
+import scalaz.{-\/, \/, \/-}
 
 class UserRepositoryPostgres(
-    val tagRepository: TagRepository
+    val tagRepository: TagRepository,
+    val cacheRepository: CacheRepository
 ) extends UserRepository with PostgresRepository[User] {
 
   override val entityName = "User"
@@ -131,23 +120,22 @@ class UserRepositoryPostgres(
     limit: String,
     offset: Int
   ) = {
-    var roleClause = ""
-    if (includeStudents) ""
-    else if (onlyStudents) {
-      roleClause =
+    val roleClause = {
+      if (includeStudents) ""
+      else if (onlyStudents) {
         s"""
           |INNER JOIN users_roles AS ur
           |ON ur.user_id = sub.id
           |AND role_id = '${studentRole.id}'
         """.stripMargin
-    }
-    else {
-      roleClause =
+      }
+      else {
         s"""
            |INNER JOIN users_roles AS ur
            |ON ur.user_id = sub.id
            |AND role_id != '${studentRole.id}'
         """.stripMargin
+      }
     }
 
     val deletedClause = {
@@ -202,12 +190,10 @@ class UserRepositoryPostgres(
         if (index != (length - 1)) whereClause += " OR "
     }
 
-    if (whereClause != "") {
-      whereClause = "WHERE " + whereClause
-    }
-    // If tagList is empty, then there should be unexisting condition
-    else {
-      whereClause = "WHERE false != false"
+    whereClause = {
+      if (whereClause != "") "WHERE " + whereClause
+      // If tagList is empty, then there should be unexisting condition
+      else "WHERE false != false"
     }
 
     if (distinct) {
@@ -356,7 +342,7 @@ class UserRepositoryPostgres(
    * @param userIds an IndexedSeq of UUID of the users to list.
    * @return a future disjunction containing either the users, or a failure
    */
-  override def list(userIds: IndexedSeq[UUID])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+  override def list(userIds: IndexedSeq[UUID])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
     serializedT(userIds)(find(_)).map(_.map { userList =>
       userList.map { user =>
         user.copy(hash = None)
@@ -380,19 +366,19 @@ class UserRepositoryPostgres(
    *
    * @return a future disjunction containing either the users, or a failure
    */
-  override def list(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    cache.getCached[IndexedSeq[User]](cacheStudentsKey(course.id)).flatMap {
+  override def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    cacheRepository.cacheSeqUser.getCached(cacheStudentsKey(course.id)).flatMap {
       case \/-(userList) => Future successful \/.right[RepositoryError.Fail, IndexedSeq[User]](userList)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           userList <- lift(queryList(SelectAllWithCourse, Seq[Any](course.id)))
-          _ <- lift(cache.putCache[IndexedSeq[User]](cacheUserKey(course.id))(userList, ttl))
+          _ <- lift(cacheRepository.cacheSeqUser.putCache(cacheStudentsKey(course.id))(userList, ttl))
         } yield userList
       case -\/(error) => Future successful -\/(error)
     }
   }
 
-  override def list(conversation: Conversation)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+  override def list(conversation: Conversation)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
     queryList(SelectAllWithConversation, Seq[Any](conversation.id))
   }
 
@@ -400,10 +386,9 @@ class UserRepositoryPostgres(
    * List students for a given teacher
    * @param user
    * @param conn
-   * @param cache
    * @return
    */
-  override def list(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+  override def list(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
     queryList(SelectAllWithTeacher, Seq[Any](user.id))
   }
 
@@ -414,7 +399,7 @@ class UserRepositoryPostgres(
    * @param distinct Boolean If true each user should have all listed tags,
    *                 if false user should have at least one listed tag
    */
-  override def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+  override def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
     queryList(SelectByTags(tags, distinct))
   }
 
@@ -424,8 +409,8 @@ class UserRepositoryPostgres(
    * @param id the UUID of the user to search for.
    * @return a future disjunction containing either the user, or a failure
    */
-  override def find(id: UUID, includeDeleted: Boolean = false)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]] = {
-    cache.getCached[User](cacheUserKey(id)).flatMap {
+  override def find(id: UUID, includeDeleted: Boolean = false)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
+    cacheRepository.cacheUser.getCached(cacheUserKey(id)).flatMap {
       case \/-(user) => Future successful \/.right[RepositoryError.Fail, User](user)
       case -\/(noResults: RepositoryError.NoResults) => {
         val query = {
@@ -434,8 +419,9 @@ class UserRepositoryPostgres(
         }
         for {
           user <- lift(queryOne(query, Seq[Any](id)))
-          _ <- lift(cache.putCache[UUID](cacheUsernameKey(user.username))(user.id, ttl))
-          _ <- lift(cache.putCache[User](cacheUserKey(user.id))(user, ttl))
+          _ <- lift(cacheRepository.cacheUUID.putCache(cacheUsernameKey(user.username))(user.id, ttl))
+          _ <- lift(cacheRepository.cacheUUID.putCache(cacheUsernameKey(user.email))(user.id, ttl))
+          _ <- lift(cacheRepository.cacheUser.putCache(cacheUserKey(user.id))(user, ttl))
         } yield user
       }
       case -\/(error) => Future successful -\/(error)
@@ -448,19 +434,15 @@ class UserRepositoryPostgres(
    * @param identifier a String representing their e-mail or username.
    * @return a future disjunction containing either the user, or a failure
    */
-  override def find(identifier: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]] = {
-    cache.getCached[UUID](cacheUsernameKey(identifier)).flatMap {
-      case \/-(userId) => {
-        for {
-          _ <- lift(cache.putCache[UUID](cacheUsernameKey(identifier))(userId, ttl))
-          user <- lift(find(userId))
-        } yield user
-      }
+  override def find(identifier: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
+    cacheRepository.cacheUUID.getCached(cacheUsernameKey(identifier)).flatMap {
+      case \/-(userId) => find(userId)
       case -\/(noResults: RepositoryError.NoResults) => {
         for {
           user <- lift(queryOne(SelectOneByIdentifier, Seq[Any](identifier, identifier)))
-          _ <- lift(cache.putCache[UUID](cacheUsernameKey(identifier))(user.id, ttl))
-          _ <- lift(cache.putCache[User](cacheUserKey(user.id))(user, ttl))
+          _ <- lift(cacheRepository.cacheUUID.putCache(cacheUsernameKey(user.username))(user.id, ttl))
+          _ <- lift(cacheRepository.cacheUUID.putCache(cacheUsernameKey(user.email))(user.id, ttl))
+          _ <- lift(cacheRepository.cacheUser.putCache(cacheUserKey(user.id))(user, ttl))
         } yield user
       }
       case -\/(error) => Future successful -\/(error)
@@ -475,7 +457,7 @@ class UserRepositoryPostgres(
    * @param identifier a String representing their e-mail or username.
    * @return a future disjunction containing either the user, or a failure
    */
-  override def findDeleted(identifier: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]] = {
+  override def findDeleted(identifier: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
     // sql LIKE statement is not working with parameters so we are using string replace
     queryOne(SelectDeletedByEmail.replace("{identifier}", identifier))
   }
@@ -507,7 +489,7 @@ class UserRepositoryPostgres(
    * @param user the user to update in the database
    * @return a future disjunction containing either the updated user, or a failure
    */
-  override def update(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]] = {
+  override def update(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
     for {
       updated <- lift {
         user.hash match {
@@ -522,8 +504,9 @@ class UserRepositoryPostgres(
           ))
         }
       }
-      _ <- lift(cache.removeCached(cacheUserKey(updated.id)))
-      _ <- lift(cache.removeCached(cacheUsernameKey(updated.username)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheUserKey(updated.id)))
+      _ <- lift(cacheRepository.cacheUUID.removeCached(cacheUsernameKey(updated.username)))
+      _ <- lift(cacheRepository.cacheUUID.removeCached(cacheUsernameKey(updated.email)))
     } yield updated
   }
 
@@ -533,7 +516,7 @@ class UserRepositoryPostgres(
    * @param user the user to be deleted
    * @return a future disjunction containing either the deleted user, or a failure
    */
-  override def delete(user: User)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, User]] = {
+  override def delete(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]] = {
     val timestamp = System.currentTimeMillis / 1000
     for {
       deleted <- lift(queryOne(Delete, Seq[Any](
@@ -542,8 +525,9 @@ class UserRepositoryPostgres(
         user.id,
         user.version
       )))
-      _ <- lift(cache.removeCached(cacheUserKey(deleted.id)))
-      _ <- lift(cache.removeCached(cacheUsernameKey(deleted.username)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheUserKey(deleted.id)))
+      _ <- lift(cacheRepository.cacheUUID.removeCached(cacheUsernameKey(deleted.username)))
+      _ <- lift(cacheRepository.cacheUUID.removeCached(cacheUsernameKey(deleted.email)))
     } yield deleted
   }
 

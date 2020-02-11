@@ -1,10 +1,9 @@
 package ca.shiftfocus.krispii.core.models
 
-import com.github.mauricio.async.db.RowData
 import java.util.UUID
 import org.joda.time.DateTime
 import play.api.libs.json._
-import play.api.libs.functional.syntax._
+import play.api.libs.json.JodaReads._
 
 abstract class Component {
   val id: UUID
@@ -27,6 +26,7 @@ object Component {
   val Audio = "audio"
   val Image = "image"
   val Google = "google"
+  val Microsoft = "microsoft"
   val Text = "text"
   val Video = "video"
   val GenericHTML = "generic_html"
@@ -60,6 +60,22 @@ object Component {
           questions = (js \ "questions").as[String],
           thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
           mediaData = (js \ "google_data").as[MediaData],
+          order = (js \ "order").as[Int],
+          isPrivate = (js \ "isPrivate").as[Boolean],
+          description = (js \ "description").as[String],
+          parentId = Option((js \ "parentId").as[UUID]),
+          parentVersion = Option((js \ "parentVersion").as[Long]),
+          createdAt = (js \ "createdAt").as[DateTime],
+          updatedAt = (js \ "updatedAt").as[DateTime]
+        )
+        case Component.Microsoft => MicrosoftComponent(
+          id = (js \ "id").as[UUID],
+          version = (js \ "version").as[Long],
+          ownerId = (js \ "ownerId").as[UUID],
+          title = (js \ "title").as[String],
+          questions = (js \ "questions").as[String],
+          thingsToThinkAbout = (js \ "thingsToThinkAbout").as[String],
+          mediaData = (js \ "microsoft_data").as[MediaData],
           order = (js \ "order").as[Int],
           isPrivate = (js \ "isPrivate").as[Boolean],
           description = (js \ "description").as[String],
@@ -174,6 +190,9 @@ object Component {
     def writes(component: Component): JsValue = component match {
       case component: GoogleComponent => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
         "type" -> Component.Google
+      ))
+      case component: MicrosoftComponent => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
+        "type" -> Component.Microsoft
       ))
       case component: VideoComponent => Json.toJson(component).as[JsObject].deepMerge(Json.obj(
         "type" -> Component.Video

@@ -1,35 +1,29 @@
-import java.util.UUID
-
-import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.repositories._
+import ca.shiftfocus.krispii.core.repositories.ComponentRepositoryPostgres
 import org.scalatest.Matchers._
-import org.scalatest._
-import play.api.Logger
 
-import scala.collection.immutable.TreeMap
+import scala.concurrent.Await
 import scala.concurrent.duration.Duration
-import scala.concurrent.{ Await, Future }
 import scalaz._
 
 class ComponentRepositorySpec
     extends TestEnvironment {
-  val componentRepository = new ComponentRepositoryPostgres()
-
-  "ComponentRepository.list" should {
-    inSequence {
-      "find all components" in {
-        val result = componentRepository.listMasterLimit()
-        val eitherComponents = Await.result(result, Duration.Inf)
-        val \/-(components) = eitherComponents
-
-        components.foreach(component =>
-          println(Console.GREEN + component.id + " = " + component.title))
-
-        1 should be(1)
-      }
-    }
-  }
+  val componentRepository = new ComponentRepositoryPostgres
+  //
+  //  "ComponentRepository.list" should {
+  //    inSequence {
+  //      "find all components" in {
+  //        val result = componentRepository.listMasterLimit()
+  //        val eitherComponents = Await.result(result, Duration.Inf)
+  //        val \/-(components) = eitherComponents
+  //
+  //        components.foreach(component =>
+  //          println(Console.GREEN + component.id + " = " + component.title))
+  //
+  //        1 should be(1)
+  //      }
+  //    }
+  //  }
 
   //  "ComponentRepository.list" should {
   //    inSequence {
@@ -477,117 +471,119 @@ class ComponentRepositorySpec
   //    }
   //  }
   //
-  //  "ComponentRepository.insert" should {
-  //    inSequence {
-  //      "insert TextComponent" in {
-  //        val testComponent = TestValues.testTextComponentG
-  //
-  //        val result = componentRepository.insert(testComponent)
-  //        val eitherComponent = Await.result(result, Duration.Inf)
-  //        val \/-(component: TextComponent) = eitherComponent
-  //
-  //        //Common
-  //        component.id should be(testComponent.id)
-  //        component.version should be(testComponent.version)
-  //        component.ownerId should be(testComponent.ownerId)
-  //        component.title should be(testComponent.title)
-  //        component.questions should be(testComponent.questions)
-  //        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
-  //
-  //        //Specific
-  //        component.content should be(testComponent.content)
-  //      }
-  //      "insert ImageComponent" in {
-  //        val testComponent = TestValues.testImageComponentB
-  //
-  //        val result = componentRepository.insert(testComponent)
-  //        val eitherComponent = Await.result(result, Duration.Inf)
-  //        val \/-(component: ImageComponent) = eitherComponent
-  //
-  //        //Common
-  //        component.id should be(testComponent.id)
-  //        component.version should be(testComponent.version)
-  //        component.ownerId should be(testComponent.ownerId)
-  //        component.title should be(testComponent.title)
-  //        component.questions should be(testComponent.questions)
-  //        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
-  //      }
-  //      "insert GenericHTMLComponent" in {
-  //        val testComponent = TestValues.testGenericHTMLComponentI
-  //
-  //        val result = componentRepository.insert(testComponent)
-  //        val eitherComponent = Await.result(result, Duration.Inf)
-  //        val \/-(component: GenericHTMLComponent) = eitherComponent
-  //
-  //        //Common
-  //        component.id should be(testComponent.id)
-  //        component.version should be(testComponent.version)
-  //        component.ownerId should be(testComponent.ownerId)
-  //        component.title should be(testComponent.title)
-  //        component.questions should be(testComponent.questions)
-  //        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
-  //
-  //        //Specific
-  //        component.htmlContent should be(testComponent.htmlContent)
-  //      }
-  //      "return RepositoryError.PrimaryKeyConflict if TextComponent already exists" in {
-  //        val testComponent = TestValues.testTextComponentA
-  //
-  //        val result = componentRepository.insert(testComponent)
-  //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
-  //      }
-  //      "insert VideoComponent" in {
-  //        val testComponent = TestValues.testVideoComponentF
-  //
-  //        val result = componentRepository.insert(testComponent)
-  //        val eitherComponent = Await.result(result, Duration.Inf)
-  //        val \/-(component: VideoComponent) = eitherComponent
-  //
-  //        //Common
-  //        component.id should be(testComponent.id)
-  //        component.version should be(testComponent.version)
-  //        component.ownerId should be(testComponent.ownerId)
-  //        component.title should be(testComponent.title)
-  //        component.questions should be(testComponent.questions)
-  //        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
-  //
-  //        //Specific
-  //        component.mediaData should be(testComponent.mediaData)
-  //        component.width should be(testComponent.width)
-  //        component.height should be(testComponent.height)
-  //      }
-  //      "return RepositoryError.PrimaryKeyConflict if VideoComponent already exists" in {
-  //        val testComponent = TestValues.testVideoComponentB
-  //
-  //        val result = componentRepository.insert(testComponent)
-  //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
-  //      }
-  //      "insert AudioComponent" in {
-  //        val testComponent = TestValues.testAudioComponentD
-  //
-  //        val result = componentRepository.insert(testComponent)
-  //        val eitherComponent = Await.result(result, Duration.Inf)
-  //        val \/-(component: AudioComponent) = eitherComponent
-  //
-  //        //Common
-  //        component.id should be(testComponent.id)
-  //        component.version should be(testComponent.version)
-  //        component.ownerId should be(testComponent.ownerId)
-  //        component.title should be(testComponent.title)
-  //        component.questions should be(testComponent.questions)
-  //        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
-  //
-  //        //Specific
-  //        component.mediaData should be(testComponent.mediaData)
-  //      }
-  //      "return RepositoryError.PrimaryKeyConflict if AudioComponent already exists" in {
-  //        val testComponent = TestValues.testAudioComponentC
-  //
-  //        val result = componentRepository.insert(testComponent)
-  //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
-  //      }
-  //    }
-  //  }
+  "ComponentRepository.insert" should {
+    inSequence {
+      //      "insert TextComponent" in {
+      //        val testComponent = TestValues.testTextComponentG
+      //
+      //        val result = componentRepository.insert(testComponent)
+      //        val eitherComponent = Await.result(result, Duration.Inf)
+      //        val \/-(component: TextComponent) = eitherComponent
+      //
+      //        //Common
+      //        component.id should be(testComponent.id)
+      //        component.version should be(testComponent.version)
+      //        component.ownerId should be(testComponent.ownerId)
+      //        component.title should be(testComponent.title)
+      //        component.questions should be(testComponent.questions)
+      //        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
+      //
+      //        //Specific
+      //        component.content should be(testComponent.content)
+      //      }
+      "insert ImageComponent" in {
+        val testComponent = TestValues.testImageComponentB
+
+        val result = componentRepository.insert(testComponent)
+        val eitherComponent = Await.result(result, Duration.Inf)
+        val \/-(component: ImageComponent) = eitherComponent
+
+        println(Console.GREEN + "component = " + component + Console.RESET)
+
+        //Common
+        component.id should be(testComponent.id)
+        component.version should be(testComponent.version)
+        component.ownerId should be(testComponent.ownerId)
+        component.title should be(testComponent.title)
+        component.questions should be(testComponent.questions)
+        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
+      }
+      //      "insert GenericHTMLComponent" in {
+      //        val testComponent = TestValues.testGenericHTMLComponentI
+      //
+      //        val result = componentRepository.insert(testComponent)
+      //        val eitherComponent = Await.result(result, Duration.Inf)
+      //        val \/-(component: GenericHTMLComponent) = eitherComponent
+      //
+      //        //Common
+      //        component.id should be(testComponent.id)
+      //        component.version should be(testComponent.version)
+      //        component.ownerId should be(testComponent.ownerId)
+      //        component.title should be(testComponent.title)
+      //        component.questions should be(testComponent.questions)
+      //        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
+      //
+      //        //Specific
+      //        component.htmlContent should be(testComponent.htmlContent)
+      //      }
+      //      "return RepositoryError.PrimaryKeyConflict if TextComponent already exists" in {
+      //        val testComponent = TestValues.testTextComponentA
+      //
+      //        val result = componentRepository.insert(testComponent)
+      //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+      //      }
+      //      "insert VideoComponent" in {
+      //        val testComponent = TestValues.testVideoComponentF
+      //
+      //        val result = componentRepository.insert(testComponent)
+      //        val eitherComponent = Await.result(result, Duration.Inf)
+      //        val \/-(component: VideoComponent) = eitherComponent
+      //
+      //        //Common
+      //        component.id should be(testComponent.id)
+      //        component.version should be(testComponent.version)
+      //        component.ownerId should be(testComponent.ownerId)
+      //        component.title should be(testComponent.title)
+      //        component.questions should be(testComponent.questions)
+      //        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
+      //
+      //        //Specific
+      //        component.mediaData should be(testComponent.mediaData)
+      //        component.width should be(testComponent.width)
+      //        component.height should be(testComponent.height)
+      //      }
+      //      "return RepositoryError.PrimaryKeyConflict if VideoComponent already exists" in {
+      //        val testComponent = TestValues.testVideoComponentB
+      //
+      //        val result = componentRepository.insert(testComponent)
+      //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+      //      }
+      //      "insert AudioComponent" in {
+      //        val testComponent = TestValues.testAudioComponentD
+      //
+      //        val result = componentRepository.insert(testComponent)
+      //        val eitherComponent = Await.result(result, Duration.Inf)
+      //        val \/-(component: AudioComponent) = eitherComponent
+      //
+      //        //Common
+      //        component.id should be(testComponent.id)
+      //        component.version should be(testComponent.version)
+      //        component.ownerId should be(testComponent.ownerId)
+      //        component.title should be(testComponent.title)
+      //        component.questions should be(testComponent.questions)
+      //        component.thingsToThinkAbout should be(testComponent.thingsToThinkAbout)
+      //
+      //        //Specific
+      //        component.mediaData should be(testComponent.mediaData)
+      //      }
+      //      "return RepositoryError.PrimaryKeyConflict if AudioComponent already exists" in {
+      //        val testComponent = TestValues.testAudioComponentC
+      //
+      //        val result = componentRepository.insert(testComponent)
+      //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.PrimaryKeyConflict))
+      //      }
+    }
+  }
   //
   //  "ComponentRepository.update" should {
   //    inSequence {

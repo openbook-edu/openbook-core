@@ -1,7 +1,7 @@
 package ca.shiftfocus.krispii.core.helpers
 
 import java.nio.ByteBuffer
-import java.security.{ MessageDigest, SecureRandom }
+import java.security.{MessageDigest, SecureRandom}
 
 /**
  * Created by ryanez on 16/02/16.
@@ -37,7 +37,7 @@ object HexBytesUtil {
     // bytes.foreach(println)
   }
 
-  def example {
+  def example() {
     val data = "48 65 6C 6C 6F 20 57 6F 72 6C 64 21 21"
     val bytes = hex2bytes(data)
     println(bytes2hex(bytes, Option(" ")))

@@ -82,4 +82,10 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   ): Future[\/[ErrorUnion#Fail, Work]]
   def updateGfile(gFileId: UUID, sharedEmail: Option[Option[String]], permissionId: Option[Option[String]], revisionId: Option[Option[String]]): Future[\/[ErrorUnion#Fail, Work]]
   def deleteGfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Work]]
+
+  // ######### OMS SCORERS ########################################################
+  def addScorer(workId: UUID, scorerId: UUID): Future[\/[ErrorUnion#Fail, Work]]
+  def deleteScorer(workId: UUID, scorerId: UUID): Future[\/[ErrorUnion#Fail, Work]]
+  def getScore(workId: UUID, scorerId: UUID): Future[\/[ErrorUnion#Fail, Score]]
+  def updateScore(workId: UUID, scorerId: UUID, grade: String): Future[\/[ErrorUnion#Fail, Score]]
 }

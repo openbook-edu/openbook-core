@@ -1,16 +1,19 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.QuestionTask
 import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.models.{Gfile, ProjectScratchpad, Score, TaskFeedback, TaskScratchpad}
+import play.api.Logger
 import com.github.mauricio.async.db.Connection
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.{\/, \/-}
+import scalaz.{-\/, \/, \/-}
 import ca.shiftfocus.otlib.Delta
 
 class WorkServiceDefault(
@@ -35,7 +38,7 @@ class WorkServiceDefault(
    * List the latest revision of all of a user's work in a project for a specific
    * course.
    *
-   * @param userId the unique id of the user to filter by
+   * @param userId    the unique id of the user to filter by
    * @param projectId the unique id of the project to filter by
    * @return a future disjunction containing either a list of work, or a failure
    */
@@ -153,8 +156,8 @@ class WorkServiceDefault(
   /**
    * Find a specific revision of a user's work, for a task, in a course.
    *
-   * @param userId the unique id of the user to filter by
-   * @param taskId the unique id of the task to filter by
+   * @param userId  the unique id of the user to filter by
+   * @param taskId  the unique id of the task to filter by
    * @param version the version of the work to find
    * @return a future disjunction containing either a work, or a failure
    */
@@ -183,8 +186,8 @@ class WorkServiceDefault(
    *
    * Use this method when entering student work on a task for the first time (in a given course).
    *
-   * @param userId the unique id of the user the work belongs to
-   * @param taskId the unique id of the task the work is for
+   * @param userId     the unique id of the user the work belongs to
+   * @param taskId     the unique id of the task the work is for
    * @param isComplete whether the student is finished with the task
    * @return a future disjunction containing either a work, or a failure
    */
@@ -215,8 +218,8 @@ class WorkServiceDefault(
    *
    * Use this method when entering student work on a task for the first time (in a given course).
    *
-   * @param userId the id of the student whose work is being entered
-   * @param taskId the task for which the work was done
+   * @param userId     the id of the student whose work is being entered
+   * @param taskId     the task for which the work was done
    * @param isComplete whether the student is finished with the task
    * @return the newly created work
    */
@@ -246,8 +249,8 @@ class WorkServiceDefault(
    *
    * Use this method when entering student work on a task for the first time (in a given course).
    *
-   * @param userId the id of the student whose work is being entered
-   * @param taskId the task for which the work was done
+   * @param userId     the id of the student whose work is being entered
+   * @param taskId     the task for which the work was done
    * @param isComplete whether the student is finished with the task
    * @return the newly created work
    */
@@ -307,10 +310,11 @@ class WorkServiceDefault(
    *
    * Because the contents of the work are handled by the Document service, this method only
    * serves to update the work's completed status UPD: and grade.
+   *
    * @param userId
    * @param taskId
    * @param isComplete Boolean
-   * @param grade Option[String]: if missing, not updated, TODO: if "", delete grade!
+   * @param grade      Option[String]: if missing, not updated, TODO: if "", delete grade!
    */
   def updateDocumentWork(userId: UUID, taskId: UUID, isComplete: Boolean, grade: Option[String]): Future[\/[ErrorUnion#Fail, DocumentWork]] = {
     transactional { implicit conn =>
@@ -370,6 +374,21 @@ class WorkServiceDefault(
     }
   }
 
+  /**
+   * Update a media work. User ID, task ID and version are required,
+   * fileData, isComplete and grade need only be supplied if they have changed.
+   * The newest versions of the gFiles are automatically read in before updating,
+   * while the possible OMS scorer with their grades cannot be updated here (use
+   * the specific functions below).
+   *
+   * @param userId
+   * @param taskId
+   * @param version
+   * @param fileData
+   * @param isComplete
+   * @param grade
+   * @return
+   */
   override def updateMediaWork(
     userId: UUID,
     taskId: UUID,
@@ -583,7 +602,7 @@ class WorkServiceDefault(
   }
 
   /**
-   *  Delete all teacher feedbacks for a given task.
+   * Delete all teacher feedbacks for a given task.
    *
    * @param taskId
    * @return
@@ -610,7 +629,7 @@ class WorkServiceDefault(
   /**
    * List all of a user's task scratchpads in a project.
    *
-   * @param userId the unique ID of the user to list for
+   * @param userId    the unique ID of the user to list for
    * @param projectId the project within which to search for task scratchpads
    * @return a vector of responses
    */
@@ -689,10 +708,11 @@ class WorkServiceDefault(
       responses <- lift(projectScratchpadRepository.list(user))
     } yield responses
   }
+
   /**
    * Find the latest revision of a user's task scratchpad to a task.
    *
-   * @param userId the unique ID of the user to list for
+   * @param userId    the unique ID of the user to list for
    * @param projectId the project within which to search for task scratchpads
    * @return an optional response
    */
@@ -708,9 +728,9 @@ class WorkServiceDefault(
   }
 
   /**
-   * Create a new task task scratchpad.
+   * Create a new task scratchpad.
    *
-   * @param userId the unique ID of the user whose component scratchpad it is
+   * @param userId    the unique ID of the user whose component scratchpad it is
    * @param projectId the unique ID of the project this project scratchpad is for
    * @return the updated task scratchpad
    */
@@ -780,56 +800,134 @@ class WorkServiceDefault(
     sharedEmail: Option[Option[String]],
     permissionId: Option[Option[String]],
     revisionId: Option[Option[String]]
-  ): Future[\/[ErrorUnion#Fail, Work]] = {
-    for {
-      gFile <- lift(gfileRepository.get(gFileId))
-      work <- lift(workRepository.find(gFile.workId))
-      gFiles <- lift(gfileRepository.listByWork(work))
-      updatedGfile <- lift(gfileRepository.update(
-        gFile.copy(
-          sharedEmail = sharedEmail match {
-          case Some(Some(sharedEmail)) => Some(sharedEmail)
-          case Some(None) => None
-          case None => gFile.sharedEmail
-        },
-          permissionId = permissionId match {
-          case Some(Some(permissionId)) => Some(permissionId)
-          case Some(None) => None
-          case None => gFile.permissionId
-        },
-          revisionId = revisionId match {
-          case Some(Some(revisionId)) => Some(revisionId)
-          case Some(None) => None
-          case None => gFile.revisionId
-        }
-        )
-      ))
-      // Update list of google files in the work
-      updatedGfiles = gFiles.map(gF => {
-        if (gF.id == updatedGfile.id) updatedGfile
-        else gF
-      })
-      result = work match {
-        case work: DocumentWork => work.copy(gFiles = updatedGfiles)
-        case work: MediaWork => work.copy(gFiles = updatedGfiles)
-        case work: QuestionWork => work.copy(gFiles = updatedGfiles)
+  ): Future[\/[ErrorUnion#Fail, Work]] = for {
+    gFile <- lift(gfileRepository.get(gFileId))
+    work <- lift(workRepository.find(gFile.workId))
+    gFiles <- lift(gfileRepository.listByWork(work))
+    updatedGfile <- lift(gfileRepository.update(
+      gFile.copy(
+        sharedEmail = sharedEmail match {
+        case Some(Some(sharedEmail)) => Some(sharedEmail)
+        case Some(None) => None
+        case None => gFile.sharedEmail
+      },
+        permissionId = permissionId match {
+        case Some(Some(permissionId)) => Some(permissionId)
+        case Some(None) => None
+        case None => gFile.permissionId
+      },
+        revisionId = revisionId match {
+        case Some(Some(revisionId)) => Some(revisionId)
+        case Some(None) => None
+        case None => gFile.revisionId
       }
-    } yield result.asInstanceOf[Work]
-  }
+      )
+    ))
+    // Update list of google files in the work
+    updatedGfiles = gFiles.map(gF => {
+      if (gF.id == updatedGfile.id) updatedGfile
+      else gF
+    })
+    result = work match {
+      case work: DocumentWork => work.copy(gFiles = updatedGfiles)
+      case work: MediaWork => work.copy(gFiles = updatedGfiles)
+      case work: QuestionWork => work.copy(gFiles = updatedGfiles)
+    }
+  } yield result.asInstanceOf[Work]
 
-  override def deleteGfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Work]] = {
-    for {
-      gFile <- lift(gfileRepository.get(gFileId))
-      work <- lift(workRepository.find(gFile.workId))
-      gFiles <- lift(gfileRepository.listByWork(work))
-      deletedGfile <- lift(gfileRepository.delete(gFile))
-      // Remove delete google file from the list
-      updatedGfiles = gFiles.filter(_.id != gFile.id)
-      result = work match {
-        case work: DocumentWork => work.copy(gFiles = updatedGfiles)
-        case work: MediaWork => work.copy(gFiles = updatedGfiles)
-        case work: QuestionWork => work.copy(gFiles = updatedGfiles)
-      }
-    } yield result.asInstanceOf[Work]
-  }
+  override def deleteGfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Work]] = for {
+    gFile <- lift(gfileRepository.get(gFileId))
+    work <- lift(workRepository.find(gFile.workId))
+    gFiles <- lift(gfileRepository.listByWork(work))
+    deletedGfile <- lift(gfileRepository.delete(gFile))
+    // Remove delete google file from the list
+    updatedGfiles = gFiles.filter(_.id != gFile.id)
+    result = work match {
+      case work: DocumentWork => work.copy(gFiles = updatedGfiles)
+      case work: MediaWork => work.copy(gFiles = updatedGfiles)
+      case work: QuestionWork => work.copy(gFiles = updatedGfiles)
+    }
+  } yield result.asInstanceOf[Work]
+
+  /*
+  ---------------------------------- OMS: individual scorers and their grades -------------------------------------------
+  */
+
+  /**
+   * Add an OMS scorer to a work (initial grade is the empty string).
+   * No limit on the number of scorers is imposed, nor is there a check on
+   * the scorers that are registrated for the course (classroom) that the work belongs to.
+   *
+   * @param workId
+   * @param scorerId
+   * @return
+   */
+  override def addScorer(workId: UUID, scorerId: UUID): Future[\/[ErrorUnion#Fail, Work]] = for {
+    existingWork <- lift(workRepository.find(workId))
+    _ <- predicate(existingWork.isInstanceOf[MediaWork])(ServiceError.BadInput("Attempted to add a scorer for a work without a media file"))
+    existingMediaWork = existingWork.asInstanceOf[MediaWork]
+    toUpdate = existingMediaWork.copy(scores = existingWork.scores :+ new Score(workId = existingWork.id, scorerId = scorerId))
+    /*toUpdate = existingWork match {
+      case existingWork: MediaWork =>
+        existingWork.copy(scores = existingWork.scores :+ new Score(workId = existingWork.id, scorerId = scorerId))
+    }*/
+    updatedWork <- lift(workRepository.update(toUpdate))
+  } yield updatedWork
+
+  override def deleteScorer(workId: UUID, scorerId: UUID): Future[\/[ErrorUnion#Fail, Work]] = for {
+    existingWork <- lift(workRepository.find(workId))
+    _ <- predicate(existingWork.isInstanceOf[MediaWork])(ServiceError.BadInput("Attempted to add a scorer for a work without a media file"))
+    existingMediaWork = existingWork.asInstanceOf[MediaWork]
+    toUpdate = existingMediaWork.copy(scores = existingWork.scores.filter(_.scorerId != scorerId))
+    /*toUpdate = existingWork match {
+      case existingWork: MediaWork =>
+        existingWork.copy(scores = existingWork.scores.filter(_.scorerId != scorerId))
+    } */
+    updatedWork <- lift(workRepository.update(toUpdate))
+  } yield updatedWork
+
+  override def getScore(workId: UUID, scorerId: UUID): Future[\/[ErrorUnion#Fail, Score]] = for {
+    score <- workRepository.find(workId = workId).map {
+      case \/-(work) =>
+        val maybeScore = work.scores.find(_.scorerId == scorerId)
+        maybeScore match {
+          case Some(score) => \/-(score)
+          case None => -\/(RepositoryError.NoResults(s"Scorer ${scorerId} is not registered for work {$workId}"))
+        }
+      case -\/(error) => -\/(error)
+    }
+  } yield score
+
+  override def updateScore(workId: UUID, scorerId: UUID, grade: String): Future[\/[ErrorUnion#Fail, Score]] = for {
+    toReturn <- workRepository.find(workId).map {
+      case \/-(existingWork) =>
+        try {
+          val existingMediaWork = existingWork.asInstanceOf[MediaWork] // can throw ClassCastException
+          val indexOfScore = existingMediaWork.scores.indexWhere(_.scorerId == scorerId) // -1 if not found
+          val existingScore = existingMediaWork.scores(indexOfScore) // can throw IndexOutOfBoundsException
+          val newScores = existingMediaWork.scores.updated(indexOfScore, existingScore.copy(grade = grade))
+          val updatedWork = workRepository.update(existingMediaWork.copy(scores = newScores)).asInstanceOf[MediaWork]
+          val updatedScore = updatedWork.scores.find(_.scorerId == scorerId)
+          updatedScore match {
+            case Some(updatedScore) => \/-(updatedScore)
+            case None => -\/(RepositoryError.NoResults(s"Error while updating grade of corer ${scorerId} in work {$workId}"))
+          }
+        }
+        catch {
+          case x: ClassCastException =>
+            Logger.warn(s"updateScore: work {$workId} has no media file and cannot be scored, exception ${x}")
+            -\/(RepositoryError.NoResults(s"updateScore: Work {$workId} has no media file and cannot be scored"))
+          case x: IndexOutOfBoundsException =>
+            Logger.warn(s"updateScore: Scorer ${scorerId} is not registered for work {$workId}, exception ${x}")
+            -\/(RepositoryError.NoResults(s"updateScore: Scorer ${scorerId} is not registered for work {$workId}"))
+          case ex: Throwable =>
+            Logger.warn(s"updateScore for scorer ${scorerId} in work {$workId}: exception ${ex}")
+            -\/(RepositoryError.NoResults(s"updateScore: Unknown exception for scorer ${scorerId} in work {$workId}"))
+        }
+      case _ =>
+        Logger.warn(s"updateScore: Work {$workId} does not exist")
+        -\/(RepositoryError.NoResults(s"updateScore: Work {$workId} does not exist"))
+    }
+  } yield toReturn
+
 }

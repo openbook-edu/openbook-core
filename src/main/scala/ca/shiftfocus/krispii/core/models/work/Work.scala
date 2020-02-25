@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.models.work
 import ca.shiftfocus.krispii.core.models.document.Document
 import java.util.UUID
 import ca.shiftfocus.krispii.core.models.Gfile
+import ca.shiftfocus.krispii.core.models.Score
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import ca.shiftfocus.krispii.core.models.tasks.questions._
 import org.joda.time.DateTime
@@ -18,6 +19,7 @@ sealed trait Work {
   val workType: Int
   val isComplete: Boolean
   val grade: String
+  val scores: IndexedSeq[Score] // used only when there are several scorers
   val gFiles: IndexedSeq[Gfile]
   val createdAt: DateTime
   val updatedAt: DateTime
@@ -45,6 +47,7 @@ object Work {
         "isComplete" -> work.isComplete,
         "grade" -> work.grade,
         "gFiles" -> work.gFiles,
+        "scores" -> work.scores,
         "createdAt" -> work.createdAt,
         "updatedAt" -> work.updatedAt
       )
@@ -68,6 +71,7 @@ final case class DocumentWork(
     isComplete: Boolean = false,
     grade: String,
     gFiles: IndexedSeq[Gfile] = IndexedSeq.empty[Gfile],
+    scores: IndexedSeq[Score] = IndexedSeq.empty[Score], // hardly necessary
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) extends Work {
@@ -89,6 +93,7 @@ final case class QuestionWork(
     isComplete: Boolean = false,
     grade: String,
     gFiles: IndexedSeq[Gfile] = IndexedSeq.empty[Gfile],
+    scores: IndexedSeq[Score] = IndexedSeq.empty[Score], // hardly necessary
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) extends Work {
@@ -107,6 +112,7 @@ final case class MediaWork(
     isComplete: Boolean = false,
     grade: String,
     gFiles: IndexedSeq[Gfile] = IndexedSeq.empty[Gfile],
+    scores: IndexedSeq[Score] = IndexedSeq.empty[Score],
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) extends Work {

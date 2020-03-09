@@ -26,7 +26,7 @@ case class Gfile(
 object Gfile {
   implicit val writes: Writes[Gfile] = (
     (__ \ "id").write[UUID] and
-    (__ \ "workId").write[UUID] and
+    (__ \ "work_id").write[UUID] and
     (__ \ "fileId").write[String] and
     (__ \ "mimeType").write[String] and
     (__ \ "fileType").write[String] and

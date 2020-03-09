@@ -676,7 +676,7 @@
 //
 //  "WorkRepository.find" should {
 //    inSequence {
-//      /* --- find(workId) --- */
+//      /* --- find(work_id) --- */
 //      "find the latest revision of a single work (LongAnswerWork)" in {
 //        val testWork = TestValues.testLongAnswerWorkA
 //        val testDocument = TestValues.testDocumentA
@@ -799,7 +799,7 @@
 //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type Work")))
 //      }
 //
-//      /* --- find(workId, version) --- */
+//      /* --- find(work_id, version) --- */
 //      "find a specific revision of a single work (LongAnswerWork)" in {
 //        val testWork = TestValues.testLongAnswerWorkRevisionA
 //        val testDocument = TestValues.testDocumentRevisionA

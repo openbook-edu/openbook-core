@@ -41,6 +41,9 @@ trait Repository extends Lifting[RepositoryError.Fail] {
   def cacheScheduleKey(id: UUID): String = s"schedule[${id.toString}]"
   def cacheSchedulesKey(courseId: UUID): String = s"schedules[${courseId.toString}]"
 
+  def cacheScoresKey(workId: UUID): String = s"scores[${workId.toString}]"
+  def cacheScorerKey(scorerId: UUID): String = s"scorer[${scorerId.toString}]"
+
   def cacheExceptionKey(id: UUID): String = s"exception[${id.toString}]"
   def cacheExceptionsKey(courseId: UUID): String = s"exceptions[${courseId.toString}]"
   def cacheExceptionsKey(courseId: UUID, userId: UUID): String = s"exceptions[${courseId.toString},${userId.toString}]"

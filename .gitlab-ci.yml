@@ -6,7 +6,7 @@ ci_compile:
         - edge
         - staging
         - master
-        - oms-dev
+        ## - oms-dev
         ## - pipeline-testing
         ## - classroom_debugging
     script:

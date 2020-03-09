@@ -8,8 +8,8 @@ import play.api.libs.functional.syntax._
 import play.api.libs.json.JodaWrites._
 
 case class Score(
-  workId: UUID,
-  scorerId: UUID,
+  work_id: UUID,
+  scorer_id: UUID,
   version: Long = 1L,
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime,
@@ -18,8 +18,8 @@ case class Score(
 
 object Score {
   implicit val writes: Writes[Score] = (
-    (__ \ "workId").write[UUID] and
-    (__ \ "scorerId").write[UUID] and
+    (__ \ "work_id").write[UUID] and
+    (__ \ "scorer_id").write[UUID] and
     (__ \ "version").write[Long] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime] and

@@ -1,10 +1,11 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.repositories.{TaskScratchpadRepository, TaskFeedbackRepository, WorkRepository}
+import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.work._
 import java.util.UUID
+
 import scala.concurrent.Future
 import scalaz.\/
 
@@ -15,8 +16,12 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   val documentService: DocumentService
   val componentService: ComponentService
   val workRepository: WorkRepository
+  val documentRepository: DocumentRepository
   val taskFeedbackRepository: TaskFeedbackRepository
   val taskScratchpadRepository: TaskScratchpadRepository
+  val projectScratchpadRepository: ProjectScratchpadRepository
+  val scoreRepository: ScoreRepository
+  val gfileRepository: GfileRepository
 
   // Finder methods for work
   def listWork(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]]

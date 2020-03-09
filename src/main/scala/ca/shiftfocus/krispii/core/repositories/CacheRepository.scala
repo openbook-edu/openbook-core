@@ -51,6 +51,9 @@ case class CacheRepository(
   val cacheSession: ScalaCachePool[Session] = new ScalaCachePool[Session](scalaCacheConfig)
   val cacheSeqSession: ScalaCachePool[IndexedSeq[Session]] = new ScalaCachePool[IndexedSeq[Session]](scalaCacheConfig)
 
+  val cacheScore: ScalaCachePool[Score] = new ScalaCachePool[Score](scalaCacheConfig)
+  val cacheSeqScore: ScalaCachePool[IndexedSeq[Score]] = new ScalaCachePool[IndexedSeq[Score]](scalaCacheConfig)
+
   val cacheTag: ScalaCachePool[Tag] = new ScalaCachePool[Tag](scalaCacheConfig)
   val cacheSeqTag: ScalaCachePool[IndexedSeq[Tag]] = new ScalaCachePool[IndexedSeq[Tag]](scalaCacheConfig)
 
@@ -79,6 +82,7 @@ trait SerializationSeqBinary {
   implicit val codecSeqProject: Codec[IndexedSeq[Project]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Project]]]
   implicit val codecSeqRole: Codec[IndexedSeq[Role]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Role]]]
   implicit val codecSeqSession: Codec[IndexedSeq[Session]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Session]]]
+  implicit val codecSeqScore: Codec[IndexedSeq[Score]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Score]]]
   implicit val codecSeqTag: Codec[IndexedSeq[Tag]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Tag]]]
   implicit val codecTask: Codec[Task] = codec.asInstanceOf[Codec[Task]]
   implicit val codecSeqTask: Codec[IndexedSeq[Task]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Task]]]

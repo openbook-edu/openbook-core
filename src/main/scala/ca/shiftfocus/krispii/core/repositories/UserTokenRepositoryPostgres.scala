@@ -73,5 +73,4 @@ class UserTokenRepositoryPostgres extends UserTokenRepository with PostgresRepos
     val Delete = s"DELETE FROM user_tokens WHERE user_id = ? and token_type = ? returning $Fields"
     queryOne(Delete, Seq[Any](userId, tokenType))
   }
-
 }

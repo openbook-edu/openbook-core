@@ -2,6 +2,8 @@ package ca.shiftfocus.krispii.core.repositories
 
 import java.util.UUID
 
+import play.api.Logger
+
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.work.Work
@@ -164,15 +166,20 @@ class ScoreRepositoryPostgres(
   }
 
   override def find(work: Work, scorer: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Score]] = {
+    Logger.debug(s"Looking up score from scorer ${scorer.email} in work ${work.id}")
     cacheRepository.cacheSeqScore.getCached(cacheScorerKey(scorer.id)).flatMap {
       case \/-(scoreList) =>
+        Logger.debug(s"Looking for work ${work.id} in the cached values for scorer ${scorer.email}: ${scoreList}")
         findOrError(scoreList.find(score => score.work_id == work.id))
       case -\/(noResults: RepositoryError.NoResults) =>
+        Logger.debug(s"No cached value, looking up data base scores from scorer ${scorer.email} in work ${work.id} in the data base")
         queryList(SelectByScorer, Array[Any](scorer.id)).flatMap {
           case \/-(scoreList) =>
+            Logger.debug(s"Looking up work ${work.id} in the data base scores for scorer ${scorer.email}: ${scoreList}")
             lift(cacheRepository.cacheSeqScore.putCache(cacheScorerKey(scorer.id))(scoreList, ttl))
             findOrError(scoreList.find(score => score.work_id == work.id))
           case -\/(noResults) =>
+            Logger.debug(s"No scores for scorer ${scorer.email} in the data base")
             Future successful -\/(noResults)
         }
       case -\/(error) => Future successful -\/(error)

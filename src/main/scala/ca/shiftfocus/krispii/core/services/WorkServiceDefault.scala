@@ -11,6 +11,7 @@ import ca.shiftfocus.krispii.core.services.datasource._
 import ca.shiftfocus.otlib.Delta
 import com.github.mauricio.async.db.Connection
 import scalaz.{\/, \/-}
+import play.api.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -255,13 +256,14 @@ class WorkServiceDefault(
    * @return the newly created work
    */
   override def createMediaWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MediaWork]] = {
+    Logger.debug(s"createMediaWork: about to check existence of user ${userId} and task ${taskId}")
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
 
       for {
-        user <- lift(fUser)
-        task <- lift(fTask)
+        _ <- lift(fUser) // this is just to generate an error if the student user doesn't exist
+        _ <- lift(fTask)
         newWork = MediaWork(
           studentId = userId,
           taskId = taskId,

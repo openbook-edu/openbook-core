@@ -1,4 +1,4 @@
-edge_publish:
+edge_compile:
     stage: build
     environment:
         name: edge
@@ -6,7 +6,6 @@ edge_publish:
         - krispii
     only:
         - edge
-        - pipeline-testing
     script:
         - sbt -Dsbt.log.noformat=true clean compile compile:doc publishLocal
         - "curl --request POST --form token=0ab10ae8c48c27f1270f5c1c8332fa --form ref=$CI_COMMIT_REF_NAME https://gitlab.shiftfocus.ca/api/v4/projects/28/trigger/pipeline"
@@ -14,7 +13,32 @@ edge_publish:
         paths:
             - target/
 
-stage_publish:
+#publish_local:
+#    stage: deploy
+#    environment:
+#        name: edge
+#    only:
+#        - edge
+#    script:
+#        - sbt publishLocal
+#        - "curl --request POST --form token=0ab10ae8c48c27f1270f5c1c8332fa --form ref=$CI_COMMIT_REF_NAME https://gitlab.shiftfocus.ca/api/v4/projects/28/trigger/pipeline"
+
+oms_compile:
+    stage: build
+    environment:
+        name: oms
+    tags:
+        - krispii
+    only:
+        - oms-dev
+    script:
+        - sbt -Dsbt.log.noformat=true clean compile compile:doc publishLocal
+        - "curl --request POST --form token=0ab10ae8c48c27f1270f5c1c8332fa --form ref=$CI_COMMIT_REF_NAME https://gitlab.shiftfocus.ca/api/v4/projects/28/trigger/pipeline"
+    cache:
+        paths:
+            - target/
+
+stage_compile:
     stage: build
     environment:
         name: staging
@@ -22,24 +46,10 @@ stage_publish:
         - krispii
     only:
         - staging
+        - master
     script:
         - sbt -Dsbt.log.noformat=true clean compile compile:doc publishLocal
         - "curl --request POST --form token=0ab10ae8c48c27f1270f5c1c8332fa --form ref=$CI_COMMIT_REF_NAME https://gitlab.shiftfocus.ca/api/v4/projects/28/trigger/pipeline"
     cache:
         paths:
             - target/
-
-live_publish:
-  stage: build
-  environment:
-    name: master
-  tags:
-    - krispii
-  only:
-    - master
-  script:
-    - sbt -Dsbt.log.noformat=true clean compile compile:doc publishLocal
-    - "curl --request POST --form token=0ab10ae8c48c27f1270f5c1c8332fa --form ref=$CI_COMMIT_REF_NAME https://gitlab.shiftfocus.ca/api/v4/projects/28/trigger/pipeline"
-  cache:
-    paths:
-      - target/

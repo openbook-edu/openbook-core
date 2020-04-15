@@ -23,7 +23,7 @@ class AccountRepositoryPostgres(
       row("user_id").asInstanceOf[UUID],
       row("status").asInstanceOf[String],
       Option(row("customer")).map(customer => Json.parse(customer.asInstanceOf[String])),
-      IndexedSeq.empty[JsValue],
+      IndexedSeq.empty[JsValue], // subscriptions are initialized empty!
       Option(row("trial_started_at")).map(_.asInstanceOf[DateTime]),
       Option(row("active_until")).map(_.asInstanceOf[DateTime]),
       Option(row("overdue_started_at")).map(_.asInstanceOf[DateTime]),
@@ -33,6 +33,7 @@ class AccountRepositoryPostgres(
   }
 
   val Table = "accounts"
+  // the database table "accounts" does not contain a subscriptions field
   val Fields = "id, version, user_id, status, customer, trial_started_at, active_until, overdue_started_at, overdue_ended_at, overdue_plan_id"
   val QMarks = Fields.split(", ").map({ field => "?" }).mkString(", ")
 

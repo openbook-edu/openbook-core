@@ -7,6 +7,7 @@ import ca.shiftfocus.krispii.core.models.Account
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import play.api.libs.json.{JsValue, Json}
+import play.api.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -130,8 +131,12 @@ class AccountRepositoryPostgres(
       account.activeUntil, account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId, account.id
     )
 
+    Logger.debug(s"Doing UPDATE on account: ${Update}\nwith parameters ${params}")
     for {
+      current <- lift(queryOne(Select, Seq[Any](account.id)))
+      _ = Logger.debug(s"Account before update: ${current}")
       updated <- lift(queryOne(Update, params))
+      _ = Logger.debug(s"Updated account: ${updated}")
       _ <- lift(cacheRepository.cacheAccount.removeCached(cacheAccountKey(updated.id)))
       _ <- lift(cacheRepository.cacheAccount.removeCached(cacheAccountUserKey(updated.userId)))
     } yield updated

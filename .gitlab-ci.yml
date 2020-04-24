@@ -8,7 +8,6 @@ edge_compile:
         - edge
         - staging
         - master
-        - oms-dev
         ## - pipeline-testing
         ## - classroom_debugging
     script:

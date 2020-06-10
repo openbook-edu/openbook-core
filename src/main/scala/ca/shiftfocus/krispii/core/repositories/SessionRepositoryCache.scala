@@ -66,7 +66,7 @@ class SessionRepositoryCache(val cacheRepository: CacheRepository) extends Sessi
    * Find a session by its session ID.
    *
    * @param sessionId the UUID of the session to lookup.
-   * @return an Option[Session] if one was found
+   * @return a Session if one was found, or an error
    */
   override def find(sessionId: UUID): Future[\/[RepositoryError.Fail, Session]] = {
     cacheRepository.cacheSession.getCached(sessionId.toString)
@@ -76,7 +76,7 @@ class SessionRepositoryCache(val cacheRepository: CacheRepository) extends Sessi
    * Create a new session
    *
    * @param session the new session to create
-   * @return the newly created session
+   * @return the newly created session or an error
    */
   override def create(session: Session): Future[\/[RepositoryError.Fail, Session]] = {
     val sessionWithDates = session.copy(

@@ -49,7 +49,7 @@ libraryDependencies ++= Seq(
   "com.github.cb372" %% "scalacache-redis" % "0.22.0",
   "org.scalatest" %% "scalatest" % "3.0.5" % Test,
   "org.slf4j" % "slf4j-api" % "1.7.25",
-  "org.slf4j" % "slf4j-simple" % "1.7.25",
+  // "org.slf4j" % "slf4j-simple" % "1.7.25", // this may cause problems with logback
   "org.clapper" %% "grizzled-slf4j" % "1.3.2",
   "junit" % "junit" % "4.12" % "test",
   "com.stripe" % "stripe-java" % "5.33.2",

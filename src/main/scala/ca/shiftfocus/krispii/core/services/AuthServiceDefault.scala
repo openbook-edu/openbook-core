@@ -135,10 +135,11 @@ class AuthServiceDefault(
       for {
         user <- lift(userRepository.find(identifier))
         roles <- lift(roleRepository.list(user))
-        _ = Logger.info("Authenticating without password, roles=" + roles.toString)
+        // _ = Logger.debug(s"Authenticating ${identifier} without password, roles=${roles}")
         userHash = user.hash.getOrElse("")
         authUser = user.copy(roles = roles)
-        _ = Logger.info("Authenticating without password, user=" + authUser.toString)
+        _ = Logger.info(s"Authenticating ${identifier} without password, account type=${authUser.accountType}, roles=" +
+          authUser.roles.map(_.name.toLowerCase()))
       } yield authUser
     }
   }

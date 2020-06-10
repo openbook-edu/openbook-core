@@ -141,12 +141,12 @@ class ProjectServiceDefault(
   def insertComponents(components: IndexedSeq[Component]): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
     for {
       components <- lift(serializedT(components)(component => {
-        Logger.info("executing for component " + component.id)
+        Logger.debug("inserting component ${component.id} into repository")
         for {
           newComponent <- lift(componentRepository.insert(component).map {
             case \/-(insertedComponent) => \/-(insertedComponent)
             case -\/(error) => {
-              Logger.error(s" error within insertComponents ${error.toString}")
+              Logger.error(s"error when inserting component ${component}: ${error}")
               \/-(component)
             }
           })
@@ -201,7 +201,7 @@ class ProjectServiceDefault(
     transactional { implicit conn: Connection =>
       for {
         parts <- lift(serializedT(parts)(part => {
-          Logger.info(s" inserting part ${part.toString}")
+          Logger.debug(s" inserting part ${part} into repository")
           partRepository.insert(part)
         }))
       } yield parts
@@ -211,8 +211,8 @@ class ProjectServiceDefault(
   def insertProject(project: Project): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
       for {
-        //          t = Logger.info(s" inserting project ${project.toString}")
         newProject <- lift(projectRepository.insert(project))
+        _ = Logger.debug(s" inserting project ${project} into repository")
       } yield newProject
     }
   }

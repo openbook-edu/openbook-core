@@ -141,7 +141,7 @@ class ProjectServiceDefault(
   def insertComponents(components: IndexedSeq[Component]): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
     for {
       components <- lift(serializedT(components)(component => {
-        Logger.debug("inserting component ${component.id} into repository")
+        Logger.debug(s"inserting component ${component.title} (id ${component.id}) into repository")
         for {
           newComponent <- lift(componentRepository.insert(component).map {
             case \/-(insertedComponent) => \/-(insertedComponent)

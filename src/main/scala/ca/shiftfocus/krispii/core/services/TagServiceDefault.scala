@@ -554,7 +554,7 @@ class TagServiceDefault(
     for {
       project <- lift(projectRepository.find(projectId))
       course <- lift(courseRepository.find(project.courseId))
-      teacher <- lift(userRepository.find(course.teacherId))
+      teacher <- lift(userRepository.find(course.ownerId))
       teacherRoles <- lift(roleRepository.list(teacher))
       organizationProjectTags <- lift(tagRepository.listOrganizationalByEntity(projectId, TaggableEntities.project))
       _ <- lift {

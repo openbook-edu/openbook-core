@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import ca.shiftfocus.krispii.core.models.tasks.questions.Question
 import com.github.mauricio.async.db.Connection
 import play.api.Logger
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
@@ -11,8 +12,11 @@ import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.models.course.Course
+
 import scala.concurrent.Future
-import scalaz.{\/, -\/, \/-}
+import scalaz.{-\/, \/, \/-}
 
 class ProjectServiceDefault(
     val db: DB,
@@ -239,7 +243,7 @@ class ProjectServiceDefault(
         tasks <- lift(insertTasks(clonedParts))
         _ <- lift {
           // If we have new components owner, we need insert in DB new components and then link them
-          if (course.teacherId != userId) {
+          if (course.ownerId != userId) {
             val clonedComponents = clonedParts.flatMap(_.components)
             insertComponents(clonedComponents)
           }
@@ -278,7 +282,7 @@ class ProjectServiceDefault(
       project <- lift(projectRepository.find(projectSlug, false))
       course <- lift(schoolService.findCourse(project.courseId))
       projectFiltered <- lift {
-        if (userId == course.teacherId) {
+        if (userId == course.ownerId) {
           if (fetchParts) projectRepository.find(project.id, true)
           else Future.successful(\/-(project))
         }

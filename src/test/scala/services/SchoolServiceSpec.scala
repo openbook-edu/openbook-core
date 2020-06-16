@@ -63,11 +63,11 @@
 //        )
 //        val newTeacher = TestValues.testUserB
 //        val testCourse = TestValues.testCourseA.copy(
-//          teacherId = testUser.id,
+//          ownerId = testUser.id,
 //          enabled = false
 //        )
 //        val updatedCourse = testCourse.copy(
-//          teacherId = newTeacher.id,
+//          ownerId = newTeacher.id,
 //          name = "new test course name",
 //          color = new Color(78, 40, 23),
 //          slug = "updated slug",
@@ -83,7 +83,7 @@
 //        val result = schoolService.updateCourse(
 //          updatedCourse.id,
 //          updatedCourse.version,
-//          Some(updatedCourse.teacherId),
+//          Some(updatedCourse.ownerId),
 //          Some(updatedCourse.name),
 //          Some(updatedCourse.slug),
 //          Some(updatedCourse.color),
@@ -101,11 +101,11 @@
 //        )
 //        val newTeacher = TestValues.testUserB
 //        val testCourse = TestValues.testCourseA.copy(
-//          teacherId = testUser.id,
+//          ownerId = testUser.id,
 //          enabled = true
 //        )
 //        val updatedCourse = testCourse.copy(
-//          teacherId = newTeacher.id,
+//          ownerId = newTeacher.id,
 //          name = "new test course name",
 //          color = new Color(78, 40, 23),
 //          enabled = true,
@@ -120,7 +120,7 @@
 //        val result = schoolService.updateCourse(
 //          updatedCourse.id,
 //          updatedCourse.version,
-//          Some(updatedCourse.teacherId),
+//          Some(updatedCourse.ownerId),
 //          Some(updatedCourse.name),
 //          None,
 //          Some(updatedCourse.color),
@@ -138,11 +138,11 @@
 //        )
 //        val newTeacher = TestValues.testUserB
 //        val testCourse = TestValues.testCourseA.copy(
-//          teacherId = testUser.id,
+//          ownerId = testUser.id,
 //          enabled = true
 //        )
 //        val updatedCourse = testCourse.copy(
-//          teacherId = newTeacher.id,
+//          ownerId = newTeacher.id,
 //          name = "new test course name",
 //          color = new Color(78, 40, 23),
 //          slug = "updated slug",
@@ -158,7 +158,7 @@
 //        val result = schoolService.updateCourse(
 //          updatedCourse.id,
 //          updatedCourse.version,
-//          Some(updatedCourse.teacherId),
+//          Some(updatedCourse.ownerId),
 //          Some(updatedCourse.name),
 //          Some(updatedCourse.slug),
 //          Some(updatedCourse.color),
@@ -173,11 +173,11 @@
 //        val testUser = TestValues.testUserA.copy(roles = IndexedSeq.empty[Role])
 //        val newTeacher = TestValues.testUserB
 //        val testCourse = TestValues.testCourseA.copy(
-//          teacherId = testUser.id,
+//          ownerId = testUser.id,
 //          enabled = false
 //        )
 //        val updatedCourse = testCourse.copy(
-//          teacherId = newTeacher.id,
+//          ownerId = newTeacher.id,
 //          name = "new test course name",
 //          color = new Color(78, 40, 23),
 //          slug = "updated slug",
@@ -193,7 +193,7 @@
 //        val result = schoolService.updateCourse(
 //          updatedCourse.id,
 //          updatedCourse.version,
-//          Some(updatedCourse.teacherId),
+//          Some(updatedCourse.ownerId),
 //          Some(updatedCourse.name),
 //          Some(updatedCourse.slug),
 //          Some(updatedCourse.color),
@@ -302,7 +302,7 @@
 //    inSequence {
 //      "insert new chat if user is a teacher" in {
 //        val testUser = TestValues.testUserA
-//        val testCourse = TestValues.testCourseA.copy(teacherId = testUser.id)
+//        val testCourse = TestValues.testCourseA.copy(ownerId = testUser.id)
 //        val studentList = IndexedSeq()
 //        val testChat = TestValues.testChatA
 //
@@ -316,7 +316,7 @@
 //      }
 //      "insert new chat if user is a student of the course" in {
 //        val testUser = TestValues.testUserA
-//        val testCourse = TestValues.testCourseA.copy(teacherId = UUID.randomUUID())
+//        val testCourse = TestValues.testCourseA.copy(ownerId = UUID.randomUUID())
 //        val studentList = IndexedSeq(
 //          testUser
 //        )
@@ -332,7 +332,7 @@
 //      }
 //      "return ServiceError.BadPermissions if user is not a teacher and doesn't attend the course" in {
 //        val testUser = TestValues.testUserA
-//        val testCourse = TestValues.testCourseA.copy(teacherId = UUID.randomUUID())
+//        val testCourse = TestValues.testCourseA.copy(ownerId = UUID.randomUUID())
 //        val studentList = IndexedSeq()
 //        val testChat = TestValues.testChatA
 //

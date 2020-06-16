@@ -1,6 +1,7 @@
 package ca.shiftfocus.krispii.core.services
 
 import java.awt.Color
+
 import org.joda.time.DateTime
 import play.api.Logger
 import ca.shiftfocus.krispii.core.error._
@@ -9,9 +10,13 @@ import com.github.mauricio.async.db.Connection
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.models.course.Course
+
 import scala.collection.IndexedSeq
 import scala.concurrent.Future
-import scalaz.{\/-, -\/, \/}
+import scalaz.{-\/, \/, \/-}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 
 class SchoolServiceDefault(
@@ -121,7 +126,7 @@ class SchoolServiceDefault(
         _ <- predicate(teacher.roles.map(_.name).contains("teacher"))(ServiceError.BadPermissions("Tried to create a course for a user who isn't a teacher."))
         _ <- lift(isValidSlug(slug))
         newCourse = Course(
-          teacherId = teacher.id,
+          ownerId = teacher.id,
           name = name,
           color = color,
           slug = slug
@@ -157,12 +162,12 @@ class SchoolServiceDefault(
       for {
         existingCourse <- lift(courseRepository.find(id))
         _ <- predicate(existingCourse.version == version)(ServiceError.OfflineLockFail)
-        tId = teacherId.getOrElse(existingCourse.teacherId)
+        tId = teacherId.getOrElse(existingCourse.ownerId)
         teacher <- lift(authService.find(tId))
         _ <- predicate(slug.isEmpty || !existingCourse.enabled)(ServiceError.BusinessLogicFail("You can only change the slug for disabled courses."))
         _ <- predicate(teacher.roles.map(_.name).contains("teacher"))(ServiceError.BadPermissions("Tried to update a course for a user who isn't a teacher."))
         toUpdate = existingCourse.copy(
-          teacherId = teacherId.getOrElse(existingCourse.teacherId),
+          ownerId = teacherId.getOrElse(existingCourse.ownerId),
           name = name.getOrElse(existingCourse.name),
           slug = slug.getOrElse(existingCourse.slug),
           color = color.getOrElse(existingCourse.color),
@@ -281,7 +286,7 @@ class SchoolServiceDefault(
       user <- lift(authService.find(userId))
       teacher <- lift(authService.find(teacherId))
       userCourses <- lift(courseRepository.list(user, false))
-      filteredCourses = userCourses.filter(_.teacherId == teacherId)
+      filteredCourses = userCourses.filter(_.ownerId == teacherId)
       _ <- predicate(filteredCourses.nonEmpty)(RepositoryError.NoResults(s"User ${userId.toString} is not in any courses with teacher ${teacherId.toString}"))
     } yield user
   }
@@ -376,7 +381,7 @@ class SchoolServiceDefault(
         course <- lift(findCourse(courseId))
         user <- lift(userRepository.find(userId))
         students <- lift(listStudents(course))
-        _ <- predicate(course.teacherId == user.id || students.contains(user))(ServiceError.BadPermissions("You must be a member of a course to chat in it."))
+        _ <- predicate(course.ownerId == user.id || students.contains(user))(ServiceError.BadPermissions("You must be a member of a course to chat in it."))
         newChat = Chat(courseId = course.id, userId = userId, message = message)
         createdChat <- lift(chatRepository.insert(newChat))
       } yield createdChat
@@ -532,7 +537,7 @@ class SchoolServiceDefault(
       case -\/(error: RepositoryError.NoResults) => {
         for {
           course <- lift(courseRepository.find(courseId))
-          result <- lift(limitRepository.getTeacherStudentLimit(course.teacherId))
+          result <- lift(limitRepository.getTeacherStudentLimit(course.ownerId))
         } yield result
       }
       case -\/(error) => Future successful -\/(error)

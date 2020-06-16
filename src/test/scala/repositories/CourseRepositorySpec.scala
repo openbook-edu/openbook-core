@@ -37,7 +37,7 @@
 //        testCoursesList.foreach {
 //          case (key, course: Course) => {
 //            courses(key).id should be(course.id)
-//            courses(key).teacherId should be(course.teacherId)
+//            courses(key).ownerId should be(course.ownerId)
 //            courses(key).name should be(course.name)
 //            courses(key).color should be(course.color)
 //          }
@@ -58,7 +58,7 @@
 //        testCoursesList.foreach {
 //          case (key, course: Course) => {
 //            courses(key).id should be(course.id)
-//            courses(key).teacherId should be(course.teacherId)
+//            courses(key).ownerId should be(course.ownerId)
 //            courses(key).name should be(course.name)
 //            courses(key).color should be(course.color)
 //          }
@@ -89,7 +89,7 @@
 //        testCoursesList.foreach {
 //          case (key, course: Course) => {
 //            courses(key).id should be(course.id)
-//            courses(key).teacherId should be(course.teacherId)
+//            courses(key).ownerId should be(course.ownerId)
 //            courses(key).name should be(course.name)
 //            courses(key).color should be(course.color)
 //          }
@@ -125,7 +125,7 @@
 //        testCoursesList.foreach {
 //          case (key, course: Course) => {
 //            courses(key).id should be(course.id)
-//            courses(key).teacherId should be(course.teacherId)
+//            courses(key).ownerId should be(course.ownerId)
 //            courses(key).name should be(course.name)
 //            courses(key).color should be(course.color)
 //          }
@@ -198,7 +198,7 @@
 //            var key = 0
 //            for (course: Course <- coursesList) {
 //              courses(userId)(key).id should be(course.id)
-//              courses(userId)(key).teacherId should be(course.teacherId)
+//              courses(userId)(key).ownerId should be(course.ownerId)
 //              courses(userId)(key).name should be(course.name)
 //              courses(userId)(key).color should be(course.color)
 //              key = key + 1
@@ -523,7 +523,7 @@
 //        val \/-(course) = eitherCourse
 //
 //        course.id should be(testCourse.id)
-//        course.teacherId should be(testCourse.teacherId)
+//        course.ownerId should be(testCourse.ownerId)
 //        course.version should be(1L)
 //        course.name should be(testCourse.name)
 //        course.color should be(testCourse.color)
@@ -540,7 +540,7 @@
 //        val \/-(course) = eitherCourse
 //
 //        course.id should be(testCourse.id)
-//        course.teacherId should be(testCourse.teacherId)
+//        course.ownerId should be(testCourse.ownerId)
 //        course.version should be(1L)
 //        course.name should be(testCourse.name)
 //        course.slug should be(testCourse.slug + "-1")
@@ -550,7 +550,7 @@
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 //
 //        val testCourse = TestValues.testCourseE.copy(
-//          teacherId = UUID.fromString("9d8ed645-b055-4a69-ab7d-387791c1e064")
+//          ownerId = UUID.fromString("9d8ed645-b055-4a69-ab7d-387791c1e064")
 //        )
 //
 //        val result = courseRepository.insert(testCourse)
@@ -576,7 +576,7 @@
 //
 //        val testCourse = TestValues.testCourseA
 //        val updatedCourse = testCourse.copy(
-//          teacherId = TestValues.testCourseB.teacherId,
+//          ownerId = TestValues.testCourseB.ownerId,
 //          name = "new test course name",
 //          color = new Color(78, 40, 23)
 //        )
@@ -586,7 +586,7 @@
 //        val \/-(course) = eitherCourse
 //
 //        course.id should be(updatedCourse.id)
-//        course.teacherId should be(updatedCourse.teacherId)
+//        course.ownerId should be(updatedCourse.ownerId)
 //        course.version should be(updatedCourse.version + 1)
 //        course.name should be(updatedCourse.name)
 //        course.color should be(updatedCourse.color)
@@ -601,7 +601,7 @@
 //        val existingSlug = TestValues.testCourseB.slug
 //        val testCourse = TestValues.testCourseA
 //        val updatedCourse = testCourse.copy(
-//          teacherId = TestValues.testCourseB.teacherId,
+//          ownerId = TestValues.testCourseB.ownerId,
 //          name = "new test course name",
 //          slug = existingSlug,
 //          color = new Color(78, 40, 23)
@@ -612,7 +612,7 @@
 //        val \/-(course) = eitherCourse
 //
 //        course.id should be(updatedCourse.id)
-//        course.teacherId should be(updatedCourse.teacherId)
+//        course.ownerId should be(updatedCourse.ownerId)
 //        course.version should be(updatedCourse.version + 1)
 //        course.name should be(updatedCourse.name)
 //        course.slug should be(updatedCourse.slug + "-1")
@@ -623,7 +623,7 @@
 //      "return RepositoryError.NoResults when update an existing Course with wrong version" in {
 //        val testCourse = TestValues.testCourseA
 //        val updatedCourse = testCourse.copy(
-//          teacherId = TestValues.testCourseB.teacherId,
+//          ownerId = TestValues.testCourseB.ownerId,
 //          name = "new test course name",
 //          color = new Color(78, 40, 23),
 //          version = 99L
@@ -635,7 +635,7 @@
 //      "return RepositoryError.NoResults when update a Course that doesn't exist" in {
 //        val testCourse = TestValues.testCourseC
 //        val updatedCourse = testCourse.copy(
-//          teacherId = TestValues.testCourseB.teacherId,
+//          ownerId = TestValues.testCourseB.ownerId,
 //          name = "new test course name",
 //          color = new Color(78, 40, 23)
 //        )
@@ -660,7 +660,7 @@
 //        val \/-(course) = eitherCourse
 //
 //        course.id should be(testCourse.id)
-//        course.teacherId should be(testCourse.teacherId)
+//        course.ownerId should be(testCourse.ownerId)
 //        course.version should be(testCourse.version)
 //        course.name should be(testCourse.name)
 //        course.color should be(testCourse.color)
@@ -677,7 +677,7 @@
 //        val \/-(course) = eitherCourse
 //
 //        course.id should be(testCourse.id)
-//        course.teacherId should be(testCourse.teacherId)
+//        course.ownerId should be(testCourse.ownerId)
 //        course.version should be(testCourse.version)
 //        course.name should be(testCourse.name)
 //        course.color should be(testCourse.color)

@@ -1,12 +1,15 @@
 import java.awt.Color
+
 import ca.shiftfocus.krispii.core.models.JournalEntry._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.document.{ Revision, Document }
+import ca.shiftfocus.krispii.core.models.document.{Document, Revision}
 import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.models.tasks.questions._
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.models.course.Course
 import ca.shiftfocus.krispii.core.models.work._
-import org.joda.time.{ LocalTime, LocalDate, DateTime, DateTimeZone }
+import org.joda.time.{DateTime, DateTimeZone, LocalDate, LocalTime}
 import ca.shiftfocus.otlib._
 
 object TestValues {
@@ -273,7 +276,7 @@ object TestValues {
   val testCourseA = Course(
     id = UUID.fromString("217c5622-ff9e-4372-8e6a-95fb3bae300b"),
     version = 1L,
-    teacherId = testUserA.id,
+    ownerId = testUserA.id,
     name = "test course A",
     color = new Color(24, 6, 8),
     slug = "test-course-A-slug",
@@ -285,7 +288,7 @@ object TestValues {
   val testCourseB = Course(
     id = UUID.fromString("404c800a-5385-4e6b-867e-365a1e6b00de"),
     version = 2L,
-    teacherId = testUserB.id,
+    ownerId = testUserB.id,
     name = "test course B",
     color = new Color(34, 8, 16),
     slug = "test-course-B-slug",
@@ -299,7 +302,7 @@ object TestValues {
    */
   val testCourseC = Course(
     id = UUID.fromString("7cf524fa-aa7f-4bfe-93d7-8cd7787fd030"),
-    teacherId = testUserA.id,
+    ownerId = testUserA.id,
     name = "unexisting course C",
     color = new Color(24, 6, 8),
     slug = "test-course-C-slug",
@@ -309,7 +312,7 @@ object TestValues {
   val testCourseD = Course(
     id = UUID.fromString("94cc65bb-4542-4f62-8e08-d58522e7b5f1"),
     version = 3L,
-    teacherId = testUserF.id,
+    ownerId = testUserF.id,
     name = "test course D",
     color = new Color(4, 28, 56),
     slug = "test-course-D-slug",
@@ -323,7 +326,7 @@ object TestValues {
    */
   val testCourseE = Course(
     id = UUID.fromString("d0b05b14-4a5f-4727-ac43-bd8671aab53c"),
-    teacherId = testUserA.id,
+    ownerId = testUserA.id,
     name = "unexisting course E",
     color = new Color(45, 10, 15),
     slug = "test-course-E-slug",
@@ -333,7 +336,7 @@ object TestValues {
   val testCourseF = Course(
     id = UUID.fromString("287b61f5-da6b-4de7-8535-3bc500cffac7"),
     version = 4L,
-    teacherId = testUserF.id,
+    ownerId = testUserF.id,
     name = "test course F",
     color = new Color(4, 28, 56),
     slug = "test-course-F-slug",
@@ -348,7 +351,7 @@ object TestValues {
   val testCourseG = Course(
     id = UUID.fromString("b24abba8-e6c7-4700-900c-e66ed0185a70"),
     version = 5L,
-    teacherId = testUserF.id,
+    ownerId = testUserF.id,
     name = "test course G",
     color = new Color(23, 6, 45),
     slug = "test-course-G-slug",
@@ -361,7 +364,7 @@ object TestValues {
     //4ac4d872-451b-4092-b13f-643d6d5fa931
     id = UUID.fromString("4ac4d872-451b-4092-b13f-643d6d5fa931"),
     version = 5L,
-    teacherId = testUserF.id,
+    ownerId = testUserF.id,
     name = "test course H",
     color = new Color(23, 6, 45),
     slug = "test-course-H-slug",
@@ -373,7 +376,7 @@ object TestValues {
   val testCourseK = Course(
     id = UUID.fromString("b24abba8-e6c7-4700-900c-e66ed0185a71"),
     version = 5L,
-    teacherId = testUserF.id,
+    ownerId = testUserF.id,
     name = "test course K",
     color = new Color(23, 6, 45),
     slug = "test-course-K-slug",

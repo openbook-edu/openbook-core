@@ -4,6 +4,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.models.course.Course
 import ca.shiftfocus.krispii.core.models.tasks.{DocumentTask, MediaTask, QuestionTask, Task}
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
@@ -287,7 +288,7 @@ class ProjectRepositoryPostgres(
           }.asInstanceOf[IndexedSeq[Task]],
             components = {
             // If we have new components owner
-            if (course.teacherId != ownerId) cloneComponents(components, ownerId, project.isMaster)
+            if (course.ownerId != ownerId) cloneComponents(components, ownerId, project.isMaster)
             else components
           }
           )

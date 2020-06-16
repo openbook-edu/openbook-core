@@ -569,7 +569,7 @@ class WorkServiceDefault(
         part <- lift(projectService.findPart(task.partId, false))
         project <- lift(projectService.find(part.projectId, false))
         course <- lift(schoolService.findCourse(project.courseId))
-        teacher <- lift(authService.find(course.teacherId))
+        teacher <- lift(authService.find(course.ownerId))
         document <- lift(documentService.create(UUID.randomUUID, teacher, "", Delta(IndexedSeq())))
         newFeedback = TaskFeedback(
           studentId = student.id,

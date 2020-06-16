@@ -7,6 +7,8 @@
 
 package ca.shiftfocus.krispii.core.models
 
+import ca.shiftfocus.krispii.core.models.course.Course
+
 case class Context(
   user: User,
   session: Session,

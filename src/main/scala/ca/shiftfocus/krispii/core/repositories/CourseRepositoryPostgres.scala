@@ -5,6 +5,7 @@ import java.util.{NoSuchElementException, UUID}
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.models.course.Course
 import com.github.mauricio.async.db.exceptions.ConnectionStillRunningQueryException
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{Connection, RowData}
@@ -461,13 +462,13 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
    */
   def insert(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = {
     val params = Seq[Any](
-      course.id, 1, course.teacherId, course.name, course.color.getRGB, course.slug, course.id,
+      course.id, 1, course.ownerId, course.name, course.color.getRGB, course.slug, course.id,
       course.enabled, course.chatEnabled, course.schedulingEnabled, course.theaterMode, course.lastProjectId, new DateTime, new DateTime
     )
 
     for {
       inserted <- lift(queryOne(Insert, params))
-      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeachingKey(course.teacherId)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeachingKey(course.ownerId)))
     } yield inserted
   }
 
@@ -481,7 +482,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
   override def update(course: Course) // format: OFF
                      (implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = { // format: ON
     val params = Seq[Any](
-      course.version + 1, course.teacherId, course.name, course.color.getRGB, course.slug, course.id,
+      course.version + 1, course.ownerId, course.name, course.color.getRGB, course.slug, course.id,
       course.enabled, course.archived, course.schedulingEnabled, course.theaterMode, course.lastProjectId, course.chatEnabled, new DateTime, course.id, course.version
     )
     for {
@@ -490,7 +491,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
       _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(updated.id)))
       _ <- lift(cacheRepository.cacheCourse.removeCached(cacheCourseKey(updated.id)))
       _ <- lift(cacheRepository.cacheUUID.removeCached(cacheCourseSlugKey(updated.slug)))
-      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeachingKey(course.teacherId)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeachingKey(course.ownerId)))
       _ <- liftSeq { students.map { student => cacheRepository.cacheSeqCourse.removeCached(cacheCoursesKey(student.id)) } }
     } yield updated
   }
@@ -510,7 +511,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
       _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(deleted.id)))
       _ <- lift(cacheRepository.cacheCourse.removeCached(cacheCourseKey(deleted.id)))
       _ <- lift(cacheRepository.cacheUUID.removeCached(cacheCourseSlugKey(deleted.slug)))
-      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeachingKey(course.teacherId)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeachingKey(course.ownerId)))
       _ <- liftSeq { students.map { student => cacheRepository.cacheSeqCourse.removeCached(cacheCoursesKey(student.id)) } }
     } yield deleted
   }

@@ -3,9 +3,12 @@ package ca.shiftfocus.krispii.core.services
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.repositories.{CourseScheduleExceptionRepository, CourseScheduleRepository}
 import java.util.UUID
+
 import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.models.course.Course
 import org.joda.time.LocalTime
 import org.joda.time.LocalDate
+
 import scala.concurrent.Future
 import scalaz.\/
 

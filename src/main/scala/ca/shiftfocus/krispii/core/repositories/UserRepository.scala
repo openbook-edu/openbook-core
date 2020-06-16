@@ -3,10 +3,11 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.models.course.Course
 import com.github.mauricio.async.db.Connection
 
 import scala.concurrent.Future
-
 import scalaz.\/
 
 trait UserRepository extends Repository {

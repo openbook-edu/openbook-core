@@ -3,9 +3,13 @@ package ca.shiftfocus.krispii.core.services
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.repositories.{ChatRepository, CourseRepository, UserRepository}
 import java.util.UUID
+
 import ca.shiftfocus.krispii.core.models._
+
 import scala.concurrent.Future
 import java.awt.Color
+
+import ca.shiftfocus.krispii.core.models.course.Course
 import org.joda.time.DateTime
 import scalaz.\/
 

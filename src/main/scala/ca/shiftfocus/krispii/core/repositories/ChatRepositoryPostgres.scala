@@ -1,12 +1,15 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models.{Course, Chat, User}
+import ca.shiftfocus.krispii.core.models.{Chat, User}
 import java.util.UUID
-import com.github.mauricio.async.db.{RowData, Connection}
+
+import ca.shiftfocus.krispii.core.models.course.Course
+import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
+
 import scala.concurrent.Future
-import scalaz.{\/}
+import scalaz.\/
 
 class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat] {
 

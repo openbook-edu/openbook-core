@@ -1,6 +1,8 @@
 package ca.shiftfocus.krispii.core.models
 
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.models.course.Course
 import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.json.Writes._

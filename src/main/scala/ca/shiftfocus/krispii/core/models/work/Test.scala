@@ -2,6 +2,7 @@ package ca.shiftfocus.krispii.core.models.work
 
 import java.util.UUID
 
+import ca.shiftfocus.krispii.core.models.User
 import org.joda.time.DateTime
 import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.json.JodaWrites._
@@ -14,12 +15,13 @@ case class Test(
     version: Long = 1L,
     grade: String, // initially empty, in contrast with Work
     origResponse: MediaAnswer = MediaAnswer(),
+    scorers: Option[IndexedSeq[User]] = None,
+    scores: Option[IndexedSeq[Score]] = None,
     createdAt: DateTime = new DateTime(),
     updatedAt: DateTime = new DateTime()
 ) extends Evaluation {
-  override def responseToString: String = {
-    name
-  }
+  override def responseToString: String =
+    s"${name}: ${grade}"
 }
 
 object Test {
@@ -29,9 +31,12 @@ object Test {
         "id" -> test.id,
         "examId" -> test.examId,
         "teamId" -> test.teamId,
+        "name" -> test.name,
         "version" -> test.version,
-        "orig_response" -> MediaAnswer.writes.writes(test.origResponse),
         "grade" -> test.grade,
+        "orig_response" -> MediaAnswer.writes.writes(test.origResponse),
+        "scorers" -> test.scorers,
+        "scores" -> test.scores,
         "createdAt" -> test.createdAt,
         "updatedAt" -> test.updatedAt
       )

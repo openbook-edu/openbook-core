@@ -5,7 +5,9 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.lib.{ScalaCacheConfig, ScalaCachePool}
 import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.models.course.Course
 import ca.shiftfocus.krispii.core.models.tasks.Task
+
 import scala.reflect.ClassTag
 import scalacache.serialization.binary._
 import scalacache.serialization.Codec

@@ -28,7 +28,7 @@ class ProjectRepositoryPostgres(
   override val entityName = "Project"
 
   def constructor(row: RowData): Project = {
-    Logger.debug("Project enabled: " + row("enabled").toString)
+    Logger.debug("Creating project " + row("name").toString() + ", enabled: " + row("enabled").toString)
     Project(
       row("id").asInstanceOf[UUID],
       row("course_id").asInstanceOf[UUID],
@@ -557,7 +557,7 @@ class ProjectRepositoryPostgres(
   }
 
   /**
-   * Save a Project row.
+   * Update a Project row.
    *
    * @param project The project to update.
    * @param conn An implicit connection object. Can be used in a transactional chain.
@@ -583,7 +583,7 @@ class ProjectRepositoryPostgres(
    *
    * @param project The project to be deleted.
    * @param conn An implicit connection object. Can be used in a transactional chain.
-   * @return a boolean indicator whether the deletion was successful.
+   * @return the deleted project (if the deletion was successful) or an error
    */
   override def delete(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
     (for {

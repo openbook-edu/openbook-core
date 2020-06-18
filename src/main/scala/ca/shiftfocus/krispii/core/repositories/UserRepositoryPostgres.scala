@@ -287,6 +287,16 @@ class UserRepositoryPostgres(
        |ORDER BY $OrderBy
     """.stripMargin
 
+  val SelectAllWithTeam =
+    s"""
+       |SELECT $FieldsWithoutHash
+       |FROM $Table, teams_scorers
+       |WHERE $Table.id = teams_scorers.scorer_id
+       |  AND teams_scorers.team_id = ?
+       |  AND is_deleted = FALSE
+       |ORDER BY $OrderBy
+    """.stripMargin
+
   val SelectAllWithTeacher =
     s"""
        |SELECT $FieldsWithoutHash
@@ -352,7 +362,7 @@ class UserRepositoryPostgres(
   }
 
   /**
-   * List all users who have a role.
+   * List all users who have a certain role.
    *
    * @param role
    * @param conn
@@ -363,9 +373,9 @@ class UserRepositoryPostgres(
   }
 
   /**
-   * List users in a given course.
+   * List student users in a given course.
    *
-   * @return a future disjunction containing either the users, or a failure
+   * @return a future disjunction containing either the student users, or a failure
    */
   override def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
     cacheRepository.cacheSeqUser.getCached(cacheStudentsKey(course.id)).flatMap {
@@ -379,18 +389,35 @@ class UserRepositoryPostgres(
     }
   }
 
+  /**
+   * List scorers on a given team.
+   *
+   * @return a future disjunction containing either the scorers, or a failure
+   */
+  override def list(team: Team)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    cacheRepository.cacheSeqUser.getCached(cacheScorersKey(team.id)).flatMap {
+      case \/-(userList) => Future successful \/.right[RepositoryError.Fail, IndexedSeq[User]](userList)
+      case -\/(noResults: RepositoryError.NoResults) =>
+        for {
+          userList <- lift(queryList(SelectAllWithTeam, Seq[Any](team.id)))
+          _ <- lift(cacheRepository.cacheSeqUser.putCache(cacheScorersKey(team.id))(userList, ttl))
+        } yield userList
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
   override def list(conversation: Conversation)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
     queryList(SelectAllWithConversation, Seq[Any](conversation.id))
   }
 
   /**
    * List students for a given teacher
-   * @param user
+   * @param teacher
    * @param conn
    * @return
    */
-  override def list(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    queryList(SelectAllWithTeacher, Seq[Any](user.id))
+  override def list(teacher: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    queryList(SelectAllWithTeacher, Seq[Any](teacher.id))
   }
 
   /**

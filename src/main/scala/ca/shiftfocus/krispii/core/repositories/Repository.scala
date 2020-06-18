@@ -17,11 +17,11 @@ trait Repository extends Lifting[RepositoryError.Fail] {
   def cacheRoleNameKey(name: String): String = s"roleId[$name]"
   def cacheRolesKey(userId: UUID): String = s"roles[${userId.toString}]"
 
-  def cacheStudentsKey(id: UUID): String = s"students[${id.toString}]"
   def cacheCoursesKey(id: UUID): String = s"courses[${id.toString}]"
   def cacheCourseKey(id: UUID): String = s"course[${id.toString}]"
   def cacheCourseSlugKey(slug: String): String = s"courseId[$slug]"
   def cacheTeachingKey(id: UUID): String = s"teaching[${id.toString}]"
+  def cacheStudentsKey(id: UUID): String = s"students[${id.toString}]"
 
   def cacheTaskKey(id: UUID): String = s"task[${id.toString}]"
   def cacheTaskPosKey(projectId: UUID, partId: UUID, taskNum: Int): String = s"taskId[${projectId.toString}}, ${partId.toString}}, $taskNum]"
@@ -34,6 +34,20 @@ trait Repository extends Lifting[RepositoryError.Fail] {
   def cacheProjectKey(id: UUID): String = s"project[${id.toString}]"
   def cacheProjectsKey(courseId: UUID): String = s"projects[${courseId.toString}]"
   def cacheProjectSlugKey(slug: String): String = s"projectId[$slug]"
+
+  def cacheExamsKey(id: UUID): String = s"exams[${id.toString}]"
+  def cacheExamKey(id: UUID): String = s"exam[${id.toString}]"
+  def cacheExamSlugKey(slug: String): String = s"projectId[$slug]"
+  def cacheScorersKey(id: UUID): String = s"scorers[${id.toString}]"
+
+  def cacheTeamsKey(id: UUID): String = s"teams[${id.toString}]"
+  def cacheTeamKey(id: UUID): String = s"team[${id.toString}]"
+
+  def cacheTestsKey(id: UUID): String = s"tests[${id.toString}]"
+  def cacheTestKey(id: UUID): String = s"test[${id.toString}]"
+
+  def cacheScoresKey(id: UUID): String = s"scores[${id.toString}]"
+  def cacheScoreKey(id: UUID): String = s"score[${id.toString}]"
 
   def cacheComponentKey(compId: UUID): String = s"component[${compId.toString}]"
   def cacheComponentsKey(id: UUID): String = s"components[${id.toString}]"

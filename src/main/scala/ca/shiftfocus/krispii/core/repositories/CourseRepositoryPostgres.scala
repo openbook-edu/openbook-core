@@ -23,7 +23,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
     Course(
       row("id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
-      row("teacher_id").asInstanceOf[UUID],
+      row("teacher_id").asInstanceOf[UUID], // teacher_id and is_deleted in SQL, not in models!
       row("name").asInstanceOf[String],
       new Color(Option(row("color").asInstanceOf[Int]).getOrElse(0)),
       row("slug").asInstanceOf[String],
@@ -230,7 +230,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
    * Select courses based on the given user.
    *
    * @param user the user to search by
-   * @param asTeacher  whether we are searching for courses this user teachers,
+   * @param asTeacher  whether we are searching for courses this user teaches,
    *                   or courses this user is a student of.
    * @return the found courses
    */
@@ -312,7 +312,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
   }
 
   /**
-   * Find a single entry by ID.
+   * Find a single entry by slug.
    *
    * @param slug the course's slug
    * @return an optional RowData object containing the results

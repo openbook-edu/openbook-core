@@ -5,14 +5,14 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.lib.{ScalaCacheConfig, ScalaCachePool}
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.course.Course
+import ca.shiftfocus.krispii.core.models.course.{Course, Exam}
 import ca.shiftfocus.krispii.core.models.tasks.Task
-
-import scala.reflect.ClassTag
-import scalacache.serialization.binary._
+import ca.shiftfocus.krispii.core.models.work.{Score, Test}
 import scalacache.serialization.Codec
 import scalacache.serialization.Codec._
-import scalacache.serialization.binary.JavaSerializationAnyRefCodec
+import scalacache.serialization.binary.{JavaSerializationAnyRefCodec, _}
+
+import scala.reflect.ClassTag
 
 case class CacheRepository(
     val scalaCacheConfig: ScalaCacheConfig
@@ -41,6 +41,9 @@ case class CacheRepository(
   val cacheCourseScheduleException: ScalaCachePool[CourseScheduleException] = new ScalaCachePool[CourseScheduleException](scalaCacheConfig)
   val cacheSeqCourseScheduleException: ScalaCachePool[IndexedSeq[CourseScheduleException]] = new ScalaCachePool[IndexedSeq[CourseScheduleException]](scalaCacheConfig)
 
+  val cacheExam: ScalaCachePool[Exam] = new ScalaCachePool[Exam](scalaCacheConfig)
+  val cacheSeqExam: ScalaCachePool[IndexedSeq[Exam]] = new ScalaCachePool[IndexedSeq[Exam]](scalaCacheConfig)
+
   val cachePart: ScalaCachePool[Part] = new ScalaCachePool[Part](scalaCacheConfig)
   val cacheSeqPart: ScalaCachePool[IndexedSeq[Part]] = new ScalaCachePool[IndexedSeq[Part]](scalaCacheConfig)
 
@@ -50,6 +53,9 @@ case class CacheRepository(
   val cacheRole: ScalaCachePool[Role] = new ScalaCachePool[Role](scalaCacheConfig)
   val cacheSeqRole: ScalaCachePool[IndexedSeq[Role]] = new ScalaCachePool[IndexedSeq[Role]](scalaCacheConfig)
 
+  val cacheScore: ScalaCachePool[Score] = new ScalaCachePool[Score](scalaCacheConfig)
+  val cacheSeqScore: ScalaCachePool[IndexedSeq[Score]] = new ScalaCachePool[IndexedSeq[Score]](scalaCacheConfig)
+
   val cacheSession: ScalaCachePool[Session] = new ScalaCachePool[Session](scalaCacheConfig)
   val cacheSeqSession: ScalaCachePool[IndexedSeq[Session]] = new ScalaCachePool[IndexedSeq[Session]](scalaCacheConfig)
 
@@ -58,6 +64,12 @@ case class CacheRepository(
 
   val cacheTask: ScalaCachePool[Task] = new ScalaCachePool[Task](scalaCacheConfig)
   val cacheSeqTask: ScalaCachePool[IndexedSeq[Task]] = new ScalaCachePool[IndexedSeq[Task]](scalaCacheConfig)
+
+  val cacheTeam: ScalaCachePool[Team] = new ScalaCachePool[Team](scalaCacheConfig)
+  val cacheSeqTeam: ScalaCachePool[IndexedSeq[Team]] = new ScalaCachePool[IndexedSeq[Team]](scalaCacheConfig)
+
+  val cacheTest: ScalaCachePool[Test] = new ScalaCachePool[Test](scalaCacheConfig)
+  val cacheSeqTest: ScalaCachePool[IndexedSeq[Test]] = new ScalaCachePool[IndexedSeq[Test]](scalaCacheConfig)
 }
 
 trait SerializationSeqBinary {
@@ -69,10 +81,13 @@ trait SerializationSeqBinary {
     new ScalaSerializationAnyRefCodec[A](ev)
   }
 
+  implicit val codecTask: Codec[Task] = codec.asInstanceOf[Codec[Task]] // needs to be written here because TaskRepository extends an additional trait
+
   implicit val codecSeqString: Codec[IndexedSeq[String]] = codecSeq.asInstanceOf[Codec[IndexedSeq[String]]]
   implicit val codecSeqInt: Codec[IndexedSeq[Int]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Int]]]
   implicit val codecSeqUUID: Codec[IndexedSeq[UUID]] = codecSeq.asInstanceOf[Codec[IndexedSeq[UUID]]]
   implicit val codecSeqCourse: Codec[IndexedSeq[Course]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Course]]]
+  implicit val codecSeqExam: Codec[IndexedSeq[Exam]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Exam]]]
   implicit val codecSeqAccount: Codec[IndexedSeq[Account]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Account]]]
   implicit val codecSeqUser: Codec[IndexedSeq[User]] = codecSeq.asInstanceOf[Codec[IndexedSeq[User]]]
   implicit val codecSeqCourseSchedule: Codec[IndexedSeq[CourseSchedule]] = codecSeq.asInstanceOf[Codec[IndexedSeq[CourseSchedule]]]
@@ -80,9 +95,11 @@ trait SerializationSeqBinary {
   implicit val codecSeqPart: Codec[IndexedSeq[Part]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Part]]]
   implicit val codecSeqProject: Codec[IndexedSeq[Project]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Project]]]
   implicit val codecSeqRole: Codec[IndexedSeq[Role]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Role]]]
+  implicit val codecSeqScore: Codec[IndexedSeq[Score]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Score]]]
   implicit val codecSeqSession: Codec[IndexedSeq[Session]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Session]]]
   implicit val codecSeqTag: Codec[IndexedSeq[Tag]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Tag]]]
-  implicit val codecTask: Codec[Task] = codec.asInstanceOf[Codec[Task]]
+  implicit val codecSeqTeam: Codec[IndexedSeq[Team]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Team]]]
+  implicit val codecSeqTest: Codec[IndexedSeq[Test]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Test]]]
   implicit val codecSeqTask: Codec[IndexedSeq[Task]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Task]]]
 }
 

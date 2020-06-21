@@ -13,15 +13,15 @@ case class Score(
     version: Long = 1L,
     grade: String, // initially empty, in contrast with Work
     isVisible: Boolean = false,
-    examFile: MediaAnswer = MediaAnswer(),
-    rubricFile: MediaAnswer = MediaAnswer(),
+    examFile: UUID, // will usually be an annotated PDF component
+    rubricFile: UUID, // could be a rubric, image or PDF component
     origComments: String,
     addComments: String,
     createdAt: DateTime = new DateTime(),
     updatedAt: DateTime = new DateTime()
 ) extends Evaluation {
   override def responseToString: String = {
-    scorerId.toString()
+    s"${testId}, ${scorerId}: ${grade}"
   }
 }
 
@@ -35,8 +35,8 @@ object Score {
         "version" -> score.version,
         "grade" -> score.grade,
         "is_visible" -> score.isVisible,
-        "exam_file" -> MediaAnswer.writes.writes(score.examFile),
-        "rubric_file" -> MediaAnswer.writes.writes(score.rubricFile),
+        "exam_file" -> score.examFile,
+        "rubric_file" -> score.rubricFile,
         "orig_comments" -> score.origComments,
         "add_comments" -> score.addComments,
         "createdAt" -> score.createdAt,

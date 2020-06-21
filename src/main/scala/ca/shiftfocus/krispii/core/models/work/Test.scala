@@ -14,7 +14,7 @@ case class Test(
     name: String,
     version: Long = 1L,
     grade: String, // initially empty, in contrast with Work
-    origResponse: MediaAnswer = MediaAnswer(),
+    origResponse: UUID, // PDF component
     scorers: Option[IndexedSeq[User]] = None,
     scores: Option[IndexedSeq[Score]] = None,
     createdAt: DateTime = new DateTime(),
@@ -34,7 +34,7 @@ object Test {
         "name" -> test.name,
         "version" -> test.version,
         "grade" -> test.grade,
-        "orig_response" -> MediaAnswer.writes.writes(test.origResponse),
+        "orig_response" -> test.origResponse,
         "scorers" -> test.scorers,
         "scores" -> test.scores,
         "createdAt" -> test.createdAt,

@@ -110,11 +110,8 @@ class TeamRepositoryPostgres(
     s"""
        |DELETE
        |FROM $Table
-
-       |WHE
-
-       | AND ve
-
+       |WHERE id = ?
+       | AND version = ?
        |RETURNING $Fields
   """.stripMargin
 

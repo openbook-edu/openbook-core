@@ -26,7 +26,10 @@ class TestRepositoryPostgres(
     Test(
       row("id").asInstanceOf[UUID],
       row("examId").asInstanceOf[UUID],
-      row("teamId").asInstanceOf[UUID],
+      Option(row("teamId").asInstanceOf[UUID]) match {
+        case Some(teamId) => Some(teamId)
+        case _ => None
+      },
       row("name").asInstanceOf[String],
       row("version").asInstanceOf[Long],
       row("grade").asInstanceOf[String],
@@ -244,7 +247,9 @@ class TestRepositoryPostgres(
       updated <- lift(queryOne(Update, params))
       _ <- lift(cacheRepository.cacheTest.removeCached(cacheTestKey(test.id)))
       _ <- lift(cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(test.examId)))
-      _ <- lift(cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(test.teamId)))
+      _ <- test.teamId match {
+        case Some(teamId) => lift(cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(teamId)))
+      }
     } yield updated
   }
 
@@ -261,7 +266,9 @@ class TestRepositoryPostgres(
       _ <- lift(cacheRepository.cacheTest.removeCached(cacheTestKey(test.id)))
       // _ <- lift(cacheRepository.cacheUUID.removeCached(cacheNameExamKey(s"${test.name},${test.examId}"))))
       _ <- lift(cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(test.examId)))
-      _ <- lift(cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(test.teamId)))
+      _ <- test.teamId match {
+        case Some(teamId) => lift(cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(teamId)))
+      }
     } yield deletedTest.copy(scores = oldScores)).run
 
   /**

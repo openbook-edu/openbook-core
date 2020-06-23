@@ -23,13 +23,19 @@ class ScoreRepositoryPostgres(
   override def constructor(row: RowData): Score =
     Score(
       row("id").asInstanceOf[UUID],
-      row("testId").asInstanceOf[UUID],
-      row("scorerId").asInstanceOf[UUID],
+      row("test_id").asInstanceOf[UUID],
+      row("scorer_id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
       row("grade").asInstanceOf[String],
       row("is_visible").asInstanceOf[Boolean],
-      row("exam_file").asInstanceOf[UUID],
-      row("rubric_file").asInstanceOf[UUID],
+      Option(row("exam_file").asInstanceOf[UUID]) match {
+        case Some(exam_file) => Some(exam_file)
+        case _ => None
+      },
+      Option(row("rubric_file").asInstanceOf[UUID]) match {
+        case Some(rubric_file) => Some(rubric_file)
+        case _ => None
+      },
       row("orig_comments").asInstanceOf[String],
       row("add_comments").asInstanceOf[String],
       row("created_at").asInstanceOf[DateTime],

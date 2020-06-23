@@ -10,7 +10,7 @@ import play.api.libs.json.JodaWrites._
 case class Test(
     id: UUID = UUID.randomUUID,
     examId: UUID,
-    teamId: UUID,
+    teamId: Option[UUID],
     name: String,
     version: Long = 1L,
     grade: String, // initially empty, in contrast with Work

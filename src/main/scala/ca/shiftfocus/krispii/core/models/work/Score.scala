@@ -11,17 +11,22 @@ case class Score(
     testId: UUID,
     scorerId: UUID,
     version: Long = 1L,
-    grade: String, // initially empty, in contrast with Work
+    grade: String = "", // initially empty, in contrast with Work
     isVisible: Boolean = false,
-    examFile: UUID, // will usually be an annotated PDF component
-    rubricFile: UUID, // could be a rubric, image or PDF component
-    origComments: String,
-    addComments: String,
+    /* will only be saved separate from the original versions in Test resp. Exam
+       if the scorer has actually made changes to the PDFs etc. */
+    examFile: Option[UUID] = None, // will usually be an annotated PDF component
+    rubricFile: Option[UUID] = None, // could be a rubric, image or PDF component
+    origComments: String = "",
+    addComments: String = "",
     createdAt: DateTime = new DateTime(),
     updatedAt: DateTime = new DateTime()
 ) extends Evaluation {
   override def responseToString: String = {
-    s"${testId}, ${scorerId}: ${grade}"
+    grade match {
+      case "" => "None"
+      case grade => grade
+    }
   }
 }
 

@@ -11,7 +11,7 @@ import scalaz.\/
 import scala.concurrent.Future
 
 trait ExamRepository extends Repository {
-  val userRepository: UserRepository
+  // val userRepository: UserRepository
 
   def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Exam]]]
   def list(coordinator: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Exam]]]

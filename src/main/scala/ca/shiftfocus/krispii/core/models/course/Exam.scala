@@ -23,7 +23,6 @@ case class Exam(
   deleted: Boolean = false,
   teams: Option[IndexedSeq[Team]] = None,
   tests: Option[IndexedSeq[Test]] = None,
-  lastTeamId: Option[UUID] = None, // necessary?
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) extends Group
@@ -45,7 +44,6 @@ object Exam {
     (__ \ "deleted").write[Boolean] and
     (__ \ "teams").writeNullable[IndexedSeq[Team]] and
     (__ \ "tests").writeNullable[IndexedSeq[Test]] and
-    (__ \ "lastTeamId").writeNullable[UUID] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Exam.unapply))

@@ -14,10 +14,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class ScoreRepositoryPostgres(
-    val userRepository: UserRepository,
-    val testRepository: TestRepository,
-    val cacheRepository: CacheRepository
-) extends ScoreRepository with PostgresRepository[Score] {
+  // Problems with recursive definition? Gather domain logic in Service or API
+  // val userRepository: UserRepository,
+  // val testRepository: TestRepository,
+  val cacheRepository: CacheRepository
+)
+    extends ScoreRepository with PostgresRepository[Score] {
+
   override val entityName: String = "score"
 
   override def constructor(row: RowData): Score =
@@ -196,13 +199,13 @@ class ScoreRepositoryPostgres(
   /**
    * Find a single score by the unique combination of test and scorer
    *
-   * @param test The test which this scorer scored
-   * @param scorer The user who scored this test
+   * @param testId The test which this scorer scored
+   * @param scorerId The user who scored this test
    * @return the score or an error
    */
-  override def find(test: Test, scorer: User)(implicit conn: Connection): Future[RepositoryError.Fail \/ Score] =
+  override def find(testId: UUID, scorerId: UUID)(implicit conn: Connection): Future[RepositoryError.Fail \/ Score] =
     // TODO: cacheTestScorerKey?
-    queryOne(SelectByTestScorer, Array[Any](test.id, scorer.id))
+    queryOne(SelectByTestScorer, Array[Any](testId, scorerId))
 
   /**
    * Save a Score row.

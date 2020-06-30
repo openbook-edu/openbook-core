@@ -308,6 +308,14 @@ class TeamRepositoryPostgres(
     } yield deletedTeam.copy(tests = oldTests)).run
   }
 
+  /**
+   * Add a scorer to the team.
+   * TODO:
+   * @param team
+   * @param scorer
+   * @param conn
+   * @return
+   */
   override def addScorer(team: Team, scorer: User)(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
     val params = Seq[Any](scorer.id, team.id, new DateTime)
 
@@ -390,4 +398,5 @@ class TeamRepositoryPostgres(
       }
     } yield ()
   }
+
 }

@@ -13,7 +13,11 @@ import scalaz.{-\/, \/, \/-}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class ExamRepositoryPostgres(val userRepository: UserRepository, val cacheRepository: CacheRepository) extends ExamRepository with PostgresRepository[Exam] {
+class ExamRepositoryPostgres(
+  // val userRepository: UserRepository,
+  val cacheRepository: CacheRepository
+)
+    extends ExamRepository with PostgresRepository[Exam] {
 
   override val entityName = "Exam"
 
@@ -34,17 +38,13 @@ class ExamRepositoryPostgres(val userRepository: UserRepository, val cacheReposi
       row("deleted").asInstanceOf[Boolean],
       None, // teams
       None, // tests
-      Option(row("last_team_id").asInstanceOf[UUID]) match {
-        case Some(lastTeamId) => Some(lastTeamId)
-        case _ => None
-      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
   }
 
   val Table = "exams"
-  val Fields = "id, version, coordinator_id, name, color, slug, orig_rubric_id, enabled, archived, deleted, last_team_id, created_at, updated_at"
+  val Fields = "id, version, coordinator_id, name, color, slug, orig_rubric_id, enabled, archived, deleted, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val OrderBy = s"${Table}.name ASC"
 
@@ -76,7 +76,7 @@ class ExamRepositoryPostgres(val userRepository: UserRepository, val cacheReposi
   val Insert = {
     s"""
        |INSERT INTO $Table ($Fields)
-       |VALUES (?, ?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, false, false, ?, ?, ?)
+       |VALUES (?, ?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, false, false, ?, ?)
        |RETURNING $Fields
     """.stripMargin
   }
@@ -86,7 +86,7 @@ class ExamRepositoryPostgres(val userRepository: UserRepository, val cacheReposi
     s"""
        |UPDATE $Table
        |SET version = ?, coordinator_id = ?, name = ?, color = ?, slug = get_slug(?, '$Table', ?),
-       |    orig_rubric_id = ?, enabled = ?, archived = ?, last_team_id = ?, updated_at = ?
+       |    orig_rubric_id = ?, enabled = ?, archived = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $Fields
@@ -121,12 +121,14 @@ class ExamRepositoryPostgres(val userRepository: UserRepository, val cacheReposi
    * Select exams based on the given user.
    *
    * @param user the coordinator to search by
+   * TODO: implement for scorers, too, but restrict resulting exams to their team
+   * TODO: need to specify if searching for coordinator or scorer to avoid retrieving bad cached values
    * @return the found exams
    */
   override def list(user: User) // format: OFF
                    (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Exam]]] = { // format: ON
 
-    val key = cacheUserKey(user.id)
+    val key = cacheCoordinatingKey(user.id)
     cacheRepository.cacheSeqExam.getCached(key).flatMap {
       case \/-(examList) => Future successful \/-(examList)
       case -\/(noResults: RepositoryError.NoResults) =>
@@ -168,7 +170,7 @@ class ExamRepositoryPostgres(val userRepository: UserRepository, val cacheReposi
       case \/-(examId) => {
         for {
           _ <- lift(cacheRepository.cacheUUID.putCache(cacheExamSlugKey(slug))(examId, ttl))
-          exam <- lift(find(examId))
+          exam <- lift(find(examId)) // will already read from and place the full exam into cache
         } yield exam
       }
       case -\/(noResults: RepositoryError.NoResults) => {
@@ -191,8 +193,8 @@ class ExamRepositoryPostgres(val userRepository: UserRepository, val cacheReposi
    */
   def insert(exam: Exam)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Exam]] = {
     val params = Seq[Any](
-      exam.id, 1, exam.ownerId, exam.name, exam.color.getRGB, exam.slug, exam.origRubricId,
-      exam.enabled, exam.lastTeamId, new DateTime, new DateTime
+      exam.id, 1, exam.ownerId, exam.name, exam.color.getRGB, exam.slug, exam.id,
+      exam.origRubricId, exam.enabled, new DateTime, new DateTime
     )
 
     for {
@@ -211,8 +213,8 @@ class ExamRepositoryPostgres(val userRepository: UserRepository, val cacheReposi
   override def update(exam: Exam) // format: OFF
                      (implicit conn: Connection): Future[\/[RepositoryError.Fail, Exam]] = { // format: ON
     val params = Seq[Any](
-      exam.version + 1, exam.ownerId, exam.name, exam.color.getRGB, exam.slug, exam.origRubricId,
-      exam.enabled, exam.archived, exam.lastTeamId, new DateTime, exam.id, exam.version
+      exam.version + 1, exam.ownerId, exam.name, exam.color.getRGB, exam.slug, exam.id,
+      exam.origRubricId, exam.enabled, exam.archived, new DateTime, exam.id, exam.version
     )
     for {
       updated <- lift(queryOne(Update, params))

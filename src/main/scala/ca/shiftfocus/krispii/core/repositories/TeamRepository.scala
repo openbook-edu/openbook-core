@@ -32,5 +32,7 @@ trait TeamRepository extends Repository {
 
   def addScorers(team: Team, scorerList: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
   def removeScorers(team: Team, scorerList: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
+
   // no need for addTest because tests refer back to Team with teamId
+
 }

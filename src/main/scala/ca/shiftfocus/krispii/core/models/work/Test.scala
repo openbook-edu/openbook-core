@@ -10,10 +10,10 @@ import play.api.libs.json.JodaWrites._
 case class Test(
     id: UUID = UUID.randomUUID,
     examId: UUID,
-    teamId: Option[UUID],
+    teamId: Option[UUID] = None,
     name: String,
     version: Long = 1L,
-    grade: String, // initially empty, in contrast with Work
+    grade: String = "", // initially empty, in contrast with Work
     origResponse: UUID, // PDF component
     scorers: Option[IndexedSeq[User]] = None,
     scores: Option[IndexedSeq[Score]] = None,

@@ -4,7 +4,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.ErrorUnion
 import ca.shiftfocus.krispii.core.models.work.Test
-import ca.shiftfocus.krispii.core.repositories.{ExamRepository, TeamRepository, TestRepository}
+import ca.shiftfocus.krispii.core.repositories.{ExamRepository, TeamRepository, TestRepository, UserRepository}
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import scalaz.\/
@@ -13,12 +13,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Random
 
-class ExamServiceDefault(
+class OmsServiceDefault(
     val db: DB,
     val examRepository: ExamRepository,
     val teamRepository: TeamRepository,
-    val testRepository: TestRepository
-) extends ExamService {
+    val testRepository: TestRepository,
+    val userRepository: UserRepository
+) extends OmsService {
 
   implicit def conn: Connection = db.pool
 
@@ -27,6 +28,7 @@ class ExamServiceDefault(
    * @param testIds IndexedSeq of Test IDs
    * @param newTeamId ID of the team to assign the Tests to
    * @return the vector of updated tests, or an error
+   * TODO: check that the old team and new team are in the same exam? Or that the exam administrator has rights in both?
    */
   override def moveTests(testIds: IndexedSeq[UUID], newTeamId: UUID): Future[ErrorUnion#Fail \/ IndexedSeq[Test]] =
     for {
@@ -59,4 +61,12 @@ class ExamServiceDefault(
         testRepository.update(test.copy(teamId = Some(randomId(teamIds))))))
     } yield randomizedTests
 
+  override def automaticScoring(examId: UUID): Future[ErrorUnion#Fail \/ IndexedSeq[Test]] =
+    for {
+      /* reject automatic scoring with an error message if tests are not multiple score,
+         or if the correct answers are not provided in the rubric */
+      exam <- lift(examRepository.find(examId))
+      existingTests <- lift(testRepository.list(exam))
+      // apply automatic scoring to tests
+    } yield existingTests
 }

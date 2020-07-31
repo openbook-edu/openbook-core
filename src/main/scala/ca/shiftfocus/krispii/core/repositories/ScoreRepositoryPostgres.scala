@@ -31,14 +31,14 @@ class ScoreRepositoryPostgres(
       row("version").asInstanceOf[Long],
       row("grade").asInstanceOf[String],
       row("is_visible").asInstanceOf[Boolean],
-      Option(row("exam_file").asInstanceOf[UUID]) match {
+      Option(row("exam_file").asInstanceOf[UUID]) /*match {
         case Some(exam_file) => Some(exam_file)
         case _ => None
-      },
-      Option(row("rubric_file").asInstanceOf[UUID]) match {
+      } */ ,
+      Option(row("rubric_file").asInstanceOf[UUID]) /*match {
         case Some(rubric_file) => Some(rubric_file)
         case _ => None
-      },
+      } */ ,
       row("orig_comments").asInstanceOf[String],
       row("add_comments").asInstanceOf[String],
       row("created_at").asInstanceOf[DateTime],

@@ -25,11 +25,11 @@ class TestRepositoryPostgres(
   override def constructor(row: RowData): Test =
     Test(
       row("id").asInstanceOf[UUID],
-      row("examId").asInstanceOf[UUID],
-      Option(row("teamId").asInstanceOf[UUID]) match {
+      row("exam_id").asInstanceOf[UUID],
+      Option(row("team_id").asInstanceOf[UUID]) /*match {
         case Some(teamId) => Some(teamId)
         case _ => None
-      },
+      } */ ,
       row("name").asInstanceOf[String],
       row("version").asInstanceOf[Long],
       row("grade").asInstanceOf[String],

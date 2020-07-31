@@ -27,11 +27,11 @@ class TeamRepositoryPostgres(
   def constructor(row: RowData): Team =
     Team(
       row("id").asInstanceOf[UUID],
-      row("examId").asInstanceOf[UUID],
+      row("exam_id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
       new Color(Option(row("color").asInstanceOf[Int]).getOrElse(0)),
       row("enabled").asInstanceOf[Boolean],
-      row("chatEnabled").asInstanceOf[Boolean],
+      row("chat_enabled").asInstanceOf[Boolean],
       None, // scorers
       None, // tests
       row("created_at").asInstanceOf[DateTime],
@@ -167,7 +167,7 @@ class TeamRepositoryPostgres(
    * @return a vector of the returned Teams, each including any scorers, and optionally tests
    */
   override def list(exam: Exam, fetchTests: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Team]]] = {
-    cacheRepository.cacheSeqTeam.getCached(cacheExamKey(exam.id)).flatMap {
+    cacheRepository.cacheSeqTeam.getCached(cacheTeamKey(exam.id)).flatMap {
       case \/-(teamList) => Future successful \/-(teamList)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {

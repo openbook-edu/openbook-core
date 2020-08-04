@@ -123,63 +123,59 @@ class ExamRepositoryPostgres(
    * @param user the coordinator to search by
    * TODO: implement for scorers, too, but restrict resulting exams to their team
    * TODO: need to specify if searching for coordinator or scorer to avoid retrieving bad cached values
-   * @return the found exams
+   * @return the found exams or an error
    */
   override def list(user: User) // format: OFF
                    (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Exam]]] = { // format: ON
 
-    val key = cacheCoordinatingKey(user.id)
+    val key = cacheCoordinatorExamsKey(user.id)
     cacheRepository.cacheSeqExam.getCached(key).flatMap {
       case \/-(examList) => Future successful \/-(examList)
-      case -\/(noResults: RepositoryError.NoResults) =>
-        for {
-          examList <- lift(queryList(ListByCoordinatorId, Seq[Any](user.id)))
-          _ <- lift(cacheRepository.cacheSeqExam.putCache(key)(examList, ttl))
-        } yield examList
+      case -\/(noResults: RepositoryError.NoResults) => for {
+        examList <- lift(queryList(ListByCoordinatorId, Seq[Any](user.id)))
+        _ <- lift(cacheRepository.cacheSeqExam.putCache(key)(examList, ttl))
+      } yield examList
       case -\/(error) => Future successful -\/(error)
     }
 
   }
   /**
-   * Find a single entry by ID.
+   * Find a single exam by ID.
    *
    * @param id the 128-bit UUID, as a byte array, to search for.
-   * @return an optional RowData object containing the results
+   * @return the found exam or an error
    */
   override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Exam]] = {
-    cacheRepository.cacheExam.getCached(cacheExamKey(id)).flatMap {
+    val directKey = cacheExamKey(id)
+    cacheRepository.cacheExam.getCached(directKey).flatMap {
       case \/-(exam) => Future successful \/-(exam)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           exam <- lift(queryOne(SelectOne, Array[Any](id)))
+          _ <- lift(cacheRepository.cacheExam.putCache(directKey)(exam, ttl))
           _ <- lift(cacheRepository.cacheUUID.putCache(cacheExamSlugKey(exam.slug))(exam.id, ttl))
-          _ <- lift(cacheRepository.cacheExam.putCache(cacheExamKey(exam.id))(exam, ttl))
         } yield exam
       case -\/(error) => Future successful -\/(error)
     }
   }
 
   /**
-   * Find a single entry by slug.
+   * Find a single exam by slug.
    *
-   * @param slug the exam's slug
-   * @return an optional RowData object containing the results
+   * @param slug the exam's slug (unambiguous name compatible with URLs)
+   * @return the found exam or an error
    */
   override def find(slug: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Exam]] = {
-    cacheRepository.cacheUUID.getCached(cacheExamSlugKey(slug)).flatMap {
-      case \/-(examId) => {
-        for {
-          _ <- lift(cacheRepository.cacheUUID.putCache(cacheExamSlugKey(slug))(examId, ttl))
-          exam <- lift(find(examId)) // will already read from and place the full exam into cache
-        } yield exam
-      }
-      case -\/(noResults: RepositoryError.NoResults) => {
+    val key = cacheExamSlugKey(slug)
+    cacheRepository.cacheUUID.getCached(key).flatMap {
+      case \/-(examId) =>
+        find(examId) // will already read from and place the full exam into cache
+      case -\/(noResults: RepositoryError.NoResults) =>
         for {
           exam <- lift(queryOne(SelectOneBySlug, Seq[Any](slug)))
-          _ <- lift(cacheRepository.cacheUUID.putCache(cacheExamSlugKey(slug))(exam.id, ttl))
+          _ <- lift(cacheRepository.cacheUUID.putCache(key)(exam.id, ttl))
           _ <- lift(cacheRepository.cacheExam.putCache(cacheExamKey(exam.id))(exam, ttl))
         } yield exam
-      }
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -196,10 +192,9 @@ class ExamRepositoryPostgres(
       exam.id, 1, exam.ownerId, exam.name, exam.color.getRGB, exam.slug, exam.id,
       exam.origRubricId, exam.enabled, new DateTime, new DateTime
     )
-
     for {
       inserted <- lift(queryOne(Insert, params))
-      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeachingKey(exam.ownerId)))
+      _ <- lift(cacheRepository.cacheSeqExam.removeCached(cacheCoordinatorExamsKey(exam.ownerId)))
     } yield inserted
   }
 
@@ -218,8 +213,9 @@ class ExamRepositoryPostgres(
     )
     for {
       updated <- lift(queryOne(Update, params))
-      _ <- lift(cacheRepository.cacheExam.removeCached(cacheExamKey(updated.id)))
       _ <- lift(cacheRepository.cacheUUID.removeCached(cacheExamSlugKey(updated.slug)))
+      _ <- lift(cacheRepository.cacheExam.removeCached(cacheExamKey(updated.id)))
+      _ <- lift(cacheRepository.cacheSeqExam.removeCached(cacheCoordinatorExamsKey(updated.ownerId)))
     } yield updated
   }
 
@@ -234,8 +230,9 @@ class ExamRepositoryPostgres(
                      (implicit conn: Connection): Future[\/[RepositoryError.Fail, Exam]] = { // format: ON
     for {
       deleted <- lift(queryOne(Delete, Array(exam.id)))
-      _ <- lift(cacheRepository.cacheExam.removeCached(cacheExamKey(deleted.id)))
       _ <- lift(cacheRepository.cacheUUID.removeCached(cacheExamSlugKey(deleted.slug)))
+      _ <- lift(cacheRepository.cacheExam.removeCached(cacheExamKey(deleted.id)))
+      _ <- lift(cacheRepository.cacheSeqExam.removeCached(cacheCoordinatorExamsKey(deleted.ownerId)))
     } yield deleted
   }
 

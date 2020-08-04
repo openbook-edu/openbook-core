@@ -27,7 +27,7 @@ trait TestRepository extends Repository {
   def insert(test: Test)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Test]]
   def update(test: Test)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Test]]
   def delete(test: Test)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Test]]
-  def delete(exam: Exam)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Test]]]
+  // TODO: transfer to omsService def delete(exam: Exam)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Test]]]
 
   // no need for addScorer(s)   : adding a Score will require that the scorer is currently in the team
   // no need for removeScorer(s): when a scorer is removed from the team, he can add no Score anymore

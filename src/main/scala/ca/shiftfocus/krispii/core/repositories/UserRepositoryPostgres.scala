@@ -395,12 +395,13 @@ class UserRepositoryPostgres(
    * @return a future disjunction containing either the scorers, or a failure
    */
   override def list(team: Team)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    cacheRepository.cacheSeqUser.getCached(cacheTeamScorersKey(team.id)).flatMap {
+    val key = cacheTeamScorersKey(team.id)
+    cacheRepository.cacheSeqUser.getCached(key).flatMap {
       case \/-(userList) => Future successful \/.right[RepositoryError.Fail, IndexedSeq[User]](userList)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           userList <- lift(queryList(SelectAllWithTeam, Seq[Any](team.id)))
-          _ <- lift(cacheRepository.cacheSeqUser.putCache(cacheTeamScorersKey(team.id))(userList, ttl))
+          _ <- lift(cacheRepository.cacheSeqUser.putCache(key)(userList, ttl))
         } yield userList
       case -\/(error) => Future successful -\/(error)
     }

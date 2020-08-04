@@ -17,6 +17,7 @@ import scala.reflect.ClassTag
 case class CacheRepository(
     val scalaCacheConfig: ScalaCacheConfig
 ) extends SerializationSeqBinary {
+  // we don't actually cache pure strings nor integers
   val cacheString: ScalaCachePool[String] = new ScalaCachePool[String](scalaCacheConfig)
   val cacheSeqString: ScalaCachePool[IndexedSeq[String]] = new ScalaCachePool[IndexedSeq[String]](scalaCacheConfig)
 
@@ -24,6 +25,7 @@ case class CacheRepository(
   val cacheSeqInt: ScalaCachePool[IndexedSeq[Int]] = new ScalaCachePool[IndexedSeq[Int]](scalaCacheConfig)
 
   val cacheUUID: ScalaCachePool[UUID] = new ScalaCachePool[UUID](scalaCacheConfig)
+  // we don't actually reference sequences of records by their UUIDs
   val cacheSeqUUID: ScalaCachePool[IndexedSeq[UUID]] = new ScalaCachePool[IndexedSeq[UUID]](scalaCacheConfig)
 
   val cacheCourse: ScalaCachePool[Course] = new ScalaCachePool[Course](scalaCacheConfig)
@@ -81,7 +83,8 @@ trait SerializationSeqBinary {
     new ScalaSerializationAnyRefCodec[A](ev)
   }
 
-  implicit val codecTask: Codec[Task] = codec.asInstanceOf[Codec[Task]] // needs to be written here because TaskRepository extends an additional trait
+  // needs to be written here because TaskRepository extends an additional trait
+  implicit val codecTask: Codec[Task] = codec.asInstanceOf[Codec[Task]]
 
   implicit val codecSeqString: Codec[IndexedSeq[String]] = codecSeq.asInstanceOf[Codec[IndexedSeq[String]]]
   implicit val codecSeqInt: Codec[IndexedSeq[Int]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Int]]]

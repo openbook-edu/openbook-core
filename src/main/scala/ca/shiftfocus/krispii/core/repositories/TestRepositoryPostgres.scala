@@ -134,12 +134,13 @@ class TestRepositoryPostgres(
    * @return a vector of the returned tests or an error
    */
   override def list(exam: Exam, fetchScores: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Test]] = {
-    cacheRepository.cacheSeqTest.getCached(cacheTestsKey(exam.id)).flatMap {
+    val key = cacheTestsKey(exam.id)
+    cacheRepository.cacheSeqTest.getCached(key).flatMap {
       case \/-(testList) => Future successful \/-(testList)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           testList <- lift(queryList(ListByExam, Seq[Any](exam.id)))
-          _ <- lift(cacheRepository.cacheSeqTest.putCache(cacheTestsKey(exam.id))(testList, ttl))
+          _ <- lift(cacheRepository.cacheSeqTest.putCache(key)(testList, ttl))
           finalTestList <- if (fetchScores)
             liftSeq(testList.map { test =>
               (for {
@@ -172,12 +173,13 @@ class TestRepositoryPostgres(
    * @return a vector of the returned tests or an error
    */
   override def list(team: Team, fetchScores: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Test]] = {
-    cacheRepository.cacheSeqTest.getCached(cacheTestsKey(team.id)).flatMap {
+    val key = cacheTestsKey(team.id)
+    cacheRepository.cacheSeqTest.getCached(key).flatMap {
       case \/-(testList) => Future successful \/-(testList)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           testList <- lift(queryList(ListByTeam, Seq[Any](team.id)))
-          _ <- lift(cacheRepository.cacheSeqTest.putCache(cacheTestsKey(team.id))(testList, ttl))
+          _ <- lift(cacheRepository.cacheSeqTest.putCache(key)(testList, ttl))
           finalTestList <- if (fetchScores)
             liftSeq(testList.map { test =>
               (for {
@@ -199,39 +201,58 @@ class TestRepositoryPostgres(
    * @param id the 128-bit UUID, as a byte array, to search for.
    * @return the test or an error
    */
-  override def find(id: UUID)(implicit conn: Connection): Future[RepositoryError.Fail \/ Test] =
-    cacheRepository.cacheTest.getCached(cacheTestKey(id)).flatMap {
+  override def find(id: UUID)(implicit conn: Connection): Future[RepositoryError.Fail \/ Test] = {
+    val key = cacheTestKey(id)
+    cacheRepository.cacheTest.getCached(key).flatMap {
       case \/-(test) => Future successful \/-(test)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           test <- lift(queryOne(SelectOne, Array[Any](id)))
-          _ <- lift(cacheRepository.cacheTest.putCache(cacheTestKey(test.id))(test, ttl))
+          _ <- lift(cacheRepository.cacheTest.putCache(key)(test, ttl))
         } yield test
       case -\/(error) => Future successful -\/(error)
     }
+  }
 
   /**
    * Find a single test by the unique combination of exam and test name
    *
-   * @param name the 128-bit UUID, as a byte array, to search for.
+   * @param name the name of the test (student name or external ID, unique to the exam)
    * @param exam the Exam to which the test was assigned
    * @return the test or an error
    */
-  override def find(name: String, exam: Exam)(implicit conn: Connection): Future[RepositoryError.Fail \/ Test] =
-    // TODO: cache NameExamKey?
-    queryOne(SelectByNameExam, Array[Any](name, exam.id))
+  override def find(name: String, exam: Exam)(implicit conn: Connection): Future[RepositoryError.Fail \/ Test] = {
+    val key = cacheTestNameKey(name, exam.id)
+    cacheRepository.cacheUUID.getCached(key).flatMap {
+      case \/-(testId) => find(testId)
+      case -\/(noResults: RepositoryError.NoResults) =>
+        for {
+          test <- lift(queryOne(SelectByNameExam, Array[Any](name, exam.id)))
+          _ <- lift(cacheRepository.cacheUUID.putCache(key)(test.id, ttl))
+          _ <- lift(cacheRepository.cacheTest.putCache(cacheTestKey(test.id))(test, ttl))
+        } yield test
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
 
   /**
-   * Save a Test row.
+   * Save a Test to the database.
    *
    * @return the new test or an error
    */
   override def insert(test: Test)(implicit conn: Connection): Future[RepositoryError.Fail \/ Test] = {
-    // TODO: check if scorer is in list of scorers for this team! Or do this in services?
+    // TODO: check if scorer is in list of scorers for this team! Or do this in omsService?
     val params = Seq[Any](test.id, test.examId, test.teamId, test.name, 1, test.grade,
       test.origResponse, new DateTime, new DateTime)
 
-    queryOne(Insert, params)
+    for {
+      inserted <- lift(queryOne(Insert, params))
+      _ <- lift(cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(test.examId)))
+      _ <- lift(inserted.teamId match {
+        case Some(teamId) => cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(teamId))
+        case None => Future successful \/-(())
+      })
+    } yield inserted
   }
 
   /**
@@ -245,11 +266,13 @@ class TestRepositoryPostgres(
 
     for {
       updated <- lift(queryOne(Update, params))
-      _ <- lift(cacheRepository.cacheTest.removeCached(cacheTestKey(test.id)))
-      _ <- lift(cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(test.examId)))
-      _ <- test.teamId match {
+      _ <- lift(cacheRepository.cacheUUID.removeCached(cacheTestNameKey(updated.name, updated.examId)))
+      _ <- lift(cacheRepository.cacheTest.removeCached(cacheTestKey(updated.id)))
+      _ <- lift(cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(updated.examId)))
+      _ <- lift(updated.teamId match {
         case Some(teamId) => lift(cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(teamId)))
-      }
+        case None => Future successful \/-(())
+      })
     } yield updated
   }
 
@@ -261,23 +284,24 @@ class TestRepositoryPostgres(
    */
   override def delete(test: Test)(implicit conn: Connection): Future[RepositoryError.Fail \/ Test] =
     (for {
-      deletedTest <- lift(queryOne(Delete, Array(test.id, test.version)))
+      deleted <- lift(queryOne(Delete, Array(test.id, test.version)))
       oldScores = test.scores
-      _ <- lift(cacheRepository.cacheTest.removeCached(cacheTestKey(test.id)))
-      // _ <- lift(cacheRepository.cacheUUID.removeCached(cacheNameExamKey(s"${test.name},${test.examId}"))))
-      _ <- lift(cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(test.examId)))
-      _ <- test.teamId match {
-        case Some(teamId) => lift(cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(teamId)))
-      }
-    } yield deletedTest.copy(scores = oldScores)).run
+      _ <- lift(cacheRepository.cacheUUID.removeCached(cacheTestNameKey(deleted.name, deleted.examId)))
+      _ <- lift(cacheRepository.cacheTest.removeCached(cacheTestKey(deleted.id)))
+      _ <- lift(cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(deleted.examId)))
+      _ <- lift(deleted.teamId match {
+        case Some(teamId) => cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(teamId))
+        case None => Future successful \/-(())
+      })
+    } yield deleted.copy(scores = oldScores)).run
 
-  /**
+  /*
    * Delete all tests from an exam
    *
    * @param exam that contains the tests
    * @return a vector of the deleted tests including associated scores (if the deletion was successful) or an error
-   */
-  // TODO: transfer to testServices?
+
+  // TODO: transfer to omsService so we don't need to implement teamRepository here
   override def delete(exam: Exam)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Test]] =
     for {
       testList <- lift(cacheRepository.cacheSeqTest.getCached(cacheTestsKey(exam.id)).flatMap {
@@ -287,6 +311,9 @@ class TestRepositoryPostgres(
         case -\/(error) => Future successful -\/(error)
       })
       _ <- lift(serializedT(testList)(test => delete(test)))
-    } yield testList
+      _ <- lift(cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(exam.id)))
+      teamList <- lift(teamRepository.list(exam.id))
+      _ <- lift(serializedT(teamList)(team => delete(team)))
+    } yield testList */
 
 }

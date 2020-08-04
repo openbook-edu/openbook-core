@@ -24,5 +24,5 @@ trait ScoreRepository extends Repository {
   def insert(score: Score)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Score]]
   def update(score: Score)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Score]]
   def delete(score: Score)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Score]]
-  def delete(test: Test)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Score]]]
+  // def delete(test: Test)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Score]]]
 }

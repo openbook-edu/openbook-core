@@ -16,6 +16,7 @@ import scala.concurrent.Future
 
 class TeamRepositoryPostgres(
   val userRepository: UserRepository,
+  val examRepository: ExamRepository,
   val testRepository: TestRepository,
   val cacheRepository: CacheRepository
 )
@@ -164,15 +165,16 @@ class TeamRepositoryPostgres(
    *
    * @param exam     The exam to which the team was assigned
    * @param fetchTests Whether to return a Team together with all the Tests assigned to it
-   * @return a vector of the returned Teams, each including any scorers, and optionally tests
+   * @return a vector of the returned Teams, each including any scorers, and optionally tests, or an error
    */
   override def list(exam: Exam, fetchTests: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Team]]] = {
-    cacheRepository.cacheSeqTeam.getCached(cacheTeamKey(exam.id)).flatMap {
+    val key = cacheTeamsKey(exam.id)
+    cacheRepository.cacheSeqTeam.getCached(key).flatMap {
       case \/-(teamList) => Future successful \/-(teamList)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           teamList <- lift(queryList(ListByExam, Seq[Any](exam.id)))
-          _ <- lift(cacheRepository.cacheSeqTeam.putCache(cacheTeamsKey(exam.id))(teamList, ttl))
+          _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(teamList, ttl))
           enrichedTeamList <- if (fetchTests)
             liftSeq(teamList.map { team =>
               (for {
@@ -198,7 +200,7 @@ class TeamRepositoryPostgres(
    * Find all Teams relevant for a given scorer
    *
    * @param user A scorer assigned to the team
-   * @return a vector of the returned Teams (not including their tests)
+   * @return a vector of the returned Teams (not including their tests), or an error
    */
   override def list(user: User)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] =
     list(user: User, isScorer = true)
@@ -208,13 +210,22 @@ class TeamRepositoryPostgres(
    *
    * @param user     A user associated with the team
    * @param isScorer Whether the user is a scorer (or else a coordinator)
-   * @return a vector of the returned Teams (not including their tests)
+   * @return a vector of the returned Teams (not including their tests), or an error
    */
-  override def list(user: User, isScorer: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] =
-    if (isScorer)
-      queryList(ListByScorerId)
+  override def list(user: User, isScorer: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] = {
+    val (key, queryType) = if (isScorer)
+      (cacheScorerTeamsKey(user.id), ListByScorerId)
     else
-      queryList(ListByCoordinatorId)
+      (cacheCoordinatorTeamsKey(user.id), ListByCoordinatorId)
+    cacheRepository.cacheSeqTeam.getCached(key).flatMap {
+      case \/-(teamList) => Future successful \/-(teamList)
+      case -\/(noResults: RepositoryError.NoResults) => for {
+        teamList <- lift(queryList(queryType))
+        _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(teamList, ttl))
+      } yield teamList
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
 
   /**
    * Find a single entry by ID without showing scorers and tests.
@@ -233,7 +244,8 @@ class TeamRepositoryPostgres(
    * @return a team if one was found, or an error
    */
   override def find(id: UUID, fetchTests: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Team]] = {
-    cacheRepository.cacheTeam.getCached(cacheTeamKey(id)).flatMap {
+    val key = cacheTeamKey(id)
+    cacheRepository.cacheTeam.getCached(key).flatMap {
       case \/-(team) => Future successful \/-(team)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
@@ -248,14 +260,14 @@ class TeamRepositoryPostgres(
             else
               Future successful \/-(team.copy(scorers = Some(scorerList)))
           )
-          _ <- lift(cacheRepository.cacheTeam.putCache(cacheTeamKey(team.id))(team, ttl))
+          _ <- lift(cacheRepository.cacheTeam.putCache(key)(team, ttl))
         } yield (result)
       case -\/(error) => Future successful -\/(error)
     }
   }
 
   /**
-   * Save a Team row.
+   * Save a Team to the database.
    *
    * @param team The new team to save.
    * @param conn An implicit connection object. Can be used in a transactional chain.
@@ -269,6 +281,12 @@ class TeamRepositoryPostgres(
     for {
       inserted <- lift(queryOne(Insert, params))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(team.examId)))
+      exam <- lift(examRepository.find(team.examId))
+      _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheCoordinatorTeamsKey(exam.ownerId)))
+      /* A newly created team has no scorers yet!
+      scorerList <- lift(userRepository.list(inserted))
+      _ <- lift(serializedT(scorerList)(scorer =>
+        cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id)))) */
     } yield inserted
   }
 
@@ -289,6 +307,11 @@ class TeamRepositoryPostgres(
       oldTests = team.tests
       _ <- lift(cacheRepository.cacheTeam.removeCached(cacheTeamKey(team.id)))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(team.examId)))
+      exam <- lift(examRepository.find(updatedTeam.examId))
+      _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheCoordinatorTeamsKey(exam.ownerId)))
+      scorerList <- lift(userRepository.list(updatedTeam))
+      _ <- lift(serializedT(scorerList)(scorer =>
+        cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id))))
     } yield updatedTeam.copy(tests = oldTests)).run
   }
 
@@ -305,12 +328,17 @@ class TeamRepositoryPostgres(
       oldTests = team.tests
       _ <- lift(cacheRepository.cacheTeam.removeCached(cacheTeamKey(team.id)))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(team.examId)))
+      exam <- lift(examRepository.find(deletedTeam.examId))
+      _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheCoordinatorTeamsKey(exam.ownerId)))
+      scorerList <- lift(userRepository.list(deletedTeam))
+      _ <- lift(serializedT(scorerList)(scorer =>
+        cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id))))
     } yield deletedTeam.copy(tests = oldTests)).run
   }
 
   /**
    * Add a scorer to the team.
-   * TODO:
+   * TODO: move to omsService
    * @param team
    * @param scorer
    * @param conn
@@ -321,7 +349,10 @@ class TeamRepositoryPostgres(
 
     for {
       _ <- lift(queryNumRows(AddScorer, params)(_ == 1).map {
-        case \/-(true) => \/-(())
+        case \/-(true) =>
+          cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id))
+          cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id))
+          \/-(Unit)
         case \/-(false) =>
           Logger.error(s"Scorer ${scorer.email} could not be added to team ${team.id}.")
           -\/(RepositoryError.DatabaseError(s"Scorer ${scorer.email} could not be added to the team."))
@@ -336,7 +367,10 @@ class TeamRepositoryPostgres(
   override def removeScorer(team: Team, scorer: User)(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
     for {
       _ <- lift(queryNumRows(RemoveScorer, Seq(scorer.id, scorer.id))(_ == 1).map {
-        case \/-(true) => \/-(())
+        case \/-(true) =>
+          cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id))
+          cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id))
+          \/-(Unit)
         case \/-(false) =>
           Logger.error(s"Scorer ${scorer.email} could not be removed from team ${team.id}.")
           \/-(RepositoryError.DatabaseError(s"Scorer ${scorer.email} could not be removed from the team."))
@@ -357,7 +391,10 @@ class TeamRepositoryPostgres(
 
     for {
       _ <- lift(queryNumRows(query)(scorerList.length == _).map {
-        case \/-(true) => \/-(())
+        case \/-(true) =>
+          cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id))
+          serializedT(scorerList)(scorer => cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id)))
+          \/-(())
         case \/-(false) =>
           Logger.error(s"At least one scorer could not be added to team ${team.id}.")
           -\/(RepositoryError.DatabaseError("At least one scorer could not be added to the team."))
@@ -379,7 +416,10 @@ class TeamRepositoryPostgres(
 
     for {
       _ <- lift(queryNumRows(RemoveScorers, Array[Any](cleanTeamId, cleanUsersId))(scorerList.length == _).map {
-        case \/-(true) => \/-(())
+        case \/-(true) =>
+          cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id))
+          serializedT(scorerList)(scorer => cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id)))
+          \/-(())
         case \/-(false) =>
           Logger.error(s"At least one scorer could not be removed from team ${team.id}.")
           -\/(RepositoryError.DatabaseError(s"At least one scorer could not be removed from team ${team}."))

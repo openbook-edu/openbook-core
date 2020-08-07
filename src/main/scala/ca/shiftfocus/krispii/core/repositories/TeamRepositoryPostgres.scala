@@ -76,15 +76,16 @@ class TeamRepositoryPostgres(
 
   val ListByCoordinatorId =
     s"""
-       |SELECT $Fields
-       |FROM $Table
-       |WHERE coordinator_id = ?
+       |SELECT $FieldsWithTable
+       |FROM $Table, exams
+       |WHERE $Table.exam_id = exams.id
+       |AND exams.coordinator_id = ?
        |ORDER BY $OrderBy
      """.stripMargin
 
   val ListByScorerId =
     s"""
-       |SELECT $Fields
+       |SELECT $FieldsWithTable
        |FROM $Table, teams_scorers
        |WHERE $Table.id = teams_scorers.team_id
        |AND teams_scorers.scorer_id = ?
@@ -161,6 +162,31 @@ class TeamRepositoryPostgres(
     list(exam, fetchTests = true)
 
   /**
+   * Enrich a given team list with scorers, and optionally with tests
+   *
+   * @param teamList: vector of bare teams
+   * @param fetchTests: whether to also add tests
+   */
+  def enrichTeams(teamList: IndexedSeq[Team], fetchTests: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] =
+    if (fetchTests)
+      liftSeq(teamList.map { team =>
+        (for {
+          scorerList <- lift(userRepository.list(team))
+          testList <- lift(testRepository.list(team))
+          result = team.copy(tests = Some(testList), scorers = Some(scorerList))
+          _ = Logger.debug(s"enrichTeams: after adding scorers and tests, team is $result")
+        } yield result).run
+      })
+    else
+      liftSeq(teamList.map { team =>
+        (for {
+          scorerList <- lift(userRepository.list(team))
+          result = team.copy(scorers = Some(scorerList))
+          _ = Logger.debug(s"enrichTeams: after adding scorers, team is $result")
+        } yield result).run
+      })
+
+  /**
    * Find all Teams assigned to a given exam.
    *
    * @param exam     The exam to which the team was assigned
@@ -174,22 +200,9 @@ class TeamRepositoryPostgres(
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           teamList <- lift(queryList(ListByExam, Seq[Any](exam.id)))
+          _ = Logger.debug(s"In exam ${exam.name}, teams $teamList")
           _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(teamList, ttl))
-          enrichedTeamList <- if (fetchTests)
-            liftSeq(teamList.map { team =>
-              (for {
-                scorerList <- lift(userRepository.list(team))
-                testList <- lift(testRepository.list(team))
-                result = team.copy(tests = Some(testList), scorers = Some(scorerList))
-              } yield result).run
-            })
-          else
-            liftSeq(teamList.map { team =>
-              (for {
-                scorerList <- lift(userRepository.list(team))
-                result = team.copy(scorers = Some(scorerList))
-              } yield result).run
-            })
+          enrichedTeamList <- lift(enrichTeams(teamList, fetchTests))
         } yield enrichedTeamList
 
       case -\/(error) => Future successful -\/(error)
@@ -203,7 +216,7 @@ class TeamRepositoryPostgres(
    * @return a vector of the returned Teams (not including their tests), or an error
    */
   override def list(user: User)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] =
-    list(user: User, isScorer = true)
+    list(user: User, isScorer = true, fetchTests = false)
 
   /**
    * Find all Teams relevant for a given user.
@@ -212,23 +225,27 @@ class TeamRepositoryPostgres(
    * @param isScorer Whether the user is a scorer (or else a coordinator)
    * @return a vector of the returned Teams (not including their tests), or an error
    */
-  override def list(user: User, isScorer: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] = {
+  override def list(user: User, isScorer: Boolean, fetchTests: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] = {
     val (key, queryType) = if (isScorer)
       (cacheScorerTeamsKey(user.id), ListByScorerId)
     else
       (cacheCoordinatorTeamsKey(user.id), ListByCoordinatorId)
+    Logger.debug(s"List teams for ${user.email}: redis key $key")
     cacheRepository.cacheSeqTeam.getCached(key).flatMap {
       case \/-(teamList) => Future successful \/-(teamList)
-      case -\/(noResults: RepositoryError.NoResults) => for {
-        teamList <- lift(queryList(queryType))
-        _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(teamList, ttl))
-      } yield teamList
+      case -\/(noResults: RepositoryError.NoResults) =>
+        Logger.debug(s"No teams for ${user.email} (ID ${user.id}) in redis cache, search in PostgreSQL with query $queryType")
+        for {
+          teamList <- lift(queryList(queryType, Seq[Any](user.id)))
+          _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(teamList, ttl))
+          enrichedTeamList <- lift(enrichTeams(teamList, fetchTests = false))
+        } yield enrichedTeamList
       case -\/(error) => Future successful -\/(error)
     }
   }
 
   /**
-   * Find a single entry by ID without showing scorers and tests.
+   * Find a single team including scorers and tests.
    *
    * @param id the 128-bit UUID, as a byte array, to search for.
    * @return a team if one was found, or an error

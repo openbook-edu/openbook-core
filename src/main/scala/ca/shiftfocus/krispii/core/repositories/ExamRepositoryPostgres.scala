@@ -110,7 +110,7 @@ class ExamRepositoryPostgres(
 
   /**
    * List all exams.
-   *
+   * Will only be called from API after check for administrator privileges!
    * @return an array of Exams
    */
   override def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Exam]]] = {
@@ -121,7 +121,7 @@ class ExamRepositoryPostgres(
    * Select exams based on the given user.
    *
    * @param user the coordinator to search by
-   * TODO: implement for scorers, too, but restrict resulting exams to their team
+   * TODO: implement list(scorer), too, but restrict resulting exams to their team
    * TODO: need to specify if searching for coordinator or scorer to avoid retrieving bad cached values
    * @return the found exams or an error
    */
@@ -137,7 +137,6 @@ class ExamRepositoryPostgres(
       } yield examList
       case -\/(error) => Future successful -\/(error)
     }
-
   }
   /**
    * Find a single exam by ID.

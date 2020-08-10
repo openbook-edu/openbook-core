@@ -146,20 +146,12 @@ class TeamRepositoryPostgres(
 
   /**
    * Find all teams.
+   * Should only be called from API if the user has administrator rights.
    *
-   * @return a vector of the returned Teams (without their associated Tests)
+   * @return a vector of the returned Teams (without their associated Tests) or an error
    */
   override def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Team]]] =
     queryList(SelectAll)
-
-  /**
-   * Find all Teams assigned to a given Exam.
-   *
-   * @param exam The Exam where the Teams were created.
-   * @return a vector of the returned Teams with its scorers
-   */
-  override def list(exam: Exam)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] =
-    list(exam, fetchTests = true)
 
   /**
    * Enrich a given team list with scorers, and optionally with tests
@@ -187,11 +179,21 @@ class TeamRepositoryPostgres(
       })
 
   /**
+   * Find all Teams assigned to a given Exam.
+   *
+   * @param exam The Exam where the Teams were created.
+   * @return a vector of the returned Teams, each including any Scorers and Tests, or an error
+   */
+  override def list(exam: Exam)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] =
+    list(exam, fetchTests = true)
+
+  /**
    * Find all Teams assigned to a given exam.
    *
-   * @param exam     The exam to which the team was assigned
+   * @param exam The Exam where the Teams were created.
    * @param fetchTests Whether to return a Team together with all the Tests assigned to it
-   * @return a vector of the returned Teams, each including any scorers, and optionally tests, or an error
+   * TODO: either remove the fetchTests option, or skip the cache reading step when fetchTests is true
+   * @return a vector of the returned Teams, each including any Scorers (and optionally Tests), or an error
    */
   override def list(exam: Exam, fetchTests: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Team]]] = {
     val key = cacheTeamsKey(exam.id)
@@ -201,8 +203,8 @@ class TeamRepositoryPostgres(
         for {
           teamList <- lift(queryList(ListByExam, Seq[Any](exam.id)))
           _ = Logger.debug(s"In exam ${exam.name}, teams $teamList")
-          _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(teamList, ttl))
           enrichedTeamList <- lift(enrichTeams(teamList, fetchTests))
+          _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(enrichedTeamList, ttl))
         } yield enrichedTeamList
 
       case -\/(error) => Future successful -\/(error)
@@ -223,6 +225,7 @@ class TeamRepositoryPostgres(
    *
    * @param user     A user associated with the team
    * @param isScorer Whether the user is a scorer (or else a coordinator)
+   * TODO: either remove the fetchTests option, or skip the cache reading step when fetchTests is true
    * @return a vector of the returned Teams (not including their tests), or an error
    */
   override def list(user: User, isScorer: Boolean, fetchTests: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] = {
@@ -237,8 +240,8 @@ class TeamRepositoryPostgres(
         Logger.debug(s"No teams for ${user.email} (ID ${user.id}) in redis cache, search in PostgreSQL with query $queryType")
         for {
           teamList <- lift(queryList(queryType, Seq[Any](user.id)))
-          _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(teamList, ttl))
           enrichedTeamList <- lift(enrichTeams(teamList, fetchTests = false))
+          _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(enrichedTeamList, ttl))
         } yield enrichedTeamList
       case -\/(error) => Future successful -\/(error)
     }
@@ -248,7 +251,7 @@ class TeamRepositoryPostgres(
    * Find a single team including scorers and tests.
    *
    * @param id the 128-bit UUID, as a byte array, to search for.
-   * @return a team if one was found, or an error
+   * @return a team (including any scorers and tests) if one was found, or an error
    */
   override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Team]] =
     find(id: UUID, fetchTests = true)
@@ -258,7 +261,8 @@ class TeamRepositoryPostgres(
    *
    * @param id       the 128-bit UUID, as a byte array, to search for.
    * @param fetchTests whether to include the tests associated with the team
-   * @return a team if one was found, or an error
+   * TODO: either remove the fetchTests option, or skip the cache reading step when fetchTests is true
+   * @return a team (including any scorers and optionally tests) if one was found, or an error
    */
   override def find(id: UUID, fetchTests: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Team]] = {
     val key = cacheTeamKey(id)
@@ -268,6 +272,7 @@ class TeamRepositoryPostgres(
         for {
           team <- lift(queryOne(SelectOne, Array[Any](id)))
           scorerList <- lift(userRepository.list(team))
+          // same as enrichTeams(), but for only one team
           result <- lift(
             if (fetchTests)
               (for {
@@ -277,7 +282,7 @@ class TeamRepositoryPostgres(
             else
               Future successful \/-(team.copy(scorers = Some(scorerList)))
           )
-          _ <- lift(cacheRepository.cacheTeam.putCache(key)(team, ttl))
+          _ <- lift(cacheRepository.cacheTeam.putCache(key)(result, ttl))
         } yield (result)
       case -\/(error) => Future successful -\/(error)
     }

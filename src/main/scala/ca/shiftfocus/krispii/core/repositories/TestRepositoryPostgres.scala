@@ -131,6 +131,7 @@ class TestRepositoryPostgres(
    *
    * @param exam The exam that the tests were assigned to
    * @param fetchScores whether to include the scores associated with each test
+   * TODO: either remove the fetchScores option, or skip the cache reading step when fetchScores is true
    * @return a vector of the returned tests or an error
    */
   override def list(exam: Exam, fetchScores: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Test]] = {
@@ -170,6 +171,7 @@ class TestRepositoryPostgres(
    *
    * @param team The team that the tests were assigned to
    * @param fetchScores whether to include the scores associated with each test
+   * TODO: either remove the fetchScores option, or skip the cache reading step when fetchScores is true
    * @return a vector of the returned tests or an error
    */
   override def list(team: Team, fetchScores: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Test]] = {

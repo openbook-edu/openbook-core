@@ -108,6 +108,16 @@ class ExamRepositoryPostgres(
        |ORDER BY $OrderBy
      """.stripMargin
 
+  val ListByScorerId =
+    s"""
+       |SELECT $FieldsWithTable
+       |FROM $Table, teams t, teams_scorers ts
+       |WHERE ts.scorer_id = ?
+       |  AND ts.team_id = t.id
+       |  AND t.exam_id = $Table.id
+       |ORDER BY $OrderBy
+     """.stripMargin
+
   /**
    * List all exams.
    * Will only be called from API after check for administrator privileges!
@@ -121,18 +131,18 @@ class ExamRepositoryPostgres(
    * Select exams based on the given user.
    *
    * @param user the coordinator to search by
-   * TODO: implement list(scorer), too, but restrict resulting exams to their team
-   * TODO: need to specify if searching for coordinator or scorer to avoid retrieving bad cached values
+   * @param isScorer: whether to treat the user as scorer or coordinator
    * @return the found exams or an error
    */
-  override def list(user: User) // format: OFF
+  override def list(user: User, isScorer: Boolean) // format: OFF
                    (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Exam]]] = { // format: ON
 
-    val key = cacheCoordinatorExamsKey(user.id)
+    val key = if (isScorer) cacheScorerExamsKey(user.id) else cacheCoordinatorExamsKey(user.id)
+    val query = if (isScorer) ListByScorerId else ListByCoordinatorId
     cacheRepository.cacheSeqExam.getCached(key).flatMap {
       case \/-(examList) => Future successful \/-(examList)
       case -\/(noResults: RepositoryError.NoResults) => for {
-        examList <- lift(queryList(ListByCoordinatorId, Seq[Any](user.id)))
+        examList <- lift(queryList(query, Seq[Any](user.id)))
         _ <- lift(cacheRepository.cacheSeqExam.putCache(key)(examList, ttl))
       } yield examList
       case -\/(error) => Future successful -\/(error)

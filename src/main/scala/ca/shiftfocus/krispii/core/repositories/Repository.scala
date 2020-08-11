@@ -37,10 +37,10 @@ trait Repository extends Lifting[RepositoryError.Fail] {
 
   def cacheExamKey(id: UUID): String = s"exam[$id]"
   // def cacheExamsKey(id: UUID): String = s"exams[$id]"
-  // we prefer to keep coordinator and scorer roles separate, but separate keys just in case
+  // we prefer to keep coordinator and scorer roles for separate users, but separate keys just in case
   def cacheExamSlugKey(slug: String): String = s"examId[$slug]"
   def cacheCoordinatorExamsKey(ownerId: UUID): String = s"coordinatorExams[$ownerId]"
-  // def cacheScorerExamsKey(scorerId: UUID): String = s"scorerExams[$scorerId]" // not yet implemented
+  def cacheScorerExamsKey(scorerId: UUID): String = s"scorerExams[$scorerId]"
 
   def cacheTeamKey(id: UUID): String = s"team[$id]"
   def cacheTeamsKey(id: UUID): String = s"teams[$id]"

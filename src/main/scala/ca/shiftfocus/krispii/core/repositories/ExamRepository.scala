@@ -14,7 +14,7 @@ trait ExamRepository extends Repository {
   // val userRepository: UserRepository
 
   def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Exam]]]
-  def list(coordinator: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Exam]]]
+  def list(coordinator: User, isScorer: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Exam]]]
 
   def find(examId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Exam]]
   def find(slug: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Exam]]

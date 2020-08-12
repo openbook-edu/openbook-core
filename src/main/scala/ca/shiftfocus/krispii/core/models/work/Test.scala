@@ -2,10 +2,9 @@ package ca.shiftfocus.krispii.core.models.work
 
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.models.User
 import org.joda.time.DateTime
-import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.json.JodaWrites._
+import play.api.libs.json.{JsValue, Json, Writes}
 
 case class Test(
     id: UUID = UUID.randomUUID,
@@ -15,7 +14,6 @@ case class Test(
     version: Long = 1L,
     grade: String = "", // initially empty, in contrast with Work
     origResponse: UUID, // PDF component
-    scorers: Option[IndexedSeq[User]] = None,
     scores: Option[IndexedSeq[Score]] = None,
     createdAt: DateTime = new DateTime(),
     updatedAt: DateTime = new DateTime()
@@ -35,7 +33,6 @@ object Test {
         "version" -> test.version,
         "grade" -> test.grade,
         "orig_response" -> test.origResponse,
-        "scorers" -> test.scorers,
         "scores" -> test.scores,
         "createdAt" -> test.createdAt,
         "updatedAt" -> test.updatedAt

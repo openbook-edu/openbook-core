@@ -34,7 +34,6 @@ class TestRepositoryPostgres(
       row("version").asInstanceOf[Long],
       row("grade").asInstanceOf[String],
       row("orig_response").asInstanceOf[UUID],
-      None, // scorers
       None, // scores
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
@@ -131,7 +130,7 @@ class TestRepositoryPostgres(
    *
    * @param exam The exam that the tests were assigned to
    * @param fetchScores whether to include the scores associated with each test
-   * TODO: either remove the fetchScores option, or skip the cache reading step when fetchScores is true
+   * TODO: should users even with fetchScores=false get the cached result with scores, if it exists?
    * @return a vector of the returned tests or an error
    */
   override def list(exam: Exam, fetchScores: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Test]] = {
@@ -141,7 +140,6 @@ class TestRepositoryPostgres(
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           testList <- lift(queryList(ListByExam, Seq[Any](exam.id)))
-          _ <- lift(cacheRepository.cacheSeqTest.putCache(key)(testList, ttl))
           finalTestList <- if (fetchScores)
             liftSeq(testList.map { test =>
               (for {
@@ -151,6 +149,7 @@ class TestRepositoryPostgres(
             })
           else
             lift(Future successful \/-(testList))
+          _ <- lift(cacheRepository.cacheSeqTest.putCache(key)(finalTestList, ttl))
         } yield finalTestList
 
       case -\/(error) => Future successful -\/(error)
@@ -171,7 +170,7 @@ class TestRepositoryPostgres(
    *
    * @param team The team that the tests were assigned to
    * @param fetchScores whether to include the scores associated with each test
-   * TODO: either remove the fetchScores option, or skip the cache reading step when fetchScores is true
+   * TODO: should users even with fetchScores=false get the cached result with scores, if it exists?
    * @return a vector of the returned tests or an error
    */
   override def list(team: Team, fetchScores: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Test]] = {
@@ -181,7 +180,6 @@ class TestRepositoryPostgres(
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           testList <- lift(queryList(ListByTeam, Seq[Any](team.id)))
-          _ <- lift(cacheRepository.cacheSeqTest.putCache(key)(testList, ttl))
           finalTestList <- if (fetchScores)
             liftSeq(testList.map { test =>
               (for {
@@ -191,8 +189,8 @@ class TestRepositoryPostgres(
             })
           else
             lift(Future successful \/-(testList))
+          _ <- lift(cacheRepository.cacheSeqTest.putCache(key)(finalTestList, ttl))
         } yield finalTestList
-
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -243,7 +241,6 @@ class TestRepositoryPostgres(
    * @return the new test or an error
    */
   override def insert(test: Test)(implicit conn: Connection): Future[RepositoryError.Fail \/ Test] = {
-    // TODO: check if scorer is in list of scorers for this team! Or do this in omsService?
     val params = Seq[Any](test.id, test.examId, test.teamId, test.name, 1, test.grade,
       test.origResponse, new DateTime, new DateTime)
 

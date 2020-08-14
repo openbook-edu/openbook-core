@@ -154,6 +154,27 @@ class TeamRepositoryPostgres(
     queryList(SelectAll)
 
   /**
+   * Enrich a given team with scorers, and optionally with tests
+   *
+   * @param team: bare team
+   * @param fetchTests: whether to also add tests
+   */
+  def enrichTeam(team: Team, fetchTests: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ Team] =
+    if (fetchTests)
+      for {
+        scorerList <- lift(userRepository.list(team))
+        testList <- lift(testRepository.list(team))
+        result = team.copy(tests = Some(testList), scorers = Some(scorerList))
+        _ = Logger.debug(s"enrichTeam: after adding scorers and tests, team is $result")
+      } yield result
+    else
+      for {
+        scorerList <- lift(userRepository.list(team))
+        result = team.copy(scorers = Some(scorerList))
+        _ = Logger.debug(s"enrichTeams: after adding scorers, team is $result")
+      } yield result
+
+  /**
    * Enrich a given team list with scorers, and optionally with tests
    *
    * @param teamList: vector of bare teams
@@ -192,19 +213,19 @@ class TeamRepositoryPostgres(
    *
    * @param exam The Exam where the Teams were created.
    * @param fetchTests Whether to return a Team together with all the Tests assigned to it
-   * TODO: either remove the fetchTests option, or skip the cache reading step when fetchTests is true
    * @return a vector of the returned Teams, each including any Scorers (and optionally Tests), or an error
    */
   override def list(exam: Exam, fetchTests: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Team]]] = {
     val key = cacheTeamsKey(exam.id)
     cacheRepository.cacheSeqTeam.getCached(key).flatMap {
-      case \/-(teamList) => Future successful \/-(teamList)
+      case \/-(teamList) => enrichTeams(teamList, fetchTests)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           teamList <- lift(queryList(ListByExam, Seq[Any](exam.id)))
-          _ = Logger.debug(s"In exam ${exam.name}, teams $teamList")
+          _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(teamList, ttl))
+          _ = Logger.debug(s"In exam ${exam.name}, bare teams $teamList")
           enrichedTeamList <- lift(enrichTeams(teamList, fetchTests))
-          _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(enrichedTeamList, ttl))
+          _ = Logger.debug(s"In exam ${exam.name}, enriched teams $enrichedTeamList")
         } yield enrichedTeamList
 
       case -\/(error) => Future successful -\/(error)
@@ -235,13 +256,13 @@ class TeamRepositoryPostgres(
       (cacheCoordinatorTeamsKey(user.id), ListByCoordinatorId)
     Logger.debug(s"List teams for ${user.email}: redis key $key")
     cacheRepository.cacheSeqTeam.getCached(key).flatMap {
-      case \/-(teamList) => Future successful \/-(teamList)
+      case \/-(teamList) => enrichTeams(teamList, fetchTests)
       case -\/(noResults: RepositoryError.NoResults) =>
         Logger.debug(s"No teams for ${user.email} (ID ${user.id}) in redis cache, search in PostgreSQL with query $queryType")
         for {
           teamList <- lift(queryList(queryType, Seq[Any](user.id)))
-          enrichedTeamList <- lift(enrichTeams(teamList, fetchTests = false))
-          _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(enrichedTeamList, ttl))
+          _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(teamList, ttl))
+          enrichedTeamList <- lift(enrichTeams(teamList, fetchTests))
         } yield enrichedTeamList
       case -\/(error) => Future successful -\/(error)
     }
@@ -267,22 +288,12 @@ class TeamRepositoryPostgres(
   override def find(id: UUID, fetchTests: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Team]] = {
     val key = cacheTeamKey(id)
     cacheRepository.cacheTeam.getCached(key).flatMap {
-      case \/-(team) => Future successful \/-(team)
+      case \/-(team) => enrichTeam(team, fetchTests)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           team <- lift(queryOne(SelectOne, Array[Any](id)))
-          scorerList <- lift(userRepository.list(team))
-          // same as enrichTeams(), but for only one team
-          result <- lift(
-            if (fetchTests)
-              (for {
-              testList <- lift(testRepository.list(team))
-              teamWithTests = team.copy(tests = Some(testList), scorers = Some(scorerList))
-            } yield teamWithTests).run
-            else
-              Future successful \/-(team.copy(scorers = Some(scorerList)))
-          )
-          _ <- lift(cacheRepository.cacheTeam.putCache(key)(result, ttl))
+          _ <- lift(cacheRepository.cacheTeam.putCache(key)(team, ttl))
+          result <- lift(enrichTeam(team, fetchTests))
         } yield (result)
       case -\/(error) => Future successful -\/(error)
     }

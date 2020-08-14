@@ -32,7 +32,7 @@ object Test {
         "name" -> test.name,
         "version" -> test.version,
         "grade" -> test.grade,
-        "orig_response" -> test.origResponse,
+        "origResponse" -> test.origResponse,
         "scores" -> test.scores,
         "createdAt" -> test.createdAt,
         "updatedAt" -> test.updatedAt

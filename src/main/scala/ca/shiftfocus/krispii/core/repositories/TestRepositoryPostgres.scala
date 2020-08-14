@@ -109,6 +109,20 @@ class TestRepositoryPostgres(
   """.stripMargin
 
   /**
+   * Helper function to add scores to a list of tests.
+   *
+   * @param rawTests: vector of tests without scores
+   * @return The list of tests, each enriched with its scores, or an error
+   */
+  def enrichTests(rawTests: IndexedSeq[Test])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Test]]] =
+    liftSeq(rawTests.map { test =>
+      (for {
+        scoreList <- lift(scoreRepository.list(test))
+        result = test.copy(scores = Some(scoreList))
+      } yield result).run
+    })
+
+  /**
    * Find all tests.
    *
    * @return a vector of the returned tests (without their associated scores)
@@ -130,28 +144,19 @@ class TestRepositoryPostgres(
    *
    * @param exam The exam that the tests were assigned to
    * @param fetchScores whether to include the scores associated with each test
-   * TODO: should users even with fetchScores=false get the cached result with scores, if it exists?
    * @return a vector of the returned tests or an error
    */
   override def list(exam: Exam, fetchScores: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Test]] = {
     val key = cacheTestsKey(exam.id)
     cacheRepository.cacheSeqTest.getCached(key).flatMap {
-      case \/-(testList) => Future successful \/-(testList)
+      case \/-(testList) =>
+        if (fetchScores) enrichTests(testList) else Future successful \/-(testList)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           testList <- lift(queryList(ListByExam, Seq[Any](exam.id)))
-          finalTestList <- if (fetchScores)
-            liftSeq(testList.map { test =>
-              (for {
-                scoreList <- lift(scoreRepository.list(test))
-                result = test.copy(scores = Some(scoreList))
-              } yield result).run
-            })
-          else
-            lift(Future successful \/-(testList))
-          _ <- lift(cacheRepository.cacheSeqTest.putCache(key)(finalTestList, ttl))
+          _ <- lift(cacheRepository.cacheSeqTest.putCache(key)(testList, ttl))
+          finalTestList <- lift(if (fetchScores) enrichTests(testList) else Future successful \/-(testList))
         } yield finalTestList
-
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -176,28 +181,22 @@ class TestRepositoryPostgres(
   override def list(team: Team, fetchScores: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Test]] = {
     val key = cacheTestsKey(team.id)
     cacheRepository.cacheSeqTest.getCached(key).flatMap {
-      case \/-(testList) => Future successful \/-(testList)
+      case \/-(testList) =>
+        if (fetchScores) enrichTests(testList) else Future successful \/-(testList)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           testList <- lift(queryList(ListByTeam, Seq[Any](team.id)))
-          finalTestList <- if (fetchScores)
-            liftSeq(testList.map { test =>
-              (for {
-                scoreList <- lift(scoreRepository.list(test))
-                result = test.copy(scores = Some(scoreList))
-              } yield result).run
-            })
-          else
-            lift(Future successful \/-(testList))
-          _ <- lift(cacheRepository.cacheSeqTest.putCache(key)(finalTestList, ttl))
+          _ <- lift(cacheRepository.cacheSeqTest.putCache(key)(testList, ttl))
+          finalTestList <- lift(if (fetchScores) enrichTests(testList) else Future successful \/-(testList))
         } yield finalTestList
       case -\/(error) => Future successful -\/(error)
     }
   }
 
   /**
-   * Find a single entry by ID.
+   * Find a single test by ID, without its scores.
    *
+   * TODO: enrichTest ?
    * @param id the 128-bit UUID, as a byte array, to search for.
    * @return the test or an error
    */
@@ -215,8 +214,9 @@ class TestRepositoryPostgres(
   }
 
   /**
-   * Find a single test by the unique combination of exam and test name
+   * Find a single test (without its scores) by the unique combination of exam and test name
    *
+   * TODO: enrichTest ?
    * @param name the name of the test (student name or external ID, unique to the exam)
    * @param exam the Exam to which the test was assigned
    * @return the test or an error

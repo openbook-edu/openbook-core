@@ -39,11 +39,11 @@ object Score {
         "scorerId" -> score.scorerId,
         "version" -> score.version,
         "grade" -> score.grade,
-        "is_visible" -> score.isVisible,
-        "exam_file" -> score.examFile,
-        "rubric_file" -> score.rubricFile,
-        "orig_comments" -> score.origComments,
-        "add_comments" -> score.addComments,
+        "isVisible" -> score.isVisible,
+        "examFile" -> score.examFile,
+        "rubricFile" -> score.rubricFile,
+        "origComments" -> score.origComments,
+        "addComments" -> score.addComments,
         "createdAt" -> score.createdAt,
         "updatedAt" -> score.updatedAt
       )

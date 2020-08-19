@@ -109,6 +109,18 @@ class TestRepositoryPostgres(
   """.stripMargin
 
   /**
+   * Helper function to add scores to a test.
+   *
+   * @param rawTest: test without scores
+   * @return The test, enriched with its scores, or an error
+   */
+  def enrichTest(rawTest: Test)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Test]] =
+    for {
+      scoreList <- lift(scoreRepository.list(rawTest))
+      result = rawTest.copy(scores = Some(scoreList))
+    } yield result
+
+  /**
    * Helper function to add scores to a list of tests.
    *
    * @param rawTests: vector of tests without scores
@@ -175,7 +187,6 @@ class TestRepositoryPostgres(
    *
    * @param team The team that the tests were assigned to
    * @param fetchScores whether to include the scores associated with each test
-   * TODO: should users even with fetchScores=false get the cached result with scores, if it exists?
    * @return a vector of the returned tests or an error
    */
   override def list(team: Team, fetchScores: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Test]] = {
@@ -194,9 +205,8 @@ class TestRepositoryPostgres(
   }
 
   /**
-   * Find a single test by ID, without its scores.
+   * Find a single test by ID, together with its scores.
    *
-   * TODO: enrichTest ?
    * @param id the 128-bit UUID, as a byte array, to search for.
    * @return the test or an error
    */
@@ -208,7 +218,8 @@ class TestRepositoryPostgres(
         for {
           test <- lift(queryOne(SelectOne, Array[Any](id)))
           _ <- lift(cacheRepository.cacheTest.putCache(key)(test, ttl))
-        } yield test
+          enrichedTest <- lift(enrichTest(test))
+        } yield enrichedTest
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -216,7 +227,6 @@ class TestRepositoryPostgres(
   /**
    * Find a single test (without its scores) by the unique combination of exam and test name
    *
-   * TODO: enrichTest ?
    * @param name the name of the test (student name or external ID, unique to the exam)
    * @param exam the Exam to which the test was assigned
    * @return the test or an error
@@ -230,7 +240,8 @@ class TestRepositoryPostgres(
           test <- lift(queryOne(SelectByNameExam, Array[Any](name, exam.id)))
           _ <- lift(cacheRepository.cacheUUID.putCache(key)(test.id, ttl))
           _ <- lift(cacheRepository.cacheTest.putCache(cacheTestKey(test.id))(test, ttl))
-        } yield test
+          enrichedTest <- lift(enrichTest(test))
+        } yield enrichedTest
       case -\/(error) => Future successful -\/(error)
     }
   }

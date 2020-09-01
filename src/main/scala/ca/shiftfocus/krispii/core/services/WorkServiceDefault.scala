@@ -832,4 +832,103 @@ class WorkServiceDefault(
       }
     } yield result.asInstanceOf[Work]
   }
+
+  // ########## MICROSOFT FILES ###########################################################################################
+
+  override def getMSfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Gfile]] = {
+    for {
+      gFile <- lift(gfileRepository.get(gFileId))
+    } yield gFile
+  }
+
+  override def createMSfile(
+    workId: UUID,
+    fileId: String,
+    mimeType: String,
+    fileType: String,
+    fileName: String,
+    embedUrl: String,
+    url: String,
+    sharedEmail: Option[String]
+  ): Future[\/[ErrorUnion#Fail, Work]] = {
+    for {
+      work <- lift(workRepository.find(workId))
+      gFiles <- lift(gfileRepository.listByWork(work))
+      newGfile <- lift(gfileRepository.insert(
+        Gfile(
+          workId = workId,
+          fileId = fileId,
+          mimeType = mimeType,
+          fileType = fileType,
+          fileName = fileName,
+          embedUrl = embedUrl,
+          url = url,
+          sharedEmail = sharedEmail
+        )
+      ))
+      result = work match {
+        case work: DocumentWork => work.copy(gFiles = gFiles :+ newGfile)
+        case work: MediaWork => work.copy(gFiles = gFiles :+ newGfile)
+        case work: QuestionWork => work.copy(gFiles = gFiles :+ newGfile)
+      }
+    } yield result.asInstanceOf[Work]
+  }
+
+  override def updateMSfile(
+    gFileId: UUID,
+    sharedEmail: Option[Option[String]],
+    permissionId: Option[Option[String]],
+    revisionId: Option[Option[String]]
+  ): Future[\/[ErrorUnion#Fail, Work]] = {
+    for {
+      gFile <- lift(gfileRepository.get(gFileId))
+      work <- lift(workRepository.find(gFile.workId))
+      gFiles <- lift(gfileRepository.listByWork(work))
+      updatedGfile <- lift(gfileRepository.update(
+        gFile.copy(
+          sharedEmail = sharedEmail match {
+          case Some(Some(sharedEmail)) => Some(sharedEmail)
+          case Some(None) => None
+          case None => gFile.sharedEmail
+        },
+          permissionId = permissionId match {
+          case Some(Some(permissionId)) => Some(permissionId)
+          case Some(None) => None
+          case None => gFile.permissionId
+        },
+          revisionId = revisionId match {
+          case Some(Some(revisionId)) => Some(revisionId)
+          case Some(None) => None
+          case None => gFile.revisionId
+        }
+        )
+      ))
+      // Update list of google files in the work
+      updatedGfiles = gFiles.map(gF => {
+        if (gF.id == updatedGfile.id) updatedGfile
+        else gF
+      })
+      result = work match {
+        case work: DocumentWork => work.copy(gFiles = updatedGfiles)
+        case work: MediaWork => work.copy(gFiles = updatedGfiles)
+        case work: QuestionWork => work.copy(gFiles = updatedGfiles)
+      }
+    } yield result.asInstanceOf[Work]
+  }
+
+  override def deleteMSfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Work]] = {
+    for {
+      gFile <- lift(gfileRepository.get(gFileId))
+      work <- lift(workRepository.find(gFile.workId))
+      gFiles <- lift(gfileRepository.listByWork(work))
+      deletedGfile <- lift(gfileRepository.delete(gFile))
+      // Remove delete google file from the list
+      updatedGfiles = gFiles.filter(_.id != gFile.id)
+      result = work match {
+        case work: DocumentWork => work.copy(gFiles = updatedGfiles)
+        case work: MediaWork => work.copy(gFiles = updatedGfiles)
+        case work: QuestionWork => work.copy(gFiles = updatedGfiles)
+      }
+    } yield result.asInstanceOf[Work]
+  }
 }

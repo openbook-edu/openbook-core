@@ -15,7 +15,7 @@ case class Team(
   id: UUID = UUID.randomUUID,
   examId: UUID,
   version: Long = 1L,
-  color: Color,
+  color: Option[Color] = None,
   enabled: Boolean = true,
   chatEnabled: Boolean = true,
   scorers: Option[IndexedSeq[User]] = None,
@@ -32,7 +32,7 @@ object Team {
     (__ \ "id").write[UUID] and
     (__ \ "examId").write[UUID] and
     (__ \ "version").write[Long] and
-    (__ \ "color").write[Color] and
+    (__ \ "color").writeNullable[Color] and
     (__ \ "enabled").write[Boolean] and
     (__ \ "chatEnabled").write[Boolean] and
     (__ \ "scorers").writeNullable[IndexedSeq[User]] and

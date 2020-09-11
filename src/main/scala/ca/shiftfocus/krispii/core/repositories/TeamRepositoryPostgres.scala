@@ -30,7 +30,10 @@ class TeamRepositoryPostgres(
       row("id").asInstanceOf[UUID],
       row("exam_id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
-      new Color(Option(row("color").asInstanceOf[Int]).getOrElse(0)),
+      Option(row("color").asInstanceOf[Color]) match {
+        case Some(color) => Some(color)
+        case _ => None
+      },
       row("enabled").asInstanceOf[Boolean],
       row("chat_enabled").asInstanceOf[Boolean],
       None, // scorers

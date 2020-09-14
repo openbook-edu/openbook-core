@@ -24,14 +24,14 @@ class TeamRepositoryPostgres(
 
   override val entityName = "Team"
 
-  // names and number of fields in core and API and in JSON communication
+  // names and number of fields as in core and API and in JSON communication
   def constructor(row: RowData): Team =
     Team(
       row("id").asInstanceOf[UUID],
       row("exam_id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
-      Option(row("color").asInstanceOf[Color]) match {
-        case Some(color) => Some(color)
+      Option(row("color").asInstanceOf[Int]) match {
+        case Some(rgb) => Some(new Color(rgb))
         case _ => None
       },
       row("enabled").asInstanceOf[Boolean],

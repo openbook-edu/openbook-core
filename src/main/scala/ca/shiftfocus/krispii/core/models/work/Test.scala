@@ -13,8 +13,8 @@ case class Test(
     name: String,
     version: Long = 1L,
     grade: String = "", // initially empty, in contrast with Work
-    origResponse: UUID, // PDF component
-    scores: Option[IndexedSeq[Score]] = None,
+    origResponse: UUID, // PDF/image component
+    scores: IndexedSeq[Score] = IndexedSeq.empty[Score],
     createdAt: DateTime = new DateTime(),
     updatedAt: DateTime = new DateTime()
 ) extends Evaluation {

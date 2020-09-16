@@ -18,8 +18,8 @@ case class Team(
   color: Option[Color] = None,
   enabled: Boolean = true,
   chatEnabled: Boolean = true,
-  scorers: Option[IndexedSeq[User]] = None,
-  tests: Option[IndexedSeq[Test]] = None,
+  scorers: IndexedSeq[User] = IndexedSeq.empty[User],
+  tests: IndexedSeq[Test] = IndexedSeq.empty[Test],
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 )
@@ -35,8 +35,8 @@ object Team {
     (__ \ "color").writeNullable[Color] and
     (__ \ "enabled").write[Boolean] and
     (__ \ "chatEnabled").write[Boolean] and
-    (__ \ "scorers").writeNullable[IndexedSeq[User]] and
-    (__ \ "tests").writeNullable[IndexedSeq[Test]] and
+    (__ \ "scorers").write[IndexedSeq[User]] and
+    (__ \ "tests").write[IndexedSeq[Test]] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Team.unapply))

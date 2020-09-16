@@ -5,6 +5,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.course.Exam
+import ca.shiftfocus.krispii.core.models.work.Test
 import ca.shiftfocus.krispii.core.models.{Team, User}
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
@@ -36,8 +37,8 @@ class TeamRepositoryPostgres(
       },
       row("enabled").asInstanceOf[Boolean],
       row("chat_enabled").asInstanceOf[Boolean],
-      None, // scorers
-      None, // tests
+      IndexedSeq.empty[User],
+      IndexedSeq.empty[Test],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -167,13 +168,13 @@ class TeamRepositoryPostgres(
       for {
         scorerList <- lift(userRepository.list(team))
         testList <- lift(testRepository.list(team))
-        result = team.copy(tests = Some(testList), scorers = Some(scorerList))
+        result = team.copy(tests = testList, scorers = scorerList)
         _ = Logger.debug(s"enrichTeam: after adding scorers and tests, team is $result")
       } yield result
     else
       for {
         scorerList <- lift(userRepository.list(team))
-        result = team.copy(scorers = Some(scorerList))
+        result = team.copy(scorers = scorerList)
         _ = Logger.debug(s"enrichTeams: after adding scorers, team is $result")
       } yield result
 
@@ -189,7 +190,7 @@ class TeamRepositoryPostgres(
         (for {
           scorerList <- lift(userRepository.list(team))
           testList <- lift(testRepository.list(team))
-          result = team.copy(tests = Some(testList), scorers = Some(scorerList))
+          result = team.copy(tests = testList, scorers = scorerList)
           _ = Logger.debug(s"enrichTeams: after adding scorers and tests, team is $result")
         } yield result).run
       })
@@ -197,7 +198,7 @@ class TeamRepositoryPostgres(
       liftSeq(teamList.map { team =>
         (for {
           scorerList <- lift(userRepository.list(team))
-          result = team.copy(scorers = Some(scorerList))
+          result = team.copy(scorers = scorerList)
           _ = Logger.debug(s"enrichTeams: after adding scorers, team is $result")
         } yield result).run
       })
@@ -381,7 +382,7 @@ class TeamRepositoryPostgres(
    * @return
    */
   override def addScorer(team: Team, scorer: User)(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
-    val params = Seq[Any](scorer.id, team.id, new DateTime)
+    val params = Seq[Any](team.id, scorer.id, new DateTime)
 
     for {
       _ <- lift(queryNumRows(AddScorer, params)(_ == 1).map {
@@ -402,7 +403,7 @@ class TeamRepositoryPostgres(
 
   override def removeScorer(team: Team, scorer: User)(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
     for {
-      _ <- lift(queryNumRows(RemoveScorer, Seq(scorer.id, scorer.id))(_ == 1).map {
+      _ <- lift(queryNumRows(RemoveScorer, Seq(team.id, scorer.id))(_ == 1).map {
         case \/-(true) =>
           cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id))
           cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id))

@@ -5,7 +5,7 @@ import java.util.UUID
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.Team
 import ca.shiftfocus.krispii.core.models.course.Exam
-import ca.shiftfocus.krispii.core.models.work.Test
+import ca.shiftfocus.krispii.core.models.work.{Score, Test}
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import scalaz.{-\/, \/, \/-}
@@ -34,7 +34,7 @@ class TestRepositoryPostgres(
       row("version").asInstanceOf[Long],
       row("grade").asInstanceOf[String],
       row("orig_response").asInstanceOf[UUID],
-      None, // scores
+      IndexedSeq.empty[Score],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -117,7 +117,7 @@ class TestRepositoryPostgres(
   def enrichTest(rawTest: Test)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Test]] =
     for {
       scoreList <- lift(scoreRepository.list(rawTest))
-      result = rawTest.copy(scores = Some(scoreList))
+      result = rawTest.copy(scores = scoreList)
     } yield result
 
   /**
@@ -130,7 +130,7 @@ class TestRepositoryPostgres(
     liftSeq(rawTests.map { test =>
       (for {
         scoreList <- lift(scoreRepository.list(test))
-        result = test.copy(scores = Some(scoreList))
+        result = test.copy(scores = scoreList)
       } yield result).run
     })
 

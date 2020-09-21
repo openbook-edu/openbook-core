@@ -170,11 +170,13 @@ class AuthServiceDefault(
    * @param userAgent
    * @return
    */
-  override def createSession(userId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]] = {
+  override def createSession(userId: UUID, ipAddress: String, userAgent: String, accessToken: Option[String], refreshToken: Option[String]): Future[\/[ErrorUnion#Fail, Session]] = {
     sessionRepository.create(Session(
       userId = userId,
       ipAddress = ipAddress,
-      userAgent = userAgent
+      userAgent = userAgent,
+      accessToken = accessToken,
+      refreshToken = refreshToken
     ))
   }
 
@@ -186,16 +188,16 @@ class AuthServiceDefault(
    * @param userAgent
    * @return
    */
-  override def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]] = {
-    val fUpdated = for {
+  override def updateSession(sessionId: UUID, ipAddress: String, userAgent: String, accessToken: Option[String], refreshToken: Option[String]): Future[\/[ErrorUnion#Fail, Session]] = {
+    (for {
       session <- lift(sessionRepository.find(sessionId))
       updated <- lift(sessionRepository.update(session.copy(
         ipAddress = ipAddress,
-        userAgent = userAgent
+        userAgent = userAgent,
+        accessToken = accessToken.orElse(session.accessToken),
+        refreshToken = refreshToken.orElse(session.refreshToken)
       )))
-    } yield updated
-
-    fUpdated.run
+    } yield updated).run
   }
 
   /**

@@ -98,4 +98,3 @@ trait WorkService extends Service[ErrorUnion#Fail] {
   def updateMSfile(msFileId: UUID, sharedEmail: Option[Option[String]], permissionId: Option[Option[String]], revisionId: Option[Option[String]]): Future[\/[ErrorUnion#Fail, Work]]
   def deleteMSfile(msFileId: UUID): Future[\/[ErrorUnion#Fail, Work]]
 }
-

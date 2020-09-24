@@ -225,7 +225,7 @@ class TestRepositoryPostgres(
   }
 
   /**
-   * Find a single test (without its scores) by the unique combination of exam and test name
+   * Find a single test (with its scores) by the unique combination of exam and test name
    *
    * @param name the name of the test (student name or external ID, unique to the exam)
    * @param exam the Exam to which the test was assigned
@@ -268,7 +268,7 @@ class TestRepositoryPostgres(
   /**
    * Update a Test.
    *
-   * @return the changed Test or an error
+   * @return the changed Test (with scores) or an error
    */
   override def update(test: Test)(implicit conn: Connection): Future[RepositoryError.Fail \/ Test] = {
     val params = Seq[Any](test.examId, test.teamId, test.name, test.version + 1, test.grade,
@@ -283,7 +283,8 @@ class TestRepositoryPostgres(
         case Some(teamId) => lift(cacheRepository.cacheSeqTest.removeCached(cacheTestsKey(teamId)))
         case None => Future successful \/-(())
       })
-    } yield updated
+      enrichedTest <- lift(enrichTest(updated))
+    } yield enrichedTest
   }
 
   /**

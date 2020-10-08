@@ -2,7 +2,8 @@ package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.error.ErrorUnion
+import ca.shiftfocus.krispii.core.error.{ErrorUnion, ServiceError}
+import ca.shiftfocus.krispii.core.models.{Team, User}
 import ca.shiftfocus.krispii.core.models.course.Exam
 import ca.shiftfocus.krispii.core.models.work.Test
 import ca.shiftfocus.krispii.core.repositories.{ExamRepository, TeamRepository, TestRepository, UserRepository}
@@ -24,6 +25,28 @@ class OmsServiceDefault(
 ) extends OmsService {
 
   implicit def conn: Connection = db.pool
+
+  /* Bread-and-butter functions that simply pass on requests to the respective repositories
+     because it is easier for the API to just include the omsService */
+  def findExam(examId: UUID): Future[\/[ErrorUnion#Fail, Exam]] =
+    examRepository.find(examId)
+  def findTeam(teamId: UUID): Future[\/[ErrorUnion#Fail, Team]] =
+    teamRepository.find(teamId)
+
+  /**
+   * Supply list that contains the exam's owner and the team's scorers, or an error
+   * @param examId: UUID of the exam
+   * @param teamId: UUID of the team
+   * @return
+   */
+  def listMembers(examId: UUID, teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] =
+    for {
+      team <- lift(teamRepository.find(teamId))
+      _ <- predicate(examId.equals(team.examId))(ServiceError.BadInput("The team needs to be part of the exam"))
+      exam <- lift(examRepository.find(examId))
+      owner <- lift(userRepository.find(exam.ownerId))
+      members = owner +: team.scorers
+    } yield members
 
   /**
    * Move a vector of Tests, identified by their IDs, to a certain team.

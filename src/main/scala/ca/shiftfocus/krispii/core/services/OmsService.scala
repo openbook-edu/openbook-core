@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.ErrorUnion
+import ca.shiftfocus.krispii.core.models.{Team, User}
 import ca.shiftfocus.krispii.core.models.course.Exam
 import ca.shiftfocus.krispii.core.models.work.Test
 import ca.shiftfocus.krispii.core.repositories.{ExamRepository, TeamRepository, TestRepository, UserRepository}
@@ -16,8 +17,15 @@ trait OmsService extends Service[ErrorUnion#Fail] {
   val testRepository: TestRepository
   val userRepository: UserRepository
 
-  // don't repackage the bread-and-butter functions here, can always use examRepository.list etc.!
+  /* don't repackage all the bread-and-butter functions here, can always use examRepository.list etc.!
+     however, sometimes hard to avoid */
+  def findExam(examid: UUID): Future[\/[ErrorUnion#Fail, Exam]]
+
+  def findTeam(teamid: UUID): Future[\/[ErrorUnion#Fail, Team]]
+
   // duplicate (examId:name) will cause a RepositoryError.UniqueKeyConflict which should be handled by API
+
+  def listMembers(examId: UUID, teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
   def moveTests(testIds: IndexedSeq[UUID], newTeamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]]
 

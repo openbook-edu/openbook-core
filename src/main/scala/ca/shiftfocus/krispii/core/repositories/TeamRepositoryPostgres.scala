@@ -29,8 +29,8 @@ class TeamRepositoryPostgres(
   def constructor(row: RowData): Team =
     Team(
       row("id").asInstanceOf[UUID],
-      row("exam_id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
+      row("exam_id").asInstanceOf[UUID],
       Option(row("color").asInstanceOf[Int]) match {
         case Some(rgb) => Some(new Color(rgb))
         case _ => None

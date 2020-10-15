@@ -13,11 +13,16 @@ import play.api.libs.json.JodaWrites._
 
 case class Team(
   id: UUID = UUID.randomUUID,
-  examId: UUID,
   version: Long = 1L,
-  color: Option[Color] = None,
+  /* an ownerId would make Team a descendant of Group and enable some redis caching, but
+   * is redundant with examId and would lead to potential problems */
+  examId: UUID,
+  /* name and slug would make Team a descendant of Group;
+   * they are perhaps not necessary, but wouldn't be a problem */
+  color: Option[Color] = None, // would need to be non-optional
   enabled: Boolean = true,
   chatEnabled: Boolean = true,
+  // archived and deleted seem useful
   scorers: IndexedSeq[User] = IndexedSeq.empty[User],
   tests: IndexedSeq[Test] = IndexedSeq.empty[Test],
   createdAt: DateTime = new DateTime,
@@ -30,8 +35,8 @@ object Team {
 
   implicit val teamWrites: Writes[Team] = (
     (__ \ "id").write[UUID] and
-    (__ \ "examId").write[UUID] and
     (__ \ "version").write[Long] and
+    (__ \ "examId").write[UUID] and
     (__ \ "color").writeNullable[Color] and
     (__ \ "enabled").write[Boolean] and
     (__ \ "chatEnabled").write[Boolean] and

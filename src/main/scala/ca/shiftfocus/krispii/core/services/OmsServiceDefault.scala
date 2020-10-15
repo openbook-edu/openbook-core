@@ -3,21 +3,23 @@ package ca.shiftfocus.krispii.core.services
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.{ErrorUnion, ServiceError}
-import ca.shiftfocus.krispii.core.models.{Team, User}
+import ca.shiftfocus.krispii.core.models.{Chat, Team, User}
 import ca.shiftfocus.krispii.core.models.course.Exam
 import ca.shiftfocus.krispii.core.models.work.Test
-import ca.shiftfocus.krispii.core.repositories.{ExamRepository, TeamRepository, TestRepository, UserRepository}
+import ca.shiftfocus.krispii.core.repositories.{ChatRepository, ExamRepository, TeamRepository, TestRepository, UserRepository}
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import play.api.Logger
 import scalaz.\/
 
+import scala.collection.IndexedSeq
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.util.Random
 
 class OmsServiceDefault(
     val db: DB,
+    val chatRepository: ChatRepository,
     val examRepository: ExamRepository,
     val teamRepository: TeamRepository,
     val testRepository: TestRepository,
@@ -99,4 +101,17 @@ class OmsServiceDefault(
       existingTests <- lift(testRepository.list(exam))
       // apply automatic scoring to tests
     } yield existingTests
+
+  /**
+   * List all chats for a team (usually one).
+   *
+   * @param teamId
+   * @return
+   */
+  override def listChats(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = {
+    for {
+      team <- lift(findTeam(teamId))
+      chats <- lift(chatRepository.list(team))
+    } yield chats
+  }
 }

@@ -3,12 +3,13 @@ package ca.shiftfocus.krispii.core.services
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.ErrorUnion
-import ca.shiftfocus.krispii.core.models.{Team, User}
+import ca.shiftfocus.krispii.core.models.{Chat, Team, User}
 import ca.shiftfocus.krispii.core.models.course.Exam
 import ca.shiftfocus.krispii.core.models.work.Test
 import ca.shiftfocus.krispii.core.repositories.{ExamRepository, TeamRepository, TestRepository, UserRepository}
 import scalaz.\/
 
+import scala.collection.IndexedSeq
 import scala.concurrent.Future
 
 trait OmsService extends Service[ErrorUnion#Fail] {
@@ -34,6 +35,8 @@ trait OmsService extends Service[ErrorUnion#Fail] {
   def randomizeTests(exam: Exam, all: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]]
 
   def automaticScoring(examId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]]
+
+  def listChats(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
 
   // exporting CSVs seems more appropriate for krispii-api
   // def exportTests(examId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]] // Unit?

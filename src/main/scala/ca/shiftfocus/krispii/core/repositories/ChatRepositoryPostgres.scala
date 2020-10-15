@@ -1,10 +1,10 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models.{Chat, User}
+import ca.shiftfocus.krispii.core.models.{Chat, Team, User}
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.models.course.Course
+import ca.shiftfocus.krispii.core.models.course.Group
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 
@@ -106,66 +106,82 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
     |  AND message_num = ?
     |RETURNING $Fields
     """.stripMargin
+
   /**
-   * List all chat logs for a course
+   * List all chat logs for a course/exam
    *
-   * @param course
+   * @param group
    * @param conn
    * @return
    */
-  override def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
-    queryList(SelectAllByCourse, Seq[Any](course.id))
+  override def list(group: Group)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
+    queryList(SelectAllByCourse, Seq[Any](group.id))
+  }
+  override def list(team: Team)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
+    queryList(SelectAllByCourse, Seq[Any](team.id))
   }
 
   /**
-   * List only an indicated portion of chat logs for a course
+   * List only an indicated portion of chat logs for a course/exam
    *
-   * @param course
+   * @param group
    * @param num
    * @param offset
    * @param conn
    * @return
    */
-  override def list(course: Course, num: Long, offset: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
-    queryList(SelectOffsetByCourse, Seq[Any](course.id, num, offset))
+  override def list(group: Group, num: Long, offset: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
+    queryList(SelectOffsetByCourse, Seq[Any](group.id, num, offset))
+  }
+  override def list(team: Team, num: Long, offset: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
+    queryList(SelectOffsetByCourse, Seq[Any](team.id, num, offset))
   }
 
   /**
    * List all chat logs for a course for a user
    *
-   * @param course
+   * @param group
    * @param user
    * @param conn
    * @return
    */
-  override def list(course: Course, user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
-    queryList(SelectAllByCourseAndUser, Seq[Any](course.id, user.id))
+  override def list(group: Group, user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
+    queryList(SelectAllByCourseAndUser, Seq[Any](group.id, user.id))
+  }
+  override def list(team: Team, user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
+    queryList(SelectAllByCourseAndUser, Seq[Any](team.id, user.id))
   }
 
   /**
-   * List only an indicated portion of chat logs for a course for a user
+   * List only an indicated portion of chat logs for a group for a user
    *
-   * @param course
+   * @param group
    * @param user
    * @param num
    * @param offset
    * @param conn
    * @return
    */
-  override def list(course: Course, user: User, num: Long, offset: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
-    queryList(SelectOffsetByCourseAndUser, Seq[Any](course.id, user.id, num, offset))
+  override def list(group: Group, user: User, num: Long, offset: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
+    queryList(SelectOffsetByCourseAndUser, Seq[Any](group.id, user.id, num, offset))
+  }
+  override def list(team: Team, user: User, num: Long, offset: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Chat]]] = {
+    queryList(SelectOffsetByCourseAndUser, Seq[Any](team.id, user.id, num, offset))
   }
 
   /**
    * Find a chat log for a course by number
    *
-   * @param course
+   * @param group
    * @param messageNum
    * @param conn
    * @return
    */
-  override def find(course: Course, messageNum: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]] = {
-    queryOne(SelectOne, Seq[Any](course.id, messageNum))
+  override def find(group: Group, messageNum: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]] = {
+    queryOne(SelectOne, Seq[Any](group.id, messageNum))
+  }
+  override def find(team: Team, messageNum: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]] = {
+    queryOne(SelectOne, Seq[Any](team.id, messageNum))
   }
 
   /**
@@ -190,8 +206,8 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
     queryOne(Update, Seq[Any](chat.hidden, chat.courseId, chat.messageNum))
   }
 
-  def delete(courseId: UUID, messageNum: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]] = {
-    queryOne(Delete, Seq[Any](courseId, messageNum))
+  def delete(groupId: UUID, messageNum: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]] = {
+    queryOne(Delete, Seq[Any](groupId, messageNum))
   }
 
 }

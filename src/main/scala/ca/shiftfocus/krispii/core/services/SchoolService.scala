@@ -57,6 +57,7 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
   def removeUser(course: Course, userId: UUID): Future[\/[ErrorUnion#Fail, User]]
   // -- Course chat methods -----
 
+  def toggleCourseChat(courseId: UUID, chatEnabled: Boolean): Future[\/[ErrorUnion#Fail, Course]]
   def listChats(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
   def listChats(courseId: UUID, num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
 

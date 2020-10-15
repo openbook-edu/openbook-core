@@ -25,6 +25,8 @@ trait OmsService extends Service[ErrorUnion#Fail] {
 
   // duplicate (examId:name) will cause a RepositoryError.UniqueKeyConflict which should be handled by API
 
+  def listScorers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
+
   def listMembers(examId: UUID, teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
   def moveTests(testIds: IndexedSeq[UUID], newTeamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]]

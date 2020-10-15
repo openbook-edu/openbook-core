@@ -292,6 +292,18 @@ class SchoolServiceDefault(
   }
 
   /**
+   * Set chatEnabled to a new value
+   * @param courseId
+   * @param chatEnabled
+   * @return
+   */
+  def toggleCourseChat(courseId: UUID, chatEnabled: Boolean): Future[\/[ErrorUnion#Fail, Course]] =
+    for {
+      old <- lift(courseRepository.find(courseId))
+      updated <- lift(courseRepository.update(old.copy(chatEnabled = chatEnabled)))
+    } yield updated
+
+  /**
    * List all chats for a course.
    *
    * @param courseId
@@ -376,16 +388,8 @@ class SchoolServiceDefault(
    * @return
    */
   override def insertChat(courseId: UUID, userId: UUID, message: String): Future[\/[ErrorUnion#Fail, Chat]] = {
-    transactional { implicit conn =>
-      for {
-        course <- lift(findCourse(courseId))
-        user <- lift(userRepository.find(userId))
-        students <- lift(listStudents(course))
-        _ <- predicate(course.ownerId == user.id || students.contains(user))(ServiceError.BadPermissions("You must be a member of a course to chat in it."))
-        newChat = Chat(courseId = course.id, userId = userId, message = message)
-        createdChat <- lift(chatRepository.insert(newChat))
-      } yield createdChat
-    }
+    val newChat = Chat(courseId = courseId, userId = userId, message = message)
+    chatRepository.insert(newChat)
   }
 
   /**

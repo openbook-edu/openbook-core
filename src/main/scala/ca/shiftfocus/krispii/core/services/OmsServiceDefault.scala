@@ -32,6 +32,9 @@ class OmsServiceDefault(
     examRepository.find(examId)
   def findTeam(teamId: UUID): Future[\/[ErrorUnion#Fail, Team]] =
     teamRepository.find(teamId)
+  def listScorers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = for {
+    team <- lift(teamRepository.find(teamId))
+  } yield team.scorers
 
   /**
    * Supply list that contains the exam's owner and the team's scorers, or an error

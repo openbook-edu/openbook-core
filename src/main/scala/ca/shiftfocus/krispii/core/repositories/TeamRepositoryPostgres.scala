@@ -387,6 +387,7 @@ class TeamRepositoryPostgres(
     for {
       _ <- lift(queryNumRows(AddScorer, params)(_ == 1).map {
         case \/-(true) =>
+          cacheRepository.cacheSeqExam.removeCached(cacheScorerExamsKey(scorer.id))
           cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id))
           cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id))
           \/-(Unit)
@@ -405,6 +406,7 @@ class TeamRepositoryPostgres(
     for {
       _ <- lift(queryNumRows(RemoveScorer, Seq(team.id, scorer.id))(_ == 1).map {
         case \/-(true) =>
+          cacheRepository.cacheSeqExam.removeCached(cacheScorerExamsKey(scorer.id))
           cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id))
           cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id))
           \/-(Unit)

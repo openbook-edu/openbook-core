@@ -18,11 +18,15 @@ trait OmsService extends Service[ErrorUnion#Fail] {
   val testRepository: TestRepository
   val userRepository: UserRepository
 
-  /* don't repackage all the bread-and-butter functions here, can always use examRepository.list etc.!
-     however, sometimes hard to avoid */
+  /* Don't repackage all the bread-and-butter functions here, can always use examRepository.list etc.!
+     However, sometimes hard to avoid */
   def findExam(examid: UUID): Future[\/[ErrorUnion#Fail, Exam]]
 
   def findTeam(teamid: UUID): Future[\/[ErrorUnion#Fail, Team]]
+
+  def findTest(testId: UUID): Future[\/[ErrorUnion#Fail, Test]]
+
+  def updateTest(test: Test): Future[\/[ErrorUnion#Fail, Test]]
 
   // duplicate (examId:name) will cause a RepositoryError.UniqueKeyConflict which should be handled by API
 

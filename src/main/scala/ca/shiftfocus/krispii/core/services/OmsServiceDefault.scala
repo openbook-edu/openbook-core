@@ -5,8 +5,8 @@ import java.util.UUID
 import ca.shiftfocus.krispii.core.error.{ErrorUnion, ServiceError}
 import ca.shiftfocus.krispii.core.models.{Chat, Team, User}
 import ca.shiftfocus.krispii.core.models.course.Exam
-import ca.shiftfocus.krispii.core.models.work.Test
-import ca.shiftfocus.krispii.core.repositories.{ChatRepository, ExamRepository, TeamRepository, TestRepository, UserRepository}
+import ca.shiftfocus.krispii.core.models.work.{Score, Test}
+import ca.shiftfocus.krispii.core.repositories.{ChatRepository, ExamRepository, TeamRepository, ScoreRepository, TestRepository, UserRepository}
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import play.api.Logger
@@ -23,17 +23,24 @@ class OmsServiceDefault(
     val examRepository: ExamRepository,
     val teamRepository: TeamRepository,
     val testRepository: TestRepository,
+    val scoreRepository: ScoreRepository,
     val userRepository: UserRepository
 ) extends OmsService {
 
   implicit def conn: Connection = db.pool
 
   /* Bread-and-butter functions that simply pass on requests to the respective repositories
-     because it is easier for the API to just include the omsService */
+     because it is easier for the API to just include one omsService */
   def findExam(examId: UUID): Future[\/[ErrorUnion#Fail, Exam]] =
     examRepository.find(examId)
   def findTeam(teamId: UUID): Future[\/[ErrorUnion#Fail, Team]] =
     teamRepository.find(teamId)
+  def findTest(testId: UUID): Future[\/[ErrorUnion#Fail, Test]] =
+    testRepository.find(testId)
+  def updateTest(test: Test): Future[\/[ErrorUnion#Fail, Test]] =
+    testRepository.update(test)
+  def findScore(scoreId: UUID): Future[\/[ErrorUnion#Fail, Score]] =
+    scoreRepository.find(scoreId)
   def listScorers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = for {
     team <- lift(teamRepository.find(teamId))
   } yield team.scorers

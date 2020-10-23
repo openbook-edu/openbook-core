@@ -4,9 +4,9 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.models.course.Course
 import org.joda.time.DateTime
-import play.api.libs.json._
-import play.api.libs.json.Writes._
 import play.api.libs.json.JodaWrites._
+import play.api.libs.json.Writes._
+import play.api.libs.json._
 
 case class User(
     id: UUID = UUID.randomUUID,
@@ -85,6 +85,43 @@ object User {
       )
     }
   }
+
+  /*implicit val userReads = new Reads[User] {
+    def reads(user: User): JsValue = {
+      Json.obj(
+        "id" -> user.id.toString,
+        "version" -> user.version,
+        "username" -> user.username,
+        "email" -> user.email,
+        "givenname" -> user.givenname,
+        "surname" -> user.surname,
+        "alias" -> user.alias,
+        "roles" -> user.roles,
+        "tags" -> user.tags,
+        "accountType" -> user.accountType,
+        "createdAt" -> user.createdAt,
+        "updatedAt" -> user.updatedAt
+      )
+    }
+
+    def adminReads(user: User): JsValue = {
+      Json.obj(
+        "id" -> user.id.toString,
+        "version" -> user.version,
+        "username" -> user.username,
+        "email" -> user.email,
+        "givenname" -> user.givenname,
+        "surname" -> user.surname,
+        "alias" -> user.alias,
+        "roles" -> user.roles,
+        "tags" -> user.tags,
+        "accountType" -> user.accountType,
+        "isDeleted" -> user.isDeleted,
+        "createdAt" -> user.createdAt,
+        "updatedAt" -> user.updatedAt
+      )
+    }
+  }*/
 }
 
 case class UserInfo(
@@ -114,4 +151,25 @@ object UserInfo {
         ))
     }
   }
+
+  /*implicit val userInfoReads = new Reads[UserInfo] {
+    def reads(userInfo: UserInfo): JsValue = {
+      Json.obj(
+        "id" -> userInfo.user.id.toString,
+        "version" -> userInfo.user.version,
+        "username" -> userInfo.user.username,
+        "email" -> userInfo.user.email,
+        "givenname" -> userInfo.user.givenname,
+        "surname" -> userInfo.user.surname,
+        "alias" -> userInfo.user.alias,
+        "tags" -> userInfo.user.tags,
+        "accountType" -> userInfo.user.accountType,
+        "createdAt" -> userInfo.user.createdAt,
+        "updatedAt" -> userInfo.user.updatedAt
+      ).deepMerge(Json.obj(
+        "roles" -> userInfo.roles.map(_.name.toLowerCase()),
+        "sections" -> userInfo.courses.map(_.name)
+      ))
+    }
+  }*/
 }

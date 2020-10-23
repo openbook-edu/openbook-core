@@ -7,9 +7,9 @@ import ca.shiftfocus.krispii.core.models.course.ColorBox
 import ca.shiftfocus.krispii.core.models.work.Test
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
+import play.api.libs.json.JodaWrites._
 import play.api.libs.json.Writes._
 import play.api.libs.json._
-import play.api.libs.json.JodaWrites._
 
 case class Team(
   id: UUID = UUID.randomUUID,
@@ -32,6 +32,7 @@ case class Team(
 object Team {
 
   implicit val colorWrites = ColorBox.colorWrites
+  implicit val colorReads = ColorBox.colorReads
 
   implicit val teamWrites: Writes[Team] = (
     (__ \ "id").write[UUID] and
@@ -45,4 +46,17 @@ object Team {
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Team.unapply))
+
+  /*implicit val teamReads: Reads[Team] = (
+    (__ \ "id").read[UUID] and
+      (__ \ "version").read[Long] and
+      (__ \ "examId").read[UUID] and
+      (__ \ "color").readNullable[Color] and
+      (__ \ "enabled").read[Boolean] and
+      (__ \ "chatEnabled").read[Boolean] and
+      (__ \ "scorers").read[IndexedSeq[User]] and //need to do Reads[User]
+      (__ \ "tests").read[IndexedSeq[Test]] and
+      (__ \ "createdAt").read[DateTime] and
+      (__ \ "updatedAt").read[DateTime]
+    )(Team.apply _))*/
 }

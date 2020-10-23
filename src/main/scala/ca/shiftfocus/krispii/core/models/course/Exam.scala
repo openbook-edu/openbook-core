@@ -30,6 +30,7 @@ case class Exam(
 object Exam {
 
   implicit val colorWrites = ColorBox.colorWrites
+  implicit val colorReads = ColorBox.colorReads
 
   implicit val examWrites: Writes[Exam] = (
     (__ \ "id").write[UUID] and
@@ -47,5 +48,22 @@ object Exam {
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Exam.unapply))
+
+  /*implicit val examReads: Reads[Exam] = (
+    (__ \ "id").read[UUID] and
+      (__ \ "version").read[Long] and
+      (__ \ "ownerId").read[UUID] and
+      (__ \ "name").read[String] and
+      (__ \ "color").read[Color] and
+      (__ \ "slug").read[String] and
+      (__ \ "origRubricId").readNullable[UUID] and
+      (__ \ "enabled").read[Boolean] and
+      (__ \ "archived").read[Boolean] and
+      (__ \ "deleted").read[Boolean] and
+      (__ \ "teams").readNullable[IndexedSeq[Team]] and // need to do Reads[Team] first
+      (__ \ "tests").readNullable[IndexedSeq[Test]] and
+      (__ \ "createdAt").read[DateTime] and
+      (__ \ "updatedAt").read[DateTime]
+    )(Exam.apply _))*/
 
 }

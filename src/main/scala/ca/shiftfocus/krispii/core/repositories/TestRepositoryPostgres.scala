@@ -26,13 +26,11 @@ class TestRepositoryPostgres(
     Test(
       row("id").asInstanceOf[UUID],
       row("exam_id").asInstanceOf[UUID],
-      Option(row("team_id").asInstanceOf[UUID]) /*match {
-        case Some(teamId) => Some(teamId)
-        case _ => None
-      } */ ,
+      Option(row("team_id").asInstanceOf[UUID]),
       row("name").asInstanceOf[String],
       row("version").asInstanceOf[Long],
       row("grade").asInstanceOf[String],
+      row("comments").asInstanceOf[String],
       row("orig_response").asInstanceOf[UUID],
       IndexedSeq.empty[Score],
       row("created_at").asInstanceOf[DateTime],
@@ -40,7 +38,7 @@ class TestRepositoryPostgres(
     )
 
   val Table = "tests"
-  val Fields = "id, exam_id, team_id, name, version, grade, orig_response, created_at, updated_at"
+  val Fields = "id, exam_id, team_id, name, version, grade, comments, orig_response, created_at, updated_at"
   val FieldsWithTable =
     Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val OrderBy = s"${Table}.created_at ASC"
@@ -93,7 +91,7 @@ class TestRepositoryPostgres(
   val Update =
     s"""
        |UPDATE $Table
-       |SET exam_id = ?, team_id = ?, name = ?, version = ?, grade = ?, orig_response = ?,  updated_at = ?
+       |SET exam_id = ?, team_id = ?, name = ?, version = ?, grade = ?, comments = ?, orig_response = ?,  updated_at = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $Fields
@@ -253,7 +251,7 @@ class TestRepositoryPostgres(
    */
   override def insert(test: Test)(implicit conn: Connection): Future[RepositoryError.Fail \/ Test] = {
     val params = Seq[Any](test.id, test.examId, test.teamId, test.name, 1, test.grade,
-      test.origResponse, new DateTime, new DateTime)
+      test.comments, test.origResponse, new DateTime, new DateTime)
 
     for {
       inserted <- lift(queryOne(Insert, params))
@@ -272,7 +270,7 @@ class TestRepositoryPostgres(
    */
   override def update(test: Test)(implicit conn: Connection): Future[RepositoryError.Fail \/ Test] = {
     val params = Seq[Any](test.examId, test.teamId, test.name, test.version + 1, test.grade,
-      test.origResponse, new DateTime, test.id, test.version)
+      test.comments, test.origResponse, new DateTime, test.id, test.version)
 
     for {
       updated <- lift(queryOne(Update, params))

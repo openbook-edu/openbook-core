@@ -3,8 +3,10 @@ package ca.shiftfocus.krispii.core.models.work
 import java.util.UUID
 
 import org.joda.time.DateTime
-import play.api.libs.json.{JsValue, Json, Writes}
 import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
+import play.api.libs.json._
+import play.api.libs.functional.syntax._
 
 case class Score(
     id: UUID = UUID.randomUUID,
@@ -33,23 +35,35 @@ case class Score(
 }
 
 object Score {
-  implicit val scoreWrites = new Writes[Score] {
-    override def writes(score: Score): JsValue = {
-      Json.obj(
-        "id" -> score.id,
-        "testId" -> score.testId,
-        "scorerId" -> score.scorerId,
-        "version" -> score.version,
-        "origComments" -> score.origComments,
-        "addComments" -> score.addComments,
-        "origGrade" -> score.origGrade,
-        "grade" -> score.grade,
-        "isVisible" -> score.isVisible,
-        "examFile" -> score.examFile,
-        "rubricFile" -> score.rubricFile,
-        "createdAt" -> score.createdAt,
-        "updatedAt" -> score.updatedAt
-      )
-    }
-  }
+  implicit val scoreReads: Reads[Score] = (
+    (__ \ "id").read[UUID] and
+    (__ \ "testId").read[UUID] and
+    (__ \ "scorerId").read[UUID] and
+    (__ \ "version").read[Long] and
+    (__ \ "origComments").read[String] and
+    (__ \ "addComments").read[String] and
+    (__ \ "origGrade").read[String] and
+    (__ \ "grade").read[String] and
+    (__ \ "isVisible").read[Boolean] and
+    (__ \ "examFile").readNullable[UUID] and
+    (__ \ "rubricFile").readNullable[UUID] and
+    (__ \ "createdAt").read[DateTime] and
+    (__ \ "updatedAt").read[DateTime]
+  )(Score.apply _)
+
+  implicit val scoreWrites: Writes[Score] = (
+    (__ \ "id").write[UUID] and
+    (__ \ "testId").write[UUID] and
+    (__ \ "scorerId").write[UUID] and
+    (__ \ "version").write[Long] and
+    (__ \ "origComments").write[String] and
+    (__ \ "addComments").write[String] and
+    (__ \ "origGrade").write[String] and
+    (__ \ "grade").write[String] and
+    (__ \ "isVisible").write[Boolean] and
+    (__ \ "examFile").writeNullable[UUID] and
+    (__ \ "rubricFile").writeNullable[UUID] and
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
+  )(unlift(Score.unapply))
 }

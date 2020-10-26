@@ -5,7 +5,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.User
-import ca.shiftfocus.krispii.core.models.course.Exam
+import ca.shiftfocus.krispii.core.models.group.Exam
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import scalaz.{-\/, \/, \/-}
@@ -27,7 +27,7 @@ class ExamRepositoryPostgres(
       row("version").asInstanceOf[Long],
       row("coordinator_id").asInstanceOf[UUID], // in SQL, not in model
       row("name").asInstanceOf[String],
-      new Color(Option(row("color").asInstanceOf[Int]).getOrElse(0)),
+      new Color(row("color").asInstanceOf[Int]),
       row("slug").asInstanceOf[String],
       Option(row("orig_rubric_id").asInstanceOf[UUID]) match {
         case Some(origRubricId) => Some(origRubricId)

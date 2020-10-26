@@ -4,7 +4,7 @@ import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.models.course.Course
+import ca.shiftfocus.krispii.core.models.group.{Course, Team}
 import com.github.mauricio.async.db.Connection
 
 import scala.concurrent.Future

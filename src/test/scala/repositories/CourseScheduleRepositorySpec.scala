@@ -17,7 +17,7 @@
 //
 //  "CourseScheduleRepository.list" should {
 //    inSequence {
-//      "list all schedules for a given course" in {
+//      "list all schedules for a given group" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //
@@ -48,7 +48,7 @@
 //          }
 //        }
 //      }
-//      "return empty Vector() if course doesn't exist" in {
+//      "return empty Vector() if group doesn't exist" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //

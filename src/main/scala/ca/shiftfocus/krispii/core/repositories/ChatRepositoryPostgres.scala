@@ -1,10 +1,10 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models.{Chat, Team, User}
+import ca.shiftfocus.krispii.core.models.{Chat, User}
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.models.course.Group
+import ca.shiftfocus.krispii.core.models.group.{Group, Team}
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 
@@ -108,7 +108,7 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
     """.stripMargin
 
   /**
-   * List all chat logs for a course/exam
+   * List all chat logs for a group/exam
    *
    * @param group
    * @param conn
@@ -122,7 +122,7 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
   }
 
   /**
-   * List only an indicated portion of chat logs for a course/exam
+   * List only an indicated portion of chat logs for a group/exam
    *
    * @param group
    * @param num
@@ -138,7 +138,7 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
   }
 
   /**
-   * List all chat logs for a course for a user
+   * List all chat logs for a group for a user
    *
    * @param group
    * @param user
@@ -170,7 +170,7 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
   }
 
   /**
-   * Find a chat log for a course by number
+   * Find a chat log for a group by number
    *
    * @param group
    * @param messageNum

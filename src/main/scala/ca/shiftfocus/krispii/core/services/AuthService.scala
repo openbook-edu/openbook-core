@@ -4,7 +4,10 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories.{RoleRepository, SessionRepository, UserRepository}
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.models.group.Team
 import play.api.i18n.{Lang, MessagesApi}
+
 import scala.concurrent.Future
 import scalaz.\/
 
@@ -56,6 +59,8 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
   def listByTeacher(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
+
+  def listByTeam(team: Team): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
   /**
    * Find a user by their UUID.

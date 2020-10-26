@@ -9,7 +9,7 @@ import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.models.course.Course
+import ca.shiftfocus.krispii.core.models.group.Course
 import org.joda.time.LocalTime
 import org.joda.time.LocalDate
 
@@ -28,10 +28,10 @@ class ScheduleServiceDefault(
   implicit def conn: Connection = db.pool
 
   /**
-   * List all schedules for a specific course.
+   * List all schedules for a specific group.
    *
-   * @param id the UUID of the course to list for.
-   * @return a vector of the given course's schedules
+   * @param id the UUID of the group to list for.
+   * @return a vector of the given group's schedules
    */
   override def listSchedulesByCourse(id: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[CourseSchedule]]] = {
     for {
@@ -51,14 +51,14 @@ class ScheduleServiceDefault(
   }
 
   /**
-   * Create a new course schedule.
+   * Create a new group schedule.
    *
-   * @param courseId the ID of the course this scheduled time belongs to
+   * @param courseId the ID of the group this scheduled time belongs to
    * @param day the date on which this schedule is scheduled
    * @param startTime the time of day that the schedule starts
    * @param endTime the time of day that the schedule ends
    * @param description a brief description may be entered
-   * @return the newly created course schedule
+   * @return the newly created group schedule
    */
   override def createSchedule(
     courseId: UUID,
@@ -83,14 +83,14 @@ class ScheduleServiceDefault(
   }
 
   /**
-   * Update an existing course schedule.
+   * Update an existing group schedule.
    *
-   * @param courseId the ID of the course this scheduled time belongs to
+   * @param courseId the ID of the group this scheduled time belongs to
    * @param day the date on which this schedule is scheduled
    * @param startTime the time of day that the schedule starts
    * @param endTime the time of day that the schedule ends
    * @param description a brief description may be entered
-   * @return the newly created course schedule
+   * @return the newly created group schedule
    */
   override def updateSchedule(id: UUID, version: Long,
     courseId: Option[UUID],
@@ -116,7 +116,7 @@ class ScheduleServiceDefault(
   }
 
   /**
-   * Deletes a course schedule.
+   * Deletes a group schedule.
    *
    * @param id the ID of the schedule to delete
    * @param version the current version of the schedule for optimistic offline lock
@@ -134,7 +134,7 @@ class ScheduleServiceDefault(
   }
 
   /**
-   * Lists schedule exceptions for all students for one course.
+   * Lists schedule exceptions for all students for one group.
    *
    * @param courseId
    * @return
@@ -180,7 +180,7 @@ class ScheduleServiceDefault(
         user <- lift(authService.find(userId))
         usersInCourse <- lift(schoolService.listStudents(courseId))
         _ <- predicate(usersInCourse.contains(user))({
-          ServiceError.BusinessLogicFail("User specified not in course")
+          ServiceError.BusinessLogicFail("User specified not in group")
         })
         newSchedule = CourseScheduleException(
           userId = user.id,
@@ -215,7 +215,7 @@ class ScheduleServiceDefault(
         usersInCourse <- lift(schoolService.listStudents(courseId))
         areUsersPresent = usersSpecified.forall((us: User) => usersInCourse.contains(us))
         _ <- predicate(areUsersPresent)({
-          ServiceError.BusinessLogicFail("User(s) specified not in course")
+          ServiceError.BusinessLogicFail("User(s) specified not in group")
         })
 
         newScheduleExceptions = usersSpecifiedInd.map {
@@ -326,7 +326,7 @@ class ScheduleServiceDefault(
       for {
         courses <- lift(fCourses)
         _ <- predicate(courses.contains(course)) {
-          ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource.")
+          ServiceError.BadPermissions("You must be a teacher or student of the relevant group to access this resource.")
         }
       } yield course.enabled
     }
@@ -334,7 +334,7 @@ class ScheduleServiceDefault(
       for {
         courses <- lift(fCourses)
         _ <- predicate(courses.contains(course)) {
-          ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource.")
+          ServiceError.BadPermissions("You must be a teacher or student of the relevant group to access this resource.")
         }
         fSchedules = listSchedulesByCourse(course.id)
         fExceptions = listScheduleExceptionsByCourse(course.id)

@@ -49,14 +49,14 @@
 //        (authService.find(_: UUID)) when (testUser.id) returns (Future.successful(\/-(testUser)))
 //
 //        val result = schoolService.createCourse(testUser.id, testCourse.name, testCourse.color, testCourse.slug)
-//        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadPermissions("Tried to create a course for a user who isn't a teacher.")))
+//        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadPermissions("Tried to create a group for a user who isn't a teacher.")))
 //      }
 //    }
 //  }
 //
 //  "SchoolService.updateCourse" should {
 //    inSequence {
-//      "update course" in {
+//      "update group" in {
 //        val testUser = TestValues.testUserA.copy(roles = IndexedSeq.empty[Role])
 //        val testRoles = IndexedSeq(
 //          TestValues.testRoleTeacher
@@ -68,7 +68,7 @@
 //        )
 //        val updatedCourse = testCourse.copy(
 //          ownerId = newTeacher.id,
-//          name = "new test course name",
+//          name = "new test group name",
 //          color = new Color(78, 40, 23),
 //          slug = "updated slug",
 //          enabled = true,
@@ -94,7 +94,7 @@
 //
 //        Await.result(result, Duration.Inf) should be(\/-(updatedCourse))
 //      }
-//      "update course if slug is empty and course is enabled" in {
+//      "update group if slug is empty and group is enabled" in {
 //        val testUser = TestValues.testUserA.copy(roles = IndexedSeq.empty[Role])
 //        val testRoles = IndexedSeq(
 //          TestValues.testRoleTeacher
@@ -106,7 +106,7 @@
 //        )
 //        val updatedCourse = testCourse.copy(
 //          ownerId = newTeacher.id,
-//          name = "new test course name",
+//          name = "new test group name",
 //          color = new Color(78, 40, 23),
 //          enabled = true,
 //          schedulingEnabled = !testCourse.schedulingEnabled,
@@ -131,7 +131,7 @@
 //
 //        Await.result(result, Duration.Inf) should be(\/-(updatedCourse))
 //      }
-//      "return ServiceError.BusinessLogicFail if slug to update is not empty and course.enabled = TRUE" in {
+//      "return ServiceError.BusinessLogicFail if slug to update is not empty and group.enabled = TRUE" in {
 //        val testUser = TestValues.testUserA.copy(roles = IndexedSeq.empty[Role])
 //        val testRoles = IndexedSeq(
 //          TestValues.testRoleTeacher
@@ -143,7 +143,7 @@
 //        )
 //        val updatedCourse = testCourse.copy(
 //          ownerId = newTeacher.id,
-//          name = "new test course name",
+//          name = "new test group name",
 //          color = new Color(78, 40, 23),
 //          slug = "updated slug",
 //          enabled = true,
@@ -169,7 +169,7 @@
 //
 //        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BusinessLogicFail("You can only change the slug for disabled courses.")))
 //      }
-//      "return ServiceError.BadPermissions if new course teacher doesn't have teacher role" in {
+//      "return ServiceError.BadPermissions if new group teacher doesn't have teacher role" in {
 //        val testUser = TestValues.testUserA.copy(roles = IndexedSeq.empty[Role])
 //        val newTeacher = TestValues.testUserB
 //        val testCourse = TestValues.testCourseA.copy(
@@ -178,7 +178,7 @@
 //        )
 //        val updatedCourse = testCourse.copy(
 //          ownerId = newTeacher.id,
-//          name = "new test course name",
+//          name = "new test group name",
 //          color = new Color(78, 40, 23),
 //          slug = "updated slug",
 //          enabled = true,
@@ -202,7 +202,7 @@
 //          Some(updatedCourse.chatEnabled)
 //        )
 //
-//        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadPermissions("Tried to update a course for a user who isn't a teacher.")))
+//        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadPermissions("Tried to update a group for a user who isn't a teacher.")))
 //      }
 //    }
 //  }
@@ -314,7 +314,7 @@
 //        val result = schoolService.insertChat(testCourse.id, testUser.id, testChat.message)
 //        Await.result(result, Duration.Inf) should be(\/-(testChat))
 //      }
-//      "insert new chat if user is a student of the course" in {
+//      "insert new chat if user is a student of the group" in {
 //        val testUser = TestValues.testUserA
 //        val testCourse = TestValues.testCourseA.copy(ownerId = UUID.randomUUID())
 //        val studentList = IndexedSeq(
@@ -330,7 +330,7 @@
 //        val result = schoolService.insertChat(testCourse.id, testUser.id, testChat.message)
 //        Await.result(result, Duration.Inf) should be(\/-(testChat))
 //      }
-//      "return ServiceError.BadPermissions if user is not a teacher and doesn't attend the course" in {
+//      "return ServiceError.BadPermissions if user is not a teacher and doesn't attend the group" in {
 //        val testUser = TestValues.testUserA
 //        val testCourse = TestValues.testCourseA.copy(ownerId = UUID.randomUUID())
 //        val studentList = IndexedSeq()
@@ -342,7 +342,7 @@
 //        (chatRepository.insert(_: Chat)(_: Connection)) when (*, *) returns (Future.successful(\/-(testChat)))
 //
 //        val result = schoolService.insertChat(testCourse.id, testUser.id, testChat.message)
-//        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadPermissions("You must be a member of a course to chat in it.")))
+//        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadPermissions("You must be a member of a group to chat in it.")))
 //      }
 //    }
 //  }

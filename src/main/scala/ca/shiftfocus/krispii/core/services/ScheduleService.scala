@@ -5,7 +5,7 @@ import ca.shiftfocus.krispii.core.repositories.{CourseScheduleExceptionRepositor
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.course.Course
+import ca.shiftfocus.krispii.core.models.group.Course
 import org.joda.time.LocalTime
 import org.joda.time.LocalDate
 

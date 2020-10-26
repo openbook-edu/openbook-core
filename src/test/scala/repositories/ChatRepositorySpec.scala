@@ -15,7 +15,7 @@
 //
 //  "ChatRepository.list" should {
 //    inSequence {
-//      "list all chat_logs for a course" in {
+//      "list all chat_logs for a group" in {
 //        val testCourse = TestValues.testCourseA
 //
 //        val testChatLogList = TreeMap[Int, Chat](
@@ -44,7 +44,7 @@
 //          }
 //        }
 //      }
-//      "list only an indicated portion of chat logs for a course" in {
+//      "list only an indicated portion of chat logs for a group" in {
 //        val testCourse = TestValues.testCourseA
 //        val num = 2
 //        val offset = 2
@@ -71,7 +71,7 @@
 //          }
 //        }
 //      }
-//      "list all chat logs for a course for a user" in {
+//      "list all chat logs for a group for a user" in {
 //        val testCourse = TestValues.testCourseA
 //        val testUser = TestValues.testUserE
 //
@@ -97,7 +97,7 @@
 //          }
 //        }
 //      }
-//      "list only an indicated portion of chat logs for a course for a user" in {
+//      "list only an indicated portion of chat logs for a group for a user" in {
 //        val testCourse = TestValues.testCourseA
 //        val testUser = TestValues.testUserC
 //        val num = 2
@@ -130,7 +130,7 @@
 //
 //  "ChatRepository.find" should {
 //    inSequence {
-//      "find a chat log for a course by number" in {
+//      "find a chat log for a group by number" in {
 //        val testCourse = TestValues.testCourseA
 //        val testChatLog = TestValues.testChatC
 //

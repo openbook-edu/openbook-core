@@ -4,7 +4,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.User
-import ca.shiftfocus.krispii.core.models.course.Exam
+import ca.shiftfocus.krispii.core.models.group.Exam
 import com.github.mauricio.async.db.Connection
 import scalaz.\/
 

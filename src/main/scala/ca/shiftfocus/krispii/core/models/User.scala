@@ -2,10 +2,13 @@ package ca.shiftfocus.krispii.core.models
 
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.models.course.Course
+import ca.shiftfocus.krispii.core.models.group.Course
 import org.joda.time.DateTime
+import play.api.libs.functional.syntax._
 import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 import play.api.libs.json.Writes._
+import play.api.libs.json.Reads._
 import play.api.libs.json._
 
 case class User(
@@ -50,6 +53,8 @@ case class User(
  */
 object User {
   implicit val userWrites = new Writes[User] {
+    /* hard to write this in a functional way because we don't want to write
+       hash nor token, and in userWrites we don't want to write isDeleted.*/
     def writes(user: User): JsValue = {
       Json.obj(
         "id" -> user.id.toString,
@@ -86,42 +91,23 @@ object User {
     }
   }
 
-  /*implicit val userReads = new Reads[User] {
-    def reads(user: User): JsValue = {
-      Json.obj(
-        "id" -> user.id.toString,
-        "version" -> user.version,
-        "username" -> user.username,
-        "email" -> user.email,
-        "givenname" -> user.givenname,
-        "surname" -> user.surname,
-        "alias" -> user.alias,
-        "roles" -> user.roles,
-        "tags" -> user.tags,
-        "accountType" -> user.accountType,
-        "createdAt" -> user.createdAt,
-        "updatedAt" -> user.updatedAt
-      )
-    }
-
-    def adminReads(user: User): JsValue = {
-      Json.obj(
-        "id" -> user.id.toString,
-        "version" -> user.version,
-        "username" -> user.username,
-        "email" -> user.email,
-        "givenname" -> user.givenname,
-        "surname" -> user.surname,
-        "alias" -> user.alias,
-        "roles" -> user.roles,
-        "tags" -> user.tags,
-        "accountType" -> user.accountType,
-        "isDeleted" -> user.isDeleted,
-        "createdAt" -> user.createdAt,
-        "updatedAt" -> user.updatedAt
-      )
-    }
-  }*/
+  implicit val userReads: Reads[User] = (
+    (__ \ "id").read[UUID] and
+    (__ \ "version").read[Long] and
+    (__ \ "username").read[String] and
+    (__ \ "email").read[String] and
+    (__ \ "hash").readNullable[String] and
+    (__ \ "givenname").read[String] and
+    (__ \ "surname").read[String] and
+    (__ \ "alias").readNullable[String] and
+    (__ \ "roles").read[IndexedSeq[Role]] and
+    (__ \ "tags").read[IndexedSeq[Tag]] and
+    (__ \ "token").readNullable[UserToken] and
+    (__ \ "accountType").read[String] and
+    (__ \ "isDeleted").read[Boolean] and
+    (__ \ "createdAt").read[DateTime] and
+    (__ \ "updatedAt").read[DateTime]
+  )(User.apply _)
 }
 
 case class UserInfo(

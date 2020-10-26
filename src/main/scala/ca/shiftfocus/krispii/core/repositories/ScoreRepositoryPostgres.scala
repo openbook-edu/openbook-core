@@ -3,8 +3,8 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.course.Exam
-import ca.shiftfocus.krispii.core.models.{Team, User}
+import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
+import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.models.work.{Score, Test}
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
@@ -42,6 +42,8 @@ class ScoreRepositoryPostgres(
         case Some(rubric_file) => Some(rubric_file)
         case _ => None
       } */ ,
+      row("archived").asInstanceOf[Boolean],
+      row("deleted").asInstanceOf[Boolean],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -49,7 +51,7 @@ class ScoreRepositoryPostgres(
   val Table = "scores"
   // names and number of fields in SQL
   val Fields = "id, test_id, scorer_id, version, orig_comments, add_comments, orig_grade, grade, is_visible, " +
-    "exam_file, rubric_file, created_at, updated_at"
+    "exam_file, rubric_file, archived, deleted, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val OrderBy = s"${Table}.created_at ASC"
 
@@ -107,7 +109,7 @@ class ScoreRepositoryPostgres(
   val Insert =
     s"""
        |INSERT INTO $Table ($Fields)
-       |VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       |VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        |RETURNING $Fields
     """.stripMargin
 
@@ -115,7 +117,7 @@ class ScoreRepositoryPostgres(
     s"""
        |UPDATE $Table
        |SET test_id = ?, scorer_id = ?, version = ?, orig_comments = ?, add_comments= ?, orig_grade = ?, grade = ?,
-       |  is_visible = ?, exam_file = ?, rubric_file = ?, updated_at = ?
+       |  is_visible = ?, exam_file = ?, rubric_file = ?, archived = ?, deleted = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $Fields
@@ -251,7 +253,8 @@ class ScoreRepositoryPostgres(
   override def insert(score: Score)(implicit conn: Connection): Future[RepositoryError.Fail \/ Score] = {
     // TODO: check if scorer is in list of scorers for this team! Or do this in services?
     val params = Seq[Any](score.id, score.testId, score.scorerId, 1, score.origComments, score.addComments,
-      score.origGrade, score.grade, score.isVisible, score.examFile, score.rubricFile, new DateTime, new DateTime)
+      score.origGrade, score.grade, score.isVisible, score.examFile, score.rubricFile,
+      score.archived, score.deleted, new DateTime, new DateTime)
 
     for {
       inserted <- lift(queryOne(Insert, params))
@@ -270,8 +273,8 @@ class ScoreRepositoryPostgres(
    */
   override def update(score: Score)(implicit conn: Connection): Future[RepositoryError.Fail \/ Score] = {
     val params = Seq[Any](score.testId, score.scorerId, score.version + 1, score.origComments, score.addComments,
-      score.origGrade, score.grade, score.isVisible, score.examFile, score.rubricFile, new DateTime,
-      score.id, score.version)
+      score.origGrade, score.grade, score.isVisible, score.examFile, score.rubricFile,
+      score.archived, score.deleted, new DateTime, score.id, score.version)
 
     for {
       updated <- lift(queryOne(Update, params))

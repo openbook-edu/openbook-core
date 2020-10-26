@@ -17,7 +17,7 @@
 //
 //  "CourseScheduleExceptionRepository.list" should {
 //    inSequence {
-//      "find all scheduling exceptions for one student in one course" in {
+//      "find all scheduling exceptions for one student in one group" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //
@@ -79,7 +79,7 @@
 //        val result = courseScheduleExceptionRepository.list(testUser, testCourse)
 //        Await.result(result, Duration.Inf) should be(\/-(Vector()))
 //      }
-//      "find all schedule exceptions for a given course" in {
+//      "find all schedule exceptions for a given group" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //
@@ -165,7 +165,7 @@
 //
 //  "CourseScheduleExceptionRepository.insert" should {
 //    inSequence {
-//      "create a new course schedule exception" in {
+//      "create a new group schedule exception" in {
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 //
 //        val testCourseScheduleException = TestValues.testCourseScheduleExceptionE
@@ -187,7 +187,7 @@
 //
 //  "CourseScheduleExceptionRepository.update" should {
 //    inSequence {
-//      "update a course schedule exception" in {
+//      "update a group schedule exception" in {
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 //
 //        val testCourseScheduleException = TestValues.testCourseScheduleExceptionA
@@ -214,7 +214,7 @@
 //        courseSchedulesException.createdAt.toString should be(testUpdatedCourseScheduleException.createdAt.toString)
 //        courseSchedulesException.updatedAt.toString should not be (testUpdatedCourseScheduleException.updatedAt.toString)
 //      }
-//      "return RepositoryError.NoResults if course schedule exception doesn't exist" in {
+//      "return RepositoryError.NoResults if group schedule exception doesn't exist" in {
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 //
 //        val testCourseScheduleException = TestValues.testCourseScheduleExceptionE
@@ -235,7 +235,7 @@
 //
 //  "CourseScheduleExceptionRepository.delete" should {
 //    inSequence {
-//      "delete a course schedule exception" in {
+//      "delete a group schedule exception" in {
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 //
 //        val testCourseScheduleException = TestValues.testCourseScheduleExceptionA
@@ -264,7 +264,7 @@
 //        val result = courseScheduleExceptionRepository.delete(testCourseScheduleException)
 //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("ResultSet returned no rows. Could not build entity of type CourseScheduleException")))
 //      }
-//      "return RepositoryError.NoResults if course schedule exception doesn't exist" in {
+//      "return RepositoryError.NoResults if group schedule exception doesn't exist" in {
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 //
 //        val testCourseScheduleException = TestValues.testCourseScheduleExceptionE

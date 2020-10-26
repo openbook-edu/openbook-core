@@ -4,7 +4,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.course.Course
+import ca.shiftfocus.krispii.core.models.group.Course
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.{DateTime, LocalDate, LocalTime}
 
@@ -83,7 +83,7 @@ class CourseScheduleRepositoryPostgres(
   """.stripMargin
 
   /**
-   * List all schedules for a given course
+   * List all schedules for a given group
    */
   override def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[CourseSchedule]]] = {
     cacheRepository.cacheSeqCourseSchedule.getCached(cacheSchedulesKey(course.id)).flatMap {
@@ -120,8 +120,8 @@ class CourseScheduleRepositoryPostgres(
   /**
    * Create a new schedule.
    *
-   * @param courseSchedule The course to be inserted
-   * @return the new course
+   * @param courseSchedule The group to be inserted
+   * @return the new group
    */
   override def insert(courseSchedule: CourseSchedule)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
     for {
@@ -145,7 +145,7 @@ class CourseScheduleRepositoryPostgres(
    * Update a schedule.
    *
    * @param courseSchedule The courseSchedule to be updated.
-   * @return the updated course
+   * @return the updated group
    */
   override def update(courseSchedule: CourseSchedule)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseSchedule]] = {
     for {
@@ -168,7 +168,7 @@ class CourseScheduleRepositoryPostgres(
   /**
    * Delete a schedule.
    *
-   * @param courseSchedule The course to delete.
+   * @param courseSchedule The group to delete.
    * @return A boolean indicating whether the operation was successful.
    */
   override def delete(courseSchedule: CourseSchedule)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseSchedule]] = {

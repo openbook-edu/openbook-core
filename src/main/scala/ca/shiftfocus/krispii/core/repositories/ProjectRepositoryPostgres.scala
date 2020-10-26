@@ -4,7 +4,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.course.Course
+import ca.shiftfocus.krispii.core.models.group.Course
 import ca.shiftfocus.krispii.core.models.tasks.{DocumentTask, MediaTask, QuestionTask, Task}
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
@@ -239,7 +239,7 @@ class ProjectRepositoryPostgres(
   }
 
   /**
-   * Clones the master project into the given course.
+   * Clones the master project into the given group.
    *
    * @param projectId
    * @param courseId
@@ -429,7 +429,7 @@ class ProjectRepositoryPostgres(
   }
 
   /**
-   * Find all Projects belonging to a given course.
+   * Find all Projects belonging to a given group.
    *
    * @param course The section to return projects from.
    * @return a vector of the returned Projects

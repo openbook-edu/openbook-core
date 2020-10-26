@@ -4,7 +4,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.course.Course
+import ca.shiftfocus.krispii.core.models.group.Course
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.{DateTime, LocalDate, LocalTime}
 
@@ -97,7 +97,7 @@ class CourseScheduleExceptionRepositoryPostgres(
      """.stripMargin
 
   /**
-   * Find all scheduling exceptions for one student in one course.
+   * Find all scheduling exceptions for one student in one group.
    *
    * @param conn An implicit connection object. Can be used in a transactional chain.
    * @return a vector of the returned courses
@@ -116,7 +116,7 @@ class CourseScheduleExceptionRepositoryPostgres(
   }
 
   /**
-   * Find all schedule exceptions for a given course.
+   * Find all schedule exceptions for a given group.
    */
   override def list(course: Course) // format: OFF
                    (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[CourseScheduleException]]] = { // format: ON
@@ -151,10 +151,10 @@ class CourseScheduleExceptionRepositoryPostgres(
   }
 
   /**
-   * Create a new course schedule exception.
+   * Create a new group schedule exception.
    *
    * @param courseScheduleException The courseScheduleException to be inserted
-   * @return the new course
+   * @return the new group
    */
   override def insert(courseScheduleException: CourseScheduleException) // format: OFF
                      (implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseScheduleException]] = { // format: ON
@@ -179,10 +179,10 @@ class CourseScheduleExceptionRepositoryPostgres(
   }
 
   /**
-   * Update a course.
+   * Update a group.
    *
    * @param courseScheduleException The courseScheduleException to be updated.
-   * @return the updated course
+   * @return the updated group
    */
   override def update(courseScheduleException: CourseScheduleException) // format: OFF
                      (implicit conn: Connection): Future[\/[RepositoryError.Fail, CourseScheduleException]] = { // format: ON
@@ -207,7 +207,7 @@ class CourseScheduleExceptionRepositoryPostgres(
   }
 
   /**
-   * Delete a course.
+   * Delete a group.
    *
    * @param courseScheduleException The courseScheduleException to delete.
    * @return A boolean indicating whether the operation was successful.

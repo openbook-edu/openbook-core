@@ -5,7 +5,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.lib.{ScalaCacheConfig, ScalaCachePool}
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.course.{Course, Exam}
+import ca.shiftfocus.krispii.core.models.group.{Course, Exam, Team}
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import ca.shiftfocus.krispii.core.models.work.{Score, Test}
 import scalacache.serialization.Codec

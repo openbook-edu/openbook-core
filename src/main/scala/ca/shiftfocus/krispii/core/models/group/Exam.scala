@@ -1,13 +1,13 @@
-package ca.shiftfocus.krispii.core.models.course
+package ca.shiftfocus.krispii.core.models.group
 
 import java.awt.Color
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.models.Team
 import ca.shiftfocus.krispii.core.models.work.Test
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 import play.api.libs.json._
 
 case class Exam(
@@ -49,21 +49,20 @@ object Exam {
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Exam.unapply))
 
-  /*implicit val examReads: Reads[Exam] = (
+  implicit val examReads: Reads[Exam] = (
     (__ \ "id").read[UUID] and
-      (__ \ "version").read[Long] and
-      (__ \ "ownerId").read[UUID] and
-      (__ \ "name").read[String] and
-      (__ \ "color").read[Color] and
-      (__ \ "slug").read[String] and
-      (__ \ "origRubricId").readNullable[UUID] and
-      (__ \ "enabled").read[Boolean] and
-      (__ \ "archived").read[Boolean] and
-      (__ \ "deleted").read[Boolean] and
-      (__ \ "teams").readNullable[IndexedSeq[Team]] and // need to do Reads[Team] first
-      (__ \ "tests").readNullable[IndexedSeq[Test]] and
-      (__ \ "createdAt").read[DateTime] and
-      (__ \ "updatedAt").read[DateTime]
-    )(Exam.apply _))*/
-
+    (__ \ "version").read[Long] and
+    (__ \ "ownerId").read[UUID] and
+    (__ \ "name").read[String] and
+    (__ \ "color").read[Color] and
+    (__ \ "slug").read[String] and
+    (__ \ "origRubricId").readNullable[UUID] and
+    (__ \ "enabled").read[Boolean] and
+    (__ \ "archived").read[Boolean] and
+    (__ \ "deleted").read[Boolean] and
+    (__ \ "teams").readNullable[IndexedSeq[Team]] and
+    (__ \ "tests").readNullable[IndexedSeq[Test]] and
+    (__ \ "createdAt").read[DateTime] and
+    (__ \ "updatedAt").read[DateTime]
+  )(Exam.apply _)
 }

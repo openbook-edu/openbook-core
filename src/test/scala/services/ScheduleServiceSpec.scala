@@ -71,7 +71,7 @@
 //
 //      val expectedExceptionIds = expectedExceptions.map(_.id)
 //
-//      val noResultsError = RepositoryError.NoResults("No course found with that Id")
+//      val noResultsError = RepositoryError.NoResults("No group found with that Id")
 //
 //      "return createdScheduleExceptions if all input is correct" in {
 //        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
@@ -95,8 +95,8 @@
 //        Await.result(result, Duration.Inf) should be(\/-(expectedExceptions))
 //      }
 //
-//      "return NoResults (No Course with that id) if invalid course id " in {
-//        val noResultsError = RepositoryError.NoResults("No course found with that Id")
+//      "return NoResults (No Course with that id) if invalid group id " in {
+//        val noResultsError = RepositoryError.NoResults("No group found with that Id")
 //        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(-\/(noResultsError)))
 //        (authService.find(_: UUID)) when (testUserIds(0)) returns (Future.successful(\/-(testUsers(0)))) // A
 //        (authService.find(_: UUID)) when (testUserIds(1)) returns (Future.successful(\/-(testUsers(1)))) // B
@@ -142,7 +142,7 @@
 //      }
 //
 //      "return NoResults(No Course with that ID upon listing students) " in {
-//        val noResultsError = RepositoryError.NoResults("No course found with that Id")
+//        val noResultsError = RepositoryError.NoResults("No group found with that Id")
 //        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
 //        (authService.find(_: UUID)) when (testUserIds(0)) returns (Future.successful(\/-(testUsers(0)))) // A
 //        (authService.find(_: UUID)) when (testUserIds(1)) returns (Future.successful(\/-(testUsers(1)))) // B
@@ -210,8 +210,8 @@
 //        Await.result(result, Duration.Inf) should be(-\/(error))
 //      }
 //
-//      "return BusinessLogicFail if users specified not in course" in {
-//        val error = ServiceError.BusinessLogicFail("User(s) specified not in course")
+//      "return BusinessLogicFail if users specified not in group" in {
+//        val error = ServiceError.BusinessLogicFail("User(s) specified not in group")
 //        val testWrongUsers: IndexedSeq[User] = IndexedSeq(TestValues.testUserB, TestValues.testUserC, TestValues.testUserD)
 //        (schoolService.findCourse(_: UUID)) when (testCourse.id) returns (Future.successful(\/-(testCourse)))
 //        (authService.find(_: UUID)) when (testUserIds(0)) returns (Future.successful(\/-(testUsers(0)))) // A users specified
@@ -290,7 +290,7 @@
 //
 //  "ScheduleService.isCourseScheduledForUser" should {
 //    inSequence {
-//      "be TRUE if course has only schedules for today and now = startTime (schedulingEnabled = TRUE)" in {
+//      "be TRUE if group has only schedules for today and now = startTime (schedulingEnabled = TRUE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
@@ -317,7 +317,7 @@
 //        )
 //        Await.result(result, Duration.Inf) should be(\/-(true))
 //      }
-//      "be TRUE if course has only schedules for today and now = endTime (schedulingEnabled = TRUE)" in {
+//      "be TRUE if group has only schedules for today and now = endTime (schedulingEnabled = TRUE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
@@ -344,7 +344,7 @@
 //        )
 //        Await.result(result, Duration.Inf) should be(\/-(true))
 //      }
-//      "be TRUE if course has only schedules for today and startTime < now < endTime (schedulingEnabled = TRUE)" in {
+//      "be TRUE if group has only schedules for today and startTime < now < endTime (schedulingEnabled = TRUE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
@@ -371,7 +371,7 @@
 //        )
 //        Await.result(result, Duration.Inf) should be(\/-(true))
 //      }
-//      "be FALSE if course is scheduled not for today and there are no scheduleExceptions for today too (schedulingEnabled = TRUE)" in {
+//      "be FALSE if group is scheduled not for today and there are no scheduleExceptions for today too (schedulingEnabled = TRUE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
@@ -398,7 +398,7 @@
 //        )
 //        Await.result(result, Duration.Inf) should be(\/-(false))
 //      }
-//      "be false if course has only schedules for today and now > endTime (schedulingEnabled = TRUE)" in {
+//      "be false if group has only schedules for today and now > endTime (schedulingEnabled = TRUE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
@@ -425,7 +425,7 @@
 //        )
 //        Await.result(result, Duration.Inf) should be(\/-(false))
 //      }
-//      "be FALSE if course has only schedules for today and now < startTime (schedulingEnabled = TRUE)" in {
+//      "be FALSE if group has only schedules for today and now < startTime (schedulingEnabled = TRUE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
@@ -481,7 +481,7 @@
 //      }
 //
 //      // ShceduleException -------------------
-//      "be TRUE if course has only scheduleExceptions for user for today and now = startTime (schedulingEnabled = TRUE)" in {
+//      "be TRUE if group has only scheduleExceptions for user for today and now = startTime (schedulingEnabled = TRUE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
@@ -509,7 +509,7 @@
 //        )
 //        Await.result(result, Duration.Inf) should be(\/-(true))
 //      }
-//      "be TRUE if course has only scheduleExceptions for user for today and now = endTime (schedulingEnabled = TRUE)" in {
+//      "be TRUE if group has only scheduleExceptions for user for today and now = endTime (schedulingEnabled = TRUE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
@@ -537,7 +537,7 @@
 //        )
 //        Await.result(result, Duration.Inf) should be(\/-(true))
 //      }
-//      "be TRUE if course has only scheduleExceptions for user for today startTime < now < endTime (schedulingEnabled = TRUE)" in {
+//      "be TRUE if group has only scheduleExceptions for user for today startTime < now < endTime (schedulingEnabled = TRUE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
@@ -565,7 +565,7 @@
 //        )
 //        Await.result(result, Duration.Inf) should be(\/-(true))
 //      }
-//      "be FALSE if course has only scheduleExceptions not for today and there are no schedules for today too (schedulingEnabled = TRUE)" in {
+//      "be FALSE if group has only scheduleExceptions not for today and there are no schedules for today too (schedulingEnabled = TRUE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
@@ -596,7 +596,7 @@
 //        )
 //        Await.result(result, Duration.Inf) should be(\/-(false))
 //      }
-//      "be false if course has scheduleExceptions for today and now > endTime (schedulingEnabled = TRUE)" in {
+//      "be false if group has scheduleExceptions for today and now > endTime (schedulingEnabled = TRUE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
@@ -627,7 +627,7 @@
 //        )
 //        Await.result(result, Duration.Inf) should be(\/-(false))
 //      }
-//      "be FALSE if course has scheduleExceptions for today and now < startTime (schedulingEnabled = TRUE)" in {
+//      "be FALSE if group has scheduleExceptions for today and now < startTime (schedulingEnabled = TRUE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
@@ -658,7 +658,7 @@
 //        )
 //        Await.result(result, Duration.Inf) should be(\/-(false))
 //      }
-//      "be FALSE if course has only scheduleExceptions for user and today = scheduleExceptions.day for another user and now = scheduleExceptions.startTime for another user (schedulingEnabled = TRUE)" in {
+//      "be FALSE if group has only scheduleExceptions for user and today = scheduleExceptions.day for another user and now = scheduleExceptions.startTime for another user (schedulingEnabled = TRUE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
@@ -714,7 +714,7 @@
 //        )
 //        Await.result(result, Duration.Inf) should be(\/-(false))
 //      }
-//      "return ServiceError.BadPermissions if user doesn't have the course (schedulingEnabled = TRUE)" in {
+//      "return ServiceError.BadPermissions if user doesn't have the group (schedulingEnabled = TRUE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = true),
@@ -739,11 +739,11 @@
 //          testScheduleList(0).day,
 //          testScheduleList(0).startTime
 //        )
-//        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource.")))
+//        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadPermissions("You must be a teacher or student of the relevant group to access this resource.")))
 //      }
 //
 //      // schedulingEnabled = FALSE
-//      "be TRUE if user has course (schedulingEnabled = FALSE)" in {
+//      "be TRUE if user has group (schedulingEnabled = FALSE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = false),
@@ -770,7 +770,7 @@
 //        )
 //        Await.result(result, Duration.Inf) should be(\/-(true))
 //      }
-//      "be FALSE if user has course but course is disabled (schedulingEnabled = FALSE)" in {
+//      "be FALSE if user has group but group is disabled (schedulingEnabled = FALSE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = false, schedulingEnabled = false),
@@ -797,7 +797,7 @@
 //        )
 //        Await.result(result, Duration.Inf) should be(\/-(false))
 //      }
-//      "return ServiceError.BadPermissions if user doesn't have the course (schedulingEnabled = FALSE)" in {
+//      "return ServiceError.BadPermissions if user doesn't have the group (schedulingEnabled = FALSE)" in {
 //        val testUser = TestValues.testUserE
 //        val testCourseList = Vector(
 //          TestValues.testCourseA.copy(enabled = true, schedulingEnabled = false),
@@ -822,7 +822,7 @@
 //          testScheduleList(0).day,
 //          testScheduleList(0).startTime
 //        )
-//        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadPermissions("You must be a teacher or student of the relevant course to access this resource.")))
+//        Await.result(result, Duration.Inf) should be(-\/(ServiceError.BadPermissions("You must be a teacher or student of the relevant group to access this resource.")))
 //      }
 //    }
 //  }

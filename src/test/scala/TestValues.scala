@@ -7,7 +7,7 @@ import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.models.tasks.questions._
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.models.course.Course
+import ca.shiftfocus.krispii.core.models.group.Course
 import ca.shiftfocus.krispii.core.models.work._
 import org.joda.time.{DateTime, DateTimeZone, LocalDate, LocalTime}
 import ca.shiftfocus.otlib._
@@ -277,9 +277,9 @@ object TestValues {
     id = UUID.fromString("217c5622-ff9e-4372-8e6a-95fb3bae300b"),
     version = 1L,
     ownerId = testUserA.id,
-    name = "test course A",
+    name = "test group A",
     color = new Color(24, 6, 8),
-    slug = "test-course-A-slug",
+    slug = "test-group-A-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -289,9 +289,9 @@ object TestValues {
     id = UUID.fromString("404c800a-5385-4e6b-867e-365a1e6b00de"),
     version = 2L,
     ownerId = testUserB.id,
-    name = "test course B",
+    name = "test group B",
     color = new Color(34, 8, 16),
-    slug = "test-course-B-slug",
+    slug = "test-group-B-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -303,9 +303,9 @@ object TestValues {
   val testCourseC = Course(
     id = UUID.fromString("7cf524fa-aa7f-4bfe-93d7-8cd7787fd030"),
     ownerId = testUserA.id,
-    name = "unexisting course C",
+    name = "unexisting group C",
     color = new Color(24, 6, 8),
-    slug = "test-course-C-slug",
+    slug = "test-group-C-slug",
     chatEnabled = true
   )
 
@@ -313,9 +313,9 @@ object TestValues {
     id = UUID.fromString("94cc65bb-4542-4f62-8e08-d58522e7b5f1"),
     version = 3L,
     ownerId = testUserF.id,
-    name = "test course D",
+    name = "test group D",
     color = new Color(4, 28, 56),
-    slug = "test-course-D-slug",
+    slug = "test-group-D-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -327,9 +327,9 @@ object TestValues {
   val testCourseE = Course(
     id = UUID.fromString("d0b05b14-4a5f-4727-ac43-bd8671aab53c"),
     ownerId = testUserA.id,
-    name = "unexisting course E",
+    name = "unexisting group E",
     color = new Color(45, 10, 15),
-    slug = "test-course-E-slug",
+    slug = "test-group-E-slug",
     chatEnabled = true
   )
 
@@ -337,9 +337,9 @@ object TestValues {
     id = UUID.fromString("287b61f5-da6b-4de7-8535-3bc500cffac7"),
     version = 4L,
     ownerId = testUserF.id,
-    name = "test course F",
+    name = "test group F",
     color = new Color(4, 28, 56),
-    slug = "test-course-F-slug",
+    slug = "test-group-F-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -352,9 +352,9 @@ object TestValues {
     id = UUID.fromString("b24abba8-e6c7-4700-900c-e66ed0185a70"),
     version = 5L,
     ownerId = testUserF.id,
-    name = "test course G",
+    name = "test group G",
     color = new Color(23, 6, 45),
-    slug = "test-course-G-slug",
+    slug = "test-group-G-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -365,9 +365,9 @@ object TestValues {
     id = UUID.fromString("4ac4d872-451b-4092-b13f-643d6d5fa931"),
     version = 5L,
     ownerId = testUserF.id,
-    name = "test course H",
+    name = "test group H",
     color = new Color(23, 6, 45),
-    slug = "test-course-H-slug",
+    slug = "test-group-H-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -377,9 +377,9 @@ object TestValues {
     id = UUID.fromString("b24abba8-e6c7-4700-900c-e66ed0185a71"),
     version = 5L,
     ownerId = testUserF.id,
-    name = "test course K",
+    name = "test group K",
     color = new Color(23, 6, 45),
-    slug = "test-course-K-slug",
+    slug = "test-group-K-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2254,7 +2254,7 @@ object TestValues {
     slug = "test-project-slug-C",
     description = "test project C description",
     longDescription = "test project C long description",
-    availability = "course",
+    availability = "group",
     projectType = "sas",
     parts = Vector(testPartE, testPartF, testPartH),
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -2271,7 +2271,7 @@ object TestValues {
     slug = "test-project-slug-D",
     description = "test project D description",
     longDescription = "test project D long description",
-    availability = "course",
+    availability = "group",
     isMaster = false,
     parentId = null,
     projectType = "default_project",
@@ -2289,7 +2289,7 @@ object TestValues {
     slug = "test-project-slug-E",
     description = "test project E description",
     longDescription = "test project E long description",
-    availability = "course",
+    availability = "group",
     projectType = "default_project",
     parts = Vector(),
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
@@ -2307,7 +2307,7 @@ object TestValues {
     slug = "test-project-slug-F",
     description = "test project F description",
     longDescription = "test project F long description",
-    availability = "course",
+    availability = "group",
     parts = Vector(),
     isMaster = true,
     enabled = true,
@@ -2327,7 +2327,7 @@ object TestValues {
     slug = "test-project-slug-G",
     description = "test project G description",
     longDescription = "test project G long description",
-    availability = "course",
+    availability = "group",
     parts = Vector(),
     isMaster = true,
     enabled = true,
@@ -2346,7 +2346,7 @@ object TestValues {
     slug = "test-project-slug-H",
     description = "test project H description",
     longDescription = "test project H long description",
-    availability = "course",
+    availability = "group",
     isMaster = true,
     parts = Vector(testPartI),
     enabled = true,

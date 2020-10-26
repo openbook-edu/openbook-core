@@ -3,10 +3,10 @@ package ca.shiftfocus.krispii.core.services
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.{ErrorUnion, ServiceError}
-import ca.shiftfocus.krispii.core.models.{Chat, Team, User}
-import ca.shiftfocus.krispii.core.models.course.Exam
+import ca.shiftfocus.krispii.core.models.{Chat, User}
+import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
 import ca.shiftfocus.krispii.core.models.work.{Score, Test}
-import ca.shiftfocus.krispii.core.repositories.{ChatRepository, ExamRepository, TeamRepository, ScoreRepository, TestRepository, UserRepository}
+import ca.shiftfocus.krispii.core.repositories.{ChatRepository, ExamRepository, ScoreRepository, TeamRepository, TestRepository, UserRepository}
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import play.api.Logger

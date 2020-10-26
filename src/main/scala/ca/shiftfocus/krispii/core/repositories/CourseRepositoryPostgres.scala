@@ -5,7 +5,7 @@ import java.util.{NoSuchElementException, UUID}
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.course.Course
+import ca.shiftfocus.krispii.core.models.group.Course
 import com.github.mauricio.async.db.exceptions.ConnectionStillRunningQueryException
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
 import com.github.mauricio.async.db.{Connection, RowData}
@@ -23,9 +23,9 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
     Course(
       row("id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
-      row("teacher_id").asInstanceOf[UUID], // teacher_id and is_deleted in SQL, not in models!
+      row("teacher_id").asInstanceOf[UUID], // teacher_id and is_deleted are the names used in SQL!
       row("name").asInstanceOf[String],
-      new Color(Option(row("color").asInstanceOf[Int]).getOrElse(0)),
+      new Color(row("color").asInstanceOf[Int]),
       row("slug").asInstanceOf[String],
       row("enabled").asInstanceOf[Boolean],
       row("archived").asInstanceOf[Boolean],
@@ -217,7 +217,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
   }
 
   /**
-   * Return course by its project.
+   * Return group by its project.
    *
    * @param project  the project to filter by
    * @return a result set
@@ -314,7 +314,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
   /**
    * Find a single entry by slug.
    *
-   * @param slug the course's slug
+   * @param slug the group's slug
    * @return an optional RowData object containing the results
    */
   override def find(slug: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = {
@@ -337,13 +337,13 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
   }
 
   /**
-   * Add a user to a course
+   * Add a user to a group
    */
   override def addUser(user: User, course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       _ <- lift(queryNumRows(AddUser, Array(user.id, course.id, new DateTime))(_ == 1).map {
         case \/-(true) => \/-(())
-        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not add ${user.id.toString} to course ${course.id.toString}"))
+        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not add ${user.id.toString} to group ${course.id.toString}"))
         case -\/(error) => -\/(error)
       })
       _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(course.id)))
@@ -351,13 +351,13 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
   }
 
   /**
-   * Remove a user from a course.
+   * Remove a user from a group.
    */
   override def removeUser(user: User, course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       _ <- lift(queryNumRows(RemoveUser, Array(user.id, course.id))(_ == 1).map {
         case \/-(true) => \/-(())
-        case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the user could not be removed from the course."))
+        case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the user could not be removed from the group."))
         case -\/(error) => -\/(error)
       })
       _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(course.id)))
@@ -386,9 +386,9 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
   }
 
   /**
-   * Add users to a course.
+   * Add users to a group.
    *
-   * @param course  the course to add users to.
+   * @param course  the group to add users to.
    * @param users  an array of users to be added.
    * @param conn  an implicit database Connection.
    * @return a boolean indicating if the action was successful.
@@ -403,7 +403,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
     for {
       _ <- lift(queryNumRows(query)(users.length == _).map {
         case \/-(true) => \/-(())
-        case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the users could not be added to the course."))
+        case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the users could not be added to the group."))
         case -\/(error) => -\/(error)
       })
       _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(course.id)))
@@ -411,9 +411,9 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
   }
 
   /**
-   * Remove users from a course.
+   * Remove users from a group.
    *
-   * @param course  the course to remove users from.
+   * @param course  the group to remove users from.
    * @param users  an array of the users to be removed.
    * @param conn  an implicit database Connection.
    * @return a boolean indicating if the action was successful.
@@ -428,7 +428,7 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
     for {
       _ <- lift(queryNumRows(RemoveUsers, Seq[Any](cleanCourseId, cleanUsersId))(users.length == _).map {
         case \/-(true) => \/-(())
-        case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the users could not be removed from the course."))
+        case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the users could not be removed from the group."))
         case -\/(error) => -\/(error)
       })
       _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(course.id)))
@@ -436,9 +436,9 @@ class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepo
   }
 
   /**
-   * Remove all users from a course.
+   * Remove all users from a group.
    *
-   * @param course  the course to remove users from.
+   * @param course  the group to remove users from.
    * @param conn  an implicit database Connection.
    * @return a boolean indicating if the action was successful.
    */

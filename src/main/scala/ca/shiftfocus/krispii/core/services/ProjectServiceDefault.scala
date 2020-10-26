@@ -13,7 +13,7 @@ import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.models.course.Course
+import ca.shiftfocus.krispii.core.models.group.Course
 
 import scala.concurrent.Future
 import scalaz.{-\/, \/, \/-}
@@ -53,9 +53,9 @@ class ProjectServiceDefault(
   }
 
   /**
-   * Find all projects belonging to a given course
+   * Find all projects belonging to a given group
    *
-   * @param courseId the unique id of the course to filter by
+   * @param courseId the unique id of the group to filter by
    * @return a future disjunction containing either a vector of projects, or a failure
    */
   override def list(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {

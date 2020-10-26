@@ -761,7 +761,7 @@ class ComponentServiceDefault(
    * Add a component to a specific part.
    *
    * This associates a component with a project part. When that part is
-   * enabled for a course, users in that course will be able to
+   * enabled for a group, users in that group will be able to
    * access that component in their enabled components list.
    *
    * @param componentId the unique ID of the component to add
@@ -784,7 +784,7 @@ class ComponentServiceDefault(
    * Remove a component from a specific part.
    *
    * This disassociates a component with a project part. When that part is
-   * enabled for a course, users in that course will be able to
+   * enabled for a group, users in that group will be able to
    * access that component in their enabled components list.
    *
    * @param componentId the unique ID of the component to remove

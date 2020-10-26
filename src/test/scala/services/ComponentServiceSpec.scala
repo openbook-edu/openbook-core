@@ -318,7 +318,7 @@
 //
 //        Await.result(result, Duration.Inf) should be(\/-(true))
 //      }
-//      "give access if it's in one of their projects (user - has role teacher, user is a TEACHER of the course)" in {
+//      "give access if it's in one of their projects (user - has role teacher, user is a TEACHER of the group)" in {
 //        val testUser = TestValues.testUserA.copy(
 //          roles = IndexedSeq(
 //            Role(name = "developer"),
@@ -361,8 +361,8 @@
 //
 //        (schoolService.listCoursesByTeacher(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 //
-//        testCourseList.foreach { course =>
-//          (projectService.list(_: UUID)) when (course.id) returns (Future.successful(\/-(testProjectList)))
+//        testCourseList.foreach { group =>
+//          (projectService.list(_: UUID)) when (group.id) returns (Future.successful(\/-(testProjectList)))
 //        }
 //
 //        testProjectList.foreach { project =>
@@ -380,7 +380,7 @@
 //        testComponent.ownerId should not be (testUser.id)
 //        Await.result(result, Duration.Inf) should be(\/-(true))
 //      }
-//      "give access if it's in one of their projects (user - has role teacher, user is a STUDENT of the course)" in {
+//      "give access if it's in one of their projects (user - has role teacher, user is a STUDENT of the group)" in {
 //        val testUser = TestValues.testUserB.copy(
 //          roles = IndexedSeq(
 //            Role(name = "developer"),
@@ -424,8 +424,8 @@
 //        (schoolService.listCoursesByTeacher(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(IndexedSeq.empty[Course])))
 //        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 //
-//        testCourseList.foreach { course =>
-//          (projectService.list(_: UUID)) when (course.id) returns (Future.successful(\/-(testProjectList)))
+//        testCourseList.foreach { group =>
+//          (projectService.list(_: UUID)) when (group.id) returns (Future.successful(\/-(testProjectList)))
 //        }
 //
 //        testProjectList.foreach { project =>
@@ -484,8 +484,8 @@
 //
 //        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 //
-//        testCourseList.foreach { course =>
-//          (projectService.list(_: UUID)) when (course.id) returns (Future.successful(\/-(testProjectList)))
+//        testCourseList.foreach { group =>
+//          (projectService.list(_: UUID)) when (group.id) returns (Future.successful(\/-(testProjectList)))
 //        }
 //
 //        testProjectList.foreach { project =>
@@ -561,8 +561,8 @@
 //        (schoolService.listCoursesByTeacher(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 //        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 //
-//        testCourseList.foreach { course =>
-//          (projectService.list(_: UUID)) when (course.id) returns (Future.successful(\/-(testProjectList)))
+//        testCourseList.foreach { group =>
+//          (projectService.list(_: UUID)) when (group.id) returns (Future.successful(\/-(testProjectList)))
 //        }
 //
 //        testProjectList.foreach { project =>
@@ -580,7 +580,7 @@
 //        testComponent.ownerId should not be (testUser.id)
 //        Await.result(result, Duration.Inf) should be(\/-(false))
 //      }
-//      "restrict access if user - has role teacher, user is a STUDENT of the course that do not contain the component" in {
+//      "restrict access if user - has role teacher, user is a STUDENT of the group that do not contain the component" in {
 //        val testUser = TestValues.testUserB.copy(
 //          roles = IndexedSeq(
 //            Role(name = "developer"),
@@ -622,8 +622,8 @@
 //        (schoolService.listCoursesByTeacher(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(IndexedSeq.empty[Course])))
 //        (schoolService.listCoursesByUser(_: UUID, _: Boolean)) when (testUser.id, false) returns (Future.successful(\/-(testCourseList)))
 //
-//        testCourseList.foreach { course =>
-//          (projectService.list(_: UUID)) when (course.id) returns (Future.successful(\/-(testProjectList)))
+//        testCourseList.foreach { group =>
+//          (projectService.list(_: UUID)) when (group.id) returns (Future.successful(\/-(testProjectList)))
 //        }
 //
 //        testProjectList.foreach { project =>

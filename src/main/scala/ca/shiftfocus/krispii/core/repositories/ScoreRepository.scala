@@ -3,9 +3,9 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.course.Exam
+import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
 import ca.shiftfocus.krispii.core.models.work.{Score, Test}
-import ca.shiftfocus.krispii.core.models.{Team, User}
+import ca.shiftfocus.krispii.core.models.User
 import com.github.mauricio.async.db.Connection
 import scalaz.\/
 

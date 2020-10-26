@@ -9,7 +9,7 @@ import ca.shiftfocus.krispii.core.models._
 import scala.concurrent.Future
 import java.awt.Color
 
-import ca.shiftfocus.krispii.core.models.course.Course
+import ca.shiftfocus.krispii.core.models.group.Course
 import org.joda.time.DateTime
 import scalaz.\/
 
@@ -44,11 +44,11 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
   ): Future[\/[ErrorUnion#Fail, Course]]
   def deleteCourse(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Course]]
 
-  //def listStudents(course: Course): Future[IndexedSeq[User]]
+  //def listStudents(group: Course): Future[IndexedSeq[User]]
   def listStudents(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
   def listStudents(course: Course): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
   //def listProjects(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
-  //def listProjects(course: Course): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
+  //def listProjects(group: Course): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
 
   def findUserForTeacher(userId: UUID, teacherId: UUID): Future[\/[ErrorUnion#Fail, User]]
 

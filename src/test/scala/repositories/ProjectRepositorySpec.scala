@@ -81,7 +81,7 @@
 //          }
 //        }
 //      }
-//      "find all projects belonging to a given course" in {
+//      "find all projects belonging to a given group" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //
@@ -131,7 +131,7 @@
 //          }
 //        }
 //      }
-//      "return empty Vector() if there are no projects within indicated course" in {
+//      "return empty Vector() if there are no projects within indicated group" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //
@@ -140,7 +140,7 @@
 //        val result = projectRepository.list(testCourse)
 //        Await.result(result, Duration.Inf) should be(\/-(Vector()))
 //      }
-//      "return empty Vector() if course doesn't exist" in {
+//      "return empty Vector() if group doesn't exist" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //
@@ -528,7 +528,7 @@
 //        project.projectType should be(testProject.projectType)
 //        project.parts should be(Vector())
 //      }
-//      "return RepositoryError.ForeignKeyConflict if project contains unexisting course id" in {
+//      "return RepositoryError.ForeignKeyConflict if project contains unexisting group id" in {
 //        val testProject = TestValues.testProjectD.copy(
 //          courseId = UUID.fromString("ad043c17-d552-4744-890a-6ab8a6778e4c")
 //        )

@@ -4,7 +4,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.course.Course
+import ca.shiftfocus.krispii.core.models.group.{Course, Team}
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 
@@ -373,7 +373,7 @@ class UserRepositoryPostgres(
   }
 
   /**
-   * List student users in a given course.
+   * List student users in a given group.
    *
    * @return a future disjunction containing either the student users, or a failure
    */

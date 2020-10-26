@@ -3150,7 +3150,7 @@
 //
 //  "ProjectService.copyMasterProject" should {
 //    inSequence {
-//      "copy one master project into a course" in {
+//      "copy one master project into a group" in {
 //        val expectedProject = TestValues.testProjectH.copy(id = UUID.randomUUID)
 //        (projectRepository.cloneProject(_: UUID, _: UUID)(_: Connection, _: ScalaCachePool)) when (TestValues.testProjectH.id, TestValues.testCourseH.id, *, *) returns (Future.successful(\/-(expectedProject)))
 //        (projectRepository.insert(_: Project)(_: Connection, _: ScalaCachePool)) when (expectedProject, *, *) returns (Future.successful(\/-(expectedProject)))

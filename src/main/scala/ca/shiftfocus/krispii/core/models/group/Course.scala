@@ -1,4 +1,4 @@
-package ca.shiftfocus.krispii.core.models.course
+package ca.shiftfocus.krispii.core.models.group
 
 import java.awt.Color
 import java.util.UUID

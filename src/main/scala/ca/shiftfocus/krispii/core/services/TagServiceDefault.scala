@@ -426,7 +426,7 @@ class TagServiceDefault(
       _ <- lift(limitRepository.setTeacherStudentLimit(user.id, studentLimit))
       _ <- lift(limitRepository.setStorageLimit(user.id, storageLimit))
       _ <- lift(limitRepository.setCourseLimit(user.id, courseLimit))
-      // Delete all custom course student limits
+      // Delete all custom group student limits
       courses <- lift(courseRepository.list(user, true))
       _ <- lift(serializedT(courses)(course => limitRepository.deleteCourseStudentLimit(course.id)))
 
@@ -485,7 +485,7 @@ class TagServiceDefault(
           case \/-(limit: Int) => \/-(Some(limit))
           case -\/(error: RepositoryError.NoResults) => \/-(None)
           case -\/(error) => -\/(error)
-          case _ => \/-({ Logger.error(s"Problem with format of course limits for organization ${organization.title}"); None })
+          case _ => \/-({ Logger.error(s"Problem with format of group limits for organization ${organization.title}"); None })
         }
       }))
       studentLimits <- lift(serializedT(organizationList)(organization => {

@@ -4,9 +4,7 @@ import ca.shiftfocus.krispii.core.models.{Chat, User}
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.models.course.Group
-import ca.shiftfocus.krispii.core.models.Team
-
+import ca.shiftfocus.krispii.core.models.group.{Group, Team}
 import com.github.mauricio.async.db.Connection
 
 import concurrent.Future

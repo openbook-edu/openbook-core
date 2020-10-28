@@ -77,7 +77,7 @@ class ExamRepositoryPostgres(
   val Insert = {
     s"""
        |INSERT INTO $Table ($Fields)
-       |VALUES (?, ?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, false, false, ?, ?)
+       |VALUES (?, ?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, false, false, ?, ?)
        |RETURNING $Fields
     """.stripMargin
   }

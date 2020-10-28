@@ -86,7 +86,7 @@ class TestRepositoryPostgres(
   val Insert =
     s"""
        |INSERT INTO $Table ($Fields)
-       |VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+       |VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        |RETURNING $Fields
     """.stripMargin
 

@@ -11,11 +11,12 @@ import org.joda.time.LocalTime
 import play.api.libs.json.JodaWrites._
 import play.api.libs.json.JodaReads._
 
-case class CourseSchedule(
+case class GroupSchedule(
     id: UUID = UUID.randomUUID,
     version: Long = 1L,
-    courseId: UUID,
-    day: LocalDate,
+    groupId: UUID,
+    startDay: LocalDate,
+    endDay: LocalDate,
     startTime: LocalTime,
     endTime: LocalTime,
     description: String,
@@ -24,11 +25,12 @@ case class CourseSchedule(
 ) extends Schedule {
   override def equals(anotherObject: Any): Boolean = {
     anotherObject match {
-      case anotherCS: CourseSchedule =>
+      case anotherCS: GroupSchedule =>
         this.id == anotherCS.id &&
           this.version == anotherCS.version &&
-          this.courseId == anotherCS.courseId &&
-          this.day.toString == anotherCS.day.toString &&
+          this.groupId == anotherCS.groupId &&
+          this.startDay.toString == anotherCS.startDay.toString &&
+          this.endDay.toString == anotherCS.endDay.toString &&
           this.startTime.toString == anotherCS.startTime.toString &&
           this.endTime.toString == anotherCS.endTime.toString &&
           this.description == anotherCS.description
@@ -38,71 +40,78 @@ case class CourseSchedule(
 }
 
 trait Schedule {
-  def day: LocalDate
+  def startDay: LocalDate
+  def endDay: LocalDate
   def startTime: LocalTime
   def endTime: LocalTime
 }
 
-object CourseSchedule extends LocalDateTimeJson {
+object GroupSchedule extends LocalDateTimeJson {
 
-  implicit val sectionScheduleReads: Reads[CourseSchedule] = (
+  implicit val groupScheduleReads: Reads[GroupSchedule] = (
     (__ \ "id").read[UUID] and
     (__ \ "version").read[Long] and
-    (__ \ "courseId").read[UUID] and
-    (__ \ "day").read[LocalDate] and
+    (__ \ "groupId").read[UUID] and
+    (__ \ "startDay").read[LocalDate] and
+    (__ \ "endDay").read[LocalDate] and
     (__ \ "startTime").read[LocalTime] and
     (__ \ "endTime").read[LocalTime] and
     (__ \ "description").read[String] and
     (__ \ "createdAt").read[DateTime] and
     (__ \ "updatedAt").read[DateTime]
-  )(CourseSchedule.apply _)
+  )(GroupSchedule.apply _)
 
-  implicit val sectionScheduleWrites: Writes[CourseSchedule] = (
+  implicit val groupScheduleWrites: Writes[GroupSchedule] = (
     (__ \ "id").write[UUID] and
     (__ \ "version").write[Long] and
-    (__ \ "courseId").write[UUID] and
-    (__ \ "day").write[LocalDate] and
+    (__ \ "groupId").write[UUID] and
+    (__ \ "startDay").write[LocalDate] and
+    (__ \ "endDay").write[LocalDate] and
     (__ \ "startTime").write[LocalTime] and
     (__ \ "endTime").write[LocalTime] and
     (__ \ "description").write[String] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
-  )(unlift(CourseSchedule.unapply))
+  )(unlift(GroupSchedule.unapply))
 }
 
 /*
  * Case-classes for FORM definitions!
  */
-case class CourseSchedulePost(
-  day: LocalDate,
+case class GroupSchedulePost(
+  startDay: LocalDate,
+  endDay: LocalDate,
   startTime: LocalTime,
   endTime: LocalTime,
   description: String
 )
-object CourseSchedulePost extends LocalDateTimeJson {
-  implicit val sectionScheduleReads: Reads[CourseSchedulePost] = (
-    (__ \ "day").read[LocalDate] and
+object GroupSchedulePost extends LocalDateTimeJson {
+  implicit val sectionScheduleReads: Reads[GroupSchedulePost] = (
+    (__ \ "startDay").read[LocalDate] and
+    (__ \ "endDay").read[LocalDate] and
     (__ \ "startTime").read[LocalTime] and
     (__ \ "endTime").read[LocalTime] and
     (__ \ "description").read[String]
-  )(CourseSchedulePost.apply _)
+  )(GroupSchedulePost.apply _)
 }
 
-case class CourseSchedulePut(
+case class GroupSchedulePut(
   version: Long,
-  courseId: Option[UUID],
-  day: Option[LocalDate],
+  groupId: Option[UUID],
+  startDay: Option[LocalDate],
+  endDay: Option[LocalDate],
   startTime: Option[LocalTime],
   endTime: Option[LocalTime],
   description: Option[String]
 )
-object CourseSchedulePut extends LocalDateTimeJson {
-  implicit val sectionScheduleReads: Reads[CourseSchedulePut] = (
+object GroupSchedulePut extends LocalDateTimeJson {
+  implicit val sectionScheduleReads: Reads[GroupSchedulePut] = (
     (__ \ "version").read[Long] and
-    (__ \ "courseId").readNullable[UUID] and
-    (__ \ "day").readNullable[LocalDate] and
+    (__ \ "groupId").readNullable[UUID] and
+    (__ \ "startDay").readNullable[LocalDate] and
+    (__ \ "endDay").readNullable[LocalDate] and
     (__ \ "startTime").readNullable[LocalTime] and
     (__ \ "endTime").readNullable[LocalTime] and
     (__ \ "description").readNullable[String]
-  )(CourseSchedulePut.apply _)
+  )(GroupSchedulePut.apply _)
 }

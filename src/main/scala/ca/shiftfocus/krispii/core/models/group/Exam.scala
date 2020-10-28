@@ -19,6 +19,7 @@ case class Exam(
   slug: String,
   origRubricId: Option[UUID] = None, // might be the ID of a rubricComponent or an imageComponent
   enabled: Boolean = true,
+  schedulingEnabled: Boolean = false,
   archived: Boolean = false,
   deleted: Boolean = false,
   teams: Option[IndexedSeq[Team]] = None,
@@ -41,6 +42,7 @@ object Exam {
     (__ \ "slug").write[String] and
     (__ \ "origRubricId").writeNullable[UUID] and
     (__ \ "enabled").write[Boolean] and
+    (__ \ "scheduling_enabled").write[Boolean] and
     (__ \ "archived").write[Boolean] and
     (__ \ "deleted").write[Boolean] and
     (__ \ "teams").writeNullable[IndexedSeq[Team]] and
@@ -58,6 +60,7 @@ object Exam {
     (__ \ "slug").read[String] and
     (__ \ "origRubricId").readNullable[UUID] and
     (__ \ "enabled").read[Boolean] and
+    (__ \ "scheduling_enabled").read[Boolean] and
     (__ \ "archived").read[Boolean] and
     (__ \ "deleted").read[Boolean] and
     (__ \ "teams").readNullable[IndexedSeq[Team]] and

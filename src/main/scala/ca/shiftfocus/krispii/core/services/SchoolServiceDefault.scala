@@ -224,9 +224,9 @@ class SchoolServiceDefault(
   //  /**
   //   * List all projects belonging to a group.
   //   */
-  //  override def listProjects(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
+  //  override def listProjects(groupId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
   //    for {
-  //      group <- lift(courseRepository.find(courseId))
+  //      group <- lift(courseRepository.find(groupId))
   //      projects <- lift(listProjects(group))
   //    } yield projects
   //  }

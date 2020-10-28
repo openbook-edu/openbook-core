@@ -34,6 +34,7 @@ class ExamRepositoryPostgres(
         case _ => None
       },
       row("enabled").asInstanceOf[Boolean],
+      row("scheduling_enabled").asInstanceOf[Boolean],
       row("archived").asInstanceOf[Boolean],
       row("deleted").asInstanceOf[Boolean],
       None, // teams
@@ -44,7 +45,7 @@ class ExamRepositoryPostgres(
   }
 
   val Table = "exams"
-  val Fields = "id, version, coordinator_id, name, color, slug, orig_rubric_id, enabled, archived, deleted, created_at, updated_at"
+  val Fields = "id, version, coordinator_id, name, color, slug, orig_rubric_id, enabled, scheduling_enabled, archived, deleted, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val OrderBy = s"${Table}.name ASC"
 
@@ -86,7 +87,7 @@ class ExamRepositoryPostgres(
     s"""
        |UPDATE $Table
        |SET version = ?, coordinator_id = ?, name = ?, color = ?, slug = get_slug(?, '$Table', ?),
-       |    orig_rubric_id = ?, enabled = ?, archived = ?, updated_at = ?
+       |    orig_rubric_id = ?, enabled = ?, scheduling_enabled = ?, archived = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $Fields
@@ -199,7 +200,7 @@ class ExamRepositoryPostgres(
   def insert(exam: Exam)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Exam]] = {
     val params = Seq[Any](
       exam.id, 1, exam.ownerId, exam.name, exam.color.getRGB, exam.slug, exam.id,
-      exam.origRubricId, exam.enabled, new DateTime, new DateTime
+      exam.origRubricId, exam.enabled, exam.schedulingEnabled, new DateTime, new DateTime
     )
     for {
       inserted <- lift(queryOne(Insert, params))
@@ -218,7 +219,7 @@ class ExamRepositoryPostgres(
                      (implicit conn: Connection): Future[\/[RepositoryError.Fail, Exam]] = { // format: ON
     val params = Seq[Any](
       exam.version + 1, exam.ownerId, exam.name, exam.color.getRGB, exam.slug, exam.id,
-      exam.origRubricId, exam.enabled, exam.archived, new DateTime, exam.id, exam.version
+      exam.origRubricId, exam.enabled, exam.schedulingEnabled, exam.archived, new DateTime, exam.id, exam.version
     )
     for {
       updated <- lift(queryOne(Update, params))

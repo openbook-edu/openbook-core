@@ -19,7 +19,7 @@ case class Chat(
 
 object Chat {
   implicit val chatReads: Reads[Chat] = (
-    (__ \ "courseId").read[UUID] and
+    (__ \ "groupId").read[UUID] and
     (__ \ "messageNum").read[Long] and
     (__ \ "userId").read[UUID] and
     (__ \ "message").read[String] and
@@ -28,7 +28,7 @@ object Chat {
   )(Chat.apply _)
 
   implicit val chatWrites: Writes[Chat] = (
-    (__ \ "courseId").write[UUID] and
+    (__ \ "groupId").write[UUID] and
     (__ \ "messageNum").write[Long] and
     (__ \ "userId").write[UUID] and
     (__ \ "message").write[String] and

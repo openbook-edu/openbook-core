@@ -37,11 +37,11 @@ case class CacheRepository(
   val cacheUser: ScalaCachePool[User] = new ScalaCachePool[User](scalaCacheConfig)
   val cacheSeqUser: ScalaCachePool[IndexedSeq[User]] = new ScalaCachePool[IndexedSeq[User]](scalaCacheConfig)
 
-  val cacheCourseSchedule: ScalaCachePool[CourseSchedule] = new ScalaCachePool[CourseSchedule](scalaCacheConfig)
-  val cacheSeqCourseSchedule: ScalaCachePool[IndexedSeq[CourseSchedule]] = new ScalaCachePool[IndexedSeq[CourseSchedule]](scalaCacheConfig)
+  val cacheGroupSchedule: ScalaCachePool[GroupSchedule] = new ScalaCachePool[GroupSchedule](scalaCacheConfig)
+  val cacheSeqGroupSchedule: ScalaCachePool[IndexedSeq[GroupSchedule]] = new ScalaCachePool[IndexedSeq[GroupSchedule]](scalaCacheConfig)
 
-  val cacheCourseScheduleException: ScalaCachePool[CourseScheduleException] = new ScalaCachePool[CourseScheduleException](scalaCacheConfig)
-  val cacheSeqCourseScheduleException: ScalaCachePool[IndexedSeq[CourseScheduleException]] = new ScalaCachePool[IndexedSeq[CourseScheduleException]](scalaCacheConfig)
+  val cacheGroupScheduleException: ScalaCachePool[GroupScheduleException] = new ScalaCachePool[GroupScheduleException](scalaCacheConfig)
+  val cacheSeqGroupScheduleException: ScalaCachePool[IndexedSeq[GroupScheduleException]] = new ScalaCachePool[IndexedSeq[GroupScheduleException]](scalaCacheConfig)
 
   val cacheExam: ScalaCachePool[Exam] = new ScalaCachePool[Exam](scalaCacheConfig)
   val cacheSeqExam: ScalaCachePool[IndexedSeq[Exam]] = new ScalaCachePool[IndexedSeq[Exam]](scalaCacheConfig)
@@ -93,8 +93,8 @@ trait SerializationSeqBinary {
   implicit val codecSeqExam: Codec[IndexedSeq[Exam]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Exam]]]
   implicit val codecSeqAccount: Codec[IndexedSeq[Account]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Account]]]
   implicit val codecSeqUser: Codec[IndexedSeq[User]] = codecSeq.asInstanceOf[Codec[IndexedSeq[User]]]
-  implicit val codecSeqCourseSchedule: Codec[IndexedSeq[CourseSchedule]] = codecSeq.asInstanceOf[Codec[IndexedSeq[CourseSchedule]]]
-  implicit val codecSeqCourseScheduleException: Codec[IndexedSeq[CourseScheduleException]] = codecSeq.asInstanceOf[Codec[IndexedSeq[CourseScheduleException]]]
+  implicit val codecSeqGroupSchedule: Codec[IndexedSeq[GroupSchedule]] = codecSeq.asInstanceOf[Codec[IndexedSeq[GroupSchedule]]]
+  implicit val codecSeqGroupScheduleException: Codec[IndexedSeq[GroupScheduleException]] = codecSeq.asInstanceOf[Codec[IndexedSeq[GroupScheduleException]]]
   implicit val codecSeqPart: Codec[IndexedSeq[Part]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Part]]]
   implicit val codecSeqProject: Codec[IndexedSeq[Project]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Project]]]
   implicit val codecSeqRole: Codec[IndexedSeq[Role]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Role]]]

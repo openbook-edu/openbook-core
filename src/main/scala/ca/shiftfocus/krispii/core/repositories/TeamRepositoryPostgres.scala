@@ -35,10 +35,11 @@ class TeamRepositoryPostgres(
       row("name").asInstanceOf[String],
       row("slug").asInstanceOf[String],
       new Color(row("color").asInstanceOf[Int]),
+      row("enabled").asInstanceOf[Boolean],
+      row("scheduling_enabled").asInstanceOf[Boolean],
+      row("chat_enabled").asInstanceOf[Boolean],
       row("archived").asInstanceOf[Boolean],
       row("deleted").asInstanceOf[Boolean],
-      row("enabled").asInstanceOf[Boolean],
-      row("chat_enabled").asInstanceOf[Boolean],
       IndexedSeq.empty[User],
       IndexedSeq.empty[Test],
       row("created_at").asInstanceOf[DateTime],
@@ -48,7 +49,7 @@ class TeamRepositoryPostgres(
   val Table = "teams"
   // names and number of fields in SQL
   val Fields = "id, version, exam_id, coordinator_id, name, slug, color, " +
-    "enabled, archived, deleted, chat_enabled, created_at, updated_at"
+    "enabled, scheduling_enabled, chat_enabled, archived, deleted, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val OrderBy = s"${Table}.created_at ASC"
 
@@ -108,7 +109,7 @@ class TeamRepositoryPostgres(
   val Update =
     s"""
        |UPDATE $Table
-       |SET version = ?, exam_id = ?, coordinator_id = ?, name = ?, slug = ?, color= ?, enabled = ?, archived = ?, deleted = ?, chat_enabled = ?, updated_at = ?
+       |SET version = ?, exam_id = ?, coordinator_id = ?, name = ?, slug = ?, color= ?, enabled = ?, scheduling_enabled = ?, chat_enabled = ?, archived = ?, deleted = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $Fields
@@ -360,7 +361,7 @@ class TeamRepositoryPostgres(
    */
   override def insert(team: Team)(implicit conn: Connection): Future[RepositoryError.Fail \/ Team] = {
     val params = Seq[Any](
-      team.id, 1, team.examId, team.ownerId, team.name, team.slug, team.color.getRGB, team.enabled, false, false, team.chatEnabled, new DateTime, new DateTime
+      team.id, 1, team.examId, team.ownerId, team.name, team.slug, team.color.getRGB, team.enabled, team.schedulingEnabled, team.chatEnabled, false, false, new DateTime, new DateTime
     )
 
     for {
@@ -384,8 +385,8 @@ class TeamRepositoryPostgres(
    */
   override def update(team: Team)(implicit conn: Connection): Future[RepositoryError.Fail \/ Team] = {
     val params = Seq[Any](
-      team.examId, team.ownerId, team.name, team.slug, team.color.getRGB, team.enabled, team.archived, team.deleted,
-      team.chatEnabled, team.version + 1, new DateTime, team.id, team.version
+      team.examId, team.ownerId, team.name, team.slug, team.color.getRGB, team.enabled, team.schedulingEnabled,
+      team.chatEnabled, team.archived, team.deleted, team.version + 1, new DateTime, team.id, team.version
     )
 
     (for {

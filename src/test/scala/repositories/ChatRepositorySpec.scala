@@ -35,7 +35,7 @@
 //
 //        testChatLogList.foreach {
 //          case (key, chatLog: Chat) => {
-//            chatLogs(key).courseId should be(chatLog.courseId)
+//            chatLogs(key).groupId should be(chatLog.groupId)
 //            chatLogs(key).messageNum should be(chatLog.messageNum)
 //            chatLogs(key).userId should be(chatLog.userId)
 //            chatLogs(key).message should be(chatLog.message)
@@ -62,7 +62,7 @@
 //
 //        testChatLogList.foreach {
 //          case (key, chatLog: Chat) => {
-//            chatLogs(key).courseId should be(chatLog.courseId)
+//            chatLogs(key).groupId should be(chatLog.groupId)
 //            chatLogs(key).messageNum should be(chatLog.messageNum)
 //            chatLogs(key).userId should be(chatLog.userId)
 //            chatLogs(key).message should be(chatLog.message)
@@ -88,7 +88,7 @@
 //
 //        testChatLogList.foreach {
 //          case (key, chatLog: Chat) => {
-//            chatLogs(key).courseId should be(chatLog.courseId)
+//            chatLogs(key).groupId should be(chatLog.groupId)
 //            chatLogs(key).messageNum should be(chatLog.messageNum)
 //            chatLogs(key).userId should be(chatLog.userId)
 //            chatLogs(key).message should be(chatLog.message)
@@ -116,7 +116,7 @@
 //
 //        testChatLogList.foreach {
 //          case (key, chatLog: Chat) => {
-//            chatLogs(key).courseId should be(chatLog.courseId)
+//            chatLogs(key).groupId should be(chatLog.groupId)
 //            chatLogs(key).messageNum should be(chatLog.messageNum)
 //            chatLogs(key).userId should be(chatLog.userId)
 //            chatLogs(key).message should be(chatLog.message)
@@ -138,7 +138,7 @@
 //        val eitherChatLog = Await.result(result, Duration.Inf)
 //        val \/-(chatLog) = eitherChatLog
 //
-//        chatLog.courseId should be(testChatLog.courseId)
+//        chatLog.groupId should be(testChatLog.groupId)
 //        chatLog.messageNum should be(testChatLog.messageNum)
 //        chatLog.userId should be(testChatLog.userId)
 //        chatLog.message should be(testChatLog.message)
@@ -157,7 +157,7 @@
 //        val eitherChatLog = Await.result(result, Duration.Inf)
 //        val \/-(chatLog) = eitherChatLog
 //
-//        chatLog.courseId should be(testChatLog.courseId)
+//        chatLog.groupId should be(testChatLog.groupId)
 //        chatLog.messageNum should be(testChatLog.messageNum)
 //        chatLog.userId should be(testChatLog.userId)
 //        chatLog.message should be(testChatLog.message)
@@ -180,7 +180,7 @@
 //        val eitherChatLog = Await.result(result, Duration.Inf)
 //        val \/-(chatLog) = eitherChatLog
 //
-//        chatLog.courseId should be(updatedChatLog.courseId)
+//        chatLog.groupId should be(updatedChatLog.groupId)
 //        chatLog.messageNum should be(updatedChatLog.messageNum)
 //        // User id is not changed
 //        chatLog.userId should be(testChatLog.userId)
@@ -194,7 +194,7 @@
 //      "return RepositoryError.NoResults if course_id is wrong" in {
 //        val testChatLog = TestValues.testChatC
 //        val updatedChatLog = testChatLog.copy(
-//          courseId = TestValues.testCourseB.id,
+//          groupId = TestValues.testCourseB.id,
 //          userId = TestValues.testUserG.id,
 //          message = "new" + testChatLog.message,
 //          hidden = !testChatLog.hidden

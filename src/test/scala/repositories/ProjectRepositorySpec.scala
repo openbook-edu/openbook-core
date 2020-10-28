@@ -67,7 +67,7 @@
 //        testProjectList.foreach {
 //          case (key, project: Project) => {
 //            projects(key).id should be(project.id)
-//            projects(key).courseId should be(project.courseId)
+//            projects(key).groupId should be(project.groupId)
 //            projects(key).version should be(project.version)
 //            projects(key).name should be(project.name)
 //            projects(key).slug should be(project.slug)
@@ -118,7 +118,7 @@
 //        testProjectList.foreach {
 //          case (key, project: Project) => {
 //            projects(key).id should be(project.id)
-//            projects(key).courseId should be(project.courseId)
+//            projects(key).groupId should be(project.groupId)
 //            projects(key).version should be(project.version)
 //            projects(key).name should be(project.name)
 //            projects(key).slug should be(project.slug)
@@ -168,7 +168,7 @@
 //        testProjectList.foreach {
 //          case (key, project: Project) => {
 //            projects(key).id should be(project.id)
-//            projects(key).courseId should be(project.courseId)
+//            projects(key).groupId should be(project.groupId)
 //            projects(key).version should be(project.version)
 //            projects(key).name should be(project.name)
 //            projects(key).slug should be(project.slug)
@@ -230,7 +230,7 @@
 //        testProjectList.foreach {
 //          case (key, project: Project) => {
 //            projects(key).id should be(project.id)
-//            projects(key).courseId should be(project.courseId)
+//            projects(key).groupId should be(project.groupId)
 //            projects(key).version should be(project.version)
 //            projects(key).name should be(project.name)
 //            projects(key).slug should be(project.slug)
@@ -288,7 +288,7 @@
 //        val \/-(project) = eitherProject
 //
 //        project.id should be(testProject.id)
-//        project.courseId should be(testProject.courseId)
+//        project.groupId should be(testProject.groupId)
 //        project.version should be(testProject.version)
 //        project.name should be(testProject.name)
 //        project.slug should be(testProject.slug)
@@ -328,7 +328,7 @@
 //        val \/-(project) = eitherProject
 //
 //        project.id should be(testProject.id)
-//        project.courseId should be(testProject.courseId)
+//        project.groupId should be(testProject.groupId)
 //        project.version should be(testProject.version)
 //        project.name should be(testProject.name)
 //        project.slug should be(testProject.slug)
@@ -359,7 +359,7 @@
 //        val \/-(project) = eitherProject
 //
 //        project.id should be(testProject.id)
-//        project.courseId should be(testProject.courseId)
+//        project.groupId should be(testProject.groupId)
 //        project.version should be(testProject.version)
 //        project.name should be(testProject.name)
 //        project.slug should be(testProject.slug)
@@ -440,7 +440,7 @@
 //        val \/-(project) = eitherProject
 //
 //        project.id should be(testProject.id)
-//        project.courseId should be(testProject.courseId)
+//        project.groupId should be(testProject.groupId)
 //        project.version should be(testProject.version)
 //        project.name should be(testProject.name)
 //        project.slug should be(testProject.slug)
@@ -476,7 +476,7 @@
 //        val \/-(project) = eitherProject
 //
 //        project.id should be(testProject.id)
-//        project.courseId should be(testProject.courseId)
+//        project.groupId should be(testProject.groupId)
 //        project.version should be(testProject.version)
 //        project.name should be(testProject.name)
 //        project.slug should be(testProject.slug)
@@ -496,7 +496,7 @@
 //        val \/-(project) = eitherProject
 //
 //        project.id should be(testProject.id)
-//        project.courseId should be(testProject.courseId)
+//        project.groupId should be(testProject.groupId)
 //        project.version should be(testProject.version)
 //        project.name should be(testProject.name)
 //        project.slug should be(testProject.slug)
@@ -518,7 +518,7 @@
 //        val \/-(project) = eitherProject
 //
 //        project.id should be(testProject.id)
-//        project.courseId should be(testProject.courseId)
+//        project.groupId should be(testProject.groupId)
 //        project.version should be(testProject.version)
 //        project.name should be(testProject.name)
 //        project.slug should be(testProject.slug + "-1")
@@ -530,7 +530,7 @@
 //      }
 //      "return RepositoryError.ForeignKeyConflict if project contains unexisting group id" in {
 //        val testProject = TestValues.testProjectD.copy(
-//          courseId = UUID.fromString("ad043c17-d552-4744-890a-6ab8a6778e4c")
+//          groupId = UUID.fromString("ad043c17-d552-4744-890a-6ab8a6778e4c")
 //        )
 //
 //        val result = projectRepository.insert(testProject)
@@ -552,7 +552,7 @@
 //
 //        val testProject = TestValues.testProjectA
 //        val updatedProject = testProject.copy(
-//          courseId = TestValues.testCourseB.id,
+//          groupId = TestValues.testCourseB.id,
 //          name = "updated test project",
 //          slug = "updated test project slug",
 //          description = "updated test project description",
@@ -566,7 +566,7 @@
 //        val \/-(project) = eitherProject
 //
 //        project.id should be(updatedProject.id)
-//        project.courseId should be(updatedProject.courseId)
+//        project.groupId should be(updatedProject.groupId)
 //        project.version should be(updatedProject.version + 1)
 //        project.name should be(updatedProject.name)
 //        project.slug should be(updatedProject.slug)
@@ -584,7 +584,7 @@
 //
 //        val testProject = TestValues.testProjectA
 //        val updatedProject = testProject.copy(
-//          courseId = TestValues.testCourseB.id,
+//          groupId = TestValues.testCourseB.id,
 //          name = "updated test project",
 //          slug = "updated test project slug",
 //          isMaster = true,
@@ -598,7 +598,7 @@
 //        val \/-(project) = eitherProject
 //
 //        project.id should be(updatedProject.id)
-//        project.courseId should be(updatedProject.courseId)
+//        project.groupId should be(updatedProject.groupId)
 //        project.version should be(updatedProject.version + 1)
 //        project.name should be(updatedProject.name)
 //        project.slug should be(updatedProject.slug)
@@ -616,7 +616,7 @@
 //        val existingSlug = TestValues.testProjectB.slug
 //        val testProject = TestValues.testProjectA
 //        val updatedProject = testProject.copy(
-//          courseId = TestValues.testCourseB.id,
+//          groupId = TestValues.testCourseB.id,
 //          name = "updated test project",
 //          slug = existingSlug,
 //          description = "updated test project description",
@@ -629,7 +629,7 @@
 //        val \/-(project) = eitherProject
 //
 //        project.id should be(updatedProject.id)
-//        project.courseId should be(updatedProject.courseId)
+//        project.groupId should be(updatedProject.groupId)
 //        project.version should be(updatedProject.version + 1)
 //        project.name should be(updatedProject.name)
 //        project.slug should be(updatedProject.slug + "-1")
@@ -684,7 +684,7 @@
 //        val \/-(project) = eitherProject
 //
 //        project.id should be(testProject.id)
-//        project.courseId should be(testProject.courseId)
+//        project.groupId should be(testProject.groupId)
 //        project.version should be(testProject.version)
 //        project.name should be(testProject.name)
 //        project.slug should be(testProject.slug)
@@ -707,7 +707,7 @@
 //        val \/-(project) = eitherProject
 //
 //        project.id should be(testProject.id)
-//        project.courseId should be(testProject.courseId)
+//        project.groupId should be(testProject.groupId)
 //        project.version should be(testProject.version)
 //        project.name should be(testProject.name)
 //        project.slug should be(testProject.slug)
@@ -801,7 +801,7 @@
 //        val \/-(project) = eitherProject
 //        Logger.debug(project.slug)
 //        project.id should not be (TestValues.testProjectA.id)
-//        project.courseId should be(TestValues.testCourseB.id)
+//        project.groupId should be(TestValues.testCourseB.id)
 //        project.version should be(TestValues.testProjectA.version)
 //        project.name should be(TestValues.testProjectA.name)
 //        project.slug should be("test-project-slug-A")

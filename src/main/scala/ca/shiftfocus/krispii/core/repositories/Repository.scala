@@ -19,7 +19,7 @@ trait Repository extends Lifting[RepositoryError.Fail] {
 
   def cacheCoursesKey(id: UUID): String = s"courses[$id]"
   def cacheCourseKey(id: UUID): String = s"group[$id]"
-  def cacheCourseSlugKey(slug: String): String = s"courseId[$slug]"
+  def cacheCourseSlugKey(slug: String): String = s"groupId[$slug]"
   def cacheTeachingKey(id: UUID): String = s"teaching[$id]"
   def cacheStudentsKey(id: UUID): String = s"students[$id]"
 

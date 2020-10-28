@@ -22,6 +22,7 @@ case class Team(
   slug: String = "",
   color: Color,
   enabled: Boolean = true,
+  schedulingEnabled: Boolean = false,
   archived: Boolean = false,
   deleted: Boolean = false,
   chatEnabled: Boolean = true,
@@ -45,6 +46,7 @@ object Team {
     (__ \ "slug").write[String] and
     (__ \ "color").write[Color] and
     (__ \ "enabled").write[Boolean] and
+    (__ \ "scheduling_enabled").write[Boolean] and
     (__ \ "archived").write[Boolean] and
     (__ \ "deleted").write[Boolean] and
     (__ \ "chatEnabled").write[Boolean] and
@@ -63,6 +65,7 @@ object Team {
     (__ \ "slug").read[String] and
     (__ \ "color").read[Color] and
     (__ \ "enabled").read[Boolean] and
+    (__ \ "scheduling_enabled").read[Boolean] and
     (__ \ "archived").read[Boolean] and
     (__ \ "deleted").read[Boolean] and
     (__ \ "chatEnabled").read[Boolean] and

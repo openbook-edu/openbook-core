@@ -10,12 +10,13 @@ import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 import play.api.libs.json.JodaWrites._
 
-case class CourseScheduleException(
+case class GroupScheduleException(
     id: UUID = UUID.randomUUID,
     userId: UUID,
-    courseId: UUID,
+    groupId: UUID,
     version: Long = 1L,
-    day: LocalDate,
+    startDay: LocalDate,
+    endDay: LocalDate,
     startTime: LocalTime,
     endTime: LocalTime,
     reason: String,
@@ -25,12 +26,13 @@ case class CourseScheduleException(
 ) extends Schedule {
   override def equals(anotherObject: Any): Boolean = {
     anotherObject match {
-      case anotherCSE: CourseScheduleException =>
+      case anotherCSE: GroupScheduleException =>
         this.id == anotherCSE.id &&
           this.userId == anotherCSE.userId &&
-          this.courseId == anotherCSE.courseId &&
+          this.groupId == anotherCSE.groupId &&
           this.version == anotherCSE.version &&
-          this.day.toString == anotherCSE.day.toString &&
+          this.startDay.toString == anotherCSE.startDay.toString &&
+          this.endDay.toString == anotherCSE.endDay.toString &&
           this.startTime.toString == anotherCSE.startTime.toString &&
           this.endTime.toString == anotherCSE.endTime.toString &&
           this.reason == anotherCSE.reason
@@ -39,18 +41,19 @@ case class CourseScheduleException(
   }
 }
 
-object CourseScheduleException extends LocalDateTimeJson {
-  implicit val courseScheduleWrites: Writes[CourseScheduleException] = (
+object GroupScheduleException extends LocalDateTimeJson {
+  implicit val courseScheduleWrites: Writes[GroupScheduleException] = (
     (__ \ "id").write[UUID] and
     (__ \ "userId").write[UUID] and
-    (__ \ "courseId").write[UUID] and
+    (__ \ "groupId").write[UUID] and
     (__ \ "version").write[Long] and
-    (__ \ "day").write[LocalDate] and
+    (__ \ "startDay").write[LocalDate] and
+    (__ \ "endDay").write[LocalDate] and
     (__ \ "startTime").write[LocalTime] and
     (__ \ "endTime").write[LocalTime] and
     (__ \ "reason").write[String] and
     (__ \ "block").write[Boolean] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
-  )(unlift(CourseScheduleException.unapply))
+  )(unlift(GroupScheduleException.unapply))
 }

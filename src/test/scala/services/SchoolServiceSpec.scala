@@ -355,7 +355,7 @@
 //        (wordRepository.get(_: String)(_: Connection)) when (*, *) returns (Future.successful(\/-(testWord)))
 //        (linkRepository.create(_: Link)(_: Connection)) when (*, *) returns (Future.successful(\/-(testLink)))
 //
-//        val result = schoolService.createLink(testWord.lang, testLink.courseId)
+//        val result = schoolService.createLink(testWord.lang, testLink.groupId)
 //        Await.result(result, Duration.Inf) should be(\/-(testLink))
 //      }
 //    }

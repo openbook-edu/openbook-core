@@ -15,6 +15,7 @@ trait Group {
   val slug: String
   val color: Color
   val enabled: Boolean
+  val schedulingEnabled: Boolean
   val archived: Boolean
   val deleted: Boolean
   val createdAt: DateTime

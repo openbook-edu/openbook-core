@@ -28,11 +28,11 @@ trait OmsService extends Service[ErrorUnion#Fail] {
 
   def updateTest(test: Test): Future[\/[ErrorUnion#Fail, Test]]
 
-  // duplicate (examId:name) will cause a RepositoryError.UniqueKeyConflict which should be handled by API
+  // duplicate (examId, name) will cause a RepositoryError.UniqueKeyConflict which should be handled by API
 
   def listScorers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
-  def listMembers(examId: UUID, teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
+  def listMembers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
   def moveTests(testIds: IndexedSeq[UUID], newTeamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]]
 
@@ -42,7 +42,7 @@ trait OmsService extends Service[ErrorUnion#Fail] {
 
   def listChats(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
 
-  // exporting CSVs seems more appropriate for krispii-api
+  // exporting CSVs seems more appropriate to handle in krispii-api
   // def exportTests(examId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]] // Unit?
 
   // scoreRepository cannot reference testRepository, so need to implement the following test here or in API:

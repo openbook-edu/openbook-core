@@ -2,11 +2,11 @@ package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.error.{ErrorUnion, ServiceError}
-import ca.shiftfocus.krispii.core.models.{Chat, User}
+import ca.shiftfocus.krispii.core.error.ErrorUnion
 import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
 import ca.shiftfocus.krispii.core.models.work.{Score, Test}
-import ca.shiftfocus.krispii.core.repositories.{ChatRepository, ExamRepository, ScoreRepository, TeamRepository, TestRepository, UserRepository}
+import ca.shiftfocus.krispii.core.models.{Chat, User}
+import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import play.api.Logger
@@ -46,17 +46,14 @@ class OmsServiceDefault(
   } yield team.scorers
 
   /**
-   * Supply list that contains the exam's owner and the team's scorers, or an error
-   * @param examId: UUID of the exam
+   * Supply list that contains the team's owner (at head position) and scorers, or an error
    * @param teamId: UUID of the team
    * @return
    */
-  def listMembers(examId: UUID, teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] =
+  def listMembers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] =
     for {
       team <- lift(teamRepository.find(teamId))
-      _ <- predicate(examId.equals(team.examId))(ServiceError.BadInput("The team needs to be part of the exam"))
-      exam <- lift(examRepository.find(examId))
-      owner <- lift(userRepository.find(exam.ownerId))
+      owner <- lift(userRepository.find(team.ownerId))
       members = owner +: team.scorers
     } yield members
 

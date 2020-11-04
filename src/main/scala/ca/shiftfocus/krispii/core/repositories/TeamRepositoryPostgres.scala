@@ -367,12 +367,7 @@ class TeamRepositoryPostgres(
     for {
       inserted <- lift(queryOne(Insert, params))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(team.examId)))
-      exam <- lift(examRepository.find(team.examId))
-      _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheCoordinatorTeamsKey(exam.ownerId)))
-      /* A newly created team has no scorers yet!
-      scorerList <- lift(userRepository.list(inserted))
-      _ <- lift(serializedT(scorerList)(scorer =>
-        cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id)))) */
+      _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheCoordinatorTeamsKey(team.ownerId)))
     } yield inserted
   }
 
@@ -394,8 +389,7 @@ class TeamRepositoryPostgres(
       oldTests = team.tests
       _ <- lift(cacheRepository.cacheTeam.removeCached(cacheTeamKey(team.id)))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(team.examId)))
-      exam <- lift(examRepository.find(updatedTeam.examId))
-      _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheCoordinatorTeamsKey(exam.ownerId)))
+      _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheCoordinatorTeamsKey(team.ownerId)))
       scorerList <- lift(userRepository.list(updatedTeam))
       _ <- lift(serializedT(scorerList)(scorer =>
         cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id))))
@@ -415,8 +409,7 @@ class TeamRepositoryPostgres(
       oldTests = team.tests
       _ <- lift(cacheRepository.cacheTeam.removeCached(cacheTeamKey(team.id)))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(team.examId)))
-      exam <- lift(examRepository.find(deletedTeam.examId))
-      _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheCoordinatorTeamsKey(exam.ownerId)))
+      _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheCoordinatorTeamsKey(team.ownerId)))
       scorerList <- lift(userRepository.list(deletedTeam))
       _ <- lift(serializedT(scorerList)(scorer =>
         cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id))))

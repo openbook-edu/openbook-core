@@ -1,37 +1,38 @@
-package ca.shiftfocus.krispii.core.models
+package ca.shiftfocus.krispii.core.models.user
 
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.models.group.Course
+import ca.shiftfocus.krispii.core.models.{Role, Tag, UserToken}
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
-import play.api.libs.json.JodaWrites._
 import play.api.libs.json.JodaReads._
-import play.api.libs.json.Writes._
+import play.api.libs.json.JodaWrites._
 import play.api.libs.json.Reads._
+import play.api.libs.json.Writes._
 import play.api.libs.json._
 
-case class User(
-    id: UUID = UUID.randomUUID,
-    version: Long = 1L,
-    username: String,
-    email: String,
-    hash: Option[String] = None,
-    givenname: String,
-    surname: String,
-    alias: Option[String] = None,
-    roles: IndexedSeq[Role] = IndexedSeq.empty[Role],
-    tags: IndexedSeq[Tag] = IndexedSeq.empty[Tag],
-    token: Option[UserToken] = None,
-    accountType: String,
-    // We should show this field only to admins, that's why it is not included in Json writes, and is included in Json adminWrites
-    isDeleted: Boolean = false,
-    createdAt: DateTime = new DateTime,
-    updatedAt: DateTime = new DateTime
-) {
+trait UserTrait {
+  val id: UUID
+  val version: Long
+  val username: String
+  val email: String
+  val hash: Option[String]
+  val givenname: String
+  val surname: String
+  val alias: Option[String]
+  val roles: IndexedSeq[Role]
+  val tags: IndexedSeq[Tag]
+  val token: Option[UserToken]
+  val accountType: String
+  // We should show this field only to admins, that's why it is not included in Json writes, and is included in Json adminWrites
+  val isDeleted: Boolean
+  val createdAt: DateTime
+  val updatedAt: DateTime
+
   override def equals(anotherObject: Any): Boolean = {
     anotherObject match {
-      case anotherUser: User => this.id == anotherUser.id
+      case anotherUser: UserTrait => this.id == anotherUser.id
       case _ => false
     }
   }
@@ -43,6 +44,24 @@ case class User(
   }
 }
 
+case class User(
+  id: UUID = UUID.randomUUID,
+  version: Long = 1L,
+  username: String,
+  email: String,
+  hash: Option[String] = None,
+  givenname: String,
+  surname: String,
+  alias: Option[String] = None,
+  roles: IndexedSeq[Role] = IndexedSeq.empty[Role],
+  tags: IndexedSeq[Tag] = IndexedSeq.empty[Tag],
+  token: Option[UserToken] = None,
+  accountType: String,
+  // We should show this field only to admins, that's why it is not included in Json writes, and is included in Json adminWrites
+  isDeleted: Boolean = false,
+  createdAt: DateTime = new DateTime,
+  updatedAt: DateTime = new DateTime
+) extends UserTrait
 /**
  * User companion object. Fills the role of input/output mappers in the
  * layered architecture. This object should handle all interaction with the

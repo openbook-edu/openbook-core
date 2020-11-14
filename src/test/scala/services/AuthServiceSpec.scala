@@ -1,6 +1,6 @@
 //import ca.shiftfocus.krispii.core.error._
 //import ca.shiftfocus.krispii.core.lib.ScalaCachePool
-//import ca.shiftfocus.krispii.core.models.User
+//import ca.shiftfocus.krispii.core.models.user.User
 //import java.util.UUID
 //import com.github.mauricio.async.db.Connection
 //import org.joda.time.DateTime

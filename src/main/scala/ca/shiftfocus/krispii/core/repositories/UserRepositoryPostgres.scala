@@ -4,7 +4,8 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.group.{Course, Team}
+import ca.shiftfocus.krispii.core.models.group.Course
+import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 
@@ -384,24 +385,6 @@ class UserRepositoryPostgres(
         for {
           userList <- lift(queryList(SelectAllWithCourse, Seq[Any](course.id)))
           _ <- lift(cacheRepository.cacheSeqUser.putCache(cacheStudentsKey(course.id))(userList, ttl))
-        } yield userList
-      case -\/(error) => Future successful -\/(error)
-    }
-  }
-
-  /**
-   * List scorers on a given team.
-   *
-   * @return a future disjunction containing either the scorers, or a failure
-   */
-  override def list(team: Team)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    val key = cacheTeamScorersKey(team.id)
-    cacheRepository.cacheSeqUser.getCached(key).flatMap {
-      case \/-(userList) => Future successful \/.right[RepositoryError.Fail, IndexedSeq[User]](userList)
-      case -\/(noResults: RepositoryError.NoResults) =>
-        for {
-          userList <- lift(queryList(SelectAllWithTeam, Seq[Any](team.id)))
-          _ <- lift(cacheRepository.cacheSeqUser.putCache(key)(userList, ttl))
         } yield userList
       case -\/(error) => Future successful -\/(error)
     }

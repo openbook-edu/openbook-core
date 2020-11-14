@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.models.group
 import java.awt.Color
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.models.User
+import ca.shiftfocus.krispii.core.models.user.Scorer
 import ca.shiftfocus.krispii.core.models.work.Test
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
@@ -26,7 +26,7 @@ case class Team(
   archived: Boolean = false,
   deleted: Boolean = false,
   chatEnabled: Boolean = true,
-  scorers: IndexedSeq[User] = IndexedSeq.empty[User],
+  scorers: IndexedSeq[Scorer] = IndexedSeq.empty[Scorer],
   tests: IndexedSeq[Test] = IndexedSeq.empty[Test],
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
@@ -50,7 +50,7 @@ object Team {
     (__ \ "archived").write[Boolean] and
     (__ \ "deleted").write[Boolean] and
     (__ \ "chatEnabled").write[Boolean] and
-    (__ \ "scorers").write[IndexedSeq[User]] and
+    (__ \ "scorers").write[IndexedSeq[Scorer]] and
     (__ \ "tests").write[IndexedSeq[Test]] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
@@ -69,7 +69,7 @@ object Team {
     (__ \ "archived").read[Boolean] and
     (__ \ "deleted").read[Boolean] and
     (__ \ "chatEnabled").read[Boolean] and
-    (__ \ "scorers").read[IndexedSeq[User]] and
+    (__ \ "scorers").read[IndexedSeq[Scorer]] and
     (__ \ "tests").read[IndexedSeq[Test]] and
     (__ \ "createdAt").read[DateTime] and
     (__ \ "updatedAt").read[DateTime]

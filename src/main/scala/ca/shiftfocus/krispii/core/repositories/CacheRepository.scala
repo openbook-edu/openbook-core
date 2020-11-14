@@ -7,6 +7,7 @@ import ca.shiftfocus.krispii.core.lib.{ScalaCacheConfig, ScalaCachePool}
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.group.{Course, Exam, Team}
 import ca.shiftfocus.krispii.core.models.tasks.Task
+import ca.shiftfocus.krispii.core.models.user.{Scorer, User}
 import ca.shiftfocus.krispii.core.models.work.{Score, Test}
 import scalacache.serialization.Codec
 import scalacache.serialization.Codec._
@@ -58,6 +59,9 @@ case class CacheRepository(
   val cacheScore: ScalaCachePool[Score] = new ScalaCachePool[Score](scalaCacheConfig)
   val cacheSeqScore: ScalaCachePool[IndexedSeq[Score]] = new ScalaCachePool[IndexedSeq[Score]](scalaCacheConfig)
 
+  val cacheScorer: ScalaCachePool[Scorer] = new ScalaCachePool[Scorer](scalaCacheConfig)
+  val cacheSeqScorer: ScalaCachePool[IndexedSeq[Scorer]] = new ScalaCachePool[IndexedSeq[Scorer]](scalaCacheConfig)
+
   val cacheSession: ScalaCachePool[Session] = new ScalaCachePool[Session](scalaCacheConfig)
   val cacheSeqSession: ScalaCachePool[IndexedSeq[Session]] = new ScalaCachePool[IndexedSeq[Session]](scalaCacheConfig)
 
@@ -99,6 +103,7 @@ trait SerializationSeqBinary {
   implicit val codecSeqProject: Codec[IndexedSeq[Project]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Project]]]
   implicit val codecSeqRole: Codec[IndexedSeq[Role]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Role]]]
   implicit val codecSeqScore: Codec[IndexedSeq[Score]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Score]]]
+  implicit val codecSeqScorer: Codec[IndexedSeq[Scorer]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Scorer]]]
   implicit val codecSeqSession: Codec[IndexedSeq[Session]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Session]]]
   implicit val codecSeqTag: Codec[IndexedSeq[Tag]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Tag]]]
   implicit val codecSeqTeam: Codec[IndexedSeq[Team]] = codecSeq.asInstanceOf[Codec[IndexedSeq[Team]]]

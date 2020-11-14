@@ -4,8 +4,9 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.ErrorUnion
 import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
+import ca.shiftfocus.krispii.core.models.user.{Scorer, UserTrait}
 import ca.shiftfocus.krispii.core.models.work.{Score, Test}
-import ca.shiftfocus.krispii.core.models.{Chat, User}
+import ca.shiftfocus.krispii.core.models.Chat
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
@@ -41,7 +42,7 @@ class OmsServiceDefault(
     testRepository.update(test)
   def findScore(scoreId: UUID): Future[\/[ErrorUnion#Fail, Score]] =
     scoreRepository.find(scoreId)
-  def listScorers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = for {
+  def listScorers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Scorer]]] = for {
     team <- lift(teamRepository.find(teamId))
   } yield team.scorers
 
@@ -50,7 +51,7 @@ class OmsServiceDefault(
    * @param teamId: UUID of the team
    * @return
    */
-  def listMembers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] =
+  def listMembers(teamId: UUID): Future[ErrorUnion#Fail \/ IndexedSeq[UserTrait]] =
     for {
       team <- lift(teamRepository.find(teamId))
       owner <- lift(userRepository.find(team.ownerId))

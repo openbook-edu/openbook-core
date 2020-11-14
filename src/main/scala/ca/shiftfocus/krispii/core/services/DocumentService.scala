@@ -1,10 +1,12 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models.User
-import ca.shiftfocus.krispii.core.models.document.{Revision, Document}
+import ca.shiftfocus.krispii.core.models.document.{Document, Revision}
 import ca.shiftfocus.krispii.core.repositories.{DocumentRepository, UserRepository}
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.models.user.User
+
 import scala.concurrent.Future
 import ca.shiftfocus.otlib._
 import scalaz.\/

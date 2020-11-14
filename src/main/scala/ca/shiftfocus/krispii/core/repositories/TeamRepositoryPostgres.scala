@@ -5,8 +5,8 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
+import ca.shiftfocus.krispii.core.models.user.{Scorer, User}
 import ca.shiftfocus.krispii.core.models.work.Test
-import ca.shiftfocus.krispii.core.models.User
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import play.api.Logger
@@ -16,7 +16,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class TeamRepositoryPostgres(
-  val userRepository: UserRepository,
+  val scorerRepository: ScorerRepository,
   val examRepository: ExamRepository,
   val testRepository: TestRepository,
   val cacheRepository: CacheRepository
@@ -40,7 +40,7 @@ class TeamRepositoryPostgres(
       row("chat_enabled").asInstanceOf[Boolean],
       row("archived").asInstanceOf[Boolean],
       row("deleted").asInstanceOf[Boolean],
-      IndexedSeq.empty[User],
+      IndexedSeq.empty[Scorer],
       IndexedSeq.empty[Test],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
@@ -50,7 +50,8 @@ class TeamRepositoryPostgres(
   // names and number of fields in SQL
   val Fields = "id, version, exam_id, coordinator_id, name, slug, color, " +
     "enabled, scheduling_enabled, chat_enabled, archived, deleted, created_at, updated_at"
-  val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
+  def FieldsWithTable(fields: String = Fields, table: String = Table): String = fields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
+  val TeamsFields = FieldsWithTable(Fields, Table)
   val OrderBy = s"${Table}.created_at ASC"
 
   // User CRUD operations
@@ -84,7 +85,7 @@ class TeamRepositoryPostgres(
 
   val ListByCoordinatorId =
     s"""
-       |SELECT $FieldsWithTable
+       |SELECT $TeamsFields
        |FROM $Table
        |WHERE coordinator_id = ?
        |ORDER BY $OrderBy
@@ -92,7 +93,7 @@ class TeamRepositoryPostgres(
 
   val ListByScorerId =
     s"""
-       |SELECT $FieldsWithTable
+       |SELECT $TeamsFields
        |FROM $Table, teams_scorers
        |WHERE $Table.id = teams_scorers.team_id
        |AND teams_scorers.scorer_id = ?
@@ -215,14 +216,14 @@ class TeamRepositoryPostgres(
   def enrichTeam(team: Team, fetchTests: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ Team] =
     if (fetchTests)
       for {
-        scorerList <- lift(userRepository.list(team))
+        scorerList <- lift(scorerRepository.list(team))
         testList <- lift(testRepository.list(team))
         result = team.copy(tests = testList, scorers = scorerList)
         _ = Logger.debug(s"enrichTeam: after adding scorers and tests, team is $result")
       } yield result
     else
       for {
-        scorerList <- lift(userRepository.list(team))
+        scorerList <- lift(scorerRepository.list(team))
         result = team.copy(scorers = scorerList)
         _ = Logger.debug(s"enrichTeams: after adding scorers, team is $result")
       } yield result
@@ -237,7 +238,7 @@ class TeamRepositoryPostgres(
     if (fetchTests)
       liftSeq(teamList.map { team =>
         (for {
-          scorerList <- lift(userRepository.list(team))
+          scorerList <- lift(scorerRepository.list(team))
           testList <- lift(testRepository.list(team))
           result = team.copy(tests = testList, scorers = scorerList)
           _ = Logger.debug(s"enrichTeams: after adding scorers and tests, team is $result")
@@ -246,7 +247,7 @@ class TeamRepositoryPostgres(
     else
       liftSeq(teamList.map { team =>
         (for {
-          scorerList <- lift(userRepository.list(team))
+          scorerList <- lift(scorerRepository.list(team))
           result = team.copy(scorers = scorerList)
           _ = Logger.debug(s"enrichTeams: after adding scorers, team is $result")
         } yield result).run
@@ -390,7 +391,7 @@ class TeamRepositoryPostgres(
       _ <- lift(cacheRepository.cacheTeam.removeCached(cacheTeamKey(team.id)))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(team.examId)))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheCoordinatorTeamsKey(team.ownerId)))
-      scorerList <- lift(userRepository.list(updatedTeam))
+      scorerList <- lift(scorerRepository.list(updatedTeam))
       _ <- lift(serializedT(scorerList)(scorer =>
         cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id))))
     } yield updatedTeam.copy(tests = oldTests)).run
@@ -410,7 +411,7 @@ class TeamRepositoryPostgres(
       _ <- lift(cacheRepository.cacheTeam.removeCached(cacheTeamKey(team.id)))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(team.examId)))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheCoordinatorTeamsKey(team.ownerId)))
-      scorerList <- lift(userRepository.list(deletedTeam))
+      scorerList <- lift(scorerRepository.list(deletedTeam))
       _ <- lift(serializedT(scorerList)(scorer =>
         cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id))))
     } yield deletedTeam.copy(tests = oldTests)).run

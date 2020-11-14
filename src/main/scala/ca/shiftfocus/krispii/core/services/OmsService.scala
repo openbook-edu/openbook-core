@@ -3,8 +3,9 @@ package ca.shiftfocus.krispii.core.services
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.ErrorUnion
-import ca.shiftfocus.krispii.core.models.{Chat, User}
+import ca.shiftfocus.krispii.core.models.Chat
 import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
+import ca.shiftfocus.krispii.core.models.user.{Scorer, UserTrait}
 import ca.shiftfocus.krispii.core.models.work.Test
 import ca.shiftfocus.krispii.core.repositories.{ExamRepository, TeamRepository, TestRepository, UserRepository}
 import scalaz.\/
@@ -30,9 +31,9 @@ trait OmsService extends Service[ErrorUnion#Fail] {
 
   // duplicate (examId, name) will cause a RepositoryError.UniqueKeyConflict which should be handled by API
 
-  def listScorers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
+  def listScorers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Scorer]]]
 
-  def listMembers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
+  def listMembers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[UserTrait]]]
 
   def moveTests(testIds: IndexedSeq[UUID], newTeamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]]
 

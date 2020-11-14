@@ -10,6 +10,7 @@ import scala.concurrent.Future
 import java.awt.Color
 
 import ca.shiftfocus.krispii.core.models.group.Course
+import ca.shiftfocus.krispii.core.models.user.User
 import org.joda.time.DateTime
 import scalaz.\/
 

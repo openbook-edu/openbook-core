@@ -5,6 +5,7 @@ import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
 import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.models.user.User
 import ca.shiftfocus.krispii.core.repositories.{TagCategoryRepository, TagRepository, _}
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection

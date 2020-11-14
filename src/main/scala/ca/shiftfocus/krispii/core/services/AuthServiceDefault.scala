@@ -8,7 +8,7 @@ import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.models.group.Team
+import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.Connection
 import org.apache.commons.mail.EmailException
 import play.api.Logger
@@ -104,9 +104,6 @@ class AuthServiceDefault(
       students <- lift(userRepository.list(teacher))
     } yield students
   }
-
-  def listByTeam(team: Team): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] =
-    userRepository.list(team)
 
   /**
    * Authenticates a given identifier/password combination.

@@ -8,6 +8,7 @@ import ca.shiftfocus.krispii.core.models.tasks.questions._
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.models.group.Course
+import ca.shiftfocus.krispii.core.models.user.User
 import ca.shiftfocus.krispii.core.models.work._
 import org.joda.time.{DateTime, DateTimeZone, LocalDate, LocalTime}
 import ca.shiftfocus.otlib._

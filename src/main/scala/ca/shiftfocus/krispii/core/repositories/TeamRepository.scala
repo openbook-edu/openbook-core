@@ -3,15 +3,15 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
+import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.Connection
 import scalaz.\/
 
 import scala.concurrent.Future
 
 trait TeamRepository extends Repository {
-  val userRepository: UserRepository
+  val scorerRepository: ScorerRepository
   val testRepository: TestRepository
 
   def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Team]]]

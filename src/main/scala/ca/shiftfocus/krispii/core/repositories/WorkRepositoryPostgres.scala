@@ -5,13 +5,17 @@ import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.models.work._
 import java.util.UUID
-import com.github.mauricio.async.db.{RowData, Connection}
+
+import ca.shiftfocus.krispii.core.models.user.User
+import com.github.mauricio.async.db.{Connection, RowData}
 import play.api.libs.json.Json
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
+
 import scala.concurrent.Future
-import scala.util.{Try}
-import scalaz.{\/, -\/, \/-}
+import scala.util.Try
+import scalaz.{-\/, \/, \/-}
 
 class WorkRepositoryPostgres(
     val documentRepository: DocumentRepository,

@@ -1,10 +1,11 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models.{Chat, User}
+import ca.shiftfocus.krispii.core.models.Chat
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.models.group.{Group, Team}
+import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 

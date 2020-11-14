@@ -6,6 +6,7 @@ import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.models.group.Course
+import ca.shiftfocus.krispii.core.models.user.User
 
 import scala.concurrent.Future
 import scalaz.\/

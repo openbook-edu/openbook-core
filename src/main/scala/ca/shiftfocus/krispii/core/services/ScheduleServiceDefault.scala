@@ -10,6 +10,7 @@ import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.models.group._
+import ca.shiftfocus.krispii.core.models.user.User
 import org.joda.time.LocalTime
 import org.joda.time.LocalDate
 

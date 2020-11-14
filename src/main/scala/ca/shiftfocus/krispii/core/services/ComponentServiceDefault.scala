@@ -2,15 +2,17 @@ package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
 import com.github.mauricio.async.db.Connection
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
 
-import scala.concurrent.Future
+import ca.shiftfocus.krispii.core.models.user.User
 
-import scalaz.{-\/, \/-, \/}
+import scala.concurrent.Future
+import scalaz.{-\/, \/, \/-}
 
 class ComponentServiceDefault(
   val db: DB,

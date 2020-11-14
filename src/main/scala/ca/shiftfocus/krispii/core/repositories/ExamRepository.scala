@@ -3,8 +3,8 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.models.group.Exam
+import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.Connection
 import scalaz.\/
 

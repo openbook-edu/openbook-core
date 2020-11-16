@@ -147,13 +147,13 @@ class TeamRepositoryPostgres(
         scorerList <- lift(scorerRepository.list(team))
         testList <- lift(testRepository.list(team))
         result = team.copy(tests = testList, scorers = scorerList)
-        _ = Logger.debug(s"enrichTeam: after adding scorers and tests, team is $result")
+        // _ = Logger.debug(s"enrichTeam: after adding scorers and tests, team is $result")
       } yield result
     else
       for {
         scorerList <- lift(scorerRepository.list(team))
         result = team.copy(scorers = scorerList)
-        _ = Logger.debug(s"enrichTeams: after adding scorers, team is $result")
+        // _ = Logger.debug(s"enrichTeams: after adding scorers, team is $result")
       } yield result
 
   /**
@@ -169,7 +169,7 @@ class TeamRepositoryPostgres(
           scorerList <- lift(scorerRepository.list(team))
           testList <- lift(testRepository.list(team))
           result = team.copy(tests = testList, scorers = scorerList)
-          _ = Logger.debug(s"enrichTeams: after adding scorers and tests, team is $result")
+          // _ = Logger.debug(s"enrichTeams: after adding scorers and tests, team is $result")
         } yield result).run
       })
     else
@@ -177,7 +177,7 @@ class TeamRepositoryPostgres(
         (for {
           scorerList <- lift(scorerRepository.list(team))
           result = team.copy(scorers = scorerList)
-          _ = Logger.debug(s"enrichTeams: after adding scorers, team is $result")
+          // _ = Logger.debug(s"enrichTeams: after adding scorers, team is $result")
         } yield result).run
       })
 
@@ -236,7 +236,6 @@ class TeamRepositoryPostgres(
       (cacheScorerTeamsKey(user.id), ListByScorerId)
     else
       (cacheCoordinatorTeamsKey(user.id), ListByCoordinatorId)
-    Logger.debug(s"List teams for ${user.email}: redis key $key")
     cacheRepository.cacheSeqTeam.getCached(key).flatMap {
       case \/-(teamList) => enrichTeams(teamList, fetchTests)
       case -\/(noResults: RepositoryError.NoResults) =>

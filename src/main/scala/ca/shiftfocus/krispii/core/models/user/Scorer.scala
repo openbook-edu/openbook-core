@@ -88,3 +88,15 @@ object Scorer {
   )(Scorer.apply _)
 }
 
+case class FutureScorer(userId: UUID, leader: Boolean)
+object FutureScorer {
+  implicit val fsWrites: Writes[FutureScorer] = (
+    (__ \ "userId").write[UUID] and
+    (__ \ "leader").write[Boolean]
+  )(unlift(FutureScorer.unapply))
+
+  implicit val fsReads: Reads[FutureScorer] = (
+    (__ \ "userId").read[UUID] and
+    (__ \ "leader").read[Boolean]
+  )(FutureScorer.apply _)
+}

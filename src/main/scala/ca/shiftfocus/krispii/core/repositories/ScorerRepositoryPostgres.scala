@@ -4,7 +4,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.group.Team
-import ca.shiftfocus.krispii.core.models.user.{Scorer, User}
+import ca.shiftfocus.krispii.core.models.user.{Scorer, User, FutureScorer}
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import play.api.Logger
@@ -40,7 +40,7 @@ class ScorerRepositoryPostgres(
       includedAt = row("updated_at").asInstanceOf[DateTime]
     )
 
-  def FieldsWithTable(fields: String, table: String): String =
+  private def FieldsWithTable(fields: String, table: String): String =
     fields.split(", ")
       .map({ field => s"$table." + field })
       .mkString(", ")
@@ -49,15 +49,15 @@ class ScorerRepositoryPostgres(
      Extending PostgresRepository[Scorer] means queryOne etc. expect ALL Scorer fields
      to be returned from each SQL query, even if the returned values are just discarded. */
 
-  val UserFields: String = "id, version, created_at, updated_at, username, email, givenname, surname, alias, account_type"
-  val UserFieldsTable: String = FieldsWithTable(UserFields, "users")
-  val AddFields: String = "team_id, leader, deleted, archived, created_at"
-  val ScorerFields: String = "scorer_id, " + AddFields
-  val ScorerFieldsTable: String = FieldsWithTable(AddFields, "teams_scorers") + " AS included_at"
-  val UpdateFieldsTable: String = FieldsWithTable(AddFields, "updated") + " AS included_at"
-  val Fields: String = UserFieldsTable + ", " + ScorerFieldsTable
+  private val UserFields = "id, version, created_at, updated_at, username, email, givenname, surname, alias, account_type"
+  private val UserFieldsTable = FieldsWithTable(UserFields, "users")
+  private val AddFields = "team_id, leader, deleted, archived, created_at"
+  private val ScorerFields = "scorer_id, " + AddFields
+  private val ScorerFieldsTable = FieldsWithTable(AddFields, "teams_scorers") + " AS included_at"
+  private val UpdateFieldsTable = FieldsWithTable(AddFields, "updated") + " AS included_at"
+  private val Fields = UserFieldsTable + ", " + ScorerFieldsTable
 
-  val SelectFromTeam: String =
+  private val SelectFromTeam =
     s"""
        |SELECT $Fields
        |FROM teams, users, teams_scorers
@@ -65,14 +65,14 @@ class ScorerRepositoryPostgres(
        |  AND teams_scorers.scorer_id = users.id
        |  AND teams.id = ?
        |  AND users.is_deleted = FALSE
-       |ORDER BY teams_scorers.created_at
+       |ORDER BY teams_scorers.leader DESC, teams_scorers.created_at ASC
     """.stripMargin
 
   /**
    * The Boolean fields archived and deleted will always be default (false) on creation.
    * The scorer_id and team_id fields will never be changed. Therefore, it doesn't seem necessary to have a version.
    */
-  val AddScorer: String =
+  private val AddScorer =
     s"""
        |WITH updated AS (
        |	INSERT INTO teams_scorers (team_id, scorer_id, leader, created_at)
@@ -83,7 +83,7 @@ class ScorerRepositoryPostgres(
        |WHERE updated.scorer_id = users.id;
   """.stripMargin
 
-  val ToggleTeamLeader: String =
+  private val ToggleTeamLeader =
     s"""
        |WITH updated AS (
        |	UPDATE teams_scorers
@@ -96,7 +96,7 @@ class ScorerRepositoryPostgres(
        |WHERE updated.scorer_id = users.id;
   """.stripMargin
 
-  val ToggleArchivedScorer: String =
+  private val ToggleArchivedScorer =
     s"""
        |WITH updated AS (
        |	UPDATE teams_scorers
@@ -112,7 +112,7 @@ class ScorerRepositoryPostgres(
   /**
    * "Removing" a scorer from a team means "updating" with deleted=true.
    */
-  val toggleDeletedScorer: String =
+  private val toggleDeletedScorer =
     s"""
        |WITH updated AS (
        |	UPDATE teams_scorers
@@ -128,7 +128,7 @@ class ScorerRepositoryPostgres(
   /**
    * This should, if at all, only be used by top-level administrators.
    */
-  val CompletelyRemoveScorer: String =
+  private val CompletelyRemoveScorer =
     s"""
        |WITH updated AS (
        |	DELETE FROM team_scorers
@@ -140,13 +140,21 @@ class ScorerRepositoryPostgres(
        |WHERE updated.scorer_id = users.id;
    """.stripMargin
 
-  /*val AddScorers =
+  private val AddScorersStart =
     """
       |INSERT INTO teams_scorers (team_id, scorer_id, leader, created_at)
       |VALUES
   """.stripMargin
 
-  val RemoveScorers =
+  private val AddScorersEnd =
+    """
+      |RETURNING $ScorerFields)
+      |SELECT $UserFieldsTable, $UpdateFieldsTable
+      |FROM updated, users
+      |WHERE updated.scorer_id = users.id;
+  """.stripMargin
+
+  /*private val RemoveScorersStart =
     """
       |UPDATE teams_scorers (team_id, scorer_id, deleted)
       |VALUES
@@ -155,13 +163,13 @@ class ScorerRepositoryPostgres(
   /**
    * This should, if at all, only be used by top-level administrators.
    */
-  val CompletelyRemoveScorers =
+  private val CompletelyRemoveScorers =
     s"""
        |DELETE FROM teams_scorers
        |WHERE team_id = ?
        | AND ARRAY[scorer_id] <@ ?
-       |RETURNING $TeamsScorerFields
-  """.stripMargin */
+       |RETURNING $Fields
+  """.stripMargin*/
 
   /**
    * List scorers on a given team.
@@ -255,39 +263,40 @@ class ScorerRepositoryPostgres(
         -\/(error)
     }
 
-  /*override def addScorers(team: Team, scorerList: IndexedSeq[User], leaderList: IndexedSeq[Boolean] = IndexedSeq(false))(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def addScorers(team: Team, userList: IndexedSeq[FutureScorer])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     val cleanTeamId = team.id.toString filterNot ("-" contains _)
-    val query = AddScorers + { scorerList zip leaderList }.map {
-      case (scorer, leader) =>
-        val cleanScorerId = scorer.id.toString filterNot ("-" contains _)
-        s"('$cleanTeamId', '$cleanScorerId', '$leader', '${new DateTime()}')"
-    }.mkString(",")
+    val perRow = userList map (fs => {
+      val cleanId = fs.userId.toString filterNot ("-" contains _)
+      s"('$cleanTeamId', '$cleanId', '${fs.leader}', '${new DateTime()}')"
+    })
+    val query = AddScorersStart + perRow.mkString(",") + AddScorersEnd
 
     for {
-      _ <- lift(queryNumRows(query)(scorerList.length == _).map {
+      _ <- lift(queryNumRows(query, debug = true)(userList.length == _).map {
         case \/-(true) =>
           cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id))
-          serializedT(scorerList)(scorer => cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id)))
+          serializedT(userList)(scorer => cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.userId)))
           \/-(())
         case \/-(false) =>
           Logger.error(s"At least one scorer could not be added to team ${team.id}.")
           -\/(RepositoryError.DatabaseError("At least one scorer could not be added to the team."))
         case -\/(error) =>
-          Logger.error(s"At least one scorer could not be added to team ${team.id}: ${error}")
+          Logger.error(s"At least one scorer could not be added to team ${team.id}: $error")
           -\/(error)
       })
-      _ <- liftSeq(scorerList.map {
-        user => cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(user.id))
+      _ <- liftSeq(userList.map {
+        user => cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(user.userId))
       })
     } yield ()
   }
 
-  override def removeScorers(team: Team, scorerIdList: IndexedSeq[UUID])(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
+  /*def removeScorers(team: Team, scorerIdList: IndexedSeq[UUID])(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
     val cleanTeamId = team.id.toString filterNot ("-" contains _)
-    val query = RemoveScorers + scorerIdList.map { id =>
+    val perRow = scorerIdList.map { id =>
       val cleanUserId = id.toString filterNot ("-" contains _)
       s"('$cleanTeamId', '$cleanUserId', true)"
-    }.mkString(",")
+    }
+    val query = RemoveScorersStart + perRow.mkString(",") + RemoveScorersEnd
 
     for {
       _ <- lift(queryNumRows(query)(scorerIdList.length == _).map {
@@ -312,9 +321,9 @@ class ScorerRepositoryPostgres(
         }
       }
     } yield ()
-  }
+  } */
 
-  def completelyRemoveScorers(team: Team, scorerList: IndexedSeq[UUID])(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
+  /*def completelyRemoveScorers(team: Team, scorerList: IndexedSeq[UUID])(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
     val cleanTeamId = team.id.toString filterNot ("-" contains _)
     val cleanUserIds = scorerList.map { id =>
       id.toString filterNot ("-" contains _)

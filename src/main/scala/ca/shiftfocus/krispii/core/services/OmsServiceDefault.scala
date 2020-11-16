@@ -2,9 +2,9 @@ package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.error.ErrorUnion
+import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError}
 import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
-import ca.shiftfocus.krispii.core.models.user.{Scorer, UserTrait}
+import ca.shiftfocus.krispii.core.models.user.{Scorer, User, UserTrait}
 import ca.shiftfocus.krispii.core.models.work.{Score, Test}
 import ca.shiftfocus.krispii.core.models.Chat
 import ca.shiftfocus.krispii.core.repositories._
@@ -25,6 +25,7 @@ class OmsServiceDefault(
     val teamRepository: TeamRepository,
     val testRepository: TestRepository,
     val scoreRepository: ScoreRepository,
+    val scorerRepository: ScorerRepository,
     val userRepository: UserRepository
 ) extends OmsService {
 
@@ -32,19 +33,27 @@ class OmsServiceDefault(
 
   /* Bread-and-butter functions that simply pass on requests to the respective repositories
      because it is easier for the API to just include one omsService */
-  def findExam(examId: UUID): Future[\/[ErrorUnion#Fail, Exam]] =
+  override def findExam(examId: UUID): Future[\/[ErrorUnion#Fail, Exam]] =
     examRepository.find(examId)
-  def findTeam(teamId: UUID): Future[\/[ErrorUnion#Fail, Team]] =
+
+  override def findTeam(teamId: UUID): Future[\/[ErrorUnion#Fail, Team]] =
     teamRepository.find(teamId)
-  def findTest(testId: UUID): Future[\/[ErrorUnion#Fail, Test]] =
+
+  override def findTest(testId: UUID): Future[\/[ErrorUnion#Fail, Test]] =
     testRepository.find(testId)
-  def updateTest(test: Test): Future[\/[ErrorUnion#Fail, Test]] =
+
+  override def updateTest(test: Test): Future[\/[ErrorUnion#Fail, Test]] =
     testRepository.update(test)
-  def findScore(scoreId: UUID): Future[\/[ErrorUnion#Fail, Score]] =
+
+  override def findScore(scoreId: UUID): Future[\/[ErrorUnion#Fail, Score]] =
     scoreRepository.find(scoreId)
-  def listScorers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Scorer]]] = for {
+
+  override def listScorers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Scorer]]] = for {
     team <- lift(teamRepository.find(teamId))
   } yield team.scorers
+
+  override def listScorers(team: Team): Future[\/[ErrorUnion#Fail, IndexedSeq[Scorer]]] =
+    scorerRepository.list(team)
 
   /**
    * Supply list that contains the team's owner (at head position) and scorers, or an error
@@ -57,6 +66,45 @@ class OmsServiceDefault(
       owner <- lift(userRepository.find(team.ownerId))
       members = owner +: team.scorers
     } yield members
+
+  /**
+   * All scorer functions need to request updated team here, since scoreRepository cannot reference teamRepository (circularity!)
+   * @param team: the Team
+   * @param user: a User to be added to the team
+   * @param leader: will this user be the team leader?
+   * @return
+   */
+  override def addScorer(team: Team, user: User, leader: Boolean): Future[RepositoryError.Fail \/ Team] =
+    for {
+      _ <- scorerRepository.addScorer(team, user, leader)
+      updatedTeam <- teamRepository.find(team.id)
+    } yield updatedTeam
+
+  override def updateScorer(team: Team, scorer: Scorer, leader: Option[Boolean],
+    archived: Option[Boolean], deleted: Option[Boolean]): Future[RepositoryError.Fail \/ Team] =
+    for {
+      _ <- scorerRepository.updateScorer(team, scorer, leader, archived, deleted)
+      updatedTeam <- teamRepository.find(team.id)
+    } yield updatedTeam
+
+  override def removeScorer(team: Team, scorerId: UUID): Future[RepositoryError.Fail \/ Team] =
+    for {
+      _ <- scorerRepository.removeScorer(team, scorerId)
+      updatedTeam <- teamRepository.find(team.id)
+    } yield updatedTeam
+
+  /*override def addScorers(team: Team, scorerList: IndexedSeq[User],
+    leaderList: IndexedSeq[Boolean] = IndexedSeq(false)): Future[\/[RepositoryError.Fail, Team]] =
+    for {
+      _ <- scorerRepository.addScorers(team, scorerList, leaderList)
+      updatedTeam <- teamRepository.find(team.id)
+    } yield updatedTeam
+
+  override def removeScorers(team: Team, scorerIdList: IndexedSeq[UUID]): Future[\/[RepositoryError.Fail, Team]] =
+    for {
+      _ <- scorerRepository.removeScorers(team, scorerIdList)
+      updatedTeam <- teamRepository.find(team.id)
+    } yield updatedTeam */
 
   /**
    * Move a vector of Tests, identified by their IDs, to a certain team.
@@ -73,7 +121,7 @@ class OmsServiceDefault(
   /**
    * Take a list of teamIDs and return some random value from it.
    * TODO: take a Map of teamIds with their frequencies and favor the teams with lower frequencies
-   * @param idList
+   * @param idList: list of team IDs
    * @return
    */
   def randomId(idList: IndexedSeq[UUID]): UUID =
@@ -110,13 +158,12 @@ class OmsServiceDefault(
   /**
    * List all chats for a team (usually one).
    *
-   * @param teamId
+   * @param teamId: unique ID of the team
    * @return
    */
-  override def listChats(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = {
-    for {
-      team <- lift(findTeam(teamId))
-      chats <- lift(chatRepository.list(team))
-    } yield chats
-  }
+  override def listChats(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = for {
+    team <- lift(findTeam(teamId))
+    chats <- lift(chatRepository.list(team))
+  } yield chats
+
 }

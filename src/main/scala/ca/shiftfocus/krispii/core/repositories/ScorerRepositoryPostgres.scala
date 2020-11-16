@@ -4,15 +4,14 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.group.Team
-import ca.shiftfocus.krispii.core.models.user.Scorer
+import ca.shiftfocus.krispii.core.models.user.{Scorer, User}
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
+import play.api.Logger
 import scalaz.{-\/, \/, \/-}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-
-import play.api.Logger
 
 class ScorerRepositoryPostgres(
     val cacheRepository: CacheRepository
@@ -41,15 +40,26 @@ class ScorerRepositoryPostgres(
       includedAt = row("updated_at").asInstanceOf[DateTime]
     )
 
-  def FieldsWithTable(fields: String, table: String): String = fields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
+  def FieldsWithTable(fields: String, table: String): String =
+    fields.split(", ")
+      .map({ field => s"$table." + field })
+      .mkString(", ")
 
-  val UserFields = "id, version, created_at, updated_at, username, email, givenname, surname, alias, account_type"
-  val TeamsScorerFields = "leader, deleted, archived, created_at"
-  val ScorerFields = FieldsWithTable(UserFields, "users") + ", " + FieldsWithTable(TeamsScorerFields, "teams_scorers") + " as included_at"
+  /* There is no "scorers" table in SQL: scorers are created on the fly from users and teams_scorers.
+     Extending PostgresRepository[Scorer] means queryOne etc. expect ALL Scorer fields
+     to be returned from each SQL query, even if the returned values are just discarded. */
 
-  val SelectFromTeam =
+  val UserFields: String = "id, version, created_at, updated_at, username, email, givenname, surname, alias, account_type"
+  val UserFieldsTable: String = FieldsWithTable(UserFields, "users")
+  val AddFields: String = "team_id, leader, deleted, archived, created_at"
+  val ScorerFields: String = "scorer_id, " + AddFields
+  val ScorerFieldsTable: String = FieldsWithTable(AddFields, "teams_scorers") + " AS included_at"
+  val UpdateFieldsTable: String = FieldsWithTable(AddFields, "updated") + " AS included_at"
+  val Fields: String = UserFieldsTable + ", " + ScorerFieldsTable
+
+  val SelectFromTeam: String =
     s"""
-       |SELECT $ScorerFields
+       |SELECT $Fields
        |FROM teams, users, teams_scorers
        |WHERE teams.id = teams_scorers.team_id
        |  AND teams_scorers.scorer_id = users.id
@@ -59,16 +69,110 @@ class ScorerRepositoryPostgres(
     """.stripMargin
 
   /**
+   * The Boolean fields archived and deleted will always be default (false) on creation.
+   * The scorer_id and team_id fields will never be changed. Therefore, it doesn't seem necessary to have a version.
+   */
+  val AddScorer: String =
+    s"""
+       |WITH updated AS (
+       |	INSERT INTO teams_scorers (team_id, scorer_id, leader, created_at)
+       |	VALUES (?, ?, ?, ?)
+       |	RETURNING $ScorerFields)
+       |SELECT $UserFieldsTable, $UpdateFieldsTable
+       |FROM updated, users
+       |WHERE updated.scorer_id = users.id;
+  """.stripMargin
+
+  val ToggleTeamLeader: String =
+    s"""
+       |WITH updated AS (
+       |	UPDATE teams_scorers
+       |	SET leader = ?
+       |	WHERE team_id = ?
+       |	  AND scorer_id = ?
+       |	RETURNING $ScorerFields)
+       |SELECT $UserFieldsTable, $UpdateFieldsTable
+       |FROM updated, users
+       |WHERE updated.scorer_id = users.id;
+  """.stripMargin
+
+  val ToggleArchivedScorer: String =
+    s"""
+       |WITH updated AS (
+       |	UPDATE teams_scorers
+       |	SET archived = ?
+       |	WHERE team_id = ?
+       |	  AND scorer_id = ?
+       |	RETURNING $ScorerFields)
+       |SELECT $UserFieldsTable, $UpdateFieldsTable
+       |FROM updated, users
+       |WHERE updated.scorer_id = users.id;
+  """.stripMargin
+
+  /**
+   * "Removing" a scorer from a team means "updating" with deleted=true.
+   */
+  val toggleDeletedScorer: String =
+    s"""
+       |WITH updated AS (
+       |	UPDATE teams_scorers
+       |	SET deleted = ?
+       |	WHERE team_id = ?
+       |	  AND scorer_id = ?
+       |	RETURNING $ScorerFields)
+       |SELECT $UserFieldsTable, $UpdateFieldsTable
+       |FROM updated, users
+       |WHERE updated.scorer_id = users.id;
+  """.stripMargin
+
+  /**
+   * This should, if at all, only be used by top-level administrators.
+   */
+  val CompletelyRemoveScorer: String =
+    s"""
+       |WITH updated AS (
+       |	DELETE FROM team_scorers
+       |	WHERE team_id = ?
+       |	  AND scorer_id = ?
+       |	RETURNING $ScorerFields)
+       |SELECT $UserFieldsTable, $UpdateFieldsTable
+       |FROM updated, users
+       |WHERE updated.scorer_id = users.id;
+   """.stripMargin
+
+  /*val AddScorers =
+    """
+      |INSERT INTO teams_scorers (team_id, scorer_id, leader, created_at)
+      |VALUES
+  """.stripMargin
+
+  val RemoveScorers =
+    """
+      |UPDATE teams_scorers (team_id, scorer_id, deleted)
+      |VALUES
+  """.stripMargin
+
+  /**
+   * This should, if at all, only be used by top-level administrators.
+   */
+  val CompletelyRemoveScorers =
+    s"""
+       |DELETE FROM teams_scorers
+       |WHERE team_id = ?
+       | AND ARRAY[scorer_id] <@ ?
+       |RETURNING $TeamsScorerFields
+  """.stripMargin */
+
+  /**
    * List scorers on a given team.
    *
    * @return a future disjunction containing either the scorers, or a failure
    */
   override def list(team: Team)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Scorer]]] = {
-    Logger.debug(s"List scorers command:\n$SelectFromTeam")
     val key = cacheTeamScorersKey(team.id)
     cacheRepository.cacheSeqScorer.getCached(key).flatMap {
       case \/-(scorerList) => Future successful \/-(scorerList)
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case -\/(_: RepositoryError.NoResults) =>
         for {
           scorerList <- lift(queryList(SelectFromTeam, Seq[Any](team.id)))
           _ <- lift(cacheRepository.cacheSeqScorer.putCache(key)(scorerList, ttl))
@@ -76,5 +180,169 @@ class ScorerRepositoryPostgres(
       case -\/(error) => Future successful -\/(error)
     }
   }
+
+  /**
+   * Add a scorer to the team.
+   * @param team: the Team that
+   * @param scorer: a User to be transformed into a Scorer
+   * @param leader: is the new scorer a team leader? default false
+   * @param conn: implicit database connection
+   * @return Unit, since it makes more sense to let omsService return the entire Team (teamRepository must not be referenced here to avoid circularity!)
+   */
+  override def addScorer(team: Team, scorer: User, leader: Boolean = false)(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
+    val params = Seq[Any](team.id, scorer.id, leader, new DateTime)
+    for {
+      _ <- lift(queryOne(AddScorer, params).map {
+        case \/-(scorer) =>
+          cacheRepository.cacheSeqExam.removeCached(cacheScorerExamsKey(scorer.id))
+          cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id))
+          cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id))
+          \/-(scorer)
+        case -\/(error) =>
+          Logger.error(s"Scorer ${scorer.email} could not be added to team ${team.id}: $error")
+          -\/(error)
+      })
+    } yield ()
+  }
+
+  override def updateScorer(team: Team, scorer: Scorer, leader: Option[Boolean], archived: Option[Boolean],
+    deleted: Option[Boolean])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] =
+    for {
+      _ <- lift(cacheRepository.cacheSeqExam.removeCached(cacheScorerExamsKey(scorer.id)))
+      _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id)))
+      _ <- lift(leader match {
+        case Some(leader) => queryOne(ToggleTeamLeader, Seq[Any](leader, team.id, scorer.id), debug = true)
+        case None => Future successful \/-(true)
+      })
+      _ <- lift(archived match {
+        case Some(archived) => queryOne(ToggleArchivedScorer, Seq[Any](archived, team.id, scorer.id), debug = true)
+        case None => Future successful \/-(true)
+      })
+      _ <- lift(deleted match {
+        case Some(deleted) => queryOne(toggleDeletedScorer, Seq[Any](deleted, team.id, scorer.id), debug = true)
+        case None => Future successful -\/(RepositoryError.BadParam(s"Nothing to update for scorer ${scorer.email} in team ${team.id}"))
+      })
+    } yield ()
+
+  override def removeScorer(team: Team, scorerId: UUID)(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] =
+    for {
+      _ <- lift(cacheRepository.cacheSeqExam.removeCached(cacheScorerExamsKey(scorerId)))
+      _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorerId)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id)))
+      _ <- lift(queryOne(toggleDeletedScorer, Seq[Any](true, team.id, scorerId)))
+    } yield ()
+
+  /**
+   * Should be used, if at all, only by top-level administrators.
+   * @param team: the Team from which to delete the scorer
+   * @param scorerId: unique ID of the scorer to be deleted
+   * @param conn: implicit database connection
+   * @return
+   */
+  def completelyRemoveScorer(team: Team, scorerId: UUID)(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] =
+    queryNumRows(CompletelyRemoveScorer, Seq[Any](team.id, scorerId))(_ == 1).map {
+      case \/-(true) =>
+        cacheRepository.cacheSeqExam.removeCached(cacheScorerExamsKey(scorerId))
+        cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorerId))
+        cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id))
+        \/-(Unit)
+      case \/-(false) =>
+        Logger.error(s"Scorer $scorerId could not be removed from team ${team.id}.")
+        \/-(RepositoryError.DatabaseError(s"Scorer $scorerId could not be removed from the team."))
+      case -\/(error) =>
+        Logger.error(s"Scorer $scorerId could not be removed from team ${team.id}: $error")
+        -\/(error)
+    }
+
+  /*override def addScorers(team: Team, scorerList: IndexedSeq[User], leaderList: IndexedSeq[Boolean] = IndexedSeq(false))(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
+    val cleanTeamId = team.id.toString filterNot ("-" contains _)
+    val query = AddScorers + { scorerList zip leaderList }.map {
+      case (scorer, leader) =>
+        val cleanScorerId = scorer.id.toString filterNot ("-" contains _)
+        s"('$cleanTeamId', '$cleanScorerId', '$leader', '${new DateTime()}')"
+    }.mkString(",")
+
+    for {
+      _ <- lift(queryNumRows(query)(scorerList.length == _).map {
+        case \/-(true) =>
+          cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id))
+          serializedT(scorerList)(scorer => cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id)))
+          \/-(())
+        case \/-(false) =>
+          Logger.error(s"At least one scorer could not be added to team ${team.id}.")
+          -\/(RepositoryError.DatabaseError("At least one scorer could not be added to the team."))
+        case -\/(error) =>
+          Logger.error(s"At least one scorer could not be added to team ${team.id}: ${error}")
+          -\/(error)
+      })
+      _ <- liftSeq(scorerList.map {
+        user => cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(user.id))
+      })
+    } yield ()
+  }
+
+  override def removeScorers(team: Team, scorerIdList: IndexedSeq[UUID])(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
+    val cleanTeamId = team.id.toString filterNot ("-" contains _)
+    val query = RemoveScorers + scorerIdList.map { id =>
+      val cleanUserId = id.toString filterNot ("-" contains _)
+      s"('$cleanTeamId', '$cleanUserId', true)"
+    }.mkString(",")
+
+    for {
+      _ <- lift(queryNumRows(query)(scorerIdList.length == _).map {
+        case \/-(true) =>
+          cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id))
+          serializedT(scorerIdList)(scorerId => cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorerId)))
+          \/-(())
+        case \/-(false) =>
+          Logger.error(s"At least one scorer could not be removed from team ${team.id}.")
+          -\/(RepositoryError.DatabaseError(s"At least one scorer could not be removed from team ${team}."))
+        case -\/(error) =>
+          Logger.error(s"At least one scorer could not be removed from team ${team.id}: ${error}")
+          -\/(error)
+      }.recover {
+        case exception: Throwable =>
+          Logger.error(s"When removing scorers ${scorerIdList} from team ${team}: ${exception}")
+          -\/(RepositoryError.DatabaseError(s"General error while removing scorers from team ${team}"))
+      })
+      _ <- liftSeq {
+        scorerIdList.map {
+          scorerId => cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(scorerId))
+        }
+      }
+    } yield ()
+  }
+
+  def completelyRemoveScorers(team: Team, scorerList: IndexedSeq[UUID])(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
+    val cleanTeamId = team.id.toString filterNot ("-" contains _)
+    val cleanUserIds = scorerList.map { id =>
+      id.toString filterNot ("-" contains _)
+    }
+
+    for {
+      _ <- lift(queryNumRows(CompletelyRemoveScorers, Seq[Any](cleanTeamId, cleanUserIds))(scorerList.length == _).map {
+        case \/-(true) =>
+          cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id))
+          serializedT(scorerList)(scorerId => cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorerId)))
+          \/-(())
+        case \/-(false) =>
+          Logger.error(s"At least one scorer could not be removed from team ${team.id}.")
+          -\/(RepositoryError.DatabaseError(s"At least one scorer could not be removed from team ${team}."))
+        case -\/(error) =>
+          Logger.error(s"At least one scorer could not be removed from team ${team.id}: ${error}")
+          -\/(error)
+      }.recover {
+        case exception: Throwable =>
+          Logger.error(s"When removing scorers ${scorerList} from team ${team}: ${exception}")
+          -\/(RepositoryError.DatabaseError(s"General error while removing scorers from team ${team}"))
+      })
+      _ <- liftSeq {
+        scorerList.map {
+          scorerId => cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(scorerId))
+        }
+      }
+    } yield ()
+  }*/
 
 }

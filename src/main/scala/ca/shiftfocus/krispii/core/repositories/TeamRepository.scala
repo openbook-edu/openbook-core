@@ -4,7 +4,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
-import ca.shiftfocus.krispii.core.models.user.User
+import ca.shiftfocus.krispii.core.models.user.{User, Scorer}
 import com.github.mauricio.async.db.Connection
 import scalaz.\/
 
@@ -28,11 +28,12 @@ trait TeamRepository extends Repository {
   def delete(team: Team)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Team]]
 
   def addScorer(team: Team, scorer: User, leader: Boolean = false)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
-  def updateScorer(team: Team, scorer: User, leader: Option[Boolean], archived: Option[Boolean], deleted: Option[Boolean])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
-  def removeScorer(team: Team, scorer: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
+  def updateScorer(team: Team, scorer: Scorer, leader: Option[Boolean], archived: Option[Boolean],
+    deleted: Option[Boolean])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
+  def removeScorer(team: Team, scorerId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
 
   def addScorers(team: Team, scorerList: IndexedSeq[User], leaderList: IndexedSeq[Boolean] = IndexedSeq(false))(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
-  def removeScorers(team: Team, scorerList: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
+  def removeScorers(team: Team, scorerIdList: IndexedSeq[UUID])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]]
 
   // no need for addTest because tests refer back to Team with teamId
 

@@ -7,12 +7,12 @@ import play.api.libs.functional.syntax._
 
 // Information on each Stripe plan a customer has signed up to
 case class Subscription(
- id: String, // furnished by stripe - we can use this instead of a UUID
- version: Long = 1L, // is a lock useful? one krispii customer can only log in to one connection at a time
- accountId: UUID, // we only need to link to our krispii Account, not to the stripe customer
- planId: UUID,
- currentPeriodEnd: Long,
- cancelAtPeriodEnd: Boolean
+  id: String, // furnished by stripe - we can use this instead of a UUID
+  version: Long = 1L, // is a lock useful? one krispii customer can only log in to one connection at a time
+  accountId: UUID, // we only need to link to our krispii Account, not to the stripe customer
+  planId: UUID,
+  currentPeriodEnd: Long,
+  cancelAtPeriodEnd: Boolean
 )
 
 object Subscription {
@@ -27,10 +27,10 @@ object Subscription {
 
   implicit val subscriptionReads: Reads[Subscription] = (
     (__ \ "id").read[String] and
-      (__ \ "version").read[Long] and
-      (__ \ "accountId").read[UUID] and
-      (__ \ "planId").read[UUID] and
-      (__ \ "currentPeriodEnd").read[Long] and
-      (__ \ "cancelAtPeriodEnd").read[Boolean]
-    )(Subscription.apply _)
+    (__ \ "version").read[Long] and
+    (__ \ "accountId").read[UUID] and
+    (__ \ "planId").read[UUID] and
+    (__ \ "currentPeriodEnd").read[Long] and
+    (__ \ "cancelAtPeriodEnd").read[Boolean]
+  )(Subscription.apply _)
 }

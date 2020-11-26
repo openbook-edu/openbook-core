@@ -31,6 +31,7 @@ class PaymentServiceDefault(
     val accountRepository: AccountRepository,
     val creditCardRepository: CreditCardRepository,
     val stripeRepository: StripeRepository,
+    val subscriptionRepository: SubscriptionRepository,
     val paymentLogRepository: PaymentLogRepository,
     val tagRepository: TagRepository,
     val stripePlanRepository: StripePlanRepository
@@ -150,7 +151,7 @@ class PaymentServiceDefault(
       _ = Logger.info(s"In updateAccount, old status for user ${existingAccount.userId} is ${existingAccount.status}, new status is to be ${status}")
       _ <- lift(tagUntagUserBasedOnStatus(updatedAccount.userId, status, Some(existingAccount.status)))
       // subscriptions are stored separate from the rest of the account in the data base
-      subscriptions <- lift(stripeRepository.listSubscriptions(updatedAccount.userId))
+      subscriptions <- lift(subscriptionRepository.listByAccountId(updatedAccount.id))
     } yield updatedAccount.copy(subscriptions = subscriptions) //
   }
 
@@ -286,7 +287,8 @@ class PaymentServiceDefault(
       val customer = Customer.create(params, requestOptions)
       \/-(cardFromStripe(user, accountId, customer))
       // creditCardRepository.insert(creditCard)
-    } catch {
+    }
+    catch {
       case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     }
 
@@ -319,7 +321,6 @@ class PaymentServiceDefault(
       inserted <- lift(creditCardRepository.insert(card))
     } yield inserted
 
-
   private def updateStripeCustomer(userId: UUID, customerId: String, email: String, givenname: String, surname: String): \/[ErrorUnion#Fail, Customer] =
     try {
       val params = new java.util.HashMap[String, Object]()
@@ -328,7 +329,8 @@ class PaymentServiceDefault(
 
       val customer: Customer = Customer.retrieve(customerId, requestOptions)
       \/-(customer.update(params, requestOptions))
-    } catch {
+    }
+    catch {
       case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     }
 
@@ -366,7 +368,8 @@ class PaymentServiceDefault(
         card = cardFromStripe(user, account.id, customer)
         updated <- lift(creditCardRepository.update(card))
       } yield updated
-    } catch {
+    }
+    catch {
       case error: Throwable => Future successful -\/(ServiceError.ExternalService(error.toString))
     }
 

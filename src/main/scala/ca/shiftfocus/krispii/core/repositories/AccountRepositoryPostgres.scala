@@ -3,15 +3,14 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.Account
+import ca.shiftfocus.krispii.core.models.{Account, Customer}
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
-import play.api.libs.json.{JsValue, Json}
 import play.api.Logger
+import scalaz.{-\/, \/, \/-}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.{-\/, \/, \/-}
 
 class AccountRepositoryPostgres(
     val cacheRepository: CacheRepository
@@ -23,19 +22,20 @@ class AccountRepositoryPostgres(
       row("version").asInstanceOf[Long],
       row("user_id").asInstanceOf[UUID],
       row("status").asInstanceOf[String],
-      Option(row("customer")).map(customer => Json.parse(customer.asInstanceOf[String])),
-      IndexedSeq.empty[JsValue], // subscriptions are initialized empty!
-      Option(row("trial_started_at")).map(_.asInstanceOf[DateTime]),
-      Option(row("active_until")).map(_.asInstanceOf[DateTime]),
-      Option(row("overdue_started_at")).map(_.asInstanceOf[DateTime]),
-      Option(row("overdue_ended_at")).map(_.asInstanceOf[DateTime]),
-      Option(row("overdue_plan_id")).map(_.asInstanceOf[String])
+      Option(row("customer").asInstanceOf[Customer]),
+      IndexedSeq.empty[UUID], // subscriptions are initialized empty!
+      Option(row("trial_started_at").asInstanceOf[DateTime]),
+      Option(row("active_until").asInstanceOf[DateTime]),
+      Option(row("overdue_started_at").asInstanceOf[DateTime]),
+      Option(row("overdue_ended_at").asInstanceOf[DateTime]),
+      Option(row("overdue_plan_id").asInstanceOf[String])
     )
   }
 
   val Table = "accounts"
   // the database table "accounts" does not contain a subscriptions field
   val Fields = "id, version, user_id, status, customer, trial_started_at, active_until, overdue_started_at, overdue_ended_at, overdue_plan_id"
+  val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val QMarks = Fields.split(", ").map({ field => "?" }).mkString(", ")
 
   val Select =
@@ -54,9 +54,10 @@ class AccountRepositoryPostgres(
 
   val SelectByCustomerId =
     s"""
-       |SELECT $Fields
+       |SELECT $FieldsWithTable
        |FROM $Table
-       |WHERE customer::jsonb->>'id' = ?
+       |WHERE $Fields.id = customers.account_id
+       |  AND customers.id = ?
      """.stripMargin
 
   val Insert =

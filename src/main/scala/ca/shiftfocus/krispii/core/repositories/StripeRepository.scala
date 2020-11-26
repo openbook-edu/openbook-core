@@ -1,19 +1,20 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import java.util.UUID
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import com.github.mauricio.async.db.Connection
 import play.api.libs.json.JsValue
-import scala.concurrent.Future
 import scalaz.\/
 
+import scala.concurrent.Future
+
 trait StripeRepository extends Repository {
-  // SUBSCRIPTIONS
-  def listSubscriptions(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JsValue]]]
-  def createSubscription(userId: UUID, subscription: JsValue)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]]
-  def updateSubscription(userId: UUID, subscriptionId: String, subscription: JsValue)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]]
+  // SUBSCRIPTIONS are now handled by SubscriptionRepository
+  /*def listSubscriptionsByUser(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Subscription]]]
+  def listSubscriptionsByAccount(accountId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Subscription]]]
+  def createSubscription(userId: UUID, subscription: JsValue)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Subscription]]
+  def updateSubscription(userId: UUID, subscriptionId: String, subscription: Subscription)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]]
   def moveSubscriptions(oldUserId: UUID, newUserId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JsValue]]]
-  def deleteSubscription(userId: UUID, subscriptionId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]]
+  def deleteSubscription(userId: UUID, subscriptionId: Subscription)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]] */
 
   // EVENTS
   def getEvent(eventId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]]

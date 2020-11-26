@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.{Account, Customer, Subscription}
+import ca.shiftfocus.krispii.core.models.{Account, CreditCard, Subscription}
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import play.api.Logger
@@ -14,8 +14,8 @@ import scala.concurrent.Future
 
 class AccountRepositoryPostgres(
     val cacheRepository: CacheRepository,
-    val customerRepository: CustomerRepository,
-    val subscriptionRepository: SubscriptionRepository
+    val creditCardRepository: CreditCardRepository,
+    val stripeRepository: StripeRepository
 ) extends AccountRepository with PostgresRepository[Account] {
   override val entityName = "Account"
   override def constructor(row: RowData): Account = {
@@ -24,7 +24,7 @@ class AccountRepositoryPostgres(
       row("version").asInstanceOf[Long],
       row("user_id").asInstanceOf[UUID],
       row("status").asInstanceOf[String],
-      Option(row("customer").asInstanceOf[Customer]),
+      Option(row("customer").asInstanceOf[CreditCard]),
       IndexedSeq.empty[Subscription], // subscriptions are initialized empty!
       Option(row("trial_started_at").asInstanceOf[DateTime]),
       Option(row("active_until").asInstanceOf[DateTime]),
@@ -59,8 +59,8 @@ class AccountRepositoryPostgres(
     s"""
        |SELECT $FieldsWithTable
        |FROM $Table
-       |WHERE $Fields.id = customers.account_id
-       |  AND customers.id = ?
+       |WHERE $Fields.id = creditcards.account_id
+       |  AND creditcards.id = ?
      """.stripMargin
 
   val Insert: String =
@@ -87,9 +87,9 @@ class AccountRepositoryPostgres(
 
   def enrichAccount(raw: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     for {
-      customerList <- lift(customerRepository.listByAccountId(raw.id))
-      subscrList <- lift(subscriptionRepository.listByAccountId(raw.id))
-      result = raw.copy(customer = customerList.headOption, subscriptions = subscrList)
+      cardList <- lift(creditCardRepository.listByAccountId(raw.id))
+      subscrList <- lift(stripeRepository.listByAccountId(raw.id))
+      result = raw.copy(creditCard = cardList.headOption, subscriptions = subscrList)
       _ = Logger.debug(s"enrichAccount: after adding stripe info, account is $result")
     } yield result
   }
@@ -127,7 +127,7 @@ class AccountRepositoryPostgres(
 
   def insert(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
-      account.id, 1, account.userId, account.status, account.customer, account.trialStartedAt, account.activeUntil,
+      account.id, 1, account.userId, account.status, account.creditCard, account.trialStartedAt, account.activeUntil,
       account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId
     )
 
@@ -140,7 +140,7 @@ class AccountRepositoryPostgres(
 
   def update(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
-      account.version + 1, account.userId, account.status, account.customer, account.trialStartedAt,
+      account.version + 1, account.userId, account.status, account.creditCard, account.trialStartedAt,
       account.activeUntil, account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId, account.id
     )
 

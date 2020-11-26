@@ -13,7 +13,7 @@ case class Account(
   version: Long = 1L,
   userId: UUID,
   status: String = AccountStatus.inactive,
-  customer: Option[Customer] = None,
+  creditCard: Option[CreditCard] = None,
   subscriptions: IndexedSeq[Subscription] = IndexedSeq.empty[Subscription],
   trialStartedAt: Option[DateTime] = None,
   activeUntil: Option[DateTime] = None,
@@ -56,7 +56,7 @@ object Account {
     (__ \ "version").write[Long] and
     (__ \ "userId").write[UUID] and
     (__ \ "status").write[String] and
-    (__ \ "customer").writeNullable[Customer] and
+    (__ \ "creditCard").writeNullable[CreditCard] and
     (__ \ "subscriptions").write[IndexedSeq[Subscription]] and
     (__ \ "trialStartedAt").writeNullable[DateTime] and
     (__ \ "activeUntil").writeNullable[DateTime] and
@@ -70,7 +70,7 @@ object Account {
     (__ \ "version").read[Long] and
     (__ \ "userId").read[UUID] and
     (__ \ "status").read[String] and
-    (__ \ "customer").readNullable[Customer] and
+    (__ \ "creditCard").readNullable[CreditCard] and
     (__ \ "subscriptions").read[IndexedSeq[Subscription]] and
     (__ \ "trialStartedAt").readNullable[DateTime] and
     (__ \ "activeUntil").readNullable[DateTime] and

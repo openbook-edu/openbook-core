@@ -1,14 +1,16 @@
 package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
+
 import ca.shiftfocus.krispii.core.error.ErrorUnion
 import ca.shiftfocus.krispii.core.models.stripe.StripePlan
-import ca.shiftfocus.krispii.core.models.{Account, PaymentLog}
+import ca.shiftfocus.krispii.core.models.{Account, CreditCard, Customer, PaymentLog}
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.stripe.model.{Card, Invoice, InvoiceItem}
 import com.stripe.net.RequestOptions
 import org.joda.time.DateTime
 import play.api.libs.json.JsValue
+
 import scala.collection.immutable.TreeMap
 import scala.concurrent.Future
 import scalaz.\/
@@ -34,11 +36,11 @@ trait PaymentService extends Service[ErrorUnion#Fail] {
   def updatePlanInDb(id: UUID, version: Long, title: String): Future[\/[ErrorUnion#Fail, StripePlan]]
   def deletePlanFromDb(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, StripePlan]]
 
-  def createCustomer(account: Account, tokenId: String): Future[\/[ErrorUnion#Fail, JsValue]]
-  def createCustomer(userId: UUID, tokenId: String): Future[\/[ErrorUnion#Fail, JsValue]]
-  def updateCustomer(userId: UUID, email: String, givenname: String, surname: String): Future[\/[ErrorUnion#Fail, JsValue]]
+  def createCreditCard(account: Account, tokenId: String): Future[\/[ErrorUnion#Fail, CreditCard]]
+  def createCreditCard(userId: UUID, tokenId: String): Future[\/[ErrorUnion#Fail, CreditCard]]
+  def updateCreditCard(userId: UUID, email: String, givenname: String, surname: String): Future[\/[ErrorUnion#Fail, CreditCard]]
   def fetchCustomerFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, JsValue]]
-  def deleteCustomer(customerId: String): Future[\/[ErrorUnion#Fail, JsValue]]
+  def deleteCreditCard(customerId: String): Future[\/[ErrorUnion#Fail, CreditCard]]
 
   def subscribe(userId: UUID, customerId: String, planId: String): Future[\/[ErrorUnion#Fail, JsValue]]
   def updateSubscribtionPlan(userId: UUID, subscriptionId: String, newPlanId: String): Future[\/[ErrorUnion#Fail, JsValue]]

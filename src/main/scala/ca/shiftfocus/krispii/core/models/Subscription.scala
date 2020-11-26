@@ -12,7 +12,7 @@ case class Subscription(
  accountId: UUID, // we only need to link to our krispii Account, not to the stripe customer
  planId: UUID,
  currentPeriodEnd: Long,
- cancelAtPeriodEnd: Boolean,
+ cancelAtPeriodEnd: Boolean
 )
 
 object Subscription {

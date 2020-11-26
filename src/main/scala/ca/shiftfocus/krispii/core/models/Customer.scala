@@ -17,7 +17,7 @@ case class Customer(
   exp_month: String,
   exp_year: String,
   brand: String,
-  last4: String,
+  last4: String
   /*currency: String,
   livemode: Boolean,
   delinquent: Boolean,

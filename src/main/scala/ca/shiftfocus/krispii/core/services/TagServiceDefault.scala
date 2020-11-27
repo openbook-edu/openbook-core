@@ -27,7 +27,7 @@ class TagServiceDefault(
     val userRepository: UserRepository,
     val courseRepository: CourseRepository,
     val accountRepository: AccountRepository,
-    val stripeRepository: StripeRepository,
+    val stripeRepository: StripeEventRepository,
     val paymentLogRepository: PaymentLogRepository,
     val config: Configuration,
     val projectRepository: ProjectRepository,
@@ -340,7 +340,7 @@ class TagServiceDefault(
   /**
    * If deleted user exists then move his account, subscriptions and logs to a new user with the same email
    * @see AuthServiceDefault.syncWithDeletedUser()
-   *
+   * TODO: eliminate one of the two!
    * @param newUser
    * @return
    */
@@ -364,8 +364,6 @@ class TagServiceDefault(
                 case \/-(account) => accountRepository.update(account.copy(userId = newUser.id))
                 case -\/(error) => Future successful -\/(error)
               })
-              // Move subscriptions from old user to a new user
-              subscriptions <- lift(stripeRepository.moveSubscriptions(deletedUser.id, newUser.id))
               // Move payment logs from old user to a new user
               paymentLogs <- lift(paymentLogRepository.move(deletedUser.id, newUser.id))
             } yield (account)
@@ -439,8 +437,7 @@ class TagServiceDefault(
             account.version,
             accountStatus,
             None,
-            Some(dateLimit),
-            account.customer
+            Some(dateLimit)
           )
         }
         case -\/(error: RepositoryError.NoResults) => {
@@ -452,8 +449,7 @@ class TagServiceDefault(
                 account.version,
                 accountStatus,
                 None,
-                Some(dateLimit),
-                account.customer
+                Some(dateLimit)
               )
             }
             case -\/(error: RepositoryError.NoResults) => {

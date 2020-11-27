@@ -147,7 +147,7 @@ class ScorerRepositoryPostgres(
   """.stripMargin
 
   private val AddScorersEnd =
-    """
+    s"""
       |RETURNING $ScorerFields)
       |SELECT $UserFieldsTable, $UpdateFieldsTable
       |FROM updated, users
@@ -254,10 +254,10 @@ class ScorerRepositoryPostgres(
         cacheRepository.cacheSeqExam.removeCached(cacheScorerExamsKey(scorerId))
         cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorerId))
         cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id))
-        \/-(Unit)
+        \/-(())
       case \/-(false) =>
         Logger.error(s"Scorer $scorerId could not be removed from team ${team.id}.")
-        \/-(RepositoryError.DatabaseError(s"Scorer $scorerId could not be removed from the team."))
+        -\/(RepositoryError.DatabaseError(s"Scorer $scorerId could not be removed from the team."))
       case -\/(error) =>
         Logger.error(s"Scorer $scorerId could not be removed from team ${team.id}: $error")
         -\/(error)

@@ -3,7 +3,8 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.{Account, CreditCard, Subscription}
+import ca.shiftfocus.krispii.core.models.stripe.{CreditCard, StripeSubscription}
+import ca.shiftfocus.krispii.core.models.Account
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import play.api.Logger
@@ -15,7 +16,7 @@ import scala.concurrent.Future
 class AccountRepositoryPostgres(
     val cacheRepository: CacheRepository,
     val creditCardRepository: CreditCardRepository,
-    val stripeRepository: StripeRepository
+    val stripeSubscriptionRepository: StripeSubscriptionRepository
 ) extends AccountRepository with PostgresRepository[Account] {
   override val entityName = "Account"
   override def constructor(row: RowData): Account = {
@@ -25,7 +26,7 @@ class AccountRepositoryPostgres(
       row("user_id").asInstanceOf[UUID],
       row("status").asInstanceOf[String],
       Option(row("customer").asInstanceOf[CreditCard]),
-      IndexedSeq.empty[Subscription], // subscriptions are initialized empty!
+      IndexedSeq.empty[StripeSubscription], // subscriptions are initialized empty!
       Option(row("trial_started_at").asInstanceOf[DateTime]),
       Option(row("active_until").asInstanceOf[DateTime]),
       Option(row("overdue_started_at").asInstanceOf[DateTime]),
@@ -88,7 +89,7 @@ class AccountRepositoryPostgres(
   def enrichAccount(raw: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     for {
       cardList <- lift(creditCardRepository.listByAccountId(raw.id))
-      subscrList <- lift(stripeRepository.listByAccountId(raw.id))
+      subscrList <- lift(stripeSubscriptionRepository.listByAccountId(raw.id))
       result = raw.copy(creditCard = cardList.headOption, subscriptions = subscrList)
       _ = Logger.debug(s"enrichAccount: after adding stripe info, account is $result")
     } yield result

@@ -2,6 +2,7 @@ package ca.shiftfocus.krispii.core.models
 
 import java.util.UUID
 
+import ca.shiftfocus.krispii.core.models.stripe.{CreditCard, StripeSubscription}
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
@@ -14,7 +15,7 @@ case class Account(
   userId: UUID,
   status: String = AccountStatus.inactive,
   creditCard: Option[CreditCard] = None,
-  subscriptions: IndexedSeq[Subscription] = IndexedSeq.empty[Subscription],
+  subscriptions: IndexedSeq[StripeSubscription] = IndexedSeq.empty[StripeSubscription],
   trialStartedAt: Option[DateTime] = None,
   activeUntil: Option[DateTime] = None,
   overdueStartedAt: Option[DateTime] = None,
@@ -57,7 +58,7 @@ object Account {
     (__ \ "userId").write[UUID] and
     (__ \ "status").write[String] and
     (__ \ "creditCard").writeNullable[CreditCard] and
-    (__ \ "subscriptions").write[IndexedSeq[Subscription]] and
+    (__ \ "subscriptions").write[IndexedSeq[StripeSubscription]] and
     (__ \ "trialStartedAt").writeNullable[DateTime] and
     (__ \ "activeUntil").writeNullable[DateTime] and
     (__ \ "overdueStartedAt").writeNullable[DateTime] and
@@ -71,7 +72,7 @@ object Account {
     (__ \ "userId").read[UUID] and
     (__ \ "status").read[String] and
     (__ \ "creditCard").readNullable[CreditCard] and
-    (__ \ "subscriptions").read[IndexedSeq[Subscription]] and
+    (__ \ "subscriptions").read[IndexedSeq[StripeSubscription]] and
     (__ \ "trialStartedAt").readNullable[DateTime] and
     (__ \ "activeUntil").readNullable[DateTime] and
     (__ \ "overdueStartedAt").readNullable[DateTime] and

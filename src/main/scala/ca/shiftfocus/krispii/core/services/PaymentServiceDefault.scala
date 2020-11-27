@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.models.CreditCard
+import ca.shiftfocus.krispii.core.models.stripe.{CreditCard, StripeSubscription}
 import ca.shiftfocus.krispii.core.models.user.User
 // import java.io.{PrintWriter, StringWriter}
 import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
@@ -30,8 +30,8 @@ class PaymentServiceDefault(
     val userRepository: UserRepository,
     val accountRepository: AccountRepository,
     val creditCardRepository: CreditCardRepository,
-    val stripeRepository: StripeRepository,
-    val subscriptionRepository: SubscriptionRepository,
+    val stripeEventRepository: StripeEventRepository,
+    val stripeSubscriptionRepository: StripeSubscriptionRepository,
     val paymentLogRepository: PaymentLogRepository,
     val tagRepository: TagRepository,
     val stripePlanRepository: StripePlanRepository
@@ -151,7 +151,7 @@ class PaymentServiceDefault(
       _ = Logger.info(s"In updateAccount, old status for user ${existingAccount.userId} is ${existingAccount.status}, new status is to be ${status}")
       _ <- lift(tagUntagUserBasedOnStatus(updatedAccount.userId, status, Some(existingAccount.status)))
       // subscriptions are stored separate from the rest of the account in the data base
-      subscriptions <- lift(subscriptionRepository.listByAccountId(updatedAccount.id))
+      subscriptions <- lift(stripeSubscriptionRepository.listByAccountId(updatedAccount.id))
     } yield updatedAccount.copy(subscriptions = subscriptions) //
   }
 
@@ -269,7 +269,7 @@ class PaymentServiceDefault(
       case "card" =>
         val defaultCard = defaultSource.asInstanceOf[Card]
         CreditCard(customer.getId, version = 1, accountId, user.email, user.givenname, user.surname,
-          Some(defaultCard.getExpMonth.toInt), Some(defaultCard.getExpYear.toInt), defaultCard.getBrand, defaultCard.getLast4)
+          Some(defaultCard.getExpMonth), Some(defaultCard.getExpYear), defaultCard.getBrand, defaultCard.getLast4)
       // not sure other payment sources are of much use to us
       case _ =>
         CreditCard(customer.getId, version = 1, accountId, user.email, user.givenname, user.surname)
@@ -321,6 +321,15 @@ class PaymentServiceDefault(
       inserted <- lift(creditCardRepository.insert(card))
     } yield inserted
 
+  /**
+   * Update the customer information on stripe with a changed name or email
+   * @param userId unique krispii user ID
+   * @param customerId stripe ID string
+   * @param email String
+   * @param givenname String
+   * @param surname String
+   * @return a com.stripe.model.Customer object, or an error
+   */
   private def updateStripeCustomer(userId: UUID, customerId: String, email: String, givenname: String, surname: String): \/[ErrorUnion#Fail, Customer] =
     try {
       val params = new java.util.HashMap[String, Object]()
@@ -384,174 +393,222 @@ class PaymentServiceDefault(
     }
 
   /**
-   * Delete customer from our DB and from Stripe
+   * Delete stripe customer and the corresponding credit card information in our DB
    *
    * @param customerId stripe-supplied ID string
    * @return the deleted CreditCard, or an error
    */
-  def deleteCustomer(customerId: String): Future[ErrorUnion#Fail \/ CreditCard] =
+  def deleteCustomerAndCreditCard(customerId: String): Future[ErrorUnion#Fail \/ CreditCard] =
     (for {
-      account <- lift(accountRepository.getByCustomerId(customerId))
       _ <- lift(deleteCustomerFromStripe(customerId, requestOptions))
       deleted <- lift(creditCardRepository.delete(customerId))
     } yield deleted).run
 
   /**
-   * Subscribe customer to a specific plan in stripe and create subscription info in Krispii db
-   *
-   * @param userId
-   * @param customerId
-   * @param planId
-   * @return
+   * Subscribe a user to a stripe plan. Always store locally, too!
+   * @param customerId stripe-furnished ID string for the customer
+   * @param planId stripe-furnished ID string for the plan
+   * @return a com.stripe.model.Subscription object
    */
-  def subscribe(userId: UUID, customerId: String, planId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
+  private def subscribeStripe(customerId: String, planId: String): \/[ErrorUnion#Fail, Subscription] =
+    try {
+      val params = new java.util.HashMap[String, Object]()
+      params.put("customer", customerId)
+      params.put("plan", planId)
+
+      \/-(Subscription.create(params, requestOptions))
+    }
+    catch {
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
+    }
+
+  /**
+   * Subscribe customer to a specific plan in stripe and then create subscription info in Krispii db
+   *
+   * @param userId unique Krispii user ID
+   * @param customerId Stripe-furnished ID string for the customer
+   * @param planId Stripe-furnished ID string for the plan
+   * @return a shiftfocus.krispii.core.model.stripe.StripeSubscription object
+   */
+  def subscribe(userId: UUID, customerId: String, planId: String): Future[\/[ErrorUnion#Fail, StripeSubscription]] = {
     for {
-      subscription <- lift(
-        Future successful (try {
-          val params = new java.util.HashMap[String, Object]()
-          params.put("customer", customerId)
-          params.put("plan", planId)
-
-          val subscription: JsValue = Json.parse(APIResource.GSON.toJson(Subscription.create(params, requestOptions)))
-
-          \/-(subscription)
-        }
-        catch {
-          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
-        })
-      )
-      _ <- lift(stripeRepository.createSubscription(userId, subscription))
-    } yield subscription
+      user <- lift(userRepository.find(userId))
+      account <- lift(accountRepository.getByUserId(user.id))
+      stripe <- lift(Future successful subscribeStripe(customerId, planId))
+      ourSubscription = StripeSubscription(stripe.getId, version = 1, account.id, planId,
+        stripe.getCurrentPeriodEnd, stripe.getCancelAtPeriodEnd)
+      inserted <- lift(stripeSubscriptionRepository.insert(ourSubscription))
+    } yield inserted
   }
 
   /**
-   * Switch subscription to a new plan in stripe and update subscription info in Krispii db.
-   * Or resubscribe to the same plan.
+   * Get the current state of the subscription directly from stripe
+   * @param subscriptionId stripe-furnished ID string
+   * @return a com.stripe.model.Subscription object, or an error
+   */
+  def fetchSubscriptionFromStripe(subscriptionId: String): ErrorUnion#Fail \/ Subscription =
+    try {
+      \/-(Subscription.retrieve(subscriptionId, requestOptions))
+    }
+    catch {
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
+    }
+
+  /**
+   * Get information on stripe subscription as stored currently in krispii database
+   * @param subscriptionId stripe-furnished ID string
+   * @return in the Future, a shiftfocus.krispii.core.model.stripe.StripeSubscription object or an error
+   */
+  def fetchSubscriptionFromDb(subscriptionId: String): Future[ErrorUnion#Fail \/ StripeSubscription] =
+    stripeSubscriptionRepository.get(subscriptionId)
+
+  /**
+   * Update an existing subscription on the stripe site with a new plan.
+   * Must always be followed by an update of the local krispii database!
+   * @param subscriptionId stripe-furnished ID string for the existing subscription
+   * @param newPlanId stripe-furnished ID string for the new plan
+   * @return a com.stripe.model.Subscription object, or an error
+   */
+  private def updateSubscriptionPlanOnStripe(subscriptionId: String, newPlanId: String): ServiceError.ExternalService \/ Subscription =
+    try {
+      val params = new java.util.HashMap[String, Object]()
+      params.put("plan", newPlanId)
+
+      val subscription: Subscription = Subscription.retrieve(subscriptionId, requestOptions)
+      val currentPlan: Plan = subscription.getPlan
+      val updatedSubscription = subscription.update(params, requestOptions)
+      val newPlan: Plan = updatedSubscription.getPlan
+
+      // If we switch plans and if plans intervals match then we should manually create an invoice and force payment
+      if (currentPlan.getId != newPlan.getId && currentPlan.getInterval == newPlan.getInterval) {
+        val customerId = subscription.getCustomer
+        val invoiceParams = new java.util.HashMap[String, Object]()
+        invoiceParams.put("customer", customerId)
+        // Note that manually creating an invoice does not lead to a synchronous attempt to pay the invoice.
+        // Payment is automatically attempted between 1 and 2 hours after the invoice is created.
+        Invoice.create(invoiceParams, requestOptions)
+      }
+      \/-(updatedSubscription)
+    }
+    catch {
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
+    }
+
+  /**
+   * After subscription info has been updated on stripe, update krispii db, too.
+   * The only fields that can be updated are the plan Id, end of period and if the plan expires at the end
+   * @param stripe a com.stripe.model.Subscription
+   * @return in the Future, a shiftfocus.krispii.core.model.stripe.StripeSubscription, or an error
+   */
+  private def updateLocalSubscription(stripe: Subscription): Future[ErrorUnion#Fail \/ StripeSubscription] =
+    for {
+      old <- lift(stripeSubscriptionRepository.get(stripe.getId))
+      toUpdate = old.copy(
+        planId = stripe.getPlan.getId,
+        currentPeriodEnd = stripe.getCurrentPeriodEnd,
+        cancelAtPeriodEnd = stripe.getCancelAtPeriodEnd
+      )
+      updated <- lift(stripeSubscriptionRepository.update(toUpdate))
+    } yield updated
+
+  /**
+   * Switch subscription to a new plan in stripe, or resubscribe to the same plan.
+   * Then update subscription info in Krispii db.
    * If we switch plans and if plans intervals match we manually create an invoice and
    * payment is automatically attempted between 1 and 2 hours after the invoice is created
    *
-   * @param userId
-   * @param  subscriptionId
-   * @param newPlanId
-   * @return
+   * @param subscriptionId stripe-furnished ID string for the existing subscription
+   * @param newPlanId stripe-furnished ID string for the new plan
+   * @return in the Future, a shiftfocus.krispii.core.model.stripe.StripeSubscription, or an error
    */
-  def updateSubscribtionPlan(userId: UUID, subscriptionId: String, newPlanId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
+  def updateSubscriptionPlan(subscriptionId: String, newPlanId: String): Future[\/[ErrorUnion#Fail, StripeSubscription]] =
     for {
-      updatedSubscription <- lift(
-        Future successful (try {
-          val params = new java.util.HashMap[String, Object]()
-          params.put("plan", newPlanId)
-
-          val subscription: Subscription = Subscription.retrieve(subscriptionId, requestOptions)
-          val currentPlan: Plan = subscription.getPlan
-          val updatedSubscription = subscription.update(params, requestOptions)
-          val newPlan: Plan = updatedSubscription.getPlan
-
-          // If we switch plans and
-          // If plans intervals match then we should manually create an invoice and force payment
-          if (currentPlan.getId != newPlan.getId && currentPlan.getInterval == newPlan.getInterval) {
-            val customerId = subscription.getCustomer
-            val invoiceParams = new java.util.HashMap[String, Object]()
-            invoiceParams.put("customer", customerId)
-            // Note that manually creating an invoice does not lead to a synchronous attempt to pay the invoice.
-            // Payment is automatically attempted between 1 and 2 hours after the invoice is created.
-            Invoice.create(invoiceParams, requestOptions)
-          }
-
-          \/-(updatedSubscription)
-        }
-        catch {
-          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
-        })
-      )
-      _ <- lift(stripeRepository.updateSubscription(userId, updatedSubscription.getId, Json.parse(APIResource.GSON.toJson(updatedSubscription))))
-    } yield Json.parse(APIResource.GSON.toJson(updatedSubscription))
-  }
+      stripe <- lift(Future successful updateSubscriptionPlanOnStripe(subscriptionId, newPlanId))
+      ours <- lift(updateLocalSubscription(stripe))
+    } yield ours
 
   /**
-   * Update subscription in Krispii DB
-   *
-   * @param userId
-   * @param subscriptionId
-   * @return
+   * Update stripe subscription information in krispii database
+   * TODO: why don't we update the information on stripe? was that already done before this function is called?
+   * @param subscriptionId: stripe-furnished ID string
+   * @param currentPeriodEnd: stripe-furnished Long integer that indicates date and time when subscription ends
+   * @param cancelAtPeriodEnd: Boolean to indicate if the plan will expire or be renewed
+   * @return in the Future, a shiftfocus.krispii.core.models.stripe.Subscription object, or an error
    */
-  def updateSubscription(userId: UUID, subscriptionId: String, subscription: JsValue): Future[\/[ErrorUnion#Fail, JsValue]] = {
+  def updateSubscription(subscriptionId: String, currentPeriodEnd: Long, cancelAtPeriodEnd: Boolean): Future[\/[ErrorUnion#Fail, StripeSubscription]] = {
     for {
-      updatedSubscription <- lift(stripeRepository.updateSubscription(userId, subscriptionId, subscription))
+      old <- lift(stripeSubscriptionRepository.get(subscriptionId))
+      updatedSubscription <- lift(stripeSubscriptionRepository.update(old.copy(
+        currentPeriodEnd = currentPeriodEnd,
+        cancelAtPeriodEnd = cancelAtPeriodEnd
+      )))
     } yield updatedSubscription
   }
 
   /**
-   * Cancel stripe subscription at_period_end or immediately.
-   *
-   * @param userId
-   * @param subscriptionId
-   * @param atPeriodEnd If true, then set cancel at_period_end of the subscription to true in stripe and update subscription info in Krispii db,
-   *                    If false, then cancel the subscription immediately in stripe and delete it from Krispii db.
-   * @return
+   * Cancel subscription on stripe with immediate effect or at end of period
+   * @param subscriptionId: stripe-furnished ID string
+   * @param atPeriodEnd Boolean
+   * @return a com.stripe.model.Subscription object, or an error
    */
-  def cancelSubscription(userId: UUID, subscriptionId: String, atPeriodEnd: Boolean): Future[\/[ErrorUnion#Fail, JsValue]] = {
-    for {
-      canceledSubscription <- lift(
-        Future successful (try {
-          val subscription: Subscription = Subscription.retrieve(subscriptionId, requestOptions)
-          val canceledSubscription = {
-            if (atPeriodEnd) {
-              val params = new java.util.HashMap[String, Object]()
-              params.put("at_period_end", "true")
-              subscription.cancel(params, requestOptions)
-            }
-            else {
-              subscription.cancel(null, requestOptions)
-            }
-          }
-
-          \/-(canceledSubscription)
-        }
-        catch {
-          case e: Throwable => {
-            -\/(ServiceError.ExternalService(e.toString))
-          }
-        })
-      )
-      _ <- (
+  private def cancelSubscriptionOnStripe(subscriptionId: String, atPeriodEnd: Boolean): ServiceError.ExternalService \/ Subscription =
+    try {
+      val subscription: Subscription = Subscription.retrieve(subscriptionId, requestOptions)
+      val canceledSubscription =
         if (atPeriodEnd) {
-          lift(stripeRepository.updateSubscription(userId, canceledSubscription.getId, Json.parse(APIResource.GSON.toJson(canceledSubscription))))
+          val params = new java.util.HashMap[String, Object]()
+          params.put("at_period_end", "true")
+          subscription.cancel(params, requestOptions)
         }
         else {
-          lift(stripeRepository.deleteSubscription(userId, canceledSubscription.getId))
+          subscription.cancel(null, requestOptions)
         }
+      \/-(canceledSubscription)
+    }
+    catch {
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
+    }
+
+  /**
+   * Cancel subscription both on stripe and locally, either immediately or at_period_end
+   *
+   * @param subscriptionId stripe-furnished ID string for subscription
+   * @param atPeriodEnd If true, then set cancel at_period_end of the subscription to true in stripe and update subscription info in Krispii db,
+   *                    If false, then cancel the subscription immediately in stripe and delete it from Krispii db.
+   * @return in the future, a shiftfocus.krispii.core.models.stripe.Subscription object, or an error
+   */
+  def cancelSubscription(subscriptionId: String, atPeriodEnd: Boolean): Future[\/[ErrorUnion#Fail, StripeSubscription]] =
+    for {
+      stripe <- lift(Future successful cancelSubscriptionOnStripe(subscriptionId, atPeriodEnd))
+      ours <- lift(
+        if (atPeriodEnd)
+          updateLocalSubscription(stripe)
+        else
+          stripeSubscriptionRepository.delete(subscriptionId)
       )
-    } yield Json.parse(APIResource.GSON.toJson(canceledSubscription))
-  }
+    } yield ours
 
   /**
    * Delete subscription from Krispii DB
+   * TODO: why not on stripe? was that already done?
    *
-   * @param userId
-   * @param subscriptionId
-   * @return
+   * @param subscriptionId stripe-furnished ID string for subscription
+   * @return in the future, a shiftfocus.krispii.core.models.stripe.Subscription object, or an error
    */
-  def deleteSubscription(userId: UUID, subscriptionId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
-    for {
-      deletedSubscription <- lift(stripeRepository.deleteSubscription(userId, subscriptionId))
-    } yield deletedSubscription
-  }
+  def deleteSubscription(subscriptionId: String): Future[\/[ErrorUnion#Fail, StripeSubscription]] =
+    stripeSubscriptionRepository.delete(subscriptionId)
 
   def fetchUpcomingInvoiceFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, Invoice]] = {
     Future successful (try {
       val params = new java.util.HashMap[String, Object]()
       params.put("customer", customerId)
-
-      val invoice: Invoice = Invoice.upcoming(params, requestOptions)
-
-      \/-(invoice)
+      \/-(Invoice.upcoming(params, requestOptions))
     }
     catch {
-      case e: InvalidRequestException if (e.toString.contains("No upcoming invoices for customer")) => {
+      case e: InvalidRequestException if (e.toString.contains("No upcoming invoices for customer")) =>
         -\/(RepositoryError.NoResults("core.services.PaymentServiceDefault.fetchUpcomingInvoiceFromStripe.no.results"))
-      }
-      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
+      case e: Throwable =>
+        -\/(ServiceError.ExternalService(e.toString))
     })
   }
 
@@ -561,9 +618,7 @@ class PaymentServiceDefault(
       params.put("customer", customerId)
 
       val invoiceItemList: InvoiceItemCollection = InvoiceItem.list(params, requestOptions)
-      val result = invoiceItemList.getData.asScala.toList
-
-      \/-(result)
+      \/-(invoiceItemList.getData.asScala.toList)
     }
     catch {
       case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
@@ -716,23 +771,6 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Get a subscription from Stripe by id
-   *
-   * @param subscriptionId
-   * @return
-   */
-  def fetchSubscriptionFromStripe(subscriptionId: String): Future[\/[ErrorUnion#Fail, JsValue]] = Future {
-    try {
-      val subscription: JsValue = Json.parse(APIResource.GSON.toJson(Subscription.retrieve(subscriptionId, requestOptions)))
-
-      \/-(subscription)
-    }
-    catch {
-      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
-    }
-  }
-
-  /**
    * Check if user has access to the application
    *
    * @param userId
@@ -777,7 +815,7 @@ class PaymentServiceDefault(
    */
   def getEvent(eventId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
-      event <- lift(stripeRepository.getEvent(eventId))
+      event <- lift(stripeEventRepository.getEvent(eventId))
     } yield event
   }
 
@@ -791,7 +829,7 @@ class PaymentServiceDefault(
    */
   def createEvent(eventId: String, eventType: String, event: JsValue): Future[\/[ErrorUnion#Fail, JsValue]] = {
     for {
-      event <- lift(stripeRepository.createEvent(eventId, eventType, event))
+      event <- lift(stripeEventRepository.createEvent(eventId, eventType, event))
     } yield event
   }
 

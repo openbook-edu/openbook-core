@@ -1,4 +1,4 @@
-package ca.shiftfocus.krispii.core.models
+package ca.shiftfocus.krispii.core.models.stripe
 
 import java.util.UUID
 

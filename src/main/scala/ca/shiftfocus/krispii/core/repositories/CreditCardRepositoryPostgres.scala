@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.CreditCard
+import ca.shiftfocus.krispii.core.models.stripe.CreditCard
 import com.github.mauricio.async.db.{Connection, RowData}
 import play.api.Logger
 import scalaz.\/
@@ -22,8 +22,8 @@ class CreditCardRepositoryPostgres(
       row("email").asInstanceOf[String],
       row("givenname").asInstanceOf[String],
       row("surname").asInstanceOf[String],
-      row("exp_month").asInstanceOf[String],
-      row("exp_year").asInstanceOf[String],
+      Option(row("exp_month").asInstanceOf[Int]),
+      Option(row("exp_year").asInstanceOf[Int]),
       row("brand").asInstanceOf[String],
       row("last4").asInstanceOf[String]
     )

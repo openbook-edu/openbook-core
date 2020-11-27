@@ -12,7 +12,7 @@ import scala.concurrent.Future
 /**
  * Work with database tables: users_subscriptions, stripe_events
  */
-class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[JsValue] {
+class StripeEventRepositoryPostgres extends StripeEventRepository with PostgresRepository[JsValue] {
   override val entityName = "Stripe"
   override def constructor(row: RowData): JsValue = {
     Json.parse(row("data").asInstanceOf[String])
@@ -80,7 +80,7 @@ class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[
   // SUBSCRIPTIONS
   /*
   def listSubscriptions(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JsValue]]] = {
-    Logger.debug("in StripeRepositoryPostgres listSubscriptions")
+    Logger.debug("in StripeEventRepositoryPostgres listSubscriptions")
     // val sw = new StringWriter
     // val st = new RuntimeException
     // st.printStackTrace(new PrintWriter(sw))

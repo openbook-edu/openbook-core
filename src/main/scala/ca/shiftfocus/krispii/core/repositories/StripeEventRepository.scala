@@ -7,8 +7,8 @@ import scalaz.\/
 
 import scala.concurrent.Future
 
-trait StripeRepository extends Repository {
-  // SUBSCRIPTIONS are now handled by SubscriptionRepository
+trait StripeEventRepository extends Repository {
+  // SUBSCRIPTIONS are now handled by StripeSubscriptionRepository
   /*def listSubscriptionsByUser(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Subscription]]]
   def listSubscriptionsByAccount(accountId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Subscription]]]
   def createSubscription(userId: UUID, subscription: JsValue)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Subscription]]

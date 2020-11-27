@@ -3,23 +3,23 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.Subscription
+import ca.shiftfocus.krispii.core.models.stripe.StripeSubscription
 import com.github.mauricio.async.db.{Connection, RowData}
 import play.api.Logger
 import scalaz.\/
 
 import scala.concurrent.Future
 
-class SubscriptionRepositoryPostgres(
+class StripeSubscriptionRepositoryPostgres(
     val cacheRepository: CacheRepository
-) extends SubscriptionRepository with PostgresRepository[Subscription] {
-  override val entityName = "Subscription"
-  override def constructor(row: RowData): Subscription = {
-    Subscription(
+) extends StripeSubscriptionRepository with PostgresRepository[StripeSubscription] {
+  override val entityName = "StripeSubscription"
+  override def constructor(row: RowData): StripeSubscription = {
+    StripeSubscription(
       row("id").asInstanceOf[String],
       row("version").asInstanceOf[Long],
       row("account_id").asInstanceOf[UUID],
-      row("planId").asInstanceOf[UUID],
+      row("planId").asInstanceOf[String],
       row("currentPeriodEnd").asInstanceOf[Long],
       row("cancelAtPeriodEnd").asInstanceOf[Boolean]
     )
@@ -68,17 +68,23 @@ class SubscriptionRepositoryPostgres(
 
   /**
    * Get stripe plan subscription information by stripe ID string; we don't cache the information.
-   * @param id String
+   * @param id string furnished by stripe
    * @param conn implicit database connection
-   * @return a Subscription or an error
+   * @return a StripeSubscription or an error
    */
-  def get(id: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Subscription]] =
+  def get(id: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripeSubscription]] =
     queryOne(Select, Seq[Any](id))
 
-  def listByAccountId(accountId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Subscription]]] =
+  /**
+   * Get all stripe plan subscriptions associated with a krispii account
+   * @param accountId krispii account unique ID
+   * @param conn implicit database connection
+   * @return an indexed sequence of StripeSubscriptions or an error
+   */
+  def listByAccountId(accountId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[StripeSubscription]]] =
     queryList(SelectByAccountId, Seq[Any](accountId))
 
-  def insert(subscription: Subscription)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Subscription]] = {
+  def insert(subscription: StripeSubscription)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripeSubscription]] = {
     val params = Seq[Any](
       subscription.id, 1, subscription.accountId, subscription.planId, subscription.currentPeriodEnd, subscription.cancelAtPeriodEnd
     )
@@ -86,7 +92,7 @@ class SubscriptionRepositoryPostgres(
     lift(queryOne(Insert, params))
   }
 
-  def update(subscription: Subscription)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Subscription]] = {
+  def update(subscription: StripeSubscription)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripeSubscription]] = {
     val params = Seq[Any](
       1, subscription.accountId, subscription.planId, subscription.currentPeriodEnd, subscription.cancelAtPeriodEnd, subscription.id
     )
@@ -94,13 +100,13 @@ class SubscriptionRepositoryPostgres(
     Logger.debug(s"Doing UPDATE on subscription: $Update\nwith parameters $params")
     for {
       current <- lift(queryOne(Select, Seq[Any](subscription.id)))
-      _ = Logger.debug(s"Subscription before update: $current")
+      _ = Logger.debug(s"StripeSubscription before update: $current")
       updated <- lift(queryOne(Update, params))
       _ = Logger.debug(s"Updated subscription: $updated")
     } yield updated
   }
 
-  def delete(id: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Subscription]] = {
+  def delete(id: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripeSubscription]] = {
     for {
       deleted <- lift(queryOne(Delete, Seq[Any](id)))
     } yield deleted

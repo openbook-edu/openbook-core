@@ -16,21 +16,21 @@ class CreditCardRepositoryPostgres(
   override val entityName = "CreditCard"
   override def constructor(row: RowData): CreditCard = {
     CreditCard(
-      row("id").asInstanceOf[String],
+      row("customer_id").asInstanceOf[String],
       row("version").asInstanceOf[Long],
       row("account_id").asInstanceOf[UUID],
       row("email").asInstanceOf[String],
       row("givenname").asInstanceOf[String],
       row("surname").asInstanceOf[String],
-      Option(row("exp_month").asInstanceOf[Int]),
-      Option(row("exp_year").asInstanceOf[Int]),
+      Option(row("exp_month").asInstanceOf[Long]),
+      Option(row("exp_year").asInstanceOf[Long]),
       row("brand").asInstanceOf[String],
       row("last4").asInstanceOf[String]
     )
   }
 
   val Table: String = "creditcards"
-  val Fields: String = "id, version, account_id, email, givenname, surname, exp_month, exp_year, brand, last4"
+  val Fields: String = "customer_id, version, account_id, email, givenname, surname, exp_month, exp_year, brand, last4"
   val FieldsWithTable: String = Fields.split(", ").map({ field => s"$Table." + field }).mkString(", ")
   val QMarks: String = Fields.split(", ").map({ _ => "?" }).mkString(", ")
 
@@ -38,7 +38,7 @@ class CreditCardRepositoryPostgres(
     s"""
        |SELECT $Fields
        |FROM $Table
-       |WHERE id = ?
+       |WHERE customer_id = ?
      """.stripMargin
 
   val SelectByAccountId: String =
@@ -91,8 +91,8 @@ class CreditCardRepositoryPostgres(
 
   def insert(card: CreditCard)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CreditCard]] = {
     val params = Seq[Any](
-      card.customerId, 1, card.accountId, card.email, card.givenname, card.surname, card.exp_month,
-      card.exp_year, card.brand, card.last4
+      card.customerId, 1, card.accountId, card.email, card.givenname, card.surname, card.expMonth,
+      card.expYear, card.brand, card.last4
     )
 
     lift(queryOne(Insert, params))
@@ -100,8 +100,8 @@ class CreditCardRepositoryPostgres(
 
   def update(card: CreditCard)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CreditCard]] = {
     val params = Seq[Any](
-      1, card.accountId, card.email, card.givenname, card.surname, card.exp_month,
-      card.exp_year, card.brand, card.last4, card.customerId
+      1, card.accountId, card.email, card.givenname, card.surname, card.expMonth,
+      card.expYear, card.brand, card.last4, card.customerId
     )
 
     Logger.debug(s"Doing UPDATE on card: $Update\nwith parameters $params")

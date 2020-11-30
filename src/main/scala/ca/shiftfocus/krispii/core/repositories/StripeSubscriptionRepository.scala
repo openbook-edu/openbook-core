@@ -10,9 +10,9 @@ import scala.concurrent.Future
 import scalaz.\/
 
 trait StripeSubscriptionRepository extends Repository {
-  def get(id: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripeSubscription]]
+  def get(customer_id: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripeSubscription]]
   def listByAccountId(accountId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[StripeSubscription]]]
   def insert(subscription: StripeSubscription)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripeSubscription]]
   def update(subscription: StripeSubscription)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripeSubscription]]
-  def delete(id: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripeSubscription]]
+  def delete(customer_id: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripeSubscription]]
 }

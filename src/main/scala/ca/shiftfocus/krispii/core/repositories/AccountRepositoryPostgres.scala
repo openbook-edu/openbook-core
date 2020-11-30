@@ -3,8 +3,8 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.stripe.{CreditCard, StripeSubscription}
 import ca.shiftfocus.krispii.core.models.Account
+import ca.shiftfocus.krispii.core.models.stripe.StripeSubscription
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import play.api.Logger
@@ -25,7 +25,7 @@ class AccountRepositoryPostgres(
       row("version").asInstanceOf[Long],
       row("user_id").asInstanceOf[UUID],
       row("status").asInstanceOf[String],
-      Option(row("customer").asInstanceOf[CreditCard]),
+      None, // creditCard is initialized empty!
       IndexedSeq.empty[StripeSubscription], // subscriptions are initialized empty!
       Option(row("trial_started_at").asInstanceOf[DateTime]),
       Option(row("active_until").asInstanceOf[DateTime]),
@@ -100,7 +100,8 @@ class AccountRepositoryPostgres(
       case \/-(account) => Future successful \/-(account)
       case -\/(_: RepositoryError.NoResults) =>
         for {
-          account <- lift(queryOne(Select, Seq[Any](accountId)))
+          raw <- lift(queryOne(Select, Seq[Any](accountId)))
+          account <- lift(enrichAccount(raw))
           _ <- lift(cacheRepository.cacheAccount.putCache(cacheAccountKey(account.id))(account, ttl))
           _ <- lift(cacheRepository.cacheAccount.putCache(cacheAccountUserKey(account.userId))(account, ttl))
         } yield account
@@ -113,7 +114,8 @@ class AccountRepositoryPostgres(
       case \/-(account) => Future successful \/-(account)
       case -\/(_: RepositoryError.NoResults) =>
         for {
-          account <- lift(queryOne(SelectByUserId, Seq[Any](userId)))
+          raw <- lift(queryOne(SelectByUserId, Seq[Any](userId)))
+          account <- lift(enrichAccount(raw))
           _ <- lift(cacheRepository.cacheAccount.putCache(cacheAccountKey(account.id))(account, ttl))
           _ <- lift(cacheRepository.cacheAccount.putCache(cacheAccountUserKey(account.userId))(account, ttl))
         } yield account
@@ -128,7 +130,7 @@ class AccountRepositoryPostgres(
 
   def insert(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
-      account.id, 1, account.userId, account.status, account.creditCard, account.trialStartedAt, account.activeUntil,
+      account.id, 1, account.userId, account.status, account.trialStartedAt, account.activeUntil,
       account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId
     )
 
@@ -141,7 +143,7 @@ class AccountRepositoryPostgres(
 
   def update(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](
-      account.version + 1, account.userId, account.status, account.creditCard, account.trialStartedAt,
+      account.version + 1, account.userId, account.status, account.trialStartedAt,
       account.activeUntil, account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId, account.id
     )
 

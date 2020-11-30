@@ -252,8 +252,8 @@ class PaymentServiceDefault(
                     defaultCardJObject ++ Json.obj(
                       "last4" -> last4,
                       "brand" -> brand,
-                      "exp_year" -> expYear.toString,
-                      "exp_month" -> expMonth.toString
+                      "expYear" -> expYear.toString,
+                      "expMonth" -> expMonth.toString
                     )
                   )
                 )
@@ -263,13 +263,60 @@ class PaymentServiceDefault(
           }
    */
 
+  /**
+   * Fetch the current customer data directly from Stripe
+   * @param customerId: stripe-furnished ID string
+   * @return a com.stripe.model.Customer object, or an error
+   */
+  def fetchCustomerFromStripe(customerId: String): ServiceError.ExternalService \/ Customer =
+    try {
+      \/-(Customer.retrieve(customerId, requestOptions))
+    }
+    catch {
+      case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
+    }
+
+  /**
+   * Fetch stripe credit card data from the krispii database
+   * @param customerId: stripe-furnished ID string
+   * @return in the Future, a CreditCard (our subset of stripe's credit card information), or an error
+   */
+  def getCreditCard(customerId: String): Future[RepositoryError.Fail \/ CreditCard] =
+    creditCardRepository.get(customerId)
+
+  /**
+   * Fetch stripe credit card data from the krispii database.
+   * Returns the first CreditCard for this account, ignoring any further ones, which should not exist.
+   * @param accountId: unique ID of krispii Account
+   * @return in the Future, a CreditCard (our subset of stripe's credit card information), or an error
+   */
+  def getCreditCard(accountId: UUID): Future[RepositoryError.Fail \/ CreditCard] =
+    creditCardRepository.listByAccountId(accountId).flatMap {
+      case \/-(cardList) if cardList.nonEmpty => Future successful \/-(cardList.head)
+      case \/-(_) => Future successful -\/(RepositoryError.NoResults("No credit card information for this account"))
+      case -\/(error) => Future successful -\/(error)
+    }
+
+  private def cardFromStripe(email: String, givenname: String, surname: String, accountId: UUID, customer: Customer): CreditCard = {
+    val defaultSource = customer.getSources.retrieve(customer.getDefaultSource, requestOptions)
+    defaultSource.getObject match {
+      case "card" =>
+        val defaultCard = defaultSource.asInstanceOf[Card]
+        CreditCard(customer.getId, version = 1, accountId, email, givenname, surname,
+          Some(defaultCard.getExpMonth.toLong), Some(defaultCard.getExpYear.toLong), defaultCard.getBrand, defaultCard.getLast4)
+      // not sure other payment sources are of much use to us
+      case _ =>
+        CreditCard(customer.getId, version = 1, accountId, email, givenname, surname)
+    }
+  }
+
   private def cardFromStripe(user: User, accountId: UUID, customer: Customer): CreditCard = {
     val defaultSource = customer.getSources.retrieve(customer.getDefaultSource, requestOptions)
     defaultSource.getObject match {
       case "card" =>
         val defaultCard = defaultSource.asInstanceOf[Card]
         CreditCard(customer.getId, version = 1, accountId, user.email, user.givenname, user.surname,
-          Some(defaultCard.getExpMonth), Some(defaultCard.getExpYear), defaultCard.getBrand, defaultCard.getLast4)
+          Some(defaultCard.getExpMonth.toLong), Some(defaultCard.getExpYear.toLong), defaultCard.getBrand, defaultCard.getLast4)
       // not sure other payment sources are of much use to us
       case _ =>
         CreditCard(customer.getId, version = 1, accountId, user.email, user.givenname, user.surname)
@@ -297,7 +344,7 @@ class PaymentServiceDefault(
    *
    * @param account: Account
    * @param tokenId: String
-   * @return CreditCard (our subset of stripe's credit card information)
+   * @return in the Future, a CreditCard (our subset of stripe's credit card information), or an error
    */
   def createCreditCard(account: Account, tokenId: String): Future[\/[ErrorUnion#Fail, CreditCard]] =
     for {
@@ -311,7 +358,7 @@ class PaymentServiceDefault(
    *
    * @param userId unique ID of krispii user
    * @param tokenId String
-   * @return CreditCard (our subset of stripe's credit card information)
+   * @return in the Future, a CreditCard (our subset of stripe's credit card information), or an error
    */
   def createCreditCard(userId: UUID, tokenId: String): Future[\/[ErrorUnion#Fail, CreditCard]] =
     for {
@@ -346,6 +393,23 @@ class PaymentServiceDefault(
   /**
    * Update user name and email on stripe, and if successful, also in the locally saved CreditCard.
    * Any changes to the card that occurred in stripe will be synchronized to the krispii db.
+   * @param card: existing CreditCard
+   * @param userId: unique ID of krispii user
+   * @param email String
+   * @param givenname String
+   * @param surname String
+   * @return the updated credit card as present in the local database, or an error
+   */
+  def updateCreditCard(card: CreditCard, userId: UUID, email: String, givenname: String, surname: String): Future[\/[ErrorUnion#Fail, CreditCard]] =
+    (for {
+      stripe <- lift(Future successful updateStripeCustomer(userId, card.customerId, email, givenname, surname))
+      toUpdate = cardFromStripe(email, givenname, surname, card.accountId, stripe)
+      updated <- lift(creditCardRepository.update(toUpdate))
+    } yield updated).run
+
+  /**
+   * Update user name and email on stripe, and if successful, also in the locally saved CreditCard.
+   * Any changes to the card that occurred in stripe will be synchronized to the krispii db.
    * @param userId unique krispii user ID
    * @param email String
    * @param givenname String
@@ -354,11 +418,10 @@ class PaymentServiceDefault(
    */
   def updateCreditCard(userId: UUID, email: String, givenname: String, surname: String): Future[\/[ErrorUnion#Fail, CreditCard]] =
     (for {
-      user <- lift(userRepository.find(userId))
       account <- lift(getAccount(userId))
       card <- lift(Future successful getCard(account))
       stripe <- lift(Future successful updateStripeCustomer(userId, card.customerId, email, givenname, surname))
-      toUpdate = cardFromStripe(user, account.id, stripe)
+      toUpdate = cardFromStripe(email, givenname, surname, account.id, stripe)
       updated <- lift(creditCardRepository.update(toUpdate))
     } yield updated).run
 
@@ -720,8 +783,8 @@ class PaymentServiceDefault(
                     defaultCardJObject ++ Json.obj(
                       "last4" -> last4,
                       "brand" -> brand,
-                      "exp_year" -> expYear.toString,
-                      "exp_month" -> expMonth.toString
+                      "expYear" -> expYear.toString,
+                      "expMonth" -> expMonth.toString
                     )
                   )
                 )

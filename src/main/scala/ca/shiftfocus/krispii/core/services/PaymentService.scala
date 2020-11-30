@@ -2,11 +2,11 @@ package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.error.ErrorUnion
+import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
 import ca.shiftfocus.krispii.core.models.stripe.{CreditCard, StripePlan, StripeSubscription}
 import ca.shiftfocus.krispii.core.models.{Account, PaymentLog}
 import ca.shiftfocus.krispii.core.services.datasource.DB
-import com.stripe.model.{Card, Invoice, InvoiceItem, Subscription}
+import com.stripe.model.{Card, Customer, Invoice, InvoiceItem, Subscription}
 import com.stripe.net.RequestOptions
 import org.joda.time.DateTime
 import play.api.libs.json.JsValue
@@ -37,8 +37,13 @@ trait PaymentService extends Service[ErrorUnion#Fail] {
   def updatePlanInDb(id: UUID, version: Long, title: String): Future[\/[ErrorUnion#Fail, StripePlan]]
   def deletePlanFromDb(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, StripePlan]]
 
+  // TODO: It would be better to move the machinery that deals with Customer from API into core
+  def fetchCustomerFromStripe(customerId: String): ServiceError.ExternalService \/ Customer
+  def getCreditCard(customerId: String): Future[RepositoryError.Fail \/ CreditCard]
+  def getCreditCard(accountId: UUID): Future[RepositoryError.Fail \/ CreditCard]
   def createCreditCard(account: Account, tokenId: String): Future[\/[ErrorUnion#Fail, CreditCard]]
   def createCreditCard(userId: UUID, tokenId: String): Future[\/[ErrorUnion#Fail, CreditCard]]
+  def updateCreditCard(card: CreditCard, userId: UUID, email: String, givenname: String, surname: String): Future[\/[ErrorUnion#Fail, CreditCard]]
   def updateCreditCard(userId: UUID, email: String, givenname: String, surname: String): Future[\/[ErrorUnion#Fail, CreditCard]]
   // the JsValue from Stripe should not be public
   // def fetchCustomerFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, JsValue]]

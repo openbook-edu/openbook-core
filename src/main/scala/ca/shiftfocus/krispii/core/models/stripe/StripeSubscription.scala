@@ -7,7 +7,7 @@ import play.api.libs.json.{Reads, Writes, __}
 
 // This is a subset of the information in the stripe class Subscription
 case class StripeSubscription(
-  id: String, // furnished by stripe - we can use this instead of a UUID
+  customerId: String, // furnished by stripe - we can use this instead of a UUID
   version: Long = 1L, // is a lock useful? one krispii customer can only log in to one connection at a time
   accountId: UUID, // we only need to link to our krispii Account, not to the stripe customer
   planId: String, // stripe ID string, which is constrained to be unique in the table stripe_plans
@@ -17,7 +17,7 @@ case class StripeSubscription(
 
 object StripeSubscription {
   implicit val subscriptionWrites: Writes[StripeSubscription] = (
-    (__ \ "id").write[String] and
+    (__ \ "customerId").write[String] and
     (__ \ "version").write[Long] and
     (__ \ "accountId").write[UUID] and
     (__ \ "planId").write[String] and
@@ -26,7 +26,7 @@ object StripeSubscription {
   )(unlift(StripeSubscription.unapply))
 
   implicit val subscriptionReads: Reads[StripeSubscription] = (
-    (__ \ "id").read[String] and
+    (__ \ "customerId").read[String] and
     (__ \ "version").read[Long] and
     (__ \ "accountId").read[UUID] and
     (__ \ "planId").read[String] and

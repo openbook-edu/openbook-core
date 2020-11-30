@@ -13,15 +13,10 @@ case class CreditCard(
   email: String, // do we really need to store email and name separately from User?
   givenname: String,
   surname: String,
-  exp_month: Option[Int] = None,
-  exp_year: Option[Int] = None,
+  expMonth: Option[Long] = None,
+  expYear: Option[Long] = None,
   brand: String = "",
   last4: String = ""
-/*currency: String,
-  livemode: Boolean,
-  delinquent: Boolean,
-  description: String = "",
-  balance: Long = 0 // account_balance */
 )
 
 object CreditCard {
@@ -32,15 +27,10 @@ object CreditCard {
     (__ \ "email").write[String] and
     (__ \ "givenname").write[String] and
     (__ \ "surname").write[String] and
-    (__ \ "exp_month").writeNullable[Int] and
-    (__ \ "exp_year").writeNullable[Int] and
+    (__ \ "expMonth").writeNullable[Long] and
+    (__ \ "expYear").writeNullable[Long] and
     (__ \ "brand").write[String] and
     (__ \ "last4").write[String]
-  /*(__ \ "currency").write[String] and
-    (__ \ "livemode").write[Boolean] and
-    (__ \ "delinquent").write[Boolean] and
-    (__ \ "description").write[String] and
-    (__ \ "balance").write[Long] */
   )(unlift(CreditCard.unapply))
 
   implicit val creditCardReads: Reads[CreditCard] = (
@@ -50,8 +40,8 @@ object CreditCard {
     (__ \ "email").read[String] and
     (__ \ "givenname").read[String] and
     (__ \ "surname").read[String] and
-    (__ \ "exp_month").readNullable[Int] and
-    (__ \ "exp_year").readNullable[Int] and
+    (__ \ "expMonth").readNullable[Long] and
+    (__ \ "expYear").readNullable[Long] and
     (__ \ "brand").read[String] and
     (__ \ "last4").read[String]
   )(CreditCard.apply _)

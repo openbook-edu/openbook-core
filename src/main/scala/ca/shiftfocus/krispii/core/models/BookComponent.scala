@@ -33,7 +33,7 @@ object BookComponent {
     (__ \ "title").write[String] and
     (__ \ "questions").write[String] and
     (__ \ "thingsToThinkAbout").write[String] and
-    (__ \ "fileData").write[MediaData] and
+    (__ \ "fileData").write[MediaData] and // illogical and dangerous: write "fileData", but read "media_data"
     (__ \ "order").write[Int] and
     (__ \ "isPrivate").write[Boolean] and
     (__ \ "description").write[String] and

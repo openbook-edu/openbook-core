@@ -20,6 +20,7 @@ trait UserRepository extends Repository {
   def list(conversation: Conversation)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]
   def list(teacher: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]
   def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]
+  def listOrganizationMembers(organizationList: IndexedSeq[Organization])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]
 
   def find(userId: UUID, includeDeleted: Boolean = false)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]]
   def find(identifier: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]]

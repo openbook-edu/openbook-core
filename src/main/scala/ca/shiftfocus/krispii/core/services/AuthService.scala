@@ -41,12 +41,18 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   def listByKey(key: String, includeDeleted: Boolean = false, limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
   /**
-   * List all users.
-   *
-   * @return a list of users with their roles and courses
+   * List all users (only for top administrators)
+   * @return a list of users with their roles, or an error
    */
   def list: Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
   def listByRange(limit: Int, offset: Int): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
+
+  /**
+   * List all users in all organizations the caller has access to (only for org administrators)
+   * @param user the caller
+   * @return a list of users with their roles, or an error
+   */
+  def listColleagues(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
   /**
    * List users with filter for roles and courses.

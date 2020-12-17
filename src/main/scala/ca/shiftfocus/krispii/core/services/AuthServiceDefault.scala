@@ -48,9 +48,8 @@ class AuthServiceDefault(
   val activation = "activation"
 
   /**
-   * List all users.
-   *
-   * @return an IndexedSeq of user
+   * List all users (only for top administrators)
+   * @return an IndexedSeq of users with their roles
    */
   override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     (for {
@@ -65,6 +64,18 @@ class AuthServiceDefault(
       }
     } yield result).run
   }
+
+  /**
+   * List all members of all organizations that the caller is orgAdministrator in
+   * @param user the caller
+   * @return a list of users with their roles, or an error
+   */
+  override def listColleagues(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] =
+    for {
+      organizations <- lift(organizationService.listByAdmin(user.email))
+      _ = Logger.debug(s"${user.email} is admin in the organizations: ${organizations.map(_.title)}")
+      users <- lift(organizationService.listMembers(organizations))
+    } yield users
 
   override def listByRange(offset: Int, limit: Int): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     (for {

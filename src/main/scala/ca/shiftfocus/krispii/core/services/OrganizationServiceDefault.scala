@@ -20,21 +20,17 @@ class OrganizationServiceDefault(
 
   implicit def conn: Connection = db.pool
 
-  def find(organizationId: UUID): Future[\/[ErrorUnion#Fail, Organization]] = {
+  def find(organizationId: UUID): Future[\/[ErrorUnion#Fail, Organization]] =
     organizationRepository.find(organizationId)
-  }
 
-  def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] = {
+  def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] =
     organizationRepository.list
-  }
 
-  def listByAdmin(adminEmail: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] = {
+  def listByAdmin(adminEmail: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] =
     organizationRepository.listByAdmin(adminEmail)
-  }
 
-  def listByMember(memberEmail: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] = {
+  def listByMember(memberEmail: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] =
     organizationRepository.listByMember(memberEmail)
-  }
 
   /**
    * List organizations by tags
@@ -43,13 +39,19 @@ class OrganizationServiceDefault(
    * @param distinct Boolean If true each organization should have all listed tags,
    *                 if false organization should have at least one listed tag
    */
-  def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] = {
+  def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] =
     organizationRepository.listByTags(tags, distinct)
-  }
 
-  def searchMembers(key: String, organizationList: IndexedSeq[Organization]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
+  /**
+   * List all members of all organizations on the list
+   * @param organizationList IndexedSeq of organizations
+   * @return IndexedSeq of Users, or an error
+   */
+  def listMembers(organizationList: IndexedSeq[Organization]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] =
+    userRepository.listOrganizationMembers(organizationList)
+
+  def searchMembers(key: String, organizationList: IndexedSeq[Organization]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] =
     userRepository.searchOrganizationMembers(key, organizationList)
-  }
 
   def addMember(organizationId: UUID, memberEmail: String): Future[\/[ErrorUnion#Fail, Organization]] = {
     (for {

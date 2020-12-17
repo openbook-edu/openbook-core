@@ -161,6 +161,22 @@ class UserRepositoryPostgres(
     """.stripMargin
   }
 
+  def ListOrgMembers(organizationList: IndexedSeq[Organization]) = {
+    val orgIdList = organizationList.map(org => s"'${org.id.toString}'").mkString(", ")
+
+    s"""
+       |SELECT ${FieldsWithTable("sub")}
+       |FROM (
+       |  SELECT *
+       |  FROM $Table
+       |) AS sub
+       |INNER JOIN organization_members AS om
+       |  ON om.member_email = sub.email
+       |  AND om.organization_id IN ($orgIdList)
+       |ORDER BY sub.givenname ASC
+    """.
+      stripMargin
+  }
   def SelectOrgMembersByKey(param: String, organizationList: IndexedSeq[Organization]) = {
     val orgIdList = organizationList.map(org => s"'${org.id.toString}'").mkString(", ")
 
@@ -413,6 +429,19 @@ class UserRepositoryPostgres(
    */
   override def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
     queryList(SelectByTags(tags, distinct))
+  }
+
+  /**
+   * List all members of the given organization.
+   * Admins of these organizations will only be listed if they are also ordinary members.
+   * @param organizationList: indexed seq of Organizations to list for
+   * @return IndexedSeq of Users, or an error
+   */
+  def listOrganizationMembers(organizationList: IndexedSeq[Organization])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    for {
+      _ <- predicate(organizationList.nonEmpty)(RepositoryError.BadParam("core.UserRepositoryPostgres.searchOrganizationTeammate.org.empty"))
+      result <- lift(queryList(ListOrgMembers(organizationList)))
+    } yield result
   }
 
   /**

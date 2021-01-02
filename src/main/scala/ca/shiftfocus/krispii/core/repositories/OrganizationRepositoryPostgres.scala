@@ -97,6 +97,7 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
         if (index != (length - 1)) whereClause += " OR "
     }
 
+
     whereClause = {
       if (whereClause != "") "WHERE " + whereClause
       // If tagList is empty, then there should be unexisting condition

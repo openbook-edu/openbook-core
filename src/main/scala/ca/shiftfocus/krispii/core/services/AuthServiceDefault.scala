@@ -66,14 +66,16 @@ class AuthServiceDefault(
   }
 
   /**
-   * List all members of all organizations that the caller is orgAdministrator in
+   * List all members of all organizations that the caller is orgAdministrator or member in
    * @param user the caller
    * @return a list of users with their roles, or an error
    */
   override def listColleagues(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] =
     for {
-      organizations <- lift(organizationService.listByAdmin(user.email))
-      _ = Logger.debug(s"${user.email} is admin in the organizations: ${organizations.map(_.title)}")
+      asAdmin <- lift(organizationService.listByAdmin(user.email))
+      asMember <- lift(organizationService.listByMember(user.email))
+      organizations = asAdmin ++ asMember
+      _ = Logger.debug(s"${user.email} is admin or member in the organizations: ${organizations.map(_.title)}")
       users <- lift(organizationService.listMembers(organizations))
     } yield users
 

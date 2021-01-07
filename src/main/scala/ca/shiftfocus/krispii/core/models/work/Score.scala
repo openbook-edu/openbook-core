@@ -18,10 +18,10 @@ case class Score(
     origGrade: String = "", // initially empty, in contrast with Work
     grade: String = "", // in case we want to keep a consensus-finding process
     isVisible: Boolean = false,
-    /* will only be saved separate from the original versions in Test resp. Exam
+    /* will only be saved separately from the original versions in Test resp. Exam
        if the scorer has actually made changes to the PDFs etc. */
     examFile: Option[UUID] = None, // will usually be an annotated PDF component
-    rubricFile: Option[UUID] = None, // could be a rubric, image or PDF component
+    rubricFile: Option[UUID] = None, // will usually be an annotated PDF component
     archived: Boolean = false,
     deleted: Boolean = false,
     createdAt: DateTime = new DateTime(),

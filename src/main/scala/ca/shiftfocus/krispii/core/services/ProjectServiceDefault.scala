@@ -442,13 +442,14 @@ class ProjectServiceDefault(
     }
   }
 
-  // TODO - method does nothing
+  // TODO - method returns empty list
   /**
    * List the parts that have a component.
    *
    * @param componentId the UUID of the component to filter by
    */
-  override def listPartsInComponent(componentId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Part]]] = ???
+  override def listPartsInComponent(componentId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Part]]] =
+    Future successful \/-(IndexedSeq.empty[Part])
   //    {
   //      val fPartList = for {
   //        component <- componentRepository.find(componentId).map(_.get)

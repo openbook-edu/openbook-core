@@ -44,20 +44,20 @@ class ExamRepositoryPostgres(
     )
   }
 
-  val Table = "exams"
-  val Fields = "id, version, coordinator_id, name, color, slug, orig_rubric_id, enabled, scheduling_enabled, archived, deleted, created_at, updated_at"
-  val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
-  val OrderBy = s"${Table}.name ASC"
+  val Table: String = "exams"
+  val Fields: String = "id, version, coordinator_id, name, color, slug, orig_rubric_id, enabled, scheduling_enabled, archived, deleted, created_at, updated_at"
+  val FieldsWithTable: String = Fields.split(", ").map({ field => s"$Table." + field }).mkString(", ")
+  val OrderBy: String = s"$Table.name ASC"
 
   // User CRUD operations
-  val SelectAll =
+  val SelectAll: String =
     s"""
        |SELECT $Fields
        |FROM $Table
        |ORDER BY $OrderBy
   """.stripMargin
 
-  val SelectOne =
+  val SelectOne: String =
     s"""
        |SELECT $Fields
        |FROM $Table
@@ -65,7 +65,7 @@ class ExamRepositoryPostgres(
        |LIMIT 1
      """.stripMargin
 
-  val SelectOneBySlug =
+  val SelectOneBySlug: String =
     s"""
        |SELECT $Fields
        |FROM $Table
@@ -74,7 +74,7 @@ class ExamRepositoryPostgres(
      """.stripMargin
 
   // Using here get_slug custom postgres function to generate unique slug if slug already exists
-  val Insert = {
+  val Insert: String = {
     s"""
        |INSERT INTO $Table ($Fields)
        |VALUES (?, ?, ?, ?, ?, get_slug(?, '$Table', ?), ?, ?, ?, false, false, ?, ?)
@@ -83,7 +83,7 @@ class ExamRepositoryPostgres(
   }
 
   // Using here get_slug custom postgres function to generate unique slug if slug already exists
-  val Update =
+  val Update: String =
     s"""
        |UPDATE $Table
        |SET version = ?, coordinator_id = ?, name = ?, color = ?, slug = get_slug(?, '$Table', ?),
@@ -93,29 +93,34 @@ class ExamRepositoryPostgres(
        |RETURNING $Fields
      """.stripMargin
 
-  val Delete =
+  val Delete: String =
     s"""
        |UPDATE $Table
-       |SET is_deleted = true
+       |SET deleted = true
        |WHERE id = ?
        |RETURNING $Fields
      """.stripMargin
 
-  val ListByCoordinatorId =
+  val ListByCoordinatorId: String =
     s"""
        |SELECT $Fields
        |FROM $Table
        |WHERE coordinator_id = ?
+       |  AND NOT $Table.deleted
        |ORDER BY $OrderBy
      """.stripMargin
 
-  val ListByScorerId =
+  val ListByScorerId: String =
     s"""
        |SELECT $FieldsWithTable
        |FROM $Table, teams t, teams_scorers ts
        |WHERE ts.scorer_id = ?
        |  AND ts.team_id = t.id
        |  AND t.exam_id = $Table.id
+       |  AND NOT $Table.deleted
+       |  AND NOT $Table.archived
+       |  AND NOT ts.deleted
+       |  AND NOT ts.archived
        |ORDER BY $OrderBy
      """.stripMargin
 
@@ -142,7 +147,7 @@ class ExamRepositoryPostgres(
     val query = if (isScorer) ListByScorerId else ListByCoordinatorId
     cacheRepository.cacheSeqExam.getCached(key).flatMap {
       case \/-(examList) => Future successful \/-(examList)
-      case -\/(noResults: RepositoryError.NoResults) => for {
+      case -\/(_: RepositoryError.NoResults) => for {
         examList <- lift(queryList(query, Seq[Any](user.id)))
         _ <- lift(cacheRepository.cacheSeqExam.putCache(key)(examList, ttl))
       } yield examList
@@ -159,7 +164,7 @@ class ExamRepositoryPostgres(
     val directKey = cacheExamKey(id)
     cacheRepository.cacheExam.getCached(directKey).flatMap {
       case \/-(exam) => Future successful \/-(exam)
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case -\/(_: RepositoryError.NoResults) =>
         for {
           exam <- lift(queryOne(SelectOne, Array[Any](id)))
           _ <- lift(cacheRepository.cacheExam.putCache(directKey)(exam, ttl))
@@ -180,7 +185,7 @@ class ExamRepositoryPostgres(
     cacheRepository.cacheUUID.getCached(key).flatMap {
       case \/-(examId) =>
         find(examId) // will already read from and place the full exam into cache
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case -\/(_: RepositoryError.NoResults) =>
         for {
           exam <- lift(queryOne(SelectOneBySlug, Seq[Any](slug)))
           _ <- lift(cacheRepository.cacheUUID.putCache(key)(exam.id, ttl))
@@ -193,8 +198,8 @@ class ExamRepositoryPostgres(
   /**
    * Insert an Exam row.
    *
-   * @param exam
-   * @param conn
+   * @param exam Exam to insert
+   * @param conn implicit database connection
    * @return
    */
   def insert(exam: Exam)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Exam]] = {
@@ -211,8 +216,8 @@ class ExamRepositoryPostgres(
   /**
    * Update an Exam row
    *
-   * @param exam
-   * @param conn
+   * @param exam Exam to update
+   * @param conn implicit database connection
    * @return
    */
   override def update(exam: Exam) // format: OFF
@@ -232,8 +237,8 @@ class ExamRepositoryPostgres(
   /**
    * Delete an Exam row.
    *
-   * @param exam
-   * @param conn
+   * @param exam Exam to delete
+   * @param conn implicit database connection
    * @return
    */
   override def delete(exam: Exam)  // format: OFF

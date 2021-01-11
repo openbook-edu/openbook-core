@@ -46,37 +46,37 @@ class TeamRepositoryPostgres(
       row("updated_at").asInstanceOf[DateTime]
     )
 
-  val Table = "teams"
+  val Table: String = "teams"
   // names and number of fields in SQL
-  val Fields = "id, version, exam_id, coordinator_id, name, slug, color, " +
+  val Fields: String = "id, version, exam_id, coordinator_id, name, slug, color, " +
     "enabled, scheduling_enabled, chat_enabled, archived, deleted, created_at, updated_at"
   def FieldsWithTable(fields: String = Fields, table: String = Table): String =
-    fields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
-  val TeamsFields = FieldsWithTable(Fields, Table)
-  val OrderBy = s"${Table}.name ASC"
+    fields.split(", ").map({ field => s"$table." + field }).mkString(", ")
+  val TeamsFields: String = FieldsWithTable(Fields, Table)
+  val OrderBy: String = s"$Table.name ASC"
 
   // User CRUD operations
-  val SelectAll =
+  val SelectAll: String =
     s"""
        |SELECT $Fields
        |FROM $Table
      """.stripMargin
 
-  val SelectOne =
+  val SelectOne: String =
     s"""
        |SELECT $Fields
        |FROM $Table
        |WHERE id = ?
     """.stripMargin
 
-  val SelectOneBySlug =
+  val SelectOneBySlug: String =
     s"""
        |SELECT $Fields
        |FROM $Table
        |WHERE slug = ?
      """.stripMargin
 
-  val ListByExam =
+  val ListByExam: String =
     s"""
        |SELECT $Fields
        |FROM $Table
@@ -84,31 +84,36 @@ class TeamRepositoryPostgres(
        |ORDER BY $OrderBy
      """.stripMargin
 
-  val ListByCoordinatorId =
+  val ListByCoordinatorId: String =
     s"""
        |SELECT $TeamsFields
        |FROM $Table
        |WHERE coordinator_id = ?
+       |  AND NOT $Table.deleted
        |ORDER BY $OrderBy
      """.stripMargin
 
-  val ListByScorerId =
+  val ListByScorerId: String =
     s"""
        |SELECT $TeamsFields
        |FROM $Table, teams_scorers
        |WHERE $Table.id = teams_scorers.team_id
-       |AND teams_scorers.scorer_id = ?
+       |  AND teams_scorers.scorer_id = ?
+       |  AND NOT $Table.deleted
+       |  AND NOT $Table.archived
+       |  AND NOT teams_scorers.deleted
+       |  AND NOT teams_scorers.archived
        |ORDER BY $OrderBy
      """.stripMargin
 
-  val Insert =
+  val Insert: String =
     s"""
        |INSERT INTO $Table ($Fields)
        |VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        |RETURNING $Fields
     """.stripMargin
 
-  val Update =
+  val Update: String =
     s"""
        |UPDATE $Table
        |SET version = ?, exam_id = ?, coordinator_id = ?, name = ?, slug = ?, color= ?, enabled = ?, scheduling_enabled = ?, chat_enabled = ?, archived = ?, deleted = ?, updated_at = ?
@@ -117,7 +122,15 @@ class TeamRepositoryPostgres(
        |RETURNING $Fields
     """.stripMargin
 
-  val Delete =
+  val Delete: String =
+    s"""
+       |UPDATE $Table
+       |SET deleted = true
+       |WHERE id = ?
+       |RETURNING $Fields
+     """.stripMargin
+
+  val CompletelyDelete: String =
     s"""
        |DELETE
        |FROM $Table
@@ -201,7 +214,7 @@ class TeamRepositoryPostgres(
     val key = cacheTeamsKey(exam.id)
     cacheRepository.cacheSeqTeam.getCached(key).flatMap {
       case \/-(teamList) => enrichTeams(teamList, fetchTests)
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case -\/(_: RepositoryError.NoResults) =>
         for {
           teamList <- lift(queryList(ListByExam, Seq[Any](exam.id)))
           _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(teamList, ttl))
@@ -238,7 +251,7 @@ class TeamRepositoryPostgres(
       (cacheCoordinatorTeamsKey(user.id), ListByCoordinatorId)
     cacheRepository.cacheSeqTeam.getCached(key).flatMap {
       case \/-(teamList) => enrichTeams(teamList, fetchTests)
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case -\/(_: RepositoryError.NoResults) =>
         Logger.debug(s"No teams for ${user.email} (ID ${user.id}) in redis cache, search in PostgreSQL with query $queryType")
         for {
           teamList <- lift(queryList(queryType, Seq[Any](user.id)))
@@ -270,12 +283,12 @@ class TeamRepositoryPostgres(
     val key = cacheTeamKey(id)
     cacheRepository.cacheTeam.getCached(key).flatMap {
       case \/-(team) => enrichTeam(team, fetchTests)
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case -\/(_: RepositoryError.NoResults) =>
         for {
           team <- lift(queryOne(SelectOne, Seq[Any](id)))
           _ <- lift(cacheRepository.cacheTeam.putCache(key)(team, ttl))
           result <- lift(enrichTeam(team, fetchTests))
-        } yield (result)
+        } yield result
       case -\/(error) => Future successful -\/(error)
     }
   }

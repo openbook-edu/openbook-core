@@ -23,9 +23,9 @@ case class Team(
   color: Color,
   enabled: Boolean = true,
   schedulingEnabled: Boolean = false,
+  chatEnabled: Boolean = true,
   archived: Boolean = false,
   deleted: Boolean = false,
-  chatEnabled: Boolean = true,
   scorers: IndexedSeq[Scorer] = IndexedSeq.empty[Scorer],
   tests: IndexedSeq[Test] = IndexedSeq.empty[Test],
   createdAt: DateTime = new DateTime,
@@ -47,9 +47,9 @@ object Team {
     (__ \ "color").write[Color] and
     (__ \ "enabled").write[Boolean] and
     (__ \ "scheduling_enabled").write[Boolean] and
+    (__ \ "chatEnabled").write[Boolean] and
     (__ \ "archived").write[Boolean] and
     (__ \ "deleted").write[Boolean] and
-    (__ \ "chatEnabled").write[Boolean] and
     (__ \ "scorers").write[IndexedSeq[Scorer]] and
     (__ \ "tests").write[IndexedSeq[Test]] and
     (__ \ "createdAt").write[DateTime] and
@@ -66,9 +66,9 @@ object Team {
     (__ \ "color").read[Color] and
     (__ \ "enabled").read[Boolean] and
     (__ \ "scheduling_enabled").read[Boolean] and
+    (__ \ "chatEnabled").read[Boolean] and
     (__ \ "archived").read[Boolean] and
     (__ \ "deleted").read[Boolean] and
-    (__ \ "chatEnabled").read[Boolean] and
     (__ \ "scorers").read[IndexedSeq[Scorer]] and
     (__ \ "tests").read[IndexedSeq[Test]] and
     (__ \ "createdAt").read[DateTime] and

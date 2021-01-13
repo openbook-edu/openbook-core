@@ -140,12 +140,14 @@ class ScorerRepositoryPostgres(
        |WHERE updated.scorer_id = users.id;
    """.stripMargin
 
+  // AddScorersStart is the first fragment of a statement
   private val AddScorersStart =
-    s"""
+    """
       |INSERT INTO teams_scorers (team_id, scorer_id, leader, created_at)
       |VALUES
   """.stripMargin
 
+  // AddScorersEnd is the last fragment of a statement
   private val AddScorersEnd =
     s"""
       |RETURNING $ScorerFields)

@@ -36,8 +36,20 @@ class OmsServiceDefault(
   override def findExam(examId: UUID): Future[\/[ErrorUnion#Fail, Exam]] =
     examRepository.find(examId)
 
+  override def listTeams(exam: Exam): Future[\/[ErrorUnion#Fail, IndexedSeq[Team]]] =
+    teamRepository.list(exam)
+
   override def findTeam(teamId: UUID): Future[\/[ErrorUnion#Fail, Team]] =
     teamRepository.find(teamId)
+
+  override def insertTeam(team: Team): Future[\/[ErrorUnion#Fail, Team]] =
+    teamRepository.insert(team)
+
+  override def updateTeam(team: Team): Future[\/[ErrorUnion#Fail, Team]] =
+    teamRepository.update(team)
+
+  override def deleteTeam(team: Team): Future[\/[ErrorUnion#Fail, Team]] =
+    teamRepository.delete(team)
 
   override def findTest(testId: UUID): Future[\/[ErrorUnion#Fail, Test]] =
     testRepository.find(testId)
@@ -60,7 +72,7 @@ class OmsServiceDefault(
    * @param teamId: UUID of the team
    * @return
    */
-  def listMembers(teamId: UUID): Future[ErrorUnion#Fail \/ IndexedSeq[UserTrait]] =
+  override def listMembers(teamId: UUID): Future[ErrorUnion#Fail \/ IndexedSeq[UserTrait]] =
     for {
       team <- lift(teamRepository.find(teamId))
       owner <- lift(userRepository.find(team.ownerId))

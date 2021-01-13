@@ -143,16 +143,16 @@ class ExamRepositoryPostgres(
   override def list(user: User, isScorer: Boolean) // format: OFF
                    (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Exam]]] = { // format: ON
 
-    val key = if (isScorer) cacheScorerExamsKey(user.id) else cacheCoordinatorExamsKey(user.id)
+    // val key = if (isScorer) cacheScorerExamsKey(user.id) else cacheCoordinatorExamsKey(user.id)
     val query = if (isScorer) ListByScorerId else ListByCoordinatorId
-    cacheRepository.cacheSeqExam.getCached(key).flatMap {
+    /* cacheRepository.cacheSeqExam.getCached(key).flatMap {
       case \/-(examList) => Future successful \/-(examList)
       case -\/(_: RepositoryError.NoResults) => for {
-        examList <- lift(queryList(query, Seq[Any](user.id)))
+        examList <- lift( */ queryList(query, Seq[Any](user.id)) /*)
         _ <- lift(cacheRepository.cacheSeqExam.putCache(key)(examList, ttl))
       } yield examList
       case -\/(error) => Future successful -\/(error)
-    }
+    } */
   }
   /**
    * Find a single exam by ID.
@@ -209,7 +209,7 @@ class ExamRepositoryPostgres(
     )
     for {
       inserted <- lift(queryOne(Insert, params))
-      _ <- lift(cacheRepository.cacheSeqExam.removeCached(cacheCoordinatorExamsKey(exam.ownerId)))
+      // _ <- lift(cacheRepository.cacheSeqExam.removeCached(cacheCoordinatorExamsKey(exam.ownerId)))
     } yield inserted
   }
 
@@ -230,7 +230,7 @@ class ExamRepositoryPostgres(
       updated <- lift(queryOne(Update, params))
       _ <- lift(cacheRepository.cacheUUID.removeCached(cacheExamSlugKey(updated.slug)))
       _ <- lift(cacheRepository.cacheExam.removeCached(cacheExamKey(updated.id)))
-      _ <- lift(cacheRepository.cacheSeqExam.removeCached(cacheCoordinatorExamsKey(updated.ownerId)))
+      // _ <- lift(cacheRepository.cacheSeqExam.removeCached(cacheCoordinatorExamsKey(updated.ownerId)))
     } yield updated
   }
 
@@ -244,10 +244,10 @@ class ExamRepositoryPostgres(
   override def delete(exam: Exam)  // format: OFF
                      (implicit conn: Connection): Future[\/[RepositoryError.Fail, Exam]] = { // format: ON
     for {
-      deleted <- lift(queryOne(Delete, Array(exam.id)))
+      deleted <- lift(queryOne(Delete, Seq[Any](exam.id)))
       _ <- lift(cacheRepository.cacheUUID.removeCached(cacheExamSlugKey(deleted.slug)))
       _ <- lift(cacheRepository.cacheExam.removeCached(cacheExamKey(deleted.id)))
-      _ <- lift(cacheRepository.cacheSeqExam.removeCached(cacheCoordinatorExamsKey(deleted.ownerId)))
+      // _ <- lift(cacheRepository.cacheSeqExam.removeCached(cacheCoordinatorExamsKey(deleted.ownerId)))
     } yield deleted
   }
 

@@ -26,7 +26,11 @@ trait OmsService extends Service[ErrorUnion#Fail] {
      However, sometimes hard to avoid */
   def findExam(examId: UUID): Future[\/[ErrorUnion#Fail, Exam]]
 
+  def listTeams(exam: Exam): Future[\/[ErrorUnion#Fail, IndexedSeq[Team]]]
   def findTeam(teamId: UUID): Future[\/[ErrorUnion#Fail, Team]]
+  def insertTeam(team: Team): Future[\/[ErrorUnion#Fail, Team]]
+  def updateTeam(team: Team): Future[\/[ErrorUnion#Fail, Team]]
+  def deleteTeam(team: Team): Future[\/[ErrorUnion#Fail, Team]]
 
   def findTest(testId: UUID): Future[\/[ErrorUnion#Fail, Test]]
 

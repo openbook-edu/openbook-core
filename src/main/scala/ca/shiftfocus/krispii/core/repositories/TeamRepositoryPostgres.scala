@@ -346,7 +346,7 @@ class TeamRepositoryPostgres(
    */
   override def delete(team: Team)(implicit conn: Connection): Future[RepositoryError.Fail \/ Team] = {
     (for {
-      deletedTeam <- lift(queryOne(Delete, Seq[Any](team.id, team.version)))
+      deletedTeam <- lift(queryOne(Delete, Seq[Any](team.id)))
       oldTests = team.tests
       _ <- lift(cacheRepository.cacheTeam.removeCached(cacheTeamKey(team.id)))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(team.examId)))

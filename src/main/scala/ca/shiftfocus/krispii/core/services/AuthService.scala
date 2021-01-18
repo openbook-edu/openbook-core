@@ -344,7 +344,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    */
   def redeemStudentPasswordReset(token: UserToken): Future[\/[ErrorUnion#Fail, User]]
 
-  def reactivate(email: String, hostname: Option[String])(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]]
+  def reactivate(email: String, hostname: Option[String])(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, String]]
 
   //##### EMAIL CHANGE #################################################################################################
 

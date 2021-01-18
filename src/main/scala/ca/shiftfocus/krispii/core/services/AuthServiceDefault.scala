@@ -1,20 +1,24 @@
 package ca.shiftfocus.krispii.core.services
 
+import java.io.{PrintWriter, StringWriter}
+
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.helpers.Token
-import ca.shiftfocus.krispii.core.lib.{InputUtils}
+import ca.shiftfocus.krispii.core.lib.InputUtils
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
+
 import com.github.mauricio.async.db.Connection
 import org.apache.commons.mail.EmailException
 import play.api.Logger
 import play.api.libs.mailer.{Email, MailerClient}
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import play.api.i18n.{Lang, MessagesApi}
-import scala.concurrent.Future
 
+import scala.concurrent.Future
 import scalaz.{-\/, \/, \/-}
 import webcrank.password._
 
@@ -427,7 +431,7 @@ class AuthServiceDefault(
     }
   }
 
-  override def reactivate(email: String, hostname: Option[String])(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]] = {
+  override def reactivate(email: String, hostname: Option[String])(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, String]] = {
     transactional { implicit conn =>
       val fToken = for {
         user <- lift(userRepository.find(email))
@@ -438,8 +442,9 @@ class AuthServiceDefault(
           Seq(user.givenname + " " + user.surname + " <" + email + ">"), //to
           bodyHtml = Some(messagesApi("activate.confirm.message", hostname.get, user.id.toString, token.token)(lang)) //text
         )
-        _ <- lift(sendAsyncEmail(emailForNew))
-      } yield token
+        emailResponse <- lift(sendAsyncEmail(emailForNew))
+        _ = Logger.debug(emailResponse)
+      } yield emailResponse
       fToken.run
     }
   }
@@ -875,9 +880,11 @@ class AuthServiceDefault(
       \/-(mailerClient.send(email))
     }
     catch {
-      case emailException: EmailException => {
+      case emailException: EmailException =>
+        val sw = new StringWriter
+        emailException.printStackTrace(new PrintWriter(sw))
+        Logger.error(s"When sending email:\n$sw")
         -\/(ServiceError.MailerFail("E-mail sending failed.", Some(emailException)))
-      }
       case otherException: Throwable => throw otherException
     }
   }

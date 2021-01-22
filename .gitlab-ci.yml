@@ -4,6 +4,7 @@ ci_compile:
         - krispii
     only:
         - edge
+        - staging
         ## - pipeline-testing
         ## - classroom_debugging
     script:

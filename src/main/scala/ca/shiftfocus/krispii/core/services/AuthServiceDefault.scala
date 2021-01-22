@@ -125,7 +125,7 @@ class AuthServiceDefault(
             \/-(user.copy(roles = roles))
           }
           else {
-            -\/(ServiceError.BadInput("The password was invalid."))
+            -\/(ServiceError.BadInput("core.AuthServiceDefault.bad.password"))
           }
         })
       } yield authUser
@@ -282,7 +282,7 @@ class AuthServiceDefault(
           val token = Token.getNext
           for {
             validEmail <- lift(validateEmail(email.trim.toLowerCase))
-            validUsername <- lift(validateUsername(username.trim))
+            _ <- lift(validateUsername(username.trim))
             _ <- predicate(InputUtils.isValidPassword(password.trim))(ServiceError.BadInput("core.AuthServiceDefault.password.short"))
             passwordHash = Some(webcrank.crypt(password.trim))
             newUser <- lift {
@@ -476,21 +476,18 @@ class AuthServiceDefault(
         u_email <- lift(email.map { someEmail => validateEmail(someEmail.trim.toLowerCase, Some(id)) }.getOrElse(Future.successful(\/-(existingUser.email))))
         u_username <- lift(username.map { someUsername => validateUsername(someUsername, Some(id)) }.getOrElse(Future.successful(\/-(existingUser.username))))
         hash = password.flatMap { pwd =>
-          if (!InputUtils.isValidPassword(pwd.trim)) Some("0")
-          else {
-            val webcrank = Passwords.scrypt()
-            Some(webcrank.crypt(pwd.trim))
-          }
+          if (!InputUtils.isValidPassword(pwd.trim)) None
+          else Some(Passwords.scrypt().crypt(pwd.trim))
         }
-        _ <- predicate(!(hash.getOrElse("no password") == "0"))(ServiceError.BadInput("Password must be at least 8 characters"))
+        _ <- predicate(hash.isDefined)(ServiceError.BadInput("core.AuthServiceDefault.password.short"))
         userToUpdate = existingUser.copy(
           email = u_email,
           username = u_username,
           givenname = givenname.getOrElse(existingUser.givenname),
           surname = surname.getOrElse(existingUser.surname),
           alias = alias match {
-            case Some(userAlias) if !userAlias.trim.isEmpty => Some(userAlias)
-            case Some(userAlias) if userAlias.trim.isEmpty => None
+            case Some(userAlias) if userAlias.trim.length > 0 => Some(userAlias.trim)
+            case Some(_) => None
             case None => existingUser.alias
           },
           hash = hash,
@@ -796,7 +793,7 @@ class AuthServiceDefault(
    */
   private def validateEmail(email: String, existingId: Option[UUID] = None)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, String]] = {
     val existing = for {
-      _ <- predicate(InputUtils.isValidEmail(email.trim))(ServiceError.BadInput(s"'$email' is not a valid format"))
+      _ <- predicate(InputUtils.isValidEmail(email.trim))(ServiceError.BadInput("core.services.AuthServiceDefault.requestEmailChange.email.bad.format"))
       existingUser <- lift(userRepository.find(email.trim))
     } yield existingUser
 
@@ -820,15 +817,15 @@ class AuthServiceDefault(
    */
   private def validateUsername(username: String, existingId: Option[UUID] = None)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, String]] = {
     val existing = for {
-      _ <- predicate(InputUtils.isValidUsername(username.trim))(ServiceError.BadInput("Your username must be at least 3 characters."))
+      _ <- predicate(InputUtils.isValidUsername(username.trim))(ServiceError.BadInput("core.AuthServiceDefault.username.short"))
       existingUser <- lift(userRepository.find(username.trim))
     } yield existingUser
 
     existing.run.map {
       case \/-(user) =>
-        if (existingId.isEmpty || (existingId.get != user.id)) -\/(RepositoryError.UniqueKeyConflict("username", s"The username $username is already in use."))
+        if (existingId.isEmpty || (existingId.get != user.id)) -\/(RepositoryError.UniqueKeyConflict("username", "core.services.AuthServiceDefault.requestEmailChange.email.exist"))
         else \/-(username)
-      case -\/(noResults: RepositoryError.NoResults) => \/-(username)
+      case -\/(_: RepositoryError.NoResults) => \/-(username)
       case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)
     }
   }
@@ -847,7 +844,7 @@ class AuthServiceDefault(
         user <- lift(fUser)
         roles <- lift(roleRepository.list(user))
         token <- lift(userTokenRepository.find(user.id, activation))
-        _ <- predicate(activationCode == token.token)(ServiceError.BadInput("Wrong activation code!"))
+        _ <- predicate(activationCode == token.token)(ServiceError.BadInput("core.AuthServiceDefault.bad.activation"))
         _ <- lift {
           // If there is no "authenticated" role than add it
           if (!roles.exists(_.name == "authenticated")) {
@@ -862,7 +859,7 @@ class AuthServiceDefault(
       } yield (user, token, roles, deleted)
 
       result.run.map {
-        case \/-((user, token, roles, deleted)) => \/-(user)
+        case \/-((user, _, _, _)) => \/-(user)
         case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)
       }
     }

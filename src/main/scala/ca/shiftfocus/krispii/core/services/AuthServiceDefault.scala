@@ -804,7 +804,7 @@ class AuthServiceDefault(
       case \/-(user) =>
         if (existingId.isEmpty || (existingId.get != user.id)) -\/(RepositoryError.UniqueKeyConflict("email", s"The e-mail address $email is already in use."))
         else \/-(email)
-      case -\/(noResults: RepositoryError.NoResults) => \/-(email)
+      case -\/(_: RepositoryError.NoResults) => \/-(email)
       case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)
     }
   }

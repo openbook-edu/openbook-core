@@ -11,7 +11,7 @@ object InputUtils {
     val parts = email.split("@")
 
     !(parts.length != 2 ||
-      !parts(0).charAt(0).isLetter ||
+      !parts(0).charAt(0).isLetterOrDigit ||
       !parts(1).charAt(parts(1).length - 1).isLetter ||
       parts(1).indexOf("..") != -1 ||
       !"""^(?!\.)("([^"\r\\]|\\["\r\\])*"|([-a-zA-Z0-9!#$%&'*+/=?^_`{|}~]|(?<!\.)\.)*)(?<!\.)@[a-zA-Z0-9][\w\.-]*[a-zA-Z0-9]\.[a-zA-Z][a-zA-Z\.]*[a-zA-Z]$""".r.unapplySeq(email.trim).isDefined)

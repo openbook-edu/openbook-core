@@ -321,8 +321,8 @@ class TeamRepositoryPostgres(
    */
   override def update(team: Team)(implicit conn: Connection): Future[RepositoryError.Fail \/ Team] = {
     val params = Seq[Any](
-      team.examId, team.ownerId, team.name, team.slug, team.color.getRGB, team.enabled, team.schedulingEnabled,
-      team.chatEnabled, team.archived, team.deleted, team.version + 1, new DateTime, team.id, team.version
+      team.version + 1, team.examId, team.ownerId, team.name, team.slug, team.color.getRGB, team.enabled, team.schedulingEnabled,
+      team.chatEnabled, team.archived, team.deleted, new DateTime, team.id, team.version
     )
 
     (for {

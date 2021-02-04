@@ -30,10 +30,10 @@ class ScoreRepositoryPostgres(
       row("scorer_id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
       row("orig_comments").asInstanceOf[String],
-      row("add_comments").asInstanceOf[String],
+      row("comments").asInstanceOf[String],
       row("orig_grade").asInstanceOf[String],
       row("grade").asInstanceOf[String],
-      row("is_visible").asInstanceOf[Boolean],
+      row("is_visible").asInstanceOf[Int],
       Option(row("exam_file").asInstanceOf[UUID]) /*match {
         case Some(exam_file) => Some(exam_file)
         case _ => None
@@ -50,7 +50,7 @@ class ScoreRepositoryPostgres(
 
   val Table = "scores"
   // names and number of fields in SQL
-  val Fields = "id, test_id, scorer_id, version, orig_comments, add_comments, orig_grade, grade, is_visible, " +
+  val Fields = "id, test_id, scorer_id, version, orig_comments, comments, orig_grade, grade, is_visible, " +
     "exam_file, rubric_file, archived, deleted, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
   val OrderBy = s"${Table}.created_at ASC"
@@ -116,7 +116,7 @@ class ScoreRepositoryPostgres(
   val Update =
     s"""
        |UPDATE $Table
-       |SET test_id = ?, scorer_id = ?, version = ?, orig_comments = ?, add_comments= ?, orig_grade = ?, grade = ?,
+       |SET test_id = ?, scorer_id = ?, version = ?, orig_comments = ?, comments= ?, orig_grade = ?, grade = ?,
        |  is_visible = ?, exam_file = ?, rubric_file = ?, archived = ?, deleted = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
@@ -252,7 +252,7 @@ class ScoreRepositoryPostgres(
    */
   override def insert(score: Score)(implicit conn: Connection): Future[RepositoryError.Fail \/ Score] = {
     // TODO: check if scorer is in list of scorers for this team! Or do this in services?
-    val params = Seq[Any](score.id, score.testId, score.scorerId, 1, score.origComments, score.addComments,
+    val params = Seq[Any](score.id, score.testId, score.scorerId, 1, score.origComments, score.comments,
       score.origGrade, score.grade, score.isVisible, score.examFile, score.rubricFile,
       score.archived, score.deleted, new DateTime, new DateTime)
 
@@ -272,7 +272,7 @@ class ScoreRepositoryPostgres(
    * @return id of the changed Score.
    */
   override def update(score: Score)(implicit conn: Connection): Future[RepositoryError.Fail \/ Score] = {
-    val params = Seq[Any](score.testId, score.scorerId, score.version + 1, score.origComments, score.addComments,
+    val params = Seq[Any](score.testId, score.scorerId, score.version + 1, score.origComments, score.comments,
       score.origGrade, score.grade, score.isVisible, score.examFile, score.rubricFile,
       score.archived, score.deleted, new DateTime, score.id, score.version)
 

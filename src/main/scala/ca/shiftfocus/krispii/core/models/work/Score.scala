@@ -14,12 +14,10 @@ case class Score(
     scorerId: UUID,
     version: Long = 1L,
     origComments: String = "",
-    addComments: String = "", // superseded by test.comments, but left in here just in case
+    comments: String = "", // team consensus
     origGrade: String = "", // initially empty, in contrast with Work
-    grade: String = "", // in case we want to keep a consensus-finding process
-    isVisible: Boolean = false,
-    /* will only be saved separately from the original versions in Test resp. Exam
-       if the scorer has actually made changes to the PDFs etc. */
+    grade: String = "", // team consensus
+    isVisible: Int = 0, // 0: not visible, 1: original grade&comment visible; 2: consensus visible
     examFile: Option[UUID] = None, // will usually be an annotated PDF component
     rubricFile: Option[UUID] = None, // will usually be an annotated PDF component
     archived: Boolean = false,
@@ -43,10 +41,10 @@ object Score {
     (__ \ "scorerId").read[UUID] and
     (__ \ "version").read[Long] and
     (__ \ "origComments").read[String] and
-    (__ \ "addComments").read[String] and
+    (__ \ "comments").read[String] and
     (__ \ "origGrade").read[String] and
     (__ \ "grade").read[String] and
-    (__ \ "isVisible").read[Boolean] and
+    (__ \ "isVisible").read[Int] and
     (__ \ "examFile").readNullable[UUID] and
     (__ \ "rubricFile").readNullable[UUID] and
     (__ \ "archived").read[Boolean] and
@@ -61,10 +59,10 @@ object Score {
     (__ \ "scorerId").write[UUID] and
     (__ \ "version").write[Long] and
     (__ \ "origComments").write[String] and
-    (__ \ "addComments").write[String] and
+    (__ \ "comments").write[String] and
     (__ \ "origGrade").write[String] and
     (__ \ "grade").write[String] and
-    (__ \ "isVisible").write[Boolean] and
+    (__ \ "isVisible").write[Int] and
     (__ \ "examFile").writeNullable[UUID] and
     (__ \ "rubricFile").writeNullable[UUID] and
     (__ \ "archived").write[Boolean] and

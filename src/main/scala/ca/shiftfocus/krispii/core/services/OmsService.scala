@@ -7,7 +7,8 @@ import ca.shiftfocus.krispii.core.models.Chat
 import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
 import ca.shiftfocus.krispii.core.models.user.{Scorer, User, UserTrait}
 import ca.shiftfocus.krispii.core.models.work.{Score, Test}
-import ca.shiftfocus.krispii.core.repositories.{ChatRepository, ExamRepository, ScoreRepository, ScorerRepository, TeamRepository, TestRepository, UserRepository}
+import ca.shiftfocus.krispii.core.repositories.{ChatRepository, ExamRepository, LastSeenRepository, ScoreRepository, ScorerRepository, TeamRepository, TestRepository, UserRepository}
+import com.github.mauricio.async.db.Connection
 import scalaz.\/
 
 import scala.collection.IndexedSeq
@@ -16,6 +17,7 @@ import scala.concurrent.Future
 trait OmsService extends Service[ErrorUnion#Fail] {
   val chatRepository: ChatRepository
   val examRepository: ExamRepository
+  val lastSeenRepository: LastSeenRepository
   val teamRepository: TeamRepository
   val testRepository: TestRepository
   val scoreRepository: ScoreRepository
@@ -62,10 +64,12 @@ trait OmsService extends Service[ErrorUnion#Fail] {
 
   def automaticScoring(examId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]]
 
+  def listChats(team: Team): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
   def listChats(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
-
-  // exporting CSVs seems more appropriate to handle in krispii-api
-  // def exportTests(examId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]] // Unit?
+  def listChats(team: Team, reader: User, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
+  def listChats(teamId: UUID, reader: User, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
+  def listChats(team: Team, readerId: UUID, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
+  def listChats(teamId: UUID, readerId: UUID, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
 
   // scoreRepository cannot reference testRepository, so need to implement the following test here or in API:
   // a score can only be created (inserted) for (team, scorer) if the scorer is in the team of the test

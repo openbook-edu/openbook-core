@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError}
-import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
+import ca.shiftfocus.krispii.core.models.group.{Exam, Group, Team}
 import ca.shiftfocus.krispii.core.models.user.{Scorer, User, UserTrait}
 import ca.shiftfocus.krispii.core.models.work.{Score, Test}
 import ca.shiftfocus.krispii.core.models.Chat
@@ -22,6 +22,7 @@ class OmsServiceDefault(
     val db: DB,
     val chatRepository: ChatRepository,
     val examRepository: ExamRepository,
+    val lastSeenRepository: LastSeenRepository,
     val teamRepository: TeamRepository,
     val testRepository: TestRepository,
     val scoreRepository: ScoreRepository,
@@ -170,6 +171,15 @@ class OmsServiceDefault(
   /**
    * List all chats for a team (usually one).
    *
+   * @param team: the Team
+   * @return
+   */
+  override def listChats(team: Team): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] =
+    chatRepository.list(team)
+
+  /**
+   * List all chats for a team (usually one).
+   *
    * @param teamId: unique ID of the team
    * @return
    */
@@ -177,5 +187,34 @@ class OmsServiceDefault(
     team <- lift(findTeam(teamId))
     chats <- lift(chatRepository.list(team))
   } yield chats
+
+  /**
+   * List all chat logs for a team indicating for each log if a reader has already seen it
+   *
+   * @param team: the Team for which to look up the logs
+   * @param reader the User who requested the chat logs
+   * @return an ordered sequence of Chat entries, or an error
+   */
+  override def listChats(team: Team, reader: User, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = for {
+    chats <- lift(chatRepository.list(team))
+    lastSeen <- lift(lastSeenRepository.find(reader.id, team.id, entityType = "team", peek: Boolean))
+    chatsWithSeen = chats.map(chat => chat.copy(seen = chat.createdAt.isBefore(lastSeen)))
+  } yield chatsWithSeen
+
+  override def listChats(teamId: UUID, reader: User, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = for {
+    team <- lift(findTeam(teamId))
+    chatsWithSeen <- lift(listChats(team, reader, peek: Boolean))
+  } yield chatsWithSeen
+
+  override def listChats(team: Team, readerId: UUID, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = for {
+    reader <- lift(userRepository.find(readerId))
+    chatsWithSeen <- lift(listChats(team, reader, peek: Boolean))
+  } yield chatsWithSeen
+
+  override def listChats(teamId: UUID, readerId: UUID, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = for {
+    team <- lift(findTeam(teamId))
+    reader <- lift(userRepository.find(readerId))
+    chatsWithSeen <- lift(listChats(team, reader, peek: Boolean))
+  } yield chatsWithSeen
 
 }

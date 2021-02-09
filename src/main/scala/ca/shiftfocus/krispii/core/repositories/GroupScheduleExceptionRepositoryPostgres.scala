@@ -40,7 +40,7 @@ class GroupScheduleExceptionRepositoryPostgres(
   }
 
   val Fields = "id, version, created_at, updated_at, user_id, group_id, start_day, end_day, start_time, end_time, reason, block"
-  val Table = "group_schedule_exceptions"
+  val Table = "schedule_exceptions"
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 
   // User CRUD operations

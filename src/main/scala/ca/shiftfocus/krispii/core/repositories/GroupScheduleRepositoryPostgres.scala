@@ -34,7 +34,7 @@ class GroupScheduleRepositoryPostgres(
   }
 
   val Fields = "id, version, created_at, updated_at, group_id, start_day, end_day, start_time, end_time, description"
-  val Table = "group_schedules"
+  val Table = "schedules"
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = "start_day ASC"
 

@@ -118,7 +118,7 @@ class TestRepositoryPostgres(
   def enrichTest(rawTest: Test)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Test]] =
     for {
       scoreList <- lift(scoreRepository.list(rawTest))
-      result = rawTest.copy(scores = scoreList)
+      result = rawTest.copy(scores = scoreList.sortBy(_.createdAt.getMillis))
     } yield result
 
   /**
@@ -131,7 +131,7 @@ class TestRepositoryPostgres(
     liftSeq(rawTests.map { test =>
       (for {
         scoreList <- lift(scoreRepository.list(test))
-        result = test.copy(scores = scoreList)
+        result = test.copy(scores = scoreList.sortBy(_.createdAt.getMillis))
       } yield result).run
     })
 
@@ -164,7 +164,7 @@ class TestRepositoryPostgres(
     cacheRepository.cacheSeqTest.getCached(key).flatMap {
       case \/-(testList) =>
         if (fetchScores) enrichTests(testList) else Future successful \/-(testList)
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case -\/(_: RepositoryError.NoResults) =>
         for {
           testList <- lift(queryList(ListByExam, Seq[Any](exam.id)))
           _ <- lift(cacheRepository.cacheSeqTest.putCache(key)(testList, ttl))

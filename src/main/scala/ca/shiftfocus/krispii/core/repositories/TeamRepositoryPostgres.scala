@@ -159,13 +159,16 @@ class TeamRepositoryPostgres(
       for {
         scorerList <- lift(scorerRepository.list(team))
         testList <- lift(testRepository.list(team))
-        result = team.copy(tests = testList, scorers = scorerList)
+        result = team.copy(
+          tests = testList.sortBy(_.name),
+          scorers = scorerList.sortBy(s => (s.givenname, s.surname))
+        )
         // _ = Logger.debug(s"enrichTeam: after adding scorers and tests, team is $result")
       } yield result
     else
       for {
         scorerList <- lift(scorerRepository.list(team))
-        result = team.copy(scorers = scorerList)
+        result = team.copy(scorers = scorerList.sortBy(s => (s.givenname, s.surname)))
         // _ = Logger.debug(s"enrichTeams: after adding scorers, team is $result")
       } yield result
 
@@ -181,7 +184,7 @@ class TeamRepositoryPostgres(
         (for {
           scorerList <- lift(scorerRepository.list(team))
           testList <- lift(testRepository.list(team))
-          result = team.copy(tests = testList, scorers = scorerList)
+          result = team.copy(tests = testList, scorers = scorerList.sortBy(s => (s.givenname, s.surname)))
           // _ = Logger.debug(s"enrichTeams: after adding scorers and tests, team is $result")
         } yield result).run
       })
@@ -189,7 +192,7 @@ class TeamRepositoryPostgres(
       liftSeq(teamList.map { team =>
         (for {
           scorerList <- lift(scorerRepository.list(team))
-          result = team.copy(scorers = scorerList)
+          result = team.copy(scorers = scorerList.sortBy(s => (s.givenname, s.surname)))
           // _ = Logger.debug(s"enrichTeams: after adding scorers, team is $result")
         } yield result).run
       })

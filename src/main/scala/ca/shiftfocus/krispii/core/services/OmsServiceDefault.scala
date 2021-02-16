@@ -3,10 +3,10 @@ package ca.shiftfocus.krispii.core.services
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError}
-import ca.shiftfocus.krispii.core.models.group.{Exam, Group, Team}
+import ca.shiftfocus.krispii.core.models.Chat
+import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
 import ca.shiftfocus.krispii.core.models.user.{Scorer, User, UserTrait}
 import ca.shiftfocus.krispii.core.models.work.{Score, Test}
-import ca.shiftfocus.krispii.core.models.Chat
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
@@ -141,6 +141,27 @@ class OmsServiceDefault(
     idList(Random.nextInt(idList.length))
 
   /**
+   * Randomly pick one of the integer values nearest to a fraction
+   * @param numer: Int, number to be divided
+   * @param denom: Int, how many groups to divide the numerator into
+   * @return Int, the rounded fraction
+   */
+  def randomRound(numer: Int, denom: Int): Int = {
+    val sure = numer / denom
+    val frac = numer.toFloat / denom - sure
+    sure + (if (Random.nextFloat >= frac) 1 else 0)
+  }
+
+  def mapToFractions(numer: Int, denom: Int): Seq[Int] = {
+    val sure = numer / denom
+    val frac = numer.toFloat / denom - sure
+    val ones = (frac * numer).round
+    val before = Seq.fill(ones)(1) ++ Seq.fill(numer - ones)(0)
+    val after = Random.shuffle(before)
+    (Seq.fill(numer)(sure),after).zipped.map(_ + _)
+  }
+
+  /**
    * Randomize either all tests in an exam, or only those exams without a team, to the existing teams.
    * @param exam The exam within which to randomize
    * @param all If false, only assign team IDs to those tests in the exam that don't have a team ID yet
@@ -149,13 +170,21 @@ class OmsServiceDefault(
   override def randomizeTests(exam: Exam, all: Boolean = false): Future[ErrorUnion#Fail \/ IndexedSeq[Test]] =
     for {
       allTests <- lift(testRepository.list(exam, fetchScores = false))
-      existingTests = allTests filter (all || _.teamId.isEmpty)
-      _ = Logger.debug(s"Tests to be randomized in exam ${exam.name}: " +
-        existingTests.map(_.name).mkString(", "))
+      n = allTests.length
+      toRandomize = allTests filter (all || _.teamId.isEmpty)
+      _ = Logger.debug(s"Tests to be randomized in exam ${exam.name}: ${toRandomize.map(_.name).mkString(", ")}")
       teams <- lift(teamRepository.list(exam))
       teamIds = teams map (_.id)
-      _ = Logger.debug(s"Teams in exam ${exam.name}: " + teamIds.mkString(", "))
-      randomizedTests <- lift(serializedT(existingTests)(test =>
+      _ = Logger.debug(s"Teams in exam ${exam.name}: ${teamIds.mkString(", ")}")
+      t = teamIds.length
+      real  = teamIds zip allTests.filter(_.teamId.isDefined).groupBy(_.teamId).mapValues(_.size)
+      _ = Logger.debug(s"Real distribution: ${real}")
+      ideal = teamIds zip mapToFractions(n,t)
+      _ = Logger.debug(s"Desired distribution: ${ideal}")
+      /*missing = (real,ideal).zipped.map(_.2 - _.2)
+      _ = Logger.debug(s"To add to each teamId: ${missing}") */
+      // TODO: at each position in the missing, choose at random one test
+      randomizedTests <- lift(serializedT(toRandomize)(test =>
         testRepository.update(test.copy(teamId = Some(randomId(teamIds))))))
     } yield randomizedTests
 

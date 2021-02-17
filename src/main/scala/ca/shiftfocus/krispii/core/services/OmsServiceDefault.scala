@@ -3,15 +3,16 @@ package ca.shiftfocus.krispii.core.services
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError}
-import ca.shiftfocus.krispii.core.models.group.{Exam, Group, Team}
+import ca.shiftfocus.krispii.core.models.Chat
+import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
 import ca.shiftfocus.krispii.core.models.user.{Scorer, User, UserTrait}
 import ca.shiftfocus.krispii.core.models.work.{Score, Test}
-import ca.shiftfocus.krispii.core.models.Chat
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import play.api.Logger
 import scalaz.\/
+import scalaz.Scalaz._
 
 import scala.collection.IndexedSeq
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -133,12 +134,37 @@ class OmsServiceDefault(
 
   /**
    * Take a list of teamIDs and return some random value from it.
-   * TODO: take a Map of teamIds with their frequencies and favor the teams with lower frequencies
    * @param idList: list of team IDs
    * @return
    */
   def randomId(idList: IndexedSeq[UUID]): UUID =
     idList(Random.nextInt(idList.length))
+
+  /**
+   * Distribute the available items randomly as fair as possible
+   * @param nItems: Int - how many items are there to be distributed
+   * @param nGroups: Int - how many groups to distribute
+   * @return IndexedSeq[Int] number of items to give to each group
+   */
+  def apprFractions(nItems: Int, nGroups: Int): IndexedSeq[Int] = {
+    val lower = nItems / nGroups
+    val excess = nItems % nGroups
+    val before = IndexedSeq.fill(excess)(lower + 1) ++ IndexedSeq.fill(nGroups - excess)(lower)
+    Random.shuffle(before)
+  }
+
+  /**
+   * Take a Map (teamId: how many tests to add) and returns a shuffled list of team IDs to assign to each test.
+   * Negative or zero values mean that team won't get any tests.
+   * The list may be longer than there are tests available, in which case the last team IDs will be ignored.
+   * @param toFill: Map[UUID, Int] teamId -> how many tests to add
+   * @return IndexedSeq[UUID] shuffled list of team IDs
+   */
+  def stratRandom(toFill: Map[UUID, Int]): IndexedSeq[UUID] = {
+    val r = toFill.values.max
+    val allIds = (r to 1 by -1).map(i => toFill.filter(el => el._2 >= i).keys.toList)
+    allIds.flatMap(el => Random.shuffle(el))
+  }
 
   /**
    * Randomize either all tests in an exam, or only those exams without a team, to the existing teams.
@@ -149,14 +175,31 @@ class OmsServiceDefault(
   override def randomizeTests(exam: Exam, all: Boolean = false): Future[ErrorUnion#Fail \/ IndexedSeq[Test]] =
     for {
       allTests <- lift(testRepository.list(exam, fetchScores = false))
-      existingTests = allTests filter (all || _.teamId.isEmpty)
-      _ = Logger.debug(s"Tests to be randomized in exam ${exam.name}: " +
-        existingTests.map(_.name).mkString(", "))
+      toRandomize = allTests filter (all || _.teamId.isEmpty)
+      // _ = Logger.debug(s"Tests to be randomized in exam ${exam.name}: ${toRandomize.map(_.name)}")
+
       teams <- lift(teamRepository.list(exam))
       teamIds = teams map (_.id)
-      _ = Logger.debug(s"Teams in exam ${exam.name}: " + teamIds.mkString(", "))
-      randomizedTests <- lift(serializedT(existingTests)(test =>
-        testRepository.update(test.copy(teamId = Some(randomId(teamIds))))))
+      // _ = Logger.debug(s"Teams in exam ${exam.name}: $teamIds")
+
+      // real = allTests.diff(toRandomize).filter(_.teamId.isDefined).groupBy(_.teamId.get).mapValues(_.size)
+      // _ = Logger.debug(s"Constant distribution (not to be changed): $real")
+
+      desired = (teamIds zip apprFractions(allTests.length, teamIds.length)).toMap
+      // _ = Logger.debug(s"Desired distribution for all tests: $desired")
+
+      /* toFill = (desired.keySet ++ real.keys).map { i => i -> (desired.get(i).getOrElse(0) - real.get(i).getOrElse(0)) }
+      _ = Logger.debug(s"Will add to each team: $toFill") */
+      minusReal = allTests.diff(toRandomize).filter(_.teamId.isDefined).groupBy(_.teamId.get).mapValues(-_.size)
+      toFill = minusReal |+| desired
+      _ = Logger.debug(s"Randomize: will add to each team this many tests: $toFill")
+
+      _ = Logger.debug(s"Randomize: old team IDs ${toRandomize.map(_.name) zip toRandomize.map(_.teamId.getOrElse("none"))}")
+      orderFill = stratRandom(toFill)
+      _ = Logger.debug(s"Randomize: wew team IDs ${toRandomize.map(_.name) zip orderFill}")
+
+      randomizedTests <- lift(serializedT(toRandomize zip orderFill)(el =>
+        testRepository.update(el._1.copy(teamId = Some(el._2)))))
     } yield randomizedTests
 
   override def automaticScoring(examId: UUID): Future[ErrorUnion#Fail \/ IndexedSeq[Test]] =

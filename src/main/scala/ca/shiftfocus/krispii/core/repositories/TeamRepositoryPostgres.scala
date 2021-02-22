@@ -16,10 +16,10 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class TeamRepositoryPostgres(
-  val scorerRepository: ScorerRepository,
-  val examRepository: ExamRepository,
-  val scheduleRepository: GroupScheduleRepository,
-  val cacheRepository: CacheRepository
+    val scorerRepository: ScorerRepository,
+    val examRepository: ExamRepository,
+    val scheduleRepository: GroupScheduleRepository,
+    val cacheRepository: CacheRepository
 ) extends TeamRepository with PostgresRepository[Team] {
 
   override val entityName = "Team"
@@ -153,7 +153,7 @@ class TeamRepositoryPostgres(
    * @param team: bare team
    */
   def enrichTeam(team: Team)(implicit conn: Connection): Future[RepositoryError.Fail \/ Team] =
-   for {
+    for {
       scorerList <- lift(scorerRepository.list(team))
       scheduleList <- lift(scheduleRepository.list(team))
       result = team.copy(
@@ -180,7 +180,6 @@ class TeamRepositoryPostgres(
         // _ = Logger.debug(s"enrichTeams: after adding scorers and schedules, team is $result")
       } yield result).run
     })
-
 
   /**
    * Find all Teams assigned to a given exam.
@@ -224,7 +223,8 @@ class TeamRepositoryPostgres(
   override def list(user: User, isScorer: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] = {
     val (key, queryType) = if (isScorer) {
       (cacheScorerTeamsKey(user.id), ListByScorerId)
-    } else {
+    }
+    else {
       (cacheCoordinatorTeamsKey(user.id), ListByCoordinatorId)
     }
     cacheRepository.cacheSeqTeam.getCached(key).flatMap {

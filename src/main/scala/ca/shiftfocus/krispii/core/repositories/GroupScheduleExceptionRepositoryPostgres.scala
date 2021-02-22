@@ -28,10 +28,8 @@ class GroupScheduleExceptionRepositoryPostgres(
       row("user_id").asInstanceOf[UUID],
       row("group_id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
-      row("start_day").asInstanceOf[LocalDate],
-      row("end_day").asInstanceOf[LocalDate],
-      row("start_time").asInstanceOf[LocalTime],
-      row("end_time").asInstanceOf[LocalTime],
+      row("start_date").asInstanceOf[DateTime],
+      row("end_date").asInstanceOf[DateTime],
       row("reason").asInstanceOf[String],
       row("block").asInstanceOf[Boolean],
       row("created_at").asInstanceOf[DateTime],
@@ -39,9 +37,9 @@ class GroupScheduleExceptionRepositoryPostgres(
     )
   }
 
-  val Fields = "id, version, created_at, updated_at, user_id, group_id, start_day, end_day, start_time, end_time, reason, block"
+  val Fields = "id, version, created_at, updated_at, user_id, group_id, start_date, end_date, reason, block"
   val Table = "schedule_exceptions"
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
 
   // User CRUD operations
   val SelectAll =
@@ -67,7 +65,7 @@ class GroupScheduleExceptionRepositoryPostgres(
   val Update =
     s"""
        |UPDATE $Table
-       |SET user_id = ?, group_id = ?, start_day = ?, end_day = ? ,start_time = ?, end_time = ?, reason = ?, version = ?, updated_at = ?, block = ?
+       |SET user_id = ?, group_id = ?, start_date = ?, end_date = ?, reason = ?, version = ?, updated_at = ?, block = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $Fields
@@ -86,7 +84,7 @@ class GroupScheduleExceptionRepositoryPostgres(
        |SELECT $Fields
        |FROM $Table
        |WHERE group_id = ?
-       |ORDER BY start_day asc, start_time asc, end_day asc, end_time asc
+       |ORDER BY start_date asc, end_date asc
      """.stripMargin
 
   val SelectForUserAndGroup =
@@ -124,7 +122,7 @@ class GroupScheduleExceptionRepositoryPostgres(
                    (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[GroupScheduleException]]] = { // format: ON
     cacheRepository.cacheSeqGroupScheduleException.getCached(cacheExceptionsKey(group.id)).flatMap {
       case \/-(schedules) => Future successful \/-(schedules)
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case -\/(_: RepositoryError.NoResults) =>
         for {
           schedules <- lift(queryList(SelectForGroup, Seq[Any](group.id)))
           _ <- lift(cacheRepository.cacheSeqGroupScheduleException.putCache(cacheExceptionsKey(group.id))(schedules, ttl))
@@ -143,7 +141,7 @@ class GroupScheduleExceptionRepositoryPostgres(
   override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, GroupScheduleException]] = {
     cacheRepository.cacheGroupScheduleException.getCached(cacheExceptionKey(id)).flatMap {
       case \/-(schedules) => Future successful \/-(schedules)
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case -\/(_: RepositoryError.NoResults) =>
         for {
           schedule <- lift(queryOne(SelectOne, Seq[Any](id)))
           _ <- lift(cacheRepository.cacheGroupScheduleException.putCache(cacheExceptionKey(id))(schedule, ttl))
@@ -168,10 +166,8 @@ class GroupScheduleExceptionRepositoryPostgres(
         new DateTime,
         groupScheduleException.userId,
         groupScheduleException.groupId,
-        groupScheduleException.startDay,
-        groupScheduleException.endDay,
-        groupScheduleException.startTime,
-        groupScheduleException.endTime,
+        groupScheduleException.startDate,
+        groupScheduleException.endDate,
         groupScheduleException.reason,
         groupScheduleException.block
       )))
@@ -193,10 +189,8 @@ class GroupScheduleExceptionRepositoryPostgres(
       updated <- lift(queryOne(Update, Array(
         groupScheduleException.userId,
         groupScheduleException.groupId,
-        groupScheduleException.startDay,
-        groupScheduleException.endDay,
-        groupScheduleException.startTime,
-        groupScheduleException.endTime,
+        groupScheduleException.startDate,
+        groupScheduleException.endDate,
         groupScheduleException.reason,
         groupScheduleException.version + 1,
         new DateTime,

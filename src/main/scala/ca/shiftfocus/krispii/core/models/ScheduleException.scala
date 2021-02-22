@@ -15,10 +15,8 @@ case class GroupScheduleException(
     userId: UUID,
     groupId: UUID,
     version: Long = 1L,
-    startDay: LocalDate,
-    endDay: LocalDate,
-    startTime: LocalTime,
-    endTime: LocalTime,
+    startDate: DateTime,
+    endDate: DateTime,
     reason: String,
     block: Boolean = false,
     createdAt: DateTime = new DateTime,
@@ -31,11 +29,9 @@ case class GroupScheduleException(
           this.userId == anotherCSE.userId &&
           this.groupId == anotherCSE.groupId &&
           this.version == anotherCSE.version &&
-          this.startDay.toString == anotherCSE.startDay.toString &&
-          this.endDay.toString == anotherCSE.endDay.toString &&
-          this.startTime.toString == anotherCSE.startTime.toString &&
-          this.endTime.toString == anotherCSE.endTime.toString &&
-          this.reason == anotherCSE.reason
+          this.startDate.toString == anotherCSE.startDate.toString &&
+          this.endDate.toString == anotherCSE.endDate.toString
+        this.reason == anotherCSE.reason
       case _ => false
     }
   }
@@ -47,10 +43,8 @@ object GroupScheduleException extends LocalDateTimeJson {
     (__ \ "userId").write[UUID] and
     (__ \ "groupId").write[UUID] and
     (__ \ "version").write[Long] and
-    (__ \ "startDay").write[LocalDate] and
-    (__ \ "endDay").write[LocalDate] and
-    (__ \ "startTime").write[LocalTime] and
-    (__ \ "endTime").write[LocalTime] and
+    (__ \ "startDate").write[DateTime] and
+    (__ \ "endDate").write[DateTime] and
     (__ \ "reason").write[String] and
     (__ \ "block").write[Boolean] and
     (__ \ "createdAt").write[DateTime] and

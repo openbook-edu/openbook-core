@@ -23,20 +23,18 @@ class GroupScheduleRepositoryPostgres(
       row("id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
       row("group_id").asInstanceOf[UUID],
-      row("start_day").asInstanceOf[LocalDate],
-      row("end_day").asInstanceOf[LocalDate],
-      row("start_time").asInstanceOf[LocalTime],
-      row("end_time").asInstanceOf[LocalTime],
+      row("start_date").asInstanceOf[DateTime],
+      row("end_date").asInstanceOf[DateTime],
       row("description").asInstanceOf[String],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
   }
 
-  val Fields = "id, version, created_at, updated_at, group_id, start_day, end_day, start_time, end_time, description"
+  val Fields = "id, version, created_at, updated_at, group_id, start_date, end_date, description"
   val Table = "schedules"
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
-  val OrderBy = "start_day ASC"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?"
+  val OrderBy = "start_date ASC"
 
   val SelectAll = s"""
     |SELECT $Fields
@@ -61,7 +59,7 @@ class GroupScheduleRepositoryPostgres(
   val Update = {
     s"""
       |UPDATE $Table
-      |SET group_id = ?, start_day = ?, end_day = ?, start_time = ?, end_time = ?, description = ?, version = ?, updated_at = ?
+      |SET group_id = ?, start_date = ?, end_date = ?, description = ?, version = ?, updated_at = ?
       |WHERE id = ?
       |  AND version = ?
       |RETURNING $Fields
@@ -81,7 +79,7 @@ class GroupScheduleRepositoryPostgres(
       |SELECT $Fields
       |FROM $Table
       |WHERE group_id = ?
-      |ORDER BY $OrderBy, start_time ASC, end_time ASC
+      |ORDER BY $OrderBy, start_date ASC, end_date ASC
     """.stripMargin
 
   /**
@@ -133,10 +131,8 @@ class GroupScheduleRepositoryPostgres(
         new DateTime,
         new DateTime,
         groupSchedule.groupId,
-        groupSchedule.startDay,
-        groupSchedule.endDay,
-        groupSchedule.startTime,
-        groupSchedule.endTime,
+        groupSchedule.startDate,
+        groupSchedule.endDate,
         groupSchedule.description
       )))
       _ <- lift(cacheRepository.cacheGroupSchedule.removeCached(cacheScheduleKey(newSchedule.id)))
@@ -154,10 +150,8 @@ class GroupScheduleRepositoryPostgres(
     for {
       updated <- lift(queryOne(Update, Seq[Any](
         groupSchedule.groupId,
-        groupSchedule.startDay,
-        groupSchedule.endDay,
-        groupSchedule.startTime,
-        groupSchedule.endTime,
+        groupSchedule.startDate,
+        groupSchedule.endDate,
         groupSchedule.description,
         groupSchedule.version + 1,
         new DateTime,

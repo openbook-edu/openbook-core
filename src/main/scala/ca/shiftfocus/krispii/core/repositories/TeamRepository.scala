@@ -11,17 +11,13 @@ import scalaz.\/
 import scala.concurrent.Future
 
 trait TeamRepository extends Repository {
-  val scorerRepository: ScorerRepository
-  val testRepository: TestRepository
 
   def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Team]]]
   def list(exam: Exam)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Team]]]
-  def list(exam: Exam, fetchTests: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Team]]]
   def list(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Team]]]
-  def list(user: User, isScorer: Boolean, fetchTests: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Team]]]
+  def list(user: User, isScorer: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Team]]]
 
   def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Team]]
-  def find(id: UUID, fetchTests: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Team]]
 
   def insert(team: Team)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Team]]
   def update(team: Team)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Team]]

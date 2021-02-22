@@ -4,9 +4,9 @@ import java.awt.Color
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
+import ca.shiftfocus.krispii.core.models.GroupSchedule
 import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
 import ca.shiftfocus.krispii.core.models.user.{Scorer, User}
-import ca.shiftfocus.krispii.core.models.work.Test
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import play.api.Logger
@@ -18,10 +18,9 @@ import scala.concurrent.Future
 class TeamRepositoryPostgres(
   val scorerRepository: ScorerRepository,
   val examRepository: ExamRepository,
-  val testRepository: TestRepository,
+  val scheduleRepository: GroupScheduleRepository,
   val cacheRepository: CacheRepository
-)
-    extends TeamRepository with PostgresRepository[Team] {
+) extends TeamRepository with PostgresRepository[Team] {
 
   override val entityName = "Team"
 
@@ -41,7 +40,7 @@ class TeamRepositoryPostgres(
       row("archived").asInstanceOf[Boolean],
       row("deleted").asInstanceOf[Boolean],
       IndexedSeq.empty[Scorer],
-      IndexedSeq.empty[Test],
+      IndexedSeq.empty[GroupSchedule],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
@@ -143,86 +142,62 @@ class TeamRepositoryPostgres(
    * Find all teams.
    * Should only be called from API if the user has administrator rights.
    *
-   * @return a vector of the returned Teams (without their associated Tests) or an error
+   * @return a vector of the returned Teams  or an error
    */
   override def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Team]]] =
     queryList(SelectAll)
 
   /**
-   * Enrich a given team with scorers, and optionally with tests
+   * Enrich a given team with scorers and schedules
    *
    * @param team: bare team
-   * @param fetchTests: whether to also add tests
    */
-  def enrichTeam(team: Team, fetchTests: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ Team] =
-    if (fetchTests)
-      for {
-        scorerList <- lift(scorerRepository.list(team))
-        testList <- lift(testRepository.list(team))
-        result = team.copy(
-          tests = testList.sortBy(_.name),
-          scorers = scorerList.sortBy(s => (s.givenname, s.surname))
-        )
-        // _ = Logger.debug(s"enrichTeam: after adding scorers and tests, team is $result")
-      } yield result
-    else
-      for {
-        scorerList <- lift(scorerRepository.list(team))
-        result = team.copy(scorers = scorerList.sortBy(s => (s.givenname, s.surname)))
-        // _ = Logger.debug(s"enrichTeams: after adding scorers, team is $result")
-      } yield result
+  def enrichTeam(team: Team)(implicit conn: Connection): Future[RepositoryError.Fail \/ Team] =
+   for {
+      scorerList <- lift(scorerRepository.list(team))
+      scheduleList <- lift(scheduleRepository.list(team))
+      result = team.copy(
+        scorers = scorerList.sortBy(s => (s.givenname, s.surname)),
+        schedules = scheduleList.sortBy(_.updatedAt.getMillisOfSecond)
+      )
+      // _ = Logger.debug(s"enrichTeam: after adding scorers and schedules, team is $result")
+    } yield result
 
   /**
-   * Enrich a given team list with scorers, and optionally with tests
+   * Enrich a given team list with scorers and with schedules
    *
    * @param teamList: vector of bare teams
-   * @param fetchTests: whether to also add tests
    */
-  def enrichTeams(teamList: IndexedSeq[Team], fetchTests: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] =
-    if (fetchTests)
-      liftSeq(teamList.map { team =>
-        (for {
-          scorerList <- lift(scorerRepository.list(team))
-          testList <- lift(testRepository.list(team))
-          result = team.copy(tests = testList, scorers = scorerList.sortBy(s => (s.givenname, s.surname)))
-          // _ = Logger.debug(s"enrichTeams: after adding scorers and tests, team is $result")
-        } yield result).run
-      })
-    else
-      liftSeq(teamList.map { team =>
-        (for {
-          scorerList <- lift(scorerRepository.list(team))
-          result = team.copy(scorers = scorerList.sortBy(s => (s.givenname, s.surname)))
-          // _ = Logger.debug(s"enrichTeams: after adding scorers, team is $result")
-        } yield result).run
-      })
+  def enrichTeams(teamList: IndexedSeq[Team])(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] =
+    liftSeq(teamList.map { team =>
+      (for {
+        scorerList <- lift(scorerRepository.list(team))
+        scheduleList <- lift(scheduleRepository.list(team))
+        result = team.copy(
+          scorers = scorerList.sortBy(s => (s.givenname, s.surname)),
+          schedules = scheduleList.sortBy(_.updatedAt.getMillisOfSecond)
+        )
+        // _ = Logger.debug(s"enrichTeams: after adding scorers and schedules, team is $result")
+      } yield result).run
+    })
 
-  /**
-   * Find all Teams assigned to a given Exam.
-   *
-   * @param exam The Exam where the Teams were created.
-   * @return a vector of the returned Teams, each including any Scorers and Tests, or an error
-   */
-  override def list(exam: Exam)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] =
-    list(exam, fetchTests = true)
 
   /**
    * Find all Teams assigned to a given exam.
    *
    * @param exam The Exam where the Teams were created.
-   * @param fetchTests Whether to return a Team together with all the Tests assigned to it
-   * @return a vector of the returned Teams, each including any Scorers (and optionally Tests), or an error
+   * @return a vector of the returned Teams, each including any Scorers and GroupSchedules, or an error
    */
-  override def list(exam: Exam, fetchTests: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Team]]] = {
+  override def list(exam: Exam)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Team]]] = {
     val key = cacheTeamsKey(exam.id)
     cacheRepository.cacheSeqTeam.getCached(key).flatMap {
-      case \/-(teamList) => enrichTeams(teamList, fetchTests)
+      case \/-(teamList) => enrichTeams(teamList)
       case -\/(_: RepositoryError.NoResults) =>
         for {
           teamList <- lift(queryList(ListByExam, Seq[Any](exam.id)))
           _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(teamList, ttl))
           _ = Logger.debug(s"In exam ${exam.name}, bare teams $teamList")
-          enrichedTeamList <- lift(enrichTeams(teamList, fetchTests))
+          enrichedTeamList <- lift(enrichTeams(teamList))
           _ = Logger.debug(s"In exam ${exam.name}, enriched teams $enrichedTeamList")
         } yield enrichedTeamList
 
@@ -237,60 +212,49 @@ class TeamRepositoryPostgres(
    * @return a vector of the returned Teams (not including their tests), or an error
    */
   override def list(user: User)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] =
-    list(user: User, isScorer = true, fetchTests = false)
+    list(user: User, isScorer = true)
 
   /**
    * Find all Teams relevant for a given user.
    *
    * @param user     A user associated with the team
    * @param isScorer Whether the user is a scorer (or else a coordinator)
-   * TODO: either remove the fetchTests option, or skip the cache reading step when fetchTests is true
-   * @return a vector of the returned Teams (not including their tests), or an error
+   * @return a vector of the returned Teams (with scorers and schedules), or an error
    */
-  override def list(user: User, isScorer: Boolean, fetchTests: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] = {
-    val (key, queryType) = if (isScorer)
+  override def list(user: User, isScorer: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Team]] = {
+    val (key, queryType) = if (isScorer) {
       (cacheScorerTeamsKey(user.id), ListByScorerId)
-    else
+    } else {
       (cacheCoordinatorTeamsKey(user.id), ListByCoordinatorId)
+    }
     cacheRepository.cacheSeqTeam.getCached(key).flatMap {
-      case \/-(teamList) => enrichTeams(teamList, fetchTests)
+      case \/-(teamList) => enrichTeams(teamList)
       case -\/(_: RepositoryError.NoResults) =>
         Logger.debug(s"No teams for ${user.email} (ID ${user.id}) in redis cache, search in PostgreSQL with query $queryType")
         for {
           teamList <- lift(queryList(queryType, Seq[Any](user.id)))
           _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(teamList, ttl))
-          enrichedTeamList <- lift(enrichTeams(teamList, fetchTests))
+          enrichedTeamList <- lift(enrichTeams(teamList))
         } yield enrichedTeamList
       case -\/(error) => Future successful -\/(error)
     }
   }
 
   /**
-   * Find a single team including scorers and tests.
-   *
-   * @param id the 128-bit UUID, as a byte array, to search for.
-   * @return a team (including any scorers and tests) if one was found, or an error
-   */
-  override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Team]] =
-    find(id: UUID, fetchTests = true)
-
-  /**
    * Find a single entry by ID.
    *
    * @param id       the 128-bit UUID, as a byte array, to search for.
-   * @param fetchTests whether to include the tests associated with the team
-   * TODO: either remove the fetchTests option, or skip the cache reading step when fetchTests is true
-   * @return a team (including any scorers and optionally tests) if one was found, or an error
+   * @return a team (including any scorers and schedules) if one was found, or an error
    */
-  override def find(id: UUID, fetchTests: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Team]] = {
+  override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Team]] = {
     val key = cacheTeamKey(id)
     cacheRepository.cacheTeam.getCached(key).flatMap {
-      case \/-(team) => enrichTeam(team, fetchTests)
+      case \/-(team) => enrichTeam(team)
       case -\/(_: RepositoryError.NoResults) =>
         for {
           team <- lift(queryOne(SelectOne, Seq[Any](id)))
           _ <- lift(cacheRepository.cacheTeam.putCache(key)(team, ttl))
-          result <- lift(enrichTeam(team, fetchTests))
+          result <- lift(enrichTeam(team))
         } yield result
       case -\/(error) => Future successful -\/(error)
     }
@@ -305,7 +269,8 @@ class TeamRepositoryPostgres(
    */
   override def insert(team: Team)(implicit conn: Connection): Future[RepositoryError.Fail \/ Team] = {
     val params = Seq[Any](
-      team.id, 1, team.examId, team.ownerId, team.name, team.slug, team.color.getRGB, team.enabled, team.schedulingEnabled, team.chatEnabled, false, false, new DateTime, new DateTime
+      team.id, 1, team.examId, team.ownerId, team.name, team.slug, team.color.getRGB, team.enabled,
+      team.schedulingEnabled, team.chatEnabled, false, false, new DateTime, new DateTime
     )
 
     for {
@@ -330,14 +295,13 @@ class TeamRepositoryPostgres(
 
     (for {
       updatedTeam <- lift(queryOne(Update, params))
-      oldTests = team.tests
       _ <- lift(cacheRepository.cacheTeam.removeCached(cacheTeamKey(team.id)))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(team.examId)))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheCoordinatorTeamsKey(team.ownerId)))
       scorerList <- lift(scorerRepository.list(updatedTeam))
       _ <- lift(serializedT(scorerList)(scorer =>
         cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id))))
-    } yield updatedTeam.copy(tests = oldTests)).run
+    } yield updatedTeam).run
   }
 
   /**
@@ -350,14 +314,13 @@ class TeamRepositoryPostgres(
   override def delete(team: Team)(implicit conn: Connection): Future[RepositoryError.Fail \/ Team] = {
     (for {
       deletedTeam <- lift(queryOne(Delete, Seq[Any](team.id)))
-      oldTests = team.tests
       _ <- lift(cacheRepository.cacheTeam.removeCached(cacheTeamKey(team.id)))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(team.examId)))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheCoordinatorTeamsKey(team.ownerId)))
       scorerList <- lift(scorerRepository.list(deletedTeam))
       _ <- lift(serializedT(scorerList)(scorer =>
         cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id))))
-    } yield deletedTeam.copy(tests = oldTests)).run
+    } yield deletedTeam).run
   }
 
 }

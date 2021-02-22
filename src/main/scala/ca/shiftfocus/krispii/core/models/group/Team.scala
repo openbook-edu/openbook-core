@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.models.group
 import java.awt.Color
 import java.util.UUID
 
+import ca.shiftfocus.krispii.core.models.GroupSchedule
 import ca.shiftfocus.krispii.core.models.user.Scorer
 import ca.shiftfocus.krispii.core.models.work.Test
 import org.joda.time.DateTime
@@ -27,7 +28,7 @@ case class Team(
   archived: Boolean = false,
   deleted: Boolean = false,
   scorers: IndexedSeq[Scorer] = IndexedSeq.empty[Scorer],
-  tests: IndexedSeq[Test] = IndexedSeq.empty[Test],
+  schedules: IndexedSeq[GroupSchedule] = IndexedSeq.empty[GroupSchedule],
   createdAt: DateTime = new DateTime,
   updatedAt: DateTime = new DateTime
 ) extends Group
@@ -51,7 +52,7 @@ object Team {
     (__ \ "archived").write[Boolean] and
     (__ \ "deleted").write[Boolean] and
     (__ \ "scorers").write[IndexedSeq[Scorer]] and
-    (__ \ "tests").write[IndexedSeq[Test]] and
+    (__ \ "schedules").write[IndexedSeq[GroupSchedule]] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Team.unapply))
@@ -70,7 +71,7 @@ object Team {
     (__ \ "archived").read[Boolean] and
     (__ \ "deleted").read[Boolean] and
     (__ \ "scorers").read[IndexedSeq[Scorer]] and
-    (__ \ "tests").read[IndexedSeq[Test]] and
+    (__ \ "schedules").read[IndexedSeq[GroupSchedule]] and
     (__ \ "createdAt").read[DateTime] and
     (__ \ "updatedAt").read[DateTime]
   )(Team.apply _)

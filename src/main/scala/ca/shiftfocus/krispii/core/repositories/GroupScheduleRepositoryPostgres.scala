@@ -70,18 +70,19 @@ class GroupScheduleRepositoryPostgres(
 
   val Delete =
     s"""
-       |DELETE FROM $Table
-       |WHERE id = ?
-       |  AND version = ?
-       |RETURNING $Fields
-     """.stripMargin
+     |DELETE FROM $Table
+     |WHERE id = ?
+     |  AND version = ?
+     |RETURNING $Fields
+   """.stripMargin
 
-  val SelectBygroupId = s"""
-    |SELECT $Fields
-    |FROM $Table
-    |WHERE group_id = ?
-    |ORDER BY $OrderBy, start_time ASC, end_time ASC
-  """.stripMargin
+  val SelectByGroupId =
+    s"""
+      |SELECT $Fields
+      |FROM $Table
+      |WHERE group_id = ?
+      |ORDER BY $OrderBy, start_time ASC, end_time ASC
+    """.stripMargin
 
   /**
    * List all schedules for a given group
@@ -89,9 +90,9 @@ class GroupScheduleRepositoryPostgres(
   override def list(group: Group)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[GroupSchedule]]] = {
     cacheRepository.cacheSeqGroupSchedule.getCached(cacheSchedulesKey(group.id)).flatMap {
       case \/-(schedules) => Future successful \/-(schedules)
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case -\/(_: RepositoryError.NoResults) =>
         for {
-          schedules <- lift(queryList(SelectBygroupId, Seq[Any](group.id)))
+          schedules <- lift(queryList(SelectByGroupId, Seq[Any](group.id)))
           _ <- lift(cacheRepository.cacheSeqGroupSchedule.putCache(cacheSchedulesKey(group.id))(schedules, ttl))
         } yield schedules
       case -\/(error) => Future successful -\/(error)

@@ -179,8 +179,8 @@ class OmsServiceDefault(
       // _ = Logger.debug(s"Tests to be randomized in exam ${exam.name}: ${toRandomize.map(_.name)}")
 
       teams <- lift(teamRepository.list(exam))
-      teamIds = teams map (_.id)
-      // _ = Logger.debug(s"Teams in exam ${exam.name}: $teamIds")
+      teamIds = teams.filterNot(_.archived).map(_.id)
+      _ = Logger.debug(s"Teams in exam ${exam.name}: $teamIds")
 
       // real = allTests.diff(toRandomize).filter(_.teamId.isDefined).groupBy(_.teamId.get).mapValues(_.size)
       // _ = Logger.debug(s"Constant distribution (not to be changed): $real")

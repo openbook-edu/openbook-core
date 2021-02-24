@@ -80,6 +80,7 @@ class TeamRepositoryPostgres(
        |SELECT $Fields
        |FROM $Table
        |WHERE exam_id = ?
+       |  AND NOT $Table.deleted
        |ORDER BY $OrderBy
      """.stripMargin
 

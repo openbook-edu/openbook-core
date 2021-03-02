@@ -37,7 +37,7 @@ class ScorerRepositoryPostgres(
       isArchived = row("archived").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime],
-      includedAt = row("updated_at").asInstanceOf[DateTime]
+      includedAt = row("included_at").asInstanceOf[DateTime]
     )
 
   private def FieldsWithTable(fields: String, table: String): String =
@@ -52,16 +52,16 @@ class ScorerRepositoryPostgres(
   private val UserFields = "id, version, created_at, updated_at, username, email, givenname, surname, alias, account_type"
   private val UserFieldsTable = FieldsWithTable(UserFields, "users")
   private val AddFields = "team_id, deleted, archived, created_at"
-  private val annex = s" AS included_at, coalesce(teams_scorers.leader, FALSE) AS leader"
-  private val ScorerFields = "scorer_id, " + AddFields + annex
+  private val ScorerFields = "scorer_id, " + AddFields + ", coalesce(leader, FALSE) AS leader"
+  private val annex = " AS included_at, coalesce(leader, FALSE) AS leader"
   private val ScorerFieldsTable = FieldsWithTable(AddFields, "teams_scorers") + annex
-  private val UpdateFieldsTable = FieldsWithTable(AddFields, "updated") +
-    s" AS included_at, coalesce(updated.leader, FALSE) AS leader"
-  private val Fields = UserFieldsTable + ", " + ScorerFieldsTable
+  private val UpdateFieldsTable = FieldsWithTable(AddFields, "updated") + annex
+  private val ReadFields = UserFieldsTable + ", " + ScorerFieldsTable
+  private val Fields = UserFieldsTable + ", " + UpdateFieldsTable
 
   private val SelectFromTeam =
     s"""
-       |SELECT $Fields
+       |SELECT $ReadFields
        |FROM teams, users, teams_scorers
        |WHERE teams.id = teams_scorers.team_id
        |  AND teams_scorers.scorer_id = users.id
@@ -106,7 +106,7 @@ class ScorerRepositoryPostgres(
        |	WHERE team_id = ?
        |	  AND scorer_id = ?
        |	RETURNING $ScorerFields)
-       |SELECT $UserFieldsTable, $UpdateFieldsTable
+       |SELECT $Fields
        |FROM updated, users
        |WHERE updated.scorer_id = users.id;
   """.stripMargin
@@ -137,7 +137,7 @@ class ScorerRepositoryPostgres(
        |	WHERE team_id = ?
        |	  AND scorer_id = ?
        |	RETURNING $ScorerFields)
-       |SELECT $UserFieldsTable, $UpdateFieldsTable
+       |SELECT $Fields
        |FROM updated, users
        |WHERE updated.scorer_id = users.id;
    """.stripMargin
@@ -153,7 +153,7 @@ class ScorerRepositoryPostgres(
   private val AddScorersEnd =
     s"""
       |RETURNING $ScorerFields)
-      |SELECT $UserFieldsTable, $UpdateFieldsTable
+      |SELECT $Fields
       |FROM updated, users
       |WHERE updated.scorer_id = users.id;
   """.stripMargin
@@ -172,7 +172,7 @@ class ScorerRepositoryPostgres(
        |DELETE FROM teams_scorers
        |WHERE team_id = ?
        | AND ARRAY[scorer_id] <@ ?
-       |RETURNING $Fields
+       |RETURNING $ReadFields
   """.stripMargin*/
 
   /**

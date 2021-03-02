@@ -51,10 +51,13 @@ class ScorerRepositoryPostgres(
 
   private val UserFields = "id, version, created_at, updated_at, username, email, givenname, surname, alias, account_type"
   private val UserFieldsTable = FieldsWithTable(UserFields, "users")
-  private val AddFields = "team_id, leader, deleted, archived, created_at"
-  private val ScorerFields = "scorer_id, " + AddFields
-  private val ScorerFieldsTable = FieldsWithTable(AddFields, "teams_scorers") + " AS included_at"
-  private val UpdateFieldsTable = FieldsWithTable(AddFields, "updated") + " AS included_at"
+  private val AddFields = "team_id, deleted, archived, created_at"
+  private val ScorerFields = "scorer_id, " + AddFields +
+    s" AS included_at + coalesce(teams_scorers.leader, FALSE)"
+  private val ScorerFieldsTable = FieldsWithTable(AddFields, "teams_scorers") +
+    s" AS included_at + coalesce(teams_scorers.leader, FALSE)"
+  private val UpdateFieldsTable = FieldsWithTable(AddFields, "updated") +
+    s" AS included_at + coalesce(updated.leader, FALSE)"
   private val Fields = UserFieldsTable + ", " + ScorerFieldsTable
 
   private val SelectFromTeam =
@@ -65,7 +68,7 @@ class ScorerRepositoryPostgres(
        |  AND teams_scorers.scorer_id = users.id
        |  AND teams.id = ?
        |  AND users.is_deleted = FALSE
-       |ORDER BY teams_scorers.leader DESC, teams_scorers.created_at ASC
+       |ORDER BY teams_scorers.leader, teams_scorers.created_at ASC
     """.stripMargin
 
   /**
@@ -200,7 +203,9 @@ class ScorerRepositoryPostgres(
    * @return Unit, since it makes more sense to let omsService return the entire Team (teamRepository must not be referenced here to avoid circularity!)
    */
   override def addScorer(team: Team, scorer: User, leader: Boolean = false)(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
-    val params = Seq[Any](team.id, scorer.id, leader, new DateTime)
+    // the SQL UNIQUE constraint for leader requires non-leaders to have leader=NULL
+    val nulledLeader = if (leader) Some(true) else None
+    val params = Seq[Any](team.id, scorer.id, nulledLeader, new DateTime)
     for {
       _ <- lift(queryOne(AddScorer, params).map {
         case \/-(scorer) =>
@@ -222,7 +227,10 @@ class ScorerRepositoryPostgres(
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id)))
       _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id)))
       _ <- lift(leader match {
-        case Some(leader) => queryOne(ToggleTeamLeader, Seq[Any](leader, team.id, scorer.id), debug = true)
+        case Some(true) =>
+          queryOne(ToggleTeamLeader, Seq[Any](Some(true), team.id, scorer.id), debug = true)
+        case Some(false) =>
+          queryOne(ToggleTeamLeader, Seq[Any](None, team.id, scorer.id), debug = true)
         case None => Future successful \/-(true)
       })
       _ <- lift(archived match {
@@ -269,7 +277,7 @@ class ScorerRepositoryPostgres(
     val cleanTeamId = team.id.toString filterNot ("-" contains _)
     val perRow = userList map (fs => {
       val cleanId = fs.userId.toString filterNot ("-" contains _)
-      s"('$cleanTeamId', '$cleanId', '${fs.leader}', '${new DateTime()}')"
+      s"('$cleanTeamId', '$cleanId', '${if (fs.leader) Some(true) else None}', '${new DateTime()}')"
     })
     val query = AddScorersStart + perRow.mkString(",") + AddScorersEnd
 

@@ -52,11 +52,11 @@ class ScorerRepositoryPostgres(
   private val UserFields = "id, version, created_at, updated_at, username, email, givenname, surname, alias, account_type"
   private val UserFieldsTable = FieldsWithTable(UserFields, "users")
   private val AddFields = "team_id, deleted, archived, created_at"
-  private val annex = s" AS included_at, coalesce(teams_scorers.leader, FALSE) AS teams_scorers.leader"
+  private val annex = s" AS included_at, coalesce(teams_scorers.leader, FALSE) AS leader"
   private val ScorerFields = "scorer_id, " + AddFields + annex
   private val ScorerFieldsTable = FieldsWithTable(AddFields, "teams_scorers") + annex
   private val UpdateFieldsTable = FieldsWithTable(AddFields, "updated") +
-    s" AS included_at, coalesce(updated.leader, FALSE) AS updated.leader"
+    s" AS included_at, coalesce(updated.leader, FALSE) AS leader"
   private val Fields = UserFieldsTable + ", " + ScorerFieldsTable
 
   private val SelectFromTeam =

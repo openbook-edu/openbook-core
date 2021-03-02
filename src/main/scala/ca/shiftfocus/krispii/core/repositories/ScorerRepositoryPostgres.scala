@@ -67,7 +67,7 @@ class ScorerRepositoryPostgres(
        |  AND teams_scorers.scorer_id = users.id
        |  AND teams.id = ?
        |  AND users.is_deleted = FALSE
-       |ORDER BY teams_scorers.leader, teams_scorers.included_at ASC
+       |ORDER BY leader, included_at
     """.stripMargin
 
   /**

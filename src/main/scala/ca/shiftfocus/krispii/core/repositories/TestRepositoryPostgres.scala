@@ -7,7 +7,7 @@ import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
 import ca.shiftfocus.krispii.core.models.work.{Score, Test}
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
-import scalaz.{-\/, \/, \/-}
+import scalaz.{-\/, EitherT, \/, \/-}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -110,7 +110,7 @@ class TestRepositoryPostgres(
   """.stripMargin
 
   /**
-   * Helper function to add scores to a test.
+   * Helper function to add all scores to a test.
    *
    * @param rawTest: test without scores
    * @return The test, enriched with its scores, or an error
@@ -122,15 +122,42 @@ class TestRepositoryPostgres(
     } yield result
 
   /**
-   * Helper function to add scores to a list of tests.
+   * Helper function to add scores given by scorers from a team to a test.
+   *
+   * @param rawTest: test without scores
+   * @return The test, enriched with its scores, or an error
+   */
+  def enrichTest(rawTest: Test, team: Team)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Test]] =
+    for {
+      scoreList <- lift(scoreRepository.list(rawTest, team))
+      result = rawTest.copy(scores = scoreList.sortBy(_.createdAt.getMillis))
+    } yield result
+
+  /**
+   * Helper function to add all scores to a list of tests.
    *
    * @param rawTests: vector of tests without scores
-   * @return The list of tests, each enriched with its scores, or an error
+   * @return The list of tests, each enriched with all its scores, or an error
    */
   def enrichTests(rawTests: IndexedSeq[Test])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Test]]] =
     liftSeq(rawTests.map { test =>
       (for {
         scoreList <- lift(scoreRepository.list(test))
+        result = test.copy(scores = scoreList.sortBy(_.createdAt.getMillis))
+      } yield result).run
+    })
+
+  /**
+   * Helper function to add scores from a given team to a list of tests.
+   *
+   * @param rawTests: vector of tests without scores
+   * @param team: Team of scorers
+   * @return The list of tests, each enriched with its scores, or an error
+   */
+  def enrichTests(rawTests: IndexedSeq[Test], team: Team)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Test]]] =
+    liftSeq(rawTests.map { test =>
+      (for {
+        scoreList <- lift(scoreRepository.list(test, team))
         result = test.copy(scores = scoreList.sortBy(_.createdAt.getMillis))
       } yield result).run
     })
@@ -147,16 +174,7 @@ class TestRepositoryPostgres(
    * Find all tests assigned to a given exam.
    *
    * @param exam The exam that the tests were assigned to
-   * @return a vector of the returned tests with their scores or an error
-   */
-  override def list(exam: Exam)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Test]] =
-    list(exam, fetchScores = true)
-
-  /**
-   * Find all tests assigned to a given exam.
-   *
-   * @param exam The exam that the tests were assigned to
-   * @param fetchScores whether to include the scores associated with each test
+   * @param fetchScores whether to include all scores associated with each test (default: true)
    * @return a vector of the returned tests or an error
    */
   override def list(exam: Exam, fetchScores: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Test]] = {
@@ -177,17 +195,8 @@ class TestRepositoryPostgres(
   /**
    * Find all tests assigned to a given team.
    *
-   * @param team The exam that the tests were assigned to
-   * @return a vector of the returned tests with their scores or an error
-   */
-  override def list(team: Team)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Test]] =
-    list(team, fetchScores = true)
-
-  /**
-   * Find all tests assigned to a given team.
-   *
    * @param team The team that the tests were assigned to
-   * @param fetchScores whether to include the scores associated with each test
+   * @param fetchScores whether to include the scores (from that team) associated with each test
    * @return a vector of the returned tests or an error
    */
   override def list(team: Team, fetchScores: Boolean)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Test]] = {
@@ -195,11 +204,11 @@ class TestRepositoryPostgres(
     cacheRepository.cacheSeqTest.getCached(key).flatMap {
       case \/-(testList) =>
         if (fetchScores) enrichTests(testList) else Future successful \/-(testList)
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case -\/(_: RepositoryError.NoResults) =>
         for {
           testList <- lift(queryList(ListByTeam, Seq[Any](team.id)))
           _ <- lift(cacheRepository.cacheSeqTest.putCache(key)(testList, ttl))
-          finalTestList <- lift(if (fetchScores) enrichTests(testList) else Future successful \/-(testList))
+          finalTestList <- lift(if (fetchScores) enrichTests(testList, team) else Future successful \/-(testList))
         } yield finalTestList
       case -\/(error) => Future successful -\/(error)
     }
@@ -215,7 +224,7 @@ class TestRepositoryPostgres(
     val key = cacheTestKey(id)
     cacheRepository.cacheTest.getCached(key).flatMap {
       case \/-(test) => Future successful \/-(test)
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case -\/(_: RepositoryError.NoResults) =>
         for {
           test <- lift(queryOne(SelectOne, Array[Any](id)))
           _ <- lift(cacheRepository.cacheTest.putCache(key)(test, ttl))

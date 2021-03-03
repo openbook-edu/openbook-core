@@ -14,12 +14,9 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class ScoreRepositoryPostgres(
-  // Problems with recursive definition? Gather domain logic in Service or API
-  // val userRepository: UserRepository,
-  // val testRepository: TestRepository,
-  val cacheRepository: CacheRepository
-)
-    extends ScoreRepository with PostgresRepository[Score] {
+    val cacheRepository: CacheRepository,
+    val scorerRepository: ScorerRepository
+) extends ScoreRepository with PostgresRepository[Score] {
 
   override val entityName: String = "score"
 
@@ -34,35 +31,29 @@ class ScoreRepositoryPostgres(
       row("orig_grade").asInstanceOf[String],
       row("grade").asInstanceOf[String],
       row("is_visible").asInstanceOf[Int],
-      Option(row("exam_file").asInstanceOf[UUID]) /*match {
-        case Some(exam_file) => Some(exam_file)
-        case _ => None
-      } */ ,
-      Option(row("rubric_file").asInstanceOf[UUID]) /*match {
-        case Some(rubric_file) => Some(rubric_file)
-        case _ => None
-      } */ ,
+      Option(row("exam_file").asInstanceOf[UUID]),
+      Option(row("rubric_file").asInstanceOf[UUID]),
       row("archived").asInstanceOf[Boolean],
       row("deleted").asInstanceOf[Boolean],
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
 
-  val Table = "scores"
+  private val Table = "scores"
   // names and number of fields in SQL
-  val Fields = "id, test_id, scorer_id, version, orig_comments, comments, orig_grade, grade, is_visible, " +
+  private val Fields = "id, test_id, scorer_id, version, orig_comments, comments, orig_grade, grade, is_visible, " +
     "exam_file, rubric_file, archived, deleted, created_at, updated_at"
-  val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
-  val OrderBy = s"${Table}.created_at ASC"
+  private val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
+  private val OrderBy = s"${Table}.created_at ASC"
 
   // User CRUD operations
-  val SelectAll =
+  private val SelectAll =
     s"""
        |SELECT $Fields
        |FROM $Table
      """.stripMargin
 
-  val ListByExamScorer =
+  private val ListByExamScorer =
     s"""
        |SELECT $FieldsWithTable
        |FROM $Table, tests
@@ -72,7 +63,7 @@ class ScoreRepositoryPostgres(
        |ORDER BY $OrderBy
      """.stripMargin
 
-  val ListByTeamScorer =
+  private val ListByTeamScorer =
     s"""
        |SELECT $FieldsWithTable
        |FROM $Table, tests
@@ -82,7 +73,7 @@ class ScoreRepositoryPostgres(
        |ORDER BY $OrderBy
      """.stripMargin
 
-  val ListByTest =
+  private val ListByTest =
     s"""
        |SELECT $Fields
        |FROM $Table
@@ -90,14 +81,14 @@ class ScoreRepositoryPostgres(
        |ORDER BY $OrderBy
      """.stripMargin
 
-  val SelectOne =
+  private val SelectOne =
     s"""
        |SELECT $Fields
        |FROM $Table
        |WHERE id = ?
     """.stripMargin
 
-  val SelectByTestScorer =
+  private val SelectByTestScorer =
     s"""
        |SELECT $Fields
        |FROM $Table
@@ -106,7 +97,7 @@ class ScoreRepositoryPostgres(
        |ORDER BY $OrderBy
      """.stripMargin
 
-  val Insert =
+  private val Insert =
     s"""
        |INSERT INTO $Table ($Fields)
        |VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -123,7 +114,7 @@ class ScoreRepositoryPostgres(
        |RETURNING $Fields
     """.stripMargin
 
-  val Delete =
+  private val Delete =
     s"""
        |DELETE
        |FROM $Table
@@ -195,8 +186,8 @@ class ScoreRepositoryPostgres(
   override def list(test: Test)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Score]] = {
     val key = cacheScoresKey(test.id)
     cacheRepository.cacheSeqScore.getCached(key).flatMap {
-      case \/-(teamList) => Future successful \/-(teamList)
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case \/-(scoreList) => Future successful \/-(scoreList)
+      case -\/(_: RepositoryError.NoResults) =>
         for {
           scoreList <- lift(queryList(ListByTest, Seq[Any](test.id)))
           _ <- lift(cacheRepository.cacheSeqScore.putCache(key)(scoreList, ttl))
@@ -204,6 +195,23 @@ class ScoreRepositoryPostgres(
       case -\/(error) => Future successful -\/(error)
     }
   }
+
+  /**
+   * Find all scores given on a certain test by members of a team.
+   *
+   * @param test The test to which the scores were added
+   * @param team: Team, if present, return only scores given by scorers on this team
+   * @return a vector of the returned Scores
+   */
+  override def list(test: Test, team: Team)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Score]] =
+    /* At any given point in time, a test is assigned only to one team, so scores given by previous teams are immutable.
+     Therefore, it seems faster and easier to get a (possibly cached) list of all scores and then filter. */
+    for {
+      allScores <- lift(list(test))
+      scorers <- lift(scorerRepository.list(team))
+      scorerIds = scorers.map(_.id)
+      scores = allScores.filter(t => scorerIds.contains(t.scorerId))
+    } yield scores
 
   /**
    * Find a single entry by ID.
@@ -215,7 +223,7 @@ class ScoreRepositoryPostgres(
     val key = cacheScoreKey(id)
     cacheRepository.cacheScore.getCached(key).flatMap {
       case \/-(score) => Future successful \/-(score)
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case -\/(_: RepositoryError.NoResults) =>
         for {
           score <- lift(queryOne(SelectOne, Array[Any](id)))
           _ <- lift(cacheRepository.cacheScore.putCache(cacheScoreKey(score.id))(score, ttl))
@@ -235,7 +243,7 @@ class ScoreRepositoryPostgres(
     val key = cacheScorerKey(testId, scorerId)
     cacheRepository.cacheUUID.getCached(key).flatMap {
       case \/-(scoreId) => find(scoreId)
-      case -\/(noResults: RepositoryError.NoResults) =>
+      case -\/(_: RepositoryError.NoResults) =>
         for {
           score <- lift(queryOne(SelectByTestScorer, Array[Any](testId, scorerId)))
           _ <- lift(cacheRepository.cacheUUID.putCache(key)(score.id, ttl))

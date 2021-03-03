@@ -16,6 +16,7 @@ trait ScoreRepository extends Repository {
   // def list(exam: Exam)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Score]]]
   def list(exam: Exam, scorer: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Score]]]
   def list(team: Team, scorer: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Score]]]
+  def list(test: Test, team: Team)(implicit conn: Connection): Future[RepositoryError.Fail \/ IndexedSeq[Score]]
   def list(test: Test)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Score]]]
 
   def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Score]]

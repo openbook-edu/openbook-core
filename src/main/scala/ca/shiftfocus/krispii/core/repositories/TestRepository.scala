@@ -15,9 +15,7 @@ trait TestRepository extends Repository {
   val scoreRepository: ScoreRepository
 
   def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Test]]]
-  def list(exam: Exam)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Test]]]
   def list(exam: Exam, fetchScores: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Test]]]
-  def list(team: Team)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Test]]]
   def list(team: Team, fetchScores: Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Test]]]
 
   def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Test]]

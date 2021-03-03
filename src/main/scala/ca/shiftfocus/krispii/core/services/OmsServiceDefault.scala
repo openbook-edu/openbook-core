@@ -188,15 +188,14 @@ class OmsServiceDefault(
       desired = (teamIds zip apprFractions(allTests.length, teamIds.length)).toMap
       // _ = Logger.debug(s"Desired distribution for all tests: $desired")
 
-      /* toFill = (desired.keySet ++ real.keys).map { i => i -> (desired.get(i).getOrElse(0) - real.get(i).getOrElse(0)) }
-      _ = Logger.debug(s"Will add to each team: $toFill") */
+      /* toFill = (desired.keySet ++ real.keys).map { i => i -> (desired.get(i).getOrElse(0) - real.get(i).getOrElse(0)) } */
       minusReal = allTests.diff(toRandomize).filter(_.teamId.isDefined).groupBy(_.teamId.get).mapValues(-_.size)
       toFill = minusReal |+| desired
       _ = Logger.debug(s"Randomize: will add to each team this many tests: $toFill")
 
       _ = Logger.debug(s"Randomize: old team IDs ${toRandomize.map(_.name) zip toRandomize.map(_.teamId.getOrElse("none"))}")
       orderFill = stratRandom(toFill)
-      _ = Logger.debug(s"Randomize: wew team IDs ${toRandomize.map(_.name) zip orderFill}")
+      _ = Logger.debug(s"Randomize: new team IDs ${toRandomize.map(_.name) zip orderFill}")
 
       randomizedTests <- lift(serializedT(toRandomize zip orderFill)(el =>
         testRepository.update(el._1.copy(teamId = Some(el._2)))))
@@ -207,7 +206,7 @@ class OmsServiceDefault(
       /* reject automatic scoring with an error message if tests are not multiple score,
          or if the correct answers are not provided in the rubric */
       exam <- lift(examRepository.find(examId))
-      existingTests <- lift(testRepository.list(exam))
+      existingTests <- lift(testRepository.list(exam, fetchScores = true))
       // apply automatic scoring to tests
     } yield existingTests
 

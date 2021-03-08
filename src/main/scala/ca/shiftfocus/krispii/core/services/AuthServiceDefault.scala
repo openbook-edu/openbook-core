@@ -473,13 +473,18 @@ class AuthServiceDefault(
       val updated = for {
         existingUser <- lift(userRepository.find(id, includeDeletedUsers))
         _ <- predicate(existingUser.version == version)(ServiceError.OfflineLockFail)
-        u_email <- lift(email.map { someEmail => validateEmail(someEmail.trim.toLowerCase, Some(id)) }.getOrElse(Future.successful(\/-(existingUser.email))))
-        u_username <- lift(username.map { someUsername => validateUsername(someUsername, Some(id)) }.getOrElse(Future.successful(\/-(existingUser.username))))
-        hash = password.flatMap { pwd =>
-          if (!InputUtils.isValidPassword(pwd.trim)) None
-          else Some(Passwords.scrypt().crypt(pwd.trim))
+        u_email <- lift(email.map { someEmail =>
+          validateEmail(someEmail.trim.toLowerCase, Some(id))
+        }.getOrElse(Future.successful(\/-(existingUser.email))))
+        u_username <- lift(username.map { someUsername =>
+          validateUsername(someUsername, Some(id))
+        }.getOrElse(Future.successful(\/-(existingUser.username))))
+        hash = password match {
+          case Some(pwd) if (InputUtils.isValidPassword(pwd.trim)) => Some(Passwords.scrypt().crypt(pwd.trim))
+          case Some(_) => None
+          case None => existingUser.hash
         }
-        _ <- predicate(hash.isDefined)(ServiceError.BadInput("core.AuthServiceDefault.password.short"))
+        _ <- predicate(hash.isDefined)(ServiceError.BadInput("core.AuthServiceDefault.bad.password"))
         userToUpdate = existingUser.copy(
           email = u_email,
           username = u_username,

@@ -383,13 +383,14 @@ class SchoolServiceDefault(
   /**
    * Insert a new chat message.
    *
-   * @param courseId
+   * @param courseId actually course, exam or team ID
    * @param userId
    * @param message
+   * @param shouting
    * @return
    */
-  override def insertChat(courseId: UUID, userId: UUID, message: String): Future[\/[ErrorUnion#Fail, Chat]] = {
-    val newChat = Chat(courseId = courseId, userId = userId, message = message)
+  override def insertChat(courseId: UUID, userId: UUID, message: String, shouting: Boolean): Future[\/[ErrorUnion#Fail, Chat]] = {
+    val newChat = Chat(courseId = courseId, userId = userId, message = message, shouting = shouting)
     chatRepository.insert(newChat)
   }
 

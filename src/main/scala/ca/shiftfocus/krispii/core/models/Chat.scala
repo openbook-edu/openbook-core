@@ -15,6 +15,7 @@ case class Chat(
   message: String,
   seen: Boolean = false, // derived from table messages_seen
   hidden: Boolean = false,
+  shouting: Boolean = false,
   createdAt: DateTime = new DateTime
 )
 
@@ -26,6 +27,7 @@ object Chat {
     (__ \ "message").read[String] and
     (__ \ "seen").read[Boolean] and
     (__ \ "hidden").read[Boolean] and
+    (__ \ "shouting").read[Boolean] and
     (__ \ "createdAt").read[DateTime]
   )(Chat.apply _)
 
@@ -36,6 +38,7 @@ object Chat {
     (__ \ "message").write[String] and
     (__ \ "seen").write[Boolean] and
     (__ \ "hidden").write[Boolean] and
+    (__ \ "shouting").write[Boolean] and
     (__ \ "createdAt").write[DateTime]
   )(unlift(Chat.unapply))
 }

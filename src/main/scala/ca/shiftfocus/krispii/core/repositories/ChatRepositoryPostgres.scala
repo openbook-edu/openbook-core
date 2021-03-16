@@ -1,16 +1,16 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models.Chat
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.models.group.{Group, Team}
+import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.models.Chat
+import ca.shiftfocus.krispii.core.models.group.Group
 import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
+import scalaz.\/
 
 import scala.concurrent.Future
-import scalaz.\/
 
 class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat] {
 
@@ -29,14 +29,15 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
       userId = row("user_id").asInstanceOf[UUID],
       message = row("message").asInstanceOf[String],
       hidden = row("hidden").asInstanceOf[Boolean],
+      shouting = row("shouting").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime]
     )
   }
 
   val Table = "chat_logs"
-  val Fields = "course_id, message_num, user_id, message, hidden, created_at"
+  val Fields = "course_id, message_num, user_id, message, hidden, shouting, created_at"
   val FieldsWithTable: String = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
-  val QMarks = "?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?"
   val OrderBy = "message_num ASC"
 
   val SelectAllByGroup: String =
@@ -88,7 +89,7 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
   val Insert =
     s"""
        |INSERT INTO $Table ($Fields)
-       |VALUES (?, (SELECT coalesce(MAX(cl.message_num), 0)+1 FROM chat_logs AS cl WHERE cl.course_id = ?), ?, ?, ?, ?)
+       |VALUES (?, (SELECT coalesce(MAX(cl.message_num), 0)+1 FROM chat_logs AS cl WHERE cl.course_id = ?), ?, ?, ?, ?, ?)
        |RETURNING $Fields
      """.stripMargin
 
@@ -178,7 +179,7 @@ class ChatRepositoryPostgres extends ChatRepository with PostgresRepository[Chat
    * @return
    */
   override def insert(chat: Chat)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Chat]] = {
-    queryOne(Insert, Seq[Any](chat.courseId, chat.courseId, chat.userId, chat.message, false, new DateTime))
+    queryOne(Insert, Seq[Any](chat.courseId, chat.courseId, chat.userId, chat.message, false, chat.shouting, new DateTime))
   }
 
   /**

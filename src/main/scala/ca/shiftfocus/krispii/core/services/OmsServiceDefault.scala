@@ -169,13 +169,19 @@ class OmsServiceDefault(
   /**
    * Randomize either all tests in an exam, or only those exams without a team, to the existing teams.
    * @param exam The exam within which to randomize
-   * @param all If false, only assign team IDs to those tests in the exam that don't have a team ID yet
+   * @param ids IndexedSeq[UUID], the IDs of the tests to randomize, or empty to randomize all
    * @return the vector of updated tests, or an error
    */
-  override def randomizeTests(exam: Exam, all: Boolean = false): Future[ErrorUnion#Fail \/ IndexedSeq[Test]] =
+  override def randomizeTests(
+    exam: Exam,
+    ids: IndexedSeq[UUID] = IndexedSeq[UUID]()
+  ): Future[ErrorUnion#Fail \/ IndexedSeq[Test]] =
     for {
       allTests <- lift(testRepository.list(exam, fetchScores = false))
-      toRandomize = allTests filter (all || _.teamId.isEmpty)
+      toRandomize = ids match {
+        case IndexedSeq() => allTests
+        case _ => allTests.filter(t => ids.contains(t.id))
+      }
       // _ = Logger.debug(s"Tests to be randomized in exam ${exam.name}: ${toRandomize.map(_.name)}")
 
       teams <- lift(teamRepository.list(exam))

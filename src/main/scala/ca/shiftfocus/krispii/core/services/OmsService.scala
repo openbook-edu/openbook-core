@@ -7,8 +7,7 @@ import ca.shiftfocus.krispii.core.models.Chat
 import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
 import ca.shiftfocus.krispii.core.models.user.{Scorer, User, UserTrait}
 import ca.shiftfocus.krispii.core.models.work.{Score, Test}
-import ca.shiftfocus.krispii.core.repositories.{ChatRepository, ExamRepository, LastSeenRepository, ScoreRepository, ScorerRepository, TeamRepository, TestRepository, UserRepository}
-import com.github.mauricio.async.db.Connection
+import ca.shiftfocus.krispii.core.repositories._
 import scalaz.\/
 
 import scala.collection.IndexedSeq
@@ -60,7 +59,10 @@ trait OmsService extends Service[ErrorUnion#Fail] {
 
   def moveTests(testIds: IndexedSeq[UUID], newTeamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]]
 
-  def randomizeTests(exam: Exam, all: Boolean = false): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]]
+  def randomizeTests(
+    exam: Exam,
+    ids: IndexedSeq[UUID] = IndexedSeq[UUID]()
+  ): Future[ErrorUnion#Fail \/ IndexedSeq[Test]]
 
   def automaticScoring(examId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]]
 

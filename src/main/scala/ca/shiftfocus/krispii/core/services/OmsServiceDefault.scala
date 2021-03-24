@@ -188,11 +188,13 @@ class OmsServiceDefault(
       teamIds = teams.filterNot(_.archived).map(_.id)
       _ = Logger.debug(s"Teams in exam ${exam.name}: $teamIds")
 
-      // real = allTests.diff(toRandomize).filter(_.teamId.isDefined).groupBy(_.teamId.get).mapValues(_.size)
-      // _ = Logger.debug(s"Constant distribution (not to be changed): $real")
+      // teamId should always be defined after diff, but just to make sure
+      real = allTests.diff(toRandomize).filter(_.teamId.isDefined).groupBy(_.teamId.get).mapValues(_.size)
+      _ = Logger.debug(s"Constant distribution (not to be changed): $real")
 
       desired = (teamIds zip apprFractions(allTests.length, teamIds.length)).toMap
-      // _ = Logger.debug(s"Desired distribution for all tests: $desired")
+      _ = Logger.debug(s"A priori desired distribution for all tests: $desired")
+      // should we minimize changes from desired to new distribution?
 
       /* toFill = (desired.keySet ++ real.keys).map { i => i -> (desired.get(i).getOrElse(0) - real.get(i).getOrElse(0)) } */
       minusReal = allTests.diff(toRandomize).filter(_.teamId.isDefined).groupBy(_.teamId.get).mapValues(-_.size)

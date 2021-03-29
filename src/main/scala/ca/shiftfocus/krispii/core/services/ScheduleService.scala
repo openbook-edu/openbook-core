@@ -6,7 +6,7 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.group.{Course, Group}
 import ca.shiftfocus.krispii.core.repositories.{GroupScheduleExceptionRepository, GroupScheduleRepository}
-import org.joda.time.{DateTime, LocalDate, LocalTime}
+import org.joda.time.DateTime
 import scalaz.\/
 
 import scala.concurrent.Future

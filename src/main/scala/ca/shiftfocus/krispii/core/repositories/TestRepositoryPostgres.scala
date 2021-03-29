@@ -7,7 +7,7 @@ import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
 import ca.shiftfocus.krispii.core.models.work.{Score, Test}
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
-import scalaz.{-\/, EitherT, \/, \/-}
+import scalaz.{-\/, \/, \/-}
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future

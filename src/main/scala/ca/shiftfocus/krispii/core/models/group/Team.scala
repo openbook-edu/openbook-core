@@ -5,7 +5,6 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.models.GroupSchedule
 import ca.shiftfocus.krispii.core.models.user.Scorer
-import ca.shiftfocus.krispii.core.models.work.Test
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json.JodaWrites._

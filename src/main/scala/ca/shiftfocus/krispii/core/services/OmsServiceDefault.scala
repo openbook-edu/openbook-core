@@ -141,16 +141,40 @@ class OmsServiceDefault(
     idList(Random.nextInt(idList.length))
 
   /**
-   * Distribute the available items randomly as fair as possible
+   * Minimum item number for each team
    * @param nItems: Int - how many items are there to be distributed
-   * @param nGroups: Int - how many groups to distribute
+   * @param groups: IndexedSeq[UUID] - IDs of all groups that should receive items
    * @return IndexedSeq[Int] number of items to give to each group
    */
-  def apprFractions(nItems: Int, nGroups: Int): IndexedSeq[Int] = {
-    val lower = nItems / nGroups
-    val excess = nItems % nGroups
-    val before = IndexedSeq.fill(excess)(lower + 1) ++ IndexedSeq.fill(nGroups - excess)(lower)
-    Random.shuffle(before)
+  def minItems(nItems: Int, groups: IndexedSeq[UUID]): Map[UUID, Int] = {
+    val lower = nItems / groups.length
+    groups.map(g => g -> lower).toMap
+  }
+
+  /**
+   * Return the difference between the real and desired number of items in each group
+   * @param real Map[UUID, Int] with the number of items already assigned to each group
+   * @param desired Map[UUID, Int] with the number of items that should be in each group
+   * @return Map[UUID, Int] with the lacking items for each group
+   */
+  def topUp(real: Map[UUID, Int], desired: Map[UUID, Int]): Map[UUID, Int] = {
+    /* (desired.keySet ++ real.keys).map { i => i -> (desired.get(i).getOrElse(0) - real.get(i).getOrElse(0)) } */
+    val minusReal = real.transform((_, n) => -n)
+    val redistribute = minusReal |+| desired
+    redistribute.transform((_, n) => (if (n >= 0) n else 0))
+  }
+
+  /**
+   * Choose randomly teams to give the excess items to.
+   * @param nItems: Int - how many items are there to be distributed
+   * @param groups: IndexedSeq[UUID] - IDs of all groups that should receive items
+   * @return IndexedSeq[UUID] list of team IDs
+   */
+  def surplusItems(nItems: Int, groups: IndexedSeq[UUID]): IndexedSeq[UUID] = nItems match {
+    case n if n > 0 =>
+      val excess = n % groups.length
+      Random.shuffle(groups).slice(0, excess)
+    case _ => IndexedSeq[UUID]()
   }
 
   /**
@@ -182,25 +206,20 @@ class OmsServiceDefault(
         case IndexedSeq() => allTests
         case _ => allTests.filter(t => ids.contains(t.id))
       }
-      // _ = Logger.debug(s"Tests to be randomized in exam ${exam.name}: ${toRandomize.map(_.name)}")
+      _ = Logger.debug(s"Randomize old assignments ${toRandomize.map(_.name) zip toRandomize.map(_.teamId.getOrElse("none"))}")
 
       teams <- lift(teamRepository.list(exam))
       teamIds = teams.filterNot(_.archived).map(_.id)
-      _ = Logger.debug(s"Teams in exam ${exam.name}: $teamIds")
+      real = allTests.diff(toRandomize).filter(_.teamId.isDefined).groupBy(_.teamId.get).mapValues(_.size)
+      // _ = Logger.debug(s"Immutable distribution: $real")
 
-      // real = allTests.diff(toRandomize).filter(_.teamId.isDefined).groupBy(_.teamId.get).mapValues(_.size)
-      // _ = Logger.debug(s"Constant distribution (not to be changed): $real")
+      minEqual = minItems(allTests.length, teamIds)
+      firstStep = topUp(real, minEqual)
+      _ = Logger.debug(s"Randomize: would need to add to each team this many tests to equalize: $firstStep")
 
-      desired = (teamIds zip apprFractions(allTests.length, teamIds.length)).toMap
-      // _ = Logger.debug(s"Desired distribution for all tests: $desired")
-
-      /* toFill = (desired.keySet ++ real.keys).map { i => i -> (desired.get(i).getOrElse(0) - real.get(i).getOrElse(0)) } */
-      minusReal = allTests.diff(toRandomize).filter(_.teamId.isDefined).groupBy(_.teamId.get).mapValues(-_.size)
-      toFill = minusReal |+| desired
-      _ = Logger.debug(s"Randomize: will add to each team this many tests: $toFill")
-
-      _ = Logger.debug(s"Randomize: old team IDs ${toRandomize.map(_.name) zip toRandomize.map(_.teamId.getOrElse("none"))}")
-      orderFill = stratRandom(toFill)
+      excess = surplusItems(toRandomize.length - firstStep.values.sum, teamIds)
+      _ = Logger.debug(s"Excess tests will be given to teams $excess")
+      orderFill = stratRandom(firstStep) ++ excess
       _ = Logger.debug(s"Randomize: new team IDs ${toRandomize.map(_.name) zip orderFill}")
 
       randomizedTests <- lift(serializedT(toRandomize zip orderFill)(el =>

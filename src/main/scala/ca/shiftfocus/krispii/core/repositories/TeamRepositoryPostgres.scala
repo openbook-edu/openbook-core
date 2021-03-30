@@ -196,9 +196,9 @@ class TeamRepositoryPostgres(
         for {
           teamList <- lift(queryList(ListByExam, Seq[Any](exam.id)))
           _ <- lift(cacheRepository.cacheSeqTeam.putCache(key)(teamList, ttl))
-          _ = Logger.debug(s"In exam ${exam.name}, bare teams $teamList")
+          // _ = Logger.debug(s"In exam ${exam.name}, bare teams $teamList")
           enrichedTeamList <- lift(enrichTeams(teamList))
-          _ = Logger.debug(s"In exam ${exam.name}, enriched teams $enrichedTeamList")
+          // _ = Logger.debug(s"In exam ${exam.name}, enriched teams $enrichedTeamList")
         } yield enrichedTeamList
 
       case -\/(error) => Future successful -\/(error)

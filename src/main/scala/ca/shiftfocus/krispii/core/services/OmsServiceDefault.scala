@@ -11,8 +11,8 @@ import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import play.api.Logger
-import scalaz.\/
 import scalaz.Scalaz._
+import scalaz.\/
 
 import scala.collection.IndexedSeq
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -82,35 +82,44 @@ class OmsServiceDefault(
     } yield members
 
   /**
-   * All scorer functions need to request updated team here, since scoreRepository cannot reference teamRepository (circularity!)
-   * @param team: the Team
-   * @param user: a User to be added to the team
-   * @param leader: will this user be the team leader?
-   * @return
+   * Add a user as scorer to an existing team
+   * @param teamId: unique ID of existing team, which will be reloaded here
+   * @param scorer: User to be added to the team
+   * @param leader: make the user the team leader? can be overridden in order to have exactly one leader
+   * @return the updated team with all of its scorers
    */
-  override def addScorer(team: Team, user: User, leader: Boolean): Future[RepositoryError.Fail \/ Team] =
-    for {
-      _ <- scorerRepository.addScorer(team, user, leader)
-      updatedTeam <- teamRepository.find(team.id)
-    } yield updatedTeam
+  override def addScorer(teamId: UUID, scorer: User, leader: Boolean = false): Future[ErrorUnion#Fail \/ Team] =
+    transactional { implicit conn =>
+      (for {
+        // need to reload the team within the transaction to guarantee scorer consistency
+        team <- lift(teamRepository.find(teamId))
+        oldLeaders = if (leader) team.scorers.filter(s => s.leader) else IndexedSeq[Scorer]()
+        _ = Logger.debug(s"Team ${team.name} (ID ${team.id}) has " +
+          (if (oldLeaders.isEmpty) "no leader" else s"leader(s) ${oldLeaders.map(_.id)} to unset"))
+        _ <- lift(serializedT(oldLeaders)(old =>
+          scorerRepository.update(team, old, leader = Some(false), archived = None, deleted = None)))
+        _ <- lift(scorerRepository.add(team, scorer, leader))
+        updatedTeam <- lift(teamRepository.find(teamId))
+      } yield updatedTeam).run
+    }
 
   override def updateScorer(team: Team, scorer: Scorer, leader: Option[Boolean],
     archived: Option[Boolean], deleted: Option[Boolean]): Future[RepositoryError.Fail \/ Team] =
     for {
-      _ <- scorerRepository.updateScorer(team, scorer, leader, archived, deleted)
+      _ <- scorerRepository.update(team, scorer, leader, archived, deleted)
       updatedTeam <- teamRepository.find(team.id)
     } yield updatedTeam
 
   override def removeScorer(team: Team, scorerId: UUID): Future[RepositoryError.Fail \/ Team] =
     for {
-      _ <- scorerRepository.removeScorer(team, scorerId)
+      _ <- scorerRepository.remove(team, scorerId)
       updatedTeam <- teamRepository.find(team.id)
     } yield updatedTeam
 
-  /*override def addScorers(team: Team, scorerList: IndexedSeq[User],
+  /*override def addList(team: Team, scorerList: IndexedSeq[User],
     leaderList: IndexedSeq[Boolean] = IndexedSeq(false)): Future[\/[RepositoryError.Fail, Team]] =
     for {
-      _ <- scorerRepository.addScorers(team, scorerList, leaderList)
+      _ <- scorerRepository.addList(team, scorerList, leaderList)
       updatedTeam <- teamRepository.find(team.id)
     } yield updatedTeam
 

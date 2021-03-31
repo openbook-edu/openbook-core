@@ -2,7 +2,7 @@ package ca.shiftfocus.krispii.core.services
 
 import java.util.UUID
 
-import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError}
+import ca.shiftfocus.krispii.core.error.ErrorUnion
 import ca.shiftfocus.krispii.core.models.Chat
 import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
 import ca.shiftfocus.krispii.core.models.user.{Scorer, User, UserTrait}
@@ -46,14 +46,14 @@ trait OmsService extends Service[ErrorUnion#Fail] {
 
   def listMembers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[UserTrait]]]
 
-  def addScorer(team: Team, user: User, leader: Boolean = false): Future[\/[RepositoryError.Fail, Team]]
+  def addScorer(teamId: UUID, scorer: User, leader: Boolean = false): Future[\/[ErrorUnion#Fail, Team]]
 
   def updateScorer(team: Team, scorer: Scorer, leader: Option[Boolean], archived: Option[Boolean],
-    deleted: Option[Boolean]): Future[\/[RepositoryError.Fail, Team]]
+    deleted: Option[Boolean]): Future[\/[ErrorUnion#Fail, Team]]
 
-  def removeScorer(team: Team, scorerId: UUID): Future[\/[RepositoryError.Fail, Team]]
+  def removeScorer(team: Team, scorerId: UUID): Future[\/[ErrorUnion#Fail, Team]]
 
-  /*def addScorers(team: Team, scorerList: IndexedSeq[User], leaderList: IndexedSeq[Boolean] = IndexedSeq(false)): Future[\/[RepositoryError.Fail, Team]]
+  /*def addList(team: Team, scorerList: IndexedSeq[User], leaderList: IndexedSeq[Boolean] = IndexedSeq(false)): Future[\/[RepositoryError.Fail, Team]]
 
   def removeScorers(team: Team, scorerIdList: IndexedSeq[UUID]): Future[\/[RepositoryError.Fail, Team]]*/
 

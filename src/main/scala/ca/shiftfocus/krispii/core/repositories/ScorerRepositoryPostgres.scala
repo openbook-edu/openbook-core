@@ -195,13 +195,13 @@ class ScorerRepositoryPostgres(
 
   /**
    * Add a scorer to the team.
-   * @param team: the Team that
+   * @param team: the Team (with all of its scorers) that the new user is to be added to
    * @param scorer: a User to be transformed into a Scorer
    * @param leader: is the new scorer a team leader? default false
    * @param conn: implicit database connection
    * @return Unit, since it makes more sense to let omsService return the entire Team (teamRepository must not be referenced here to avoid circularity!)
    */
-  override def addScorer(team: Team, scorer: User, leader: Boolean = false)(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
+  override def add(team: Team, scorer: User, leader: Boolean = false)(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
     // the SQL UNIQUE constraint for leader requires non-leaders to have leader=NULL
     val nulledLeader = if (leader) Some(true) else None
     val params = Seq[Any](team.id, scorer.id, nulledLeader, new DateTime)
@@ -219,7 +219,7 @@ class ScorerRepositoryPostgres(
     } yield ()
   }
 
-  override def updateScorer(team: Team, scorer: Scorer, leader: Option[Boolean], archived: Option[Boolean],
+  override def update(team: Team, scorer: Scorer, leader: Option[Boolean], archived: Option[Boolean],
     deleted: Option[Boolean])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] =
     for {
       // _ <- lift(cacheRepository.cacheSeqExam.removeCached(cacheScorerExamsKey(scorer.id)))
@@ -242,7 +242,7 @@ class ScorerRepositoryPostgres(
       })
     } yield ()
 
-  override def removeScorer(team: Team, scorerId: UUID)(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] =
+  override def remove(team: Team, scorerId: UUID)(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] =
     for {
       // _ <- lift(cacheRepository.cacheSeqExam.removeCached(cacheScorerExamsKey(scorerId)))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorerId)))
@@ -257,7 +257,7 @@ class ScorerRepositoryPostgres(
    * @param conn: implicit database connection
    * @return
    */
-  def completelyRemoveScorer(team: Team, scorerId: UUID)(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] =
+  def completelyRemove(team: Team, scorerId: UUID)(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] =
     queryNumRows(CompletelyRemoveScorer, Seq[Any](team.id, scorerId))(_ == 1).map {
       case \/-(true) =>
         // cacheRepository.cacheSeqExam.removeCached(cacheScorerExamsKey(scorerId))
@@ -272,7 +272,7 @@ class ScorerRepositoryPostgres(
         -\/(error)
     }
 
-  override def addScorers(team: Team, userList: IndexedSeq[FutureScorer])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def addList(team: Team, userList: IndexedSeq[FutureScorer])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     val cleanTeamId = team.id.toString filterNot ("-" contains _)
     val perRow = userList map (fs => {
       val cleanId = fs.userId.toString filterNot ("-" contains _)
@@ -299,7 +299,7 @@ class ScorerRepositoryPostgres(
     } yield ()
   }
 
-  /*def removeScorers(team: Team, scorerIdList: IndexedSeq[UUID])(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
+  /*def removeList(team: Team, scorerIdList: IndexedSeq[UUID])(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
     val cleanTeamId = team.id.toString filterNot ("-" contains _)
     val perRow = scorerIdList.map { id =>
       val cleanUserId = id.toString filterNot ("-" contains _)
@@ -332,7 +332,7 @@ class ScorerRepositoryPostgres(
     } yield ()
   } */
 
-  /*def completelyRemoveScorers(team: Team, scorerList: IndexedSeq[UUID])(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
+  /*def completelyRemoveList(team: Team, scorerList: IndexedSeq[UUID])(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = {
     val cleanTeamId = team.id.toString filterNot ("-" contains _)
     val cleanUserIds = scorerList.map { id =>
       id.toString filterNot ("-" contains _)

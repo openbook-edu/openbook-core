@@ -299,10 +299,10 @@ class TeamRepositoryPostgres(
       _ <- lift(cacheRepository.cacheTeam.removeCached(cacheTeamKey(team.id)))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheTeamsKey(team.examId)))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheCoordinatorTeamsKey(team.ownerId)))
-      scorerList <- lift(scorerRepository.list(updatedTeam))
-      _ <- lift(serializedT(scorerList)(scorer =>
+      result <- lift(enrichTeam(updatedTeam))
+      _ <- lift(serializedT(result.scorers)(scorer =>
         cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id))))
-    } yield updatedTeam).run
+    } yield result).run
   }
 
   /**

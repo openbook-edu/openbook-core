@@ -208,8 +208,9 @@ class ScorerRepositoryPostgres(
     for {
       _ <- lift(queryOne(AddScorer, params).map {
         case \/-(scorer) =>
-          // cacheRepository.cacheSeqExam.removeCached(cacheScorerExamsKey(scorer.id))
+          cacheRepository.cacheTeam.removeCached(cacheTeamKey(team.id))
           cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id))
+          // cacheRepository.cacheSeqExam.removeCached(cacheScorerExamsKey(scorer.id))
           cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id))
           \/-(scorer)
         case -\/(error) =>
@@ -223,6 +224,7 @@ class ScorerRepositoryPostgres(
     deleted: Option[Boolean])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] =
     for {
       // _ <- lift(cacheRepository.cacheSeqExam.removeCached(cacheScorerExamsKey(scorer.id)))
+      _ <- cacheRepository.cacheTeam.removeCached(cacheTeamKey(team.id))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorer.id)))
       _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id)))
       _ <- lift(leader match {
@@ -245,6 +247,7 @@ class ScorerRepositoryPostgres(
   override def removeScorer(team: Team, scorerId: UUID)(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] =
     for {
       // _ <- lift(cacheRepository.cacheSeqExam.removeCached(cacheScorerExamsKey(scorerId)))
+      _ <- cacheRepository.cacheTeam.removeCached(cacheTeamKey(team.id))
       _ <- lift(cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorerId)))
       _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id)))
       _ <- lift(queryOne(toggleDeletedScorer, Seq[Any](true, team.id, scorerId)))
@@ -261,6 +264,7 @@ class ScorerRepositoryPostgres(
     queryNumRows(CompletelyRemoveScorer, Seq[Any](team.id, scorerId))(_ == 1).map {
       case \/-(true) =>
         // cacheRepository.cacheSeqExam.removeCached(cacheScorerExamsKey(scorerId))
+        cacheRepository.cacheTeam.removeCached(cacheTeamKey(team.id))
         cacheRepository.cacheSeqTeam.removeCached(cacheScorerTeamsKey(scorerId))
         cacheRepository.cacheSeqUser.removeCached(cacheTeamScorersKey(team.id))
         \/-(())

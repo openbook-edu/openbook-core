@@ -32,7 +32,13 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   def listSessions(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Session]]]
   def findSession(sessionId: UUID): Future[\/[ErrorUnion#Fail, Session]]
   def createSession(userId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]]
+  def createSession(userId: UUID, ipAddress: String, userAgent: String,
+    accessToken: Option[String], refreshToken: Option[String]): Future[\/[ErrorUnion#Fail, Session]]
+
   def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]]
+  def updateSession(sessionId: UUID, ipAddress: String, userAgent: String,
+    accessToken: Option[String], refreshToken: Option[String]): Future[\/[ErrorUnion#Fail, Session]]
+
   def deleteSession(sessionId: UUID): Future[\/[ErrorUnion#Fail, Session]]
 
   /**

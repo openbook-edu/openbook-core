@@ -78,7 +78,7 @@ object Project {
 
   implicit val projectWrites: Writes[Project] = (
     (__ \ "id").write[UUID] and
-    (__ \ "groupId").write[UUID] and
+    (__ \ "courseId").write[UUID] and
     (__ \ "parentId").writeNullable[UUID] and
     (__ \ "parentVersion").writeNullable[Long] and
     (__ \ "isMaster").write[Boolean] and

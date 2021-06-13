@@ -29,7 +29,7 @@ class ProjectRepositoryPostgres(
   override val entityName = "Project"
 
   def constructor(row: RowData): Project = {
-    Logger.debug("Creating project " + row("name").toString() + ", enabled: " + row("enabled").toString)
+    // Logger.debug("Creating project " + row("name").toString() + ", enabled: " + row("enabled").toString)
     Project(
       row("id").asInstanceOf[UUID],
       row("course_id").asInstanceOf[UUID],

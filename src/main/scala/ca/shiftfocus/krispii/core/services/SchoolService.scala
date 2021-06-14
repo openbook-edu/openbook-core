@@ -14,6 +14,8 @@ import ca.shiftfocus.krispii.core.models.user.User
 import org.joda.time.DateTime
 import scalaz.\/
 
+import scala.collection.IndexedSeq
+
 trait SchoolService extends Service[ErrorUnion#Fail] {
   val authService: AuthService
   val userRepository: UserRepository
@@ -59,11 +61,13 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
   // -- Course chat methods -----
 
   def toggleCourseChat(courseId: UUID, chatEnabled: Boolean): Future[\/[ErrorUnion#Fail, Course]]
+
   def listChats(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
   def listChats(courseId: UUID, num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
-
   def listChats(courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
   def listChats(courseId: UUID, userId: UUID, num: Long, offset: Long): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
+  def listChats(course: Course, reader: User, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
+  def listChats(courseId: UUID, readerId: UUID, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
 
   def findChat(courseId: UUID, messageNum: Long): Future[\/[ErrorUnion#Fail, Chat]]
 

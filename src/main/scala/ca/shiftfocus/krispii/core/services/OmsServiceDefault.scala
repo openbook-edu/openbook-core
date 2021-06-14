@@ -260,6 +260,7 @@ class OmsServiceDefault(
    *
    * @param team: the Team for which to look up the logs
    * @param reader the User who requested the chat logs
+   * @param peek: whether to leave the messages marked as "unseen"
    * @return an ordered sequence of Chat entries, or an error
    */
   override def listChats(team: Team, reader: User, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = for {

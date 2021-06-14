@@ -163,7 +163,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   }
 
   /**
-   * Number of students that are allowed for teacher per group
+   * Number of students that are allowed for teacher per course
    *
    * @param teacherId
    * @param conn
@@ -179,7 +179,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   // --- SET -----------------------------------------------------------------------------------------------------------
 
   /**
-   * Upsert group limit for teachers
+   * Upsert course limit for teachers
    */
   def setCourseLimit(teacherId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
     queryOne(Update("teacher"), Seq[Any](limit, teacherId, Limits.course)).flatMap {
@@ -216,7 +216,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   }
 
   /**
-   * Set Number of students that are allowed for teacher per group
+   * Set Number of students that are allowed for teacher per course
    *
    * @param teacherId
    * @param limit
@@ -240,7 +240,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   // --- GET -----------------------------------------------------------------------------------------------------------
 
   /**
-   * Get number of students that group is allowed to have
+   * Get number of students that course is allowed to have
    *
    * @param courseId
    * @return
@@ -255,14 +255,14 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   // --- SET -----------------------------------------------------------------------------------------------------------
 
   /**
-   * Upsert student limit within group
+   * Upsert student limit within course
    */
   def setCourseStudentLimit(courseId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
-    queryOne(Update("group"), Seq[Any](limit, courseId, Limits.student)).flatMap {
+    queryOne(Update("course"), Seq[Any](limit, courseId, Limits.student)).flatMap {
       case \/-(limit) => Future successful \/-(limit.toInt)
       case -\/(error: RepositoryError.NoResults) => {
         for {
-          insert <- lift(queryOne(Insert("group"), Seq[Any](courseId, Limits.student, limit)))
+          insert <- lift(queryOne(Insert("course"), Seq[Any](courseId, Limits.student, limit)))
         } yield insert.toInt
       }
       case -\/(error) => Future successful -\/(error)
@@ -311,7 +311,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   }
 
   /**
-   * Get number of students that group is allowed to have
+   * Get number of students that course is allowed to have
    *
    * @param planId
    * @return
@@ -478,23 +478,23 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   }
 
   private def getCourseLimit(courseId: UUID, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
-    Logger.info(s"Checking ${limitType} limits for group no. ${courseId}")
-    queryOne(Select("group"), Seq[Any](courseId, limitType))
+    Logger.info(s"Checking ${limitType} limits for course no. ${courseId}")
+    queryOne(Select("course"), Seq[Any](courseId, limitType))
   }
 
   private def getPlanLimit(planId: String, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
-    Logger.info(s"Checking ${limitType} limits for group no. ${planId}")
+    Logger.info(s"Checking ${limitType} limits for plan no. ${planId}")
     queryOne(Select("plan"), Seq[Any](planId, limitType))
   }
 
   private def getOrganizationLimit(organizationId: UUID, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
-    Logger.info(s"Checking ${limitType} limits for group no. ${organizationId}")
+    Logger.info(s"Checking ${limitType} limits for organization no. ${organizationId}")
     queryOne(Select("organization"), Seq[Any](organizationId, limitType))
   }
 
   private def deleteCourseLimit(courseId: UUID, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
-    Logger.info(s"Deleting ${limitType} limits for group no. ${courseId}")
-    queryOne(Delete("group"), Seq[Any](courseId, limitType))
+    Logger.info(s"Deleting ${limitType} limits for course no. ${courseId}")
+    queryOne(Delete("course"), Seq[Any](courseId, limitType))
   }
 }
 
@@ -502,7 +502,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
  * Types of limits
  */
 object Limits {
-  val course: String = "group"
+  val course: String = "course"
   val student: String = "student"
   val storage: String = "storage"
   val activeUntil: String = "active_until"

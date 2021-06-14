@@ -26,6 +26,7 @@ class SchoolServiceDefault(
   val userRepository: UserRepository,
   val courseRepository: CourseRepository,
   val chatRepository: ChatRepository,
+  val lastSeenRepository: LastSeenRepository,
   val wordRepository: WordRepository,
   val linkRepository: LinkRepository,
   val limitRepository: LimitRepository,
@@ -365,6 +366,25 @@ class SchoolServiceDefault(
       chats <- lift(chatRepository.list(course, user, num, offset))
     } yield chats
   }
+
+  /**
+   * List all chat logs for a course indicating for each log if a reader has already seen it
+   *
+   * @param course: the Course for which to look up the logs
+   * @param reader the User who requested the chat logs
+   * @return an ordered sequence of Chat entries, or an error
+   */
+  override def listChats(course: Course, reader: User, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = for {
+    chats <- lift(chatRepository.list(course))
+    lastSeen <- lift(lastSeenRepository.find(reader.id, course.id, entityType = "course", peek: Boolean))
+    chatsWithSeen = chats.map(chat => chat.copy(seen = chat.createdAt.isBefore(lastSeen)))
+  } yield chatsWithSeen
+
+  override def listChats(courseId: UUID, readerId: UUID, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]] = for {
+    course <- lift(findCourse(courseId))
+    reader <- lift(userRepository.find(readerId))
+    chatsWithSeen <- lift(listChats(course, reader, peek: Boolean))
+  } yield chatsWithSeen
 
   /**
    * Find a specific chat message.

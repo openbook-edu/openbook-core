@@ -3,8 +3,9 @@ package ca.shiftfocus.krispii.core.repositories
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.{Conversation, User}
-import com.github.mauricio.async.db.{Connection}
+import ca.shiftfocus.krispii.core.models.user.User
+import ca.shiftfocus.krispii.core.models.Conversation
+import com.github.mauricio.async.db.Connection
 import org.joda.time.DateTime
 
 import scala.concurrent.Future

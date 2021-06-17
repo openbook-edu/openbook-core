@@ -38,21 +38,21 @@ class TestRepositoryPostgres(
       row("updated_at").asInstanceOf[DateTime]
     )
 
-  val Table: String = "tests"
-  val Fields: String = "id, exam_id, team_id, name, version, grade, comments, orig_response, " +
+  val Table = "tests"
+  val Fields = "id, exam_id, team_id, name, version, grade, comments, orig_response, " +
     "archived, deleted, created_at, updated_at"
-  val FieldsWithTable: String =
-    Fields.split(", ").map({ field => s"$Table." + field }).mkString(", ")
-  val OrderBy = s"$Table.created_at ASC"
+  val FieldsWithTable =
+    Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
+  val OrderBy = s"${Table}.created_at ASC"
 
   // User CRUD operations
-  val SelectAll: String =
+  val SelectAll =
     s"""
        |SELECT $Fields
        |FROM $Table
      """.stripMargin
 
-  val ListByExam: String =
+  val ListByExam =
     s"""
        |SELECT $Fields
        |FROM $Table
@@ -60,7 +60,7 @@ class TestRepositoryPostgres(
        |ORDER BY $OrderBy
      """.stripMargin
 
-  val ListByTeam: String =
+  val ListByTeam =
     s"""
        |SELECT $Fields
        |FROM $Table
@@ -68,14 +68,14 @@ class TestRepositoryPostgres(
        |ORDER BY $OrderBy
      """.stripMargin
 
-  val SelectOne: String =
+  val SelectOne =
     s"""
        |SELECT $Fields
        |FROM $Table
        |WHERE id = ?
     """.stripMargin
 
-  val SelectByNameExam: String =
+  val SelectByNameExam =
     s"""
        |SELECT $Fields
        |FROM $Table
@@ -83,14 +83,14 @@ class TestRepositoryPostgres(
        | AND exam_id = ?
     """.stripMargin
 
-  val Insert: String =
+  val Insert =
     s"""
        |INSERT INTO $Table ($Fields)
        |VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        |RETURNING $Fields
     """.stripMargin
 
-  val Update: String =
+  val Update =
     s"""
        |UPDATE $Table
        |SET exam_id = ?, team_id = ?, name = ?, version = ?, grade = ?, comments = ?, orig_response = ?,
@@ -100,7 +100,7 @@ class TestRepositoryPostgres(
        |RETURNING $Fields
     """.stripMargin
 
-  val Delete: String =
+  val Delete =
     s"""
        |DELETE
        |FROM $Table
@@ -245,7 +245,7 @@ class TestRepositoryPostgres(
     val key = cacheTestNameKey(name, exam.id)
     cacheRepository.cacheUUID.getCached(key).flatMap {
       case \/-(testId) => find(testId)
-      case -\/(_: RepositoryError.NoResults) =>
+      case -\/(noResults: RepositoryError.NoResults) =>
         for {
           test <- lift(queryOne(SelectByNameExam, Array[Any](name, exam.id)))
           _ <- lift(cacheRepository.cacheUUID.putCache(key)(test.id, ttl))

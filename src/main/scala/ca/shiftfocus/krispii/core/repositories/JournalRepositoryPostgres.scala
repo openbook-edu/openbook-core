@@ -3,10 +3,14 @@ package ca.shiftfocus.krispii.core.repositories
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import ca.shiftfocus.krispii.core.models._
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.models.user.User
 import org.joda.time.format.DateTimeFormat
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
+
 import scala.concurrent.Future
 import scalaz._
 

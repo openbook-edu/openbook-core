@@ -15,7 +15,7 @@ import scalaz.{ -\/, \/- }
 //
 //  "LimitRepository.setCourseLimit" should {
 //    inSequence {
-//      "Set new course limit if it does not exist" in {
+//      "Set new group limit if it does not exist" in {
 //        val testTeacher = TestValues.testUserA
 //        val limit = 11
 //

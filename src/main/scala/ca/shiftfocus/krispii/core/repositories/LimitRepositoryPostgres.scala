@@ -483,12 +483,12 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   }
 
   private def getPlanLimit(planId: String, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
-    Logger.info(s"Checking ${limitType} limits for course no. ${planId}")
+    Logger.info(s"Checking ${limitType} limits for plan no. ${planId}")
     queryOne(Select("plan"), Seq[Any](planId, limitType))
   }
 
   private def getOrganizationLimit(organizationId: UUID, limitType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] = {
-    Logger.info(s"Checking ${limitType} limits for course no. ${organizationId}")
+    Logger.info(s"Checking ${limitType} limits for organization no. ${organizationId}")
     queryOne(Select("organization"), Seq[Any](organizationId, limitType))
   }
 

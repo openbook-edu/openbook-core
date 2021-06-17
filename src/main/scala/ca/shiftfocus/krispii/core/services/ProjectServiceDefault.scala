@@ -3,6 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import ca.shiftfocus.krispii.core.models.tasks.questions.Question
 import com.github.mauricio.async.db.Connection
 import play.api.Logger
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
@@ -11,8 +12,11 @@ import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.models.group.Course
+
 import scala.concurrent.Future
-import scalaz.{\/, -\/, \/-}
+import scalaz.{-\/, \/, \/-}
 
 class ProjectServiceDefault(
     val db: DB,
@@ -49,9 +53,9 @@ class ProjectServiceDefault(
   }
 
   /**
-   * Find all projects belonging to a given course
+   * Find all projects belonging to a given group
    *
-   * @param courseId the unique id of the course to filter by
+   * @param courseId the unique id of the group to filter by
    * @return a future disjunction containing either a vector of projects, or a failure
    */
   override def list(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
@@ -141,12 +145,12 @@ class ProjectServiceDefault(
   def insertComponents(components: IndexedSeq[Component]): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
     for {
       components <- lift(serializedT(components)(component => {
-        Logger.debug(s"Inserting component ${component.title} (ID ${component.id}) into repository")
+        Logger.debug(s"inserting component ${component.title} (id ${component.id}) into repository")
         for {
           newComponent <- lift(componentRepository.insert(component).map {
             case \/-(insertedComponent) => \/-(insertedComponent)
             case -\/(error) => {
-              Logger.error(s"When inserting component ${component.id} into repository: ${error}")
+              Logger.error(s"error when inserting component ${component}: ${error}")
               \/-(component)
             }
           })
@@ -201,7 +205,7 @@ class ProjectServiceDefault(
     transactional { implicit conn: Connection =>
       for {
         parts <- lift(serializedT(parts)(part => {
-          Logger.debug(s"Inserting part ${part.name} (ID ${part.id}) into repository")
+          Logger.debug(s" inserting part ${part} into repository")
           partRepository.insert(part)
         }))
       } yield parts
@@ -212,7 +216,7 @@ class ProjectServiceDefault(
     transactional { implicit conn: Connection =>
       for {
         newProject <- lift(projectRepository.insert(project))
-        _ = Logger.debug(s"Inserting project ${project.name} (ID ${project.id}) into repository")
+        _ = Logger.debug(s" inserting project ${project} into repository")
       } yield newProject
     }
   }
@@ -239,7 +243,7 @@ class ProjectServiceDefault(
         tasks <- lift(insertTasks(clonedParts))
         _ <- lift {
           // If we have new components owner, we need insert in DB new components and then link them
-          if (course.teacherId != userId) {
+          if (course.ownerId != userId) {
             val clonedComponents = clonedParts.flatMap(_.components)
             insertComponents(clonedComponents)
           }
@@ -278,7 +282,7 @@ class ProjectServiceDefault(
       project <- lift(projectRepository.find(projectSlug, false))
       course <- lift(schoolService.findCourse(project.courseId))
       projectFiltered <- lift {
-        if (userId == course.teacherId) {
+        if (userId == course.ownerId) {
           if (fetchParts) projectRepository.find(project.id, true)
           else Future.successful(\/-(project))
         }
@@ -438,13 +442,14 @@ class ProjectServiceDefault(
     }
   }
 
-  // TODO - method does nothing
+  // TODO - method returns empty list
   /**
    * List the parts that have a component.
    *
    * @param componentId the UUID of the component to filter by
    */
-  override def listPartsInComponent(componentId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Part]]] = ???
+  override def listPartsInComponent(componentId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Part]]] =
+    Future successful \/-(IndexedSeq.empty[Part])
   //    {
   //      val fPartList = for {
   //        component <- componentRepository.find(componentId).map(_.get)

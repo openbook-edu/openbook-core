@@ -15,7 +15,7 @@ case class UserLog(
 )
 
 object UserLog {
-  implicit val usegLogWrites = new Writes[UserLog] {
+  implicit val userLogWrites = new Writes[UserLog] {
     def writes(userLog: UserLog): JsValue = {
       Json.obj(
         "id" -> userLog.id,

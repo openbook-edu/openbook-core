@@ -18,18 +18,20 @@ trait PostgresRepository[A] {
   /**
    * Send query to the database and retrieve a single entity.
    *
-   * @param queryText
-   * @param parameters
+   * @param queryText SQL query with placeholders "?"
+   * @param parameters Seq[Any] with parameters to fill out the placeholders
+   * @param debug verbose output?
    * @param conn
    * @return
    */
-  protected def queryOne(queryText: String, parameters: Seq[Any] = Seq.empty[Any])(implicit conn: Connection): Future[\/[RepositoryError.Fail, A]] = {
+  protected def queryOne(queryText: String, parameters: Seq[Any] = Seq.empty[Any], debug: Boolean = false)(implicit conn: Connection): Future[\/[RepositoryError.Fail, A]] = {
     // somewhat ugly line that puts all information into one Logger entry
-    Logger.debug(s"Parameters ${parameters} for queryOne when called in stack...\n" +
-      Thread.currentThread.getStackTrace.filter(trElem => {
-        (trElem.toString contains "krispii") &&
-          !(trElem.toString contains "queryOne")
-      }).mkString("...", "\n...", ""))
+    if (debug)
+      Logger.debug(s"Parameters ${parameters} for query $queryText when called in stack...\n" +
+        Thread.currentThread.getStackTrace.filter(trElem => {
+          (trElem.toString contains "krispii") &&
+            !(trElem.toString contains "queryOne")
+        }).mkString("...", "\n...", ""))
     val fRes = if (parameters.nonEmpty) {
       conn.sendPreparedStatement(queryText, parameters)
     }
@@ -65,23 +67,21 @@ trait PostgresRepository[A] {
   /**
    * Send a query to the database and retrieve a list of entities.
    *
-   * @param queryText
-   * @param parameters
+   * @param queryText SQL query with placeholders "?"
+   * @param parameters Seq[Any] with parameters to fill out the placeholders
+   * @param debug verbose output?
    * @param conn
    * @return
    */
-  protected def queryList(queryText: String, parameters: Seq[Any] = Seq.empty[Any]) // format: OFF
+  protected def queryList(queryText: String, parameters: Seq[Any] = Seq.empty[Any], debug: Boolean = false) // format: OFF
                          (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[A]]] = { // format: ON
     // somewhat ugly line that puts all information into one Logger entry
-    Logger.debug(s"Parameters ${parameters} for queryList when called in stack...\n" +
-      Thread.currentThread.getStackTrace.filter(trElem => {
-        (trElem.toString contains "krispii") &&
-          !(trElem.toString contains "queryList")
-      }).mkString("...", "\n...", ""))
-
-    /*Thread.currentThread.getStackTrace.foreach {
-      trElem => if (trElem.toString contains "krispii") Logger.debug(s"  $trElem")
-    } */
+    if (debug)
+      Logger.debug(s"Parameters ${parameters} for queryList $queryText when called in stack...\n" +
+        Thread.currentThread.getStackTrace.filter(trElem => {
+          (trElem.toString contains "krispii") &&
+            !(trElem.toString contains "queryList")
+        }).mkString("...", "\n...", ""))
 
     val fRes = if (parameters.nonEmpty) {
       conn.sendPreparedStatement(queryText, parameters)
@@ -119,13 +119,22 @@ trait PostgresRepository[A] {
    * Send query to the database and compare the number
    * of rows affected.
    *
-   * @param queryText
-   * @param parameters
-   * @param conn
+   * @param queryText SQL query with placeholders "?"
+   * @param parameters Seq[Any] with parameters to fill out the placeholders
+   * @param debug verbose output?
+   * @param compare how many rows of output are expected?
    * @return
    */
-  protected def queryNumRows(queryText: String, parameters: Seq[Any] = Seq.empty[Any]) // format: OFF
+  protected def queryNumRows(queryText: String, parameters: Seq[Any] = Seq.empty[Any], debug: Boolean = false) // format: OFF
                             (compare: Long => Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Boolean]] = { // format: ON
+    // somewhat ugly line that puts all information into one Logger entry
+    if (debug)
+      Logger.debug(s"Parameters ${parameters} for queryNumRows (expecting $compare rows) $queryText when called in stack...\n" +
+        Thread.currentThread.getStackTrace.filter(trElem => {
+          (trElem.toString contains "krispii") &&
+            !(trElem.toString contains "queryList")
+        }).mkString("...", "\n...", ""))
+
     val fRes = if (parameters.nonEmpty) {
       conn.sendPreparedStatement(queryText, parameters)
     }

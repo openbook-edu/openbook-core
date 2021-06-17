@@ -12,8 +12,8 @@ trait LimitRepository extends Repository {
 
   // TEACHERS
   def getCourseLimit(teacherId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
-  def getStorageLimit(treacherId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]]
-  def getStorageUsed(treacherId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]]
+  def getStorageLimit(teacherId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]]
+  def getStorageUsed(teacherId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]]
   def getTeacherStudentLimit(teacherId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
 
   def setCourseLimit(teacherId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]

@@ -1,10 +1,13 @@
 package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
-import ca.shiftfocus.krispii.core.models.{User, JournalEntry}
+import ca.shiftfocus.krispii.core.models.JournalEntry
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.Connection
 import org.joda.time.DateTime
+
 import scala.concurrent.Future
 import scalaz._
 

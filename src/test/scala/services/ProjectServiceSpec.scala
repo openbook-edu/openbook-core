@@ -45,7 +45,7 @@
 //        val testProject = TestValues.testProjectA
 //        val emptyProject = Project(
 //          id = testProject.id,
-//          courseId = testCourse.id,
+//          groupId = testCourse.id,
 //          name = testProject.name,
 //          slug = testProject.slug,
 //          description = testProject.description,
@@ -78,7 +78,7 @@
 //        val \/-(project) = eitherProject
 //
 //        project.id should be(resultProject.id)
-//        project.courseId should be(resultProject.courseId)
+//        project.groupId should be(resultProject.groupId)
 //        project.version should be(resultProject.version)
 //        project.name should be(resultProject.name)
 //        project.slug should be(resultProject.slug)
@@ -96,7 +96,7 @@
 //        val testProject = TestValues.testProjectA
 //        val emptyProject = Project(
 //          id = testProject.id,
-//          courseId = testCourse.id,
+//          groupId = testCourse.id,
 //          name = testProject.name,
 //          slug = "bad slug format A",
 //          description = testProject.description,
@@ -152,7 +152,7 @@
 //        val testProject = TestValues.testProjectA
 //        val emptyProject = Project(
 //          id = testProject.id,
-//          courseId = testCourse.id,
+//          groupId = testCourse.id,
 //          name = testProject.name,
 //          slug = testProject.slug,
 //          description = testProject.description,
@@ -194,7 +194,7 @@
 //        val \/-(project) = eitherProject
 //
 //        project.id should be(resultProject.id)
-//        project.courseId should be(resultProject.courseId)
+//        project.groupId should be(resultProject.groupId)
 //        project.version should be(resultProject.version)
 //        project.name should be(resultProject.name)
 //        project.slug should be(resultProject.slug)
@@ -217,7 +217,7 @@
 //
 //        val result = projectService.updateInfo(
 //          testProject.id,
-//          99L, Some(testProject.courseId),
+//          99L, Some(testProject.groupId),
 //          Some(testProject.name),
 //          Some(testProject.slug),
 //          Some(testProject.description),
@@ -234,7 +234,7 @@
 //
 //        (projectRepository.find(_: UUID)(_: Connection, _: ScalaCachePool)) when (testProject.id, *, *) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //
-//        val result = projectService.updateInfo(testProject.id, testProject.version, Some(testProject.courseId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.longDescription), Some(testProject.availability), Some(testProject.enabled), Some(testProject.projectType), testProject.status)
+//        val result = projectService.updateInfo(testProject.id, testProject.version, Some(testProject.groupId), Some(testProject.name), Some(testProject.slug), Some(testProject.description), Some(testProject.longDescription), Some(testProject.availability), Some(testProject.enabled), Some(testProject.projectType), testProject.status)
 //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.NoResults("")))
 //      }
 //    }
@@ -287,7 +287,7 @@
 //        val \/-(project) = eitherProject
 //
 //        project.id should be(resultProject.id)
-//        project.courseId should be(resultProject.courseId)
+//        project.groupId should be(resultProject.groupId)
 //        project.version should be(resultProject.version)
 //        project.name should be(resultProject.name)
 //        project.slug should be(resultProject.slug)
@@ -3150,7 +3150,7 @@
 //
 //  "ProjectService.copyMasterProject" should {
 //    inSequence {
-//      "copy one master project into a course" in {
+//      "copy one master project into a group" in {
 //        val expectedProject = TestValues.testProjectH.copy(id = UUID.randomUUID)
 //        (projectRepository.cloneProject(_: UUID, _: UUID)(_: Connection, _: ScalaCachePool)) when (TestValues.testProjectH.id, TestValues.testCourseH.id, *, *) returns (Future.successful(\/-(expectedProject)))
 //        (projectRepository.insert(_: Project)(_: Connection, _: ScalaCachePool)) when (expectedProject, *, *) returns (Future.successful(\/-(expectedProject)))
@@ -3166,7 +3166,7 @@
 //        val \/-(clonedProject) = Await.result(result, Duration.Inf)
 //
 //        TestValues.testProjectH.id should not be (clonedProject.id)
-//        TestValues.testProjectH.courseId should be(clonedProject.courseId)
+//        TestValues.testProjectH.groupId should be(clonedProject.groupId)
 //        TestValues.testProjectH.version should be(clonedProject.version)
 //        TestValues.testProjectH.name should be(clonedProject.name)
 //        TestValues.testProjectH.slug should be(clonedProject.slug)

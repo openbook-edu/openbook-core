@@ -5,6 +5,7 @@ import java.util.UUID
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
 import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.models.user.User
 import ca.shiftfocus.krispii.core.repositories.{TagCategoryRepository, TagRepository, _}
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
@@ -426,7 +427,7 @@ class TagServiceDefault(
       _ <- lift(limitRepository.setTeacherStudentLimit(user.id, studentLimit))
       _ <- lift(limitRepository.setStorageLimit(user.id, storageLimit))
       _ <- lift(limitRepository.setCourseLimit(user.id, courseLimit))
-      // Delete all custom course student limits
+      // Delete all custom group student limits
       courses <- lift(courseRepository.list(user, true))
       _ <- lift(serializedT(courses)(course => limitRepository.deleteCourseStudentLimit(course.id)))
 
@@ -485,7 +486,7 @@ class TagServiceDefault(
           case \/-(limit: Int) => \/-(Some(limit))
           case -\/(error: RepositoryError.NoResults) => \/-(None)
           case -\/(error) => -\/(error)
-          case _ => \/-({ Logger.error(s"Problem with format of course limits for organization ${organization.title}"); None })
+          case _ => \/-({ Logger.error(s"Problem with format of group limits for organization ${organization.title}"); None })
         }
       }))
       studentLimits <- lift(serializedT(organizationList)(organization => {
@@ -554,7 +555,7 @@ class TagServiceDefault(
     for {
       project <- lift(projectRepository.find(projectId))
       course <- lift(courseRepository.find(project.courseId))
-      teacher <- lift(userRepository.find(course.teacherId))
+      teacher <- lift(userRepository.find(course.ownerId))
       teacherRoles <- lift(roleRepository.list(teacher))
       organizationProjectTags <- lift(tagRepository.listOrganizationalByEntity(projectId, TaggableEntities.project))
       _ <- lift {

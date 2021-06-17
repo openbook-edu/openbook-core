@@ -67,7 +67,7 @@ object Project {
   object Availability {
     val AnyTime = "any"
     val FreeTime = "free"
-    val CourseTime = "course"
+    val CourseTime = "group"
   }
 
   object Type {

@@ -35,17 +35,17 @@
 //        val \/-(courses) = eitherCourses
 //
 //        testCoursesList.foreach {
-//          case (key, course: Course) => {
-//            courses(key).id should be(course.id)
-//            courses(key).teacherId should be(course.teacherId)
-//            courses(key).name should be(course.name)
-//            courses(key).color should be(course.color)
+//          case (key, group: Course) => {
+//            courses(key).id should be(group.id)
+//            courses(key).ownerId should be(group.ownerId)
+//            courses(key).name should be(group.name)
+//            courses(key).color should be(group.color)
 //          }
 //        }
 //
 //        courses.size should be(testCoursesList.size)
 //      }
-//      "return course by its project" in {
+//      "return group by its project" in {
 //        val testProject = TestValues.testProjectC
 //        val testCoursesList = TreeMap[Int, Course](
 //          0 -> TestValues.testCourseB
@@ -56,11 +56,11 @@
 //        val \/-(courses) = eitherCourses
 //
 //        testCoursesList.foreach {
-//          case (key, course: Course) => {
-//            courses(key).id should be(course.id)
-//            courses(key).teacherId should be(course.teacherId)
-//            courses(key).name should be(course.name)
-//            courses(key).color should be(course.color)
+//          case (key, group: Course) => {
+//            courses(key).id should be(group.id)
+//            courses(key).ownerId should be(group.ownerId)
+//            courses(key).name should be(group.name)
+//            courses(key).color should be(group.color)
 //          }
 //        }
 //
@@ -87,11 +87,11 @@
 //        val \/-(courses) = eitherCourses
 //
 //        testCoursesList.foreach {
-//          case (key, course: Course) => {
-//            courses(key).id should be(course.id)
-//            courses(key).teacherId should be(course.teacherId)
-//            courses(key).name should be(course.name)
-//            courses(key).color should be(course.color)
+//          case (key, group: Course) => {
+//            courses(key).id should be(group.id)
+//            courses(key).ownerId should be(group.ownerId)
+//            courses(key).name should be(group.name)
+//            courses(key).color should be(group.color)
 //          }
 //        }
 //
@@ -123,11 +123,11 @@
 //        val \/-(courses) = eitherCourses
 //
 //        testCoursesList.foreach {
-//          case (key, course: Course) => {
-//            courses(key).id should be(course.id)
-//            courses(key).teacherId should be(course.teacherId)
-//            courses(key).name should be(course.name)
-//            courses(key).color should be(course.color)
+//          case (key, group: Course) => {
+//            courses(key).id should be(group.id)
+//            courses(key).ownerId should be(group.ownerId)
+//            courses(key).name should be(group.name)
+//            courses(key).color should be(group.color)
 //          }
 //        }
 //
@@ -196,11 +196,11 @@
 //        testCoursesList.foreach {
 //          case (userId: UUID, coursesList: Vector[Course]) => {
 //            var key = 0
-//            for (course: Course <- coursesList) {
-//              courses(userId)(key).id should be(course.id)
-//              courses(userId)(key).teacherId should be(course.teacherId)
-//              courses(userId)(key).name should be(course.name)
-//              courses(userId)(key).color should be(course.color)
+//            for (group: Course <- coursesList) {
+//              courses(userId)(key).id should be(group.id)
+//              courses(userId)(key).ownerId should be(group.ownerId)
+//              courses(userId)(key).name should be(group.name)
+//              courses(userId)(key).color should be(group.color)
 //              key = key + 1
 //            }
 //          }
@@ -247,15 +247,15 @@
 //
 //        val result = courseRepository.find(testCourse.id)
 //        val eitherCourse = Await.result(result, Duration.Inf)
-//        val \/-(course) = eitherCourse
+//        val \/-(group) = eitherCourse
 //
 //        eitherCourse.toString should be(\/-(testCourse).toString)
 //
-//        course.id should be(testCourse.id)
-//        course.version should be(testCourse.version)
-//        course.name should be(testCourse.name)
-//        course.createdAt.toString should be(testCourse.createdAt.toString)
-//        course.updatedAt.toString should be(testCourse.updatedAt.toString)
+//        group.id should be(testCourse.id)
+//        group.version should be(testCourse.version)
+//        group.name should be(testCourse.name)
+//        group.createdAt.toString should be(testCourse.createdAt.toString)
+//        group.updatedAt.toString should be(testCourse.updatedAt.toString)
 //      }
 //      "return RepositoryError.NoResults if entry wasn't found by ID" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
@@ -271,7 +271,7 @@
 //
 //  "CourseRepository.addUser" should {
 //    inSequence {
-//      "add user to a course" in {
+//      "add user to a group" in {
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 //
 //        val testUser = TestValues.testUserE
@@ -280,7 +280,7 @@
 //        val result = courseRepository.addUser(testUser, testCourse)
 //        Await.result(result, Duration.Inf) should be(\/-(()))
 //      }
-//      "return RepositoryError.PrimaryKeyConflict if user is already in the course" in {
+//      "return RepositoryError.PrimaryKeyConflict if user is already in the group" in {
 //        val testUser = TestValues.testUserE
 //        val testCourse = TestValues.testCourseB
 //
@@ -294,7 +294,7 @@
 //        val result = courseRepository.addUser(testUser, testCourse)
 //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("user_id", "users_courses_user_id_fkey")))
 //      }
-//      "return RepositoryError.ForeignKeyConflict if course doesn't exist" in {
+//      "return RepositoryError.ForeignKeyConflict if group doesn't exist" in {
 //        val testUser = TestValues.testUserE
 //        val testCourse = TestValues.testCourseC
 //
@@ -306,7 +306,7 @@
 //
 //  "CourseRepository.removeUser" should {
 //    inSequence {
-//      "remove a user from a course" in {
+//      "remove a user from a group" in {
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 //
 //        val testUser = TestValues.testUserC
@@ -315,26 +315,26 @@
 //        val result = courseRepository.removeUser(testUser, testCourse)
 //        Await.result(result, Duration.Inf) should be(\/-(()))
 //      }
-//      "be FALSE if user doesn't attend the course" in {
+//      "be FALSE if user doesn't attend the group" in {
 //        val testUser = TestValues.testUserC
 //        val testCourse = TestValues.testCourseF
 //
 //        val result = courseRepository.removeUser(testUser, testCourse)
-//        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the user could not be removed from the course.")))
+//        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the user could not be removed from the group.")))
 //      }
 //      "be FALSE if user unexists" in {
 //        val testUser = TestValues.testUserD
 //        val testCourse = TestValues.testCourseA
 //
 //        val result = courseRepository.removeUser(testUser, testCourse)
-//        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the user could not be removed from the course.")))
+//        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the user could not be removed from the group.")))
 //      }
-//      "be FALSE if course unexists" in {
+//      "be FALSE if group unexists" in {
 //        val testUser = TestValues.testUserC
 //        val testCourse = TestValues.testCourseC
 //
 //        val result = courseRepository.removeUser(testUser, testCourse)
-//        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the user could not be removed from the course.")))
+//        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the user could not be removed from the group.")))
 //      }
 //    }
 //  }
@@ -374,7 +374,7 @@
 //
 //  "CourseRepository.addUsers" should {
 //    inSequence {
-//      "add users to a course" in {
+//      "add users to a group" in {
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 //
 //        val testCourse = TestValues.testCourseD
@@ -386,7 +386,7 @@
 //        val result = courseRepository.addUsers(testCourse, testUserList)
 //        Await.result(result, Duration.Inf) should be(\/-(()))
 //      }
-//      "return RepositoryError.PrimaryKeyConflict if one of the users is already in the course" in {
+//      "return RepositoryError.PrimaryKeyConflict if one of the users is already in the group" in {
 //        val testCourse = TestValues.testCourseF
 //        val testUserList = Vector(
 //          TestValues.testUserE,
@@ -406,7 +406,7 @@
 //        val result = courseRepository.addUsers(testCourse, testUserList)
 //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("user_id", "users_courses_user_id_fkey")))
 //      }
-//      "return RepositoryError.ForeignKeyConflict if course doesn't exist" in {
+//      "return RepositoryError.ForeignKeyConflict if group doesn't exist" in {
 //        val testCourse = TestValues.testCourseE
 //        val testUserList = Vector(
 //          TestValues.testUserE,
@@ -421,7 +421,7 @@
 //
 //  "CourseRepository.removeUsers" should {
 //    inSequence {
-//      "Remove users from a course" in {
+//      "Remove users from a group" in {
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 //
 //        val testCourse = TestValues.testCourseB
@@ -433,7 +433,7 @@
 //          testUserList(0)
 //        )
 //
-//        // Check if users are in the course
+//        // Check if users are in the group
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //
@@ -445,7 +445,7 @@
 //        val result = courseRepository.removeUsers(testCourse, testUserDeleteList)
 //        Await.result(result, Duration.Inf) should be(\/-(()))
 //
-//        // Check if users where deleted from the course
+//        // Check if users where deleted from the group
 //        testUserList.foreach(user => {
 //          if (testUserDeleteList.contains(user)) {
 //            var \/-(courseList) = Await.result(courseRepository.list(user), Duration.Inf)
@@ -453,7 +453,7 @@
 //          }
 //        })
 //      }
-//      "return RepositoryError.DatabaseError if one of the users is not in the course" in {
+//      "return RepositoryError.DatabaseError if one of the users is not in the group" in {
 //        val testCourse = TestValues.testCourseB
 //        val testUserList = Vector(
 //          TestValues.testUserE,
@@ -461,7 +461,7 @@
 //        )
 //
 //        val result = courseRepository.removeUsers(testCourse, testUserList)
-//        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the users could not be removed from the course.", None)))
+//        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the users could not be removed from the group.", None)))
 //      }
 //      "return RepositoryError.DatabaseError if one of the users doesn't exist" in {
 //        val testCourse = TestValues.testCourseB
@@ -471,9 +471,9 @@
 //        )
 //
 //        val result = courseRepository.removeUsers(testCourse, testUserList)
-//        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the users could not be removed from the course.", None)))
+//        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the users could not be removed from the group.", None)))
 //      }
-//      "return RepositoryError.DatabaseError if course unexists" in {
+//      "return RepositoryError.DatabaseError if group unexists" in {
 //        val testCourse = TestValues.testCourseC
 //        val testUserList = Vector(
 //          TestValues.testUserE,
@@ -481,14 +481,14 @@
 //        )
 //
 //        val result = courseRepository.removeUsers(testCourse, testUserList)
-//        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the users could not be removed from the course.", None)))
+//        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("The query succeeded but the users could not be removed from the group.", None)))
 //      }
 //    }
 //  }
 //
 //  "CourseRepository.removeAllUsers" should {
 //    inSequence {
-//      "remove all users from a course" in {
+//      "remove all users from a group" in {
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 //
 //        val testCourse = TestValues.testCourseB
@@ -496,13 +496,13 @@
 //        val result = courseRepository.removeAllUsers(testCourse)
 //        Await.result(result, Duration.Inf) should be(\/-(()))
 //      }
-//      "be FALSE if course doesn't have users" in {
+//      "be FALSE if group doesn't have users" in {
 //        val testCourse = TestValues.testCourseG
 //
 //        val result = courseRepository.removeAllUsers(testCourse)
 //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.DatabaseError("No rows were affected", None)))
 //      }
-//      "be FALSE if course doesn't exist" in {
+//      "be FALSE if group doesn't exist" in {
 //        val testCourse = TestValues.testCourseE
 //
 //        val result = courseRepository.removeAllUsers(testCourse)
@@ -513,22 +513,22 @@
 //
 //  "CourseRepository.insert" should {
 //    inSequence {
-//      "insert new course" in {
+//      "insert new group" in {
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 //
 //        val testCourse = TestValues.testCourseE
 //
 //        val result = courseRepository.insert(testCourse)
 //        val eitherCourse = Await.result(result, Duration.Inf)
-//        val \/-(course) = eitherCourse
+//        val \/-(group) = eitherCourse
 //
-//        course.id should be(testCourse.id)
-//        course.teacherId should be(testCourse.teacherId)
-//        course.version should be(1L)
-//        course.name should be(testCourse.name)
-//        course.color should be(testCourse.color)
+//        group.id should be(testCourse.id)
+//        group.ownerId should be(testCourse.ownerId)
+//        group.version should be(1L)
+//        group.name should be(testCourse.name)
+//        group.color should be(testCourse.color)
 //      }
-//      "insert new course with slug + '-1' if slug exists" in {
+//      "insert new group with slug + '-1' if slug exists" in {
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 //        val existingSlug = TestValues.testCourseA.slug
 //        val testCourse = TestValues.testCourseE.copy(
@@ -537,26 +537,26 @@
 //
 //        val result = courseRepository.insert(testCourse)
 //        val eitherCourse = Await.result(result, Duration.Inf)
-//        val \/-(course) = eitherCourse
+//        val \/-(group) = eitherCourse
 //
-//        course.id should be(testCourse.id)
-//        course.teacherId should be(testCourse.teacherId)
-//        course.version should be(1L)
-//        course.name should be(testCourse.name)
-//        course.slug should be(testCourse.slug + "-1")
-//        course.color should be(testCourse.color)
+//        group.id should be(testCourse.id)
+//        group.ownerId should be(testCourse.ownerId)
+//        group.version should be(1L)
+//        group.name should be(testCourse.name)
+//        group.slug should be(testCourse.slug + "-1")
+//        group.color should be(testCourse.color)
 //      }
-//      "return RepositoryError.ForeignKeyConflict if course has unexisting teacher id" in {
+//      "return RepositoryError.ForeignKeyConflict if group has unexisting teacher id" in {
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 //
 //        val testCourse = TestValues.testCourseE.copy(
-//          teacherId = UUID.fromString("9d8ed645-b055-4a69-ab7d-387791c1e064")
+//          ownerId = UUID.fromString("9d8ed645-b055-4a69-ab7d-387791c1e064")
 //        )
 //
 //        val result = courseRepository.insert(testCourse)
 //        Await.result(result, Duration.Inf) should be(-\/(RepositoryError.ForeignKeyConflict("teacher_id", "courses_teacher_id_fkey")))
 //      }
-//      "return RepositoryError.PrimaryKeyConflict if course already exists" in {
+//      "return RepositoryError.PrimaryKeyConflict if group already exists" in {
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 //
 //        val testCourse = TestValues.testCourseA
@@ -569,31 +569,31 @@
 //
 //  "CourseRepository.update" should {
 //    inSequence {
-//      "update existing course" in {
+//      "update existing group" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
 //
 //        val testCourse = TestValues.testCourseA
 //        val updatedCourse = testCourse.copy(
-//          teacherId = TestValues.testCourseB.teacherId,
-//          name = "new test course name",
+//          ownerId = TestValues.testCourseB.ownerId,
+//          name = "new test group name",
 //          color = new Color(78, 40, 23)
 //        )
 //
 //        val result = courseRepository.update(updatedCourse)
 //        val eitherCourse = Await.result(result, Duration.Inf)
-//        val \/-(course) = eitherCourse
+//        val \/-(group) = eitherCourse
 //
-//        course.id should be(updatedCourse.id)
-//        course.teacherId should be(updatedCourse.teacherId)
-//        course.version should be(updatedCourse.version + 1)
-//        course.name should be(updatedCourse.name)
-//        course.color should be(updatedCourse.color)
-//        course.createdAt.toString should be(updatedCourse.createdAt.toString)
-//        course.updatedAt.toString should not be (updatedCourse.updatedAt.toString)
+//        group.id should be(updatedCourse.id)
+//        group.ownerId should be(updatedCourse.ownerId)
+//        group.version should be(updatedCourse.version + 1)
+//        group.name should be(updatedCourse.name)
+//        group.color should be(updatedCourse.color)
+//        group.createdAt.toString should be(updatedCourse.createdAt.toString)
+//        group.updatedAt.toString should not be (updatedCourse.updatedAt.toString)
 //      }
-//      "update existing course with slug + '-1' if slug exists" in {
+//      "update existing group with slug + '-1' if slug exists" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
@@ -601,30 +601,30 @@
 //        val existingSlug = TestValues.testCourseB.slug
 //        val testCourse = TestValues.testCourseA
 //        val updatedCourse = testCourse.copy(
-//          teacherId = TestValues.testCourseB.teacherId,
-//          name = "new test course name",
+//          ownerId = TestValues.testCourseB.ownerId,
+//          name = "new test group name",
 //          slug = existingSlug,
 //          color = new Color(78, 40, 23)
 //        )
 //
 //        val result = courseRepository.update(updatedCourse)
 //        val eitherCourse = Await.result(result, Duration.Inf)
-//        val \/-(course) = eitherCourse
+//        val \/-(group) = eitherCourse
 //
-//        course.id should be(updatedCourse.id)
-//        course.teacherId should be(updatedCourse.teacherId)
-//        course.version should be(updatedCourse.version + 1)
-//        course.name should be(updatedCourse.name)
-//        course.slug should be(updatedCourse.slug + "-1")
-//        course.color should be(updatedCourse.color)
-//        course.createdAt.toString should be(updatedCourse.createdAt.toString)
-//        course.updatedAt.toString should not be (updatedCourse.updatedAt.toString)
+//        group.id should be(updatedCourse.id)
+//        group.ownerId should be(updatedCourse.ownerId)
+//        group.version should be(updatedCourse.version + 1)
+//        group.name should be(updatedCourse.name)
+//        group.slug should be(updatedCourse.slug + "-1")
+//        group.color should be(updatedCourse.color)
+//        group.createdAt.toString should be(updatedCourse.createdAt.toString)
+//        group.updatedAt.toString should not be (updatedCourse.updatedAt.toString)
 //      }
 //      "return RepositoryError.NoResults when update an existing Course with wrong version" in {
 //        val testCourse = TestValues.testCourseA
 //        val updatedCourse = testCourse.copy(
-//          teacherId = TestValues.testCourseB.teacherId,
-//          name = "new test course name",
+//          ownerId = TestValues.testCourseB.ownerId,
+//          name = "new test group name",
 //          color = new Color(78, 40, 23),
 //          version = 99L
 //        )
@@ -635,8 +635,8 @@
 //      "return RepositoryError.NoResults when update a Course that doesn't exist" in {
 //        val testCourse = TestValues.testCourseC
 //        val updatedCourse = testCourse.copy(
-//          teacherId = TestValues.testCourseB.teacherId,
-//          name = "new test course name",
+//          ownerId = TestValues.testCourseB.ownerId,
+//          name = "new test group name",
 //          color = new Color(78, 40, 23)
 //        )
 //
@@ -648,7 +648,7 @@
 //
 //  "CourseRepository.delete" should {
 //    inSequence {
-//      "delete course if course has no references" in {
+//      "delete group if group has no references" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
@@ -657,15 +657,15 @@
 //
 //        val result = courseRepository.delete(testCourse)
 //        val eitherCourse = Await.result(result, Duration.Inf)
-//        val \/-(course) = eitherCourse
+//        val \/-(group) = eitherCourse
 //
-//        course.id should be(testCourse.id)
-//        course.teacherId should be(testCourse.teacherId)
-//        course.version should be(testCourse.version)
-//        course.name should be(testCourse.name)
-//        course.color should be(testCourse.color)
+//        group.id should be(testCourse.id)
+//        group.ownerId should be(testCourse.ownerId)
+//        group.version should be(testCourse.version)
+//        group.name should be(testCourse.name)
+//        group.color should be(testCourse.color)
 //      }
-//      "delete course if course has references only in users_courses table" in {
+//      "delete group if group has references only in users_courses table" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //        (cache.removeCached(_: String)) when (*) returns (Future.successful(\/-(())))
@@ -674,13 +674,13 @@
 //
 //        val result = courseRepository.delete(testCourse)
 //        val eitherCourse = Await.result(result, Duration.Inf)
-//        val \/-(course) = eitherCourse
+//        val \/-(group) = eitherCourse
 //
-//        course.id should be(testCourse.id)
-//        course.teacherId should be(testCourse.teacherId)
-//        course.version should be(testCourse.version)
-//        course.name should be(testCourse.name)
-//        course.color should be(testCourse.color)
+//        group.id should be(testCourse.id)
+//        group.ownerId should be(testCourse.ownerId)
+//        group.version should be(testCourse.version)
+//        group.name should be(testCourse.name)
+//        group.color should be(testCourse.color)
 //      }
 //      "return RepositoryError.NoResults if Course hasn't been found" in {
 //        val testCourse = TestValues.testCourseE

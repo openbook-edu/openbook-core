@@ -6,6 +6,7 @@ import play.api.libs.json._
 import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
 import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 case class Role(
     id: UUID = UUID.randomUUID,
@@ -24,6 +25,14 @@ case class Role(
 }
 
 object Role {
+  implicit val roleReads: Reads[Role] = (
+    (__ \ "id").read[UUID] and
+    (__ \ "version").read[Long] and
+    (__ \ "name").read[String] and
+    (__ \ "createdAt").read[DateTime] and
+    (__ \ "updatedAt").read[DateTime]
+  )(Role.apply _)
+
   implicit val roleWrites: Writes[Role] = (
     (__ \ "id").write[UUID] and
     (__ \ "version").write[Long] and

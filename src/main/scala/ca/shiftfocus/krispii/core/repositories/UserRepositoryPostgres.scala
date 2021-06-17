@@ -4,6 +4,8 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.models.group.Course
+import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 
@@ -159,6 +161,22 @@ class UserRepositoryPostgres(
     """.stripMargin
   }
 
+  def ListOrgMembers(organizationList: IndexedSeq[Organization]) = {
+    val orgIdList = organizationList.map(org => s"'${org.id.toString}'").mkString(", ")
+
+    s"""
+       |SELECT ${FieldsWithTable("sub")}
+       |FROM (
+       |  SELECT *
+       |  FROM $Table
+       |) AS sub
+       |INNER JOIN organization_members AS om
+       |  ON om.member_email = sub.email
+       |  AND om.organization_id IN ($orgIdList)
+       |ORDER BY sub.givenname ASC
+    """.
+      stripMargin
+  }
   def SelectOrgMembersByKey(param: String, organizationList: IndexedSeq[Organization]) = {
     val orgIdList = organizationList.map(org => s"'${org.id.toString}'").mkString(", ")
 
@@ -286,6 +304,16 @@ class UserRepositoryPostgres(
        |ORDER BY $OrderBy
     """.stripMargin
 
+  val SelectAllWithTeam =
+    s"""
+       |SELECT $FieldsWithoutHash
+       |FROM $Table, teams_scorers
+       |WHERE $Table.id = teams_scorers.scorer_id
+       |  AND teams_scorers.team_id = ?
+       |  AND is_deleted = FALSE
+       |ORDER BY $OrderBy
+    """.stripMargin
+
   val SelectAllWithTeacher =
     s"""
        |SELECT $FieldsWithoutHash
@@ -351,7 +379,7 @@ class UserRepositoryPostgres(
   }
 
   /**
-   * List all users who have a role.
+   * List all users who have a certain role.
    *
    * @param role
    * @param conn
@@ -362,9 +390,9 @@ class UserRepositoryPostgres(
   }
 
   /**
-   * List users in a given course.
+   * List student users in a given group.
    *
-   * @return a future disjunction containing either the users, or a failure
+   * @return a future disjunction containing either the student users, or a failure
    */
   override def list(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
     cacheRepository.cacheSeqUser.getCached(cacheStudentsKey(course.id)).flatMap {
@@ -384,12 +412,12 @@ class UserRepositoryPostgres(
 
   /**
    * List students for a given teacher
-   * @param user
+   * @param teacher
    * @param conn
    * @return
    */
-  override def list(user: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
-    queryList(SelectAllWithTeacher, Seq[Any](user.id))
+  override def list(teacher: User)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    queryList(SelectAllWithTeacher, Seq[Any](teacher.id))
   }
 
   /**
@@ -401,6 +429,19 @@ class UserRepositoryPostgres(
    */
   override def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
     queryList(SelectByTags(tags, distinct))
+  }
+
+  /**
+   * List all members of the given organization.
+   * Admins of these organizations will only be listed if they are also ordinary members.
+   * @param organizationList: indexed seq of Organizations to list for
+   * @return IndexedSeq of Users, or an error
+   */
+  def listOrganizationMembers(organizationList: IndexedSeq[Organization])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]] = {
+    for {
+      _ <- predicate(organizationList.nonEmpty)(RepositoryError.BadParam("core.UserRepositoryPostgres.searchOrganizationTeammate.org.empty"))
+      result <- lift(queryList(ListOrgMembers(organizationList)))
+    } yield result
   }
 
   /**

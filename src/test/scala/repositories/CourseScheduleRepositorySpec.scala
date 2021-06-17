@@ -17,7 +17,7 @@
 //
 //  "CourseScheduleRepository.list" should {
 //    inSequence {
-//      "list all schedules for a given course" in {
+//      "list all schedules for a given group" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //
@@ -37,9 +37,9 @@
 //        testCourseScheduleList.foreach {
 //          case (key, courseSchedule: CourseSchedule) => {
 //            courseSchedules(key).id should be(courseSchedule.id)
-//            courseSchedules(key).courseId should be(courseSchedule.courseId)
+//            courseSchedules(key).groupId should be(courseSchedule.groupId)
 //            courseSchedules(key).version should be(courseSchedule.version)
-//            courseSchedules(key).day should be(courseSchedule.day)
+//            courseSchedules(key).startDay should be(courseSchedule.startDay)
 //            courseSchedules(key).startTime should be(courseSchedule.startTime)
 //            courseSchedules(key).endTime should be(courseSchedule.endTime)
 //            courseSchedules(key).description should be(courseSchedule.description)
@@ -48,7 +48,7 @@
 //          }
 //        }
 //      }
-//      "return empty Vector() if course doesn't exist" in {
+//      "return empty Vector() if group doesn't exist" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //
@@ -78,9 +78,9 @@
 //        val \/-(courseSchedule) = eitherCourseSchedule
 //
 //        courseSchedule.id should be(testCourseSchedule.id)
-//        courseSchedule.courseId should be(testCourseSchedule.courseId)
+//        courseSchedule.groupId should be(testCourseSchedule.groupId)
 //        courseSchedule.version should be(testCourseSchedule.version)
-//        courseSchedule.day should be(testCourseSchedule.day)
+//        courseSchedule.startDay should be(testCourseSchedule.startDay)
 //        courseSchedule.startTime should be(testCourseSchedule.startTime)
 //        courseSchedule.endTime should be(testCourseSchedule.endTime)
 //        courseSchedule.description should be(testCourseSchedule.description)
@@ -111,9 +111,9 @@
 //        val \/-(courseSchedule) = eitherCourseSchedule
 //
 //        courseSchedule.id should be(testCourseSchedule.id)
-//        courseSchedule.courseId should be(testCourseSchedule.courseId)
+//        courseSchedule.groupId should be(testCourseSchedule.groupId)
 //        courseSchedule.version should be(1L)
-//        courseSchedule.day should be(testCourseSchedule.day)
+//        courseSchedule.startDay should be(testCourseSchedule.startDay)
 //        courseSchedule.startTime should be(testCourseSchedule.startTime)
 //        courseSchedule.endTime should be(testCourseSchedule.endTime)
 //        courseSchedule.description should be(testCourseSchedule.description)
@@ -136,8 +136,8 @@
 //
 //        val testCourseSchedule = TestValues.testCourseScheduleA
 //        val testUpdatedCourseSchedule = testCourseSchedule.copy(
-//          courseId = TestValues.testCourseF.id,
-//          day = testCourseSchedule.day.plusDays(1),
+//          groupId = TestValues.testCourseF.id,
+//          startDay = testCourseSchedule.startDay.plusDays(1),
 //          startTime = testCourseSchedule.startTime.plusHours(1),
 //          endTime = testCourseSchedule.endTime.plusHours(1),
 //          description = "new " + testCourseSchedule.description
@@ -148,9 +148,9 @@
 //        val \/-(courseSchedule) = eitherCourseSchedule
 //
 //        courseSchedule.id should be(testUpdatedCourseSchedule.id)
-//        courseSchedule.courseId should be(testUpdatedCourseSchedule.courseId)
+//        courseSchedule.groupId should be(testUpdatedCourseSchedule.groupId)
 //        courseSchedule.version should be(testUpdatedCourseSchedule.version + 1)
-//        courseSchedule.day should be(testUpdatedCourseSchedule.day)
+//        courseSchedule.startDay should be(testUpdatedCourseSchedule.startDay)
 //        courseSchedule.startTime should be(testUpdatedCourseSchedule.startTime)
 //        courseSchedule.endTime should be(testUpdatedCourseSchedule.endTime)
 //        courseSchedule.description should be(testUpdatedCourseSchedule.description)
@@ -163,8 +163,8 @@
 //        val testCourseSchedule = TestValues.testCourseScheduleA
 //        val testUpdatedCourseSchedule = testCourseSchedule.copy(
 //          version = testCourseSchedule.version + 1,
-//          courseId = TestValues.testCourseF.id,
-//          day = testCourseSchedule.day.plusDays(1),
+//          groupId = TestValues.testCourseF.id,
+//          startDay = testCourseSchedule.startDay.plusDays(1),
 //          startTime = testCourseSchedule.startTime.plusHours(1),
 //          endTime = testCourseSchedule.endTime.plusHours(1),
 //          description = "new " + testCourseSchedule.description
@@ -178,8 +178,8 @@
 //
 //        val testCourseSchedule = TestValues.testCourseScheduleD
 //        val testUpdatedCourseSchedule = testCourseSchedule.copy(
-//          courseId = TestValues.testCourseF.id,
-//          day = testCourseSchedule.day.plusDays(1),
+//          groupId = TestValues.testCourseF.id,
+//          startDay = testCourseSchedule.startDay.plusDays(1),
 //          startTime = testCourseSchedule.startTime.plusHours(1),
 //          endTime = testCourseSchedule.endTime.plusHours(1),
 //          description = "new " + testCourseSchedule.description
@@ -203,9 +203,9 @@
 //        val \/-(courseSchedule) = eitherCourseSchedule
 //
 //        courseSchedule.id should be(testCourseSchedule.id)
-//        courseSchedule.courseId should be(testCourseSchedule.courseId)
+//        courseSchedule.groupId should be(testCourseSchedule.groupId)
 //        courseSchedule.version should be(testCourseSchedule.version)
-//        courseSchedule.day should be(testCourseSchedule.day)
+//        courseSchedule.startDay should be(testCourseSchedule.startDay)
 //        courseSchedule.startTime should be(testCourseSchedule.startTime)
 //        courseSchedule.endTime should be(testCourseSchedule.endTime)
 //        courseSchedule.description should be(testCourseSchedule.description)

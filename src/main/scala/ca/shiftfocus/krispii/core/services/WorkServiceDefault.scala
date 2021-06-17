@@ -33,7 +33,7 @@ class WorkServiceDefault(
 
   /**
    * List the latest revision of all of a user's work in a project for a specific
-   * course.
+   * group.
    *
    * @param userId the unique id of the user to filter by
    * @param projectId the unique id of the project to filter by
@@ -64,7 +64,7 @@ class WorkServiceDefault(
 
   /**
    * List the latest revision of all of a user's work in a project for a specific
-   * course.
+   * group.
    *
    * @param taskId
    * @return a future disjunction containing either a list of work, or a failure
@@ -90,7 +90,7 @@ class WorkServiceDefault(
 
   /**
    * TODO - not used, will list revisions by each work type
-   * List all of a user's work revisions for a specific task in a specific course.
+   * List all of a user's work revisions for a specific task in a specific group.
    *
    * @param userId the unique id of the user to filter by
    * @param taskId the unique id of the task to filter by
@@ -109,7 +109,7 @@ class WorkServiceDefault(
   }
 
   /**
-   * Find the latest revision of a user's work, for a task, in a course.
+   * Find the latest revision of a user's work, for a task, in a group.
    *
    * @param workId the unique id of the work to find
    * @return a future disjunction containing either a work, or a failure
@@ -127,7 +127,7 @@ class WorkServiceDefault(
   }
 
   /**
-   * Find the latest revision of a user's work, for a task, in a course.
+   * Find the latest revision of a user's work, for a task, in a group.
    *
    * @param userId the unique id of the user to filter by
    * @param taskId the unique id of the task to filter by
@@ -151,7 +151,7 @@ class WorkServiceDefault(
   }
 
   /**
-   * Find a specific revision of a user's work, for a task, in a course.
+   * Find a specific revision of a user's work, for a task, in a group.
    *
    * @param userId the unique id of the user to filter by
    * @param taskId the unique id of the task to filter by
@@ -181,7 +181,7 @@ class WorkServiceDefault(
   /**
    * Create a document work item.
    *
-   * Use this method when entering student work on a task for the first time (in a given course).
+   * Use this method when entering student work on a task for the first time (in a given group).
    *
    * @param userId the unique id of the user the work belongs to
    * @param taskId the unique id of the task the work is for
@@ -213,7 +213,7 @@ class WorkServiceDefault(
   /**
    * Create a question work item.
    *
-   * Use this method when entering student work on a task for the first time (in a given course).
+   * Use this method when entering student work on a task for the first time (in a given group).
    *
    * @param userId the id of the student whose work is being entered
    * @param taskId the task for which the work was done
@@ -244,7 +244,7 @@ class WorkServiceDefault(
   /**
    * Create a media work item.
    *
-   * Use this method when entering student work on a task for the first time (in a given course).
+   * Use this method when entering student work on a task for the first time (in a given group).
    *
    * @param userId the id of the student whose work is being entered
    * @param taskId the task for which the work was done
@@ -569,7 +569,7 @@ class WorkServiceDefault(
         part <- lift(projectService.findPart(task.partId, false))
         project <- lift(projectService.find(part.projectId, false))
         course <- lift(schoolService.findCourse(project.courseId))
-        teacher <- lift(authService.find(course.teacherId))
+        teacher <- lift(authService.find(course.ownerId))
         document <- lift(documentService.create(UUID.randomUUID, teacher, "", Delta(IndexedSeq())))
         newFeedback = TaskFeedback(
           studentId = student.id,

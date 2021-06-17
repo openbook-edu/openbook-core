@@ -4,6 +4,8 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.helpers.NaturalOrderComparator
 import play.api.libs.json._
+import play.api.libs.json.Writes._
+import play.api.libs.functional.syntax._
 
 case class Tag(
     id: UUID = UUID.randomUUID(),
@@ -35,19 +37,26 @@ object TaggableEntities {
 }
 
 object Tag {
-  implicit val tagWrites = new Writes[Tag] {
-    def writes(tag: Tag): JsValue = {
-      Json.obj(
-        "id" -> tag.id,
-        "version" -> tag.version,
-        "isAdmin" -> tag.isAdmin,
-        "isHidden" -> tag.isHidden,
-        "name" -> tag.name,
-        "lang" -> tag.lang,
-        "category" -> tag.category,
-        "frequency" -> tag.frequency
-      )
-    }
-  }
+  implicit val tagWrites: Writes[Tag] = (
+    (__ \ "id").write[UUID] and
+    (__ \ "version").write[Long] and
+    (__ \ "isAdmin").write[Boolean] and
+    (__ \ "isHidden").write[Boolean] and
+    (__ \ "name").write[String] and
+    (__ \ "lang").write[String] and
+    (__ \ "category").writeNullable[String] and
+    (__ \ "frequency").write[Int]
+  )(unlift(Tag.unapply))
+
+  implicit val tagReads: Reads[Tag] = (
+    (__ \ "id").read[UUID] and
+    (__ \ "version").read[Long] and
+    (__ \ "isAdmin").read[Boolean] and
+    (__ \ "isHidden").read[Boolean] and
+    (__ \ "name").read[String] and
+    (__ \ "lang").read[String] and
+    (__ \ "category").readNullable[String] and
+    (__ \ "frequency").read[Int]
+  )(Tag.apply _)
 }
 

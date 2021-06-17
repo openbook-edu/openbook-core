@@ -414,18 +414,13 @@ class TagServiceDefault(
     val studentLimit = (limitsJson \ "studentLimit").asOpt[Int].getOrElse(defaultStudentLimit)
     val storageLimit = (limitsJson \ "storageLimit").asOpt[Float].getOrElse(defaultStorageLimit.toFloat)
     val courseLimit = (limitsJson \ "courseLimit").asOpt[Int].getOrElse(defaultCourseLimit)
-    val dateLimit = (limitsJson \ "dateLimit").asOpt[DateTime]
+    val dateLimit = (limitsJson \ "dateLimit").asOpt[DateTime].getOrElse(user.createdAt.plusDays(trialDays))
     Logger.info(s"in setUserLimit, date limit for ${user.email} is ${dateLimit}")
-    val accountStatus = dateLimit match {
-      case Some(activeUntil) => {
-        Logger.info(s"${user.email} will be set to group membership until ${activeUntil}")
-        AccountStatus.group
-      }
-      case _ => {
-        Logger.info(s"In the absence of a date limit, ${user.email} will be set to limited status")
-        AccountStatus.limited
-      }
-    }
+    /* We will now always set a date limit. When a "trial" or "paid" user passes the date limit,
+    they will become "limited". That is better than allowing an absence of date limit, which immediately
+    turns them "limited". "Free" users need not really have a date limit.
+    TODO: check if createdAt + trial days is already past or is after the limit of the organization */
+    val accountStatus = AccountStatus.group
 
     (for {
       _ <- lift(limitRepository.setTeacherStudentLimit(user.id, studentLimit))
@@ -443,7 +438,7 @@ class TagServiceDefault(
             account.version,
             accountStatus,
             None,
-            Some(dateLimit.getOrElse(user.createdAt.plusDays(trialDays))),
+            Some(dateLimit),
             account.customer
           )
         }
@@ -456,13 +451,13 @@ class TagServiceDefault(
                 account.version,
                 accountStatus,
                 None,
-                Some(dateLimit.getOrElse(user.createdAt.plusDays(trialDays))),
+                Some(dateLimit),
                 account.customer
               )
             }
             case -\/(error: RepositoryError.NoResults) => {
               (for {
-                newAccount <- lift(paymentService.createAccount(user.id, accountStatus, Some(dateLimit.getOrElse(user.createdAt.plusDays(trialDays)))))
+                newAccount <- lift(paymentService.createAccount(user.id, accountStatus, Some(dateLimit)))
                 log <- lift(paymentService.createLog(PaymentLogType.info, s"Create account for = ${user.email}", Json.toJson(newAccount).toString, Some(newAccount.userId)))
               } yield newAccount).run
             }

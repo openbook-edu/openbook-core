@@ -109,10 +109,14 @@ class PaymentServiceDefault(
   ): Future[\/[ErrorUnion#Fail, Account]] = {
     for {
       existingAccount <- lift(accountRepository.get(id))
-      // existingAccount should already contain subscriptions - why look them up again?
-      // apparently subscriptions are not automatically updated, see below
-      subscriptions <- lift(stripeRepository.listSubscriptions(existingAccount.userId))
-      // subscriptions will in most cases be empty because people subscribe through invoices!
+      _ = Logger.debug(s"Account before updating: ${existingAccount}")
+      /* UpdateAccountForm in api Payment.scala permits the following behaviors for trialStartedAt:
+       - "trialStartedAt":"date" -> Some(Some(date))
+       - "trialStartedAt": "" -> Some(None), so delete the field in the database
+       - no mention of trialStartedAt -> None, so leave the field as it is
+       TODO: make this more logical
+       In any case, this bizarre code does not enter into contact with Account.
+       */
       updatedAccount <- lift(accountRepository.update(existingAccount.copy(
         status = status,
         trialStartedAt = trialStartedAt match {
@@ -141,7 +145,9 @@ class PaymentServiceDefault(
       // accountRepository.update has ignored subscriptions
       _ = Logger.info(s"In updateAccount, old status for user ${existingAccount.userId} is ${existingAccount.status}, new status is to be ${status}")
       _ <- lift(tagUntagUserBasedOnStatus(updatedAccount.userId, status, Some(existingAccount.status)))
-    } yield updatedAccount.copy(subscriptions = subscriptions) // but subscriptions are returned nevertheless
+      // subscriptions are stored separate from the rest of the account in the data base
+      subscriptions <- lift(stripeRepository.listSubscriptions(updatedAccount.userId))
+    } yield updatedAccount.copy(subscriptions = subscriptions) //
   }
 
   def deleteAccount(userId: UUID): Future[\/[ErrorUnion#Fail, Account]] = {
@@ -225,6 +231,63 @@ class PaymentServiceDefault(
   /**
    * Create stripe customer
    *
+   * @param account: Account
+   * @param tokenId: String
+   * @return
+   *         TODO: both versions of createCustomer should call the same internal function
+   */
+  def createCustomer(account: Account, tokenId: String): Future[\/[ErrorUnion#Fail, JsValue]] = for {
+    user <- lift(userRepository.find(account.userId))
+    customer <- lift(
+      Future successful (try {
+        val params = new java.util.HashMap[String, Object]()
+        params.put("source", tokenId)
+        params.put("description", user.givenname + " " + user.surname + " - " + user.id.toString)
+        params.put("email", user.email)
+
+        // Customer is a class defined by Stripe
+        val customer = Customer.create(params, requestOptions)
+        // Get default payment source from stripe, where it was already uploaded by krispii-web before API was called
+        val defaultSource = customer.getSources().retrieve(customer.getDefaultSource, requestOptions)
+        val result: JsValue = defaultSource.getObject match {
+          // If we have a card, we get additional information about it
+          case "card" => {
+            val defaultCard = defaultSource.asInstanceOf[Card]
+            val last4 = defaultCard.getLast4()
+            val brand = defaultCard.getBrand()
+            val expYear = defaultCard.getExpYear()
+            val expMonth = defaultCard.getExpMonth()
+            val customerJObject = Json.parse(APIResource.GSON.toJson(customer)).as[JsObject]
+            val defaultCardJObject = Json.parse(APIResource.GSON.toJson(defaultCard)).as[JsObject]
+
+            // Add additional card info to customer object
+            customerJObject ++ Json.obj(
+              "sources" -> Json.obj(
+                "data" -> Json.arr(
+                  defaultCardJObject ++ Json.obj(
+                    "last4" -> last4,
+                    "brand" -> brand,
+                    "exp_year" -> expYear.toString,
+                    "exp_month" -> expMonth.toString
+                  )
+                )
+              )
+            )
+          }
+          case _ => Json.parse(APIResource.GSON.toJson(customer))
+        }
+
+        \/-(result)
+      }
+      catch {
+        case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
+      })
+    )
+  } yield customer
+
+  /**
+   * Create stripe customer
+   *
    * @param userId
    * @param tokenId
    * @return
@@ -240,8 +303,9 @@ class PaymentServiceDefault(
           params.put("description", user.givenname + " " + user.surname + " - " + user.id.toString)
           params.put("email", user.email)
 
+          // Customer is a class defined by Stripe
           val customer = Customer.create(params, requestOptions)
-          // Get default payment source
+          // Get default payment source from stripe, where it was already uploaded by krispii-web before API was called
           val defaultSource = customer.getSources().retrieve(customer.getDefaultSource, requestOptions)
           val result: JsValue = defaultSource.getObject match {
             // If we have a card, we get additional information about it

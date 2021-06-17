@@ -7,6 +7,7 @@ import ca.shiftfocus.krispii.core.models.Account
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import play.api.libs.json.{JsValue, Json}
+import play.api.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -23,7 +24,7 @@ class AccountRepositoryPostgres(
       row("user_id").asInstanceOf[UUID],
       row("status").asInstanceOf[String],
       Option(row("customer")).map(customer => Json.parse(customer.asInstanceOf[String])),
-      IndexedSeq.empty[JsValue],
+      IndexedSeq.empty[JsValue], // subscriptions are initialized empty!
       Option(row("trial_started_at")).map(_.asInstanceOf[DateTime]),
       Option(row("active_until")).map(_.asInstanceOf[DateTime]),
       Option(row("overdue_started_at")).map(_.asInstanceOf[DateTime]),
@@ -33,6 +34,7 @@ class AccountRepositoryPostgres(
   }
 
   val Table = "accounts"
+  // the database table "accounts" does not contain a subscriptions field
   val Fields = "id, version, user_id, status, customer, trial_started_at, active_until, overdue_started_at, overdue_ended_at, overdue_plan_id"
   val QMarks = Fields.split(", ").map({ field => "?" }).mkString(", ")
 
@@ -129,8 +131,12 @@ class AccountRepositoryPostgres(
       account.activeUntil, account.overdueStartedAt, account.overdueEndedAt, account.overduePlanId, account.id
     )
 
+    Logger.debug(s"Doing UPDATE on account: ${Update}\nwith parameters ${params}")
     for {
+      current <- lift(queryOne(Select, Seq[Any](account.id)))
+      _ = Logger.debug(s"Account before update: ${current}")
       updated <- lift(queryOne(Update, params))
+      _ = Logger.debug(s"Updated account: ${updated}")
       _ <- lift(cacheRepository.cacheAccount.removeCached(cacheAccountKey(updated.id)))
       _ <- lift(cacheRepository.cacheAccount.removeCached(cacheAccountUserKey(updated.userId)))
     } yield updated

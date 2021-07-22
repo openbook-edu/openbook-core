@@ -39,12 +39,14 @@ trait PaymentService extends Service[ErrorUnion#Fail] {
 
   // TODO: It would be better to move the machinery that deals with Customer from API into core
   def fetchCustomerFromStripe(customerId: String): ServiceError.ExternalService \/ Customer
+  def getCreditCard(account: Account): \/[ErrorUnion#Fail, CreditCard]
   def getCreditCard(customerId: String): Future[RepositoryError.Fail \/ CreditCard]
   def getCreditCard(accountId: UUID): Future[RepositoryError.Fail \/ CreditCard]
   def createCreditCard(account: Account, tokenId: String): Future[\/[ErrorUnion#Fail, CreditCard]]
   def createCreditCard(userId: UUID, tokenId: String): Future[\/[ErrorUnion#Fail, CreditCard]]
-  def updateCreditCard(card: CreditCard, userId: UUID, email: String, givenname: String, surname: String): Future[\/[ErrorUnion#Fail, CreditCard]]
-  def updateCreditCard(userId: UUID, email: String, givenname: String, surname: String): Future[\/[ErrorUnion#Fail, CreditCard]]
+  def updateCreditCardFromStripe(card: CreditCard, userId: UUID, email: String, givenname: String, surname: String): Future[\/[ErrorUnion#Fail, CreditCard]]
+  def updateCreditCardFromStripe(userId: UUID, email: String, givenname: String, surname: String): Future[\/[ErrorUnion#Fail, CreditCard]]
+  def updateCreditCardFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, CreditCard]]
   // the JsValue from Stripe should not be public
   // def fetchCustomerFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, JsValue]]
   def deleteCustomerAndCreditCard(customerId: String): Future[\/[ErrorUnion#Fail, CreditCard]]

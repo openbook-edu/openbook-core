@@ -100,7 +100,7 @@ class CreditCardRepositoryPostgres(
 
   def update(card: CreditCard)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CreditCard]] = {
     val params = Seq[Any](
-      1, card.accountId, card.email, card.givenname, card.surname, card.expMonth,
+      card.version + 1, card.accountId, card.email, card.givenname, card.surname, card.expMonth,
       card.expYear, card.brand, card.last4, card.customerId
     )
 

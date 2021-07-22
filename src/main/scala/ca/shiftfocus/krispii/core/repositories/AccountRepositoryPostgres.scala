@@ -59,9 +59,9 @@ class AccountRepositoryPostgres(
   val SelectByCustomerId: String =
     s"""
        |SELECT $FieldsWithTable
-       |FROM $Table
-       |WHERE $Fields.id = creditcards.account_id
-       |  AND creditcards.id = ?
+       |FROM $Table, creditcards c
+       |WHERE $Table.id = c.account_id
+       |  AND c.customer_id = ?
      """.stripMargin
 
   val Insert: String =
@@ -124,9 +124,8 @@ class AccountRepositoryPostgres(
   }
 
   // Can't use cache here for now
-  def getByCustomerId(customerId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
+  def getByCustomerId(customerId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] =
     queryOne(SelectByCustomerId, Seq[Any](customerId))
-  }
 
   def insert(account: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     val params = Seq[Any](

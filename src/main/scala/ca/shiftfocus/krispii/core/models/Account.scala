@@ -14,7 +14,7 @@ case class Account(
   version: Long = 1L,
   userId: UUID,
   status: String = AccountStatus.inactive,
-  creditCard: Option[CreditCard] = None,
+  creditCard: Option[CreditCard] = None, // we choose to save only one credit card per account
   subscriptions: IndexedSeq[StripeSubscription] = IndexedSeq.empty[StripeSubscription],
   trialStartedAt: Option[DateTime] = None,
   activeUntil: Option[DateTime] = None,

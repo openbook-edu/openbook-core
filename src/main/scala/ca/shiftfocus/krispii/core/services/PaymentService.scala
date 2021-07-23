@@ -4,6 +4,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
 import ca.shiftfocus.krispii.core.models.stripe.{CreditCard, StripePlan, StripeSubscription}
+import ca.shiftfocus.krispii.core.models.user.User
 import ca.shiftfocus.krispii.core.models.{Account, PaymentLog}
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.stripe.model.{Card, Customer, Invoice, InvoiceItem, Subscription}
@@ -64,8 +65,8 @@ trait PaymentService extends Service[ErrorUnion#Fail] {
   // TODO: the JsValue, and the stripe Card objects, should not be public
   def createInvoiceItem(customerId: String, amount: Int, currency: String, description: String = "", metadata: TreeMap[String, Object] = TreeMap.empty): Future[\/[ErrorUnion#Fail, JsValue]]
   def fetchPaymentInfoFromStripe(customerId: String): Future[\/[ErrorUnion#Fail, Card]]
-  def updatePaymentInfo(customerId: String, tokenId: String): Future[\/[ErrorUnion#Fail, JsValue]]
-  def deletePaymentInfo(customerId: String): Future[\/[ErrorUnion#Fail, JsValue]]
+  def updatePaymentInfo(user: User, account: Account, customerId: String, tokenId: String): Future[\/[ErrorUnion#Fail, CreditCard]]
+  def deletePaymentInfo(customerId: String): Future[\/[ErrorUnion#Fail, CreditCard]]
   // def fetchSubscriptionFromStripe(subscriptionId: String): Future[\/[ErrorUnion#Fail, JsValue]]
 
   def hasAccess(userId: UUID): Future[\/[ErrorUnion#Fail, Boolean]]

@@ -16,7 +16,7 @@ import com.stripe.model._
 import com.stripe.net.{APIResource, RequestOptions}
 import org.joda.time.DateTime
 import play.api.Logger
-import play.api.libs.json.{JsObject, JsValue, Json}
+import play.api.libs.json.{JsValue, Json}
 import scalaz.{-\/, \/, \/-}
 
 import scala.collection.JavaConverters._
@@ -718,58 +718,53 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Replace customer payment info (credit card) with a new one in stripe
+   * Replace customer payment info (credit card) with a new one in stripe.
+   * When new card info is entered in krispii-web, Stripe apparently has to
+   * create an entirely new Customer. From all the Customer information, we
+   * only need the customerId and the four most basic card parameters.
+   * - The Customer json field in the SQL accounts table is deprecatted!
+   * - We delete the old credit card information by choice.
+   * - We create a new credit card entry linked to this account.
    *
-   * @param customerId
-   * @param tokenId
-   * @return
+   * @param user: krispii User
+   * @param account: krispii Account
+   * @param customerId: Stripe customer ID string
+   * @param tokenId: Stripe token to access the customer information
+   * @return a Future containing either the new krispii credit card information, or an error
    */
-  def updatePaymentInfo(customerId: String, tokenId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
-    for {
-      updatedCustomer <- lift(
-        Future successful (try {
-          val params = new java.util.HashMap[String, Object]()
-          params.put("source", tokenId)
+  def updatePaymentInfo(user: User, account: Account, customerId: String, tokenId: String): Future[\/[ErrorUnion#Fail, CreditCard]] = {
+    try {
+      val params = new java.util.HashMap[String, Object]()
+      params.put("source", tokenId)
 
-          val customer: Customer = Customer.retrieve(customerId, requestOptions)
-          val updatedCustomer = customer.update(params, requestOptions)
+      val customer: Customer = Customer.retrieve(customerId, requestOptions)
+      val updatedCustomer = customer.update(params, requestOptions)
+      Logger.debug(s"${user.email} has Stripe customer information $updatedCustomer")
 
-          // Get default payment source
-          val defaultSource = updatedCustomer.getSources().retrieve(updatedCustomer.getDefaultSource, requestOptions)
-          val result: JsValue = defaultSource.getObject match {
-            // If we have a card, we get additional information about it
-            case "card" =>
-              val defaultCard = defaultSource.asInstanceOf[Card]
-              val last4 = defaultCard.getLast4()
-              val brand = defaultCard.getBrand()
-              val expYear = defaultCard.getExpYear()
-              val expMonth = defaultCard.getExpMonth()
-              val customerJObject = Json.parse(APIResource.GSON.toJson(updatedCustomer)).as[JsObject]
-              val defaultCardJObject = Json.parse(APIResource.GSON.toJson(defaultCard)).as[JsObject]
-
-              // Add additional card info to customer object
-              customerJObject ++ Json.obj(
-                "sources" -> Json.obj(
-                  "data" -> Json.arr(
-                    defaultCardJObject ++ Json.obj(
-                      "last4" -> last4,
-                      "brand" -> brand,
-                      "expYear" -> expYear.toString,
-                      "expMonth" -> expMonth.toString
-                    )
-                  )
-                )
-              )
-            case _ => Json.parse(APIResource.GSON.toJson(updatedCustomer))
-          }
-
-          \/-(result)
-        }
-        catch {
-          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
-        })
-      )
-    } yield updatedCustomer
+      val defaultSource = updatedCustomer.getSources.retrieve(updatedCustomer.getDefaultSource, requestOptions)
+      defaultSource.getObject match {
+        case "card" =>
+          val newStripeCard = defaultSource.asInstanceOf[Card]
+          val newCard = CreditCard(updatedCustomer.getId, version = 1, account.id,
+            user.email, user.givenname, user.surname,
+            Some(newStripeCard.getExpMonth.toLong), Some(newStripeCard.getExpYear.toLong),
+            newStripeCard.getBrand, newStripeCard.getLast4)
+          for {
+            // we only want one credit card per account, but make it general
+            oldCards <- lift(creditCardRepository.listByAccountId(account.id))
+            _ <- lift(serializedT(oldCards)(card => {
+              Logger.debug(s"updatePaymentInfo: will delete old credit card for ${user.email}: $card")
+              creditCardRepository.delete(card.customerId)
+            }))
+            inserted <- lift(creditCardRepository.insert(newCard))
+            _ = Logger.debug(s"updatePaymentInfo: created new credit card for ${user.email}: $inserted")
+          } yield inserted
+        case _ => Future successful -\/(ServiceError.ExternalService("No credit card for this customer"))
+      }
+    }
+    catch {
+      case e: Throwable => Future successful -\/(ServiceError.ExternalService(e.toString))
+    }
   }
 
   /**
@@ -778,29 +773,18 @@ class PaymentServiceDefault(
    * @param customerId
    * @return
    */
-  def deletePaymentInfo(customerId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
-    for {
-      updatedCustomer <- lift(
-        Future successful (try {
-          val customer: Customer = Customer.retrieve(customerId, requestOptions)
-          // Get default payment source and delete it
-          val defaultSource = customer.getSources().retrieve(customer.getDefaultSource, requestOptions)
-          defaultSource.delete(requestOptions)
+  def deletePaymentInfo(customerId: String): Future[\/[ErrorUnion#Fail, CreditCard]] = {
+    try {
+      val customer: Customer = Customer.retrieve(customerId, requestOptions)
+      // Get default payment source and delete it on Stripe
+      val defaultSource = customer.getSources.retrieve(customer.getDefaultSource, requestOptions)
+      defaultSource.delete(requestOptions)
 
-          val result: JsValue = {
-            val customerJObject = Json.parse(APIResource.GSON.toJson(customer)).as[JsObject]
-
-            // Clean card info
-            customerJObject.as[JsObject] - "sources"
-          }
-
-          \/-(result)
-        }
-        catch {
-          case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
-        })
-      )
-    } yield updatedCustomer
+      creditCardRepository.delete(customer.getId)
+    }
+    catch {
+      case e: Throwable => Future successful -\/(ServiceError.ExternalService(e.toString))
+    }
   }
 
   /**

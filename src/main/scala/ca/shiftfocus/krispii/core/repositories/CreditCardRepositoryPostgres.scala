@@ -80,8 +80,8 @@ class CreditCardRepositoryPostgres(
     queryOne(Select, Seq[Any](customerId))
 
   /**
-   * Get credit card information by krispii account ID. Theoretically a list, which will
-   * be either empty or a single CreditCard
+   * Get credit card information by krispii account ID. Theoretically a list, which will currently
+   * be either empty or a single CreditCard. We might permit multiple credit cards if we want to.
    * @param accountId unique ID of krispii account
    * @param conn implicit database connection
    * @return indexed sequence of CreditCard (zero or one elements), or an error
@@ -95,7 +95,7 @@ class CreditCardRepositoryPostgres(
       card.expYear, card.brand, card.last4
     )
 
-    lift(queryOne(Insert, params))
+    queryOne(Insert, params)
   }
 
   def update(card: CreditCard)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CreditCard]] = {
@@ -113,10 +113,7 @@ class CreditCardRepositoryPostgres(
     } yield updated
   }
 
-  def delete(customer_id: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CreditCard]] = {
-    for {
-      deleted <- lift(queryOne(Delete, Seq[Any](customer_id)))
-    } yield deleted
-  }
+  def delete(customer_id: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, CreditCard]] =
+    queryOne(Delete, Seq[Any](customer_id))
 }
 

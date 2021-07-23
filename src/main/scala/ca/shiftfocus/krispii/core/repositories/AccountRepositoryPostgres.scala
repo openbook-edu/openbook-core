@@ -86,6 +86,12 @@ class AccountRepositoryPostgres(
        |RETURNING $Fields
      """.stripMargin
 
+  /**
+   * Add the first (and only) credit card and all subscriptions to the account.
+   * @param raw Account as present in SQL accounts table
+   * @param conn Connection
+   * @return Future containing either the enriched account, or an error
+   */
   def enrichAccount(raw: Account)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Account]] = {
     for {
       cardList <- lift(creditCardRepository.listByAccountId(raw.id))

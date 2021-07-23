@@ -153,15 +153,10 @@ class PaymentServiceDefault(
    *
    * @return
    */
-  def listPlansFromStripe: Future[\/[ErrorUnion#Fail, IndexedSeq[JsValue]]] = Future {
+  def listPlansFromStripe: Future[\/[ErrorUnion#Fail, IndexedSeq[Plan]]] = Future {
     try {
       val params = new java.util.HashMap[String, Object]()
-
-      val planList: IndexedSeq[JsValue] = Plan.list(params, requestOptions).getData.asScala.map(plan => {
-        Json.parse(APIResource.GSON.toJson(plan))
-      }).toIndexedSeq
-
-      \/-(planList)
+      \/-(Plan.list(params, requestOptions).getData.asScala.toIndexedSeq)
     }
     catch {
       case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
@@ -169,16 +164,14 @@ class PaymentServiceDefault(
   }
 
   /**
-   * Get a plan info from stripe by id
+   * Get a Plan from stripe by id
    *
-   * @param planId
-   * @return
+   * @param planId String
+   * @return Future containing a Stripe Plan object, or an error
    */
-  def fetchPlanFromStripe(planId: String): Future[\/[ErrorUnion#Fail, JsValue]] = Future {
+  def fetchPlanFromStripe(planId: String): Future[\/[ErrorUnion#Fail, Plan]] = Future {
     try {
-      val plan: JsValue = Json.parse(APIResource.GSON.toJson(Plan.retrieve(planId, requestOptions)))
-
-      \/-(plan)
+      \/-(Plan.retrieve(planId, requestOptions))
     }
     catch {
       case e: Throwable => -\/(ServiceError.ExternalService(e.toString))

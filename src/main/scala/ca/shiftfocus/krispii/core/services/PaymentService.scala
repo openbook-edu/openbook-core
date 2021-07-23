@@ -7,7 +7,7 @@ import ca.shiftfocus.krispii.core.models.stripe.{CreditCard, StripePlan, StripeS
 import ca.shiftfocus.krispii.core.models.user.User
 import ca.shiftfocus.krispii.core.models.{Account, PaymentLog}
 import ca.shiftfocus.krispii.core.services.datasource.DB
-import com.stripe.model.{Card, Customer, Invoice, InvoiceItem, Subscription}
+import com.stripe.model.{Card, Customer, Invoice, InvoiceItem, Plan, Subscription}
 import com.stripe.net.RequestOptions
 import org.joda.time.DateTime
 import play.api.libs.json.JsValue
@@ -28,9 +28,8 @@ trait PaymentService extends Service[ErrorUnion#Fail] {
     overduePlanId: Option[Option[String]] = None): Future[\/[ErrorUnion#Fail, Account]]
   def deleteAccount(userId: UUID): Future[\/[ErrorUnion#Fail, Account]]
 
-  // TODO: The JsValues from stripe should probably not be public
-  def listPlansFromStripe: Future[\/[ErrorUnion#Fail, IndexedSeq[JsValue]]]
-  def fetchPlanFromStripe(planId: String): Future[\/[ErrorUnion#Fail, JsValue]]
+  def listPlansFromStripe: Future[\/[ErrorUnion#Fail, IndexedSeq[Plan]]]
+  def fetchPlanFromStripe(planId: String): Future[\/[ErrorUnion#Fail, Plan]]
   def listPlansFromDb: Future[\/[ErrorUnion#Fail, IndexedSeq[StripePlan]]]
   def findPlanInDb(id: UUID): Future[\/[ErrorUnion#Fail, StripePlan]]
   def findPlanInDb(planId: String): Future[\/[ErrorUnion#Fail, StripePlan]]
@@ -38,7 +37,6 @@ trait PaymentService extends Service[ErrorUnion#Fail] {
   def updatePlanInDb(id: UUID, version: Long, title: String): Future[\/[ErrorUnion#Fail, StripePlan]]
   def deletePlanFromDb(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, StripePlan]]
 
-  // TODO: It would be better to move the machinery that deals with Customer from API into core
   def fetchCustomerFromStripe(customerId: String): ServiceError.ExternalService \/ Customer
   def getCreditCard(account: Account): \/[ErrorUnion#Fail, CreditCard]
   def getCreditCard(customerId: String): Future[RepositoryError.Fail \/ CreditCard]

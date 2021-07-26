@@ -36,10 +36,10 @@ class TagServiceDefault(
     // Bad idea to include services, but duplicating the code may be even worse
     val paymentService: PaymentService
 ) extends TagService {
-  val trialDays = config.get[Option[Int]]("default.trial.days").get
-  val defaultStudentLimit = config.get[Option[Int]]("default.student.limit").get
-  val defaultStorageLimit = config.get[Option[Int]]("default.storage.limit.gb").get
-  val defaultCourseLimit = config.get[Option[Int]]("default.course.limit").get
+  private val trialDays = config.get[Option[Int]]("default.trial.days").get
+  private val defaultStudentLimit = config.get[Option[Int]]("default.student.limit").get
+  private val defaultStorageLimit = config.get[Option[Int]]("default.storage.limit.gb").get
+  private val defaultCourseLimit = config.get[Option[Int]]("default.course.limit").get
 
   implicit def conn: Connection = db.pool
 
@@ -55,13 +55,15 @@ class TagServiceDefault(
    * @param lang
    * @return
    */
-  override def tag(entityId: UUID, entityType: String, tagName: String, lang: String): Future[\/[ErrorUnion#Fail, Unit]] = {
+  override def tag(entityId: UUID, entityType: String, tagName: String, lang: String): Future[\/[ErrorUnion#Fail, Unit]] =
+    tag(entityId.toString, entityType, tagName, lang)
+  override def tag(entityId: String, entityType: String, tagName: String, lang: String): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn: Connection =>
       for {
         existingTag <- lift(
           tagRepository.find(tagName, lang).flatMap {
             case \/-(tag) => Future successful (\/-(tag))
-            case -\/(error) => tagRepository.create(Tag(
+            case -\/(_) => tagRepository.create(Tag(
               name = tagName,
               lang = lang,
               category = None,
@@ -72,13 +74,13 @@ class TagServiceDefault(
         // If entity is already tagged with this tag, then do nothing
         _ <- lift(tagRepository.tag(entityId, entityType, existingTag.name, existingTag.lang).map {
           case \/-(success) => \/-(success)
-          case -\/(RepositoryError.PrimaryKeyConflict) => \/-((): Unit)
+          case -\/(RepositoryError.PrimaryKeyConflict) => \/-(())
           case -\/(error) => -\/(error)
         })
         _ <- lift {
           entityType match {
-            case TaggableEntities.user => setUserLimitsByOrganization(entityId, existingTag.name, existingTag.lang)
-            case _ => Future successful \/-((): Unit)
+            case TaggableEntities.user => setUserLimitsByOrganization(UUID.fromString(entityId), existingTag.name, existingTag.lang)
+            case _ => Future successful \/-(())
           }
         }
       } yield ()
@@ -99,7 +101,9 @@ class TagServiceDefault(
    * @param shouldUpdateFrequency
    * @return
    */
-  override def untag(entityId: UUID, entityType: String, tagName: String, tagLang: String, shouldUpdateFrequency: Boolean): Future[\/[ErrorUnion#Fail, Unit]] = {
+  override def untag(entityId: UUID, entityType: String, tagName: String, tagLang: String, shouldUpdateFrequency: Boolean): Future[\/[ErrorUnion#Fail, Unit]] =
+    untag(entityId.toString, entityType, tagName, tagLang, shouldUpdateFrequency)
+  override def untag(entityId: String, entityType: String, tagName: String, tagLang: String, shouldUpdateFrequency: Boolean): Future[\/[ErrorUnion#Fail, Unit]] = {
     transactional { implicit conn: Connection =>
       for {
         _ <- lift {
@@ -112,7 +116,7 @@ class TagServiceDefault(
                 updatedTag <- lift(if (shouldUpdateFrequency) updateFrequency(tag.name, tag.lang, frequency) else Future successful \/-(tag))
                 _ <- lift {
                   entityType match {
-                    case TaggableEntities.user => unsetUserLimitsByOrganization(entityId, tag.name, tag.lang)
+                    case TaggableEntities.user => unsetUserLimitsByOrganization(UUID.fromString(entityId), tag.name, tag.lang)
                     case _ => Future successful \/-((): Unit)
                   }
                 }
@@ -124,7 +128,7 @@ class TagServiceDefault(
         }
         _ <- lift {
           entityType match {
-            case TaggableEntities.project => updateProjectMaster(entityId, tagName, tagLang)
+            case TaggableEntities.project => updateProjectMaster(UUID.fromString(entityId), tagName, tagLang)
             case _ => Future successful \/-((): Unit)
           }
         }
@@ -134,7 +138,7 @@ class TagServiceDefault(
 
   override def cloneTags(newProjectId: UUID, oldProjectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
     for {
-      toClone <- lift(tagRepository.listByEntity(oldProjectId, TaggableEntities.project))
+      toClone <- lift(tagRepository.listByEntity(oldProjectId.toString, TaggableEntities.project))
       cloned <- lift(serializedT(toClone)(tag => {
         for {
           inserted <- lift(tagRepository.create(tag))
@@ -177,21 +181,26 @@ class TagServiceDefault(
     }
   }
 
-  def listByEntity(entityId: UUID, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
+  def listByEntity(entityId: UUID, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] =
+    listByEntity(entityId.toString, entityType)
+  def listByEntity(entityId: String, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
     transactional {
       implicit conn: Connection =>
         tagRepository.listByEntity(entityId, entityType)
     }
   }
 
-  def listOrganizationalByEntity(entityId: UUID, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
+  def listOrganizationalByEntity(entityId: UUID, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] =
+    listOrganizationalByEntity(entityId.toString, entityType)
+  def listOrganizationalByEntity(entityId: String, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
     transactional {
       implicit conn: Connection =>
         tagRepository.listOrganizationalByEntity(entityId, entityType)
     }
   }
-
-  def listAdminByEntity(entityId: UUID, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
+  def listAdminByEntity(entityId: UUID, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] =
+    listAdminByEntity(entityId.toString, entityType)
+  def listAdminByEntity(entityId: String, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
     transactional {
       implicit conn: Connection =>
         tagRepository.listAdminByEntity(entityId, entityType)
@@ -312,12 +321,12 @@ class TagServiceDefault(
         if (newOrganizations.nonEmpty) {
           for {
             user <- lift(userRepository.find(userId))
-            _ = Logger.info(s"Setting limits for ${user.email} who was tagged with ${tagName}:")
-            userTags <- lift(tagRepository.listByEntity(user.id, TaggableEntities.user))
+            _ = Logger.info(s"Setting limits for ${user.email} who was tagged with $tagName:")
+            userTags <- lift(listByEntity(user.id, TaggableEntities.user))
             currentOrganizations <- lift(organizationRepository.listByTags(userTags.map(tag => (tag.name, tag.lang)), false))
             resultOrganizations = (currentOrganizations ++ newOrganizations).distinct
             maxLimitJson <- lift(getOrganizationsMaxLimits(resultOrganizations))
-            _ = Logger.info(s"From organization(s) ${resultOrganizations}, max limits are ${maxLimitJson}!")
+            _ = Logger.info(s"From organization(s) $resultOrganizations, max limits are $maxLimitJson!")
             _ <- lift(setUserLimits(maxLimitJson, user))
             _ <- lift {
               // If user doesn't have organizations, that means he haven't seen welcome popup for organization
@@ -392,7 +401,7 @@ class TagServiceDefault(
         if (removedOrganizations.nonEmpty) {
           for {
             user <- lift(userRepository.find(userId))
-            userTags <- lift(tagRepository.listByEntity(user.id, TaggableEntities.user))
+            userTags <- lift(listByEntity(user.id, TaggableEntities.user))
             // In case if tag wasn't removed from user, we filter it
             filteredUserTags = userTags.filter(tag => tag.name != tagName || (tag.name == tagName && tag.lang != tagLang))
             remainedOrganizations <- lift(organizationRepository.listByTags(filteredUserTags.map(tag => (tag.name, tag.lang)), false))
@@ -553,7 +562,7 @@ class TagServiceDefault(
       course <- lift(courseRepository.find(project.courseId))
       teacher <- lift(userRepository.find(course.ownerId))
       teacherRoles <- lift(roleRepository.list(teacher))
-      organizationProjectTags <- lift(tagRepository.listOrganizationalByEntity(projectId, TaggableEntities.project))
+      organizationProjectTags <- lift(tagRepository.listOrganizationalByEntity(projectId.toString, TaggableEntities.project))
       _ <- lift {
         // Check if user tries to untag the last organization tag
         // If project doesn't belong to a manager (but to a orgManger), then we set isMaster = false

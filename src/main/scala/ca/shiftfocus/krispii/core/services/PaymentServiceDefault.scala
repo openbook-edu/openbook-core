@@ -4,9 +4,7 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.models.stripe.{CreditCard, StripeSubscription}
 import ca.shiftfocus.krispii.core.models.user.User
-// import java.io.{PrintWriter, StringWriter}
 import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
-import ca.shiftfocus.krispii.core.models.stripe.StripePlan
 import ca.shiftfocus.krispii.core.models.{Account, AccountStatus, PaymentLog, TaggableEntities}
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource.DB
@@ -33,8 +31,8 @@ class PaymentServiceDefault(
     val stripeEventRepository: StripeEventRepository,
     val stripeSubscriptionRepository: StripeSubscriptionRepository,
     val paymentLogRepository: PaymentLogRepository,
-    val tagRepository: TagRepository,
-    val stripePlanRepository: StripePlanRepository
+    val tagRepository: TagRepository /*,
+    val stripePlanRepository: StripePlanRepository */
 ) extends PaymentService {
 
   implicit def conn: Connection = db.pool
@@ -84,10 +82,10 @@ class PaymentServiceDefault(
    *  Update krispii user account information in database
    * TODO: update list of payment plan tags associated with the subscription
    *
-   * @param id
+   * @param id unique account ID
    * @param version How many times the account has already been updated before
    * @param status One of the predefined strings "trial", "limited" etc.
-   * @param activeUntil
+   * @param activeUntil The Date when the subscription will end
    * @param overdueStartedAt The Date when overdue period has started TODO for each subscription!
    * @param overdueEndedAt The Date when overdue period has ended TODO for each subscription!
    * @return  Account with subscriptions
@@ -104,7 +102,7 @@ class PaymentServiceDefault(
   ): Future[\/[ErrorUnion#Fail, Account]] = {
     for {
       existingAccount <- lift(accountRepository.get(id))
-      _ = Logger.debug(s"Account before updating: ${existingAccount}")
+      _ = Logger.debug(s"Account before updating: $existingAccount")
       /* UpdateAccountForm in api Payment.scala permits the following behaviors for trialStartedAt:
        - "trialStartedAt":"date" -> Some(Some(date))
        - "trialStartedAt": "" -> Some(None), so delete the field in the database
@@ -137,7 +135,7 @@ class PaymentServiceDefault(
       }
       )))
       // accountRepository.update has ignored subscriptions
-      _ = Logger.info(s"In updateAccount, old status for user ${existingAccount.userId} is ${existingAccount.status}, new status is to be ${status}")
+      _ = Logger.info(s"In updateAccount, old status for user ${existingAccount.userId} is ${existingAccount.status}, new status is to be $status")
       _ <- lift(tagUntagUserBasedOnStatus(updatedAccount.userId, status, Some(existingAccount.status)))
       // subscriptions are stored separate from the rest of the account in the data base
       subscriptions <- lift(stripeSubscriptionRepository.listByAccountId(updatedAccount.id))
@@ -176,43 +174,6 @@ class PaymentServiceDefault(
     catch {
       case e: Throwable => -\/(ServiceError.ExternalService(e.toString))
     }
-  }
-
-  def listPlansFromDb: Future[\/[ErrorUnion#Fail, IndexedSeq[StripePlan]]] = {
-    stripePlanRepository.list
-  }
-
-  def findPlanInDb(id: UUID): Future[\/[ErrorUnion#Fail, StripePlan]] = {
-    stripePlanRepository.find(id)
-  }
-
-  def findPlanInDb(planId: String): Future[\/[ErrorUnion#Fail, StripePlan]] = {
-    stripePlanRepository.find(planId)
-  }
-
-  def savePlanInDb(planId: String, title: String): Future[\/[ErrorUnion#Fail, StripePlan]] = {
-    stripePlanRepository.create(StripePlan(
-      stripeId = planId,
-      title = title
-    ))
-  }
-
-  def updatePlanInDb(id: UUID, version: Long, title: String): Future[\/[ErrorUnion#Fail, StripePlan]] = {
-    for {
-      existingStripePlan <- lift(stripePlanRepository.find(id))
-      _ <- predicate(existingStripePlan.version == version)(RepositoryError.OfflineLockFail)
-      updatedStripePlan <- lift(stripePlanRepository.update(existingStripePlan.copy(
-        title = title
-      )))
-    } yield updatedStripePlan
-  }
-
-  def deletePlanFromDb(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, StripePlan]] = {
-    for {
-      existingStripePlan <- lift(stripePlanRepository.find(id))
-      _ <- predicate(existingStripePlan.version == version)(RepositoryError.OfflineLockFail)
-      deletedStripePlan <- lift(stripePlanRepository.delete(existingStripePlan))
-    } yield deletedStripePlan
   }
 
   /**
@@ -632,7 +593,7 @@ class PaymentServiceDefault(
       \/-(Invoice.upcoming(params, requestOptions))
     }
     catch {
-      case e: InvalidRequestException if (e.toString.contains("No upcoming invoices for customer")) =>
+      case e: InvalidRequestException if e.toString.contains("No upcoming invoices for customer") =>
         -\/(RepositoryError.NoResults("core.services.PaymentServiceDefault.fetchUpcomingInvoiceFromStripe.no.results"))
       case e: Throwable =>
         -\/(ServiceError.ExternalService(e.toString))
@@ -690,16 +651,16 @@ class PaymentServiceDefault(
           val customer: Customer = Customer.retrieve(customerId, requestOptions)
           val defaultSource = Option(customer.getDefaultSource)
 
-          Option(customer.getSources()) match {
-            case Some(sources) if (defaultSource.isDefined) => {
+          // TODO: can the outer match be eliminated?
+          Option(customer.getSources) match {
+            case Some(sources) if defaultSource.isDefined =>
               // Get default payment source
-              val defaultSource = customer.getSources().retrieve(customer.getDefaultSource, requestOptions)
+              val defaultSource = customer.getSources.retrieve(customer.getDefaultSource, requestOptions)
 
               defaultSource.getObject match {
                 case "card" => \/-(defaultSource.asInstanceOf[Card])
                 case _ => -\/(RepositoryError.NoResults("core.services.PaymentServiceDefault.fetchPaymentInfoFromStripe.no.card"))
               }
-            }
             case None => -\/(RepositoryError.NoResults("core.services.PaymentServiceDefault.fetchPaymentInfoFromStripe.no.sources"))
           }
         }
@@ -763,8 +724,8 @@ class PaymentServiceDefault(
   /**
    * Delete stripe customer's payment info (credit card) from stripe
    *
-   * @param customerId
-   * @return
+   * @param customerId unique string for Stripe customers
+   * @return a Future containing either the deleted CreditCard information or an error
    */
   def deletePaymentInfo(customerId: String): Future[\/[ErrorUnion#Fail, CreditCard]] = {
     try {
@@ -783,8 +744,8 @@ class PaymentServiceDefault(
   /**
    * Check if user has access to the application
    *
-   * @param userId
-   * @return
+   * @param userId unique user ID
+   * @return a Future containing either an error or a Boolean
    */
   def hasAccess(userId: UUID): Future[\/[ErrorUnion#Fail, Boolean]] = {
     for {
@@ -794,7 +755,7 @@ class PaymentServiceDefault(
             account.status == AccountStatus.limited ||
             (account.activeUntil.isDefined && account.activeUntil.get.isAfterNow) // Active until date is greater then now
         )
-        case -\/(error: RepositoryError.NoResults) => \/-(false)
+        case -\/(_: RepositoryError.NoResults) => \/-(false)
         case -\/(error) => -\/(error)
       })
     } yield hasAccess
@@ -803,7 +764,7 @@ class PaymentServiceDefault(
   /**
    * Get a stripe event from Stripe by id
    *
-   * @param eventId
+   * @param eventId a Stripe event ID
    * @return
    */
   def fetchEventFromStripe(eventId: String): Future[\/[ErrorUnion#Fail, JsValue]] = Future {
@@ -820,7 +781,7 @@ class PaymentServiceDefault(
   /**
    * Get a stripe event from krispii database by Id
    *
-   * @param eventId
+   * @param eventId unique string for Stripe event
    * @return
    */
   def getEvent(eventId: String): Future[\/[ErrorUnion#Fail, JsValue]] = {
@@ -832,9 +793,9 @@ class PaymentServiceDefault(
   /**
    * Create a stripe event in krispii database
    *
-   * @param eventId
-   * @param eventType
-   * @param event
+   * @param eventId unique String for Stripe event
+   * @param eventType String for event type
+   * @param event JSON value
    * @return
    */
   def createEvent(eventId: String, eventType: String, event: JsValue): Future[\/[ErrorUnion#Fail, JsValue]] = {
@@ -871,17 +832,17 @@ class PaymentServiceDefault(
    *
    * Putting user on free, group or trial status leads to automatic addition of the "Trial" tag.
    *
-   * @param userId
-   * @param newStatus
-   * @param oldStatus
-   * @return: Nothing or error message
+   * @param userId unique user ID
+   * @param newStatus String, one of the allowed account status values
+   * @param oldStatus String, one of the allowed account status values
+   * @return Future containing Unit or error message
    */
   private def tagUntagUserBasedOnStatus(userId: UUID, newStatus: String, oldStatus: Option[String] = None): Future[\/[ErrorUnion#Fail, Unit]] = {
     // val sw = new StringWriter
     // val st = new RuntimeException
     // st.printStackTrace(new PrintWriter(sw))
     // Logger.debug(sw.toString)
-    Logger.info(s"In tagUntagUserBasedOnStatus, old status for user ${userId} is ${oldStatus}, new status is ${newStatus}")
+    Logger.info(s"In tagUntagUserBasedOnStatus, old status for user $userId is $oldStatus, new status is $newStatus")
     /* Logger.debug(s"In tagUntagUserBasedOnStatus, old status for user ${userId} is ${oldStatus}, new status is ${newStatus} when called in stack..." +
         Thread.currentThread.getStackTrace.filter(trElem => {
         (trElem.toString contains "krispii")
@@ -893,51 +854,47 @@ class PaymentServiceDefault(
       case AccountStatus.limited |
         AccountStatus.inactive |
         AccountStatus.overdue =>
-        {
-          // | AccountStatus.paid =>
-          // We don't need to do anything in case of these statuses:
-          //         AccountStatus.canceled |
-          //         AccountStatus.onhold |
-          //         AccountStatus.error |
-          val futureResult = for {
-            removeTags <- lift(tagRepository.listAdminByEntity(userId, TaggableEntities.user))
-            _ = Logger.info(s"Admin tags to be removed from user with id ${userId} because subscription or trial expired: ${removeTags}")
-            _ <- lift(serializedT(removeTags)(tag => {
-              Logger.info(s"Removing tag ${tag.name}")
-              tagRepository.untag(userId, TaggableEntities.user, tag.name, tag.lang).map {
-                case \/-(success) => \/-(success)
-                case -\/(error: RepositoryError.NoResults) => \/-((): Unit)
-                case -\/(error) => -\/(error)
-              }
-            }))
-          } yield ()
-          futureResult.run
-        }
+        // | AccountStatus.paid =>
+        // We don't need to do anything in case of these statuses:
+        //         AccountStatus.canceled |
+        //         AccountStatus.onhold |
+        //         AccountStatus.error |
+        val futureResult = for {
+          removeTags <- lift(tagRepository.listAdminByEntity(userId.toString, TaggableEntities.user))
+          _ = Logger.info(s"Admin tags to be removed from user with id $userId because subscription or trial expired: $removeTags")
+          _ <- lift(serializedT(removeTags)(tag => {
+            Logger.info(s"Removing tag ${tag.name}")
+            tagRepository.untag(userId.toString, TaggableEntities.user, tag.name, tag.lang).map {
+              case \/-(success) => \/-(success)
+              case -\/(_: RepositoryError.NoResults) => \/-(())
+              case -\/(error) => -\/(error)
+            }
+          }))
+        } yield ()
+        futureResult.run
       /* ProjectBuilderTag, trialTag, krispiiTag, and/or sexEdTag are given in krispii-api Payment.scala tagUserAccordingPlan
          (for stripe payment) resp. copyOrgAdminSettings (for members recruited by an orgadmin).
          trialTag need only be given to free and trial, but it won't hurt to give it to paid.group, too. */
       case AccountStatus.free |
         AccountStatus.group |
         AccountStatus.trial =>
-        {
-          val futureResult = for {
-            userTags <- lift(tagRepository.listByEntity(userId, TaggableEntities.user))
-            // tag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // krispii tag, use id, because we can change tag names
-            trialTag <- lift(tagRepository.find(UUID.fromString("29479566-3a50-4d36-bc20-f45ff4d4b2d4"))) // all users get this tag to access trial material
-            _ <- lift {
-              if (!userTags.contains(trialTag)) {
-                Logger.info(s"Trying to give trial tag to user with ID ${userId}")
-                tagRepository.tag(userId, TaggableEntities.user, trialTag.name, trialTag.lang).map {
-                  case \/-(success) => \/-(success)
-                  case -\/(RepositoryError.PrimaryKeyConflict) => \/-((): Unit)
-                  case -\/(error) => -\/(error)
-                }
+        val futureResult = for {
+          userTags <- lift(tagRepository.listByEntity(userId.toString, TaggableEntities.user))
+          // tag <- lift(tagRepository.find(UUID.fromString("73d329b7-503a-4ec0-bf41-499feab64c07"))) // krispii tag, use id, because we can change tag names
+          trialTag <- lift(tagRepository.find(UUID.fromString("29479566-3a50-4d36-bc20-f45ff4d4b2d4"))) // all users get this tag to access trial material
+          _ <- lift {
+            if (!userTags.contains(trialTag)) {
+              Logger.info(s"Trying to give trial tag to user with ID $userId")
+              tagRepository.tag(userId.toString, TaggableEntities.user, trialTag.name, trialTag.lang).map {
+                case \/-(success) => \/-(success)
+                case -\/(RepositoryError.PrimaryKeyConflict) => \/-((): Unit)
+                case -\/(error) => -\/(error)
               }
-              else Future successful \/-((): Unit)
             }
-          } yield ()
-          futureResult.run
-        }
+            else Future successful \/-((): Unit)
+          }
+        } yield ()
+        futureResult.run
       case _ => Future successful \/-((): Unit)
     }
   }

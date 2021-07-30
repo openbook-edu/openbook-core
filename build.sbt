@@ -8,6 +8,17 @@ scalaVersion := "2.12.4"
 
 crossScalaVersions := Seq("2.10.4", "2.11.6", "2.12.4")
 
+scalacOptions := Seq("-target:jvm-1.8")
+
+javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint")
+
+initialize := {
+  val _ = initialize.value
+  val javaVersion = sys.props("java.specification.version")
+  if (javaVersion != "1.8")
+    sys.error("Java 1.8 is required for this project. Found " + javaVersion + " instead")
+}
+
 resolvers ++= Seq(
   "Typesafe" at "http://repo.typesafe.com/typesafe/releases",
   "ShiftFocus" at "https://maven.shiftfocus.ca/repositories/releases",

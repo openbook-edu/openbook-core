@@ -216,7 +216,7 @@
 //        val result = userRepository.list(testRole)
 //        Await.result(result, Duration.Inf) should be(\/-(Vector()))
 //      }
-//      "list users in a given course" in {
+//      "list users in a given group" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //
@@ -247,7 +247,7 @@
 //          }
 //        }
 //      }
-//      "return empty Vector() if course doesn't exist" in {
+//      "return empty Vector() if group doesn't exist" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //
@@ -256,7 +256,7 @@
 //        val result = userRepository.list(testCourse)
 //        Await.result(result, Duration.Inf) should be(\/-(Vector()))
 //      }
-//      "return empty Vector() if there are no users in the course" in {
+//      "return empty Vector() if there are no users in the group" in {
 //        (cache.getCached(_: String)) when (*) returns (Future.successful(-\/(RepositoryError.NoResults(""))))
 //        (cache.putCache(_: String)(_: Any, _: Option[Duration])) when (*, *, *) returns (Future.successful(\/-(())))
 //

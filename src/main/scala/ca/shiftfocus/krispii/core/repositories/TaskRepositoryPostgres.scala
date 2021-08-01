@@ -6,6 +6,7 @@ import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
 import ca.shiftfocus.krispii.core.models.tasks.questions.Question
 import ca.shiftfocus.krispii.core.models.tasks.{Task, _}
+import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import play.api.libs.json.Json

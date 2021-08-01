@@ -1,7 +1,5 @@
 package ca.shiftfocus.krispii.core.services
 
-import java.io.{PrintWriter, StringWriter}
-
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.helpers.Token
 import ca.shiftfocus.krispii.core.lib.InputUtils
@@ -10,6 +8,7 @@ import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
 
+import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.Connection
 import org.apache.commons.mail.EmailException
 import play.api.Logger
@@ -49,9 +48,8 @@ class AuthServiceDefault(
   val activation = "activation"
 
   /**
-   * List all users.
-   *
-   * @return an IndexedSeq of user
+   * List all users (only for top administrators)
+   * @return an IndexedSeq of users with their roles
    */
   override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     (for {
@@ -66,6 +64,20 @@ class AuthServiceDefault(
       }
     } yield result).run
   }
+
+  /**
+   * List all members of all organizations that the caller is orgAdministrator or member in
+   * @param user the caller
+   * @return a list of users with their roles, or an error
+   */
+  override def listColleagues(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] =
+    for {
+      asAdmin <- lift(organizationService.listByAdmin(user.email))
+      asMember <- lift(organizationService.listByMember(user.email))
+      organizations = asAdmin ++ asMember
+      _ = Logger.debug(s"${user.email} is admin or member in the organizations: ${organizations.map(_.title)}")
+      users <- lift(organizationService.listMembers(organizations))
+    } yield users
 
   override def listByRange(offset: Int, limit: Int): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     (for {
@@ -125,7 +137,7 @@ class AuthServiceDefault(
             \/-(user.copy(roles = roles))
           }
           else {
-            -\/(ServiceError.BadInput("core.AuthServiceDefault.bad.password"))
+            -\/(ServiceError.BadInput("The password was invalid."))
           }
         })
       } yield authUser
@@ -175,12 +187,12 @@ class AuthServiceDefault(
    * @param userId
    * @param ipAddress
    * @param userAgent
-   * @param accessToken: optional Microsoft access token
+   * @param accessToken: optional Google or Microsoft access token
    * @param refreshToken: optional Microsoft refresh token
-   *
    * @return
    */
-  override def createSession(userId: UUID, ipAddress: String, userAgent: String, accessToken: Option[String], refreshToken: Option[String]): Future[\/[ErrorUnion#Fail, Session]] = {
+  override def createSession(userId: UUID, ipAddress: String, userAgent: String,
+    accessToken: Option[String], refreshToken: Option[String]): Future[\/[ErrorUnion#Fail, Session]] =
     sessionRepository.create(Session(
       userId = userId,
       ipAddress = ipAddress,
@@ -188,7 +200,6 @@ class AuthServiceDefault(
       accessToken = accessToken,
       refreshToken = refreshToken
     ))
-  }
 
   override def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]] =
     updateSession(sessionId, ipAddress, userAgent, None, None)
@@ -199,12 +210,10 @@ class AuthServiceDefault(
    * @param sessionId
    * @param ipAddress
    * @param userAgent
-   * @param accessToken: optional Microsoft access token
-   * @param refreshToken: optional Microsoft refresh token
    * @return
    */
   override def updateSession(sessionId: UUID, ipAddress: String, userAgent: String, accessToken: Option[String], refreshToken: Option[String]): Future[\/[ErrorUnion#Fail, Session]] = {
-    (for {
+    val fUpdated = for {
       session <- lift(sessionRepository.find(sessionId))
       updated <- lift(sessionRepository.update(session.copy(
         ipAddress = ipAddress,
@@ -212,7 +221,9 @@ class AuthServiceDefault(
         accessToken = accessToken.orElse(session.accessToken),
         refreshToken = refreshToken.orElse(session.refreshToken)
       )))
-    } yield updated).run
+    } yield updated
+
+    fUpdated.run
   }
 
   /**
@@ -282,7 +293,7 @@ class AuthServiceDefault(
           val token = Token.getNext
           for {
             validEmail <- lift(validateEmail(email.trim.toLowerCase))
-            _ <- lift(validateUsername(username.trim))
+            validUsername <- lift(validateUsername(username.trim))
             _ <- predicate(InputUtils.isValidPassword(password.trim))(ServiceError.BadInput("core.AuthServiceDefault.password.short"))
             passwordHash = Some(webcrank.crypt(password.trim))
             newUser <- lift {
@@ -431,7 +442,7 @@ class AuthServiceDefault(
     }
   }
 
-  override def reactivate(email: String, hostname: Option[String])(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, String]] = {
+  override def reactivate(email: String, hostname: Option[String])(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]] = {
     transactional { implicit conn =>
       val fToken = for {
         user <- lift(userRepository.find(email))
@@ -442,9 +453,8 @@ class AuthServiceDefault(
           Seq(user.givenname + " " + user.surname + " <" + email + ">"), //to
           bodyHtml = Some(messagesApi("activate.confirm.message", hostname.get, user.id.toString, token.token)(lang)) //text
         )
-        emailResponse <- lift(sendAsyncEmail(emailForNew))
-        _ = Logger.debug(emailResponse)
-      } yield emailResponse
+        _ <- lift(sendAsyncEmail(emailForNew))
+      } yield token
       fToken.run
     }
   }
@@ -473,26 +483,24 @@ class AuthServiceDefault(
       val updated = for {
         existingUser <- lift(userRepository.find(id, includeDeletedUsers))
         _ <- predicate(existingUser.version == version)(ServiceError.OfflineLockFail)
-        u_email <- lift(email.map { someEmail =>
-          validateEmail(someEmail.trim.toLowerCase, Some(id))
-        }.getOrElse(Future.successful(\/-(existingUser.email))))
-        u_username <- lift(username.map { someUsername =>
-          validateUsername(someUsername, Some(id))
-        }.getOrElse(Future.successful(\/-(existingUser.username))))
-        hash = password match {
-          case Some(pwd) if (InputUtils.isValidPassword(pwd.trim)) => Some(Passwords.scrypt().crypt(pwd.trim))
-          case Some(_) => None
-          case None => existingUser.hash
+        u_email <- lift(email.map { someEmail => validateEmail(someEmail.trim.toLowerCase, Some(id)) }.getOrElse(Future.successful(\/-(existingUser.email))))
+        u_username <- lift(username.map { someUsername => validateUsername(someUsername, Some(id)) }.getOrElse(Future.successful(\/-(existingUser.username))))
+        hash = password.flatMap { pwd =>
+          if (!InputUtils.isValidPassword(pwd.trim)) Some("0")
+          else {
+            val webcrank = Passwords.scrypt()
+            Some(webcrank.crypt(pwd.trim))
+          }
         }
-        _ <- predicate(hash.isDefined)(ServiceError.BadInput("core.AuthServiceDefault.bad.password"))
+        _ <- predicate(!(hash.getOrElse("no password") == "0"))(ServiceError.BadInput("Password must be at least 8 characters"))
         userToUpdate = existingUser.copy(
           email = u_email,
           username = u_username,
           givenname = givenname.getOrElse(existingUser.givenname),
           surname = surname.getOrElse(existingUser.surname),
           alias = alias match {
-            case Some(userAlias) if userAlias.trim.length > 0 => Some(userAlias.trim)
-            case Some(_) => None
+            case Some(userAlias) if !userAlias.trim.isEmpty => Some(userAlias)
+            case Some(userAlias) if userAlias.trim.isEmpty => None
             case None => existingUser.alias
           },
           hash = hash,
@@ -798,7 +806,7 @@ class AuthServiceDefault(
    */
   private def validateEmail(email: String, existingId: Option[UUID] = None)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, String]] = {
     val existing = for {
-      _ <- predicate(InputUtils.isValidEmail(email.trim))(ServiceError.BadInput("core.services.AuthServiceDefault.requestEmailChange.email.bad.format"))
+      _ <- predicate(InputUtils.isValidEmail(email.trim))(ServiceError.BadInput(s"'$email' is not a valid format"))
       existingUser <- lift(userRepository.find(email.trim))
     } yield existingUser
 
@@ -806,7 +814,7 @@ class AuthServiceDefault(
       case \/-(user) =>
         if (existingId.isEmpty || (existingId.get != user.id)) -\/(RepositoryError.UniqueKeyConflict("email", s"The e-mail address $email is already in use."))
         else \/-(email)
-      case -\/(_: RepositoryError.NoResults) => \/-(email)
+      case -\/(noResults: RepositoryError.NoResults) => \/-(email)
       case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)
     }
   }
@@ -822,15 +830,15 @@ class AuthServiceDefault(
    */
   private def validateUsername(username: String, existingId: Option[UUID] = None)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, String]] = {
     val existing = for {
-      _ <- predicate(InputUtils.isValidUsername(username.trim))(ServiceError.BadInput("core.AuthServiceDefault.username.short"))
+      _ <- predicate(InputUtils.isValidUsername(username.trim))(ServiceError.BadInput("Your username must be at least 3 characters."))
       existingUser <- lift(userRepository.find(username.trim))
     } yield existingUser
 
     existing.run.map {
       case \/-(user) =>
-        if (existingId.isEmpty || (existingId.get != user.id)) -\/(RepositoryError.UniqueKeyConflict("username", "core.services.AuthServiceDefault.requestEmailChange.email.exist"))
+        if (existingId.isEmpty || (existingId.get != user.id)) -\/(RepositoryError.UniqueKeyConflict("username", s"The username $username is already in use."))
         else \/-(username)
-      case -\/(_: RepositoryError.NoResults) => \/-(username)
+      case -\/(noResults: RepositoryError.NoResults) => \/-(username)
       case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)
     }
   }
@@ -849,7 +857,7 @@ class AuthServiceDefault(
         user <- lift(fUser)
         roles <- lift(roleRepository.list(user))
         token <- lift(userTokenRepository.find(user.id, activation))
-        _ <- predicate(activationCode == token.token)(ServiceError.BadInput("core.AuthServiceDefault.bad.activation"))
+        _ <- predicate(activationCode == token.token)(ServiceError.BadInput("Wrong activation code!"))
         _ <- lift {
           // If there is no "authenticated" role than add it
           if (!roles.exists(_.name == "authenticated")) {
@@ -864,7 +872,7 @@ class AuthServiceDefault(
       } yield (user, token, roles, deleted)
 
       result.run.map {
-        case \/-((user, _, _, _)) => \/-(user)
+        case \/-((user, token, roles, deleted)) => \/-(user)
         case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)
       }
     }
@@ -882,11 +890,9 @@ class AuthServiceDefault(
       \/-(mailerClient.send(email))
     }
     catch {
-      case emailException: EmailException =>
-        val sw = new StringWriter
-        emailException.printStackTrace(new PrintWriter(sw))
-        Logger.error(s"When sending email:\n$sw")
+      case emailException: EmailException => {
         -\/(ServiceError.MailerFail("E-mail sending failed.", Some(emailException)))
+      }
       case otherException: Throwable => throw otherException
     }
   }

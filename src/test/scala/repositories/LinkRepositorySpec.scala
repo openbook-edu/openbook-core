@@ -23,7 +23,7 @@
 //        val \/-(link) = eitherLink
 //
 //        link.link should be(testLink.link)
-//        link.courseId should be(testLink.courseId)
+//        link.groupId should be(testLink.groupId)
 //      }
 //      "Return an unique key conflict if the link already exits" in {
 //
@@ -43,7 +43,7 @@
 //        val \/-(link) = eitherLink
 //
 //        link.link should be(testLink.link)
-//        link.courseId should be(testLink.courseId)
+//        link.groupId should be(testLink.groupId)
 //      }
 //      "Return not found error if the link doest exists" in {
 //        val testLink = TestValues.testLinkC
@@ -58,12 +58,12 @@
 //    inSequence {
 //      "Return a valid link" in {
 //        val testLink = TestValues.testLinkA
-//        val result = linkRepository.findByCourse(testLink.courseId)
+//        val result = linkRepository.findByCourse(testLink.groupId)
 //        val eitherLink = Await.result(result, Duration.Inf)
 //        val \/-(link) = eitherLink
 //
 //        link.link should be(testLink.link)
-//        link.courseId should be(testLink.courseId)
+//        link.groupId should be(testLink.groupId)
 //      }
 //      "Return not found error if the link doest exists" in {
 //        val testLink = TestValues.testLinkC
@@ -83,7 +83,7 @@
 //        val \/-(link) = eitherLink
 //
 //        link.link should be(testLink.link)
-//        link.courseId should be(testLink.courseId)
+//        link.groupId should be(testLink.groupId)
 //      }
 //      "return an error if the link doesnt exist" in {
 //        val testLink = TestValues.testLinkC

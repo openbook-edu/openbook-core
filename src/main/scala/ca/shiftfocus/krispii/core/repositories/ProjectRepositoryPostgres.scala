@@ -4,7 +4,9 @@ import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.models.group.Course
 import ca.shiftfocus.krispii.core.models.tasks.{DocumentTask, MediaTask, QuestionTask, Task}
+import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
 import play.api.Logger
@@ -27,7 +29,7 @@ class ProjectRepositoryPostgres(
   override val entityName = "Project"
 
   def constructor(row: RowData): Project = {
-    Logger.debug("Project enabled: " + row("enabled").toString)
+    // Logger.debug("Creating project " + row("name").toString() + ", enabled: " + row("enabled").toString)
     Project(
       row("id").asInstanceOf[UUID],
       row("course_id").asInstanceOf[UUID],
@@ -238,7 +240,7 @@ class ProjectRepositoryPostgres(
   }
 
   /**
-   * Clones the master project into the given course.
+   * Clones the master project into the given group.
    *
    * @param projectId
    * @param courseId
@@ -287,7 +289,7 @@ class ProjectRepositoryPostgres(
           }.asInstanceOf[IndexedSeq[Task]],
             components = {
             // If we have new components owner
-            if (course.teacherId != ownerId) cloneComponents(components, ownerId, project.isMaster)
+            if (course.ownerId != ownerId) cloneComponents(components, ownerId, project.isMaster)
             else components
           }
           )
@@ -428,7 +430,7 @@ class ProjectRepositoryPostgres(
   }
 
   /**
-   * Find all Projects belonging to a given course.
+   * Find all Projects belonging to a given group.
    *
    * @param course The section to return projects from.
    * @return a vector of the returned Projects
@@ -556,7 +558,7 @@ class ProjectRepositoryPostgres(
   }
 
   /**
-   * Save a Project row.
+   * Update a Project row.
    *
    * @param project The project to update.
    * @param conn An implicit connection object. Can be used in a transactional chain.
@@ -582,7 +584,7 @@ class ProjectRepositoryPostgres(
    *
    * @param project The project to be deleted.
    * @param conn An implicit connection object. Can be used in a transactional chain.
-   * @return a boolean indicator whether the deletion was successful.
+   * @return the deleted project (if the deletion was successful) or an error
    */
   override def delete(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Project]] = {
     (for {

@@ -288,10 +288,23 @@ class SchoolServiceDefault(
       user <- lift(authService.find(userId))
       teacher <- lift(authService.find(teacherId))
       userCourses <- lift(courseRepository.list(user, false))
-      filteredCourses = userCourses.filter(_.ownerId == teacherId)
+      filteredCourses = userCourses.filter(_.ownerId == teacher.id)
       _ <- predicate(filteredCourses.nonEmpty)(RepositoryError.NoResults(s"User ${userId.toString} is not in any courses with teacher ${teacherId.toString}"))
     } yield user
   }
+
+  /**
+   * Changes the chatEnabled field only if the new value is actually different from the old one.
+   * TODO: can this be done in a general way for any field of Course? If yes, can it be done in CourseRepository?
+   * @param course: the old Course
+   * @param newValue: new value of chatEnabled
+   * @return either a Course or an error
+   */
+  def updateIfChanged(course: Course, newValue: Boolean): Future[\/[ErrorUnion#Fail, Course]] =
+    if (course.chatEnabled == newValue)
+      Future successful \/-(course)
+    else
+      courseRepository.update(course.copy(chatEnabled = newValue))
 
   /**
    * Set chatEnabled to a new value
@@ -299,10 +312,10 @@ class SchoolServiceDefault(
    * @param chatEnabled
    * @return
    */
-  def toggleCourseChat(courseId: UUID, chatEnabled: Boolean): Future[\/[ErrorUnion#Fail, Course]] =
+  override def toggleCourseChat(courseId: UUID, chatEnabled: Boolean): Future[\/[ErrorUnion#Fail, Course]] =
     for {
       old <- lift(courseRepository.find(courseId))
-      updated <- lift(courseRepository.update(old.copy(chatEnabled = chatEnabled)))
+      updated <- lift(updateIfChanged(old, chatEnabled))
     } yield updated
 
   /**

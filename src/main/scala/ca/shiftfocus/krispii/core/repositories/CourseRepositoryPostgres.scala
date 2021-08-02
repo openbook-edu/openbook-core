@@ -1,26 +1,22 @@
 package ca.shiftfocus.krispii.core.repositories
 
+import java.awt.Color
+import java.util.{NoSuchElementException, UUID}
+
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
-import ca.shiftfocus.lib.exceptions.ExceptionWriter
+import ca.shiftfocus.krispii.core.models.group.Course
+import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.exceptions.ConnectionStillRunningQueryException
 import com.github.mauricio.async.db.postgresql.exceptions.GenericDatabaseException
-import com.github.mauricio.async.db.{ ResultSet, RowData, Connection }
-import java.awt.Color // scalastyle:ignore
-import java.util.NoSuchElementException
-import java.util.UUID
+import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
-import play.api.Play.current
-import scala.concurrent.Future
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalacache.ScalaCache
-import scalaz.{ \/, -\/, \/- }
-import scalaz.syntax.either._
+import scalaz.{-\/, \/, \/-}
 
-class CourseRepositoryPostgres(val userRepository: UserRepository) extends CourseRepository with PostgresRepository[Course] {
+class CourseRepositoryPostgres(val userRepository: UserRepository, val cacheRepository: CacheRepository) extends CourseRepository with PostgresRepository[Course] {
 
   override val entityName = "Course"
 
@@ -28,23 +24,29 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
     Course(
       row("id").asInstanceOf[UUID],
       row("version").asInstanceOf[Long],
-      row("teacher_id").asInstanceOf[UUID],
+      row("teacher_id").asInstanceOf[UUID], // teacher_id and is_deleted are the names used in SQL!
       row("name").asInstanceOf[String],
-      new Color(Option(row("color").asInstanceOf[Int]).getOrElse(0)),
+      new Color(row("color").asInstanceOf[Int]),
       row("slug").asInstanceOf[String],
       row("enabled").asInstanceOf[Boolean],
+      row("archived").asInstanceOf[Boolean],
+      row("is_deleted").asInstanceOf[Boolean],
       row("chat_enabled").asInstanceOf[Boolean],
       row("scheduling_enabled").asInstanceOf[Boolean],
       None,
+      row("theater_mode").asInstanceOf[Boolean],
+      Option(row("last_project_id").asInstanceOf[UUID]) match {
+        case Some(lastProjectId) => Some(lastProjectId)
+        case _ => None
+      },
       row("created_at").asInstanceOf[DateTime],
       row("updated_at").asInstanceOf[DateTime]
     )
   }
 
   val Table = "courses"
-  val Fields = "id, version, teacher_id, name, color, slug, enabled, chat_enabled, scheduling_enabled, created_at, updated_at"
+  val Fields = "id, version, teacher_id, name, color, slug, enabled, archived, is_deleted, chat_enabled, scheduling_enabled, theater_mode, last_project_id, created_at, updated_at"
   val FieldsWithTable = Fields.split(", ").map({ field => s"${Table}." + field }).mkString(", ")
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.name ASC"
 
   // User CRUD operations
@@ -71,18 +73,21 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
        |LIMIT 1
      """.stripMargin
 
+  // Using here get_slug custom postgres function to generate unique slug if slug already exists
   val Insert = {
     s"""
        |INSERT INTO $Table ($Fields)
-       |VALUES ($QMarks)
+       |VALUES (?, ?, ?, ?, ?, get_slug(?, '$Table', ?), ?, false, false, ?, ?, ?, ?, ?, ?)
        |RETURNING $Fields
     """.stripMargin
   }
 
+  // Using here get_slug custom postgres function to generate unique slug if slug already exists
   val Update =
     s"""
        |UPDATE $Table
-       |SET version = ?, teacher_id = ?, name = ?, color = ?, slug = ?, enabled = ?, scheduling_enabled = ?, chat_enabled = ?, updated_at = ?
+       |SET version = ?, teacher_id = ?, name = ?, color = ?, slug = get_slug(?, '$Table', ?), enabled = ?,
+       |    archived = ?, scheduling_enabled = ?, theater_mode = ?, last_project_id = ?, chat_enabled = ?, updated_at = ?
        |WHERE id = ?
        |  AND version = ?
        |RETURNING $Fields
@@ -90,9 +95,9 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
 
   val Delete =
     s"""
-       |DELETE FROM $Table
+       |UPDATE $Table
+       |SET is_deleted = true
        |WHERE id = ?
-       |  AND version = ?
        |RETURNING $Fields
      """.stripMargin
 
@@ -213,10 +218,9 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   }
 
   /**
-   * Return course by its project.
+   * Return group by its project.
    *
    * @param project  the project to filter by
-   *
    * @return a result set
    */
   override def list(project: Project)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Course]]] = {
@@ -227,25 +231,31 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
    * Select courses based on the given user.
    *
    * @param user the user to search by
-   * @param asTeacher  whether we are searching for courses this user teachers,
+   * @param asTeacher  whether we are searching for courses this user teaches,
    *                   or courses this user is a student of.
-   *
    * @return the found courses
    */
   override def list(user: User, asTeacher: Boolean = false) // format: OFF
-                   (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, IndexedSeq[Course]]] = { // format: ON
-    val key = if (asTeacher) cacheTeachingKey(user.id) else cacheCoursesKey(user.id)
-    cache.getCached[IndexedSeq[Course]](key).flatMap {
-      case \/-(courseList) => Future successful \/-(courseList)
-      case -\/(noResults: RepositoryError.NoResults) =>
-        for {
-          courseList <- lift(queryList(if (asTeacher) ListByTeacherId else ListCourses, Seq[Any](user.id)))
-          _ <- lift(cache.putCache[IndexedSeq[Course]](key)(courseList, ttl))
-        } yield courseList
-      case -\/(error) => Future successful -\/(error)
+                   (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Course]]] = { // format: ON
+
+    if (asTeacher) {
+      val key = cacheTeachingKey(user.id)
+      cacheRepository.cacheSeqCourse.getCached(key).flatMap {
+        case \/-(courseList) => Future successful \/-(courseList)
+        case -\/(noResults: RepositoryError.NoResults) =>
+          for {
+            courseList <- lift(queryList(if (asTeacher) ListByTeacherId else ListCourses, Seq[Any](user.id)))
+            _ <- lift(cacheRepository.cacheSeqCourse.putCache(key)(courseList, ttl))
+          } yield courseList
+        case -\/(error) => Future successful -\/(error)
+      }
+    }
+    else {
+      for {
+        courseList <- lift(queryList(ListCourses, Seq[Any](user.id)))
+      } yield courseList
     }
   }
-
   /**
    * List the courses associated with a user.
    */
@@ -258,7 +268,6 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
       try {
         queryResult.rows match {
           case Some(resultSet) => {
-            val startTimeUsC = System.nanoTime() / 1000
             val tuples = queryResult.rows.get.map { item: RowData =>
               (item("user_id").asInstanceOf[UUID], constructor(item))
             }
@@ -290,38 +299,38 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
    * @param id the 128-bit UUID, as a byte array, to search for.
    * @return an optional RowData object containing the results
    */
-  override def find(id: UUID)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Course]] = {
-    cache.getCached[Course](cacheCourseKey(id)).flatMap {
+  override def find(id: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = {
+    cacheRepository.cacheCourse.getCached(cacheCourseKey(id)).flatMap {
       case \/-(course) => Future successful \/-(course)
       case -\/(noResults: RepositoryError.NoResults) =>
         for {
           course <- lift(queryOne(SelectOne, Array[Any](id)))
-          _ <- lift(cache.putCache[UUID](cacheCourseSlugKey(course.slug))(course.id, ttl))
-          _ <- lift(cache.putCache[Course](cacheCourseKey(course.id))(course, ttl))
+          _ <- lift(cacheRepository.cacheUUID.putCache(cacheCourseSlugKey(course.slug))(course.id, ttl))
+          _ <- lift(cacheRepository.cacheCourse.putCache(cacheCourseKey(course.id))(course, ttl))
         } yield course
       case -\/(error) => Future successful -\/(error)
     }
   }
 
   /**
-   * Find a single entry by ID.
+   * Find a single entry by slug.
    *
-   * @param slug the course's slug
+   * @param slug the group's slug
    * @return an optional RowData object containing the results
    */
-  override def find(slug: String)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Course]] = {
-    cache.getCached[UUID](cacheCourseSlugKey(slug)).flatMap {
+  override def find(slug: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = {
+    cacheRepository.cacheUUID.getCached(cacheCourseSlugKey(slug)).flatMap {
       case \/-(courseId) => {
         for {
-          _ <- lift(cache.putCache[UUID](cacheCourseSlugKey(slug))(courseId, ttl))
+          _ <- lift(cacheRepository.cacheUUID.putCache(cacheCourseSlugKey(slug))(courseId, ttl))
           course <- lift(find(courseId))
         } yield course
       }
       case -\/(noResults: RepositoryError.NoResults) => {
         for {
           course <- lift(queryOne(SelectOneBySlug, Seq[Any](slug)))
-          _ <- lift(cache.putCache[UUID](cacheCourseSlugKey(slug))(course.id, ttl))
-          _ <- lift(cache.putCache[Course](cacheCourseKey(course.id))(course, ttl))
+          _ <- lift(cacheRepository.cacheUUID.putCache(cacheCourseSlugKey(slug))(course.id, ttl))
+          _ <- lift(cacheRepository.cacheCourse.putCache(cacheCourseKey(course.id))(course, ttl))
         } yield course
       }
       case -\/(error) => Future successful -\/(error)
@@ -329,30 +338,30 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   }
 
   /**
-   * Add a user to a course
+   * Add a user to a group
    */
-  override def addUser(user: User, course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def addUser(user: User, course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       _ <- lift(queryNumRows(AddUser, Array(user.id, course.id, new DateTime))(_ == 1).map {
         case \/-(true) => \/-(())
-        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not add ${user.id.toString} to course ${course.id.toString}"))
+        case \/-(false) => -\/(RepositoryError.NoResults(s"Could not add ${user.id.toString} to group ${course.id.toString}"))
         case -\/(error) => -\/(error)
       })
-      _ <- lift(cache.removeCached(cacheStudentsKey(course.id)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(course.id)))
     } yield ()
   }
 
   /**
-   * Remove a user from a course.
+   * Remove a user from a group.
    */
-  override def removeUser(user: User, course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def removeUser(user: User, course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       _ <- lift(queryNumRows(RemoveUser, Array(user.id, course.id))(_ == 1).map {
         case \/-(true) => \/-(())
-        case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the user could not be removed from the course."))
+        case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the user could not be removed from the group."))
         case -\/(error) => -\/(error)
       })
-      _ <- lift(cache.removeCached(cacheStudentsKey(course.id)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(course.id)))
     } yield ()
   }
 
@@ -378,14 +387,14 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
   }
 
   /**
-   * Add users to a course.
+   * Add users to a group.
    *
-   * @param course  the course to add users to.
+   * @param course  the group to add users to.
    * @param users  an array of users to be added.
    * @param conn  an implicit database Connection.
    * @return a boolean indicating if the action was successful.
    */
-  override def addUsers(course: Course, users: IndexedSeq[User])(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def addUsers(course: Course, users: IndexedSeq[User])(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     val cleanCourseId = course.id.toString filterNot ("-" contains _)
     val query = AddUsers + users.map { user =>
       val cleanUserId = user.id.toString filterNot ("-" contains _)
@@ -395,23 +404,23 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
     for {
       _ <- lift(queryNumRows(query)(users.length == _).map {
         case \/-(true) => \/-(())
-        case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the users could not be added to the course."))
+        case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the users could not be added to the group."))
         case -\/(error) => -\/(error)
       })
-      _ <- lift(cache.removeCached(cacheStudentsKey(course.id)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(course.id)))
     } yield ()
   }
 
   /**
-   * Remove users from a course.
+   * Remove users from a group.
    *
-   * @param course  the course to remove users from.
+   * @param course  the group to remove users from.
    * @param users  an array of the users to be removed.
    * @param conn  an implicit database Connection.
    * @return a boolean indicating if the action was successful.
    */
   override def removeUsers(course: Course, users: IndexedSeq[User]) // format: OFF
-                          (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = { // format: ON
+                          (implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = { // format: ON
     val cleanCourseId = course.id.toString filterNot ("-" contains _)
     val cleanUsersId = users.map { user =>
       user.id.toString filterNot ("-" contains _)
@@ -420,28 +429,28 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
     for {
       _ <- lift(queryNumRows(RemoveUsers, Seq[Any](cleanCourseId, cleanUsersId))(users.length == _).map {
         case \/-(true) => \/-(())
-        case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the users could not be removed from the course."))
+        case \/-(false) => -\/(RepositoryError.DatabaseError("The query succeeded but the users could not be removed from the group."))
         case -\/(error) => -\/(error)
       })
-      _ <- lift(cache.removeCached(cacheStudentsKey(course.id)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(course.id)))
     } yield ()
   }
 
   /**
-   * Remove all users from a course.
+   * Remove all users from a group.
    *
-   * @param course  the course to remove users from.
+   * @param course  the group to remove users from.
    * @param conn  an implicit database Connection.
    * @return a boolean indicating if the action was successful.
    */
-  override def removeAllUsers(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Unit]] = {
+  override def removeAllUsers(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     for {
       _ <- lift(queryNumRows(RemoveAllUsers, Seq[Any](course.id))(_ >= 1).map {
         case \/-(true) => \/-(())
         case \/-(false) => -\/(RepositoryError.DatabaseError("No rows were affected"))
         case -\/(error) => -\/(error)
       })
-      _ <- lift(cache.removeCached(cacheStudentsKey(course.id)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(course.id)))
     } yield ()
   }
 
@@ -452,15 +461,15 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
    * @param conn
    * @return
    */
-  def insert(course: Course)(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Course]] = {
+  def insert(course: Course)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = {
     val params = Seq[Any](
-      course.id, 1, course.teacherId, course.name,
-      course.color.getRGB, course.slug, course.enabled, course.chatEnabled, course.schedulingEnabled, new DateTime, new DateTime
+      course.id, 1, course.ownerId, course.name, course.color.getRGB, course.slug, course.id,
+      course.enabled, course.chatEnabled, course.schedulingEnabled, course.theaterMode, course.lastProjectId, new DateTime, new DateTime
     )
 
     for {
       inserted <- lift(queryOne(Insert, params))
-      _ <- lift(cache.removeCached(cacheTeachingKey(course.teacherId)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeachingKey(course.ownerId)))
     } yield inserted
   }
 
@@ -472,20 +481,19 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
    * @return
    */
   override def update(course: Course) // format: OFF
-                     (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Course]] = { // format: ON
+                     (implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = { // format: ON
     val params = Seq[Any](
-      course.version + 1, course.teacherId, course.name,
-      course.color.getRGB, course.slug, course.enabled, course.schedulingEnabled, course.chatEnabled,
-      new DateTime, course.id, course.version
+      course.version + 1, course.ownerId, course.name, course.color.getRGB, course.slug, course.id,
+      course.enabled, course.archived, course.schedulingEnabled, course.theaterMode, course.lastProjectId, course.chatEnabled, new DateTime, course.id, course.version
     )
     for {
       updated <- lift(queryOne(Update, params))
       students <- lift(userRepository.list(updated))
-      _ <- lift(cache.removeCached(cacheStudentsKey(updated.id)))
-      _ <- lift(cache.removeCached(cacheCourseKey(updated.id)))
-      _ <- lift(cache.removeCached(cacheCourseSlugKey(updated.slug)))
-      _ <- lift(cache.removeCached(cacheTeachingKey(course.teacherId)))
-      _ <- liftSeq { students.map { student => cache.removeCached(cacheCoursesKey(student.id)) } }
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(updated.id)))
+      _ <- lift(cacheRepository.cacheCourse.removeCached(cacheCourseKey(updated.id)))
+      _ <- lift(cacheRepository.cacheUUID.removeCached(cacheCourseSlugKey(updated.slug)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeachingKey(course.ownerId)))
+      _ <- liftSeq { students.map { student => cacheRepository.cacheSeqCourse.removeCached(cacheCoursesKey(student.id)) } }
     } yield updated
   }
 
@@ -497,15 +505,15 @@ class CourseRepositoryPostgres(val userRepository: UserRepository) extends Cours
    * @return
    */
   override def delete(course: Course)  // format: OFF
-                     (implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, Course]] = { // format: ON
+                     (implicit conn: Connection): Future[\/[RepositoryError.Fail, Course]] = { // format: ON
     for {
-      deleted <- lift(queryOne(Delete, Array(course.id, course.version)))
+      deleted <- lift(queryOne(Delete, Array(course.id)))
       students <- lift(userRepository.list(deleted))
-      _ <- lift(cache.removeCached(cacheStudentsKey(deleted.id)))
-      _ <- lift(cache.removeCached(cacheCourseKey(deleted.id)))
-      _ <- lift(cache.removeCached(cacheCourseSlugKey(deleted.slug)))
-      _ <- lift(cache.removeCached(cacheTeachingKey(course.teacherId)))
-      _ <- liftSeq { students.map { student => cache.removeCached(cacheCoursesKey(student.id)) } }
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheStudentsKey(deleted.id)))
+      _ <- lift(cacheRepository.cacheCourse.removeCached(cacheCourseKey(deleted.id)))
+      _ <- lift(cacheRepository.cacheUUID.removeCached(cacheCourseSlugKey(deleted.slug)))
+      _ <- lift(cacheRepository.cacheSeqUser.removeCached(cacheTeachingKey(course.ownerId)))
+      _ <- liftSeq { students.map { student => cacheRepository.cacheSeqCourse.removeCached(cacheCoursesKey(student.id)) } }
     } yield deleted
   }
 }

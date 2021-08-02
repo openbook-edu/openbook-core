@@ -1,15 +1,14 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models.User
-import ca.shiftfocus.krispii.core.models.document.{ Revision, Document }
-import ca.shiftfocus.krispii.core.repositories.{ DocumentRepository, UserRepository }
+import ca.shiftfocus.krispii.core.models.document.{Document, Revision}
+import ca.shiftfocus.krispii.core.repositories.{DocumentRepository, UserRepository}
 import java.util.UUID
-import scala.concurrent.ExecutionContext.Implicits.global
-import com.github.mauricio.async.db.Connection
-import scala.concurrent.Future
-import ws.kahn.ot._
 
+import ca.shiftfocus.krispii.core.models.user.User
+
+import scala.concurrent.Future
+import ca.shiftfocus.otlib._
 import scalaz.\/
 
 trait DocumentService extends Service[ErrorUnion#Fail] {

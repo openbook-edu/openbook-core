@@ -6,6 +6,7 @@ import org.joda.time.DateTime
 import play.api.libs.json._
 import play.api.libs.json.Writes._
 import play.api.libs.functional.syntax._
+import play.api.libs.json.JodaWrites._
 
 case class Part(
     id: UUID = UUID.randomUUID,
@@ -15,6 +16,7 @@ case class Part(
     position: Int = 0,
     enabled: Boolean = true,
     tasks: IndexedSeq[Task] = IndexedSeq(),
+    components: IndexedSeq[Component] = IndexedSeq(),
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) {
@@ -46,6 +48,7 @@ object Part {
     (__ \ "position").write[Int] and
     (__ \ "enabled").write[Boolean] and
     (__ \ "tasks").write[IndexedSeq[Task]] and
+    (__ \ "components").write[IndexedSeq[Component]] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(Part.unapply))

@@ -4,9 +4,9 @@ organization := "ca.shiftfocus"
 
 version := scala.io.Source.fromFile("VERSION").mkString("").trim
 
-scalaVersion := "2.11.6"
+scalaVersion := "2.12.4"
 
-crossScalaVersions := Seq("2.10.4", "2.11.6")
+crossScalaVersions := Seq("2.10.4", "2.11.6", "2.12.4")
 
 resolvers ++= Seq(
   "Typesafe" at "http://repo.typesafe.com/typesafe/releases",
@@ -27,7 +27,7 @@ scalacOptions in ThisBuild ++= Seq(
   "-language:implicitConversions",
   "-unchecked",
   "-Xlint",
-  "-Ybackend:GenBCode",
+//  "-Ybackend:GenBCode",
   "-Ywarn-adapted-args",
   "-Ywarn-value-discard",
   "-Ywarn-inaccessible",
@@ -37,25 +37,30 @@ scalacOptions in ThisBuild ++= Seq(
 
 libraryDependencies ++= Seq(
   // We depend on several parts of the Play project
-  "com.typesafe.play" %% "play-json" % "2.4.0",
-  "com.typesafe.play" %% "play-jdbc-evolutions" % "2.4.0",
+  "com.typesafe.play" %% "play-ws" % "2.6.13",
+  "com.typesafe.play" %% "play-json" % "2.6.9",
+  "com.typesafe.play" %% "play-jdbc-evolutions" % "2.6.13",
+  "com.typesafe.play" %% "play-json-joda" % "2.6.9",
+  "com.typesafe.play" %% "play-mailer" % "6.0.1",
   // We heavily depend on scalaz's \/ and associated types
-  "org.scalaz" %% "scalaz-core" % "7.1.2",
-  "com.github.mauricio" %% "postgresql-async" % "0.2.18",
-  "joda-time" % "joda-time" % "2.1",
+  "com.github.mauricio" %% "postgresql-async" % "0.2.21",
+  "joda-time" % "joda-time" % "2.9.9",
   "net.sf.uadetector" % "uadetector-resources" % "2014.04",
-  "com.github.cb372" %% "scalacache-redis" % "0.6.1",
-  "org.scalatest" % "scalatest_2.11" % "2.2.1" % "test",
-  "org.scalamock" %% "scalamock-scalatest-support" % "3.2" % "test",
-  "ca.shiftfocus" %% "webcrank-password" % "0.4.1",
-  "org.slf4j" % "slf4j-api" % "1.7.5",
-  "org.slf4j" % "slf4j-simple" % "1.7.5",
-  "org.clapper" %% "grizzled-slf4j" % "1.0.2",
-  "ca.shiftfocus" %% "sflib" % "1.0.6",
-  "ws.kahn" %% "ot" % "1.0-SNAPSHOT"
+  "com.github.cb372" %% "scalacache-redis" % "0.22.0",
+  "org.scalatest" %% "scalatest" % "3.0.5" % Test,
+  "org.slf4j" % "slf4j-api" % "1.7.25",
+  // "org.slf4j" % "slf4j-simple" % "1.7.25", // this may cause problems with logback
+  "org.clapper" %% "grizzled-slf4j" % "1.3.2",
+  "junit" % "junit" % "4.12" % "test",
+  "com.stripe" % "stripe-java" % "5.33.2",
+  "org.scalamock" %% "scalamock" % "4.1.0" % Test,
+  "ca.shiftfocus" %% "webcrank-password" % "0.5.0",
+  "org.scalaz" %% "scalaz-core" % "7.2.20",
+  "ca.shiftfocus" %% "sflib" % "1.0.8",
+  "ca.shiftfocus" %% "otlib" % "1.0.0"
 )
 
-addCompilerPlugin("com.foursquare.lint" %% "linter" % "0.1.10")
+addCompilerPlugin("org.psywerx.hairyfotr" %% "linter" % "0.1.17")
 
 import scalariform.formatter.preferences._
 scalariformSettings

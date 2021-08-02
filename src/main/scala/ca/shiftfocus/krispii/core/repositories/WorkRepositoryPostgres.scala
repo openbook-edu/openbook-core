@@ -2,18 +2,20 @@ package ca.shiftfocus.krispii.core.repositories
 
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.tasks.Task._
 import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.models.work._
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import java.util.UUID
-import com.github.mauricio.async.db.{ ResultSet, RowData, Connection }
+
+import ca.shiftfocus.krispii.core.models.user.User
+import com.github.mauricio.async.db.{Connection, RowData}
 import play.api.libs.json.Json
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
+
 import scala.concurrent.Future
-import scala.util.{ Success, Try }
-import scalaz.{ \/, -\/, \/- }
+import scala.util.Try
+import scalaz.{-\/, \/, \/-}
 
 class WorkRepositoryPostgres(
     val documentRepository: DocumentRepository,
@@ -26,6 +28,7 @@ class WorkRepositoryPostgres(
     row("work_type").asInstanceOf[Int] match {
       case Task.Document => constructDocumentWork(row)
       case Task.Question => constructQuestionWork(row)
+      case Task.Media => constructMediaWork(row)
       case _ => throw new Exception("Retrieved an unknown task type from the database. You dun messed up now!")
     }
   }
@@ -38,6 +41,7 @@ class WorkRepositoryPostgres(
       documentId = row("document_id").asInstanceOf[UUID],
       version = row("version").asInstanceOf[Long],
       response = None,
+      grade = row("grade").asInstanceOf[String],
       isComplete = row("is_complete").asInstanceOf[Boolean],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = row("updated_at").asInstanceOf[DateTime]
@@ -62,6 +66,31 @@ class WorkRepositoryPostgres(
       version = version,
       response = Json.parse(row("answers").asInstanceOf[String]).as[Answers],
       isComplete = row("is_complete").asInstanceOf[Boolean],
+      grade = row("grade").asInstanceOf[String],
+      createdAt = row("created_at").asInstanceOf[DateTime],
+      updatedAt = updated_at
+    )
+  }
+
+  private def constructMediaWork(row: RowData): MediaWork = {
+    val version = Try(row("m_version")).toOption match {
+      case Some(version) => version.asInstanceOf[Long]
+      case _ => row("version").asInstanceOf[Long]
+    }
+
+    val updated_at = Try(row("m_created_at")).toOption match {
+      case Some(created_at) => created_at.asInstanceOf[DateTime]
+      case _ => row("updated_at").asInstanceOf[DateTime]
+    }
+
+    MediaWork(
+      id = row("id").asInstanceOf[UUID],
+      studentId = row("user_id").asInstanceOf[UUID],
+      taskId = row("task_id").asInstanceOf[UUID],
+      version = version,
+      fileData = Json.parse(row("file_data").asInstanceOf[String]).as[MediaAnswer],
+      isComplete = row("is_complete").asInstanceOf[Boolean],
+      grade = row("grade").asInstanceOf[String],
       createdAt = row("created_at").asInstanceOf[DateTime],
       updatedAt = updated_at
     )
@@ -70,24 +99,26 @@ class WorkRepositoryPostgres(
   // -- Common query components --------------------------------------------------------------------------------------
 
   val Table = "work"
-  val CommonFields = "id, user_id, task_id, version, is_complete, created_at, updated_at, work_type"
+  val CommonFields = "id, user_id, task_id, version, is_complete, grade, created_at, updated_at, work_type"
   def CommonFieldsWithTable(table: String = Table): String = {
     CommonFields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
   }
 
-  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?"
+  val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?"
 
   object LastWork {
     val SpecificFields =
       """
         |document_work.document_id as document_id,
-        |question_work.answers as answers
+        |question_work.answers as answers,
+        |media_work.file_data as file_data
       """.stripMargin
 
     val Join =
       s"""
          |LEFT JOIN document_work ON $Table.id = document_work.work_id
          |LEFT JOIN question_work ON $Table.id = question_work.work_id
+         |LEFT JOIN media_work ON $Table.id = media_work.work_id
      """.stripMargin
   }
 
@@ -97,13 +128,17 @@ class WorkRepositoryPostgres(
         |document_work.document_id as document_id,
         |question_work_answers.answers as answers,
         |question_work_answers.version as q_version,
-        |question_work_answers.created_at as q_created_at
+        |question_work_answers.created_at as q_created_at,
+        |media_work_data.file_data as file_data,
+        |media_work_data.version as m_version,
+        |media_work_data.created_at as m_created_at
       """.stripMargin
 
     val Join =
       s"""
          |LEFT JOIN document_work ON $Table.id = document_work.work_id
          |LEFT JOIN question_work_answers ON $Table.id = question_work_answers.work_id
+         |LEFT JOIN media_work_data ON $Table.id = media_work_data.work_id
      """.stripMargin
   }
 
@@ -163,7 +198,7 @@ class WorkRepositoryPostgres(
        |LIMIT 1
      """.stripMargin
 
-  val FindByStudentTaskVersion =
+  val FindByStudentTaskVersionQuestion =
     s"""
        |SELECT ${CommonFieldsWithTable()},${AllWork.SpecificFields}
        |FROM $Table
@@ -171,6 +206,17 @@ class WorkRepositoryPostgres(
        |WHERE user_id = ?
        |  AND task_id = ?
        |  AND question_work_answers.version = ?
+       |LIMIT 1
+     """.stripMargin
+
+  val FindByStudentTaskVersionMedia =
+    s"""
+       |SELECT ${CommonFieldsWithTable()},${AllWork.SpecificFields}
+       |FROM $Table
+       |${AllWork.Join}
+       |WHERE user_id = ?
+       |  AND task_id = ?
+       |  AND media_work_data.version = ?
        |LIMIT 1
      """.stripMargin
 
@@ -183,7 +229,7 @@ class WorkRepositoryPostgres(
       |LIMIT 1
      """.stripMargin
 
-  val FindByIdVersion =
+  val FindByIdVersionQuestion =
     s"""
       |SELECT ${CommonFieldsWithTable()}, ${AllWork.SpecificFields}
       |FROM $Table
@@ -193,12 +239,22 @@ class WorkRepositoryPostgres(
       |LIMIT 1
      """.stripMargin
 
+  val FindByIdVersionMedia =
+    s"""
+      |SELECT ${CommonFieldsWithTable()}, ${AllWork.SpecificFields}
+      |FROM $Table
+      |${AllWork.Join}
+      |WHERE id = ?
+      | AND media_work_data.version = ?
+      |LIMIT 1
+     """.stripMargin
+
   // -- Insert queries  -------------------------------------------------------------------------------------------
 
   val Insert =
     s"""
        |INSERT INTO $Table ($CommonFields)
-       |VALUES (?, ?, ?, 1, ?, ?, ?, ?)
+       |VALUES (?, ?, ?, 1, ?, ?, ?, ?, ?)
        |RETURNING $CommonFields
      """.stripMargin
 
@@ -209,7 +265,7 @@ class WorkRepositoryPostgres(
        |           SELECT w.id as work_id, ? as document_id
        |           FROM w
        |           RETURNING *)
-       |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.created_at, w.updated_at, w.work_type, x.document_id
+       |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.grade, w.created_at, w.updated_at, w.work_type, x.document_id
        |FROM w, x
      """.stripMargin
   }
@@ -221,7 +277,19 @@ class WorkRepositoryPostgres(
        |           SELECT w.id as work_id, '{}' as answers
        |           FROM w
        |           RETURNING *)
-       |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.created_at, w.updated_at, w.work_type, x.answers
+       |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.grade, w.created_at, w.updated_at, w.work_type, x.answers
+       |FROM w, x
+     """.stripMargin
+  }
+
+  val InsertIntoMediaWork = {
+    s"""
+       |WITH w AS ($Insert),
+       |     x AS (INSERT INTO media_work (work_id, file_data)
+       |           SELECT w.id as work_id, ? as file_data
+       |           FROM w
+       |           RETURNING *)
+       |SELECT w.id, w.user_id, w.task_id, w.version, w.is_complete, w.grade, w.created_at, w.updated_at, w.work_type, x.file_data
        |FROM w, x
      """.stripMargin
   }
@@ -233,6 +301,7 @@ class WorkRepositoryPostgres(
        |UPDATE $Table
        |SET version = ?,
        |    is_complete = ?,
+       |    grade = ?,
        |    updated_at = ?
        |WHERE id = ?
        |  AND version = ?
@@ -245,7 +314,7 @@ class WorkRepositoryPostgres(
        |     x AS (SELECT *
        |           FROM document_work, w
        |           WHERE work_id = w.id)
-       |SELECT w.id, w.user_id, w.task_id, w.version, x.document_id, w.is_complete, w.work_type, w.created_at, w.updated_at
+       |SELECT w.id, w.user_id, w.task_id, w.version, x.document_id, w.is_complete, w.grade, w.work_type, w.created_at, w.updated_at
        |FROM w, x
      """.stripMargin
   }
@@ -261,7 +330,23 @@ class WorkRepositoryPostgres(
        |                  w.updated_at as created_at
        |           FROM w, x
        |           RETURNING *)
-       |SELECT w.id, w.user_id, w.task_id, w.version, x.answers, w.is_complete, w.work_type, w.created_at, w.updated_at
+       |SELECT w.id, w.user_id, w.task_id, w.version, x.answers, w.is_complete, w.grade, w.work_type, w.created_at, w.updated_at
+       |FROM w,x,y
+     """.stripMargin
+  }
+
+  val UpdateMediaWork = {
+    s"""
+       |WITH w AS ($Update),
+       |     x AS (UPDATE media_work SET file_data = ? WHERE work_id = ? RETURNING *),
+       |     y AS (INSERT INTO media_work_data (work_id, version, file_data, created_at)
+       |           SELECT w.id as work_id,
+       |                  w.version as version,
+       |                  x.file_data as file_data,
+       |                  w.updated_at as created_at
+       |           FROM w, x
+       |           RETURNING *)
+       |SELECT w.id, w.user_id, w.task_id, w.version, x.file_data, w.is_complete, w.grade, w.work_type, w.created_at, w.updated_at
        |FROM w,x,y
      """.stripMargin
   }
@@ -275,10 +360,12 @@ class WorkRepositoryPostgres(
        |DELETE FROM $Table
        |USING
        |  document_work,
-       |  question_work
+       |  question_work,
+       |  media_work
        |WHERE id = ?
        | AND (document_work.work_id = $Table.id
-       |      OR question_work.work_id = $Table.id)
+       |      OR question_work.work_id = $Table.id
+       |      OR media_work.work_id = $Table.id)
        |RETURNING ${CommonFieldsWithTable()}, ${LastWork.SpecificFields}
      """.stripMargin
 
@@ -317,11 +404,14 @@ class WorkRepositoryPostgres(
           } yield result
         }
         case questionWork: QuestionWork => lift(Future successful \/.right(questionWork))
+        case mediaWork: MediaWork => lift(Future successful \/.right(mediaWork))
       })
     } yield result
   }
 
   /**
+   * TODO - not used, will list revisions by each work type
+   *
    * List all revisions of a specific work for a user within a Task.
    *
    * @param task
@@ -332,6 +422,7 @@ class WorkRepositoryPostgres(
     task match {
       case longAnswerTask: DocumentTask => listDocumentWork(user, longAnswerTask).map(_.map { documentWork => Left(documentWork) })
       case questionTask: QuestionTask => listQuestionWork(user, questionTask).map(_.map { questionWork => Right(questionWork) })
+      case _ => Future successful -\/(RepositoryError.BadParam("core.WorkRepository.list.wrong.task.type"))
     }
   }
 
@@ -380,6 +471,7 @@ class WorkRepositoryPostgres(
       questionWorkList <- lift(queryList(SelectAllForUserTask, Seq[Any](user.id, task.id)).map(_.map { workList =>
         workList.map {
           case questionWork: QuestionWork => questionWork
+          case mediaWork: MediaWork => throw new Exception("Somehow instantiated a MediaWork when selecting QuestionWork")
           case documentWork: DocumentWork => throw new Exception("Somehow instantiated a DocumentWork when selecting QuestionWork")
         }
       }))
@@ -453,7 +545,9 @@ class WorkRepositoryPostgres(
         ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
-      case \/-(otherWorkTypes) => lift(queryOne(FindByIdVersion, Seq[Any](workId, version)))
+      case \/-(questionWork: QuestionWork) => lift(queryOne(FindByIdVersionQuestion, Seq[Any](workId, version)))
+      case \/-(mediaWork: MediaWork) => lift(queryOne(FindByIdVersionMedia, Seq[Any](workId, version)))
+      case \/-(otherWorkTypes) => Future successful \/.left(RepositoryError.BadParam("Work type is unknown"))
       case -\/(error: RepositoryError.Fail) => Future successful \/.left(error)
     }
   }
@@ -497,7 +591,9 @@ class WorkRepositoryPostgres(
         ))
         case -\/(error: RepositoryError.Fail) => \/.left(error)
       }
-      case \/-(otherWorkTypes) => lift(queryOne(FindByStudentTaskVersion, Seq[Any](user.id, task.id, version)))
+      case \/-(questionWork: QuestionWork) => lift(queryOne(FindByStudentTaskVersionQuestion, Seq[Any](user.id, task.id, version)))
+      case \/-(mediaWork: MediaWork) => lift(queryOne(FindByStudentTaskVersionMedia, Seq[Any](user.id, task.id, version)))
+      case \/-(otherWorkTypes) => Future successful \/.left(RepositoryError.BadParam("Work type is unknown"))
       case -\/(error: RepositoryError.Fail) => Future successful \/.left(error)
     }
   }
@@ -536,6 +632,7 @@ class WorkRepositoryPostgres(
     val query = work match {
       case specific: DocumentWork => InsertIntoDocumentWork
       case specific: QuestionWork => InsertIntoQuestionWork
+      case specific: MediaWork => InsertIntoMediaWork
     }
 
     val baseParams = Seq[Any](
@@ -543,6 +640,7 @@ class WorkRepositoryPostgres(
       work.studentId,
       work.taskId,
       work.isComplete,
+      work.grade,
       new DateTime,
       new DateTime
     )
@@ -550,6 +648,7 @@ class WorkRepositoryPostgres(
     val params: Seq[Any] = work match {
       case specific: DocumentWork => baseParams ++ Array[Any](Task.Document, specific.documentId)
       case specific: QuestionWork => baseParams ++ Array[Any](Task.Question)
+      case specific: MediaWork => baseParams ++ Array[Any](Task.Media, Json.toJson(specific.fileData).toString())
     }
 
     queryOne(query, params)
@@ -565,12 +664,14 @@ class WorkRepositoryPostgres(
   override def update(work: Work)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Work]] = work match {
     case documentWork: DocumentWork => updateDocumentWork(documentWork)
     case questionWork: QuestionWork => updateQuestionWork(questionWork)
+    case mediaWork: MediaWork => updateMediaWork(mediaWork)
   }
 
   private def updateDocumentWork(work: DocumentWork)(implicit conn: Connection): Future[\/[RepositoryError.Fail, DocumentWork]] = {
     queryOne(UpdateDocumentWork, Seq[Any](
       1L,
       work.isComplete,
+      work.grade,
       new DateTime,
       work.id,
       1L
@@ -591,12 +692,26 @@ class WorkRepositoryPostgres(
     queryOne(UpdateQuestionWork, Seq[Any](
       work.version + 1,
       work.isComplete,
+      work.grade,
       new DateTime,
       work.id,
       work.version,
-      Json.toJson(work.response),
+      Json.toJson(work.response).toString(),
       work.id
     )).map(_.map(_.asInstanceOf[QuestionWork]))
+  }
+
+  private def updateMediaWork(work: MediaWork)(implicit conn: Connection): Future[\/[RepositoryError.Fail, MediaWork]] = {
+    queryOne(UpdateMediaWork, Seq[Any](
+      work.version + 1,
+      work.isComplete,
+      work.grade,
+      new DateTime,
+      work.id,
+      work.version,
+      Json.toJson(work.fileData).toString(),
+      work.id
+    )).map(_.map(_.asInstanceOf[MediaWork]))
   }
 
   /**

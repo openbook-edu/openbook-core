@@ -1,8 +1,9 @@
 package ca.shiftfocus.krispii.core.services
 
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models.tasks.questions.Question
 import com.github.mauricio.async.db.Connection
+import play.api.Logger
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import ca.shiftfocus.krispii.core.error._
 import ca.shiftfocus.krispii.core.models._
@@ -11,23 +12,36 @@ import ca.shiftfocus.krispii.core.models.work._
 import ca.shiftfocus.krispii.core.repositories._
 import ca.shiftfocus.krispii.core.services.datasource._
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.models.group.Course
+
 import scala.concurrent.Future
-import scalacache.ScalaCache
-import scalaz.{ EitherT, \/, -\/, \/- }
+import scalaz.{-\/, \/, \/-}
 
 class ProjectServiceDefault(
     val db: DB,
-    val scalaCache: ScalaCachePool,
     val authService: AuthService,
     val schoolService: SchoolService,
+    val documentService: DocumentService,
     val courseRepository: CourseRepository,
     val projectRepository: ProjectRepository,
     val partRepository: PartRepository,
-    val taskRepository: TaskRepository
+    val taskRepository: TaskRepository,
+    val workRepository: WorkRepository,
+    val projectTokenRepository: ProjectTokenRepository,
+    val componentRepository: ComponentRepository
 ) extends ProjectService {
 
   implicit def conn: Connection = db.pool
-  implicit def cache: ScalaCachePool = scalaCache
+
+  /**
+   * Lists master projects.
+   *
+   * @return a future disjunction containing either a vector of projects, or a failure
+   */
+  override def listMasterProjects(enabled: Option[Boolean] = None): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
+    projectRepository.list(Some(true), enabled)
+  }
 
   /**
    * Lists all projects.
@@ -35,13 +49,13 @@ class ProjectServiceDefault(
    * @return a future disjunction containing either a vector of projects, or a failure
    */
   override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
-    projectRepository.list
+    projectRepository.list()
   }
 
   /**
-   * Find all projects belonging to a given course
+   * Find all projects belonging to a given group
    *
-   * @param courseId the unique id of the course to filter by
+   * @param courseId the unique id of the group to filter by
    * @return a future disjunction containing either a vector of projects, or a failure
    */
   override def list(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
@@ -78,6 +92,18 @@ class ProjectServiceDefault(
   }
 
   /**
+   * List projects by tags
+   *
+   * @param tags (tagName:String, tagLang:String)
+   * @param distinct Boolean If true each project should have all listed tags,
+   *                 if false project should have at least one listed tag
+   * @return
+   */
+  def listProjectsByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]] = {
+    projectRepository.listByTags(tags, distinct)
+  }
+
+  /**
    * Find a single project by slug.
    *
    * @return an optional project
@@ -109,17 +135,139 @@ class ProjectServiceDefault(
     for {
       user <- lift(authService.find(userId))
       project <- lift(projectRepository.find(projectId, user, fetchParts))
-      course <- lift(schoolService.findCourse(project.courseId))
-      projectFiltered <- lift {
-        if (userId == course.teacherId) {
-          if (fetchParts) projectRepository.find(project.id)
-          else Future.successful(\/-(project))
-        }
-        else {
-          projectRepository.find(project.id, user, fetchParts)
-        }
-      }
     } yield project
+  }
+
+  /**
+   * insert array of componets
+   */
+
+  def insertComponents(components: IndexedSeq[Component]): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
+    for {
+      components <- lift(serializedT(components)(component => {
+        Logger.debug(s"inserting component ${component.title} (id ${component.id}) into repository")
+        for {
+          newComponent <- lift(componentRepository.insert(component).map {
+            case \/-(insertedComponent) => \/-(insertedComponent)
+            case -\/(error) => {
+              Logger.error(s"error when inserting component ${component}: ${error}")
+              \/-(component)
+            }
+          })
+        } yield newComponent
+      }))
+    } yield components
+  }
+
+  /**
+   * We insert tasks that are inside part object. These function is used when we copy a project.
+   *
+   * @param parts
+   * @return
+   */
+  def insertTasks(parts: IndexedSeq[Part]): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = {
+    transactional { implicit conn: Connection =>
+      {
+        val empty: Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = Future.successful(\/-(IndexedSeq.empty[Task]))
+        // Go threw every part and get all tasks
+        for {
+          allTasks <- lift(parts.foldLeft(empty) { (fAccumulated, part) =>
+            (for {
+              accumulated <- lift(fAccumulated)
+            } yield accumulated ++ part.tasks).run
+          })
+
+          documentTasks = allTasks.filter(task => task.isInstanceOf[DocumentTask]).map(task => task.asInstanceOf[DocumentTask])
+          noDependenciesTasks = documentTasks.filter(task => task.dependencyId.isEmpty)
+          dependenciesTasks = documentTasks.filter(task => !task.dependencyId.isEmpty)
+          // First we need to insert tasks without dependecies
+          _ <- lift(serializedT(noDependenciesTasks)(task => {
+            taskRepository.insert(task)
+          }).flatMap {
+            // After we can insert tasks with dependecies
+            case \/-(taskList) => {
+              serializedT(dependenciesTasks)(task => {
+                taskRepository.insert(task)
+              })
+            }
+            case -\/(error) => Future successful -\/(error)
+          })
+
+          otherTasks <- lift(serializedT(allTasks.filter(task => !task.isInstanceOf[DocumentTask]))(task => {
+            taskRepository.insert(task)
+          }))
+        } yield allTasks
+      }
+    }
+  }
+
+  def insertParts(parts: IndexedSeq[Part]): Future[\/[ErrorUnion#Fail, IndexedSeq[Part]]] = {
+    transactional { implicit conn: Connection =>
+      for {
+        parts <- lift(serializedT(parts)(part => {
+          Logger.debug(s" inserting part ${part} into repository")
+          partRepository.insert(part)
+        }))
+      } yield parts
+    }
+  }
+
+  def insertProject(project: Project): Future[\/[ErrorUnion#Fail, Project]] = {
+    transactional { implicit conn: Connection =>
+      for {
+        newProject <- lift(projectRepository.insert(project))
+        _ = Logger.debug(s" inserting project ${project} into repository")
+      } yield newProject
+    }
+  }
+
+  /**
+   * If master then we should create new components with
+   *
+   * @param projectId
+   * @param courseId
+   * @param userId
+   * @return
+   */
+  override def copyProject(projectId: UUID, courseId: UUID, userId: UUID): Future[\/[ErrorUnion#Fail, Project]] = {
+    transactional { implicit conn: Connection =>
+      for {
+        project <- lift(projectRepository.find(projectId))
+        course <- lift(courseRepository.find(project.courseId))
+        // Project
+        clonedProject <- lift(projectRepository.cloneProject(projectId, courseId))
+        newProject <- lift(insertProject(clonedProject))
+        // Parts, tasks
+        clonedParts <- lift(projectRepository.cloneProjectParts(projectId, userId, clonedProject.id))
+        _ <- lift(insertParts(clonedParts))
+        tasks <- lift(insertTasks(clonedParts))
+        _ <- lift {
+          // If we have new components owner, we need insert in DB new components and then link them
+          if (course.ownerId != userId) {
+            val clonedComponents = clonedParts.flatMap(_.components)
+            insertComponents(clonedComponents)
+          }
+          // If we just copy a project, components are already in DB, we just need to link new parts with this components
+          else Future successful \/-((): Unit)
+        }
+        // Link components with parts
+        _ <- lift(serializedT(clonedParts)(part => {
+          linkPartsComponents(part.components, part)
+        }))
+        // We need to return the newProject not the clonedProject because the latter one doesn't have the updated slug
+      } yield newProject.copy(parts = clonedParts)
+    }
+  }
+
+  def linkPartsComponents(components: IndexedSeq[Component], part: Part): Future[\/[ErrorUnion#Fail, IndexedSeq[Component]]] = {
+    for {
+      components <- lift(serializedT(components)(component => {
+        for {
+          added <- lift(componentRepository.addToPart(component, part))
+        } yield component
+      }))
+    } yield components
+
   }
 
   /**
@@ -134,8 +282,8 @@ class ProjectServiceDefault(
       project <- lift(projectRepository.find(projectSlug, false))
       course <- lift(schoolService.findCourse(project.courseId))
       projectFiltered <- lift {
-        if (userId == course.teacherId) {
-          if (fetchParts) projectRepository.find(project.id)
+        if (userId == course.ownerId) {
+          if (fetchParts) projectRepository.find(project.id, true)
           else Future.successful(\/-(project))
         }
         else {
@@ -146,43 +294,49 @@ class ProjectServiceDefault(
   }
 
   /**
-   * Create a new project, with a single part and an empty task.
-   *
-   * New projects will *always* need at least one part and task to be useful,
-   * so we will simply the creation process and do it all at once.
+   * Create a new project.
    *
    * @param name The new name to give the project.
    * @param slug The new slug to give the project.
+   * @param parentId The id of the parent project.
+   * @param parentVersion The version of the parent project.
    * @param description The new description for the project.
    * @return the updated project.
    */
-  override def create(courseId: UUID, name: String, slug: String, description: String, availability: String): Future[\/[ErrorUnion#Fail, Project]] = {
+  override def create(
+    courseId: UUID,
+    name: String,
+    slug: String,
+    description: String,
+    longDescription: String,
+    availability: String,
+    parentId: Option[UUID] = None,
+    parentVersion: Option[Long] = None,
+    isMaster: Boolean = false,
+    enabled: Boolean = false,
+    projectType: String
+  ): Future[\/[ErrorUnion#Fail, Project]] = {
     // First instantiate a new Project, Part and Task.
     val newProject = Project(
       courseId = courseId,
+      parentId = parentId,
+      parentVersion = parentVersion,
       name = name,
       slug = slug,
+      enabled = enabled,
+      isMaster = isMaster,
       description = description,
+      longDescription = longDescription,
       availability = availability,
+      projectType = projectType,
       parts = IndexedSeq.empty[Part]
     )
-    val newPart = Part(projectId = newProject.id, name = "")
-    val newTask = DocumentTask(partId = newPart.id, position = 1)
 
-    // Then insert the new project, part and task into the database, wrapped
-    // in a transaction such that either all three are created, or none.
     transactional { implicit conn: Connection =>
       for {
-        _ <- lift(validateSlug(slug))
+        _ <- lift(isValidSlug(slug))
         createdProject <- lift(projectRepository.insert(newProject))
-        createdPart <- lift(partRepository.insert(newPart))
-        createdTask <- lift(taskRepository.insert(newTask))
-      } yield {
-        val tasks = IndexedSeq(createdTask)
-        val parts = IndexedSeq(createdPart.copy(tasks = tasks))
-        val completeProject = createdProject.copy(parts = parts)
-        completeProject
-      }
+      } yield createdProject
     }
   }
 
@@ -195,11 +349,20 @@ class ProjectServiceDefault(
    * @param description The new description for the project.
    * @return the updated project.
    */
-  override def updateInfo(id: UUID, version: Long,
+  override def updateInfo(
+    id: UUID,
+    version: Long,
     courseId: Option[UUID],
     name: Option[String],
+    slug: Option[String],
     description: Option[String],
-    availability: Option[String]): Future[\/[ErrorUnion#Fail, Project]] = {
+    longDescription: Option[String],
+    availability: Option[String],
+    enabled: Option[Boolean],
+    projectType: Option[String],
+    status: Option[String],
+    lastTaskId: Option[Option[UUID]]
+  ): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
       for {
         existingProject <- lift(projectRepository.find(id))
@@ -207,10 +370,34 @@ class ProjectServiceDefault(
         toUpdate = existingProject.copy(
           courseId = courseId.getOrElse(existingProject.courseId),
           name = name.getOrElse(existingProject.name),
+          slug = slug.getOrElse(existingProject.slug),
           description = description.getOrElse(existingProject.description),
-          availability = availability.getOrElse(existingProject.availability)
+          longDescription = longDescription.getOrElse(existingProject.longDescription),
+          availability = availability.getOrElse(existingProject.availability),
+          enabled = enabled.getOrElse(existingProject.enabled),
+          projectType = projectType.getOrElse(existingProject.projectType),
+          status = status match {
+            case Some(newStatus) if !newStatus.trim.isEmpty => Some(newStatus)
+            case Some(newStatus) if newStatus.trim.isEmpty => None
+            case None => existingProject.status
+          },
+          lastTaskId = lastTaskId match {
+            case Some(Some(lastTaskId)) => Some(lastTaskId)
+            case Some(None) => None
+            case None => existingProject.lastTaskId
+          }
         )
         updatedProject <- lift(projectRepository.update(toUpdate))
+      } yield updatedProject
+    }
+  }
+
+  def setMaster(id: UUID, version: Long, isMaster: Boolean): Future[\/[ErrorUnion#Fail, Project]] = {
+    transactional { implicit conn: Connection =>
+      for {
+        existingProject <- lift(projectRepository.find(id))
+        _ <- predicate(existingProject.version == version)(ServiceError.OfflineLockFail)
+        updatedProject <- lift(projectRepository.update(existingProject.copy(isMaster = isMaster)))
       } yield updatedProject
     }
   }
@@ -220,16 +407,15 @@ class ProjectServiceDefault(
    *
    * @param id
    * @param version
-   * @param slug
    * @return
    */
-  override def updateSlug(id: UUID, version: Long, slug: String): Future[\/[ErrorUnion#Fail, Project]] = {
+  override def updateSlug(id: UUID, version: Long, newSlug: String): Future[\/[ErrorUnion#Fail, Project]] = {
     transactional { implicit conn: Connection =>
       for {
         existingProject <- lift(projectRepository.find(id))
         _ <- predicate(existingProject.version == version)(ServiceError.OfflineLockFail)
-        validSlug <- lift(validateSlug(slug))
-        toUpdate = existingProject.copy(slug = validSlug)
+        _ <- lift(isValidSlug(newSlug))
+        toUpdate = existingProject.copy(slug = newSlug)
         updatedProject <- lift(projectRepository.update(toUpdate))
       } yield updatedProject
     }
@@ -256,13 +442,14 @@ class ProjectServiceDefault(
     }
   }
 
-  // TODO - method does nothing
+  // TODO - method returns empty list
   /**
    * List the parts that have a component.
    *
    * @param componentId the UUID of the component to filter by
    */
-  override def listPartsInComponent(componentId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Part]]] = ???
+  override def listPartsInComponent(componentId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Part]]] =
+    Future successful \/-(IndexedSeq.empty[Part])
   //    {
   //      val fPartList = for {
   //        component <- componentRepository.find(componentId).map(_.get)
@@ -280,8 +467,23 @@ class ProjectServiceDefault(
    * @param partId the id of the part
    * @return a vector of this project's parts
    */
-  override def findPart(partId: UUID, fetchParts: Boolean = true): Future[\/[ErrorUnion#Fail, Part]] = {
-    partRepository.find(partId, fetchParts)
+  override def findPart(partId: UUID, fetchTasks: Boolean = true): Future[\/[ErrorUnion#Fail, Part]] = {
+    partRepository.find(partId, fetchTasks)
+  }
+
+  /**
+   * Find a single part by its position within a project.
+   *
+   * @param projectId
+   * @param position
+   * @param fetchParts
+   * @return
+   */
+  override def findPartByPosition(projectId: UUID, position: Int, fetchParts: Boolean = true): Future[\/[ErrorUnion#Fail, Part]] = {
+    for {
+      project <- lift(projectRepository.find(projectId))
+      part <- lift(partRepository.find(project, position, fetchParts))
+    } yield part
   }
 
   /**
@@ -559,6 +761,7 @@ class ProjectServiceDefault(
             case true => taskList.filter(_.position < truePosition) ++ taskList.filter(_.position >= truePosition).map {
               case task: DocumentTask => task.copy(position = task.position + 1)
               case task: QuestionTask => task.copy(position = task.position + 1)
+              case task: MediaTask => task.copy(position = task.position + 1)
             }
             case false => taskList
           }
@@ -571,7 +774,8 @@ class ProjectServiceDefault(
             settings = CommonTaskSettings(
               title = name,
               description = description
-            )
+            ),
+            maxGrade = "0"
           )
           // Add newTask and order tasks by position
           val orderedTasks = (filteredTaskList :+ newTask).sortWith(_.position < _.position)
@@ -592,17 +796,37 @@ class ProjectServiceDefault(
       orderedTasks(i) match {
         case task: DocumentTask => taskRepository.insert(task.copy(position = i + 1))
         case task: QuestionTask => taskRepository.insert(task.copy(position = i + 1))
+        case task: MediaTask => taskRepository.insert(task.copy(position = i + 1))
+
       }
     }
     else if (orderedTasks(i).position != i + 1) {
       orderedTasks(i) match {
         case task: DocumentTask => taskRepository.update(task.copy(position = i + 1))
         case task: QuestionTask => taskRepository.update(task.copy(position = i + 1))
+        case task: MediaTask => taskRepository.update(task.copy(position = i + 1))
       }
     }
     else {
       Future.successful(\/-(orderedTasks(i)))
     }
+  }
+
+  /**
+   * Find a task by its ID.
+   */
+  override def listTask(partId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = {
+    for {
+      part <- lift(partRepository.find(partId))
+      taskList <- lift(taskRepository.list(part))
+    } yield taskList
+  }
+
+  override def listTeacherTasks(teacherId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Task]]] = {
+    for {
+      teacher <- lift(authService.find(teacherId))
+      taskList <- lift(taskRepository.list(teacher))
+    } yield taskList
   }
 
   /**
@@ -668,6 +892,8 @@ class ProjectServiceDefault(
           taskToUpdate match {
             case task: DocumentTask => lift(taskRepository.update(task.copy(position = movedTask.position, version = movedTask.version)))
             case task: QuestionTask => lift(taskRepository.update(task.copy(position = movedTask.position, version = movedTask.version)))
+            case task: MediaTask => lift(taskRepository.update(task.copy(position = movedTask.position, version = movedTask.version)))
+
           }
         }
       } yield updatedTask
@@ -747,12 +973,11 @@ class ProjectServiceDefault(
               val updatedTasks = taskList.map {
                 case task: DocumentTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
                 case task: QuestionTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
+                case task: MediaTask => task.copy(position = taskListPositions(task.id), partId = newPart.id)
+
               }
 
               val orderedTasks = updatedTasks.sortWith(_.position < _.position)
-              println("Going to re-order them thar tasks")
-              println(ntList.map({ task => s"Task(${task.settings.title}, ${task.position})" }).mkString(", "))
-              println(orderedTasks.map({ task => s"Task(${task.settings.title}, ${task.position})" }).mkString(", "))
               serializedT(orderedTasks.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(orderedTasks, taskList, _)).map {
                 case -\/(error) => -\/(error)
                 case \/-(tasks) => \/-(tasks.filter(_.id == taskId).head)
@@ -776,6 +1001,8 @@ class ProjectServiceDefault(
           orderedTask match {
             case task: DocumentTask => taskRepository.update(task.copy(position = i + 1), Some(originalTask.partId))
             case task: QuestionTask => taskRepository.update(task.copy(position = i + 1), Some(originalTask.partId))
+            case task: MediaTask => taskRepository.update(task.copy(position = i + 1), Some(originalTask.partId))
+
           }
         }
         else {
@@ -802,10 +1029,16 @@ class ProjectServiceDefault(
         toUpdate = documentTask.copy(
           partId = commonArgs.partId.getOrElse(task.partId),
           position = commonArgs.position.getOrElse(task.position),
+          maxGrade = commonArgs.maxGrade.getOrElse(task.maxGrade),
           settings = task.settings.copy(
             title = commonArgs.name.getOrElse(task.settings.title),
             description = commonArgs.description.getOrElse(task.settings.description),
+            instructions = commonArgs.instructions.getOrElse(task.settings.instructions),
+            tagline = commonArgs.tagline.getOrElse(task.settings.tagline),
+            help = commonArgs.help.getOrElse(task.settings.help),
             notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+            hideResponse = commonArgs.hideResponse.getOrElse(task.settings.hideResponse),
+            allowGfile = commonArgs.allowGfile.getOrElse(task.settings.allowGfile),
             notesTitle = commonArgs.notesTitle match {
               case Some(Some(newNotesTitle)) => Some(newNotesTitle)
               case Some(None) => None
@@ -815,6 +1048,17 @@ class ProjectServiceDefault(
               case Some(Some(newResponseTitle)) => Some(newResponseTitle)
               case Some(None) => None
               case None => task.settings.responseTitle
+            },
+            mediaData = commonArgs.mediaData match {
+              case Some(Some(mediaData)) => Some(mediaData)
+              case Some(None) => None
+              case None => task.settings.mediaData
+            },
+            layout = commonArgs.layout.getOrElse(task.settings.layout),
+            parentId = commonArgs.parentId match {
+              case Some(Some(parentId)) => Some(parentId)
+              case Some(None) => None
+              case None => task.settings.parentId
             }
           ),
           dependencyId = dependencyId match {
@@ -847,10 +1091,16 @@ class ProjectServiceDefault(
         toUpdate = questionTask.copy(
           partId = commonArgs.partId.getOrElse(task.partId),
           position = commonArgs.position.getOrElse(task.position),
+          maxGrade = commonArgs.maxGrade.getOrElse(task.maxGrade),
           settings = task.settings.copy(
             title = commonArgs.name.getOrElse(task.settings.title),
+            help = commonArgs.help.getOrElse(task.settings.help),
             description = commonArgs.description.getOrElse(task.settings.description),
+            instructions = commonArgs.instructions.getOrElse(task.settings.instructions),
+            tagline = commonArgs.tagline.getOrElse(task.settings.tagline),
             notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+            hideResponse = commonArgs.hideResponse.getOrElse(task.settings.hideResponse),
+            allowGfile = commonArgs.allowGfile.getOrElse(task.settings.allowGfile),
             notesTitle = commonArgs.notesTitle match {
               case Some(Some(newNotesTitle)) => Some(newNotesTitle)
               case Some(None) => None
@@ -860,9 +1110,75 @@ class ProjectServiceDefault(
               case Some(Some(newResponseTitle)) => Some(newResponseTitle)
               case Some(None) => None
               case None => task.settings.responseTitle
+            },
+            mediaData = commonArgs.mediaData match {
+              case Some(Some(mediaData)) => Some(mediaData)
+              case Some(None) => None
+              case None => task.settings.mediaData
+            },
+            layout = commonArgs.layout.getOrElse(task.settings.layout),
+            parentId = commonArgs.parentId match {
+              case Some(Some(parentId)) => Some(parentId)
+              case Some(None) => None
+              case None => task.settings.parentId
             }
           ),
           questions = questions.getOrElse(questionTask.questions)
+        )
+        updatedTask <- lift(updateTask(toUpdate))
+      } yield updatedTask
+    }
+
+  /**
+   * Update a MediaTask.
+   *
+   * @param commonArgs
+   * @return
+   */
+  override def updateMediaTask(commonArgs: CommonTaskArgs, mediaType: Option[Int]): Future[\/[ErrorUnion#Fail, Task]] =
+    {
+      for {
+        task <- lift(taskRepository.find(commonArgs.taskId))
+        _ <- predicate(task.isInstanceOf[MediaTask])(ServiceError.BadInput("services.ProjectService.updateDocumentTask.wrongTaskType"))
+        _ <- predicate(task.version == commonArgs.version)(ServiceError.OfflineLockFail)
+        mediaTask = task.asInstanceOf[MediaTask]
+        toUpdate = mediaTask.copy(
+          partId = commonArgs.partId.getOrElse(task.partId),
+          position = commonArgs.position.getOrElse(task.position),
+          maxGrade = commonArgs.maxGrade.getOrElse(task.maxGrade),
+          settings = task.settings.copy(
+            title = commonArgs.name.getOrElse(task.settings.title),
+            description = commonArgs.description.getOrElse(task.settings.description),
+            instructions = commonArgs.instructions.getOrElse(task.settings.instructions),
+            tagline = commonArgs.tagline.getOrElse(task.settings.tagline),
+            help = commonArgs.help.getOrElse(task.settings.help),
+            notesAllowed = commonArgs.notesAllowed.getOrElse(task.settings.notesAllowed),
+            hideResponse = commonArgs.hideResponse.getOrElse(task.settings.hideResponse),
+            allowGfile = commonArgs.allowGfile.getOrElse(task.settings.allowGfile),
+            notesTitle = commonArgs.notesTitle match {
+              case Some(Some(newNotesTitle)) => Some(newNotesTitle)
+              case Some(None) => None
+              case None => task.settings.notesTitle
+            },
+            responseTitle = commonArgs.responseTitle match {
+              case Some(Some(newResponseTitle)) => Some(newResponseTitle)
+              case Some(None) => None
+              case None => task.settings.responseTitle
+            },
+            mediaData = commonArgs.mediaData match {
+              case Some(Some(mediaData)) => Some(mediaData)
+              case Some(None) => None
+              case None => task.settings.mediaData
+            },
+            layout = commonArgs.layout.getOrElse(task.settings.layout),
+            parentId = commonArgs.parentId match {
+              case Some(Some(parentId)) => Some(parentId)
+              case Some(None) => None
+              case None => task.settings.parentId
+            }
+          ),
+          mediaType = mediaType.getOrElse(mediaTask.mediaType)
+
         )
         updatedTask <- lift(updateTask(toUpdate))
       } yield updatedTask
@@ -887,11 +1203,12 @@ class ProjectServiceDefault(
         part <- lift(partRepository.find(task.partId))
         taskList = part.tasks
         _ <- predicate(taskList.nonEmpty)(ServiceError.BusinessLogicFail("Weird, task list shouldn't be empty!"))
+        // TODO - place deleteTask before, because transactional doesn't work, so in case of an error, positions of another tasks won't be changed
+        deletedTask <- lift(taskRepository.delete(task))
         taskListUpdated <- lift {
           val filteredOderedTaskList = taskList.filter(_.id != taskId).sortWith(_.position < _.position)
           serializedT(filteredOderedTaskList.indices.asInstanceOf[IndexedSeq[Int]])(updateOrderedTasks(filteredOderedTaskList, taskList, _))
         }
-        deletedTask <- lift(taskRepository.delete(task))
       } yield deletedTask
     }
   }
@@ -912,35 +1229,160 @@ class ProjectServiceDefault(
   }
 
   /**
+   * Check if a task contains a student work
+   *
+   * - For document task we check if there is at least one revision
+   * - For media task we check if there is at least one file uploaded by a student
+   *
+   * @param taskId
+   * @return
+   */
+  override def hasTaskWork(taskId: UUID): Future[\/[ErrorUnion#Fail, Boolean]] = {
+    for {
+      task <- lift(findTask(taskId))
+      workList <- lift(workRepository.list(task))
+      // Get the list of works info
+      isEmptyList <- lift(task match {
+        case task: DocumentTask => {
+          val documentIds = workList.map {
+            case work: DocumentWork => Some(work.documentId)
+            case _ => None
+          }.flatten
+
+          // Check if all the document works have just an empty document without revisions
+          val empty: Future[\/[ErrorUnion#Fail, IndexedSeq[Boolean]]] = Future.successful(\/-(IndexedSeq.empty[Boolean]))
+          // Go threw every document id and check if there are any revisions
+          documentIds.foldLeft(empty) { (fAccumulated, nextItem) =>
+            (for {
+              accumulated <- lift(fAccumulated)
+              revisions <- lift(documentService.listRevisions(nextItem))
+              // If revisions list is not empty that means there is a student work
+            } yield accumulated :+ revisions.nonEmpty).run
+          }
+        }
+
+        case task: MediaTask => {
+          val resultList = workList.map {
+            // Check if user has uploaded a file
+            case work: MediaWork => work.fileData.fileName.isDefined
+            case _ => false
+          }
+
+          Future successful \/-(resultList)
+        }
+
+        case _ => Future successful \/-(IndexedSeq(workList.isEmpty))
+      })
+      // If list contains true, that means at least one student work exists
+    } yield isEmptyList.contains(true)
+  }
+
+  /**
+   * Check if a part contains a student work
+   *
+   * - For document task we check if there is at least one revision
+   * - For media task we check if there is at least one file uploaded by a student
+   *
+   * @param partId
+   * @return
+   */
+  override def hasPartWork(partId: UUID): Future[\/[ErrorUnion#Fail, Boolean]] = {
+    for {
+      part <- lift(findPart(partId))
+
+      // Get the list of works info
+      taskEmptyList <- lift {
+        val empty: Future[\/[ErrorUnion#Fail, IndexedSeq[Boolean]]] = Future.successful(\/-(IndexedSeq.empty[Boolean]))
+
+        part.tasks.foldLeft(empty) { (fAccumulated, nextItem) =>
+          (for {
+            accumulated <- lift(fAccumulated)
+            workList <- lift(workRepository.list(nextItem))
+            workEmptyList <- lift {
+              nextItem match {
+                case task: DocumentTask => {
+                  val documentIds = workList.map {
+                    case work: DocumentWork => Some(work.documentId)
+                    case _ => None
+                  }.flatten
+
+                  // Check if all the document works have just an empty document without revisions
+                  val empty: Future[\/[ErrorUnion#Fail, IndexedSeq[Boolean]]] = Future.successful(\/-(IndexedSeq.empty[Boolean]))
+                  // Go threw every document id and check if there are any revisions
+                  documentIds.foldLeft(empty) { (fAccumulated, nextItem) =>
+                    (for {
+                      accumulated <- lift(fAccumulated)
+                      revisions <- lift(documentService.listRevisions(nextItem))
+                      // If revisions list is not empty that means there is a student work
+                    } yield accumulated :+ revisions.nonEmpty).run
+                  }
+                }
+
+                case task: MediaTask => {
+                  val resultList = workList.map {
+                    // Check if user has uploaded a file
+                    case work: MediaWork => work.fileData.fileName.isDefined
+                    case _ => false
+                  }
+
+                  Future successful \/-(resultList)
+                }
+
+                case _ => Future successful \/-(IndexedSeq(workList.isEmpty))
+              }
+            }
+          } yield accumulated :+ workEmptyList.contains(true)).run
+        }
+      }
+      // If list contains true, that means at least one student work exists
+    } yield taskEmptyList.contains(true)
+  }
+
+  def getToken(token: String): Future[\/[ErrorUnion#Fail, ProjectToken]] = {
+    projectTokenRepository.find(token)
+  }
+
+  def listToken(projectId: UUID, email: String): Future[\/[ErrorUnion#Fail, IndexedSeq[ProjectToken]]] = {
+    projectTokenRepository.list(projectId, email)
+  }
+
+  def listTokenByProject(projectId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[ProjectToken]]] = {
+    projectTokenRepository.listByProject(projectId)
+  }
+
+  def listTokenByEmail(email: String): Future[\/[ErrorUnion#Fail, IndexedSeq[ProjectToken]]] = {
+    projectTokenRepository.listByEmail(email)
+  }
+
+  def createToken(projectId: UUID, email: String): Future[\/[ErrorUnion#Fail, ProjectToken]] = {
+    projectTokenRepository.insert(ProjectToken(
+      projectId,
+      email
+    ))
+  }
+
+  def deleteToken(token: String): Future[\/[ErrorUnion#Fail, ProjectToken]] = {
+    for {
+      token <- lift(projectTokenRepository.find(token))
+      deletedToken <- lift(projectTokenRepository.delete(token))
+    } yield deletedToken
+  }
+
+  /**
    * Check if a slug is of the valid format.
    *
    * @param slug the slug to be checked
    * @return a future disjunction containing either the slug, or a failure
    */
   private def isValidSlug(slug: String): Future[\/[ErrorUnion#Fail, String]] = Future successful {
-    if ("""[A-Za-z0-9\_\-]+""".r.unapplySeq(slug).isDefined) \/-(slug)
+    if ("""[A-Za-z0-9\-]+""".r.unapplySeq(slug).isDefined) \/-(slug)
     else -\/(ServiceError.BadInput(s"$slug is not a valid slug format."))
   }
 
-  /**
-   * Validate a slug for use in a project.
-   *
-   * @param slug the slug to be checked
-   * @param existingId an optional unique id for an existing project to exclude
-   * @return a future disjunction containing either the slug, or a failure
-   */
-  private def validateSlug(slug: String, existingId: Option[UUID] = None)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, String]] = {
-    val existing = for {
-      validSlug <- lift(isValidSlug(slug))
-      project <- lift(projectRepository.find(validSlug))
-    } yield project
-
-    existing.run.map {
-      case \/-(project) =>
-        if (existingId.isEmpty || (existingId.get != project.id)) -\/(RepositoryError.UniqueKeyConflict("slug", s"The slug $slug is already in use."))
-        else \/-(slug)
-      case -\/(noResults: RepositoryError.NoResults) => \/-(slug)
-      case -\/(otherErrors: ErrorUnion#Fail) => -\/(otherErrors)
-    }
-  }
+  //  partsWithAdditions <- lift(serializedT(clonedParts)(part => {
+  //    for {
+  //      tasks <- lift(insertTasks(part.tasks, part))
+  //      partComponents <- lift(linkPartsComponents(components, part))
+  //    } yield tasks
+  //  }))
 }

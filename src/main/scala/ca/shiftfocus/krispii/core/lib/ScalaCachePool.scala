@@ -1,19 +1,27 @@
 package ca.shiftfocus.krispii.core.lib
 
 import ca.shiftfocus.krispii.core.error.RepositoryError
+import redis.clients.jedis.JedisPool
 
+import scalacache.modes.scalaFuture._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration.Duration
 import scala.util.Random
-import scalacache.ScalaCache
+import scalacache.{Cache, CacheConfig}
 import scalacache.redis.RedisCache
-import scalaz.{ -\/, \/ }
+import scalacache.serialization.Codec
+import scalaz.{-\/, \/, \/-}
 
-case class ScalaCachePool(master: ScalaCache, slaves: Seq[ScalaCache] = IndexedSeq()) {
-  val pool = slaves.toIndexedSeq
+case class ScalaCacheConfig(masterConfig: (String, Int), slaveConfigs: Seq[(String, Int)])
 
-  def randomInstance: ScalaCache = {
+case class ScalaCachePool[A](val scalaCacheConfig: ScalaCacheConfig)(implicit config: CacheConfig, codec: Codec[A]) {
+  private val (masterHost, masterPort) = scalaCacheConfig.masterConfig
+  private val master: Cache[A] = new RedisCache[A](new JedisPool(masterHost, masterPort))
+  private val slaves: Seq[Cache[A]] = scalaCacheConfig.slaveConfigs.map { case ((slaveHost, slavePort)) => new RedisCache[A](new JedisPool(masterHost, masterPort)) }
+  private val pool = slaves.toIndexedSeq
+
+  def randomInstance: Cache[A] = {
     if (slaves.isEmpty) {
       master
     }
@@ -24,48 +32,46 @@ case class ScalaCachePool(master: ScalaCache, slaves: Seq[ScalaCache] = IndexedS
     }
   }
 
-  def get[V](key: String): Future[Option[V]] = {
-    randomInstance.cache.get[V](key)
+  def get(key: String): Future[Option[A]] = {
+    randomInstance.get[Future](key).map {
+      case Some(value) => Some(value.asInstanceOf[A])
+      case _ => None
+    }
   }
 
-  def put[V](key: String)(value: V, ttl: Option[Duration] = None): Future[Unit] = {
-    master.cache.put[V](key, value, ttl)
+  def put(key: String)(value: A, ttl: Option[Duration] = None): Future[Any] = {
+    master.put[Future](key)(value, ttl)
   }
 
-  def remove(key: String): Future[Unit] = {
-    master.cache.remove(key)
+  def remove(key: String): Future[Any] = {
+    master.remove[Future](key)
   }
 
-  def getCached[V](key: String): Future[\/[RepositoryError.Fail, V]] = {
-    //Logger.debug("Fetching from cache: " + key)
-    randomInstance.cache.get[V](key).map {
-      case Some(entity) => \/.right[RepositoryError.Fail, V](entity)
-      case None => \/.left[RepositoryError.Fail, V](RepositoryError.NoResults(s"Cache miss on key: $key"))
+  def getCached(key: String): Future[\/[RepositoryError.Fail, A]] = {
+    randomInstance.get[Future](key).map {
+      case Some(entity) => \/.right[RepositoryError.Fail, A](entity)
+      case None => \/.left[RepositoryError.Fail, A](RepositoryError.NoResults(s"Cache miss on key: $key"))
     }.recover {
       case failed: RuntimeException => -\/(RepositoryError.DatabaseError("Failed to read from cache.", Some(failed)))
       case exception: Throwable => throw exception
     }
   }
 
-  def putCache[V](key: String)(value: V, ttl: Option[Duration] = None): Future[\/[RepositoryError.Fail, Unit]] = {
-    master.cache.put[V](key, value, ttl).map({ unit => \/.right[RepositoryError.Fail, Unit](unit) }).recover {
+  def putCache(key: String)(value: A, ttl: Option[Duration] = None): Future[\/[RepositoryError.Fail, Unit]] = {
+    master.put[Future](key)(value, ttl).map { unit =>
+      \/-((): Unit)
+    }.recover {
       case failed: RuntimeException => -\/(RepositoryError.DatabaseError("Failed to write to cache.", Some(failed)))
       case exception: Throwable => throw exception
     }
   }
 
   def removeCached(key: String): Future[\/[RepositoryError.Fail, Unit]] = {
-    master.cache.remove(key).map({ unit => \/.right[RepositoryError.Fail, Unit](unit) }).recover {
+    master.remove[Future](key).map { unit =>
+      \/-((): Unit)
+    }.recover {
       case failed: RuntimeException => -\/(RepositoryError.DatabaseError("Failed to remove from cache.", Some(failed)))
       case exception: Throwable => throw exception
     }
-  }
-}
-object ScalaCachePool {
-  def apply(masterConfig: (String, Int), slaveConfigs: Seq[(String, Int)]): ScalaCachePool = {
-    val (masterHost, masterPort) = masterConfig
-    lazy val master = ScalaCache(RedisCache(masterHost, masterPort))
-    lazy val slaves = slaveConfigs.map { case ((slaveHost, slavePort)) => ScalaCache(RedisCache(slaveHost, slavePort)) }
-    new ScalaCachePool(master, slaves.toIndexedSeq)
   }
 }

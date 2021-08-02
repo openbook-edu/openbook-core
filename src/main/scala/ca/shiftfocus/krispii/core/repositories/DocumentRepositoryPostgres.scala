@@ -1,24 +1,16 @@
 package ca.shiftfocus.krispii.core.repositories
 
-import java.util.NoSuchElementException
-
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.models.document.Revision
 import ca.shiftfocus.krispii.core.models.document.Document
-import ca.shiftfocus.krispii.core.models.User
-import ca.shiftfocus.krispii.core.services.datasource.PostgresDB
 import java.util.UUID
-import com.github.mauricio.async.db.{ RowData, ResultSet, Connection }
+import com.github.mauricio.async.db.{RowData, Connection}
 import play.api.libs.json.Json
-import ws.kahn.ot.exceptions.IncompatibleDeltasException
+import ca.shiftfocus.otlib.exceptions.IncompatibleDeltasException
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
-
-import ws.kahn.ot.{ InsertText, Delta }
-
-import scala.collection.immutable.HashMap
+import ca.shiftfocus.otlib.{InsertText, Delta}
 import scala.concurrent.Future
-import scalaz.{ \/, -\/, \/- }
+import scalaz.{\/, -\/, \/-}
 
 class DocumentRepositoryPostgres(val revisionRepository: RevisionRepository)
     extends DocumentRepository with PostgresRepository[Document] {
@@ -71,6 +63,13 @@ class DocumentRepositoryPostgres(val revisionRepository: RevisionRepository)
        |RETURNING $Fields
      """.stripMargin
 
+  val DeleteDocument =
+    s"""
+       |DELETE FROM $Table
+       |WHERE id = ?
+       |RETURNING $Fields
+     """.stripMargin
+
   /**
    * Find an individual document.
    *
@@ -99,6 +98,10 @@ class DocumentRepositoryPostgres(val revisionRepository: RevisionRepository)
                   }
               }
               document.copy(version = version, delta = computedDelta)
+            }
+            // We don't have revision for document version 1, as it is empty document
+            else if (version == 1L) {
+              document.copy(version = version, delta = Delta(IndexedSeq()))
             }
             else {
               document
@@ -136,5 +139,9 @@ class DocumentRepositoryPostgres(val revisionRepository: RevisionRepository)
       document.version + 1, document.title, Json.toJson(document.delta).toString(), document.ownerId,
       new DateTime, document.id, document.version
     ))
+  }
+
+  override def delete(docId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Document]] = {
+    queryOne(DeleteDocument, Seq[Any](docId))
   }
 }

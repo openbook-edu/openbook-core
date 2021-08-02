@@ -1,16 +1,17 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.repositories.{ SessionRepository, CourseRepository, RoleRepository, UserRepository }
+import ca.shiftfocus.krispii.core.repositories.{RoleRepository, SessionRepository, UserRepository}
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.models.user.User
+import play.api.i18n.{Lang, MessagesApi}
+
 import scala.concurrent.Future
-import scalacache.ScalaCache
 import scalaz.\/
 
 trait AuthService extends Service[ErrorUnion#Fail] {
-  val scalaCache: ScalaCachePool
   val userRepository: UserRepository
   val roleRepository: RoleRepository
   val sessionRepository: SessionRepository
@@ -23,6 +24,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @return the optionally authenticated user info
    */
   def authenticate(identifier: String, password: String): Future[\/[ErrorUnion#Fail, User]]
+  def authenticateWithoutPassword(identifier: String): Future[\/[ErrorUnion#Fail, User]]
 
   /*
    * Session definitions
@@ -30,31 +32,52 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   def listSessions(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Session]]]
   def findSession(sessionId: UUID): Future[\/[ErrorUnion#Fail, Session]]
   def createSession(userId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]]
+  def createSession(userId: UUID, ipAddress: String, userAgent: String,
+    accessToken: Option[String], refreshToken: Option[String]): Future[\/[ErrorUnion#Fail, Session]]
+
   def updateSession(sessionId: UUID, ipAddress: String, userAgent: String): Future[\/[ErrorUnion#Fail, Session]]
+  def updateSession(sessionId: UUID, ipAddress: String, userAgent: String,
+    accessToken: Option[String], refreshToken: Option[String]): Future[\/[ErrorUnion#Fail, Session]]
+
   def deleteSession(sessionId: UUID): Future[\/[ErrorUnion#Fail, Session]]
 
   /**
-   * List all users.
-   *
-   * @return a list of users with their roles and courses
+   * List user by similiarity to a key word
+   */
+  def listByKey(key: String, includeDeleted: Boolean = false, limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
+
+  /**
+   * List all users (only for top administrators)
+   * @return a list of users with their roles, or an error
    */
   def list: Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
+  def listByRange(limit: Int, offset: Int): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
+
+  /**
+   * List all users in all organizations the caller has access to (only for org administrators)
+   * @param user the caller
+   * @return a list of users with their roles, or an error
+   */
+  def listColleagues(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
   /**
    * List users with filter for roles and courses.
    *
    * @param rolesFilter an optional list of roles to filter by
-   * @param coursesFilter an optional list of courses to filter by
    * @return a list of users with their roles and courses
    */
   def list(rolesFilter: IndexedSeq[String]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
+
+  def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
+
+  def listByTeacher(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
   /**
    * Find a user by their UUID.
    *
    * @param id the unique id of the user
    */
-  def find(id: UUID): Future[\/[ErrorUnion#Fail, User]]
+  def find(id: UUID, includeDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, User]]
 
   /**
    * Find a user by their unique identifier.
@@ -83,6 +106,40 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     id: UUID = UUID.randomUUID
   ): Future[\/[ErrorUnion#Fail, User]]
 
+  def syncWithDeletedUser(newUser: User): Future[\/[ErrorUnion#Fail, Account]]
+
+  /**
+   * Creates a new user with the given role.
+   * @param username
+   * @param email
+   * @param password
+   * @param givenname
+   * @param surname
+   * @param role
+   * @return
+   */
+  def createWithRole(
+    username: String,
+    email: String,
+    password: String,
+    givenname: String,
+    surname: String,
+    role: String,
+    hostname: Option[String]
+  )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]]
+
+  def createOpenIdUser(
+    email: String,
+    givenname: String,
+    surname: String,
+    accountType: String
+  ): Future[\/[ErrorUnion#Fail, User]]
+
+  def updateUserAccountType(
+    email: String,
+    newAccountType: String
+  ): Future[\/[ErrorUnion#Fail, User]]
+
   /**
    * Update a user
    *
@@ -100,7 +157,10 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     email: Option[String],
     username: Option[String],
     givenname: Option[String],
-    surname: Option[String]
+    surname: Option[String],
+    alias: Option[String],
+    password: Option[String],
+    isDeleted: Option[Boolean]
   ): Future[\/[ErrorUnion#Fail, User]]
 
   /**
@@ -133,7 +193,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @param surname the user's updated family name
    * @return a future disjunction containing the updated user, or a failure
    */
-  def updateInfo(id: UUID, version: Long, givenname: Option[String], surname: Option[String]): Future[\/[ErrorUnion#Fail, User]]
+  def updateInfo(id: UUID, version: Long, givenname: Option[String], surname: Option[String], alias: Option[String]): Future[\/[ErrorUnion#Fail, User]]
 
   /**
    * Deletes a user.
@@ -156,7 +216,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   /**
    * List all roles for one user.
    *
-   * @param user  The user whose roles should be listed.
+   * @param userId  The user whose roles should be listed.
    * @return an array of this user's Roles
    */
   def listRoles(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Role]]]
@@ -172,7 +232,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   /**
    * Find a specific role by name
    *
-   * @param id  the name of the Role to find
+   * @param name  the name of the Role to find
    * @return an optional Role
    */
   def findRole(name: String): Future[\/[ErrorUnion#Fail, Role]]
@@ -211,7 +271,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @param roleName  the name of the role
    * @return a boolean indicator if the role was added
    */
-  def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, User]]
+  def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Role]]
 
   /**
    * Add several roles to a user.
@@ -229,7 +289,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @param roleName  the name of the role
    * @return a boolean indicator if the role was removed
    */
-  def removeRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, User]]
+  def removeRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Role]]
 
   /**
    * Add a role to a given list of users.
@@ -248,4 +308,86 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @return a boolean indicator if the role was removed
    */
   def removeUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]]
+
+  /**
+   * Activates a new user.
+   * @param userId the UUID of the user to be activated
+   * @param activationCode the activation code to be verified
+   * @return
+   */
+  def activate(userId: UUID, activationCode: String): Future[\/[ErrorUnion#Fail, User]]
+
+  /**
+   * create a password reset token for a user
+   * @param user
+   * @return
+   */
+  def createPasswordResetToken(user: User, host: String)(messages: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]]
+
+  def createActivationToken(user: User, host: String)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]]
+
+  /**
+   * finding a user token by nonce
+   * @param nonce
+   * @param tokenType
+   * @return
+   */
+  def findUserToken(nonce: String, tokenType: String): Future[\/[ErrorUnion#Fail, UserToken]]
+
+  /**
+   * find token by user id and type
+   */
+  def findToken(userId: UUID, tokenType: String): Future[\/[ErrorUnion#Fail, UserToken]]
+  /**
+   * destroy user token
+   * @param token
+   * @return
+   */
+  def deleteToken(token: UserToken): Future[\/[ErrorUnion#Fail, UserToken]]
+
+  /**
+   * create password reset link for students
+   */
+  def studentPasswordReset(user: User, lang: String): Future[\/[ErrorUnion#Fail, UserToken]]
+
+  /**
+   * redeem password reset token for students
+   */
+  def redeemStudentPasswordReset(token: UserToken): Future[\/[ErrorUnion#Fail, User]]
+
+  def reactivate(email: String, hostname: Option[String])(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]]
+
+  //##### EMAIL CHANGE #################################################################################################
+
+  def findEmailChange(userId: UUID): Future[\/[ErrorUnion#Fail, EmailChangeRequest]]
+
+  def requestEmailChange(user: User, newEmail: String, host: String)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, EmailChangeRequest]]
+
+  /**
+   * Confirm a user's changed e-mail address.
+   *
+   * Workflow:
+   *   1. Load the change request and validate the token.
+   *   2. Load the user to be changed.
+   *   3. Save the user's new e-mail address.
+   *   4. Send an e-mail to the old address, informing them that the address was changed.
+   *   5. Send an e-mail to the new address, informing them that the address was changed.
+   *
+   * @param email the new e-mail that was requested
+   * @param token the secure token that was generated to protect the change request
+   * @return the updated user
+   */
+  def confirmEmailChange(email: String, token: String)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]]
+
+  /**
+   * Cancel a user's e-mail change request.
+   *
+   * Workflow:
+   *   1. Delete the e-mail change request.
+   *   2. Send an e-mail to the old and new addresses notifying them that the request was cancelled.
+   *
+   * @param userId the e-mail address that was requested
+   * @return the deleted e-mail change request
+   */
+  def cancelEmailChange(userId: UUID)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, EmailChangeRequest]]
 }

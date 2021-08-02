@@ -7,11 +7,14 @@ Core has two layers: repository layer, and services layer. Each layer has defini
 
 ## Repository layer
 
-The repository layer maps entities into the database and back. The repository layer should contain no domain logic and should only be concerned with "given a User object, how do I persist it? how do I retrieve it?" Currently repositories are implemented for the postgresql 9.4+ database. For certain new features we are taking advantage of postgres' jsonb storage.
+The repository layer maps entities into the database and back. The repository layer should contain no domain logic and should only be concerned with "given a User object, how do I persist it? how do I retrieve it?". 
+
+Currently repositories are implemented for the postgresql 9.4+ database. For certain new features we are taking advantage of postgres' jsonb storage.
+Behind the scenes, every time a search is performed, the result of the search is cached in Redis to accelerate retrieval if the same search should be repeated. Nothing is cached on creation, update or deletion. It might be worthwhile to simulate if caching on creation would save more time or consume more time.
 
 Method signatures look like this:
 
-    def list(implicit conn: Connection, cache: ScalaCachePool): Future[\/[RepositoryError.Fail, A]]
+    def list(implicit conn: Connection): Future[\/[RepositoryError.Fail, A]]
       
 Future goal: clean up and simplify method signatures. Database connection and optional cache should be passed in via the reader monad, and for easier composition the methods should return a monad transformer like (with scalaz) `EitherT[Future, RepoFail, A]`, (with cats) `XorT[Future, RepoFail, A]`, or switch to scalaz's Task like `Task[A]`. Have a look at lceeq-accounts type aliases:
 

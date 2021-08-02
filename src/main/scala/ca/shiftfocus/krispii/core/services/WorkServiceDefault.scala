@@ -10,8 +10,8 @@ import java.util.UUID
 import com.github.mauricio.async.db.Connection
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import scalaz.{ \/, -\/, \/- }
-import ws.kahn.ot.Delta
+import scalaz.{\/, \/-}
+import ca.shiftfocus.otlib.Delta
 
 class WorkServiceDefault(
   val db: DB,
@@ -21,8 +21,11 @@ class WorkServiceDefault(
   val documentService: DocumentService,
   val componentService: ComponentService,
   val workRepository: WorkRepository,
+  val documentRepository: DocumentRepository,
   val taskFeedbackRepository: TaskFeedbackRepository,
-  val taskScratchpadRepository: TaskScratchpadRepository
+  val taskScratchpadRepository: TaskScratchpadRepository,
+  val projectScratchpadRepository: ProjectScratchpadRepository,
+  val gfileRepository: GfileRepository
 )
     extends WorkService {
 
@@ -30,7 +33,7 @@ class WorkServiceDefault(
 
   /**
    * List the latest revision of all of a user's work in a project for a specific
-   * course.
+   * group.
    *
    * @param userId the unique id of the user to filter by
    * @param projectId the unique id of the project to filter by
@@ -44,12 +47,24 @@ class WorkServiceDefault(
       user <- lift(fUser)
       project <- lift(fProject)
       workList <- lift(workRepository.list(user, project))
-    } yield workList
+      result <- liftSeq {
+        workList.map { work =>
+          (for {
+            gFiles <- lift(gfileRepository.listByWork(work))
+            toReturn <- lift(Future successful (work match {
+              case work: DocumentWork => \/-(work.copy(gFiles = gFiles))
+              case work: MediaWork => \/-(work.copy(gFiles = gFiles))
+              case work: QuestionWork => \/-(work.copy(gFiles = gFiles))
+            }))
+          } yield toReturn.asInstanceOf[Work]).run
+        }
+      }
+    } yield result
   }
 
   /**
    * List the latest revision of all of a user's work in a project for a specific
-   * course.
+   * group.
    *
    * @param taskId
    * @return a future disjunction containing either a list of work, or a failure
@@ -58,11 +73,24 @@ class WorkServiceDefault(
     for {
       task <- lift(projectService.findTask(taskId))
       workList <- lift(workRepository.list(task))
-    } yield workList
+      result <- liftSeq {
+        workList.map { work =>
+          (for {
+            gFiles <- lift(gfileRepository.listByWork(work))
+            toReturn <- lift(Future successful (work match {
+              case work: DocumentWork => \/-(work.copy(gFiles = gFiles))
+              case work: MediaWork => \/-(work.copy(gFiles = gFiles))
+              case work: QuestionWork => \/-(work.copy(gFiles = gFiles))
+            }))
+          } yield toReturn.asInstanceOf[Work]).run
+        }
+      }
+    } yield result
   }
 
   /**
-   * List all of a user's work revisions for a specific task in a specific course.
+   * TODO - not used, will list revisions by each work type
+   * List all of a user's work revisions for a specific task in a specific group.
    *
    * @param userId the unique id of the user to filter by
    * @param taskId the unique id of the task to filter by
@@ -81,17 +109,25 @@ class WorkServiceDefault(
   }
 
   /**
-   * Find the latest revision of a user's work, for a task, in a course.
+   * Find the latest revision of a user's work, for a task, in a group.
    *
    * @param workId the unique id of the work to find
    * @return a future disjunction containing either a work, or a failure
    */
   override def findWork(workId: UUID): Future[\/[ErrorUnion#Fail, Work]] = {
-    workRepository.find(workId)
+    for {
+      work <- lift(workRepository.find(workId))
+      gFiles <- lift(gfileRepository.listByWork(work))
+      result <- lift(Future successful (work match {
+        case work: DocumentWork => \/-(work.copy(gFiles = gFiles))
+        case work: MediaWork => \/-(work.copy(gFiles = gFiles))
+        case work: QuestionWork => \/-(work.copy(gFiles = gFiles))
+      }))
+    } yield result.asInstanceOf[Work]
   }
 
   /**
-   * Find the latest revision of a user's work, for a task, in a course.
+   * Find the latest revision of a user's work, for a task, in a group.
    *
    * @param userId the unique id of the user to filter by
    * @param taskId the unique id of the task to filter by
@@ -105,11 +141,17 @@ class WorkServiceDefault(
       user <- lift(fUser)
       task <- lift(fTask)
       work <- lift(workRepository.find(user, task))
-    } yield work
+      gFiles <- lift(gfileRepository.listByWork(work))
+      result <- lift(Future successful (work match {
+        case work: DocumentWork => \/-(work.copy(gFiles = gFiles))
+        case work: MediaWork => \/-(work.copy(gFiles = gFiles))
+        case work: QuestionWork => \/-(work.copy(gFiles = gFiles))
+      }))
+    } yield result.asInstanceOf[Work]
   }
 
   /**
-   * Find a specific revision of a user's work, for a task, in a course.
+   * Find a specific revision of a user's work, for a task, in a group.
    *
    * @param userId the unique id of the user to filter by
    * @param taskId the unique id of the task to filter by
@@ -124,21 +166,13 @@ class WorkServiceDefault(
       user <- lift(fUser)
       task <- lift(fTask)
       work <- lift(workRepository.find(user, task, version))
-    } yield work
-  }
-
-  // --------- Create ---------------------------------------------------------------------------------------------
-
-  /**
-   * Generic internal work-creating method. This should only be used privately... expose the type-specific
-   * methods to the outside world so that we'll have control over exactly how certain types of work
-   * are creted.
-   *
-   * @param newWork the new work to create
-   * @return a future disjunction containing either a work, or a failure
-   */
-  private def createWork(newWork: Work)(implicit conn: Connection): Future[\/[ErrorUnion#Fail, Work]] = {
-    workRepository.insert(newWork)
+      gFiles <- lift(gfileRepository.listByWork(work))
+      result <- lift(Future successful (work match {
+        case work: DocumentWork => \/-(work.copy(gFiles = gFiles))
+        case work: MediaWork => \/-(work.copy(gFiles = gFiles))
+        case work: QuestionWork => \/-(work.copy(gFiles = gFiles))
+      }))
+    } yield result.asInstanceOf[Work]
   }
 
   // --------- Create methods for each work type --------------------------------------------------------------------
@@ -147,7 +181,7 @@ class WorkServiceDefault(
   /**
    * Create a document work item.
    *
-   * Use this method when entering student work on a task for the first time (in a given course).
+   * Use this method when entering student work on a task for the first time (in a given group).
    *
    * @param userId the unique id of the user the work belongs to
    * @param taskId the unique id of the task the work is for
@@ -168,17 +202,18 @@ class WorkServiceDefault(
           taskId = task.id,
           documentId = document.id,
           isComplete = isComplete,
+          grade = "0",
           response = Some(document)
         )
         work <- lift(workRepository.insert(newWork))
-      } yield work.asInstanceOf[DocumentWork]
+      } yield work.asInstanceOf[DocumentWork].copy(response = Some(document))
     }
   }
 
   /**
    * Create a question work item.
    *
-   * Use this method when entering student work on a task for the first time (in a given course).
+   * Use this method when entering student work on a task for the first time (in a given group).
    *
    * @param userId the id of the student whose work is being entered
    * @param taskId the task for which the work was done
@@ -193,16 +228,47 @@ class WorkServiceDefault(
       for {
         user <- lift(fUser)
         task <- lift(fTask)
-        document <- lift(documentService.create(UUID.randomUUID, user, "", Delta(IndexedSeq())))
         newWork = QuestionWork(
           studentId = userId,
           taskId = taskId,
           version = 1,
           response = Answers(Map()),
-          isComplete = isComplete
+          isComplete = isComplete,
+          grade = "0"
         )
         work <- lift(workRepository.insert(newWork))
       } yield work.asInstanceOf[QuestionWork]
+    }
+  }
+
+  /**
+   * Create a media work item.
+   *
+   * Use this method when entering student work on a task for the first time (in a given group).
+   *
+   * @param userId the id of the student whose work is being entered
+   * @param taskId the task for which the work was done
+   * @param isComplete whether the student is finished with the task
+   * @return the newly created work
+   */
+  override def createMediaWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, MediaWork]] = {
+    transactional { implicit conn =>
+      val fUser = authService.find(userId)
+      val fTask = projectService.findTask(taskId)
+
+      for {
+        user <- lift(fUser)
+        task <- lift(fTask)
+        newWork = MediaWork(
+          studentId = userId,
+          taskId = taskId,
+          version = 1,
+          fileData = MediaAnswer(),
+          isComplete = isComplete,
+          grade = "0"
+        )
+        work <- lift(workRepository.insert(newWork))
+      } yield work.asInstanceOf[MediaWork]
     }
   }
 
@@ -240,9 +306,13 @@ class WorkServiceDefault(
    * Update a long answer work.
    *
    * Because the contents of the work are handled by the Document service, this method only
-   * serves to update the work's completed status.
+   * serves to update the work's completed status UPD: and grade.
+   * @param userId
+   * @param taskId
+   * @param isComplete Boolean
+   * @param grade Option[String]: if missing, not updated, TODO: if "", delete grade!
    */
-  def updateDocumentWork(userId: UUID, taskId: UUID, isComplete: Boolean): Future[\/[ErrorUnion#Fail, DocumentWork]] = {
+  def updateDocumentWork(userId: UUID, taskId: UUID, isComplete: Boolean, grade: Option[String]): Future[\/[ErrorUnion#Fail, DocumentWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
       val fTask = projectService.findTask(taskId)
@@ -253,9 +323,15 @@ class WorkServiceDefault(
         existingWork <- lift(workRepository.find(user, task))
         _ <- predicate(existingWork.isInstanceOf[DocumentWork])(ServiceError.BadInput("Attempted to update the answer for a question work"))
         existingDocWork = existingWork.asInstanceOf[DocumentWork]
-        workToUpdate = existingDocWork.copy(isComplete = isComplete)
+        workToUpdate = existingDocWork.copy(isComplete = isComplete, grade = grade.getOrElse(existingWork.grade))
         updatedWork <- lift(workRepository.update(workToUpdate))
-      } yield updatedWork.asInstanceOf[DocumentWork]
+        gFiles <- lift(gfileRepository.listByWork(updatedWork))
+        result = updatedWork match {
+          case work: DocumentWork => work.copy(gFiles = gFiles)
+          case work: MediaWork => work.copy(gFiles = gFiles)
+          case work: QuestionWork => work.copy(gFiles = gFiles)
+        }
+      } yield result.asInstanceOf[DocumentWork]
     }
   }
 
@@ -264,7 +340,8 @@ class WorkServiceDefault(
     taskId: UUID,
     version: Long,
     response: Option[Answers],
-    isComplete: Option[Boolean]
+    isComplete: Option[Boolean],
+    grade: Option[String]
   ): Future[\/[ErrorUnion#Fail, QuestionWork]] = {
     transactional { implicit conn =>
       val fUser = authService.find(userId)
@@ -279,10 +356,52 @@ class WorkServiceDefault(
         existingQuestionWork = existingWork.asInstanceOf[QuestionWork]
         workToUpdate = existingQuestionWork.copy(
           response = response.getOrElse(existingQuestionWork.response),
-          isComplete = isComplete.getOrElse(existingQuestionWork.isComplete)
+          isComplete = isComplete.getOrElse(existingQuestionWork.isComplete),
+          grade = grade.getOrElse(existingWork.grade)
         )
         updatedWork <- lift(workRepository.update(workToUpdate))
-      } yield updatedWork.asInstanceOf[QuestionWork]
+        gFiles <- lift(gfileRepository.listByWork(updatedWork))
+        result = updatedWork match {
+          case work: DocumentWork => work.copy(gFiles = gFiles)
+          case work: MediaWork => work.copy(gFiles = gFiles)
+          case work: QuestionWork => work.copy(gFiles = gFiles)
+        }
+      } yield result.asInstanceOf[QuestionWork]
+    }
+  }
+
+  override def updateMediaWork(
+    userId: UUID,
+    taskId: UUID,
+    version: Long,
+    fileData: Option[MediaAnswer],
+    isComplete: Option[Boolean],
+    grade: Option[String]
+  ): Future[\/[ErrorUnion#Fail, MediaWork]] = {
+    transactional { implicit conn =>
+      val fUser = authService.find(userId)
+      val fTask = projectService.findTask(taskId)
+
+      for {
+        user <- lift(fUser)
+        task <- lift(fTask)
+        existingWork <- lift(workRepository.find(user, task))
+        _ <- predicate(existingWork.isInstanceOf[MediaWork])(ServiceError.BadInput("Attempted to update the answer for a document work"))
+        _ <- predicate(existingWork.version == version)(ServiceError.OfflineLockFail)
+        existingMediaWork = existingWork.asInstanceOf[MediaWork]
+        workToUpdate = existingMediaWork.copy(
+          fileData = fileData.getOrElse(existingMediaWork.fileData),
+          isComplete = isComplete.getOrElse(existingMediaWork.isComplete),
+          grade = grade.getOrElse(existingWork.grade)
+        )
+        updatedWork <- lift(workRepository.update(workToUpdate))
+        gFiles <- lift(gfileRepository.listByWork(updatedWork))
+        result = updatedWork match {
+          case work: DocumentWork => work.copy(gFiles = gFiles)
+          case work: MediaWork => work.copy(gFiles = gFiles)
+          case work: QuestionWork => work.copy(gFiles = gFiles)
+        }
+      } yield result.asInstanceOf[MediaWork]
     }
   }
 
@@ -305,7 +424,13 @@ class WorkServiceDefault(
 
         toUpdate = questionWork.copy(response = questionWork.response.updated(questionId, answer))
         updated <- lift(workRepository.update(toUpdate))
-      } yield updated.asInstanceOf[QuestionWork]
+        gFiles <- lift(gfileRepository.listByWork(updated))
+        result = updated match {
+          case work: DocumentWork => work.copy(gFiles = gFiles)
+          case work: MediaWork => work.copy(gFiles = gFiles)
+          case work: QuestionWork => work.copy(gFiles = gFiles)
+        }
+      } yield result.asInstanceOf[QuestionWork]
     }
   }
 
@@ -346,6 +471,28 @@ class WorkServiceDefault(
   //      }
   //    }
   //  }
+
+  // --------- Delete methods --------------------------------------------------------------------
+
+  /**
+   * Delete all work for a given task with all the documents and revisions
+   *
+   * @param taskId
+   * @return
+   */
+  override def deleteWork(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Work]]] = {
+    transactional { implicit conn =>
+      for {
+        task <- lift(projectService.findTask(taskId))
+        deletedWork <- lift(workRepository.delete(task))
+        documentIds = deletedWork.map {
+          case work: DocumentWork => Some(work.documentId)
+          case _ => None
+        }.flatten
+        _ <- lift(serializedT(documentIds)(documentRepository.delete))
+      } yield deletedWork
+    }
+  }
 
   /*
    * -----------------------------------------------------------
@@ -422,7 +569,7 @@ class WorkServiceDefault(
         part <- lift(projectService.findPart(task.partId, false))
         project <- lift(projectService.find(part.projectId, false))
         course <- lift(schoolService.findCourse(project.courseId))
-        teacher <- lift(authService.find(course.teacherId))
+        teacher <- lift(authService.find(course.ownerId))
         document <- lift(documentService.create(UUID.randomUUID, teacher, "", Delta(IndexedSeq())))
         newFeedback = TaskFeedback(
           studentId = student.id,
@@ -432,6 +579,25 @@ class WorkServiceDefault(
         // Insert the new feedback
         createdFeedback <- lift(taskFeedbackRepository.insert(newFeedback))
       } yield createdFeedback
+    }
+  }
+
+  /**
+   *  Delete all teacher feedbacks for a given task.
+   *
+   * @param taskId
+   * @return
+   */
+  def deleteFeedback(taskId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[TaskFeedback]]] = {
+    transactional { implicit conn =>
+      val fTask = projectService.findTask(taskId)
+
+      for {
+        task <- lift(fTask)
+        feedbacks <- lift(taskFeedbackRepository.delete(task))
+        documentIds = feedbacks.map(_.documentId)
+        _ <- lift(serializedT(documentIds)(documentRepository.delete))
+      } yield feedbacks
     }
   }
 
@@ -502,5 +668,267 @@ class WorkServiceDefault(
         createdFeedback <- lift(taskScratchpadRepository.insert(newScratchpad))
       } yield createdFeedback
     }
+  }
+
+  /*
+  * -----------------------------------------------------------
+  * ProjectScratchpad methods
+  * -----------------------------------------------------------
+  */
+
+  /**
+   * List all of a user's task scratchpads in a project.
+   *
+   * @param userId the unique ID of the user to list for
+   * @return a vector of responses
+   */
+  override def listProjectScratchpads(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[ProjectScratchpad]]] = {
+    val fUser = authService.find(userId)
+    for {
+      user <- lift(fUser)
+      responses <- lift(projectScratchpadRepository.list(user))
+    } yield responses
+  }
+  /**
+   * Find the latest revision of a user's task scratchpad to a task.
+   *
+   * @param userId the unique ID of the user to list for
+   * @param projectId the project within which to search for task scratchpads
+   * @return an optional response
+   */
+  override def findProjectScratchpad(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, ProjectScratchpad]] = {
+    val fUser = authService.find(userId)
+    val fProject = projectService.find(projectId)
+
+    for {
+      user <- lift(fUser)
+      project <- lift(fProject)
+      responses <- lift(projectScratchpadRepository.find(user, project))
+    } yield responses
+  }
+
+  /**
+   * Create a new task task scratchpad.
+   *
+   * @param userId the unique ID of the user whose component scratchpad it is
+   * @param projectId the unique ID of the project this project scratchpad is for
+   * @return the updated task scratchpad
+   */
+  override def createProjectScratchpad(userId: UUID, projectId: UUID): Future[\/[ErrorUnion#Fail, ProjectScratchpad]] = {
+    transactional { implicit conn =>
+      val fStudent = authService.find(userId)
+      val fProject = projectService.find(projectId)
+
+      for {
+        student <- lift(fStudent)
+        project <- lift(fProject)
+        document <- lift(documentService.create(UUID.randomUUID, student, "", Delta(IndexedSeq())))
+        newScratchpad = ProjectScratchpad(
+          userId = student.id,
+          projectId = project.id,
+          documentId = document.id
+        )
+        // Insert the new feedback
+        createdFeedback <- lift(projectScratchpadRepository.insert(newScratchpad))
+      } yield createdFeedback
+    }
+  }
+
+  // ########## GOOGLE FILES ###########################################################################################
+
+  override def getGfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Gfile]] = {
+    for {
+      gFile <- lift(gfileRepository.get(gFileId))
+    } yield gFile
+  }
+
+  override def createGfile(
+    workId: UUID,
+    fileId: String,
+    mimeType: String,
+    fileType: String,
+    fileName: String,
+    embedUrl: String,
+    url: String,
+    sharedEmail: Option[String]
+  ): Future[\/[ErrorUnion#Fail, Work]] = {
+    for {
+      work <- lift(workRepository.find(workId))
+      gFiles <- lift(gfileRepository.listByWork(work))
+      newGfile <- lift(gfileRepository.insert(
+        Gfile(
+          workId = workId,
+          fileId = fileId,
+          mimeType = mimeType,
+          fileType = fileType,
+          fileName = fileName,
+          embedUrl = embedUrl,
+          url = url,
+          sharedEmail = sharedEmail
+        )
+      ))
+      result = work match {
+        case work: DocumentWork => work.copy(gFiles = gFiles :+ newGfile)
+        case work: MediaWork => work.copy(gFiles = gFiles :+ newGfile)
+        case work: QuestionWork => work.copy(gFiles = gFiles :+ newGfile)
+      }
+    } yield result.asInstanceOf[Work]
+  }
+
+  override def updateGfile(
+    gFileId: UUID,
+    sharedEmail: Option[Option[String]],
+    permissionId: Option[Option[String]],
+    revisionId: Option[Option[String]]
+  ): Future[\/[ErrorUnion#Fail, Work]] = {
+    for {
+      gFile <- lift(gfileRepository.get(gFileId))
+      work <- lift(workRepository.find(gFile.workId))
+      gFiles <- lift(gfileRepository.listByWork(work))
+      updatedGfile <- lift(gfileRepository.update(
+        gFile.copy(
+          sharedEmail = sharedEmail match {
+          case Some(Some(sharedEmail)) => Some(sharedEmail)
+          case Some(None) => None
+          case None => gFile.sharedEmail
+        },
+          permissionId = permissionId match {
+          case Some(Some(permissionId)) => Some(permissionId)
+          case Some(None) => None
+          case None => gFile.permissionId
+        },
+          revisionId = revisionId match {
+          case Some(Some(revisionId)) => Some(revisionId)
+          case Some(None) => None
+          case None => gFile.revisionId
+        }
+        )
+      ))
+      // Update list of google files in the work
+      updatedGfiles = gFiles.map(gF => {
+        if (gF.id == updatedGfile.id) updatedGfile
+        else gF
+      })
+      result = work match {
+        case work: DocumentWork => work.copy(gFiles = updatedGfiles)
+        case work: MediaWork => work.copy(gFiles = updatedGfiles)
+        case work: QuestionWork => work.copy(gFiles = updatedGfiles)
+      }
+    } yield result.asInstanceOf[Work]
+  }
+
+  override def deleteGfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Work]] = {
+    for {
+      gFile <- lift(gfileRepository.get(gFileId))
+      work <- lift(workRepository.find(gFile.workId))
+      gFiles <- lift(gfileRepository.listByWork(work))
+      deletedGfile <- lift(gfileRepository.delete(gFile))
+      // Remove delete google file from the list
+      updatedGfiles = gFiles.filter(_.id != gFile.id)
+      result = work match {
+        case work: DocumentWork => work.copy(gFiles = updatedGfiles)
+        case work: MediaWork => work.copy(gFiles = updatedGfiles)
+        case work: QuestionWork => work.copy(gFiles = updatedGfiles)
+      }
+    } yield result.asInstanceOf[Work]
+  }
+
+  // ########## MICROSOFT FILES ###########################################################################################
+
+  override def getMSfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Gfile]] = {
+    for {
+      gFile <- lift(gfileRepository.get(gFileId))
+    } yield gFile
+  }
+
+  override def createMSfile(
+    workId: UUID,
+    fileId: String,
+    mimeType: String,
+    fileType: String,
+    fileName: String,
+    embedUrl: String,
+    url: String,
+    sharedEmail: Option[String]
+  ): Future[\/[ErrorUnion#Fail, Work]] = {
+    for {
+      work <- lift(workRepository.find(workId))
+      gFiles <- lift(gfileRepository.listByWork(work))
+      newGfile <- lift(gfileRepository.insert(
+        Gfile(
+          workId = workId,
+          fileId = fileId,
+          mimeType = mimeType,
+          fileType = fileType,
+          fileName = fileName,
+          embedUrl = embedUrl,
+          url = url,
+          sharedEmail = sharedEmail
+        )
+      ))
+      result = work match {
+        case work: DocumentWork => work.copy(gFiles = gFiles :+ newGfile)
+        case work: MediaWork => work.copy(gFiles = gFiles :+ newGfile)
+        case work: QuestionWork => work.copy(gFiles = gFiles :+ newGfile)
+      }
+    } yield result.asInstanceOf[Work]
+  }
+
+  override def updateMSfile(
+    gFileId: UUID,
+    sharedEmail: Option[Option[String]],
+    permissionId: Option[Option[String]],
+    revisionId: Option[Option[String]]
+  ): Future[\/[ErrorUnion#Fail, Work]] = {
+    for {
+      gFile <- lift(gfileRepository.get(gFileId))
+      work <- lift(workRepository.find(gFile.workId))
+      gFiles <- lift(gfileRepository.listByWork(work))
+      updatedGfile <- lift(gfileRepository.update(
+        gFile.copy(
+          sharedEmail = sharedEmail match {
+          case Some(Some(sharedEmail)) => Some(sharedEmail)
+          case Some(None) => None
+          case None => gFile.sharedEmail
+        },
+          permissionId = permissionId match {
+          case Some(Some(permissionId)) => Some(permissionId)
+          case Some(None) => None
+          case None => gFile.permissionId
+        },
+          revisionId = revisionId match {
+          case Some(Some(revisionId)) => Some(revisionId)
+          case Some(None) => None
+          case None => gFile.revisionId
+        }
+        )
+      ))
+      // Update list of google files in the work
+      updatedGfiles = gFiles.map(gF => {
+        if (gF.id == updatedGfile.id) updatedGfile
+        else gF
+      })
+      result = work match {
+        case work: DocumentWork => work.copy(gFiles = updatedGfiles)
+        case work: MediaWork => work.copy(gFiles = updatedGfiles)
+        case work: QuestionWork => work.copy(gFiles = updatedGfiles)
+      }
+    } yield result.asInstanceOf[Work]
+  }
+
+  override def deleteMSfile(gFileId: UUID): Future[\/[ErrorUnion#Fail, Work]] = {
+    for {
+      gFile <- lift(gfileRepository.get(gFileId))
+      work <- lift(workRepository.find(gFile.workId))
+      gFiles <- lift(gfileRepository.listByWork(work))
+      deletedGfile <- lift(gfileRepository.delete(gFile))
+      // Remove delete google file from the list
+      updatedGfiles = gFiles.filter(_.id != gFile.id)
+      result = work match {
+        case work: DocumentWork => work.copy(gFiles = updatedGfiles)
+        case work: MediaWork => work.copy(gFiles = updatedGfiles)
+        case work: QuestionWork => work.copy(gFiles = updatedGfiles)
+      }
+    } yield result.asInstanceOf[Work]
   }
 }

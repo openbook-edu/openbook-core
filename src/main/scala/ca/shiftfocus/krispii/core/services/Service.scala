@@ -4,7 +4,6 @@ import ca.shiftfocus.krispii.core.services.datasource.DB
 import ca.shiftfocus.lib.concurrent.Lifting
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.github.mauricio.async.db.Connection
-
 import scala.concurrent.Future
 
 trait Service[F] extends Lifting[F] {

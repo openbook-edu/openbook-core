@@ -1,13 +1,17 @@
 import java.awt.Color
+
 import ca.shiftfocus.krispii.core.models.JournalEntry._
 import ca.shiftfocus.krispii.core.models._
-import ca.shiftfocus.krispii.core.models.document.{ Revision, Document }
+import ca.shiftfocus.krispii.core.models.document.{Document, Revision}
 import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.models.tasks.questions._
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.models.group.Course
+import ca.shiftfocus.krispii.core.models.user.User
 import ca.shiftfocus.krispii.core.models.work._
-import org.joda.time.{ LocalTime, LocalDate, DateTime, DateTimeZone }
-import ws.kahn.ot._
+import org.joda.time.{DateTime, DateTimeZone, LocalDate, LocalTime}
+import ca.shiftfocus.otlib._
 
 object TestValues {
   /* ---------------------- USERS ---------------------- */
@@ -20,6 +24,7 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="), // adminpass
     givenname = "TestA",
     surname = "UserA",
+    accountType = "krispii",
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -32,6 +37,7 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestB",
     surname = "UserB",
+    accountType = "krispii",
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -47,6 +53,7 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestC",
     surname = "UserC",
+    accountType = "krispii",
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -60,7 +67,8 @@ object TestValues {
     username = "testUserD",
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestD",
-    surname = "UserD"
+    surname = "UserD",
+    accountType = "google"
   )
 
   val testUserE = User(
@@ -71,6 +79,7 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestE",
     surname = "UserE",
+    accountType = "google",
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -83,6 +92,7 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestF",
     surname = "UserF",
+    accountType = "google",
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -95,6 +105,7 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestG",
     surname = "UserG",
+    accountType = "google",
     createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -107,10 +118,62 @@ object TestValues {
     hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
     givenname = "TestH",
     surname = "UserH",
+    accountType = "google",
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testUserI = User(
+    id = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
+    version = 1L,
+    email = "rafael@krispii.com",
+    username = "rafaelya",
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
+    givenname = "Rafael",
+    surname = "Yanez",
+    accountType = "google",
+    createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testUserJ = User(
+    id = UUID.fromString("7c62a526-d1b0-11e5-9080-08626681851d"),
+    version = 1L,
+    email = "yanez@krispii.com",
+    username = "yanez",
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
+    givenname = "Antonio",
+    surname = "Yanez",
+    accountType = "google",
+    createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testUserX = User(
+    id = UUID.fromString("a898c83a-5638-4483-9528-8037b3ed661d"),
+    version = 1L,
+    email = "kmccormick@krispii.com",
+    username = "mysterion",
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
+    givenname = "Kenny",
+    surname = "McCormick",
+    accountType = "google",
+    createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testUserK = User(
+    id = UUID.fromString("11eb9ca0-26dc-42d0-89f8-f5952dcbe2e4"),
+    version = 1L,
+    email = "deleted_1487958454_testUserK@example.com",
+    username = "deleted_1487958454_testUserK",
+    hash = Some("$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE="),
+    givenname = "TestK",
+    surname = "UserK",
+    accountType = "google",
+    createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
   /* ---------------------- ROLES ---------------------- */
 
   val testRoleAuth = Role(
@@ -214,10 +277,10 @@ object TestValues {
   val testCourseA = Course(
     id = UUID.fromString("217c5622-ff9e-4372-8e6a-95fb3bae300b"),
     version = 1L,
-    teacherId = testUserA.id,
-    name = "test course A",
+    ownerId = testUserA.id,
+    name = "test group A",
     color = new Color(24, 6, 8),
-    slug = "test course A slug",
+    slug = "test-group-A-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -226,10 +289,10 @@ object TestValues {
   val testCourseB = Course(
     id = UUID.fromString("404c800a-5385-4e6b-867e-365a1e6b00de"),
     version = 2L,
-    teacherId = testUserB.id,
-    name = "test course B",
+    ownerId = testUserB.id,
+    name = "test group B",
     color = new Color(34, 8, 16),
-    slug = "test course B slug",
+    slug = "test-group-B-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -240,20 +303,20 @@ object TestValues {
    */
   val testCourseC = Course(
     id = UUID.fromString("7cf524fa-aa7f-4bfe-93d7-8cd7787fd030"),
-    teacherId = testUserA.id,
-    name = "unexisting course C",
+    ownerId = testUserA.id,
+    name = "unexisting group C",
     color = new Color(24, 6, 8),
-    slug = "test course C slug",
+    slug = "test-group-C-slug",
     chatEnabled = true
   )
 
   val testCourseD = Course(
     id = UUID.fromString("94cc65bb-4542-4f62-8e08-d58522e7b5f1"),
     version = 3L,
-    teacherId = testUserF.id,
-    name = "test course D",
+    ownerId = testUserF.id,
+    name = "test group D",
     color = new Color(4, 28, 56),
-    slug = "test course D slug",
+    slug = "test-group-D-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -264,35 +327,60 @@ object TestValues {
    */
   val testCourseE = Course(
     id = UUID.fromString("d0b05b14-4a5f-4727-ac43-bd8671aab53c"),
-    teacherId = testUserA.id,
-    name = "unexisting course E",
+    ownerId = testUserA.id,
+    name = "unexisting group E",
     color = new Color(45, 10, 15),
-    slug = "test course E slug",
+    slug = "test-group-E-slug",
     chatEnabled = true
   )
 
   val testCourseF = Course(
     id = UUID.fromString("287b61f5-da6b-4de7-8535-3bc500cffac7"),
     version = 4L,
-    teacherId = testUserF.id,
-    name = "test course F",
+    ownerId = testUserF.id,
+    name = "test group F",
     color = new Color(4, 28, 56),
-    slug = "test course F slug",
+    slug = "test-group-F-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   /**
-   *  Course without students
+   * Course without students
    */
   val testCourseG = Course(
     id = UUID.fromString("b24abba8-e6c7-4700-900c-e66ed0185a70"),
     version = 5L,
-    teacherId = testUserF.id,
-    name = "test course G",
+    ownerId = testUserF.id,
+    name = "test group G",
     color = new Color(23, 6, 45),
-    slug = "test course G slug",
+    slug = "test-group-G-slug",
+    chatEnabled = true,
+    createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testCourseH = Course(
+    //4ac4d872-451b-4092-b13f-643d6d5fa931
+    id = UUID.fromString("4ac4d872-451b-4092-b13f-643d6d5fa931"),
+    version = 5L,
+    ownerId = testUserF.id,
+    name = "test group H",
+    color = new Color(23, 6, 45),
+    slug = "test-group-H-slug",
+    chatEnabled = true,
+    createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testCourseK = Course(
+    id = UUID.fromString("b24abba8-e6c7-4700-900c-e66ed0185a71"),
+    version = 5L,
+    ownerId = testUserF.id,
+    name = "test group K",
+    color = new Color(23, 6, 45),
+    slug = "test-group-K-slug",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -342,7 +430,7 @@ object TestValues {
   )
 
   /* ---------------------- TASKS ---------------------- */
-
+  CommonTaskSettings()
   /* LONG ANSWER TASKS */
   val testLongAnswerTaskA = DocumentTask(
     id = UUID.fromString("bf1a6ed0-9f83-4cb4-85c1-ad456299b3a3"),
@@ -353,10 +441,13 @@ object TestValues {
       title = "test longAnswerTask A",
       description = "test longAnswerTask A description",
       notesAllowed = true,
+      help = "test help text testLongAnswerTaskA",
       notesTitle = Some("test longAnswerTask A notes title"),
-      responseTitle = Some("test longAnswerTask A response title")
+      responseTitle = Some("test longAnswerTask A response title"),
+      mediaData = Some(MediaData(Some("s3"), Some("some_video.mp4"), Some("video/mp4"), Some("some_video.mp4"), None, Some(4123456)))
     ),
     dependencyId = None,
+    maxGrade = "55",
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -371,10 +462,12 @@ object TestValues {
       title = "test longAnswerTask N",
       description = "test longAnswerTask N description",
       notesAllowed = true,
+      help = "test help text testLongAnswerTaskN",
       notesTitle = Some("test longAnswerTask N notes title"),
       responseTitle = Some("test longAnswerTask N response title")
     ),
     dependencyId = None,
+    maxGrade = "25",
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -389,10 +482,12 @@ object TestValues {
       title = "test longAnswerTask O",
       description = "test longAnswerTask O description",
       notesAllowed = true,
+      help = "test help text testLongAnswerTaskO",
       notesTitle = Some("test longAnswerTask O notes title"),
       responseTitle = Some("test longAnswerTask O response title")
     ),
     dependencyId = Some(testLongAnswerTaskN.id),
+    maxGrade = "15",
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -407,10 +502,12 @@ object TestValues {
       title = "test longAnswerTask F",
       description = "test longAnswerTask F description",
       notesAllowed = false,
+      help = "test help text testLongAnswerTaskF",
       notesTitle = Some("test longAnswerTask F notes title"),
       responseTitle = Some("test longAnswerTask F response title")
     ),
     dependencyId = Some(testLongAnswerTaskA.id),
+    maxGrade = "5",
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -425,10 +522,12 @@ object TestValues {
       title = "test shortAnswerTask B",
       description = "test shortAnswerTask B description",
       notesAllowed = true,
+      help = "test help text testShortAnswerTaskB",
       notesTitle = Some("test shortAnswerTask B notes title"),
       responseTitle = Some("test shortAnswerTask B response title")
     ),
     questions = IndexedSeq(testShortQuestionA),
+    maxGrade = "90",
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -443,10 +542,12 @@ object TestValues {
       title = "test shortAnswerTask G",
       description = "test shortAnswerTask G description",
       notesAllowed = false,
+      help = "test help text testShortAnswerTaskG",
       notesTitle = Some("test shortAnswerTask G notes title"),
       responseTitle = Some("test shortAnswerTask G response title")
     ),
     questions = IndexedSeq(testShortQuestionA),
+    maxGrade = "90",
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -461,10 +562,12 @@ object TestValues {
       title = "test MultipleChoiceTask C",
       description = "test MultipleChoiceTask C description",
       notesAllowed = true,
+      help = "test help text testMultipleChoiceTaskC",
       notesTitle = Some("test MultipleChoiceTask C notes title"),
       responseTitle = Some("test MultipleChoiceTask C response title")
     ),
     questions = IndexedSeq(testMultipleChoiceQuestionB),
+    maxGrade = "30",
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -479,10 +582,12 @@ object TestValues {
       title = "test MultipleChoiceTask H",
       description = "test MultipleChoiceTask H description",
       notesAllowed = true,
+      help = "test help text testMultipleChoiceTaskH",
       notesTitle = Some("test MultipleChoiceTask H notes title"),
       responseTitle = Some("test MultipleChoiceTask H response title")
     ),
     questions = IndexedSeq(testMultipleChoiceQuestionB),
+    maxGrade = "20",
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -497,10 +602,12 @@ object TestValues {
       title = "test OrderingTask D",
       description = "test OrderingTask D description",
       notesAllowed = true,
+      help = "test help text testOrderingTaskD",
       notesTitle = Some("test OrderingTask D notes title"),
       responseTitle = Some("test OrderingTask D response title")
     ),
     questions = IndexedSeq(testOrderingQuestionC),
+    maxGrade = "1",
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -514,10 +621,12 @@ object TestValues {
       title = "test OrderingTask L",
       description = "test OrderingTask L description",
       notesAllowed = true,
+      help = "test help text testOrderingTaskL",
       notesTitle = Some("test OrderingTask L notes title"),
       responseTitle = Some("test OrderingTask L response title")
     ),
     questions = IndexedSeq(testOrderingQuestionC),
+    maxGrade = "77",
     createdAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -531,10 +640,12 @@ object TestValues {
       title = "test OrderingTask N",
       description = "test OrderingTask N description",
       notesAllowed = true,
+      help = "test help text testOrderingTaskN",
       notesTitle = Some("test OrderingTask N notes title"),
       responseTitle = Some("test OrderingTask N response title")
     ),
     questions = IndexedSeq(testOrderingQuestionC),
+    maxGrade = "1000",
     createdAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -549,10 +660,12 @@ object TestValues {
       title = "test OrderingTask I",
       description = "test OrderingTask I description",
       notesAllowed = false,
+      help = "test help text testOrderingTaskI",
       notesTitle = Some("test OrderingTask I notes title"),
       responseTitle = Some("test OrderingTask I response title")
     ),
     questions = IndexedSeq(testOrderingQuestionC),
+    maxGrade = "10",
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -568,10 +681,12 @@ object TestValues {
       title = "test MatchingTask E",
       description = "test MatchingTask E description",
       notesAllowed = true,
+      help = "test help text testMatchingTaskE",
       notesTitle = Some("test MatchingTask E notes title"),
       responseTitle = Some("test MatchingTask E response title")
     ),
     questions = IndexedSeq(testMatchingQuestionD),
+    maxGrade = "5",
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -586,10 +701,12 @@ object TestValues {
       title = "test MatchingTask J",
       description = "test MatchingTask J description",
       notesAllowed = false,
+      help = "test help text testMatchingTaskJ",
       notesTitle = Some("test MatchingTask J notes title"),
       responseTitle = Some("test MatchingTask J response title")
     ),
     questions = IndexedSeq(testMatchingQuestionD),
+    maxGrade = "100",
     createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -603,10 +720,12 @@ object TestValues {
       title = "test MatchingTask K",
       description = "test MatchingTask K description",
       notesAllowed = true,
+      help = "test help text testMatchingTaskK",
       notesTitle = Some("test MatchingTask K notes title"),
       responseTitle = Some("test MatchingTask K response title")
     ),
     questions = IndexedSeq(testMatchingQuestionD),
+    maxGrade = "0",
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -620,10 +739,12 @@ object TestValues {
       title = "test MatchingTask M",
       description = "test MatchingTask M description",
       notesAllowed = true,
+      help = "test help text testMatchingTaskM",
       notesTitle = Some("test MatchingTask M notes title"),
       responseTitle = Some("test MatchingTask M response title")
     ),
     questions = IndexedSeq(testMatchingQuestionD),
+    maxGrade = "0",
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -638,10 +759,12 @@ object TestValues {
       title = "test BlanksTask P",
       description = "test BlanksTask P description",
       notesAllowed = true,
+      help = "test help text testBlanksTaskP",
       notesTitle = Some("test BlanksTask P notes title"),
       responseTitle = Some("test BlanksTask P response title")
     ),
     questions = IndexedSeq(testBlanksQuestionE, testMatchingQuestionD),
+    maxGrade = "0",
     createdAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 18, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -656,12 +779,55 @@ object TestValues {
       title = "test BlanksTask Q",
       description = "test BlanksTask Q description",
       notesAllowed = true,
+      help = "test help text testBlanksTaskQ",
       notesTitle = Some("test BlanksTask Q notes title"),
       responseTitle = Some("test BlanksTask Q response title")
     ),
     questions = IndexedSeq(testBlanksQuestionE, testMatchingQuestionD),
+    maxGrade = "0",
     createdAt = new DateTime(2014, 8, 19, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 20, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* MEDIA TASKS */
+
+  val testMediaTaskA = MediaTask(
+    id = UUID.fromString("a7121b74-eac1-11e5-9ce9-5e5517507c66"),
+    version = 3,
+    partId = UUID.fromString("5cd214be-6bba-47fa-9f35-0eb8bafec397"), // testPartA.id
+    position = 16,
+    settings = CommonTaskSettings(
+      title = "test MediaTask A",
+      description = "test MediaTask A description",
+      notesAllowed = true,
+      help = "test help text testMediaTaskA",
+      notesTitle = Some("test MediaTask A notes title"),
+      responseTitle = Some("test MediaTask A response title")
+    ),
+    mediaType = 0,
+    maxGrade = "0",
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* No data in DB */
+  val testMediaTaskB = MediaTask(
+    id = UUID.fromString("46a994fa-eac2-11e5-9ce9-5e5517507c66"),
+    version = 8L,
+    partId = UUID.fromString("5cd214be-6bba-47fa-9f35-0eb8bafec397"), // testPartA.id
+    position = 25,
+    settings = CommonTaskSettings(
+      title = "test testMediaTask B",
+      description = "test testMediaTask B description",
+      notesAllowed = true,
+      help = "test help text testMediaTaskB",
+      notesTitle = Some("test testMediaTask B notes title"),
+      responseTitle = Some("test testMediaTask B response title")
+    ),
+    mediaType = 2,
+    maxGrade = "10",
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   /* ---------------------- DOCUMENTS ---------------------- */
@@ -1174,6 +1340,7 @@ object TestValues {
     version = testDocumentA.version,
     response = Some(testDocumentA),
     isComplete = true,
+    grade = "",
     createdAt = testDocumentA.createdAt,
     updatedAt = testDocumentA.updatedAt
   )
@@ -1186,6 +1353,7 @@ object TestValues {
     version = testDocumentB.version,
     response = Some(testDocumentB),
     isComplete = true,
+    grade = "",
     createdAt = testDocumentB.createdAt,
     updatedAt = testDocumentB.updatedAt
   )
@@ -1199,6 +1367,7 @@ object TestValues {
     version = 1L,
     response = Some(testDocumentB),
     isComplete = true,
+    grade = "",
     createdAt = testDocumentB.createdAt,
     updatedAt = testDocumentB.updatedAt
   )
@@ -1213,6 +1382,7 @@ object TestValues {
       testShortQuestionA.id -> testShortAnswerA
     )),
     isComplete = false,
+    grade = "",
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1226,6 +1396,7 @@ object TestValues {
       testShortQuestionA.id -> testShortAnswerA
     )),
     isComplete = false,
+    grade = "",
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1236,6 +1407,7 @@ object TestValues {
     studentId = testUserG.id,
     taskId = testShortAnswerTaskB.id,
     version = 1L,
+    grade = "",
     response = Answers(Map(
       testShortQuestionA.id -> testShortAnswerA
     )),
@@ -1250,6 +1422,7 @@ object TestValues {
     studentId = testUserC.id,
     taskId = testMultipleChoiceTaskC.id,
     version = 3L,
+    grade = "",
     response = Answers(Map(
       testMultipleChoiceQuestionB.id -> testMultipleChoiceAnswerB
     )),
@@ -1267,6 +1440,7 @@ object TestValues {
       testMultipleChoiceQuestionB.id -> testMultipleChoiceAnswerB
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1281,6 +1455,7 @@ object TestValues {
       testMultipleChoiceQuestionB.id -> testMultipleChoiceAnswerB
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1295,6 +1470,7 @@ object TestValues {
       testOrderingQuestionC.id -> testOrderingAnswerC
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1308,6 +1484,7 @@ object TestValues {
       testOrderingQuestionC.id -> testOrderingAnswerC
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1322,6 +1499,7 @@ object TestValues {
       testOrderingQuestionC.id -> testOrderingAnswerC
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1336,6 +1514,7 @@ object TestValues {
       testMatchingQuestionD.id -> testMatchingAnswerD
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1349,6 +1528,7 @@ object TestValues {
       testMatchingQuestionD.id -> testMatchingAnswerD
     )),
     isComplete = false,
+    grade = "",
     createdAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1363,6 +1543,7 @@ object TestValues {
       testMatchingQuestionD.id -> testMatchingAnswerD
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1377,6 +1558,7 @@ object TestValues {
       testBlanksQuestionE.id -> testBlanksAnswerE
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1390,6 +1572,7 @@ object TestValues {
       testBlanksQuestionE.id -> testBlanksAnswerE
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1404,8 +1587,55 @@ object TestValues {
       testBlanksQuestionE.id -> testBlanksAnswerE
     )),
     isComplete = true,
+    grade = "",
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 17, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* MEDIA_WORK */
+  val testMediaWorkA = MediaWork(
+    id = UUID.fromString("38800ed0-8c6e-482b-84e5-806c1f86316d"),
+    studentId = testUserC.id,
+    taskId = testMediaTaskA.id,
+    version = 3L,
+    fileData = MediaAnswer(
+      mediaType = Some("image/jpg"),
+      fileName = Some("image.jpg"),
+      size = Some(750000)
+    ),
+    isComplete = false,
+    grade = "",
+    createdAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* No data in DB */
+  val testMediaWorkB = MediaWork(
+    id = UUID.fromString("761f5ba1-7379-4fbd-80aa-94d39a6d8cb8"),
+    studentId = UUID.fromString("871b5250-6712-4e54-8ab6-0784cae0bc65"),
+    taskId = testMediaTaskA.id,
+    version = 1L,
+    fileData = MediaAnswer(),
+    isComplete = false,
+    grade = "",
+    createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testMediaWorkC = MediaWork(
+    id = UUID.fromString("f4a24c3b-e502-445d-8f6e-13bcb121fbdb"),
+    studentId = testUserE.id,
+    taskId = testMediaTaskA.id,
+    version = 3L,
+    fileData = MediaAnswer(
+      mediaType = Some("image/gif"),
+      fileName = Some("photo.gif"),
+      size = Some(500000)
+    ),
+    isComplete = false,
+    grade = "",
+    createdAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
   /* ---------------------- WORK REVISIONS ---------------------- */
@@ -1419,6 +1649,7 @@ object TestValues {
     version = testDocumentRevisionA.version,
     response = Some(testDocumentRevisionA),
     isComplete = testLongAnswerWorkA.isComplete,
+    grade = "",
     createdAt = testLongAnswerWorkA.createdAt,
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1431,6 +1662,7 @@ object TestValues {
     version = testDocumentRevisionB.version,
     response = Some(testDocumentRevisionB),
     isComplete = testLongAnswerWorkF.isComplete,
+    grade = "",
     createdAt = testLongAnswerWorkF.createdAt,
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1445,6 +1677,7 @@ object TestValues {
       testShortQuestionA.id -> testShortAnswerRevisionA
     )),
     isComplete = testShortAnswerWorkB.isComplete,
+    grade = "",
     createdAt = testShortAnswerWorkB.createdAt,
     updatedAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1454,6 +1687,7 @@ object TestValues {
     studentId = testShortAnswerWorkG.studentId,
     taskId = testShortAnswerWorkG.taskId,
     version = testShortAnswerWorkG.version - 1,
+    grade = "",
     response = Answers(Map(
       testShortQuestionA.id -> testShortAnswerRevisionA
     )),
@@ -1468,6 +1702,7 @@ object TestValues {
     studentId = testMultipleChoiceWorkC.studentId,
     taskId = testMultipleChoiceWorkC.taskId,
     version = testMultipleChoiceWorkC.version - 1,
+    grade = "",
     response = Answers(Map(
       testMultipleChoiceQuestionB.id -> testMultipleChoiceAnswerRevisionB
     )),
@@ -1481,6 +1716,7 @@ object TestValues {
     studentId = testMultipleChoiceWorkH.studentId,
     taskId = testMultipleChoiceWorkH.taskId,
     version = testMultipleChoiceWorkH.version - 1,
+    grade = "",
     response = Answers(Map(
       testMultipleChoiceQuestionB.id -> testMultipleChoiceAnswerRevisionB
     )),
@@ -1499,6 +1735,7 @@ object TestValues {
       testOrderingQuestionC.id -> testOrderingAnswerRevisionC
     )),
     isComplete = testOrderingWorkD.isComplete,
+    grade = "",
     createdAt = testOrderingWorkD.createdAt,
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1508,6 +1745,7 @@ object TestValues {
     studentId = testOrderingWorkI.studentId,
     taskId = testOrderingWorkI.taskId,
     version = testOrderingWorkI.version - 1,
+    grade = "",
     response = Answers(Map(
       testOrderingQuestionC.id -> testOrderingAnswerRevisionC
     )),
@@ -1522,6 +1760,7 @@ object TestValues {
     studentId = testMatchingWorkE.studentId,
     taskId = testMatchingWorkE.taskId,
     version = testMatchingWorkE.version - 1,
+    grade = "",
     response = Answers(Map(
       testMatchingQuestionD.id -> testMatchingAnswerRevisionD
     )),
@@ -1534,6 +1773,7 @@ object TestValues {
     id = testMatchingWorkJ.id,
     studentId = testMatchingWorkJ.studentId,
     taskId = testMatchingWorkJ.taskId,
+    grade = "",
     version = testMatchingWorkJ.version - 1,
     response = Answers(Map(
       testMatchingQuestionD.id -> testMatchingAnswerRevisionD
@@ -1548,6 +1788,7 @@ object TestValues {
     studentId = testMatchingWorkJ.studentId,
     taskId = testMatchingWorkJ.taskId,
     version = testMatchingWorkJ.version - 2,
+    grade = "",
     response = Answers(Map(
       testMatchingQuestionD.id -> testMatchingAnswerRevisionD
     )),
@@ -1562,6 +1803,7 @@ object TestValues {
     studentId = testBlanksWorkK.studentId,
     taskId = testBlanksWorkK.taskId,
     version = testBlanksWorkK.version - 1,
+    grade = "",
     response = Answers(Map(
       testBlanksQuestionE.id -> testBlanksAnswerRevisionE
     )),
@@ -1575,6 +1817,7 @@ object TestValues {
     studentId = testBlanksWorkL.studentId,
     taskId = testBlanksWorkL.taskId,
     version = testBlanksWorkL.version - 1,
+    grade = "",
     response = Answers(Map(
       testBlanksQuestionE.id -> testBlanksAnswerRevisionE
     )),
@@ -1594,6 +1837,7 @@ object TestValues {
     questions = "testTextComponentA questions",
     thingsToThinkAbout = "testTextComponentA thingsToThinkAbout",
     content = "testTextComponentA content",
+    order = 1,
     createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1607,6 +1851,7 @@ object TestValues {
     questions = "testTextComponentG questions",
     thingsToThinkAbout = "testTextComponentG thingsToThinkAbout",
     content = "testTextComponentG content",
+    order = 2,
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1619,9 +1864,25 @@ object TestValues {
     title = "testVideoComponentB title",
     questions = "testVideoComponentB questions",
     thingsToThinkAbout = "testVideoComponentB thingsToThinkAbout",
-    vimeoId = "19579282",
+    mediaData = MediaData(Some("vimeo"), Some("19579282")),
     width = 640,
     height = 480,
+    order = 3,
+    createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testVideoComponentL = VideoComponent(
+    id = UUID.fromString("e3de60fe-ce40-4873-a2fb-5f223460e158"),
+    version = 2L,
+    ownerId = testUserA.id,
+    title = "testVideoComponentL title",
+    questions = "testVideoComponentL questions",
+    thingsToThinkAbout = "testVideoComponentL thingsToThinkAbout",
+    mediaData = MediaData(Some("s3"), Some("some_video.mp4"), Some("video/mp4"), Some("some_video.mp4"), None, Some(4123456)),
+    width = 640,
+    height = 480,
+    order = 3,
     createdAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1634,9 +1895,10 @@ object TestValues {
     title = "testVideoComponentF title",
     questions = "testVideoComponentF questions",
     thingsToThinkAbout = "testVideoComponentF thingsToThinkAbout",
-    vimeoId = "19579283",
+    mediaData = MediaData(Some("vimeo"), Some("19579283")),
     width = 640,
     height = 480,
+    order = 0,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1649,7 +1911,35 @@ object TestValues {
     title = "testAudioComponentC title",
     questions = "testAudioComponentC questions",
     thingsToThinkAbout = "testAudioComponentC thingsToThinkAbout",
-    soundcloudId = "dj-whisky-ft-nozipho-just",
+    mediaData = MediaData(Some("sound_cloud"), Some("dj-whisky-ft-nozipho-just")),
+    order = 0,
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testAudioComponentM = AudioComponent(
+    id = UUID.fromString("e43568db-1084-4d13-99b0-33e11b8ddbb0"),
+    version = 3L,
+    ownerId = testUserA.id,
+    title = "testAudioComponentM title",
+    questions = "testAudioComponentM questions",
+    thingsToThinkAbout = "testAudioComponentM thingsToThinkAbout",
+    mediaData = MediaData(Some("s3"), Some("some_audio.mp3"), Some("audio/mp3"), Some("some_audio.mp3"), None, Some(2236480)),
+    order = 0,
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  //Share the same file on s3 as testAudioComponentM
+  val testAudioComponentN = AudioComponent(
+    id = UUID.fromString("7fa3ebe7-3a83-468d-8dba-c5a85a2e38fd"),
+    version = 3L,
+    ownerId = testUserA.id,
+    title = "testAudioComponentN title",
+    questions = "testAudioComponentN questions",
+    thingsToThinkAbout = "testAudioComponentN thingsToThinkAbout",
+    mediaData = testAudioComponentM.mediaData,
+    order = 0,
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1662,7 +1952,8 @@ object TestValues {
     title = "testAudioComponentD title",
     questions = "testAudioComponentD questions",
     thingsToThinkAbout = "testAudioComponentD thingsToThinkAbout",
-    soundcloudId = "fetty-wap-my-way-feat-monty",
+    mediaData = MediaData(Some("sound_cloud"), Some("fetty-wap-my-way-feat-monty")),
+    order = 0,
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1674,7 +1965,141 @@ object TestValues {
     title = "testAudioComponentE title",
     questions = "testAudioComponentE questions",
     thingsToThinkAbout = "testAudioComponentE thingsToThinkAbout",
-    soundcloudId = "revolution-radio-network",
+    mediaData = MediaData(Some("sound_cloud"), Some("revolution-radio-network")),
+    order = 0,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testGenericHTMLComponentH = GenericHTMLComponent(
+    id = UUID.fromString("8cfc6089-8129-4c2e-9ed1-45d38077d440"),
+    version = 5L,
+    ownerId = testUserA.id,
+    title = "testGenericComponentH title",
+    questions = "testGenericComponentH questions",
+    thingsToThinkAbout = "testGenericComponentH thingsToThinkAbout",
+    order = 0,
+    htmlContent = "testGenericComponentH content",
+    createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testRubricComponentK = RubricComponent(
+    id = UUID.fromString("8cfc6089-8129-4c2e-9ed1-45d38077d449"),
+    version = 6L,
+    ownerId = testUserA.id,
+    title = "testRubricComponentK title",
+    questions = "testRubricComponentK questions",
+    thingsToThinkAbout = "testRubricComponentK thingsToThinkAbout",
+    order = 0,
+    rubricContent = "testRubricComponentK content",
+    createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testGenericHTMLComponentI = GenericHTMLComponent(
+    id = UUID.fromString("8cfc6089-8129-4c2e-9ed1-45d38077d448"),
+    version = 1L,
+    ownerId = testUserA.id,
+    title = "testGenericComponentI title",
+    questions = "testGenericComponentI questions",
+    thingsToThinkAbout = "testGenericComponentI thingsToThinkAbout",
+    htmlContent = "testGenericComponentI content",
+    order = 0,
+    createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testRubricComponentL = RubricComponent(
+    id = UUID.fromString("fd923b3f-6dc2-472e-8ce7-7a8fcc6a1a34"),
+    title = "Rubric Component",
+    questions = "Some questions?",
+    version = 1,
+    ownerId = testUserC.id,
+    thingsToThinkAbout = "Something to think about",
+    order = 1,
+    rubricContent =
+      """
+        |<!DOCTYPE html>
+        |<html>
+        |<head>
+        |<title>Page Title</title>
+        |</head>
+        |<body>
+        |
+        |<h1>This is a Heading</h1>
+        |<p>This is a paragraph.</p>
+        |
+        |</body>
+        |</html>
+      """.stripMargin,
+    createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testGenericHTMLComponentM = RubricComponent(
+    id = UUID.fromString("fd923b3f-6dc2-472e-8ce7-7a8fcc6a1a98"),
+    title = "GenericHTML Component",
+    questions = "Some questions?",
+    version = 1,
+    ownerId = testUserC.id,
+    thingsToThinkAbout = "Something to think about",
+    order = 2,
+    rubricContent =
+      """
+        |<!DOCTYPE html>
+        |<html>
+        |<head>
+        |<title>Page Title</title>
+        |</head>
+        |<body>
+        |
+        |<h1>This is a Heading</h1>
+        |<p>This is a paragraph.</p>
+        |
+        |</body>
+        |</html>
+      """.stripMargin,
+    createdAt = new DateTime(2014, 8, 1, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testBookComponentO = BookComponent(
+    id = UUID.fromString("9f2dd973-397b-4f55-9618-b0ff3af69eaa"),
+    version = 1L,
+    ownerId = testUserB.id,
+    title = "testBookComponentO title",
+    questions = "testBookComponentO questions",
+    thingsToThinkAbout = "testBookComponentO thingsToThinkAbout",
+    mediaData = MediaData(data = Some("some text from a book"), dataType = Some("epub"), size = Some(4)),
+    order = 0,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testImageComponentA = ImageComponent(
+    id = UUID.fromString("b88d6fc1-40b5-4231-8516-86b8bc6736fe"),
+    version = 1L,
+    ownerId = testUserB.id,
+    title = "testImageComponentA title",
+    questions = "testImageComponentA questions",
+    thingsToThinkAbout = "testImageComponentA thingsToThinkAbout",
+    mediaData = MediaData(data = Some("imageA.jpg"), dataType = Some("s3"), size = Some(4)),
+    order = 0,
+    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  // Not in db
+  val testImageComponentB = ImageComponent(
+    id = UUID.fromString("de589325-426d-4eb8-881d-65e9f1b10763"),
+    version = 1L,
+    ownerId = testUserB.id,
+    title = "testImageComponentB title",
+    questions = "testImageComponentB questions",
+    thingsToThinkAbout = "testImageComponentB thingsToThinkAbout",
+    mediaData = MediaData(data = Some("imageB.jpg"), dataType = Some("s3"), size = Some(4)),
+    order = 0,
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -1775,16 +2200,33 @@ object TestValues {
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
+  val testPartI = Part(
+    id = UUID.fromString("fb01f11b-7f23-41c8-877b-68410be62ab6"),
+    version = 3L,
+    projectId = UUID.fromString("00743ada-1d3a-4912-adc8-fb8a0b1b7447"), // testProjectH.id,
+    name = "test part I",
+    enabled = true,
+    position = 1,
+    tasks = Vector(),
+    components = Vector(TestValues.testRubricComponentL, TestValues.testGenericHTMLComponentM),
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
   /* ---------------------- PROJECTS ---------------------- */
 
   val testProjectA = Project(
     id = UUID.fromString("c9b4cfce-aed4-48fd-94f5-c980763dfddc"),
     courseId = testCourseA.id,
     version = 1L,
+    enabled = false,
+    isMaster = false,
     name = "test project A",
-    slug = "test_project_slug_A",
+    slug = "test-project-slug-A",
     description = "test project A description",
+    longDescription = "test project A long description",
     availability = "any",
+    projectType = "sas",
     parts = Vector(testPartA, testPartB, testPartG),
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -1795,9 +2237,11 @@ object TestValues {
     courseId = testCourseB.id,
     version = 2L,
     name = "test project B",
-    slug = "test_project_slug_B",
+    slug = "test-project-slug-B",
     description = "test project B description",
+    longDescription = "test project B long description",
     availability = "free",
+    projectType = "default_project",
     parts = Vector(testPartC),
     createdAt = new DateTime(2014, 8, 11, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 12, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -1808,9 +2252,11 @@ object TestValues {
     courseId = testCourseB.id,
     version = 3L,
     name = "test project C",
-    slug = "test_project_slug_C",
+    slug = "test-project-slug-C",
     description = "test project C description",
-    availability = "course",
+    longDescription = "test project C long description",
+    availability = "group",
+    projectType = "sas",
     parts = Vector(testPartE, testPartF, testPartH),
     createdAt = new DateTime(2014, 8, 13, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 14, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -1823,9 +2269,13 @@ object TestValues {
     id = UUID.fromString("00743ada-1d3a-4912-adc8-fb8a0b1b7443"),
     courseId = testCourseA.id,
     name = "test project D",
-    slug = "test_project_slug_D",
+    slug = "test-project-slug-D",
     description = "test project D description",
-    availability = "course",
+    longDescription = "test project D long description",
+    availability = "group",
+    isMaster = false,
+    parentId = null,
+    projectType = "default_project",
     parts = Vector()
   )
 
@@ -1837,10 +2287,71 @@ object TestValues {
     courseId = testCourseA.id,
     version = 4L,
     name = "test project E",
-    slug = "test_project_slug_E",
+    slug = "test-project-slug-E",
     description = "test project E description",
-    availability = "course",
+    longDescription = "test project E long description",
+    availability = "group",
+    projectType = "default_project",
     parts = Vector(),
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /**
+   * Master project F
+   */
+  val testProjectF = Project(
+    id = UUID.fromString("b36919cb-2df0-43b7-bb7f-36cae797deab"),
+    courseId = testCourseG.id,
+    version = 1L,
+    name = "test project F",
+    slug = "test-project-slug-F",
+    description = "test project F description",
+    longDescription = "test project F long description",
+    availability = "group",
+    parts = Vector(),
+    isMaster = true,
+    enabled = true,
+    projectType = "sas",
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /**
+   * Master project G
+   */
+  val testProjectG = Project(
+    id = UUID.fromString("b36919cb-2df0-43b7-bb7f-36cae797deac"),
+    courseId = testCourseG.id,
+    version = 1L,
+    name = "test project G",
+    slug = "test-project-slug-G",
+    description = "test project G description",
+    longDescription = "test project G long description",
+    availability = "group",
+    parts = Vector(),
+    isMaster = true,
+    enabled = true,
+    projectType = "default_project",
+    createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /**
+   * Master project to be used in insert test
+   */
+  val testProjectH = Project(
+    id = UUID.fromString("00743ada-1d3a-4912-adc8-fb8a0b1b7447"),
+    courseId = testCourseG.id,
+    name = "test project H",
+    slug = "test-project-slug-H",
+    description = "test project H description",
+    longDescription = "test project H long description",
+    availability = "group",
+    isMaster = true,
+    parts = Vector(testPartI),
+    enabled = true,
+    projectType = "sas",
     createdAt = new DateTime(2014, 8, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 16, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -2148,5 +2659,289 @@ object TestValues {
     hidden = false,
     createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
-}
 
+  /* ---------------------- PROJECT_SCRATCHPADS ---------------------- */
+
+  val testProjectScratchpadA = ProjectScratchpad(
+    userId = testUserA.id,
+    projectId = testProjectA.id,
+    version = testDocumentK.version,
+    documentId = testDocumentJ.id,
+    createdAt = testDocumentJ.createdAt,
+    updatedAt = testDocumentJ.updatedAt
+  )
+
+  val testProjectScratchpadB = ProjectScratchpad(
+    userId = testUserA.id,
+    projectId = testProjectB.id,
+    version = testDocumentF.version,
+    documentId = testDocumentF.id,
+    createdAt = testDocumentF.createdAt,
+    updatedAt = testDocumentF.updatedAt
+  )
+
+  val testProjectScratchpad = ProjectScratchpad(
+    userId = testUserC.id,
+    projectId = testProjectB.id,
+    version = testDocumentN.version,
+    documentId = testDocumentN.id,
+    createdAt = testDocumentN.createdAt,
+    updatedAt = testDocumentN.updatedAt
+  )
+
+  val testProjectScratchpadD = ProjectScratchpad(
+    userId = testUserE.id,
+    projectId = testProjectB.id,
+    version = testDocumentO.version,
+    documentId = testDocumentO.id,
+    createdAt = testDocumentO.createdAt,
+    updatedAt = testDocumentO.updatedAt
+  )
+  //scratchPad that is not in the database, mysterious stranger
+  val testProjectScratchpadX = ProjectScratchpad(
+    userId = testUserA.id,
+    projectId = testProjectC.id,
+    documentId = testDocumentJ.id,
+    document = Some(testDocumentJ),
+    version = testDocumentJ.version,
+    createdAt = testDocumentJ.createdAt,
+    updatedAt = testDocumentJ.updatedAt
+  )
+
+  /* ---------------------- USER TOKENS ---------------------- */
+
+  val testUserToken = UserToken(
+    userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
+    token = "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=",
+    tokenType = "activation"
+  //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testUserTokenEmail = UserToken(
+    userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
+    token = "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=",
+    tokenType = "activation"
+  //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testUserTokenInsert = UserToken(
+    userId = UUID.fromString("4d01347e-c592-4e5f-b09f-dd281b3d9b87"),
+    token = "$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7xjMLFYE=",
+    tokenType = "activation"
+  //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+  val testUserTokenDelete = UserToken(
+    userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
+    token = "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=",
+    tokenType = "activation"
+  //    createdAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* ---------------------- WORDS ---------------------- */
+
+  val testWordA = LinkWord(
+    word = "bisexualpotato",
+    lang = "eng"
+  )
+
+  val testWordB = LinkWord(
+    word = "cielbleu",
+    lang = "fr"
+  )
+
+  val testWordC = LinkWord(
+    word = "omniscienttable",
+    lang = "eng"
+  )
+
+  val testWordD = LinkWord(
+    word = "alientea",
+    lang = "eng"
+  )
+
+  val testWordE = LinkWord(
+    word = "vinrouge",
+    lang = "fr"
+  )
+
+  val testWordF = LinkWord(
+    word = "интереснаяличность",
+    lang = "ru"
+  )
+
+  /* ---------------------- REGISTRATION LINKS ---------------------- */
+
+  /**
+   * The registration links for students
+   */
+  val testLinkA = Link(
+    link = testWordA.word,
+    courseId = testCourseA.id,
+    createdAt = new DateTime(2014, 6, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testLinkB = Link(
+    link = testWordE.word,
+    courseId = testCourseB.id,
+    createdAt = new DateTime(2014, 6, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  //Not in the database
+  val testLinkC = Link(
+    link = testWordC.word,
+    courseId = testCourseA.id,
+    createdAt = new DateTime(2014, 6, 11, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+  //user tokens
+  var testUserTokenA = UserToken(
+    userId = UUID.fromString("8b6dc674-d1ae-11e5-9080-08626681851d"),
+    token = "$s0$100801$Im7kWa5XcOMHIilt7VTonA==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=",
+    tokenType = "activation"
+  )
+
+  var testUserTokenP = UserToken(
+    userId = UUID.fromString("7c62a526-d1b0-11e5-9080-08626681851d"),
+    token = "$s0$100801$Im7kWa5XcOMHIilt7A==$nO6OIL6lVz2OQ8vv5mNax1pgqSaaQlKG7x5VdjMLFYE=",
+    tokenType = "password_reset"
+  )
+  /* ---------------------- TAGS ---------------------- */
+
+  val testTagCategoryA = TagCategory(
+    id = UUID.fromString("3728ce32-42eb-4ede-b259-76cc42be5ab6"),
+    name = "level",
+    lang = "fr"
+  )
+  val testTagCategoryB = TagCategory(
+    id = UUID.fromString("9de6a5af-ffd4-45ed-af72-8e88ebd447fc"),
+    name = "subject",
+    lang = "en"
+  )
+  val testTagCategoryC = TagCategory(
+    id = UUID.fromString("6fbe56bb-e72e-4bfd-ae0f-a07c2c2015f4"),
+    name = "school",
+    lang = "en"
+  )
+  val testTagCategoryD = TagCategory(
+    id = UUID.fromString("5f7b0bf0-15a0-4198-ac16-c5444304991e"),
+    name = "futility",
+    lang = "en"
+  )
+
+  val testTagA = Tag(
+    id = UUID.fromString("ebad4d23-f49e-4bcb-a4a3-dd523389091a"),
+    name = "pacificsound3003",
+    lang = "en",
+    category = Some("subject"),
+    frequency = 0
+  )
+  val testTagB = Tag(
+    id = UUID.fromString("67e13f10-c615-45a0-8edf-54988bb1c3d2"),
+    name = "vanille",
+    lang = "fr",
+    category = Some("level"),
+    frequency = 0
+  )
+  val testTagC = Tag(
+    id = UUID.fromString("c3f132af-9a6f-4396-9ff3-694c6bc466a2"),
+    name = "fruit",
+    lang = "fr",
+    category = Some("level"),
+    frequency = 0
+  )
+  // Admin tag
+  val testTagF = Tag(
+    id = UUID.fromString("c3f132af-9a6f-4396-9ff3-694c6bc466a2"),
+    isAdmin = true,
+    name = "admin tag",
+    lang = "en",
+    category = Some("subject"),
+    frequency = 0
+  )
+  /**
+   * no project is tagged with this tag, but it still exists
+   */
+  val testTagD = Tag(
+    id = UUID.fromString("e48866ac-ef8e-4502-b1be-3545ee04dc29"),
+    name = "seductive",
+    lang = "fr",
+    category = Some("level"),
+    frequency = 0
+  )
+
+  // No category
+  val testTagE = Tag(
+    id = UUID.fromString("2c86e4e9-31ee-4205-bad0-63ffc7944471"),
+    name = "nocategory",
+    lang = "en",
+    category = None,
+    frequency = 0
+  )
+  /**
+   * no tag in the database
+   */
+  val testTagX = Tag(
+    id = UUID.fromString("e2556012-e24a-4f56-ae3f-62c82c79d27b"),
+    name = "orange",
+    lang = "fr",
+    category = Some(testTagCategoryA.name),
+    frequency = 0
+  )
+
+  /* ---------------------- USER PREFERENCES ---------------------- */
+
+  val testUserPrefA = UserPreference(
+    userId = testUserA.id,
+    prefName = "lang",
+    state = "en"
+  )
+
+  // Not in DB
+  val testUserPrefB = UserPreference(
+    userId = testUserB.id,
+    prefName = "lang",
+    state = "en"
+  )
+
+  /* ---------------------- PROJECT TOKENS ---------------------- */
+  val testProjectTokenA = ProjectToken(
+    projectId = testProjectA.id,
+    email = "some@email.com",
+    token = "26944803-6dbd-487b-b83d-f222f87c0703",
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* ---------------------- ORGANIZATIONS ---------------------- */
+  val testOrganizationA = Organization(
+    id = UUID.fromString("8c27b83b-af4f-4e7f-9ecf-8f6b5ec9bfb0"),
+    version = 1L,
+    title = "testOrganizationA",
+    admins = IndexedSeq(testUserA.email),
+    tags = IndexedSeq.empty[Tag],
+    members = IndexedSeq(testUserB.email, "unexisting_user@example.com"),
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /* Not in db */
+  val testOrganizationB = Organization(
+    id = UUID.fromString("8fa9b903-9326-4c4b-a525-0ebd963537e2"),
+    version = 1L,
+    title = "testOrganizationB",
+    admins = IndexedSeq(testUserA.email),
+    tags = IndexedSeq.empty[Tag],
+    members = IndexedSeq.empty[String],
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testOrganizationC = Organization(
+    id = UUID.fromString("e26bb8d3-ecfe-4a61-a808-1c3539086066"),
+    version = 1L,
+    title = "testOrganizationC",
+    admins = IndexedSeq(testUserA.email),
+    tags = IndexedSeq.empty[Tag],
+    members = IndexedSeq.empty[String],
+    createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+}

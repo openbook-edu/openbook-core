@@ -1,4 +1,4 @@
-# krispii-core 1.0
+# krispii-core
 
 krispii-core is a plain Scala sbt module that handles data services and domain logic for
 the krispii platform. This is not intended to be run as a standalone project: it is built to
@@ -64,7 +64,7 @@ While a proper release will be sent to:
 
 You can publish the module by running the `publish` sbt command. Ensure that the version number is
  correct before publishing. Generally, however, publishing should be taken care of by our build
- server.
+ server..
 
 You can then import it into your project by adding our maven server as a resolver and including,
 for example, `"ca.shiftfocus" % "krispii-core_2.11" % "1.0.1"` as a library dependency.

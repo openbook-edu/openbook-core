@@ -1,0 +1,1 @@
+alter table tasks add column "max_grade" text default '0';

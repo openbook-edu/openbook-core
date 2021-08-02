@@ -2,11 +2,11 @@ package ca.shiftfocus.krispii.core.models.tasks
 
 import java.util.UUID
 import ca.shiftfocus.krispii.core.models.tasks.questions.Question
-import ca.shiftfocus.krispii.core.models.{ VideoComponent, TextComponent, AudioComponent }
-import com.github.mauricio.async.db.RowData
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
+import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 /**
  * The supertype for tasks. A task is identified by its position
@@ -21,6 +21,7 @@ sealed trait Task {
   val version: Long
   val settings: CommonTaskSettings
   val taskType: Int
+  val maxGrade: String
   val createdAt: DateTime
   val updatedAt: DateTime
 }
@@ -32,12 +33,13 @@ object Task {
    */
   val Document = 0
   val Question = 1
+  val Media = 2
 
-  // TODO - not used => remove
-  //  val NotStarted = 0
-  //  val Incomplete = 1
-  //  val Complete = 2
-
+  // Media type
+  val AnyMedia = 0
+  val Audio = 1
+  val Video = 2
+  val Image = 3
   /**
    * An apply method that allows instantiation of empty tasks.
    *
@@ -61,6 +63,7 @@ object Task {
     version: Long = 1L,
     settings: CommonTaskSettings = CommonTaskSettings(),
     taskType: Int,
+    maxGrade: String,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
   ): Task =
@@ -72,6 +75,7 @@ object Task {
           position = position,
           version = version,
           settings = settings,
+          maxGrade = maxGrade,
           createdAt = createdAt,
           updatedAt = updatedAt
         )
@@ -82,6 +86,18 @@ object Task {
           version = version,
           settings = settings,
           questions = IndexedSeq(),
+          maxGrade = maxGrade,
+          createdAt = createdAt,
+          updatedAt = updatedAt
+        )
+        case Task.Media => MediaTask(
+          id = id,
+          partId = partId,
+          position = position,
+          version = version,
+          settings = settings,
+          mediaType = AnyMedia,
+          maxGrade = maxGrade,
           createdAt = createdAt,
           updatedAt = updatedAt
         )
@@ -100,6 +116,9 @@ object Task {
       ))
       case task: QuestionTask => Json.toJson(task).as[JsObject].deepMerge(Json.obj(
         "taskType" -> Question
+      ))
+      case task: MediaTask => Json.toJson(task).as[JsObject].deepMerge(Json.obj(
+        "taskType" -> Media
       ))
     }
   }
@@ -128,6 +147,7 @@ final case class DocumentTask(
     version: Long = 1L,
     settings: CommonTaskSettings = CommonTaskSettings(),
     dependencyId: Option[UUID] = None,
+    maxGrade: String,
     createdAt: DateTime = new DateTime,
     updatedAt: DateTime = new DateTime
 ) extends Task {
@@ -165,6 +185,7 @@ object DocumentTask {
     (__ \ "version").write[Long] and
     (__ \ "settings").write[CommonTaskSettings] and
     (__ \ "dependencyId").writeNullable[UUID] and
+    (__ \ "maxGrade").write[String] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(DocumentTask.unapply))
@@ -193,6 +214,7 @@ final case class QuestionTask(
     version: Long = 1L,
     settings: CommonTaskSettings = CommonTaskSettings(),
     questions: IndexedSeq[Question],
+    maxGrade: String,
     createdAt: DateTime = new DateTime(),
     updatedAt: DateTime = new DateTime()
 ) extends Task {
@@ -221,6 +243,7 @@ object QuestionTask {
     (__ \ "version").read[Long] and
     (__ \ "settings").read[CommonTaskSettings] and
     (__ \ "questions").read[IndexedSeq[Question]] and
+    (__ \ "maxGrade").read[String] and
     (__ \ "createdAt").read[DateTime] and
     (__ \ "updatedAt").read[DateTime]
   )(QuestionTask.apply _)
@@ -232,7 +255,62 @@ object QuestionTask {
     (__ \ "version").write[Long] and
     (__ \ "settings").write[CommonTaskSettings] and
     (__ \ "questions").write[IndexedSeq[Question]] and
+    (__ \ "maxGrade").write[String] and
     (__ \ "createdAt").write[DateTime] and
     (__ \ "updatedAt").write[DateTime]
   )(unlift(QuestionTask.unapply))
+}
+
+final case class MediaTask(
+    // Primary Key
+    id: UUID = UUID.randomUUID,
+    // Combination must be unique
+    partId: UUID,
+    position: Int,
+    // Additional data
+    version: Long = 1L,
+    settings: CommonTaskSettings = CommonTaskSettings(),
+    mediaType: Int,
+    maxGrade: String,
+    createdAt: DateTime = new DateTime,
+    updatedAt: DateTime = new DateTime
+) extends Task {
+
+  /**
+   * Which type of task this is. Hard-coded value per class!
+   */
+  override val taskType: Int = Task.Media
+
+  override def equals(other: Any): Boolean = {
+    other match {
+      case otherMediaTask: MediaTask => {
+        this.id == otherMediaTask.id &&
+          this.partId == otherMediaTask.partId &&
+          this.position == otherMediaTask.position &&
+          this.version == otherMediaTask.version &&
+          this.settings.toString == otherMediaTask.settings.toString &&
+          this.mediaType == otherMediaTask.mediaType
+      }
+      case _ => false
+    }
+  }
+
+  override def hashCode: Int = 41 * this.id.hashCode
+}
+
+object MediaTask {
+  /**
+   * Serialize a MediaTask to JSON.
+   */
+  implicit val taskWrites: Writes[MediaTask] = (
+    (__ \ "id").write[UUID] and
+    (__ \ "partId").write[UUID] and
+    (__ \ "position").write[Int] and
+    (__ \ "version").write[Long] and
+    (__ \ "settings").write[CommonTaskSettings] and
+    (__ \ "mediaType").write[Int] and
+    (__ \ "maxGrade").write[String] and
+    (__ \ "createdAt").write[DateTime] and
+    (__ \ "updatedAt").write[DateTime]
+  )(unlift(MediaTask.unapply))
 }

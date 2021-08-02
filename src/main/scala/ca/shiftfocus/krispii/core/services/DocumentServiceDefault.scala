@@ -1,31 +1,29 @@
 package ca.shiftfocus.krispii.core.services
 
 import ca.shiftfocus.krispii.core.error._
-import ca.shiftfocus.krispii.core.lib.ScalaCachePool
-import ca.shiftfocus.krispii.core.models.User
 import ca.shiftfocus.krispii.core.models.document._
-import ca.shiftfocus.krispii.core.repositories.{ RevisionRepository, UserRepository, DocumentRepository }
-import ca.shiftfocus.krispii.core.services.datasource.{ DB, PostgresDB }
+import ca.shiftfocus.krispii.core.repositories.{DocumentRepository, RevisionRepository, UserRepository}
+import ca.shiftfocus.krispii.core.services.datasource.DB
 import java.util.UUID
+
+import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.Connection
+
 import scala.concurrent.ExecutionContext.Implicits.global
 import org.joda.time.DateTime
-import scala.concurrent.Future
-import ws.kahn.ot.{ Delete, Delta }
 
-import scalacache.ScalaCache
-import scalaz.{ \/, \/-, -\/ }
+import scala.concurrent.Future
+import ca.shiftfocus.otlib.{Delete, Delta}
+import scalaz.{-\/, \/, \/-}
 
 class DocumentServiceDefault(
     val db: DB,
-    val scalaCache: ScalaCachePool,
     val userRepository: UserRepository,
     val documentRepository: DocumentRepository,
     val revisionRepository: RevisionRepository
 ) extends DocumentService {
 
   implicit def conn: Connection = db.pool
-  implicit def cache: ScalaCachePool = scalaCache
 
   /**
    * Find a document.

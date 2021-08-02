@@ -9,6 +9,8 @@ case class Session(
   ipAddress: String = "",
   location: String = "",
   userAgent: String = "",
+  accessToken: Option[String] = None,
+  refreshToken: Option[String] = None,
   createdAt: Option[DateTime] = None,
   updatedAt: Option[DateTime] = None
 )

@@ -10,7 +10,7 @@ import scala.concurrent.Future
 import scalaz.{-\/, \/, \/-}
 
 /**
- * Work with database tables: users_subscriptions, stripe_events
+ * Work with database table messages
  */
 class MessageRepositoryPostgres extends MessageRepository with PostgresRepository[Message] {
   override val entityName = "Message"

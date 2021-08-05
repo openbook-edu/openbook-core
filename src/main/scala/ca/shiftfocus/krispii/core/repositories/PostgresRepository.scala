@@ -76,12 +76,11 @@ trait PostgresRepository[A] {
   protected def queryList(queryText: String, parameters: Seq[Any] = Seq.empty[Any], debug: Boolean = false) // format: OFF
                          (implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[A]]] = { // format: ON
     // somewhat ugly line that puts all information into one Logger entry
-    if (debug)
-      Logger.debug(s"Parameters ${parameters} for queryList $queryText when called in stack...\n" +
-        Thread.currentThread.getStackTrace.filter(trElem => {
-          (trElem.toString contains "krispii") &&
-            !(trElem.toString contains "queryList")
-        }).mkString("...", "\n...", ""))
+    if (debug) Logger.debug(s"Parameters ${parameters} for queryList $queryText when called in stack...\n" +
+      Thread.currentThread.getStackTrace.filter(trElem => {
+        (trElem.toString contains "krispii") &&
+          !(trElem.toString contains "queryList")
+      }).mkString("...", "\n...", ""))
 
     val fRes = if (parameters.nonEmpty) {
       conn.sendPreparedStatement(queryText, parameters)
@@ -128,12 +127,11 @@ trait PostgresRepository[A] {
   protected def queryNumRows(queryText: String, parameters: Seq[Any] = Seq.empty[Any], debug: Boolean = false) // format: OFF
                             (compare: Long => Boolean)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Boolean]] = { // format: ON
     // somewhat ugly line that puts all information into one Logger entry
-    if (debug)
-      Logger.debug(s"Parameters ${parameters} for queryNumRows (expecting $compare rows) $queryText when called in stack...\n" +
-        Thread.currentThread.getStackTrace.filter(trElem => {
-          (trElem.toString contains "krispii") &&
-            !(trElem.toString contains "queryList")
-        }).mkString("...", "\n...", ""))
+    if (debug) Logger.debug(s"Parameters ${parameters} for queryNumRows (expecting $compare rows) $queryText when called in stack...\n" +
+      Thread.currentThread.getStackTrace.filter(trElem => {
+        (trElem.toString contains "krispii") &&
+          !(trElem.toString contains "queryList")
+      }).mkString("...", "\n...", ""))
 
     val fRes = if (parameters.nonEmpty) {
       conn.sendPreparedStatement(queryText, parameters)

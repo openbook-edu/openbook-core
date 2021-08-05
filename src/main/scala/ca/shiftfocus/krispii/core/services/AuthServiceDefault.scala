@@ -23,17 +23,16 @@ import webcrank.password._
 
 class AuthServiceDefault(
     val db: DB,
-    val userRepository: UserRepository,
-    val roleRepository: RoleRepository,
-    val userTokenRepository: UserTokenRepository,
-    val sessionRepository: SessionRepository,
     val mailerClient: MailerClient,
-    val wordRepository: WordRepository,
     val accountRepository: AccountRepository,
-    val stripeRepository: StripeRepository,
-    val paymentLogRepository: PaymentLogRepository,
     val emailChangeRepository: EmailChangeRepository,
+    val paymentLogRepository: PaymentLogRepository,
+    val roleRepository: RoleRepository,
+    val sessionRepository: SessionRepository,
     val tagRepository: TagRepository,
+    val userRepository: UserRepository,
+    val userTokenRepository: UserTokenRepository,
+    val wordRepository: WordRepository,
     // Bad idea to include services, but duplicating the code may be even worse
     val organizationService: OrganizationService,
     val tagService: TagService
@@ -325,12 +324,12 @@ class AuthServiceDefault(
    * If deleted user exists then move his account, subscriptions and logs to a new user with the same email
    * @see TagServiceDefault.syncWithDeletedUser()
    *
-   * @param newUser
-   * @return
+   * @param newUser User
+   * @return in the Future, a krispii Account or an error
    */
   def syncWithDeletedUser(newUser: User): Future[\/[ErrorUnion#Fail, Account]] = {
     for {
-      // Check if user was deleted and has stripe account and subscriptions
+      // Check if user was deleted and has an account (stripe or group)
       account <- lift(userRepository.findDeleted(newUser.email).flatMap {
         // If deleted user is found
         case \/-(deletedUser) => {
@@ -348,8 +347,6 @@ class AuthServiceDefault(
                 case \/-(account) => accountRepository.update(account.copy(userId = newUser.id))
                 case -\/(error) => Future successful -\/(error)
               })
-              // Move subscriptions from old user to a new user
-              subscriptions <- lift(stripeRepository.moveSubscriptions(deletedUser.id, newUser.id))
               // Move payment logs from old user to a new user
               paymentLogs <- lift(paymentLogRepository.move(deletedUser.id, newUser.id))
             } yield (account)

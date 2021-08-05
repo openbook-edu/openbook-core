@@ -1,28 +1,25 @@
 package ca.shiftfocus.krispii.core.repositories
 
 // import java.io.{PrintWriter, StringWriter}
-import java.util.UUID
-
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
-import play.api.Logger
 import play.api.libs.json.{JsValue, Json}
+import scalaz.\/
 
 import scala.concurrent.Future
-import scalaz.\/
 
 /**
  * Work with database tables: users_subscriptions, stripe_events
  */
-class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[JsValue] {
+class StripeEventRepositoryPostgres extends StripeEventRepository with PostgresRepository[JsValue] {
   override val entityName = "Stripe"
   override def constructor(row: RowData): JsValue = {
     Json.parse(row("data").asInstanceOf[String])
   }
 
   //------ SUBSCRIPTIONS -----------------------------------------------------------------------------------------------
-
+  /*
   val ListSubscriptionsByUser =
     """
       |SELECT subscription as data
@@ -60,7 +57,7 @@ class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[
        |WHERE user_id = ?
        |  AND subscription::jsonb->>'id' = ?
        |RETURNING subscription as data
-     """.stripMargin
+     """.stripMargin */
 
   //------ EVENTS ------------------------------------------------------------------------------------------------------
 
@@ -81,9 +78,9 @@ class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[
   //--------------------------------------------------------------------------------------------------------------------
 
   // SUBSCRIPTIONS
-
+  /*
   def listSubscriptions(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JsValue]]] = {
-    Logger.debug("in StripeRepositoryPostgres listSubscriptions")
+    Logger.debug("in StripeEventRepositoryPostgres listSubscriptions")
     // val sw = new StringWriter
     // val st = new RuntimeException
     // st.printStackTrace(new PrintWriter(sw))
@@ -108,7 +105,7 @@ class StripeRepositoryPostgres extends StripeRepository with PostgresRepository[
 
   def deleteSubscription(userId: UUID, subscriptionId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]] = {
     queryOne(DeleteSubscription, Seq[Any](userId, subscriptionId))
-  }
+  } */
 
   // EVENTS
 

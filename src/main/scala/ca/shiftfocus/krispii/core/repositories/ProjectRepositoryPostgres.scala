@@ -9,7 +9,6 @@ import ca.shiftfocus.krispii.core.models.tasks.{DocumentTask, MediaTask, Questio
 import ca.shiftfocus.krispii.core.models.user.User
 import com.github.mauricio.async.db.{Connection, RowData}
 import org.joda.time.DateTime
-import play.api.Logger
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
@@ -231,7 +230,7 @@ class ProjectRepositoryPostgres(
         projectList.map { project =>
           (for {
             partList <- lift(partRepository.list(project))
-            tagList <- lift(tagRepository.listByEntity(project.id, TaggableEntities.project))
+            tagList <- lift(tagRepository.listByEntity(project.id.toString, TaggableEntities.project))
             result = project.copy(parts = partList, tags = tagList)
           } yield result).run
         }

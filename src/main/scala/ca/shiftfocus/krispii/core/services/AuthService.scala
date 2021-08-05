@@ -42,7 +42,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   def deleteSession(sessionId: UUID): Future[\/[ErrorUnion#Fail, Session]]
 
   /**
-   * List user by similiarity to a key word
+   * List user by similarity to a key word
    */
   def listByKey(key: String, includeDeleted: Boolean = false, limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 

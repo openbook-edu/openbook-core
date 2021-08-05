@@ -10,13 +10,54 @@ import scalaz.\/
 import scala.concurrent.Future
 
 /**
- * Work with database tables: stripe_events
+ * Work with database tables: users_subscriptions, stripe_events
  */
 class StripeEventRepositoryPostgres extends StripeEventRepository with PostgresRepository[JsValue] {
   override val entityName = "Stripe"
   override def constructor(row: RowData): JsValue = {
     Json.parse(row("data").asInstanceOf[String])
   }
+
+  //------ SUBSCRIPTIONS -----------------------------------------------------------------------------------------------
+  /*
+  val ListSubscriptionsByUser =
+    """
+      |SELECT subscription as data
+      |FROM users_subscriptions
+      |WHERE user_id = ?
+     """.stripMargin
+
+  val InsertSubscription =
+    """
+       |INSERT INTO users_subscriptions (user_id, subscription)
+       |VALUES (?, ?)
+       |RETURNING subscription as data
+     """.stripMargin
+
+  val UpdateSubscription =
+    """
+       |UPDATE users_subscriptions
+       |SET subscription = ?
+       |WHERE user_id = ?
+       |  AND subscription::jsonb->>'id' = ?
+       |RETURNING subscription as data
+     """.stripMargin
+
+  val MoveSubscriptions =
+    """
+       |UPDATE users_subscriptions
+       |SET user_id = ?
+       |WHERE user_id = ?
+       |RETURNING subscription as data
+     """.stripMargin
+
+  val DeleteSubscription =
+    """
+       |DELETE FROM users_subscriptions
+       |WHERE user_id = ?
+       |  AND subscription::jsonb->>'id' = ?
+       |RETURNING subscription as data
+     """.stripMargin */
 
   //------ EVENTS ------------------------------------------------------------------------------------------------------
 
@@ -35,6 +76,36 @@ class StripeEventRepositoryPostgres extends StripeEventRepository with PostgresR
      """.stripMargin
 
   //--------------------------------------------------------------------------------------------------------------------
+
+  // SUBSCRIPTIONS
+  /*
+  def listSubscriptions(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JsValue]]] = {
+    Logger.debug("in StripeEventRepositoryPostgres listSubscriptions")
+    // val sw = new StringWriter
+    // val st = new RuntimeException
+    // st.printStackTrace(new PrintWriter(sw))
+    /// Logger.debug(sw.toString)
+    // val st = new RuntimeException().getStackTrace.mkString("\n")
+    // st.take(10).foreach {Logger.debug)
+    // Logger.debug(st)
+    queryList(ListSubscriptionsByUser, Seq[Any](userId))
+  }
+
+  def createSubscription(userId: UUID, subscription: JsValue)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]] = {
+    queryOne(InsertSubscription, Seq[Any](userId, subscription))
+  }
+
+  def updateSubscription(userId: UUID, subscriptionId: String, subscription: JsValue)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]] = {
+    queryOne(UpdateSubscription, Seq[Any](subscription, userId, subscriptionId))
+  }
+
+  def moveSubscriptions(oldUserId: UUID, newUserId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[JsValue]]] = {
+    queryList(MoveSubscriptions, Seq[Any](newUserId, oldUserId))
+  }
+
+  def deleteSubscription(userId: UUID, subscriptionId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, JsValue]] = {
+    queryOne(DeleteSubscription, Seq[Any](userId, subscriptionId))
+  } */
 
   // EVENTS
 

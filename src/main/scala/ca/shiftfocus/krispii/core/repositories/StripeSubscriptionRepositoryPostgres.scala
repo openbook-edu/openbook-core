@@ -16,84 +16,64 @@ class StripeSubscriptionRepositoryPostgres(
   override val entityName = "StripeSubscription"
   override def constructor(row: RowData): StripeSubscription = {
     StripeSubscription(
-      row("subscription_id").asInstanceOf[String],
-      row("version").asInstanceOf[Long],
       row("customer_id").asInstanceOf[String],
+      row("version").asInstanceOf[Long],
       row("account_id").asInstanceOf[UUID],
       row("plan_id").asInstanceOf[String],
-      row("current_period_start").asInstanceOf[Long],
       row("current_period_end").asInstanceOf[Long],
       row("cancel_at_period_end").asInstanceOf[Boolean]
     )
   }
 
-  private val Table = "stripe_subscriptions"
-  private val Fields = "subscription_id, version, customer_id, account_id, plan_id, current_period_start, current_period_end, cancel_at_period_end"
+  val Table: String = "stripe_subscriptions"
+  val Fields: String = "customer_id, version, account_id, plan_id, current_period_end, cancel_at_period_end"
+  val FieldsWithTable: String = Fields.split(", ").map({ field => s"$Table." + field }).mkString(", ")
+  val QMarks: String = Fields.split(", ").map({ _ => "?" }).mkString(", ")
 
-  // not used
-  // private val FieldsWithTable = Fields.split(", ").map({ field => s"$Table." + field }).mkString(", ")
-  private val QMarks = Fields.split(", ").map({ _ => "?" }).mkString(", ")
-
-  private val Select =
-    s"""
-       |SELECT $Fields
-       |FROM $Table
-       |WHERE subscription_id = ?
-     """.stripMargin
-
-  private val SelectByCustomerId =
+  val Select: String =
     s"""
        |SELECT $Fields
        |FROM $Table
        |WHERE customer_id = ?
      """.stripMargin
 
-  private val SelectByAccountId =
+  val SelectByAccountId: String =
     s"""
        |SELECT $Fields
        |FROM $Table
        |WHERE account_id = ?
      """.stripMargin
 
-  private val Insert =
+  val Insert: String =
     s"""
        |INSERT INTO $Table ($Fields)
        |VALUES ($QMarks)
        |RETURNING $Fields
      """.stripMargin
 
-  private val Update =
+  val Update: String =
     s"""
        |UPDATE $Table
-       |SET version = ?, customer_id = ?, account_id = ?, plan_id = ?, current_period_start = ?, current_period_end = ?, cancel_at_period_end = ?
-       |WHERE subscription_id = ?
+       |SET version = ?, account_id = ?, plan_id = ?, current_period_end = ?, cancel_at_period_end = ?
+       |WHERE customer_id = ?
        |RETURNING $Fields
      """.stripMargin
 
-  private val Delete =
+  val Delete: String =
     s"""
        |DELETE FROM $Table
-       |WHERE subscription_id = ?
+       |WHERE customer_id = ?
        |RETURNING $Fields
      """.stripMargin
 
   /**
-   * Get stripe plan subscription information by Stripe subscription ID string; we don't cache the information.
-   * @param subscription_id string furnished by stripe
+   * Get stripe plan subscription information by stripe ID string; we don't cache the information.
+   * @param id string furnished by stripe
    * @param conn implicit database connection
    * @return a StripeSubscription or an error
    */
-  def get(subscription_id: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripeSubscription]] =
-    queryOne(Select, Seq[Any](subscription_id))
-
-  /**
-   * Get all stripe plan subscriptions associated with a krispii account
-   * @param customerId Stripe customer ID string
-   * @param conn implicit database connection
-   * @return an indexed sequence of StripeSubscriptions or an error
-   */
-  def listByCustomerId(customerId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[StripeSubscription]]] =
-    queryList(SelectByCustomerId, Seq[Any](customerId))
+  def get(id: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripeSubscription]] =
+    queryOne(Select, Seq[Any](id))
 
   /**
    * Get all stripe plan subscriptions associated with a krispii account
@@ -106,25 +86,29 @@ class StripeSubscriptionRepositoryPostgres(
 
   def insert(subscription: StripeSubscription)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripeSubscription]] = {
     val params = Seq[Any](
-      subscription.subscriptionId, 1, subscription.customerId, subscription.accountId, subscription.planId,
-      subscription.currentPeriodStart, subscription.currentPeriodEnd, subscription.cancelAtPeriodEnd
+      subscription.customerId, 1, subscription.accountId, subscription.planId, subscription.currentPeriodEnd, subscription.cancelAtPeriodEnd
     )
+
     lift(queryOne(Insert, params))
   }
 
   def update(subscription: StripeSubscription)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripeSubscription]] = {
     val params = Seq[Any](
-      1, subscription.customerId, subscription.accountId, subscription.planId,
-      subscription.currentPeriodStart, subscription.currentPeriodEnd, subscription.cancelAtPeriodEnd, subscription.subscriptionId
+      1, subscription.accountId, subscription.planId, subscription.currentPeriodEnd, subscription.cancelAtPeriodEnd, subscription.customerId
     )
 
     Logger.debug(s"Doing UPDATE on subscription: $Update\nwith parameters $params")
-    queryOne(Update, params)
+    for {
+      current <- lift(queryOne(Select, Seq[Any](subscription.customerId)))
+      _ = Logger.debug(s"StripeSubscription before update: $current")
+      updated <- lift(queryOne(Update, params))
+      _ = Logger.debug(s"Updated subscription: $updated")
+    } yield updated
   }
 
-  def delete(subscriptionId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripeSubscription]] = {
+  def delete(id: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, StripeSubscription]] = {
     for {
-      deleted <- lift(queryOne(Delete, Seq[Any](subscriptionId)))
+      deleted <- lift(queryOne(Delete, Seq[Any](id)))
     } yield deleted
   }
 }

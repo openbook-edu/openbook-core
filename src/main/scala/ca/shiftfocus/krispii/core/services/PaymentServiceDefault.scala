@@ -423,8 +423,8 @@ class PaymentServiceDefault(
       user <- lift(userRepository.find(userId))
       account <- lift(accountRepository.getByUserId(user.id))
       stripe <- lift(Future successful subscribeStripe(customerId, planId))
-      ourSubscription = StripeSubscription(stripe.getId, version = 1, account.id, planId,
-        stripe.getCurrentPeriodEnd, stripe.getCancelAtPeriodEnd)
+      ourSubscription = StripeSubscription(stripe.getId, version = 1, customerId, account.id, planId,
+        stripe.getCurrentPeriodStart, stripe.getCurrentPeriodEnd, stripe.getCancelAtPeriodEnd)
       inserted <- lift(stripeSubscriptionRepository.insert(ourSubscription))
     } yield inserted
   }

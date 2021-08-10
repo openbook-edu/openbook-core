@@ -120,7 +120,7 @@ class StripeSubscriptionRepositoryPostgres(
 
     Logger.debug(s"Doing UPDATE on subscription: $Update\nwith parameters $params")
     for {
-      current <- lift(queryOne(Select, Seq[Any](subscription.customerId)))
+      current <- lift(queryOne(Select, Seq[Any](subscription.subscriptionId)))
       _ = Logger.debug(s"StripeSubscription before update: $current")
       updated <- lift(queryOne(Update, params))
       _ = Logger.debug(s"Updated subscription: $updated")

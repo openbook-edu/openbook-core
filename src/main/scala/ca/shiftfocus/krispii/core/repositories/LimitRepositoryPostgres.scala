@@ -15,7 +15,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
     row("limited").toString.toLong
   }
 
-  def Select(suffix: String): String =
+  private def Select(suffix: String): String =
     s"""
       |SELECT ${suffix}_id, type, limited
       |FROM ${suffix}_limit
@@ -24,8 +24,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
     """.stripMargin
 
   // Use DISTINCT ON, because teacher can have many media components with links to one file on s3
-  // TODO add book component
-  val GetStorageUsed =
+  private val GetStorageUsed =
     """
       |WITH vc AS (SELECT SUM(vc_data.size) as limited
       |            FROM (
@@ -91,14 +90,14 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       |FROM vc, ac, ic, bc, mw
     """.stripMargin
 
-  def Insert(suffix: String): String =
+  private def Insert(suffix: String): String =
     s"""
       |INSERT INTO ${suffix}_limit (${suffix}_id, type, limited)
       |VALUES (?, ?, ?)
       |RETURNING ${suffix}_id, type, limited
     """.stripMargin
 
-  def Update(suffix: String): String =
+  private def Update(suffix: String): String =
     s"""
       |UPDATE ${suffix}_limit
       |SET limited = ?
@@ -107,7 +106,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       |RETURNING ${suffix}_id, type, limited
     """.stripMargin
 
-  def Delete(suffix: String): String =
+  private def Delete(suffix: String): String =
     s"""
       |DELETE FROM ${suffix}_limit
       |WHERE ${suffix}_id = ?
@@ -155,9 +154,8 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   def getStorageUsed(teacherId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]] = {
     queryOne(GetStorageUsed, Seq[Any](teacherId, teacherId, teacherId, teacherId, teacherId)).flatMap {
       // We store file size in database in Bytes, convert them to GB
-      case \/-(limit) => {
+      case \/-(limit) =>
         Future successful \/-(limit.toFloat / 1000 / 1000 / 1000)
-      }
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -184,11 +182,9 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   def setCourseLimit(teacherId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
     queryOne(Update("teacher"), Seq[Any](limit, teacherId, Limits.course)).flatMap {
       case \/-(limit) => Future successful \/-(limit.toInt)
-      case -\/(error: RepositoryError.NoResults) => {
-        for {
-          insert <- lift(queryOne(Insert("teacher"), Seq[Any](teacherId, Limits.course, limit)))
-        } yield insert.toInt
-      }
+      case -\/(_: RepositoryError.NoResults) =>
+        lift(queryOne(Insert("teacher"), Seq[Any](teacherId, Limits.course, limit)))
+          .map(insert => insert.toInt)
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -205,12 +201,9 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
     queryOne(Update("teacher"), Seq[Any]((limit * 1000).toInt, teacherId, Limits.storage)).flatMap {
       // Convert back into GB
       case \/-(limit) => Future successful \/-(limit.toFloat / 1000)
-      case -\/(error: RepositoryError.NoResults) => {
-        for {
-          insert <- lift(queryOne(Insert("teacher"), Seq[Any](teacherId, Limits.storage, (limit * 1000).toInt)))
-          // Convert back into GB
-        } yield insert.toFloat / 1000
-      }
+      case -\/(_: RepositoryError.NoResults) =>
+        lift(queryOne(Insert("teacher"), Seq[Any](teacherId, Limits.storage, (limit * 1000).toInt)))
+          .map(insert => insert.toFloat / 1000)
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -226,11 +219,9 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   def setTeacherStudentLimit(teacherId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
     queryOne(Update("teacher"), Seq[Any](limit, teacherId, Limits.student)).flatMap {
       case \/-(limit) => Future successful \/-(limit.toInt)
-      case -\/(error: RepositoryError.NoResults) => {
-        for {
-          insert <- lift(queryOne(Insert("teacher"), Seq[Any](teacherId, Limits.student, limit)))
-        } yield insert.toInt
-      }
+      case -\/(_: RepositoryError.NoResults) =>
+        lift(queryOne(Insert("teacher"), Seq[Any](teacherId, Limits.student, limit)))
+          .map(insert => insert.toInt)
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -260,11 +251,9 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   def setCourseStudentLimit(courseId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
     queryOne(Update("course"), Seq[Any](limit, courseId, Limits.student)).flatMap {
       case \/-(limit) => Future successful \/-(limit.toInt)
-      case -\/(error: RepositoryError.NoResults) => {
-        for {
-          insert <- lift(queryOne(Insert("course"), Seq[Any](courseId, Limits.student, limit)))
-        } yield insert.toInt
-      }
+      case -\/(_: RepositoryError.NoResults) =>
+        lift(queryOne(Insert("course"), Seq[Any](courseId, Limits.student, limit)))
+          .map(insert => insert.toInt)
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -273,8 +262,8 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
 
   def deleteCourseStudentLimit(courseId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Unit]] = {
     deleteCourseLimit(courseId, Limits.student).flatMap {
-      case \/-(limit) => Future successful \/-((): Unit)
-      case -\/(error: RepositoryError.NoResults) => Future successful \/-((): Unit)
+      case \/-(_) => Future successful \/-((): Unit)
+      case -\/(_: RepositoryError.NoResults) => Future successful \/-((): Unit)
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -323,6 +312,19 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
     }
   }
 
+  /**
+   * Get number of student copies that an organization is allowed to score
+   *
+   * @param planId
+   * @return
+   */
+  def getPlanCopiesLimit(planId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
+    getPlanLimit(planId, Limits.maxCopies).flatMap {
+      case \/-(limit) => Future successful \/-(limit.toInt)
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
   // --- SET -----------------------------------------------------------------------------------------------------------
 
   def setPlanStorageLimit(planId: String, limit: Float)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]] = {
@@ -330,11 +332,9 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
     queryOne(Update("plan"), Seq[Any]((limit * 1000).toInt, planId, Limits.storage)).flatMap {
       // Convert back into GB
       case \/-(limit) => Future successful \/-(limit.toFloat / 1000)
-      case -\/(error: RepositoryError.NoResults) => {
-        for {
-          insert <- lift(queryOne(Insert("plan"), Seq[Any](planId, Limits.storage, (limit * 1000).toInt)))
-          // Convert back into GB
-        } yield insert.toFloat / 1000
+      case -\/(_: RepositoryError.NoResults) => {
+        lift(queryOne(Insert("plan"), Seq[Any](planId, Limits.storage, (limit * 1000).toInt)))
+          .map(insert => insert.toFloat / 1000)
       }
       case -\/(error) => Future successful -\/(error)
     }
@@ -343,10 +343,9 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   def setPlanCourseLimit(planId: String, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
     queryOne(Update("plan"), Seq[Any](limit, planId, Limits.course)).flatMap {
       case \/-(limit) => Future successful \/-(limit.toInt)
-      case -\/(error: RepositoryError.NoResults) => {
-        for {
-          insert <- lift(queryOne(Insert("plan"), Seq[Any](planId, Limits.course, limit)))
-        } yield insert.toInt
+      case -\/(_: RepositoryError.NoResults) => {
+        lift(queryOne(Insert("plan"), Seq[Any](planId, Limits.course, limit)))
+          .map(insert => insert.toInt)
       }
       case -\/(error) => Future successful -\/(error)
     }
@@ -355,11 +354,19 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   def setPlanStudentLimit(planId: String, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
     queryOne(Update("plan"), Seq[Any](limit, planId, Limits.student)).flatMap {
       case \/-(limit) => Future successful \/-(limit.toInt)
-      case -\/(error: RepositoryError.NoResults) => {
-        for {
-          insert <- lift(queryOne(Insert("plan"), Seq[Any](planId, Limits.student, limit)))
-        } yield insert.toInt
-      }
+      case -\/(_: RepositoryError.NoResults) =>
+        lift(queryOne(Insert("plan"), Seq[Any](planId, Limits.student, limit)))
+          .map(insert => insert.toInt)
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
+  def setPlanCopiesLimit(planId: String, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
+    queryOne(Update("plan"), Seq[Any](limit, planId, Limits.maxCopies)).flatMap {
+      case \/-(limit) => Future successful \/-(limit.toInt)
+      case -\/(_: RepositoryError.NoResults) =>
+        lift(queryOne(Insert("plan"), Seq[Any](planId, Limits.maxCopies, limit)))
+          .map(insert => insert.toInt)
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -400,8 +407,14 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   }
 
   def getOrganizationMemberLimit(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
-    // Limit is unix timestamp
     getOrganizationLimit(organizationId, Limits.maxUsers).flatMap {
+      case \/-(limit) => Future successful \/-(limit.toInt)
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
+  def getOrganizationCopiesLimit(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
+    getOrganizationLimit(organizationId, Limits.maxCopies).flatMap {
       case \/-(limit) => Future successful \/-(limit.toInt)
       case -\/(error) => Future successful -\/(error)
     }
@@ -414,34 +427,27 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
     queryOne(Update("organization"), Seq[Any]((limit * 1000).toInt, organizationId, Limits.storage)).flatMap {
       // Convert back into GB
       case \/-(limit) => Future successful \/-(limit.toFloat / 1000)
-      case -\/(error: RepositoryError.NoResults) => {
-        for {
-          insert <- lift(queryOne(Insert("organization"), Seq[Any](organizationId, Limits.storage, (limit * 1000).toInt)))
-          // Convert back into GB
-        } yield insert.toFloat / 1000
-      }
+      case -\/(_: RepositoryError.NoResults) =>
+        lift(queryOne(Insert("organization"), Seq[Any](organizationId, Limits.storage, (limit * 1000).toInt)))
+          .map(insert => insert.toFloat / 1000)
       case -\/(error) => Future successful -\/(error)
     }
   }
   def setOrganizationCourseLimit(organizationId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
     queryOne(Update("organization"), Seq[Any](limit, organizationId, Limits.course)).flatMap {
       case \/-(limit) => Future successful \/-(limit.toInt)
-      case -\/(error: RepositoryError.NoResults) => {
-        for {
-          insert <- lift(queryOne(Insert("organization"), Seq[Any](organizationId, Limits.course, limit)))
-        } yield insert.toInt
-      }
+      case -\/(_: RepositoryError.NoResults) =>
+        lift(queryOne(Insert("organization"), Seq[Any](organizationId, Limits.course, limit)))
+          .map(insert => insert.toInt)
       case -\/(error) => Future successful -\/(error)
     }
   }
   def setOrganizationStudentLimit(organizationId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
     queryOne(Update("organization"), Seq[Any](limit, organizationId, Limits.student)).flatMap {
       case \/-(limit) => Future successful \/-(limit.toInt)
-      case -\/(error: RepositoryError.NoResults) => {
-        for {
-          insert <- lift(queryOne(Insert("organization"), Seq[Any](organizationId, Limits.student, limit)))
-        } yield insert.toInt
-      }
+      case -\/(_: RepositoryError.NoResults) =>
+        lift(queryOne(Insert("organization"), Seq[Any](organizationId, Limits.student, limit)))
+          .map(insert => insert.toInt)
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -449,11 +455,9 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   def setOrganizationDateLimit(organizationId: UUID, limit: DateTime)(implicit conn: Connection): Future[\/[RepositoryError.Fail, DateTime]] = {
     queryOne(Update("organization"), Seq[Any](limit.getMillis / 1000, organizationId, Limits.activeUntil)).flatMap {
       case \/-(limit) => Future successful \/-(new DateTime(limit * 1000))
-      case -\/(error: RepositoryError.NoResults) => {
-        for {
-          insert <- lift(queryOne(Insert("organization"), Seq[Any](organizationId, Limits.activeUntil, limit.getMillis / 1000)))
-        } yield new DateTime(insert * 1000)
-      }
+      case -\/(_: RepositoryError.NoResults) =>
+        lift(queryOne(Insert("organization"), Seq[Any](organizationId, Limits.activeUntil, limit.getMillis / 1000)))
+          .map(insert => new DateTime(insert * 1000))
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -461,11 +465,19 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
   def setOrganizationMemberLimit(organizationId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
     queryOne(Update("organization"), Seq[Any](limit, organizationId, Limits.maxUsers)).flatMap {
       case \/-(limit) => Future successful \/-(limit.toInt)
-      case -\/(error: RepositoryError.NoResults) => {
-        for {
-          insert <- lift(queryOne(Insert("organization"), Seq[Any](organizationId, Limits.maxUsers, limit)))
-        } yield insert.toInt
-      }
+      case -\/(_: RepositoryError.NoResults) =>
+        lift(queryOne(Insert("organization"), Seq[Any](organizationId, Limits.maxUsers, limit)))
+          .map(insert => insert.toInt)
+      case -\/(error) => Future successful -\/(error)
+    }
+  }
+
+  def setOrganizationCopiesLimit(organizationId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] = {
+    queryOne(Update("organization"), Seq[Any](limit, organizationId, Limits.maxCopies)).flatMap {
+      case \/-(limit) => Future successful \/-(limit.toInt)
+      case -\/(_: RepositoryError.NoResults) =>
+        lift(queryOne(Insert("organization"), Seq[Any](organizationId, Limits.maxCopies, limit)))
+          .map(insert => insert.toInt)
       case -\/(error) => Future successful -\/(error)
     }
   }
@@ -507,4 +519,5 @@ object Limits {
   val storage: String = "storage"
   val activeUntil: String = "active_until"
   val maxUsers: String = "max_users"
+  val maxCopies: String = "max_copies"
 }

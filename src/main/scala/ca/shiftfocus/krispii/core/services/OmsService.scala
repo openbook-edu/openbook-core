@@ -84,11 +84,22 @@ trait OmsService extends Service[ErrorUnion#Fail] {
 
   def getUserCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]]
   def incUserCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]]
-  def decUserCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]]
   def deleteUserCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]]
 
-  def getOrgCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]]
-  def incOrgCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]]
-  def decOrgCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]]
-  def deleteOrgCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]]
+  def getOrgCopies(orgId: UUID): Future[\/[ErrorUnion#Fail, BigInt]]
+  def incOrgCopies(orgId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]]
+  def deleteOrgCopies(orgId: UUID): Future[\/[ErrorUnion#Fail, BigInt]]
+
+  /* getOrgId might go into organizationService, but will need to be rewritten for
+     examAdministrators, so better leave it here for the moment. */
+  def getOrgId(user: User): Future[\/[ErrorUnion#Fail, UUID]]
+
+  def getOrgCopies(user: User): Future[\/[ErrorUnion#Fail, BigInt]]
+
+  def getOrgAndIncCopy(user: User): Future[\/[ErrorUnion#Fail, BigInt]]
+  def incCopy(user: User): Future[\/[ErrorUnion#Fail, BigInt]]
+
+  def maybeGetOrgAndDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, BigInt]]
+  def maybeUserDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, BigInt]]
+  def maybeDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, BigInt]]
 }

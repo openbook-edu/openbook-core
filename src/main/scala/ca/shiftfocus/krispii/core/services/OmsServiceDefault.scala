@@ -22,6 +22,7 @@ import scala.util.Random
 class OmsServiceDefault(
     val db: DB,
     val chatRepository: ChatRepository,
+    val copiesCountRepository: CopiesCountRepository,
     val examRepository: ExamRepository,
     val lastSeenRepository: LastSeenRepository,
     val teamRepository: TeamRepository,
@@ -285,4 +286,27 @@ class OmsServiceDefault(
     chatsWithSeen <- lift(listChats(team, reader, peek: Boolean))
   } yield chatsWithSeen
 
+  def getUserCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]] =
+    copiesCountRepository.get(entityType = "user", userId)
+
+  def incUserCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]] =
+    copiesCountRepository.inc(entityType = "user", userId, n)
+
+  def decUserCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]] =
+    copiesCountRepository.dec(entityType = "user", userId, n)
+
+  def deleteUserCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]] =
+    copiesCountRepository.delete(entityType = "user", userId)
+
+  def getOrgCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]] =
+    copiesCountRepository.get(entityType = "organization", userId)
+
+  def incOrgCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]] =
+    copiesCountRepository.inc(entityType = "organization", userId, n)
+
+  def decOrgCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]] =
+    copiesCountRepository.dec(entityType = "organization", userId, n)
+
+  def deleteOrgCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]] =
+    copiesCountRepository.delete(entityType = "organization", userId)
 }

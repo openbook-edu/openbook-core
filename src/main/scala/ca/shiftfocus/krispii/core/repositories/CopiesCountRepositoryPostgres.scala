@@ -1,9 +1,12 @@
 package ca.shiftfocus.krispii.core.repositories
 
+import java.util.UUID
+
 import ca.shiftfocus.krispii.core.error.RepositoryError
 import com.github.mauricio.async.db.{Connection, RowData}
 import scalaz.{-\/, \/, \/-}
 
+import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
 class CopiesCountRepositoryPostgres extends CopiesCountRepository with PostgresRepository[BigInt] {
@@ -11,11 +14,6 @@ class CopiesCountRepositoryPostgres extends CopiesCountRepository with PostgresR
   override def constructor(row: RowData): BigInt = {
     row("count").asInstanceOf[BigInt]
   }
-
-  private val OrgTable: String = s"organization_copies_count"
-  private val Fields: String = "user_id, entity_id, entity_type, last_seen"
-
-  // Organization CRUD operations
 
   private def Get(entityType: String): String =
     s"""
@@ -45,18 +43,25 @@ class CopiesCountRepositoryPostgres extends CopiesCountRepository with PostgresR
        |RETURNING count
        |""".stripMargin
 
-  def get(entityType: String, entityId: String)(implicit conn: Connection): Future[RepositoryError.Fail \/ BigInt] =
-    queryOne(Get(entityType), Seq[String](entityId))
+  override def get(entityType: String, entityId: UUID)(implicit conn: Connection): Future[RepositoryError.Fail \/ BigInt] =
+    queryOne(Get(entityType), Seq[UUID](entityId))
 
-  override def inc(entityType: String, entityId: String, n: Int)(implicit conn: Connection): Future[RepositoryError.Fail \/ BigInt] =
+  override def inc(entityType: String, entityId: UUID, n: Int = 1)(implicit conn: Connection): Future[RepositoryError.Fail \/ BigInt] =
     get(entityType, entityId).flatMap {
-      case \/-(oldCount) => queryOne(Update(entityType), Seq[BigInt](oldCount + n))
+      case \/-(oldCount) => queryOne(Update(entityType), Seq[Any](entityId, oldCount + n))
       case -\/(_: RepositoryError.NoResults) =>
-        queryOne(Insert(entityType), Seq[Int](n))
+        queryOne(Insert(entityType), Seq[Any](entityId, n))
       case -\/(error) => Future successful -\/(error)
     }
 
-  override def dec(entityType: String, entityId: String, n: Int)(implicit conn: Connection): Future[RepositoryError.Fail \/ BigInt] = ???
+  override def dec(entityType: String, entityId: UUID, n: Int = 1)(implicit conn: Connection): Future[RepositoryError.Fail \/ BigInt] =
+    get(entityType, entityId).flatMap {
+      case \/-(oldCount) => queryOne(Update(entityType), Seq[Any](entityId, oldCount - n))
+      case -\/(_: RepositoryError.NoResults) =>
+        queryOne(Insert(entityType), Seq[Any](entityId, n))
+      case -\/(error) => Future successful -\/(error)
+    }
 
-  override def delete(entityType: String, entityId: String)(implicit conn: Connection): Future[RepositoryError.Fail \/ Unit] = ???
+  override def delete(entityType: String, entityId: UUID)(implicit conn: Connection): Future[RepositoryError.Fail \/ BigInt] =
+    queryOne(Delete(entityType), Seq[UUID](entityId))
 }

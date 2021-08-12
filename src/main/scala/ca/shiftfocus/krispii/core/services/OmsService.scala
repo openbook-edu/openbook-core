@@ -23,9 +23,15 @@ trait OmsService extends Service[ErrorUnion#Fail] {
   val scorerRepository: ScorerRepository
   val userRepository: UserRepository
 
-  /* Don't repackage all the bread-and-butter functions here, can always use examRepository.list etc.!
-     However, sometimes hard to avoid */
+  /* Better to repackage even the bread-and-butter functions here */
+
+  def listMembers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[UserTrait]]]
+
+  /* EXAM functions */
+
   def findExam(examId: UUID): Future[\/[ErrorUnion#Fail, Exam]]
+
+  /* TEAM functions */
 
   def listTeams(exam: Exam): Future[\/[ErrorUnion#Fail, IndexedSeq[Team]]]
   def findTeam(teamId: UUID): Future[\/[ErrorUnion#Fail, Team]]
@@ -33,18 +39,26 @@ trait OmsService extends Service[ErrorUnion#Fail] {
   def updateTeam(team: Team): Future[\/[ErrorUnion#Fail, Team]]
   def deleteTeam(team: Team): Future[\/[ErrorUnion#Fail, Team]]
 
-  def findTest(testId: UUID): Future[\/[ErrorUnion#Fail, Test]]
+  /* TEST functions */
 
+  def findTest(testId: UUID): Future[\/[ErrorUnion#Fail, Test]]
   def updateTest(test: Test): Future[\/[ErrorUnion#Fail, Test]]
+
+  def moveTests(testIds: IndexedSeq[UUID], newTeamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]]
+
+  def randomizeTests(exam: Exam, ids: IndexedSeq[UUID] = IndexedSeq[UUID]()): Future[ErrorUnion#Fail \/ IndexedSeq[Test]]
+
+  def automaticScoring(examId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]]
 
   // duplicate (examId, name) will cause a RepositoryError.UniqueKeyConflict which should be handled by API
 
+  /* SCORE functions */
   def findScore(scoreId: UUID): Future[\/[ErrorUnion#Fail, Score]]
+
+  /* SCORER functions */
 
   def listScorers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Scorer]]]
   def listScorers(team: Team): Future[\/[ErrorUnion#Fail, IndexedSeq[Scorer]]]
-
-  def listMembers(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[UserTrait]]]
 
   def addScorer(team: Team, user: User, leader: Boolean = false): Future[\/[RepositoryError.Fail, Team]]
 
@@ -57,14 +71,7 @@ trait OmsService extends Service[ErrorUnion#Fail] {
 
   def removeScorers(team: Team, scorerIdList: IndexedSeq[UUID]): Future[\/[RepositoryError.Fail, Team]]*/
 
-  def moveTests(testIds: IndexedSeq[UUID], newTeamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]]
-
-  def randomizeTests(
-    exam: Exam,
-    ids: IndexedSeq[UUID] = IndexedSeq[UUID]()
-  ): Future[ErrorUnion#Fail \/ IndexedSeq[Test]]
-
-  def automaticScoring(examId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Test]]]
+  /* CHAT functions */
 
   def listChats(team: Team): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
   def listChats(teamId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
@@ -73,7 +80,15 @@ trait OmsService extends Service[ErrorUnion#Fail] {
   def listChats(team: Team, readerId: UUID, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
   def listChats(teamId: UUID, readerId: UUID, peek: Boolean): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
 
-  // scoreRepository cannot reference testRepository, so need to implement the following test here or in API:
-  // a score can only be created (inserted) for (team, scorer) if the scorer is in the team of the test
+  /* Copies functions */
 
+  def getUserCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]]
+  def incUserCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]]
+  def decUserCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]]
+  def deleteUserCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]]
+
+  def getOrgCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]]
+  def incOrgCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]]
+  def decOrgCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]]
+  def deleteOrgCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]]
 }

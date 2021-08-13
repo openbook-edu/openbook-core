@@ -173,7 +173,7 @@ class OmsServiceDefault(
    * Choose randomly teams to give the excess items to.
    * @param nItems: Int - how many items are there to be distributed
    * @param groups: IndexedSeq[UUID] - IDs of all groups that should receive items
-   * @return IndexedSeq[UUID] list of team IDs
+   * @return IndexedSeq[UUID] list of group IDs that will receive items
    */
   def surplusItems(nItems: Int, groups: IndexedSeq[UUID]): IndexedSeq[UUID] = nItems match {
     case n if n > 0 =>
@@ -290,7 +290,9 @@ class OmsServiceDefault(
     chatsWithSeen <- lift(listChats(team, reader, peek: Boolean))
   } yield chatsWithSeen
 
-  override def getUserCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]] =
+  /********************* Counting student copies that have been uploaded **************************/
+
+  override def getUserCopies(userId: UUID): Future[\/[ErrorUnion#Fail, Long]] =
     copiesCountRepository.get(entityType = "user", userId)
 
   /**
@@ -299,7 +301,7 @@ class OmsServiceDefault(
    * @param n Int, default 1
    * @return a Future containing the increased copy count, or an error
    */
-  override def incUserCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]] =
+  override def incUserCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, Long]] =
     for {
       copies <- lift(getUserCopies(userId))
       account <- lift(accountRepository.getByUserId(userId))
@@ -317,7 +319,7 @@ class OmsServiceDefault(
   /**
    * Should only be run after it has been checked that a deleted test had no scores.
    */
-  private def decUserCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]] =
+  private def decUserCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, Long]] =
     copiesCountRepository.dec(entityType = "user", userId, n)
 
   /**
@@ -326,10 +328,10 @@ class OmsServiceDefault(
    * @param userId UUID
    * @return a Future containing either the count before resetting, or an error
    */
-  override def deleteUserCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]] =
+  override def deleteUserCopies(userId: UUID): Future[\/[ErrorUnion#Fail, Long]] =
     copiesCountRepository.delete(entityType = "user", userId)
 
-  override def getOrgCopies(orgId: UUID): Future[\/[ErrorUnion#Fail, BigInt]] =
+  override def getOrgCopies(orgId: UUID): Future[\/[ErrorUnion#Fail, Long]] =
     copiesCountRepository.get(entityType = "organization", orgId)
 
   /**
@@ -338,7 +340,7 @@ class OmsServiceDefault(
    * @param n amount to be increased (default 1)
    * @return a Future containing either the increased count, or an error
    */
-  override def incOrgCopies(orgId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]] =
+  override def incOrgCopies(orgId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, Long]] =
     for {
       copies <- lift(getOrgCopies(orgId))
       limit <- lift(schoolService.getOrganizationCopiesLimit(orgId))
@@ -351,7 +353,7 @@ class OmsServiceDefault(
   /**
    * Should only be run after it has been checked that a deleted test had no scores.
    */
-  private def decOrgCopies(orgId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]] =
+  private def decOrgCopies(orgId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, Long]] =
     copiesCountRepository.dec(entityType = "organization", orgId, n)
 
   /**
@@ -360,7 +362,7 @@ class OmsServiceDefault(
    * @param userId UUID
    * @return Future containing either the count before deleting, or an error
    */
-  override def deleteOrgCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]] =
+  override def deleteOrgCopies(userId: UUID): Future[\/[ErrorUnion#Fail, Long]] =
     copiesCountRepository.delete(entityType = "organization", userId)
 
   /**
@@ -382,10 +384,21 @@ class OmsServiceDefault(
    * @param user User
    * @return Future containing either the copies already debited to the organization, or an error
    */
-  override def getOrgCopies(user: User): Future[\/[ErrorUnion#Fail, BigInt]] =
+  override def getOrgCopies(user: User): Future[\/[ErrorUnion#Fail, Long]] =
     for {
       orgId <- lift(getOrgId(user))
       copies <- lift(getOrgCopies(orgId))
+    } yield copies
+
+  override def getCopies(user: User): Future[\/[ErrorUnion#Fail, Long]] =
+    for {
+      account <- lift(paymentService.getAccount(user.id))
+      copies <- lift(account.status match {
+        case AccountStatus.group => getOrgCopies(user)
+        case AccountStatus.paid => getUserCopies(user.id)
+        case AccountStatus.free => Future successful \/-(0.toLong)
+        case _ => Future successful -\/(ServiceError.BadInput("User needs to pay to upload student copies"))
+      })
     } yield copies
 
   /**
@@ -393,7 +406,7 @@ class OmsServiceDefault(
    * @param user User
    * @return Future containing either the new number of copies debited to the organization, or an error
    */
-  override def getOrgAndIncCopy(user: User): Future[\/[ErrorUnion#Fail, BigInt]] =
+  override def getOrgAndIncCopy(user: User): Future[\/[ErrorUnion#Fail, Long]] =
     for {
       orgId <- lift(getOrgId(user))
       newCopies <- lift(incOrgCopies(orgId))
@@ -404,13 +417,13 @@ class OmsServiceDefault(
    * @param user User
    * @return Future containing either the new number of the debited copies, or an error
    */
-  override def incCopy(user: User): Future[\/[ErrorUnion#Fail, BigInt]] =
+  override def incCopy(user: User): Future[\/[ErrorUnion#Fail, Long]] =
     for {
       account <- lift(paymentService.getAccount(user.id))
       newCopies <- lift(account.status match {
         case AccountStatus.group => getOrgAndIncCopy(user)
         case AccountStatus.paid => incUserCopies(user.id)
-        case AccountStatus.free => Future successful \/-(BigInt(0))
+        case AccountStatus.free => Future successful \/-(0.toLong)
         case _ => Future successful -\/(ServiceError.BadInput("User needs to pay to upload student copies"))
       })
     } yield newCopies
@@ -421,7 +434,7 @@ class OmsServiceDefault(
    * @param user User
    * @return Future containing either the new number of the copies debited to the organization, or an error
    */
-  private def getOrgAndDecCopy(user: User): Future[\/[ErrorUnion#Fail, BigInt]] =
+  private def getOrgAndDecCopy(user: User): Future[\/[ErrorUnion#Fail, Long]] =
     for {
       orgId <- lift(getOrgId(user))
       newCopies <- lift(decOrgCopies(orgId))
@@ -434,7 +447,7 @@ class OmsServiceDefault(
    * @param user User
    * @return Future containing either the (possibly corrected) number of copies, or an error
    */
-  override def maybeGetOrgAndDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, BigInt]] =
+  override def maybeGetOrgAndDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, Long]] =
     if (test.scores.isEmpty)
       getOrgAndDecCopy(user)
     else
@@ -447,7 +460,7 @@ class OmsServiceDefault(
    * @param user User
    * @return Future containing either the (possibly corrected) number of copies, or an error
    */
-  override def maybeUserDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, BigInt]] =
+  override def maybeUserDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, Long]] =
     if (test.scores.isEmpty)
       getUserCopies(user.id)
     else
@@ -460,13 +473,13 @@ class OmsServiceDefault(
    * @param user User
    * @return Future containing either the (possibly corrected) number of debited copies, or an error
    */
-  override def maybeDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, BigInt]] =
+  override def maybeDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, Long]] =
     for {
       account <- lift(paymentService.getAccount(user.id))
       newCopies <- lift(account.status match {
         case AccountStatus.group => maybeGetOrgAndDecCopy(test, user)
         case AccountStatus.paid => maybeUserDecCopy(test, user)
-        case AccountStatus.free => Future successful \/-(BigInt(0))
+        case AccountStatus.free => Future successful \/-(0.toLong)
         case _ => Future successful -\/(ServiceError.BadInput("User needs to pay to upload student copies"))
       })
     } yield newCopies

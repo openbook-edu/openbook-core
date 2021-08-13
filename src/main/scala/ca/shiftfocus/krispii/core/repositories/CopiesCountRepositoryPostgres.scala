@@ -9,10 +9,10 @@ import scalaz.{-\/, \/, \/-}
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 
-class CopiesCountRepositoryPostgres extends CopiesCountRepository with PostgresRepository[BigInt] {
+class CopiesCountRepositoryPostgres extends CopiesCountRepository with PostgresRepository[Long] {
   override val entityName = "CopiesCount"
-  override def constructor(row: RowData): BigInt = {
-    row("count").asInstanceOf[BigInt]
+  override def constructor(row: RowData): Long = {
+    row("count").asInstanceOf[Long]
   }
 
   private def Get(entityType: String): String =
@@ -43,10 +43,10 @@ class CopiesCountRepositoryPostgres extends CopiesCountRepository with PostgresR
        |RETURNING count
        |""".stripMargin
 
-  override def get(entityType: String, entityId: UUID)(implicit conn: Connection): Future[RepositoryError.Fail \/ BigInt] =
+  override def get(entityType: String, entityId: UUID)(implicit conn: Connection): Future[RepositoryError.Fail \/ Long] =
     queryOne(Get(entityType), Seq[UUID](entityId))
 
-  override def inc(entityType: String, entityId: UUID, n: Int = 1)(implicit conn: Connection): Future[RepositoryError.Fail \/ BigInt] =
+  override def inc(entityType: String, entityId: UUID, n: Int = 1)(implicit conn: Connection): Future[RepositoryError.Fail \/ Long] =
     get(entityType, entityId).flatMap {
       case \/-(oldCount) => queryOne(Update(entityType), Seq[Any](entityId, oldCount + n))
       case -\/(_: RepositoryError.NoResults) =>
@@ -54,7 +54,7 @@ class CopiesCountRepositoryPostgres extends CopiesCountRepository with PostgresR
       case -\/(error) => Future successful -\/(error)
     }
 
-  override def dec(entityType: String, entityId: UUID, n: Int = 1)(implicit conn: Connection): Future[RepositoryError.Fail \/ BigInt] =
+  override def dec(entityType: String, entityId: UUID, n: Int = 1)(implicit conn: Connection): Future[RepositoryError.Fail \/ Long] =
     get(entityType, entityId).flatMap {
       case \/-(oldCount) => queryOne(Update(entityType), Seq[Any](entityId, oldCount - n))
       case -\/(_: RepositoryError.NoResults) =>
@@ -62,6 +62,6 @@ class CopiesCountRepositoryPostgres extends CopiesCountRepository with PostgresR
       case -\/(error) => Future successful -\/(error)
     }
 
-  override def delete(entityType: String, entityId: UUID)(implicit conn: Connection): Future[RepositoryError.Fail \/ BigInt] =
+  override def delete(entityType: String, entityId: UUID)(implicit conn: Connection): Future[RepositoryError.Fail \/ Long] =
     queryOne(Delete(entityType), Seq[UUID](entityId))
 }

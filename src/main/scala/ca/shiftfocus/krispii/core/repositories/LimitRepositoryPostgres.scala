@@ -309,11 +309,8 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
    * @param planId
    * @return
    */
-  def getPlanCopiesLimit(planId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] =
-    getPlanLimit(planId, Limits.maxCopies).flatMap {
-      case \/-(limit) => Future successful \/-(limit.toInt)
-      case -\/(error) => Future successful -\/(error)
-    }
+  def getPlanCopiesLimit(planId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] =
+    getPlanLimit(planId, Limits.maxCopies)
 
   // --- SET -----------------------------------------------------------------------------------------------------------
 
@@ -348,12 +345,11 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       case -\/(error) => Future successful -\/(error)
     }
 
-  def setPlanCopiesLimit(planId: String, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] =
+  def setPlanCopiesLimit(planId: String, limit: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] =
     queryOne(Update("plan"), Seq[Any](limit, planId, Limits.maxCopies)).flatMap {
-      case \/-(limit) => Future successful \/-(limit.toInt)
+      case \/-(limit) => Future successful \/-(limit)
       case -\/(_: RepositoryError.NoResults) =>
         lift(queryOne(Insert("plan"), Seq[Any](planId, Limits.maxCopies, limit)))
-          .map(insert => insert.toInt)
       case -\/(error) => Future successful -\/(error)
     }
 
@@ -394,11 +390,8 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       case -\/(error) => Future successful -\/(error)
     }
 
-  def getOrganizationCopiesLimit(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] =
-    getOrganizationLimit(organizationId, Limits.maxCopies).flatMap {
-      case \/-(limit) => Future successful \/-(limit.toInt)
-      case -\/(error) => Future successful -\/(error)
-    }
+  def getOrganizationCopiesLimit(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] =
+    getOrganizationLimit(organizationId, Limits.maxCopies)
 
   // --- SET -----------------------------------------------------------------------------------------------------------
 
@@ -449,12 +442,11 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
       case -\/(error) => Future successful -\/(error)
     }
 
-  def setOrganizationCopiesLimit(organizationId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]] =
+  def setOrganizationCopiesLimit(organizationId: UUID, limit: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]] =
     queryOne(Update("organization"), Seq[Any](limit, organizationId, Limits.maxCopies)).flatMap {
-      case \/-(limit) => Future successful \/-(limit.toInt)
+      case \/-(limit) => Future successful \/-(limit)
       case -\/(_: RepositoryError.NoResults) =>
         lift(queryOne(Insert("organization"), Seq[Any](organizationId, Limits.maxCopies, limit)))
-          .map(insert => insert.toInt)
       case -\/(error) => Future successful -\/(error)
     }
 

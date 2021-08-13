@@ -82,24 +82,25 @@ trait OmsService extends Service[ErrorUnion#Fail] {
 
   /* Copies functions */
 
-  def getUserCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]]
-  def incUserCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]]
-  def deleteUserCopies(userId: UUID): Future[\/[ErrorUnion#Fail, BigInt]]
+  def getUserCopies(userId: UUID): Future[\/[ErrorUnion#Fail, Long]]
+  def incUserCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, Long]]
+  def deleteUserCopies(userId: UUID): Future[\/[ErrorUnion#Fail, Long]]
 
-  def getOrgCopies(orgId: UUID): Future[\/[ErrorUnion#Fail, BigInt]]
-  def incOrgCopies(orgId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, BigInt]]
-  def deleteOrgCopies(orgId: UUID): Future[\/[ErrorUnion#Fail, BigInt]]
+  def getOrgCopies(orgId: UUID): Future[\/[ErrorUnion#Fail, Long]]
+  def incOrgCopies(orgId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, Long]]
+  def deleteOrgCopies(orgId: UUID): Future[\/[ErrorUnion#Fail, Long]]
 
   /* getOrgId might go into organizationService, but will need to be rewritten for
      examAdministrators, so better leave it here for the moment. */
   def getOrgId(user: User): Future[\/[ErrorUnion#Fail, UUID]]
 
-  def getOrgCopies(user: User): Future[\/[ErrorUnion#Fail, BigInt]]
+  def getOrgCopies(user: User): Future[\/[ErrorUnion#Fail, Long]]
+  def getCopies(user: User): Future[\/[ErrorUnion#Fail, Long]]
 
-  def getOrgAndIncCopy(user: User): Future[\/[ErrorUnion#Fail, BigInt]]
-  def incCopy(user: User): Future[\/[ErrorUnion#Fail, BigInt]]
+  def getOrgAndIncCopy(user: User): Future[\/[ErrorUnion#Fail, Long]]
+  def incCopy(user: User): Future[\/[ErrorUnion#Fail, Long]]
 
-  def maybeGetOrgAndDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, BigInt]]
-  def maybeUserDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, BigInt]]
-  def maybeDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, BigInt]]
+  def maybeGetOrgAndDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, Long]]
+  def maybeUserDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, Long]]
+  def maybeDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, Long]]
 }

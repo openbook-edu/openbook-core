@@ -4,7 +4,7 @@ import java.awt.Color
 
 import org.joda.time.DateTime
 import play.api.Logger
-import ca.shiftfocus.krispii.core.error._
+import ca.shiftfocus.krispii.core.error.{RepositoryError, _}
 import ca.shiftfocus.krispii.core.services.datasource.DB
 import com.github.mauricio.async.db.Connection
 import ca.shiftfocus.krispii.core.models._
@@ -546,8 +546,8 @@ class SchoolServiceDefault(
   /**
    * Get number of students that courses are allowed to have within indicated plan
    *
-   * @param planId
-   * @return
+   * @param planId: String furnished by Stripe
+   * @return Future containing either the number of students, or an error
    */
   override def getPlanStudentLimit(planId: String): Future[\/[ErrorUnion#Fail, Int]] =
     limitRepository.getPlanStudentLimit(planId)
@@ -555,10 +555,10 @@ class SchoolServiceDefault(
   /**
    * Get number of student copies that can be scored within indicated plan
    *
-   * @param planId
-   * @return
+   * @param planId: String furnished by Stripe
+   * @return Future containing either the number of copies as Long, or an error
    */
-  override def getPlanCopiesLimit(planId: String): Future[\/[ErrorUnion#Fail, Int]] =
+  override def getPlanCopiesLimit(planId: String): Future[RepositoryError.Fail \/ Long] =
     limitRepository.getPlanCopiesLimit(planId)
 
   /**
@@ -633,8 +633,8 @@ class SchoolServiceDefault(
   /**
    * Insert or update the limit of student copies that can be scores within the plan
    */
-  override def setPlanCopiesLimit(palnId: String, limitValue: Int): Future[\/[ErrorUnion#Fail, Int]] =
-    limitRepository.setPlanCopiesLimit(palnId, limitValue)
+  override def setPlanCopiesLimit(planId: String, limitValue: Long): Future[\/[ErrorUnion#Fail, Long]] =
+    limitRepository.setPlanCopiesLimit(planId, limitValue)
 
   // Organization
   def getOrganizationStudentLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, Int]] =
@@ -643,17 +643,17 @@ class SchoolServiceDefault(
   def getOrganizationCourseLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, Int]] =
     limitRepository.getOrganizationCourseLimit(organizationId)
 
-  def getOrganizationStorageLimit(organizationtId: UUID): Future[\/[ErrorUnion#Fail, Float]] =
-    limitRepository.getOrganizationStorageLimit(organizationtId)
+  def getOrganizationStorageLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, Float]] =
+    limitRepository.getOrganizationStorageLimit(organizationId)
 
-  def getOrganizationDateLimit(organizationtId: UUID): Future[\/[ErrorUnion#Fail, DateTime]] =
-    limitRepository.getOrganizationDateLimit(organizationtId)
+  def getOrganizationDateLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, DateTime]] =
+    limitRepository.getOrganizationDateLimit(organizationId)
 
-  def getOrganizationMemberLimit(organizationtId: UUID): Future[\/[ErrorUnion#Fail, Int]] =
-    limitRepository.getOrganizationMemberLimit(organizationtId)
+  def getOrganizationMemberLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, Int]] =
+    limitRepository.getOrganizationMemberLimit(organizationId)
 
-  def getOrganizationCopiesLimit(organizationtId: UUID): Future[\/[ErrorUnion#Fail, Int]] =
-    limitRepository.getOrganizationCopiesLimit(organizationtId)
+  def getOrganizationCopiesLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, Long]] =
+    limitRepository.getOrganizationCopiesLimit(organizationId)
 
   def setOrganizationStorageLimit(organizationId: UUID, limit: Float): Future[\/[ErrorUnion#Fail, Float]] =
     limitRepository.setOrganizationStorageLimit(organizationId, limit)
@@ -670,7 +670,7 @@ class SchoolServiceDefault(
   def setOrganizationMemberLimit(organizationId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] =
     limitRepository.setOrganizationMemberLimit(organizationId, limit)
 
-  def setOrganizationCopiesLimit(organizationId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]] =
+  def setOrganizationCopiesLimit(organizationId: UUID, limit: Long): Future[\/[ErrorUnion#Fail, Long]] =
     limitRepository.setOrganizationCopiesLimit(organizationId, limit)
 
   /**

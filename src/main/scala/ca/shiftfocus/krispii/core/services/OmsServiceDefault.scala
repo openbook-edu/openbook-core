@@ -307,7 +307,7 @@ class OmsServiceDefault(
       account <- lift(accountRepository.getByUserId(userId))
       planId <- lift(account.subscriptions.headOption match {
         case Some(sub) => Future successful \/-(sub.planId)
-        case None => Future successful -\/(ServiceError.PaymentRequired("No subscription"))
+        case None => Future successful -\/(ServiceError.BadInput("No subscription"))
       })
       limit <- lift(schoolService.getPlanCopiesLimit(planId))
       _ <- predicate(limit >= copies + n)(ServiceError.LimitReached(
@@ -374,7 +374,7 @@ class OmsServiceDefault(
   override def getOrgId(user: User): Future[\/[ErrorUnion#Fail, UUID]] =
     organizationService.listByAdmin(user.email).map {
       case \/-(orgList) if orgList.nonEmpty => \/-(orgList.head.id)
-      case \/-(_) => -\/(ServiceError.PaymentRequired("User is member of no organization"))
+      case \/-(_) => -\/(ServiceError.BadInput("User is member of no organization"))
       case -\/(error) => -\/(error)
     }
 

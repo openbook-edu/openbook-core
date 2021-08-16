@@ -18,7 +18,7 @@ class CopiesCountRepositoryPostgres extends CopiesCountRepository with PostgresR
   private def Get(entityType: String): String =
     s"""
        |SELECT ${entityType}_copies_count.count FROM ${entityType}_copies_count, ${entityType}s
-       |  WHERE ${entityType}_copies_count.${entityType}_id = ${entityType}s.id
+       |  WHERE ${entityType}_copies_count.${entityType}_id = ?
        |""".stripMargin
 
   private def Insert(entityType: String): String =

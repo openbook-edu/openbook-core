@@ -313,7 +313,7 @@ class OmsServiceDefault(
       _ <- predicate(limit >= copies + n)(ServiceError.LimitReached(
         "Reached copies limit"
       )) // this message will be overwritten in API
-      newCopies <- lift(copiesCountRepository.inc(entityType = "organization", userId, n))
+      newCopies <- lift(copiesCountRepository.inc(entityType = "user", userId, n))
     } yield newCopies
 
   /**
@@ -336,6 +336,7 @@ class OmsServiceDefault(
 
   /**
    * Increase the copy count for the organization unless the limit has been reached.
+   * Not transactional, so might slightly pass the limit if one of concurrent requests has n > 1.
    * @param orgId UUID
    * @param n amount to be increased (default 1)
    * @return a Future containing either the increased count, or an error

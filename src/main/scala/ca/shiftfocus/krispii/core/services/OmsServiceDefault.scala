@@ -166,7 +166,7 @@ class OmsServiceDefault(
     /* (desired.keySet ++ real.keys).map { i => i -> (desired.get(i).getOrElse(0) - real.get(i).getOrElse(0)) } */
     val minusReal = real.transform((_, n) => -n)
     val redistribute = minusReal |+| desired
-    redistribute.transform((_, n) => (if (n >= 0) n else 0))
+    redistribute.transform((_, n) => if (n >= 0) n else 0)
   }
 
   /**
@@ -449,10 +449,14 @@ class OmsServiceDefault(
    * @return Future containing either the (possibly corrected) number of copies, or an error
    */
   override def maybeGetOrgAndDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, Long]] =
-    if (test.scores.isEmpty)
+    if (test.scores.isEmpty) {
+      Logger.debug(s"Test ${test.name} to be deleted has no scores yet, will decrease count for ${user.email}'s org'")
       getOrgAndDecCopy(user)
-    else
+    }
+    else {
+      Logger.debug(s"Test ${test.name} to be deleted has scores, will not decrease count for ${user.email}'s org'")
       getOrgCopies(user)
+    }
 
   /**
    * If no scores have yet been created for a test (no scorer has viewed the test copy), then deleting the test will
@@ -462,10 +466,14 @@ class OmsServiceDefault(
    * @return Future containing either the (possibly corrected) number of copies, or an error
    */
   override def maybeUserDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, Long]] =
-    if (test.scores.isEmpty)
-      getUserCopies(user.id)
-    else
+    if (test.scores.isEmpty) {
+      Logger.debug(s"Test ${test.name} to be deleted has no scores yet, will decrease count for ${user.email}")
       decUserCopies(user.id)
+    }
+    else {
+      Logger.debug(s"Test ${test.name} to be deleted already has scores, will not decrease count for ${user.email}")
+      getUserCopies(user.id)
+    }
 
   /**
    * If no scores have yet been created for a test (no scorer has viewed the test copy), then reduce the debit of

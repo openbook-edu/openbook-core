@@ -3,7 +3,7 @@ package ca.shiftfocus.krispii.core.services
 import java.util.UUID
 
 import ca.shiftfocus.krispii.core.error.{ErrorUnion, RepositoryError, ServiceError}
-import ca.shiftfocus.krispii.core.models.{AccountStatus, Chat}
+import ca.shiftfocus.krispii.core.models.{Account, AccountStatus, Chat, Organization}
 import ca.shiftfocus.krispii.core.models.group.{Exam, Team}
 import ca.shiftfocus.krispii.core.models.user.{Scorer, User, UserTrait}
 import ca.shiftfocus.krispii.core.models.work.{Score, Test}
@@ -26,6 +26,8 @@ class OmsServiceDefault(
     val copiesCountRepository: CopiesCountRepository,
     val examRepository: ExamRepository,
     val lastSeenRepository: LastSeenRepository,
+    val limitRepository: LimitRepository,
+    val roleRepository: RoleRepository,
     val teamRepository: TeamRepository,
     val testRepository: TestRepository,
     val scoreRepository: ScoreRepository,
@@ -295,16 +297,19 @@ class OmsServiceDefault(
   override def getUserCopies(userId: UUID): Future[\/[ErrorUnion#Fail, Long]] =
     copiesCountRepository.get(entityType = "user", userId)
 
+  override def getUserCopies(user: User): Future[\/[ErrorUnion#Fail, Long]] =
+    copiesCountRepository.get(entityType = "user", user.id)
+
   /**
    * If the user has a Stripe plan and the limit has not been reached, increase the copy count.
-   * @param userId UUID
+   * @param user User
    * @param n Int, default 1
    * @return a Future containing the increased copy count, or an error
    */
-  override def incUserCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, Long]] =
+  override def incUserCopies(user: User, n: Int = 1): Future[\/[ErrorUnion#Fail, Long]] =
     for {
-      copies <- lift(getUserCopies(userId))
-      account <- lift(accountRepository.getByUserId(userId))
+      copies <- lift(getUserCopies(user))
+      account <- lift(accountRepository.getByUserId(user.id))
       planId <- lift(account.subscriptions.headOption match {
         case Some(sub) => Future successful \/-(sub.planId)
         case None => Future successful -\/(ServiceError.BadInput("No subscription"))
@@ -313,23 +318,26 @@ class OmsServiceDefault(
       _ <- predicate(limit >= copies + n)(ServiceError.LimitReached(
         "Reached copies limit"
       )) // this message will be overwritten in API
-      newCopies <- lift(copiesCountRepository.inc(entityType = "user", userId, n))
+      newCopies <- lift(copiesCountRepository.inc(entityType = "user", user.id, n))
     } yield newCopies
 
   /**
    * Should only be run after it has been checked that a deleted test had no scores.
    */
-  private def decUserCopies(userId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, Long]] =
-    copiesCountRepository.dec(entityType = "user", userId, n)
+  private def decUserCopies(user: User, n: Int = 1): Future[\/[ErrorUnion#Fail, Long]] =
+    copiesCountRepository.dec(entityType = "user", user.id, n)
 
   /**
    * Remove the counter of copies for a user, equivalent to setting it to zero.
    * To be run at renewal of a payment plan.
-   * @param userId UUID
+   * @param user User
    * @return a Future containing either the count before resetting, or an error
    */
-  override def deleteUserCopies(userId: UUID): Future[\/[ErrorUnion#Fail, Long]] =
-    copiesCountRepository.delete(entityType = "user", userId)
+  override def deleteUserCopies(user: User): Future[\/[ErrorUnion#Fail, Long]] =
+    copiesCountRepository.delete(entityType = "user", user.id)
+
+  override def getOrgCopies(org: Organization): Future[\/[ErrorUnion#Fail, Long]] =
+    copiesCountRepository.get(entityType = "organization", org.id)
 
   override def getOrgCopies(orgId: UUID): Future[\/[ErrorUnion#Fail, Long]] =
     copiesCountRepository.get(entityType = "organization", orgId)
@@ -337,58 +345,58 @@ class OmsServiceDefault(
   /**
    * Increase the copy count for the organization unless the limit has been reached.
    * Not transactional, so might slightly pass the limit if one of concurrent requests has n > 1.
-   * @param orgId UUID
+   * @param org Organization
    * @param n amount to be increased (default 1)
    * @return a Future containing either the increased count, or an error
    */
-  override def incOrgCopies(orgId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, Long]] =
+  override def incOrgCopies(org: Organization, n: Int = 1): Future[\/[ErrorUnion#Fail, Long]] =
     for {
-      copies <- lift(getOrgCopies(orgId))
-      limit <- lift(schoolService.getOrganizationCopiesLimit(orgId))
+      copies <- lift(getOrgCopies(org))
+      limit <- lift(schoolService.getOrganizationCopiesLimit(org.id))
       _ <- predicate(limit >= copies + n)(ServiceError.LimitReached(
         "Reached copies limit"
       )) // this message will be overwritten in API
-      newCopies <- lift(copiesCountRepository.inc(entityType = "organization", orgId, n))
+      newCopies <- lift(copiesCountRepository.inc(entityType = "organization", org.id, n))
     } yield newCopies
 
   /**
    * Should only be run after it has been checked that a deleted test had no scores.
    */
-  private def decOrgCopies(orgId: UUID, n: Int = 1): Future[\/[ErrorUnion#Fail, Long]] =
-    copiesCountRepository.dec(entityType = "organization", orgId, n)
+  private def decOrgCopies(org: Organization, n: Int = 1): Future[\/[ErrorUnion#Fail, Long]] =
+    copiesCountRepository.dec(entityType = "organization", org.id, n)
 
   /**
    * Remove the counter of copies for an organization, equivalent to setting it to zero.
    * To be run at renewal of an organization payment plan.
-   * @param userId UUID
+   * @param org Organization
    * @return Future containing either the count before deleting, or an error
    */
-  override def deleteOrgCopies(userId: UUID): Future[\/[ErrorUnion#Fail, Long]] =
-    copiesCountRepository.delete(entityType = "organization", userId)
+  override def deleteOrgCopies(org: Organization): Future[\/[ErrorUnion#Fail, Long]] =
+    copiesCountRepository.delete(entityType = "organization", org.id)
 
   /**
    * Get the unique ID of the first organization a user is member in.
-   * TODO: change to ExamCoordinators; listByMember; guarantee that examCoordinators are members in only one organization
+   * TODO: API needs to check that user is examCoordinator or Proctor
+   * TODO: guarantee that examCoordinators are members in only one organization
    * @param user User
-   * @return Future containing either the organization's ID, or an error
+   * @return Future containing either the organization, or an error
    */
-  override def getOrgId(user: User): Future[\/[ErrorUnion#Fail, UUID]] =
-    organizationService.listByAdmin(user.email).map {
-      case \/-(orgList) if orgList.nonEmpty => \/-(orgList.head.id)
+  override def getOrg(user: User): Future[\/[ErrorUnion#Fail, Organization]] =
+    organizationService.listByMember(user.email).map {
+      case \/-(orgList) if orgList.nonEmpty => \/-(orgList.head)
       case \/-(_) => -\/(ServiceError.BadInput("User is member of no organization"))
       case -\/(error) => -\/(error)
     }
 
   /**
    * Get the current number of copies debited to the first organization a user is member in.
-   * TODO: change to ExamCoordinators; listByMember; guarantee that examCoordinators are members in only one organization
    * @param user User
    * @return Future containing either the copies already debited to the organization, or an error
    */
   override def getOrgCopies(user: User): Future[\/[ErrorUnion#Fail, Long]] =
     for {
-      orgId <- lift(getOrgId(user))
-      copies <- lift(getOrgCopies(orgId))
+      org <- lift(getOrg(user))
+      copies <- lift(getOrgCopies(org))
     } yield copies
 
   override def getCopies(user: User): Future[\/[ErrorUnion#Fail, Long]] =
@@ -396,7 +404,7 @@ class OmsServiceDefault(
       account <- lift(paymentService.getAccount(user.id))
       copies <- lift(account.status match {
         case AccountStatus.group => getOrgCopies(user)
-        case AccountStatus.paid => getUserCopies(user.id)
+        case AccountStatus.paid => getUserCopies(user)
         case AccountStatus.free => Future successful \/-(0.toLong)
         case _ => Future successful -\/(ServiceError.BadInput("User needs to pay to upload student copies"))
       })
@@ -409,8 +417,8 @@ class OmsServiceDefault(
    */
   override def getOrgAndIncCopy(user: User): Future[\/[ErrorUnion#Fail, Long]] =
     for {
-      orgId <- lift(getOrgId(user))
-      newCopies <- lift(incOrgCopies(orgId))
+      org <- lift(getOrg(user))
+      newCopies <- lift(incOrgCopies(org))
     } yield newCopies
 
   /**
@@ -423,7 +431,7 @@ class OmsServiceDefault(
       account <- lift(paymentService.getAccount(user.id))
       newCopies <- lift(account.status match {
         case AccountStatus.group => getOrgAndIncCopy(user)
-        case AccountStatus.paid => incUserCopies(user.id)
+        case AccountStatus.paid => incUserCopies(user)
         case AccountStatus.free => Future successful \/-(0.toLong)
         case _ => Future successful -\/(ServiceError.BadInput("User needs to pay to upload student copies"))
       })
@@ -437,8 +445,8 @@ class OmsServiceDefault(
    */
   private def getOrgAndDecCopy(user: User): Future[\/[ErrorUnion#Fail, Long]] =
     for {
-      orgId <- lift(getOrgId(user))
-      newCopies <- lift(decOrgCopies(orgId))
+      org <- lift(getOrg(user))
+      newCopies <- lift(decOrgCopies(org))
     } yield newCopies
 
   /**
@@ -468,11 +476,11 @@ class OmsServiceDefault(
   override def maybeUserDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, Long]] =
     if (test.scores.isEmpty) {
       Logger.debug(s"Test ${test.name} to be deleted has no scores yet, will decrease count for ${user.email}")
-      decUserCopies(user.id)
+      decUserCopies(user)
     }
     else {
       Logger.debug(s"Test ${test.name} to be deleted already has scores, will not decrease count for ${user.email}")
-      getUserCopies(user.id)
+      getUserCopies(user)
     }
 
   /**
@@ -492,5 +500,33 @@ class OmsServiceDefault(
         case _ => Future successful -\/(ServiceError.BadInput("User needs to pay to upload student copies"))
       })
     } yield newCopies
+
+  /************************ Get copy limits *************************/
+
+  private def getOrgLimit(user: User): Future[\/[ErrorUnion#Fail, Long]] =
+    for {
+      org <- lift(getOrg(user))
+      limit <- lift(limitRepository.getOrganizationCopiesLimit(org.id))
+    } yield limit
+
+  private def getPlanLimit(account: Account): Future[\/[ErrorUnion#Fail, Long]] =
+    for {
+      sub <- lift(account.subscriptions.headOption match {
+        case Some(sub) => Future successful \/-(sub)
+        case None => Future successful -\/(ServiceError.BadInput("No subscription"))
+      })
+      limit <- lift(limitRepository.getPlanCopiesLimit(sub.planId))
+    } yield limit
+
+  override def getCopiesLimit(user: User): Future[\/[ErrorUnion#Fail, Long]] =
+    for {
+      account <- lift(paymentService.getAccount(user.id))
+      limit <- lift(account.status match {
+        case AccountStatus.group => getOrgLimit(user)
+        case AccountStatus.paid => getPlanLimit(account)
+        case AccountStatus.free => Future successful \/-(0.toLong)
+        case _ => Future successful -\/(ServiceError.BadInput("User needs to pay to upload student copies"))
+      })
+    } yield limit
 
 }

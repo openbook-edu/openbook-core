@@ -27,7 +27,7 @@ trait PostgresRepository[A] {
   protected def queryOne(queryText: String, parameters: Seq[Any] = Seq.empty[Any], debug: Boolean = false)(implicit conn: Connection): Future[\/[RepositoryError.Fail, A]] = {
     // somewhat ugly line that puts all information into one Logger entry
     if (debug)
-      Logger.debug(s"Parameters ${parameters} for query $queryText when called in stack...\n" +
+      Logger.debug(s"Parameters $parameters for query $queryText when called in stack...\n" +
         Thread.currentThread.getStackTrace.filter(trElem => {
           (trElem.toString contains "krispii") &&
             !(trElem.toString contains "queryOne")

@@ -28,23 +28,22 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
     )
   }
 
-  val Table = "tags"
-  val Fields = "id, version, is_admin, is_hidden, name, lang, frequency"
-  def FieldsWithTable(table: String = Table) = Fields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
-  val QMarks = Fields.split(", ").map({ field => "?" }).mkString(", ")
-  val Organizational =
-    """
+  private val Table = "tags"
+  private val Fields = "id, version, is_admin, is_hidden, name, lang, frequency"
+  def FieldsWithTable(table: String = Table): String = Fields.split(", ").map({ field => s"${table}." + field }).mkString(", ")
+  private val QMarks = Fields.split(", ").map({ field => "?" }).mkString(", ")
+  private val Organizational = """
       |INNER JOIN organization_tags AS ot
       |ON ot.tag_id = t.id
     """.stripMargin
 
-  val Insert = s"""
+  private val Insert = s"""
                   |INSERT INTO $Table ($Fields, category_id)
                   |VALUES ($QMarks, (SELECT id FROM tag_categories WHERE name = ? AND lang = ?))
                   |RETURNING $Fields, (SELECT name FROM tag_categories WHERE name = ? AND lang = ?) as category_name
                   """.stripMargin
 
-  val Delete = s"""
+  private val Delete = s"""
                   |DELETE FROM $Table as t
                   |WHERE id = ?
                   | AND version = ?
@@ -271,14 +270,14 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
     |WHERE id = ?
     |  AND version = ?
     |RETURNING $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name
-  """
+  """.stripMargin
 
   override def create(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(Insert, Seq[Any](tag.id, tag.version, tag.isAdmin, tag.isHidden, tag.name, tag.lang, tag.frequency, tag.category, tag.lang, tag.category, tag.lang))
   }
 
   override def update(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
-    queryOne(Update, Seq[Any]((tag.version + 1), tag.isAdmin, tag.isHidden, tag.name, tag.lang, tag.category, tag.lang, tag.frequency, tag.id, tag.version))
+    queryOne(Update, Seq[Any]((tag.version + 1), tag.isAdmin, tag.isHidden, tag.name, tag.lang, tag.name, tag.lang, tag.frequency, tag.id, tag.version))
   }
   override def delete(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] = {
     queryOne(Delete, Seq[Any](tag.id, tag.version))

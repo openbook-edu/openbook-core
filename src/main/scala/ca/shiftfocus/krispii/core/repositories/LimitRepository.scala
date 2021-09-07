@@ -29,10 +29,12 @@ trait LimitRepository extends Repository {
   def getPlanCourseLimit(planId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
   def getPlanStorageLimit(planId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]]
   def getPlanStudentLimit(planId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
+  def getPlanCopiesLimit(planId: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]]
 
   def setPlanStorageLimit(planId: String, limit: Float)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]]
   def setPlanCourseLimit(planId: String, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
   def setPlanStudentLimit(planId: String, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
+  def setPlanCopiesLimit(planId: String, limit: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]]
 
   // ORGANIZATIONS
   def getOrganizationStorageLimit(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]]
@@ -40,10 +42,12 @@ trait LimitRepository extends Repository {
   def getOrganizationStudentLimit(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
   def getOrganizationDateLimit(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, DateTime]]
   def getOrganizationMemberLimit(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
+  def getOrganizationCopiesLimit(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]]
 
   def setOrganizationStorageLimit(organizationId: UUID, limit: Float)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Float]]
   def setOrganizationCourseLimit(organizationId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
   def setOrganizationStudentLimit(organizationId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
   def setOrganizationDateLimit(organizationId: UUID, limit: DateTime)(implicit conn: Connection): Future[\/[RepositoryError.Fail, DateTime]]
   def setOrganizationMemberLimit(organizationId: UUID, limit: Int)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Int]]
+  def setOrganizationCopiesLimit(organizationId: UUID, limit: Long)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Long]]
 }

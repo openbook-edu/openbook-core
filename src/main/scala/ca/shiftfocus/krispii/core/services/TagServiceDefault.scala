@@ -230,6 +230,7 @@ class TagServiceDefault(
     version: Long,
     isAdmin: Option[Boolean],
     isHidden: Option[Boolean],
+    isPrivate: Option[Boolean],
     name: Option[String],
     lang: Option[String],
     category: Option[Option[String]]
@@ -240,6 +241,7 @@ class TagServiceDefault(
       toUpdate = existingTag.copy(
         isAdmin = isAdmin.getOrElse(existingTag.isAdmin),
         isHidden = isHidden.getOrElse(existingTag.isHidden),
+        isPrivate = isPrivate.getOrElse(existingTag.isPrivate),
         name = name.getOrElse(existingTag.name),
         lang = lang.getOrElse(existingTag.lang),
         category = category match {

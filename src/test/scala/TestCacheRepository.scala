@@ -1,4 +1,4 @@
-import ca.shiftfocus.krispii.core.lib.{ ScalaCacheConfig, ScalaCachePool }
+import ca.shiftfocus.krispii.core.lib.{ScalaCacheConfig, ScalaCachePool}
 import ca.shiftfocus.krispii.core.models.tasks.Task
 import ca.shiftfocus.krispii.core.repositories.CacheRepository
 import org.scalamock.scalatest.MockFactory

@@ -10,7 +10,7 @@ import java.util.UUID
 import ca.shiftfocus.krispii.core.models.group.Course
 import ca.shiftfocus.krispii.core.models.user.User
 import ca.shiftfocus.krispii.core.models.work._
-import org.joda.time.{DateTime, DateTimeZone, LocalDate, LocalTime}
+import org.joda.time.{DateTime, DateTimeZone}
 import ca.shiftfocus.otlib._
 
 object TestValues {
@@ -2358,38 +2358,35 @@ object TestValues {
 
   /* ---------------------- SCHEDULES ---------------------- */
 
-  val testCourseScheduleA = CourseSchedule(
+  val testGroupScheduleA = GroupSchedule(
     id = UUID.fromString("308792b2-7a29-43c8-ad51-a5c4f306cdaf"),
-    courseId = testCourseA.id,
+    groupId = testCourseA.id,
     version = 1L,
-    day = new LocalDate(2015, 1, 15),
-    startTime = new LocalTime(14, 1, 19),
-    endTime = new LocalTime(15, 1, 19),
-    description = "test CourseSchedule A description",
+    startDate = new DateTime(2015, 1, 15, 14, 1, 10),
+    endDate = new DateTime(2015, 1, 15, 15, 1, 19),
+    description = "test GroupSchedule A description",
     createdAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-  val testCourseScheduleB = CourseSchedule(
+  val testGroupScheduleB = GroupSchedule(
     id = UUID.fromString("dc1190c2-b5fd-4bac-95fa-7d67e1f1d445"),
-    courseId = testCourseB.id,
+    groupId = testCourseB.id,
     version = 2L,
-    day = new LocalDate(2015, 1, 16),
-    startTime = new LocalTime(16, 1, 19),
-    endTime = new LocalTime(17, 1, 19),
-    description = "test CourseSchedule B description",
+    startDate = new DateTime(2015, 1, 16, 16, 1, 19),
+    endDate = new DateTime(2015, 1, 16, 17, 1, 19),
+    description = "test GroupSchedule B description",
     createdAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-  val testCourseScheduleC = CourseSchedule(
+  val testGroupScheduleC = GroupSchedule(
     id = UUID.fromString("6df9d164-b151-4c38-9acd-6b91301a199d"),
-    courseId = testCourseB.id,
+    groupId = testCourseB.id,
     version = 3L,
-    day = new LocalDate(2015, 1, 17),
-    startTime = new LocalTime(18, 1, 19),
-    endTime = new LocalTime(19, 1, 19),
-    description = "test CourseSchedule C description",
+    startDate = new DateTime(2015, 1, 17, 18, 1, 19),
+    endDate = new DateTime(1025, 1, 17, 19, 1, 19),
+    description = "test GroupSchedule C description",
     createdAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -2397,65 +2394,60 @@ object TestValues {
   /**
    * No data in DB
    */
-  val testCourseScheduleD = CourseSchedule(
+  val testGroupScheduleD = GroupSchedule(
     id = UUID.fromString("02eaad44-5f0a-4c75-b05a-c92991903c10"),
-    courseId = testCourseB.id,
-    day = new LocalDate(2015, 1, 18),
-    startTime = new LocalTime(16, 38, 19),
-    endTime = new LocalTime(17, 38, 19),
-    description = "test CourseSchedule D description"
+    groupId = testCourseB.id,
+    startDate = new DateTime(2015, 1, 18, 16, 38, 19),
+    endDate = new DateTime(2015, 1, 18, 17, 38, 19),
+    description = "test GroupSchedule D description"
   )
 
   /* ---------------------- SCHEDULE EXCEPTIONS ---------------------- */
 
-  val testCourseScheduleExceptionA = CourseScheduleException(
+  val testGroupScheduleExceptionA = GroupScheduleException(
     id = UUID.fromString("da17e24a-a545-4d74-94e1-427896e13ebe"),
     userId = testUserC.id,
-    courseId = testCourseA.id,
+    groupId = testCourseA.id,
     version = 1L,
-    day = new LocalDate(2014, 8, 1),
-    startTime = new LocalTime(14, 1, 19),
-    endTime = new LocalTime(15, 1, 19),
-    reason = "testCourseScheduleExceptionA reason",
+    startDate = new DateTime(2014, 8, 1, 14, 1, 19),
+    endDate = new DateTime(204, 8, 1, 15, 1, 19),
+    reason = "testGroupScheduleExceptionA reason",
     createdAt = new DateTime(2014, 8, 2, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 3, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-  val testCourseScheduleExceptionB = CourseScheduleException(
+  val testGroupScheduleExceptionB = GroupScheduleException(
     id = UUID.fromString("3a285f0c-66d0-41b2-851b-cfcd203550d9"),
     userId = testUserC.id,
-    courseId = testCourseB.id,
+    groupId = testCourseB.id,
     version = 2L,
-    day = new LocalDate(2014, 8, 2),
-    startTime = new LocalTime(16, 1, 19),
-    endTime = new LocalTime(17, 1, 19),
-    reason = "testCourseScheduleExceptionB reason",
+    startDate = new DateTime(2014, 8, 2, 16, 1, 19),
+    endDate = new DateTime(2014, 8, 2, 17, 1, 19),
+    reason = "testGroupScheduleExceptionB reason",
     createdAt = new DateTime(2014, 8, 4, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-  val testCourseScheduleExceptionC = CourseScheduleException(
+  val testGroupScheduleExceptionC = GroupScheduleException(
     id = UUID.fromString("4d7ca313-f216-4f59-85ae-88bcbca70317"),
     userId = testUserE.id,
-    courseId = testCourseB.id,
+    groupId = testCourseB.id,
     version = 3L,
-    day = new LocalDate(2014, 8, 3),
-    startTime = new LocalTime(18, 1, 19),
-    endTime = new LocalTime(19, 1, 19),
-    reason = "testCourseScheduleExceptionC reason",
+    startDate = new DateTime(2014, 8, 3, 18, 1, 19),
+    endDate = new DateTime(2014, 8, 3, 19, 1, 19),
+    reason = "testGroupScheduleExceptionC reason",
     createdAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
 
-  val testCourseScheduleExceptionD = CourseScheduleException(
+  val testGroupScheduleExceptionD = GroupScheduleException(
     id = UUID.fromString("b9a1cd29-3c04-450e-9b4a-2a63a6871c35"),
     userId = testUserE.id,
-    courseId = testCourseB.id,
+    groupId = testCourseB.id,
     version = 4L,
-    day = new LocalDate(2014, 8, 4),
-    startTime = new LocalTime(20, 1, 19),
-    endTime = new LocalTime(21, 1, 19),
-    reason = "testCourseScheduleExceptionD reason",
+    startDate = new DateTime(2014, 8, 4, 20, 1, 19),
+    endDate = new DateTime(2014, 8, 4, 21, 1, 19),
+    reason = "testGroupScheduleExceptionD reason",
     createdAt = new DateTime(2014, 8, 8, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -2463,14 +2455,13 @@ object TestValues {
   /**
    * No data in DB
    */
-  val testCourseScheduleExceptionE = CourseScheduleException(
+  val testGroupScheduleExceptionE = GroupScheduleException(
     id = UUID.fromString("848c8b4f-f566-4d7f-8a16-b4a76107778a"),
     userId = testUserE.id,
-    courseId = testCourseA.id,
-    day = new LocalDate(2014, 8, 5),
-    startTime = new LocalTime(22, 1, 19),
-    endTime = new LocalTime(23, 1, 19),
-    reason = "testCourseScheduleExceptionE reason"
+    groupId = testCourseA.id,
+    startDate = new DateTime(2014, 8, 5, 22, 1, 19),
+    endDate = new DateTime(2014, 8, 5, 23, 1, 19),
+    reason = "testGroupScheduleExceptionE reason"
   )
 
   /* ---------------------- JOURNAL ENTRIES ---------------------- */

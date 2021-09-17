@@ -47,13 +47,14 @@ class TagServiceDefault(
 
   /**
    * Tag entity with a tag
-   * For users if tag is also used in organization, then we set user's limits according to the limits of this organization
+   * For users who are members of this organization, if this is a payment tag (admin, not private content),
+   * then we set the users' limits according to the limits of this organization.
    *
-   * @param entityId
-   * @param entityType
-   * @param tagName
-   * @param lang
-   * @return
+   * @param entityId UUID (organization, project or user) or String (Stripe plan)
+   * @param entityType String
+   * @param tagName String
+   * @param lang String
+   * @return Future containing an error or Unit
    */
   override def tag(entityId: UUID, entityType: String, tagName: String, lang: String): Future[\/[ErrorUnion#Fail, Unit]] =
     tag(entityId.toString, entityType, tagName, lang)
@@ -63,23 +64,31 @@ class TagServiceDefault(
         existingTag <- lift(
           tagRepository.find(tagName, lang).flatMap {
             case \/-(tag) => Future successful (\/-(tag))
-            case -\/(_) => tagRepository.create(Tag(
-              name = tagName,
-              lang = lang,
-              category = None,
-              frequency = 0
-            ))
+            case -\/(_) =>
+              Logger.info(s"Tag $tagName:$lang did not exist, will be created now.")
+              tagRepository.create(Tag(
+                name = tagName,
+                lang = lang,
+                category = None,
+                frequency = 0
+              ))
           }
         )
         // If entity is already tagged with this tag, then do nothing
         _ <- lift(tagRepository.tag(entityId, entityType, existingTag.name, existingTag.lang).map {
           case \/-(success) => \/-(success)
-          case -\/(RepositoryError.PrimaryKeyConflict) | -\/(_: RepositoryError.UniqueKeyConflict) => \/-(())
-          case -\/(error) => -\/(error)
+          case -\/(RepositoryError.PrimaryKeyConflict) | -\/(_: RepositoryError.UniqueKeyConflict) =>
+            Logger.info(s"$entityType $entityId already has tag $tagName:$lang - do nothing.")
+            \/-(())
+          case -\/(error) =>
+            Logger.error(s"Error while tagging $entityType $entityId with tag $tagName:$lang: $error.")
+            -\/(error)
         })
         _ <- lift {
           entityType match {
-            case TaggableEntities.user => setUserLimitsByOrganization(UUID.fromString(entityId), existingTag.name, existingTag.lang)
+            case TaggableEntities.user =>
+              Logger.debug(s"Now setting limits for user $entityId from the limits of their organization(s)")
+              setUserLimitsByOrganization(UUID.fromString(entityId), existingTag.name, existingTag.lang)
             case _ => Future successful \/-(())
           }
         }
@@ -88,18 +97,18 @@ class TagServiceDefault(
   }
 
   /**
-   * Untag entity
+   * Untag an entity (organization, project, user or Stripe plan).
    * For users: if we want to recalculate user limits, we need to UNTAG USERS FIRST AND ONLY THEN ORGANIZATION.
-   * Beacause we check if tag is used in organization, in this case we know that it is organization tag, and we want
+   * Because we check if tag is used in organization, in this case we know that it is organization tag, and we want
    * to change user limits.
    * If user has another organization tag (or tags), we set limits (max limits) from that organization(s).
    *
-   * @param entityId
-   * @param entityType
-   * @param tagName
-   * @param tagLang
-   * @param shouldUpdateFrequency
-   * @return
+   * @param entityId UUID (organization, project or user) or String (Stripe plan)
+   * @param entityType String
+   * @param tagName String
+   * @param tagLang String
+   * @param shouldUpdateFrequency Boolean
+   * @return Future containing an error or Unit
    */
   override def untag(entityId: UUID, entityType: String, tagName: String, tagLang: String, shouldUpdateFrequency: Boolean): Future[\/[ErrorUnion#Fail, Unit]] =
     untag(entityId.toString, entityType, tagName, tagLang, shouldUpdateFrequency)
@@ -109,11 +118,11 @@ class TagServiceDefault(
         _ <- lift {
           // If entity doesn't have this tag, then do nothing
           tagRepository.untag(entityId, entityType, tagName, tagLang).flatMap {
-            case \/-(success) => {
+            case \/-(_) =>
               for {
                 tag <- lift(tagRepository.find(tagName, tagLang))
                 frequency = if (tag.frequency - 1 < 0) 0 else (tag.frequency - 1)
-                updatedTag <- lift(if (shouldUpdateFrequency) updateFrequency(tag.name, tag.lang, frequency) else Future successful \/-(tag))
+                _ <- lift(if (shouldUpdateFrequency) updateFrequency(tag.name, tag.lang, frequency) else Future successful \/-(tag))
                 _ <- lift {
                   entityType match {
                     case TaggableEntities.user => unsetUserLimitsByOrganization(UUID.fromString(entityId), tag.name, tag.lang)
@@ -121,8 +130,7 @@ class TagServiceDefault(
                   }
                 }
               } yield ()
-            }
-            case -\/(error: RepositoryError.NoResults) => Future successful \/-((): Unit)
+            case -\/(_: RepositoryError.NoResults) => Future successful \/-((): Unit)
             case -\/(error) => Future successful -\/(error)
           }
         }

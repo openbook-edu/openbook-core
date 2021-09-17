@@ -215,48 +215,84 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
       | AND t.lang = ?
     """.stripMargin
 
-  private val UntagProject = """
-    |DELETE FROM project_tags
-    |WHERE project_id = ?
-    | AND tag_id = (SELECT id FROM tags WHERE name = ? AND lang = ?)
+  private val UntagProject = s"""
+     |WITH t as (
+     |	SELECT * from tags where name = ? AND lang = ?
+     |), pt as (
+     |  DELETE FROM project_tags USING t
+     |  WHERE project_id = ? and tag_id=t.id)
+     |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name FROM $Table
+     |FROM t;
   """.stripMargin
 
-  private val UntagOrganization = """
-    |DELETE FROM organization_tags
-    |WHERE organization_id = ?
-    | AND tag_id = (SELECT id FROM tags WHERE name = ? AND lang = ?)
+  private val UntagOrganization = s"""
+    |WITH t as (
+    |	SELECT * from tags where name = ? AND lang = ?
+    |), ot as (
+    |  DELETE FROM organization_tags USING t
+    |  WHERE organization_id = ? and tag_id=t.id)
+    |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name FROM $Table
+    |FROM t;
   """.stripMargin
 
-  private val UntagUser = """
-    |DELETE FROM user_tags
-    |WHERE user_id = ?
-    | AND tag_id = (SELECT id FROM tags WHERE name = ? AND lang = ?)
+  private val UntagUser = s"""
+    |WITH t as (
+    |	SELECT * from tags where name = ? AND lang = ?
+    |), ut as (
+    |  DELETE FROM user_tags USING t
+    |  WHERE user_id = ? and tag_id=t.id)
+    |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name FROM $Table
+    |FROM t;
   """.stripMargin
 
-  private val UntagPlan = """
-    |DELETE FROM stripe_plan_tags
-    |WHERE plan_id = ?
-    | AND tag_id = (SELECT id FROM tags WHERE name = ? AND lang = ?)
+  private val UntagPlan = s"""
+    |WITH t as (
+    |	SELECT * from tags where name = ? AND lang = ?
+    |), pt as (
+    |  DELETE FROM stripe_plan_tags USING t
+    |  WHERE plan_id = ? and tag_id=t.id)
+    |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name FROM $Table
+    |FROM t;
   """.stripMargin
 
-  private val TagProject = """
-     |INSERT INTO project_tags(project_id, tag_id)
-     |VALUES (?, (SELECT id FROM tags WHERE name = ? AND lang = ? ))
+  private val TagProject = s"""
+     WITH t AS (
+     |  SELECT * FROM tags WHERE name = ? AND lang = ?
+     |), pt AS (
+     |  INSERT INTO project_tags(project_id, tag_id)
+     |  SELECT ?, id FROM t
+     |)
+     |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name) FROM t
    """.stripMargin
 
-  private val TagOrganization = """
-     |INSERT INTO organization_tags(organization_id, tag_id)
-     |VALUES (?, (SELECT id FROM tags WHERE name = ? AND lang = ? ))
+  private val TagOrganization = s"""
+     |WITH t AS (
+     |  SELECT * FROM tags WHERE name = ? AND lang = ?
+     |), ot AS (
+     |  INSERT INTO organization_tags(organization_id, tag_id)
+     |  SELECT ?, id FROM t
+     |)
+     |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name) FROM t
    """.stripMargin
 
-  private val TagUser = """
-     |INSERT INTO user_tags(user_id, tag_id)
-     |VALUES (?, (SELECT id FROM tags WHERE name = ? AND lang = ? ))
+  private val TagUser = s"""
+    |WITH t AS (
+    |  SELECT * FROM tags WHERE name = ? AND lang = ?
+    |), ut AS (
+    |  INSERT INTO user_tags(user_id, tag_id)
+    |  SELECT ?, id FROM t
+    |)
+    |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name) FROM t
    """.stripMargin
 
-  private val TagPlan = """
-     |INSERT INTO stripe_plan_tags(plan_id, tag_id)
-     |VALUES (?, (SELECT id FROM tags WHERE name = ? AND lang = ? ))
+  private val TagPlan = s"""
+    |WITH t AS (
+    |  SELECT * FROM tags WHERE name = ? AND lang = ?
+    |), pt AS (
+    |  INSERT INTO plan_tags(plan_id, tag_id)
+    |  SELECT ?, id FROM t
+    |)
+    |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name) FROM t
    """.stripMargin
 
   private val Update = s"""
@@ -363,7 +399,7 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
         }
       }
       result <- lift {
-        queryNumRows(query, Array[Any](entityId, tagName, tagLang))(_ == 1).map {
+        queryNumRows(query, Array[Any](tagName, tagLang, entityId), debug = true)(_ == 1).map {
           case \/-(true) => \/-(())
           case \/-(false) => -\/(RepositoryError.NoResults(s"Could not remove the tag"))
           case -\/(error) => -\/(error)
@@ -412,13 +448,11 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
           case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.tag.wrong.entity.type"))
         }
       }
-      result <- lift {
-        queryNumRows(query, Array[Any](entityId, tagName, tagLang))(_ == 1).map {
-          case \/-(true) => \/-(())
-          case \/-(false) => -\/(RepositoryError.NoResults(s"Could not add the tag"))
-          case -\/(error) => -\/(error)
-        }
-      }
+      result <- lift(queryOne(query, Array[Any](tagName, tagLang, entityId), debug = true).map {
+        case \/-(_) => \/-(())
+        case -\/(RepositoryError.PrimaryKeyConflict) | -\/(_: RepositoryError.UniqueKeyConflict) => \/-(())
+        case -\/(error) => -\/(error)
+      })
     } yield result
 
   def listByCategory(category: String, lang: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] =

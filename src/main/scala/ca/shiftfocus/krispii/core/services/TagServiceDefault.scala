@@ -74,7 +74,7 @@ class TagServiceDefault(
         // If entity is already tagged with this tag, then do nothing
         _ <- lift(tagRepository.tag(entityId, entityType, existingTag.name, existingTag.lang).map {
           case \/-(success) => \/-(success)
-          case -\/(RepositoryError.PrimaryKeyConflict) => \/-(())
+          case -\/(RepositoryError.PrimaryKeyConflict) | -\/(_: RepositoryError.UniqueKeyConflict) => \/-(())
           case -\/(error) => -\/(error)
         })
         _ <- lift {

@@ -377,10 +377,12 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
     }
 
   def getOrganizationDateLimit(organizationId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, DateTime]] =
-    // Limit is unix timestamp
     getOrganizationLimit(organizationId, Limits.activeUntil).flatMap {
-      // We need milliseconds here
-      case \/-(limit) => Future successful \/-({ Logger.info(s"Org data limit: ${limit} ms"); new DateTime(limit * 1000) })
+      // Limit is stored as unix timestamp (SECONDS since Jan 1st, 1970)
+      case \/-(limit) =>
+        val date = new DateTime(limit * 1000) // java expects MILLISECONDS
+        Logger.info(s"Org date limit: $date")
+        Future successful \/-(date)
       case -\/(error) => Future successful -\/(error)
     }
 
@@ -425,6 +427,7 @@ class LimitRepositoryPostgres extends LimitRepository with PostgresRepository[Lo
     }
 
   def setOrganizationDateLimit(organizationId: UUID, limit: DateTime)(implicit conn: Connection): Future[\/[RepositoryError.Fail, DateTime]] =
+    // date limit is stored as Unix timestamp (SECONDS since Jan 1st, 1970)
     queryOne(Update("organization"), Seq[Any](limit.getMillis / 1000, organizationId, Limits.activeUntil)).flatMap {
       case \/-(limit) => Future successful \/-(new DateTime(limit * 1000))
       case -\/(_: RepositoryError.NoResults) =>

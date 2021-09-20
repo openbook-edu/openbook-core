@@ -164,7 +164,7 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
       | ORDER BY max_frequency DESC
       |)
       |SELECT ${FieldsWithTable()}, tc.name AS category_name
-      |FROM tags
+      |FROM $Table
       |RIGHT JOIN popular_tags
       | ON $Table.id = popular_tags.tag_id
       |LEFT JOIN tag_categories as tc
@@ -200,7 +200,7 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
      |FROM (SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name, name <-> ? AS dist
      |  FROM $Table
      |  JOIN user_tags
-     |    ON tag_id = tags.id
+     |    ON tag_id = $Table.id
      |    AND user_id = ?
      |  WHERE is_admin = true
      |  ORDER BY dist LIMIT 10) as sub
@@ -217,82 +217,86 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
 
   private val UntagProject = s"""
      |WITH t as (
-     |	SELECT * from tags where name = ? AND lang = ?
+     |	SELECT * from $Table where name = ? AND lang = ?
      |), pt as (
      |  DELETE FROM project_tags USING t
      |  WHERE project_id = ? and tag_id=t.id)
-     |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name FROM $Table
-     |FROM t;
+     |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name
+     |FROM t
   """.stripMargin
 
   private val UntagOrganization = s"""
     |WITH t as (
-    |	SELECT * from tags where name = ? AND lang = ?
+    |	SELECT * from $Table where name = ? AND lang = ?
     |), ot as (
     |  DELETE FROM organization_tags USING t
     |  WHERE organization_id = ? and tag_id=t.id)
-    |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name FROM $Table
-    |FROM t;
+    |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name
+    |FROM t
   """.stripMargin
 
   private val UntagUser = s"""
     |WITH t as (
-    |	SELECT * from tags where name = ? AND lang = ?
+    |	SELECT * from $Table where name = ? AND lang = ?
     |), ut as (
     |  DELETE FROM user_tags USING t
     |  WHERE user_id = ? and tag_id=t.id)
-    |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name FROM $Table
-    |FROM t;
+    |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name
+    |FROM t
   """.stripMargin
 
   private val UntagPlan = s"""
     |WITH t as (
-    |	SELECT * from tags where name = ? AND lang = ?
+    |	SELECT * from $Table where name = ? AND lang = ?
     |), pt as (
     |  DELETE FROM stripe_plan_tags USING t
     |  WHERE plan_id = ? and tag_id=t.id)
-    |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name FROM $Table
-    |FROM t;
+    |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name
+    |FROM t
   """.stripMargin
 
   private val TagProject = s"""
      WITH t AS (
-     |  SELECT * FROM tags WHERE name = ? AND lang = ?
+     |  SELECT * FROM $Table WHERE name = ? AND lang = ?
      |), pt AS (
      |  INSERT INTO project_tags(project_id, tag_id)
      |  SELECT ?, id FROM t
      |)
-     |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name) FROM t
+     |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name
+     |FROM t
    """.stripMargin
 
   private val TagOrganization = s"""
      |WITH t AS (
-     |  SELECT * FROM tags WHERE name = ? AND lang = ?
+     |  SELECT * FROM $Table WHERE name = ? AND lang = ?
      |), ot AS (
      |  INSERT INTO organization_tags(organization_id, tag_id)
      |  SELECT ?, id FROM t
      |)
-     |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name) FROM t
+     |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name
+     |FROM t
    """.stripMargin
 
   private val TagUser = s"""
     |WITH t AS (
-    |  SELECT * FROM tags WHERE name = ? AND lang = ?
+    |  SELECT * FROM $Table WHERE name = ? AND lang = ?
     |), ut AS (
     |  INSERT INTO user_tags(user_id, tag_id)
     |  SELECT ?, id FROM t
     |)
-    |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name) FROM t
+    |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name
+    |FROM t
    """.stripMargin
 
   private val TagPlan = s"""
     |WITH t AS (
-    |  SELECT * FROM tags WHERE name = ? AND lang = ?
+    |  SELECT * FROM $Table WHERE name = ? AND lang = ?
     |), pt AS (
     |  INSERT INTO plan_tags(plan_id, tag_id)
     |  SELECT ?, id FROM t
     |)
-    |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = $Table.category_id) AS category_name) FROM t
+    |SELECT $Fields, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name
+    |FROM t
    """.stripMargin
 
   private val Update = s"""
@@ -306,10 +310,12 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
   """.stripMargin
 
   override def create(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] =
-    queryOne(Insert, Seq[Any](tag.id, tag.version, tag.isAdmin, tag.isHidden, tag.name, tag.lang, tag.frequency, tag.category, tag.lang, tag.category, tag.lang))
+    queryOne(Insert, Seq[Any](tag.id, tag.version, tag.isAdmin, tag.isHidden, tag.name, tag.lang, tag.frequency,
+      tag.category, tag.lang, tag.category, tag.lang))
 
   override def update(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] =
-    queryOne(Update, Seq[Any](tag.version + 1, tag.isAdmin, tag.isHidden, tag.name, tag.lang, tag.name, tag.lang, tag.frequency, tag.id, tag.version))
+    queryOne(Update, Seq[Any](tag.version + 1, tag.isAdmin, tag.isHidden, tag.name, tag.lang, tag.name, tag.lang,
+      tag.frequency, tag.id, tag.version))
   override def delete(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] =
     queryOne(Delete, Seq[Any](tag.id, tag.version))
 
@@ -317,10 +323,10 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
    * List popular tags. We find all popular master project, get their tags and list them.
    *
    * @param lang tags in desired language
-   * @param limit Optional 0 for all, default 0
-   * @param skippedCategories Optional Tags from this categories should be skiped
+   * @param limit Int - optional - default 0 meaning all should be shown
+   * @param skippedCategories IndexedSeq[Tag] (can be left empty) tags from these categories should be skipped
    * @param conn implicit database Connection
-   * @return
+   * @return Future containing an error, or the IndexedSeq of found Tags
    */
   override def listPopular(lang: String, limit: Int = 0, skippedCategories: IndexedSeq[String] = IndexedSeq.empty[String])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] =
     cacheRepository.cacheSeqTag.getCached(cachePopularTagsKey(lang)).flatMap {

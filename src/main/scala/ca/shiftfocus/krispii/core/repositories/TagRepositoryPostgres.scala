@@ -301,7 +301,7 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
 
   private val Update = s"""
     |UPDATE $Table
-    |SET version = ?, is_admin = ?, is_hidden = ?, name = ?, lang = ?,
+    |SET version = ?, is_admin = ?, is_hidden = ?, is_private = ?, name = ?, lang = ?,
     | category_id = (SELECT id FROM tag_categories WHERE name = ? AND lang = ?),
     | frequency = ?
     |WHERE id = ?
@@ -310,11 +310,11 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
   """.stripMargin
 
   override def create(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] =
-    queryOne(Insert, Seq[Any](tag.id, tag.version, tag.isAdmin, tag.isHidden, tag.name, tag.lang, tag.frequency,
+    queryOne(Insert, Seq[Any](tag.id, tag.version, tag.isAdmin, tag.isHidden, tag.isPrivate, tag.name, tag.lang, tag.frequency,
       tag.category, tag.lang, tag.category, tag.lang))
 
   override def update(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] =
-    queryOne(Update, Seq[Any](tag.version + 1, tag.isAdmin, tag.isHidden, tag.name, tag.lang, tag.name, tag.lang,
+    queryOne(Update, Seq[Any](tag.version + 1, tag.isAdmin, tag.isHidden, tag.isPrivate, tag.name, tag.lang, tag.name, tag.lang,
       tag.frequency, tag.id, tag.version))
   override def delete(tag: Tag)(implicit conn: Connection): Future[\/[RepositoryError.Fail, Tag]] =
     queryOne(Delete, Seq[Any](tag.id, tag.version))

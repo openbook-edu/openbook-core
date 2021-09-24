@@ -130,7 +130,6 @@ class AuthServiceDefault(
     transactional { implicit conn =>
       for {
         user <- lift(userRepository.find(identifier.trim))
-        _ <- predicate(user.accountType == "krispii")(ServiceError.ExternalService("core.AuthService.authenticate.user.accountType.wrong"))
         roles <- lift(roleRepository.list(user))
         userHash = user.hash.getOrElse("")
         authUser <- lift(Future.successful {

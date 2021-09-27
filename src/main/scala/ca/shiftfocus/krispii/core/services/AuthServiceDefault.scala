@@ -247,12 +247,13 @@ class AuthServiceDefault(
    * @param id the unique id for the user
    * @return a future disjunction containing the user and their information, or a failure
    */
-  override def find(id: UUID, includeDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, User]] = {
+  override def find(id: UUID): Future[\/[ErrorUnion#Fail, User]] =
+    find(id, includeDeleted = false)
+  override def find(id: UUID, includeDeleted: Boolean): Future[\/[ErrorUnion#Fail, User]] =
     for {
       user <- lift(userRepository.find(id, includeDeleted))
       roles <- lift(roleRepository.list(user))
     } yield user.copy(roles = roles)
-  }
 
   /**
    * Find a user by their unique identifier.
@@ -260,12 +261,11 @@ class AuthServiceDefault(
    * @param identifier The unique e-mail or username identifying this user.
    * @return a future disjunction containing the user and their information, or a failure
    */
-  override def find(identifier: String): Future[\/[ErrorUnion#Fail, User]] = {
+  override def find(identifier: String): Future[\/[ErrorUnion#Fail, User]] =
     for {
       user <- lift(userRepository.find(identifier))
       roles <- lift(roleRepository.list(user))
     } yield user.copy(roles = roles)
-  }
 
   /**
    * Create a new user. Throws exceptions if the e-mail and username aren't unique.
@@ -285,7 +285,7 @@ class AuthServiceDefault(
     givenname: String,
     surname: String,
     id: UUID = UUID.randomUUID
-  ): Future[\/[ErrorUnion#Fail, User]] = {
+  ): Future[\/[ErrorUnion#Fail, User]] =
     for {
       result <- lift {
         transactional { implicit conn =>
@@ -319,7 +319,6 @@ class AuthServiceDefault(
       // Put it outside transactional, as we need user to be in a database before we tag him.
       _ <- lift(tagOrganizationUser(result))
     } yield result
-  }
 
   /**
    * If deleted user exists then move his account, subscriptions and logs to a new user with the same email
@@ -328,7 +327,7 @@ class AuthServiceDefault(
    * @param newUser User
    * @return in the Future, a krispii Account or an error
    */
-  def syncWithDeletedUser(newUser: User): Future[\/[ErrorUnion#Fail, Account]] = {
+  def syncWithDeletedUser(newUser: User): Future[\/[ErrorUnion#Fail, Account]] =
     for {
       // Check if user was deleted and has an account (stripe or group)
       account <- lift(userRepository.findDeleted(newUser.email).flatMap {
@@ -357,7 +356,6 @@ class AuthServiceDefault(
         case -\/(error) => Future successful -\/(error)
       })
     } yield account
-  }
 
   /**
    * Creates a new user with the given role.
@@ -379,8 +377,8 @@ class AuthServiceDefault(
     surname: String,
     role: String,
     hostname: Option[String]
-  )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]] = {
-    val futureUser = for {
+  )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]] =
+    for {
       user <- lift(this.create(username, email, password, givenname, surname))
       _ = Logger.info(s"User ${user.email} created, will now add role ${role}")
       _ <- lift(addRole(user.id, role))
@@ -394,15 +392,13 @@ class AuthServiceDefault(
       messageId <- lift(sendAsyncEmail(emailForNew))
       _ = Logger.info(s"Sent activation email to ${user.email}, message ID is ${messageId}")
     } yield user
-    futureUser.run
-  }
 
   override def createOpenIdUser(
     email: String,
     givenname: String,
     surname: String,
     accountType: String
-  ): Future[\/[ErrorUnion#Fail, User]] = {
+  ): Future[\/[ErrorUnion#Fail, User]] =
     for {
       result <- lift {
         transactional { implicit conn =>
@@ -425,12 +421,8 @@ class AuthServiceDefault(
       // Put it outside transactional, as we need user to be in a database before we tag him.
       _ <- lift(tagOrganizationUser(result))
     } yield result
-  }
 
-  override def updateUserAccountType(
-    email: String,
-    newAccountType: String
-  ): Future[\/[ErrorUnion#Fail, User]] = {
+  override def updateUserAccountType(email: String, newAccountType: String): Future[\/[ErrorUnion#Fail, User]] =
     transactional { implicit conn =>
       val fUser = for {
         user <- lift(userRepository.find(email))
@@ -438,7 +430,6 @@ class AuthServiceDefault(
       } yield updatedUser
       fUser.run
     }
-  }
 
   override def reactivate(email: String, hostname: Option[String])(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, UserToken]] = {
     transactional { implicit conn =>
@@ -475,7 +466,7 @@ class AuthServiceDefault(
     alias: Option[String],
     password: Option[String],
     isDeleted: Option[Boolean]
-  ): Future[\/[ErrorUnion#Fail, User]] = {
+  ): Future[\/[ErrorUnion#Fail, User]] =
     transactional { implicit conn =>
       val includeDeletedUsers = true
       val updated = for {
@@ -509,7 +500,6 @@ class AuthServiceDefault(
       } yield updatedUser.copy(roles = roles)
       updated.run
     }
-  }
 
   /**
    * Update a user's identifiers.
@@ -520,7 +510,7 @@ class AuthServiceDefault(
    * @param username optionally update the username
    * @return a future disjunction containing the updated user, or a failure
    */
-  override def updateIdentifier(id: UUID, version: Long, email: Option[String] = None, username: Option[String] = None): Future[\/[ErrorUnion#Fail, User]] = {
+  override def updateIdentifier(id: UUID, version: Long, email: Option[String] = None, username: Option[String] = None): Future[\/[ErrorUnion#Fail, User]] =
     transactional { implicit conn =>
       val updated = for {
         existingUser <- lift(userRepository.find(id))
@@ -535,7 +525,6 @@ class AuthServiceDefault(
       } yield updatedUser
       updated.run
     }
-  }
 
   /**
    * Update a user's "non-identifying" information.
@@ -546,7 +535,7 @@ class AuthServiceDefault(
    * @param surname   the user's updated family name
    * @return a future disjunction containing the updated user, or a failure
    */
-  override def updateInfo(id: UUID, version: Long, givenname: Option[String] = None, surname: Option[String] = None, alias: Option[String] = None): Future[\/[ErrorUnion#Fail, User]] = {
+  override def updateInfo(id: UUID, version: Long, givenname: Option[String] = None, surname: Option[String] = None, alias: Option[String] = None): Future[\/[ErrorUnion#Fail, User]] =
     transactional { implicit conn =>
       val updated = for {
         existingUser <- lift(userRepository.find(id))
@@ -560,7 +549,6 @@ class AuthServiceDefault(
       } yield updatedUser
       updated.run
     }
-  }
 
   /**
    * Update the user's password.
@@ -570,7 +558,7 @@ class AuthServiceDefault(
    * @param password the new password
    * @return a future disjunction containing the updated user, or a failure
    */
-  override def updatePassword(id: UUID, version: Long, password: String): Future[\/[ErrorUnion#Fail, User]] = {
+  override def updatePassword(id: UUID, version: Long, password: String): Future[\/[ErrorUnion#Fail, User]] =
     transactional { implicit conn =>
       val wc = Passwords.scrypt()
       val updated = for {
@@ -583,7 +571,6 @@ class AuthServiceDefault(
       } yield updatedUser
       updated.run
     }
-  }
 
   /**
    * Deletes a user.
@@ -610,9 +597,8 @@ class AuthServiceDefault(
    *
    * @return an array of Roles
    */
-  override def listRoles: Future[\/[ErrorUnion#Fail, IndexedSeq[Role]]] = {
+  override def listRoles: Future[\/[ErrorUnion#Fail, IndexedSeq[Role]]] =
     roleRepository.list
-  }
 
   /**
    * List all roles for one user.
@@ -620,14 +606,11 @@ class AuthServiceDefault(
    * @param userId The user whose roles should be listed.
    * @return an array of this user's Roles
    */
-  override def listRoles(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Role]]] = {
-    val result = for {
+  override def listRoles(userId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Role]]] =
+    for {
       user <- lift(userRepository.find(userId))
       roles <- lift(roleRepository.list(user))
     } yield roles
-
-    result.run
-  }
 
   /**
    * Find a specific role by its unique id.
@@ -635,9 +618,8 @@ class AuthServiceDefault(
    * @param id the UUID of the Role to find
    * @return an optional Role
    */
-  override def findRole(id: UUID): Future[\/[ErrorUnion#Fail, Role]] = {
+  override def findRole(id: UUID): Future[\/[ErrorUnion#Fail, Role]] =
     roleRepository.find(id)
-  }
 
   /**
    * Find a specific role by name
@@ -645,9 +627,8 @@ class AuthServiceDefault(
    * @param name the name of the Role to find
    * @return an optional Role
    */
-  override def findRole(name: String): Future[\/[ErrorUnion#Fail, Role]] = {
+  override def findRole(name: String): Future[\/[ErrorUnion#Fail, Role]] =
     roleRepository.find(name)
-  }
 
   /**
    * Create a new role.
@@ -655,12 +636,11 @@ class AuthServiceDefault(
    * @param name the name of the Role to create
    * @return the newly created Role
    */
-  override def createRole(name: String, id: UUID = UUID.randomUUID): Future[\/[ErrorUnion#Fail, Role]] = {
+  override def createRole(name: String, id: UUID = UUID.randomUUID): Future[\/[ErrorUnion#Fail, Role]] =
     transactional { implicit conn =>
       val newRole = Role(name = name, id = id)
       roleRepository.insert(newRole)
     }
-  }
 
   /**
    * Update a Role
@@ -670,7 +650,7 @@ class AuthServiceDefault(
    * @param name    the new name to assign this Role
    * @return the newly updated Role
    */
-  override def updateRole(id: UUID, version: Long, name: String): Future[\/[ErrorUnion#Fail, Role]] = {
+  override def updateRole(id: UUID, version: Long, name: String): Future[\/[ErrorUnion#Fail, Role]] =
     transactional { implicit conn =>
       val result = for {
         existingRole <- lift(roleRepository.find(id))
@@ -679,7 +659,6 @@ class AuthServiceDefault(
       } yield updatedRole
       result.run
     }
-  }
 
   /**
    * Delete a role.
@@ -688,7 +667,7 @@ class AuthServiceDefault(
    * @param version the version of the role for optimistic offline lock
    * @return the deleted role
    */
-  override def deleteRole(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Role]] = {
+  override def deleteRole(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Role]] =
     transactional { implicit conn =>
       for {
         role <- lift(roleRepository.find(id))
@@ -697,7 +676,6 @@ class AuthServiceDefault(
         deletedRole <- lift(roleRepository.delete(role))
       } yield deletedRole
     }
-  }
 
   /**
    * Add a role to a user.
@@ -706,7 +684,7 @@ class AuthServiceDefault(
    * @param roleName the name of the role
    * @return a boolean indicator if the role was added
    */
-  override def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Role]] = {
+  override def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Role]] =
     transactional { implicit conn =>
       for {
         user <- lift(userRepository.find(userId))
@@ -714,7 +692,6 @@ class AuthServiceDefault(
         _ <- lift(roleRepository.addToUser(user, role))
       } yield role
     }
-  }
 
   /**
    * Add a role to a user.
@@ -723,14 +700,13 @@ class AuthServiceDefault(
    * @param roleNames the name of the role
    * @return a boolean indicator if the role was added
    */
-  override def addRoles(userId: UUID, roleNames: IndexedSeq[String]): Future[\/[ErrorUnion#Fail, User]] = {
+  override def addRoles(userId: UUID, roleNames: IndexedSeq[String]): Future[\/[ErrorUnion#Fail, User]] =
     transactional { implicit conn =>
       for {
         user <- lift(userRepository.find(userId))
         _ <- lift(serializedT(roleNames)(roleRepository.addToUser(user, _)))
       } yield user
     }
-  }
 
   /**
    * Remove a role from a user.
@@ -739,7 +715,7 @@ class AuthServiceDefault(
    * @param roleName the name of the role
    * @return a boolean indicator if the role was removed
    */
-  override def removeRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Role]] = {
+  override def removeRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Role]] =
     transactional { implicit conn =>
       val fUser = userRepository.find(userId)
       val fRole = roleRepository.find(roleName)
@@ -749,7 +725,6 @@ class AuthServiceDefault(
         roleRemoved <- lift(roleRepository.removeFromUser(user, role))
       } yield role
     }
-  }
 
   /**
    * Add a role to a given list of users.
@@ -758,7 +733,7 @@ class AuthServiceDefault(
    * @param userIds an IndexedSeq of UUID listing the users to gain the role
    * @return a boolean indicator if the role was added
    */
-  override def addUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]] = {
+  override def addUsers(roleId: UUID, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, Unit]] =
     transactional { implicit conn =>
       val fRole = roleRepository.find(roleId)
       val fUsers = userRepository.list(userIds)
@@ -769,7 +744,6 @@ class AuthServiceDefault(
         addedUsers <- lift(roleRepository.addUsers(role, userList))
       } yield addedUsers
     }
-  }
 
   /**
    * Remove a role from a given list of users.

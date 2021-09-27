@@ -77,7 +77,8 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    *
    * @param id the unique id of the user
    */
-  def find(id: UUID, includeDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, User]]
+  def find(id: UUID): Future[\/[ErrorUnion#Fail, User]]
+  def find(id: UUID, includeDeleted: Boolean): Future[\/[ErrorUnion#Fail, User]]
 
   /**
    * Find a user by their unique identifier.

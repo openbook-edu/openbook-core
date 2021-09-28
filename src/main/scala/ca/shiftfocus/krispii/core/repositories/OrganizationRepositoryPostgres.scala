@@ -226,7 +226,7 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
           case exception: GenericDatabaseException =>
             val fields = exception.errorMessage.fields
             (fields.get('t'), fields.get('n')) match {
-              case (Some(table), Some(nField)) if nField endsWith "_pkey" =>
+              case (Some(_), Some(nField)) if nField endsWith "_pkey" =>
                 \/.left(RepositoryError.PrimaryKeyConflict)
 
               case (Some(table), Some(nField)) if nField endsWith "_key" =>
@@ -235,7 +235,7 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
               case (Some(table), Some(nField)) if nField endsWith "_fkey" =>
                 \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length - 5).mkString), nField))
 
-              case _ => \/.left(RepositoryError.DatabaseError("Unhandled GenericDataabaseException", Some(exception)))
+              case _ => \/.left(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
             }
           case exception: Throwable => -\/(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
         }

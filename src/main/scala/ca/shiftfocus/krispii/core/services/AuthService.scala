@@ -108,16 +108,6 @@ trait AuthService extends Service[ErrorUnion#Fail] {
 
   def syncWithDeletedUser(newUser: User): Future[\/[ErrorUnion#Fail, Account]]
 
-  /**
-   * Creates a new user with the given role.
-   * @param username
-   * @param email
-   * @param password
-   * @param givenname
-   * @param surname
-   * @param role
-   * @return
-   */
   def createWithRole(
     username: String,
     email: String,
@@ -125,7 +115,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     givenname: String,
     surname: String,
     role: String,
-    hostname: Option[String]
+    hostname: String
   )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]]
 
   def createOpenIdUser(

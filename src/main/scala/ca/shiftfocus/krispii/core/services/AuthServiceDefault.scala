@@ -26,6 +26,7 @@ class AuthServiceDefault(
     val mailerClient: MailerClient,
     val accountRepository: AccountRepository,
     val emailChangeRepository: EmailChangeRepository,
+    val organizationRepository: OrganizationRepository,
     val paymentLogRepository: PaymentLogRepository,
     val roleRepository: RoleRepository,
     val sessionRepository: SessionRepository,
@@ -33,8 +34,6 @@ class AuthServiceDefault(
     val userRepository: UserRepository,
     val userTokenRepository: UserTokenRepository,
     val wordRepository: WordRepository,
-    // Bad idea to include services, but duplicating the code may be even worse
-    val organizationService: OrganizationService,
     val tagService: TagService
 ) extends AuthService {
 
@@ -71,11 +70,11 @@ class AuthServiceDefault(
    */
   override def listColleagues(user: User): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] =
     for {
-      asAdmin <- lift(organizationService.listByAdmin(user.email))
-      asMember <- lift(organizationService.listByMember(user.email))
+      asAdmin <- lift(organizationRepository.listByAdmin(user.email))
+      asMember <- lift(organizationRepository.listByMember(user.email))
       organizations = asAdmin ++ asMember
       _ = Logger.debug(s"${user.email} is admin or member in the organizations: ${organizations.map(_.title)}")
-      users <- lift(organizationService.listMembers(organizations))
+      users <- lift(userRepository.listOrganizationMembers(organizations))
     } yield users
 
   override def listByRange(offset: Int, limit: Int): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
@@ -285,39 +284,29 @@ class AuthServiceDefault(
     surname: String,
     id: UUID = UUID.randomUUID
   ): Future[\/[ErrorUnion#Fail, User]] = {
-    for {
-      result <- lift {
-        transactional { implicit conn =>
-          val webcrank = Passwords.scrypt()
-          val token = Token.getNext
-          for {
-            validEmail <- lift(validateEmail(email.trim.toLowerCase))
-            validUsername <- lift(validateUsername(username.trim))
-            _ <- predicate(InputUtils.isValidPassword(password.trim))(ServiceError.BadInput("core.AuthServiceDefault.password.short"))
-            passwordHash = Some(webcrank.crypt(password.trim))
-            newUser <- lift {
-              val newUser = User(
-                id = id,
-                username = username.trim,
-                email = validEmail,
-                hash = passwordHash,
-                givenname = givenname.trim,
-                surname = surname.trim,
-                accountType = "krispii"
-              )
-              userRepository.insert(newUser)
-            }
-            _ = Logger.info(s"New user ${newUser.email} tentatively created, will now create token")
-            user = newUser.copy(token = Some(UserToken(id, token, activation)))
-            _ <- lift(userTokenRepository.insert(newUser.id, token, activation))
-            _ = Logger.info(s"Activation token for ${user.email} created")
-          } yield user
-        }
-      }
-      _ = Logger.info(s"Provisionally created user ${result.email} with token, will now look up pre-existing organization tags")
-      // Put it outside transactional, as we need user to be in a database before we tag him.
-      _ <- lift(tagOrganizationUser(result))
-    } yield result
+    val webcrank = Passwords.scrypt()
+    val passwordHash = Some(webcrank.crypt(password.trim))
+    transactional { implicit conn =>
+      for {
+        validEmail <- lift(validateEmail(email.trim.toLowerCase))
+        _ <- lift(validateUsername(username.trim))
+        _ <- predicate(InputUtils.isValidPassword(password.trim))(ServiceError.BadInput(
+          "core.AuthServiceDefault.password.short"
+        ))
+        newUser = User(
+          id = id,
+          username = username.trim,
+          email = validEmail,
+          hash = passwordHash,
+          givenname = givenname.trim,
+          surname = surname.trim,
+          accountType = "krispii"
+        )
+        newUser <- lift(userRepository.insert(newUser))
+        orgs <- lift(organizationRepository.listByMember(validEmail))
+        finalUser <- lift(if (orgs.nonEmpty) giveOrgTags(newUser, orgs) else createToken(newUser))
+      } yield finalUser
+    }
   }
 
   /**
@@ -362,12 +351,12 @@ class AuthServiceDefault(
    * Creates a new user with the given role.
    * This method sends an email for account activation.
    *
-   * @param username
-   * @param email
-   * @param password
-   * @param givenname
-   * @param surname
-   * @param role
+   * @param username Strign
+   * @param email String
+   * @param password String
+   * @param givenname String
+   * @param surname String
+   * @param role String
    * @return
    */
   override def createWithRole(
@@ -377,24 +366,22 @@ class AuthServiceDefault(
     givenname: String,
     surname: String,
     role: String,
-    hostname: Option[String]
-  )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]] = {
-    val futureUser = for {
+    hostname: String
+  )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]] =
+    for {
       user <- lift(this.create(username, email, password, givenname, surname))
-      _ = Logger.info(s"User ${user.email} created, will now add role ${role}")
+      _ = Logger.info(s"User ${user.email} created, will now add role $role")
       _ <- lift(addRole(user.id, role))
-      _ = Logger.info(s"Added role ${role} to ${user.email}")
+      _ = Logger.info(s"Added role $role to ${user.email}")
       emailForNew = Email(
         messagesApi("activate.confirm.subject.new")(lang), //subject
         messagesApi("activate.confirm.from")(lang), //from
         Seq(givenname + " " + surname + " <" + email + ">"), //to
-        bodyHtml = Some(messagesApi("activate.confirm.message", hostname.get, user.id.toString, user.token.get.token)(lang)) //text
+        bodyHtml = Some(messagesApi("activate.confirm.message", hostname, user.id.toString, user.token.get.token)(lang)) //text
       )
       messageId <- lift(sendAsyncEmail(emailForNew))
-      _ = Logger.info(s"Sent activation email to ${user.email}, message ID is ${messageId}")
+      _ = Logger.info(s"Sent activation email to ${user.email}, message ID is $messageId")
     } yield user
-    futureUser.run
-  }
 
   override def createOpenIdUser(
     email: String,
@@ -402,28 +389,21 @@ class AuthServiceDefault(
     surname: String,
     accountType: String
   ): Future[\/[ErrorUnion#Fail, User]] = {
+    val webcrank = Passwords.scrypt()
+    val newUser = User(
+      id = UUID.randomUUID(),
+      username = email.trim,
+      email = email.trim.toLowerCase,
+      hash = Some(webcrank.crypt(UUID.randomUUID().toString)),
+      givenname = givenname,
+      surname = surname,
+      accountType = accountType
+    )
     for {
-      result <- lift {
-        transactional { implicit conn =>
-          val webcrank = Passwords.scrypt()
-          val newUser = User(
-            id = UUID.randomUUID(),
-            username = email.trim,
-            email = email.trim.toLowerCase,
-            hash = Some(webcrank.crypt(UUID.randomUUID().toString)),
-            givenname = givenname,
-            surname = surname,
-            accountType = accountType
-          )
-
-          for {
-            user <- lift(userRepository.insert(newUser))
-          } yield user
-        }
-      }
-      // Put it outside transactional, as we need user to be in a database before we tag him.
-      _ <- lift(tagOrganizationUser(result))
-    } yield result
+      newUser <- lift(userRepository.insert(newUser))
+      orgs <- lift(organizationRepository.listByMember(email))
+      finalUser <- lift(if (orgs.nonEmpty) giveOrgTags(newUser, orgs) else Future successful \/-(newUser))
+    } yield finalUser
   }
 
   override def updateUserAccountType(
@@ -849,24 +829,19 @@ class AuthServiceDefault(
    */
   override def activate(userId: UUID, activationCode: String): Future[\/[ErrorUnion#Fail, User]] = {
     transactional { implicit conn =>
-      val fUser = userRepository.find(userId)
       val result = for {
-        user <- lift(fUser)
+        user <- lift(userRepository.find(userId))
         roles <- lift(roleRepository.list(user))
         token <- lift(userTokenRepository.find(user.id, activation))
         _ <- predicate(activationCode == token.token)(ServiceError.BadInput("Wrong activation code!"))
-        _ <- lift {
-          // If there is no "authenticated" role than add it
-          if (!roles.exists(_.name == "authenticated")) {
-            roleRepository.addToUser(user, "authenticated")
-          }
-          else {
-            Future successful \/-((): Unit)
-          }
-        }
+        _ <- lift(
+          if (!roles.exists(_.name == "authenticated")) roleRepository.addToUser(user, "authenticated")
+          else Future successful \/-(())
+        )
         deleted <- lift(userTokenRepository.delete(userId, activation))
-        _ <- lift(tagOrganizationUser(user))
-      } yield (user, token, roles, deleted)
+        orgs <- lift(organizationRepository.listByMember(user.email))
+        finalUser <- lift(if (orgs.nonEmpty) giveOrgTags(user, orgs) else Future successful \/-(user))
+      } yield (finalUser, token, roles, deleted)
 
       result.run.map {
         case \/-((user, token, roles, deleted)) => \/-(user)
@@ -1084,42 +1059,40 @@ class AuthServiceDefault(
     }
   }
 
-  override def confirmEmailChange(email: String, token: String)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]] = {
-    for {
-      result <- lift {
-        transactional { implicit conn =>
-          for {
-            changeRequest <- lift(emailChangeRepository.find(email))
-            _ <- predicate(changeRequest.token == token)(ServiceError.BadInput("core.services.AuthServiceDefault.confirmEmailChange.wrong.token"))
-            user <- lift(userRepository.find(changeRequest.userId))
-            updatedUser <- lift(userRepository.update(user.copy(email = email)))
-            deletedRequest <- lift(emailChangeRepository.delete(changeRequest))
+  override def confirmEmailChange(email: String, token: String)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]] =
+    transactional { implicit conn =>
+      for {
+        changeRequest <- lift(emailChangeRepository.find(email))
+        _ <- predicate(changeRequest.token == token)(ServiceError.BadInput(
+          "core.services.AuthServiceDefault.confirmEmailChange.wrong.token"
+        ))
 
-            emailForOld = Email(
-              messagesApi("emailchange.confirm.subject.old")(lang), //subject
-              messagesApi("emailchange.confirm.from")(lang), //from
-              Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
-              bodyHtml = Some(messagesApi("emailchange.confirm.message.old", user.givenname, user.surname)(lang)) //text
-            )
+        oldUser <- lift(userRepository.find(changeRequest.userId))
+        updatedUser <- lift(userRepository.update(oldUser.copy(email = email)))
+        _ <- lift(emailChangeRepository.delete(changeRequest))
 
-            emailForNew = Email(
-              messagesApi("emailchange.confirm.subject.new")(lang), //subject
-              messagesApi("emailchange.confirm.from")(lang), //from
-              Seq(user.givenname + " " + user.surname + " <" + email + ">"), //to
-              bodyHtml = Some(messagesApi("emailchange.confirm.message.new", user.givenname, user.surname)(lang)) //text
-            )
+        orgs <- lift(organizationRepository.listByMember(email))
+        _ <- lift(giveOrgTags(updatedUser, orgs))
 
-            oldEmailResult <- lift(sendAsyncEmail(emailForOld))
-            newEmailResult <- lift(sendAsyncEmail(emailForNew))
+        emailForOld = Email(
+          messagesApi("emailchange.confirm.subject.old")(lang), //subject
+          messagesApi("emailchange.confirm.from")(lang), //from
+          Seq(oldUser.givenname + " " + oldUser.surname + " <" + oldUser.email + ">"), //to
+          bodyHtml = Some(messagesApi("emailchange.confirm.message.old", oldUser.givenname, oldUser.surname)(lang)) //text
+        )
 
-          } yield updatedUser
-        }
-      }
-      // Tag user if he is a part of organization, untag if not
-      _ <- lift(tagOrganizationUser(result))
-    } yield result
+        emailForNew = Email(
+          messagesApi("emailchange.confirm.subject.new")(lang), //subject
+          messagesApi("emailchange.confirm.from")(lang), //from
+          Seq(updatedUser.givenname + " " + updatedUser.surname + " <" + email + ">"), //to
+          bodyHtml = Some(messagesApi("emailchange.confirm.message.new", updatedUser.givenname, updatedUser.surname)(lang)) //text
+        )
 
-  }
+        _ <- lift(sendAsyncEmail(emailForOld))
+        _ <- lift(sendAsyncEmail(emailForNew))
+
+      } yield updatedUser
+    }
 
   override def cancelEmailChange(userId: UUID)(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, EmailChangeRequest]] = {
     for {
@@ -1127,7 +1100,7 @@ class AuthServiceDefault(
       changeRequest <- lift(emailChangeRepository.find(user.id))
       deleted <- lift(emailChangeRepository.delete(changeRequest))
 
-      emailForOld = Email(
+      /*emailForOld = Email(
         messagesApi("emailchange.cancel.subject.old")(lang), //subject
         messagesApi("emailchange.cancel.from")(lang), //from
         Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
@@ -1141,43 +1114,60 @@ class AuthServiceDefault(
         bodyHtml = Some(messagesApi("emailchange.cancel.message.new", user.givenname, user.surname)(lang)) //text
       )
 
-      //      oldEmailResult <- lift(sendAsyncEmail(emailForOld))
-      //      newEmailResult <- lift(sendAsyncEmail(emailForNew))
+      _ <- lift(sendAsyncEmail(emailForOld))
+      _ <- lift(sendAsyncEmail(emailForNew))*/
     } yield deleted
   }
 
   /**
-   * If user is in the list of organization members, then we tag him with a tags that organization has
-   *
-   * @param user
-   * @return
+   * Create activation token for a new user
+   * @param newUser User
+   * @return Future containing the new user including the token, or an error
    */
-  private def tagOrganizationUser(user: User): Future[\/[ErrorUnion#Fail, Unit]] = {
-    for {
-      userOrgTags <- lift(tagService.listOrganizationalByEntity(user.id, TaggableEntities.user))
-      userOrganizations <- lift(organizationService.listByMember(user.email))
-      orgTags <- lift(serializedT(userOrganizations) { organization =>
-        tagService.listByEntity(organization.id, TaggableEntities.organization)
-      }.map {
-        case \/-(orgTags) => \/-(orgTags.flatten)
-        case -\/(error) => -\/(error)
-      })
-      _ <- lift {
-        serializedT(userOrgTags ++ orgTags) { tag =>
-          // If user is not in organization anymore
-          if (userOrgTags.contains(tag) && !orgTags.contains(tag)) {
-            tagService.untag(user.id, TaggableEntities.user, tag.name, tag.lang, false)
-          }
-          // If user should be added to an organization
-          else if (orgTags.contains(tag) && !userOrgTags.contains(tag)) {
-            tagService.tag(user.id, TaggableEntities.user, tag.name, tag.lang)
-          }
-          // If user has already this tag
-          else {
-            Future successful \/-((): Unit)
-          }
-        }
-      }
-    } yield ()
+  private def createToken(newUser: User): Future[ErrorUnion#Fail \/ User] = {
+    Logger.info(s"New user ${newUser.email} tentatively created, will now create token")
+    val token = Token.getNext
+    userTokenRepository.insert(newUser.id, token, activation).map {
+      case \/-(userToken) =>
+        Logger.info(s"Activation token for ${newUser.email} created")
+        \/-(newUser.copy(token = Some(userToken)))
+      case -\/(error) => -\/(error)
+    }
   }
+
+  /**
+   * Update a user's admin tags according to the given organizations.
+   * @param user User
+   * @param orgs IndexedSeq[Organization]
+   * @return Future containing an error, or the same User as before (Users are not currently enriched with Tags)
+   */
+  private def giveOrgTags(user: User, orgs: IndexedSeq[Organization]): Future[ErrorUnion#Fail \/ User] =
+    for {
+      orgTagList <- lift(serializedT(orgs)(org =>
+        tagService.listAdminByEntity(org.id, TaggableEntities.organization)))
+      planTags <- lift(accountRepository.getByUserId(user.id).flatMap {
+        case \/-(a) if a.activeUntil.isDefined && a.activeUntil.get.isBeforeNow && a.subscriptions.nonEmpty =>
+          tagService.listAdminByEntity(a.subscriptions.head.planId, TaggableEntities.plan)
+        case \/-(_) | -\/(_: RepositoryError.NoResults) => Future successful \/-(IndexedSeq[Tag]())
+        case -\/(error) => Future successful -\/(error)
+      })
+      goodTags = (orgTagList.flatten ++ planTags).distinct
+      _ = Logger.debug(s"giveOrgTags: ${user.email} has the right to admin tags ${goodTags.map(_.name)}")
+
+      oldTags <- lift(tagService.listAdminByEntity(user.id, TaggableEntities.user))
+      _ = Logger.debug(s"giveOrgTags: ${user.email} had admin tags ${oldTags.map(_.name)}")
+
+      tagsToGive = goodTags.diff(oldTags)
+      _ = Logger.debug(s"giveOrgTags: ${user.email} will receive admin tags ${tagsToGive.map(_.name)}")
+
+      _ <- lift(serializedT(tagsToGive)(tag =>
+        tagService.tag(user.id, TaggableEntities.user, tag.name, tag.lang)))
+
+      tagsToRemove = oldTags.filterNot(_.id.toString == "29479566-3a50-4d36-bc20-f45ff4d4b2d4") // trial tag
+        .diff(goodTags)
+      _ = Logger.debug(s"giveOrgTags: ${user.email} will lose admin tags ${tagsToRemove.map(_.name)}")
+      _ <- lift(serializedT(tagsToRemove)(tag =>
+        tagService.untag(user.id, TaggableEntities.user, tag.name, tag.lang, shouldUpdateFrequency = false)))
+    } yield user
+
 }

@@ -12,6 +12,7 @@ case class Tag(
     version: Long = 1L,
     isAdmin: Boolean = false,
     isHidden: Boolean = false,
+    isPrivate: Boolean = false,
     name: String,
     lang: String,
     category: Option[String],
@@ -42,6 +43,7 @@ object Tag {
     (__ \ "version").write[Long] and
     (__ \ "isAdmin").write[Boolean] and
     (__ \ "isHidden").write[Boolean] and
+    (__ \ "isPrivate").write[Boolean] and
     (__ \ "name").write[String] and
     (__ \ "lang").write[String] and
     (__ \ "category").writeNullable[String] and
@@ -53,6 +55,7 @@ object Tag {
     (__ \ "version").read[Long] and
     (__ \ "isAdmin").read[Boolean] and
     (__ \ "isHidden").read[Boolean] and
+    (__ \ "isPrivate").read[Boolean] and
     (__ \ "name").read[String] and
     (__ \ "lang").read[String] and
     (__ \ "category").readNullable[String] and

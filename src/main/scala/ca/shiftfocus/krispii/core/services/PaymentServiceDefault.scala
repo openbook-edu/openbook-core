@@ -31,8 +31,7 @@ class PaymentServiceDefault(
     val stripeEventRepository: StripeEventRepository,
     val stripeSubscriptionRepository: StripeSubscriptionRepository,
     val paymentLogRepository: PaymentLogRepository,
-    val tagRepository: TagRepository /*,
-    val stripePlanRepository: StripePlanRepository */
+    val tagRepository: TagRepository
 ) extends PaymentService {
 
   implicit def conn: Connection = db.pool
@@ -887,7 +886,7 @@ class PaymentServiceDefault(
               Logger.info(s"Trying to give trial tag to user with ID $userId")
               tagRepository.tag(userId.toString, TaggableEntities.user, trialTag.name, trialTag.lang).map {
                 case \/-(success) => \/-(success)
-                case -\/(RepositoryError.PrimaryKeyConflict) => \/-((): Unit)
+                case -\/(RepositoryError.PrimaryKeyConflict) | -\/(_: RepositoryError.UniqueKeyConflict) => \/-((): Unit)
                 case -\/(error) => -\/(error)
               }
             }

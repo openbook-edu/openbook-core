@@ -28,22 +28,22 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
     )
   }
 
-  val Fields = "id, version, title, created_at, updated_at"
-  val Table = "organizations"
-  val QMarks = Fields.split(", ").map({ field => "?" }).mkString(", ")
-  val FieldsWithQMarks = Fields.split(", ").map({ field => s"${field} = ?" }).mkString(", ")
+  private val Fields = "id, version, title, created_at, updated_at"
+  private val Table = "organizations"
+  private val QMarks = Fields.split(", ").map({ field => "?" }).mkString(", ")
+  private val FieldsWithQMarks = Fields.split(", ").map({ field => s"${field} = ?" }).mkString(", ")
 
-  val MembersField =
+  private val MembersField =
     """
        |string_agg(DISTINCT member_email, ',') AS members
      """.stripMargin
 
-  val AdminsField =
+  private val AdminsField =
     """
        |string_agg(DISTINCT admin_email, ',') AS admins
      """.stripMargin
 
-  val Join =
+  private val Join =
     s"""
        |LEFT JOIN organization_members AS om
        |  ON om.organization_id = $Table.id
@@ -51,7 +51,7 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
        |  ON oa.organization_id = $Table.id
      """.stripMargin
 
-  val SelectOne =
+  private val SelectOne =
     s"""
        |SELECT $Fields, $MembersField, $AdminsField
        |FROM $Table
@@ -60,7 +60,7 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
        |GROUP BY $Table.id
      """.stripMargin
 
-  val SelectAll =
+  private val SelectAll =
     s"""
        |SELECT $Fields, $MembersField, $AdminsField
        |FROM $Table
@@ -68,7 +68,7 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
        |GROUP BY $Table.id
      """.stripMargin
 
-  val SelectAllByAdminEmail =
+  private val SelectAllByAdminEmail =
     s"""
        |SELECT $Fields, $MembersField, $AdminsField
        |FROM $Table
@@ -77,7 +77,7 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
        |GROUP BY $Table.id
      """.stripMargin
 
-  val SelectAllByMemberEmail =
+  private val SelectAllByMemberEmail =
     s"""
        |SELECT $Fields, $MembersField, $AdminsField
        |FROM $Table
@@ -127,14 +127,14 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
     query(whereClause)
   }
 
-  val AddMember =
+  private val AddMember =
     """
        |INSERT INTO organization_members (organization_id, member_email)
        |VALUES (?, ?)
        |RETURNING *
      """.stripMargin
 
-  val DeleteMember =
+  private val DeleteMember =
     """
        |DELETE FROM organization_members
        |WHERE organization_id = ?
@@ -142,14 +142,14 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
        |RETURNING *
      """.stripMargin
 
-  val AddAdmin =
+  private val AddAdmin =
     """
        |INSERT INTO organization_admins (organization_id, admin_email)
        |VALUES (?, ?)
        |RETURNING *
      """.stripMargin
 
-  val DeleteAdmin =
+  private val DeleteAdmin =
     """
        |DELETE FROM organization_admins
        |WHERE organization_id = ?
@@ -157,14 +157,14 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
        |RETURNING *
      """.stripMargin
 
-  val Insert =
+  private val Insert =
     s"""
        |INSERT INTO $Table ($Fields)
        |VALUES ($QMarks)
        |RETURNING $Fields
      """.stripMargin
 
-  val Update =
+  private val Update =
     s"""
        |UPDATE $Table
        |SET $FieldsWithQMarks
@@ -173,7 +173,7 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
        |RETURNING $Fields
      """.stripMargin
 
-  val Delete =
+  private val Delete =
     s"""
        |DELETE FROM $Table
        |USING
@@ -226,7 +226,7 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
           case exception: GenericDatabaseException =>
             val fields = exception.errorMessage.fields
             (fields.get('t'), fields.get('n')) match {
-              case (Some(table), Some(nField)) if nField endsWith "_pkey" =>
+              case (Some(_), Some(nField)) if nField endsWith "_pkey" =>
                 \/.left(RepositoryError.PrimaryKeyConflict)
 
               case (Some(table), Some(nField)) if nField endsWith "_key" =>
@@ -235,7 +235,7 @@ class OrganizationRepositoryPostgres extends OrganizationRepository with Postgre
               case (Some(table), Some(nField)) if nField endsWith "_fkey" =>
                 \/.left(RepositoryError.ForeignKeyConflict(fields.getOrElse('c', nField.toCharArray.slice(table.length + 1, nField.length - 5).mkString), nField))
 
-              case _ => \/.left(RepositoryError.DatabaseError("Unhandled GenericDataabaseException", Some(exception)))
+              case _ => \/.left(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
             }
           case exception: Throwable => -\/(RepositoryError.DatabaseError("Unhandled GenericDatabaseException", Some(exception)))
         }

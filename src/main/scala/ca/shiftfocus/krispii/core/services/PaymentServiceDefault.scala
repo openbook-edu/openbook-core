@@ -842,7 +842,7 @@ class PaymentServiceDefault(
     // st.printStackTrace(new PrintWriter(sw))
     // Logger.debug(sw.toString)
     Logger.info(s"In tagUntagUserBasedOnStatus, old status for user $userId is $oldStatus, new status is $newStatus")
-    /* Logger.debug(s"In tagUntagUserBasedOnStatus, old status for user ${userId} is ${oldStatus}, new status is ${newStatus} when called in stack..." +
+    /* Logger.debug(s"In tagUntagUserBasedOnStatus, old status for user $userId is $oldStatus, new status is $newStatus when called in stack..." +
         Thread.currentThread.getStackTrace.filter(trElem => {
         (trElem.toString contains "krispii")
       }).mkString("\n...", "\n...", "")) */

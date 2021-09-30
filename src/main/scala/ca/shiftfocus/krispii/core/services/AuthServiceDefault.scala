@@ -44,8 +44,9 @@ class AuthServiceDefault(
   /**
    * token types
    */
-  val password_reset = "password_reset"
-  val activation = "activation"
+  private val password_reset = "password_reset"
+  private val activation = "activation"
+  private val defaultStudentEmailPrefix = "@student.krispii.com"
 
   /**
    * List all users (only for top administrators)
@@ -285,8 +286,6 @@ class AuthServiceDefault(
     surname: String,
     id: UUID = UUID.randomUUID
   ): Future[\/[ErrorUnion#Fail, User]] = {
-    val webcrank = Passwords.scrypt()
-    val passwordHash = Some(webcrank.crypt(password.trim))
     transactional { implicit conn =>
       for {
         validEmail <- lift(validateEmail(email.trim.toLowerCase))
@@ -294,6 +293,8 @@ class AuthServiceDefault(
         _ <- predicate(InputUtils.isValidPassword(password.trim))(ServiceError.BadInput(
           "core.AuthServiceDefault.password.short"
         ))
+        webcrank = Passwords.scrypt()
+        passwordHash = Some(webcrank.crypt(password.trim))
         newUser = User(
           id = id,
           username = username.trim,
@@ -304,8 +305,13 @@ class AuthServiceDefault(
           accountType = "krispii"
         )
         newUser <- lift(userRepository.insert(newUser))
+        _ = Logger.info(s"New user ${newUser.email} tentatively created, will now add token and/or tags")
         orgs <- lift(organizationRepository.listByMember(validEmail))
-        finalUser <- lift(if (orgs.nonEmpty) giveOrgTags(newUser, orgs) else createToken(newUser))
+        needToken = orgs.isEmpty && !validEmail.contains(defaultStudentEmailPrefix)
+        tokenString = Token.getNext
+        _ <- lift(if (needToken) userTokenRepository.insert(id, tokenString, activation) else Future successful \/-(()))
+        withToken = if (needToken) newUser.copy(token = Some(UserToken(id, tokenString, activation))) else newUser
+        finalUser <- lift(if (!needToken) giveOrgTags(withToken, orgs) else Future successful \/-(withToken))
       } yield finalUser
     }
   }
@@ -1096,22 +1102,6 @@ class AuthServiceDefault(
       _ <- lift(sendAsyncEmail(emailForOld))
       _ <- lift(sendAsyncEmail(emailForNew))*/
     } yield deleted
-  }
-
-  /**
-   * Create activation token for a new user
-   * @param newUser User
-   * @return Future containing the new user including the token, or an error
-   */
-  private def createToken(newUser: User): Future[ErrorUnion#Fail \/ User] = {
-    Logger.info(s"New user ${newUser.email} tentatively created, will now create token")
-    val token = Token.getNext
-    userTokenRepository.insert(newUser.id, token, activation).map {
-      case \/-(userToken) =>
-        Logger.info(s"Activation token for ${newUser.email} created")
-        \/-(newUser.copy(token = Some(userToken)))
-      case -\/(error) => -\/(error)
-    }
   }
 
   /**

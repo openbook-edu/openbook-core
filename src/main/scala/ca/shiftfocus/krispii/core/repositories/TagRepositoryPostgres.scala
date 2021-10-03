@@ -55,7 +55,7 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
   def ListByProject(tagType: String = ""): String = {
     val condition = tagType match {
       case "organizational" => Organizational
-      case "admin" => "WHERE t.is_admin = true"
+      case "admin" => "WHERE t.is_admin"
       case _ => ""
     }
     s"""
@@ -68,11 +68,12 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
 
   def ListByOrganization(tagType: String = ""): String = {
     val condition = tagType match {
-      case "admin" => "WHERE t.is_admin = true"
+      case "admin" => "WHERE t.is_admin"
       case _ => ""
     }
     s"""
-      SELECT t.id, t.version, t.is_admin, t.is_hidden, t.is_private, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency FROM $Table t
+      SELECT t.id, t.version, t.is_admin, t.is_hidden, t.is_private, t.name, t.lang, (SELECT name FROM tag_categories WHERE id = t.category_id) AS category_name, t.frequency
+      FROM $Table t
       JOIN organization_tags ot
       ON (ot.tag_id = t.id AND ot.organization_id = ?);
       $condition
@@ -82,7 +83,7 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
   def ListByUser(tagType: String = ""): String = {
     val condition = tagType match {
       case "organizational" => Organizational
-      case "admin" => "WHERE t.is_admin = true"
+      case "admin" => "WHERE t.is_admin"
       case _ => ""
     }
     s"""
@@ -96,7 +97,7 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
   def ListByPlan(tagType: String = ""): String = {
     val condition = tagType match {
       case "organizational" => Organizational
-      case "admin" => "WHERE t.is_admin = true"
+      case "admin" => "WHERE t.is_admin"
       case _ => ""
     }
     s"""
@@ -371,12 +372,13 @@ class TagRepositoryPostgres(val cacheRepository: CacheRepository) extends TagRep
       case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.listByEntity.wrong.entity.type"))
     }
 
+  // DON'T USE! BREAKS AT RUNTIME! UNTIL IT WORKS, SUBSTITUTE BY tags.filter(_.isAdmin)!
   override def listAdminByEntity(entityId: String, entityType: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[Tag]]] =
     entityType match {
-      case TaggableEntities.project => queryList(ListByProject("admin"), Seq[Any](entityId))
-      case TaggableEntities.organization => queryList(ListByOrganization("admin"), Seq[Any](entityId))
-      case TaggableEntities.user => queryList(ListByUser("admin"), Seq[Any](entityId))
-      case TaggableEntities.plan => queryList(ListByPlan("admin"), Seq[Any](entityId))
+      case TaggableEntities.project => queryList(ListByProject("admin"), Seq[Any](entityId), debug = true)
+      case TaggableEntities.organization => queryList(ListByOrganization("admin"), Seq[Any](entityId), debug = true)
+      case TaggableEntities.user => queryList(ListByUser("admin"), Seq[Any](entityId), debug = true)
+      case TaggableEntities.plan => queryList(ListByPlan("admin"), Seq[Any](entityId), debug = true)
       case _ => Future successful -\/(RepositoryError.BadParam("core.TagRepositoryPostgres.listByEntity.wrong.entity.type"))
     }
 

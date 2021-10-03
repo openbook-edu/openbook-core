@@ -859,8 +859,10 @@ class PaymentServiceDefault(
         //         AccountStatus.onhold |
         //         AccountStatus.error |
         val futureResult = for {
-          removeTags <- lift(tagRepository.listAdminByEntity(userId.toString, TaggableEntities.user))
-          _ = Logger.info(s"Admin tags to be removed from user with id $userId because subscription or trial expired: $removeTags")
+          allRemoveTags <- lift(tagRepository.listByEntity(userId.toString, TaggableEntities.user))
+          removeTags = allRemoveTags.filter(_.isAdmin) // instead of listAdminByEntity
+          _ = Logger.info(s"Tags to be removed from user with id $userId because subscription or trial expired: " +
+            s"${removeTags.map(_.name).mkString(",")}")
           _ <- lift(serializedT(removeTags)(tag => {
             Logger.info(s"Removing tag ${tag.name}")
             tagRepository.untag(userId.toString, TaggableEntities.user, tag.name, tag.lang).map {

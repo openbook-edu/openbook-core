@@ -96,6 +96,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @param password  The user's password.
    * @param givenname  The user's first name.
    * @param surname  The user's family name.
+   * @param hostname user's computer
    * @return a future disjunction containing the created user, or a failure
    */
   def create(
@@ -104,8 +105,9 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     password: String,
     givenname: String,
     surname: String,
+    hostname: String,
     id: UUID = UUID.randomUUID
-  ): Future[\/[ErrorUnion#Fail, User]]
+  )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]]
 
   def syncWithDeletedUser(newUser: User): Future[\/[ErrorUnion#Fail, Account]]
 
@@ -123,8 +125,9 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     email: String,
     givenname: String,
     surname: String,
-    accountType: String
-  ): Future[\/[ErrorUnion#Fail, User]]
+    accountType: String,
+    hostname: String
+  )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]]
 
   def updateUserAccountType(
     email: String,

@@ -206,6 +206,7 @@ class TagServiceDefault(
         tagRepository.listOrganizationalByEntity(entityId, entityType)
     }
   }
+  // DON'T USE, WILL THROW RUNTIME ERROR AT LEAST FOR ORGANIZATIONS! USE tags.filter(_.isAdmin)
   def listAdminByEntity(entityId: UUID, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] =
     listAdminByEntity(entityId.toString, entityType)
   def listAdminByEntity(entityId: String, entityType: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Tag]]] = {
@@ -336,7 +337,7 @@ class TagServiceDefault(
             currentOrganizations <- lift(organizationRepository.listByTags(userTags.map(tag => (tag.name, tag.lang)), false))
             resultOrganizations = (currentOrganizations ++ newOrganizations).distinct
             maxLimitJson <- lift(getOrganizationsMaxLimits(resultOrganizations))
-            _ = Logger.info(s"From organization(s) $resultOrganizations, max limits are $maxLimitJson!")
+            _ = Logger.info(s"From organization(s) ${resultOrganizations.map(_.title)}, max limits are $maxLimitJson!")
             _ <- lift(setUserLimits(maxLimitJson, user))
             _ <- lift {
               // If user doesn't have organizations, that means he haven't seen welcome popup for organization

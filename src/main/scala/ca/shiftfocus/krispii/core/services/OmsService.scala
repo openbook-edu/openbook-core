@@ -105,5 +105,5 @@ trait OmsService extends Service[ErrorUnion#Fail] {
   def maybeUserDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, Long]]
   def maybeDecCopy(test: Test, user: User): Future[\/[ErrorUnion#Fail, Long]]
 
-  def getCopiesLimit(user: User): Future[\/[ErrorUnion#Fail, Long]]
+  def getCopiesLimit(user: User, trialLimit: Long): Future[\/[ErrorUnion#Fail, Long]]
 }

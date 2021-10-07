@@ -407,7 +407,7 @@ class OmsServiceDefault(
         case AccountStatus.group => getOrgCopies(user)
         case AccountStatus.paid => getUserCopies(user)
         case AccountStatus.free => Future successful \/-(0.toLong)
-        case AccountStatus.trial => getUserCopies(user)
+        case AccountStatus.trial => Future successful \/-(0.toLong)
         case _ => Future successful -\/(ServiceError.BadInput("User needs to pay to upload student copies"))
       })
     } yield copies
@@ -528,7 +528,7 @@ class OmsServiceDefault(
       limit <- lift(account.status match {
         case AccountStatus.group => getOrgLimit(user)
         case AccountStatus.paid => getPlanLimit(account)
-        case AccountStatus.free => Future successful \/-(0.toLong)
+        case AccountStatus.free => Future successful \/-(trialLimit)
         case AccountStatus.trial => Future successful \/-(trialLimit)
         case _ => Future successful -\/(ServiceError.BadInput("User needs to pay to upload student copies"))
       })

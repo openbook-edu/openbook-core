@@ -402,12 +402,10 @@ class OmsServiceDefault(
   override def getCopies(user: User): Future[\/[ErrorUnion#Fail, Long]] =
     for {
       account <- lift(paymentService.getAccount(user.id))
-      _ = Logger.debug(s"This is the the acount $account")
       copies <- lift(account.status match {
         case AccountStatus.group => getOrgCopies(user)
         case AccountStatus.paid => getUserCopies(user)
-        case AccountStatus.free => Future successful \/-(0.toLong)
-        case AccountStatus.trial => Future successful \/-(0.toLong)
+        case AccountStatus.free | AccountStatus.trial => Future successful \/-(0.toLong)
         case _ => Future successful -\/(ServiceError.BadInput("User needs to pay to upload student copies"))
       })
     } yield copies
@@ -431,12 +429,10 @@ class OmsServiceDefault(
   override def incCopy(user: User): Future[\/[ErrorUnion#Fail, Long]] =
     for {
       account <- lift(paymentService.getAccount(user.id))
-      _ = Logger.debug(s"This is the account status ${account.status}")
       newCopies <- lift(account.status match {
         case AccountStatus.group => getOrgAndIncCopy(user)
         case AccountStatus.paid => incUserCopies(user)
-        case AccountStatus.free => Future successful \/-(100.toLong)
-        case AccountStatus.trial => Future successful \/-(100.toLong)
+        case AccountStatus.free | AccountStatus.trial => Future successful \/-(0.toLong)
         case _ => Future successful -\/(ServiceError.BadInput("User needs to pay to upload student copies"))
       })
     } yield newCopies
@@ -500,7 +496,6 @@ class OmsServiceDefault(
       newCopies <- lift(account.status match {
         case AccountStatus.group => maybeGetOrgAndDecCopy(test, user)
         case AccountStatus.paid => maybeUserDecCopy(test, user)
-        case AccountStatus.free => Future successful \/-(0.toLong)
         case _ => Future successful -\/(ServiceError.BadInput("User needs to pay to upload student copies"))
       })
     } yield newCopies
@@ -522,14 +517,13 @@ class OmsServiceDefault(
       limit <- lift(limitRepository.getPlanCopiesLimit(sub.planId))
     } yield limit
 
-  override def getCopiesLimit(user: User, trialLimit: Long): Future[\/[ErrorUnion#Fail, Long]] =
+  override def getCopiesLimit(user: User): Future[\/[ErrorUnion#Fail, Long]] =
     for {
       account <- lift(paymentService.getAccount(user.id))
       limit <- lift(account.status match {
         case AccountStatus.group => getOrgLimit(user)
         case AccountStatus.paid => getPlanLimit(account)
-        case AccountStatus.free => Future successful \/-(trialLimit)
-        case AccountStatus.trial => Future successful \/-(trialLimit)
+        case AccountStatus.free | AccountStatus.trial => Future successful \/-(0.toLong)
         case _ => Future successful -\/(ServiceError.BadInput("User needs to pay to upload student copies"))
       })
     } yield limit

@@ -815,13 +815,15 @@ class AuthServiceDefault(
     for {
       user <- lift(userRepository.find(userId))
       roles <- lift(roleRepository.list(user))
+      _ = Logger.debug(s"Activating ${user.email} with activation code $activationCode")
       token <- lift(userTokenRepository.find(user.id, activation))
       _ <- predicate(activationCode == token.token)(ServiceError.BadInput("Wrong activation code!"))
       _ <- lift(
         if (!roles.exists(_.name == "authenticated")) roleRepository.addToUser(user, "authenticated")
         else Future successful \/-(())
       )
-      _ <- lift(userTokenRepository.delete(userId, activation))
+      deleted <- lift(userTokenRepository.delete(userId, activation))
+      _ = Logger.debug(s"Token $deleted for ${user.email} has been deleted")
       orgs <- lift(organizationRepository.listByMember(user.email))
       finalUser <- lift(if (orgs.nonEmpty) giveOrgTags(user, orgs) else Future successful \/-(user))
     } yield finalUser
@@ -1108,7 +1110,7 @@ class AuthServiceDefault(
         messagesApi("activate.confirm.subject.new")(lang), //subject
         messagesApi("activate.confirm.from")(lang), //from
         Seq(user.givenname + " " + user.surname + " <" + user.email + ">"), //to
-        bodyHtml = Some(messagesApi("activate.confirm.message", hostname, user.id.toString, userToken)(lang)) //text
+        bodyHtml = Some(messagesApi("activate.confirm.message", hostname, user.id.toString, userToken.token)(lang)) //text
       )
       messageId <- lift(sendAsyncEmail(emailForNew))
       _ = Logger.info(s"Sent activation email to ${user.email}, message ID is $messageId")

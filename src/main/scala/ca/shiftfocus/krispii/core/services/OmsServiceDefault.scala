@@ -496,6 +496,7 @@ class OmsServiceDefault(
       newCopies <- lift(account.status match {
         case AccountStatus.group => maybeGetOrgAndDecCopy(test, user)
         case AccountStatus.paid => maybeUserDecCopy(test, user)
+        case AccountStatus.free | AccountStatus.trial => Future successful \/-(0.toLong)
         case _ => Future successful -\/(ServiceError.BadInput("User needs to pay to upload student copies"))
       })
     } yield newCopies

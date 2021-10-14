@@ -1,17 +1,16 @@
-import java.awt.Color
-
-import ca.shiftfocus.krispii.core.models.JournalEntry._
-import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.krispii.core.models.JournalEntry.{JournalEntryClick, JournalEntryCreate, JournalEntryDelete, JournalEntryListen, JournalEntryUpdate, JournalEntryView, JournalEntryWatch, JournalEntryWrite}
 import ca.shiftfocus.krispii.core.models.document.{Document, Revision}
-import ca.shiftfocus.krispii.core.models.tasks._
+import ca.shiftfocus.krispii.core.models.group.{Course, Team, Exam}
 import ca.shiftfocus.krispii.core.models.tasks.questions._
-import java.util.UUID
-
-import ca.shiftfocus.krispii.core.models.group.Course
-import ca.shiftfocus.krispii.core.models.user.User
+import ca.shiftfocus.krispii.core.models.tasks.{CommonTaskSettings, DocumentTask, MediaTask, QuestionTask}
+import ca.shiftfocus.krispii.core.models.user.{Scorer, User}
 import ca.shiftfocus.krispii.core.models.work._
+import ca.shiftfocus.krispii.core.models._
+import ca.shiftfocus.otlib.{Delete, Delta, InsertText, Retain}
 import org.joda.time.{DateTime, DateTimeZone}
-import ca.shiftfocus.otlib._
+
+import java.awt.Color
+import java.util.UUID
 
 object TestValues {
   /* ---------------------- USERS ---------------------- */
@@ -280,7 +279,7 @@ object TestValues {
     ownerId = testUserA.id,
     name = "test group A",
     color = new Color(24, 6, 8),
-    slug = "test-group-A-slug",
+    slug = "",
     chatEnabled = true,
     createdAt = new DateTime(2014, 8, 9, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 10, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2385,7 +2384,7 @@ object TestValues {
     groupId = testCourseB.id,
     version = 3L,
     startDate = new DateTime(2015, 1, 17, 18, 1, 19),
-    endDate = new DateTime(1025, 1, 17, 19, 1, 19),
+    endDate = new DateTime(2015, 1, 17, 19, 1, 19),
     description = "test GroupSchedule C description",
     createdAt = new DateTime(2014, 8, 6, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 7, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2934,5 +2933,135 @@ object TestValues {
     members = IndexedSeq.empty[String],
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /*-------------------------------SCORER---------------------------*/
+  val testScorerA = Scorer(
+    id = UUID.randomUUID,
+    version = 1L,
+    username = testUserA.username,
+    email = testUserA.email,
+    hash = testUserA.hash,
+    givenname = testUserA.givenname,
+    surname = testUserA.surname,
+    alias = testUserA.alias,
+    roles = IndexedSeq.empty[Role],
+    tags = IndexedSeq.empty[Tag],
+    token = None,
+    accountType = testUserA.accountType,
+    leader = false, // derived from teams_scorers.leader
+    isDeleted = false, // derived from teams_scorers.deleted
+    isArchived = false, // derived from teams_scorers.archived
+    createdAt = new DateTime,
+    updatedAt = new DateTime,
+    includedAt = new DateTime
+  )
+
+  /*-------------------------------TEST----------------------------*/
+  val testTestA = Test(
+    id = UUID.randomUUID,
+    examId = UUID.fromString("e12452c6-ecfe-4b51-c929-1f3539089066"),
+    teamId = None,
+    name = "final test",
+    version = 1L,
+    grade = "", // initially empty, in contrast with Work
+    comments = "",
+    origResponse = UUID.fromString("e26bb8d3-ecfe-4a61-a808-1c3539086066"), // PDF/image component
+    archived = false,
+    deleted = false,
+    scores = IndexedSeq.empty[Score],
+    createdAt = new DateTime(2017, 9, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2017, 9, 15, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  /*-------------------------------SCORE---------------------------*/
+  val testScoreA = Score(
+    id = UUID.randomUUID,
+    testId = testTestA.id,
+    scorerId = testUserB.id,
+    version = 1L,
+    origComments = "",
+    comments = "",
+    origGrade = "",
+    grade = "",
+    isVisible = 0,
+    archived = false,
+    deleted = false,
+    createdAt = new DateTime(2017, 9, 26, 15, 0, 0, 945, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2017, 9, 22, 16, 0, 0, 945, DateTimeZone.forID("-04"))
+  )
+
+  /*-------------------------------TEAM---------------------------*/
+  val testTeamA = Team(
+    id = UUID.randomUUID,
+    version = 1L,
+    examId = UUID.fromString("e1254f45-ecfe-4b51-c929-1f3539089066"),
+    ownerId = testUserC.id,
+    name = "limoilou",
+    slug = "slug limoilou",
+    color = new Color(21, 8, 6),
+    enabled = true,
+    schedulingEnabled = false,
+    chatEnabled = true,
+    archived = false,
+    deleted = false,
+    scorers = IndexedSeq.empty[Scorer],
+    schedules = IndexedSeq.empty[GroupSchedule],
+    createdAt = new DateTime(2017, 9, 20, 15, 0, 0, 945, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2017, 9, 22, 16, 0, 0, 945, DateTimeZone.forID("-04"))
+  )
+
+  /*----------------------------EXAM-----------------------------*/
+  val testExamA = Exam(
+    id = UUID.fromString("e12586f5-ecfe-4b51-c929-1f3539089066"),
+    version = 1L,
+    ownerId = testUserC.id,
+    name = "godbout_exam",
+    color = new Color(101, 5, 11),
+    slug = "slug_godbout_exam",
+    enabled = true,
+    schedulingEnabled = false,
+    archived = false,
+    deleted = false,
+    teams = Option(IndexedSeq(testTeamA)),
+    tests = Option(IndexedSeq(testTestA)),
+    createdAt = new DateTime(2017, 9, 20, 15, 0, 0, 945, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2017, 9, 22, 16, 0, 0, 945, DateTimeZone.forID("-04"))
+  )
+
+  val testExamB = Exam(
+    id = UUID.fromString("e12586f5-ecfe-4b51-c929-1f3539089066"),
+    version = 2L,
+    ownerId = testUserC.id,
+    name = "homework",
+    color = new Color(101, 5, 11),
+    slug = "slug homework",
+    //origRubricId = Option[UUID], // might be the ID of a rubricComponent or an imageComponent
+    enabled = true,
+    schedulingEnabled = false,
+    archived = false,
+    deleted = false,
+    teams = Option(IndexedSeq(testTeamA)),
+    tests = Option(IndexedSeq(testTestA)),
+    createdAt = new DateTime(2017, 9, 20, 15, 0, 0, 945, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2017, 9, 22, 16, 0, 0, 945, DateTimeZone.forID("-04"))
+  )
+
+  val testExamC = Exam(
+    id = UUID.fromString("e12586f5-ecfe-4b51-c929-1f3539089066"),
+    version = 3L,
+    ownerId = testUserC.id,
+    name = "medecine homework",
+    color = new Color(101, 5, 11),
+    slug = "slug medecine homework",
+    //origRubricId = Option[UUID], // might be the ID of a rubricComponent or an imageComponent
+    enabled = true,
+    schedulingEnabled = false,
+    archived = false,
+    deleted = false,
+    teams = Option(IndexedSeq(testTeamA)),
+    tests = Option(IndexedSeq(testTestA)),
+    createdAt = new DateTime(2017, 9, 20, 15, 0, 0, 945, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2017, 9, 22, 16, 0, 0, 945, DateTimeZone.forID("-04"))
   )
 }

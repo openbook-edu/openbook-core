@@ -546,7 +546,7 @@ class AuthServiceDefault(
       val updated = for {
         existingUser <- lift(userRepository.find(id))
         _ <- predicate(existingUser.version == version)(ServiceError.OfflineLockFail)
-        _ <- predicate(InputUtils.isValidPassword(password.trim))(ServiceError.BadInput("core.AuthServiceDefault.password.short"))
+        _ <- predicate(InputUtils.isValidPassword(password.trim))(ServiceError.BadInput("The password provided must be at least 8 characters."))
         u_hash = wc.crypt(password.trim)
         userToUpdate = existingUser.copy(hash = Some(u_hash))
         updatedUser <- lift(userRepository.update(userToUpdate))

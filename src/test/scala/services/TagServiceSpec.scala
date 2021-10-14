@@ -1,4 +1,4 @@
-//import ca.shiftfocus.krispii.core.error.{ RepositoryError, ServiceError }
+//import ca.shiftfocus.krispii.core.error.{RepositoryError, ServiceError}
 //import ca.shiftfocus.krispii.core.lib.ScalaCachePool
 //import ca.shiftfocus.krispii.core.models._
 //import ca.shiftfocus.krispii.core.models.tasks._
@@ -8,14 +8,19 @@
 //import com.github.mauricio.async.db.Connection
 //import java.util.UUID
 //
-//import org.scalatest._
-//import Matchers._
+//import org.junit.runner.RunWith
+//import org.scalatest.junit.JUnitRunner
+////import org.scalatest._
+//import org.scalatest.Matchers._
+//import play.api.Configuration
 //
 //import scala.collection.immutable.TreeMap
 //import scala.concurrent.duration.Duration
-//import scala.concurrent.{ Await, Future }
-//import scalaz.{ -\/, \/- }
+//import scala.concurrent._
+//import scalaz.{-\/, \/-}
+//import ExecutionContext.Implicits.global
 //
+//@RunWith(classOf[JUnitRunner])
 //class TagServiceSpec
 //    extends TestEnvironment(writeToDb = false) {
 //
@@ -23,8 +28,22 @@
 //  val mockConnection = stub[Connection]
 //  val tagRepository = stub[TagRepository]
 //  val tagCategoryRepository = stub[TagCategoryRepository]
+//  val organizationRepository = stub[OrganizationRepository]
+//  val limitRepository = stub[LimitRepository]
+//  val userRepository = stub[UserRepository]
+//  val courseRepository = stub[CourseRepository]
+//  val accountRepository = stub[AccountRepository]
+//  val stripeRepository = stub[StripeEventRepository]
+//  val paymentLogRepository = stub[PaymentLogRepository]
+//  val config = stub[Configuration]
+//  val projectRepository = stub[ProjectRepository]
+//  val roleRepository = stub[RoleRepository]
+//  val userPreferenceRepository = stub[UserPreferenceRepository]
+//  val paymentService = stub[PaymentService]
 //
-//  val tagService = new TagServiceDefault(db, tagRepository, tagCategoryRepository) {
+//  val tagService = new TagServiceDefault(db, tagRepository, tagCategoryRepository, organizationRepository, limitRepository,
+//    userRepository, courseRepository, accountRepository, stripeRepository, paymentLogRepository, config,
+//    projectRepository, roleRepository, userPreferenceRepository, paymentService) {
 //    override implicit def conn: Connection = mockConnection
 //
 //    override def transactional[A](f: Connection => Future[A]): Future[A] = {
@@ -37,14 +56,14 @@
 //      "copy tags from one project to another" in {
 //        val toClone = TestValues.testProjectA
 //        val cloned = TestValues.testProjectC
-//        val tags = TreeMap[Int, ca.shiftfocus.krispii.core.models.Tag](
+//        val tags = TreeMap[Int, Tag](
 //          0 -> TestValues.testTagA,
 //          1 -> TestValues.testTagB
 //        )
 //
-//        (tagRepository.listByProjectId(_: UUID)(_: Connection)) when (toClone.id, *) returns (Future.successful(\/-(IndexedSeq[ca.shiftfocus.krispii.core.models.Tag](TestValues.testTagA, TestValues.testTagB))))
-//        (tagRepository.create(_: ca.shiftfocus.krispii.core.models.Tag)(_: Connection)) when (TestValues.testTagA, *) returns (Future.successful(\/-(TestValues.testTagA)))
-//        (tagRepository.create(_: ca.shiftfocus.krispii.core.models.Tag)(_: Connection)) when (TestValues.testTagB, *) returns (Future.successful(\/-(TestValues.testTagB)))
+//        (tagRepository.find(_: UUID)(_: Connection)) when (toClone.id, *) returns (Future.successful(\/-(TestValues.testTagA)))
+//        (tagRepository.create(_: Tag)(_: Connection)) when (TestValues.testTagA, *) returns (Future.successful(\/-(TestValues.testTagA)))
+//        (tagRepository.create(_: Tag)(_: Connection)) when (TestValues.testTagB, *) returns (Future.successful(\/-(TestValues.testTagB)))
 //
 //        val result = tagService.cloneTags(cloned.id, toClone.id)
 //        val \/-(clonedTags) = Await.result(result, Duration.Inf)
@@ -61,7 +80,7 @@
 //        val toClone = TestValues.testProjectB
 //        val cloned = TestValues.testProjectC
 //
-//        (tagRepository.listByProjectId(_: UUID)(_: Connection)) when (toClone.id, *) returns (Future.successful(\/-(IndexedSeq[ca.shiftfocus.krispii.core.models.Tag]())))
+//        (tagRepository.find(_: UUID)(_: Connection)) when (toClone.id, *) returns (Future.successful(\/-(TestValues.testTagA)))
 //        (tagRepository.create(_: ca.shiftfocus.krispii.core.models.Tag)(_: Connection)) when (TestValues.testTagB, *) returns (Future.successful(\/-(TestValues.testTagB)))
 //
 //        val result = tagService.cloneTags(cloned.id, toClone.id)

@@ -23,6 +23,7 @@ trait UserRepository extends Repository {
   def listOrganizationMembers(organizationList: IndexedSeq[Organization])(implicit conn: Connection): Future[\/[RepositoryError.Fail, IndexedSeq[User]]]
 
   def find(userId: UUID, includeDeleted: Boolean = false)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]]
+  //def find(userId: UUID)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]]
   def find(identifier: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]]
   def findDeleted(identifier: String)(implicit conn: Connection): Future[\/[RepositoryError.Fail, User]]
 

@@ -39,7 +39,7 @@ class AuthServiceDefault(
 
   implicit def conn: Connection = db.pool
 
-  implicit def cache: ScalaCachePool = scalaCache
+  //implicit def cache: ScalaCachePool = scalaCache
 
   /**
    * token types

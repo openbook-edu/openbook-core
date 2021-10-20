@@ -39,8 +39,6 @@ class AuthServiceDefault(
 
   implicit def conn: Connection = db.pool
 
-  //implicit def cache: ScalaCachePool = scalaCache
-
   /**
    * token types
    */
@@ -55,7 +53,7 @@ class AuthServiceDefault(
    */
   override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] = {
     (for {
-      users <- lift(userRepository.list(db.pool))
+      users <- lift(userRepository.list)
       result <- liftSeq {
         users.map { user =>
           val fRoles = roleRepository.list(user)

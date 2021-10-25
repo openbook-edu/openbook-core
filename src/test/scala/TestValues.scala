@@ -2957,10 +2957,47 @@ object TestValues {
     includedAt = new DateTime
   )
 
+  val testScorerB = Scorer(
+    id = UUID.randomUUID,
+    version = 1L,
+    username = testUserB.username,
+    email = testUserB.email,
+    hash = testUserB.hash,
+    givenname = testUserB.givenname,
+    surname = testUserB.surname,
+    alias = testUserB.alias,
+    roles = IndexedSeq.empty[Role],
+    tags = IndexedSeq.empty[Tag],
+    token = None,
+    accountType = testUserB.accountType,
+    leader = false, // derived from teams_scorers.leader
+    isDeleted = false, // derived from teams_scorers.deleted
+    isArchived = false, // derived from teams_scorers.archived
+    createdAt = new DateTime,
+    updatedAt = new DateTime,
+    includedAt = new DateTime
+  )
+
   /*-------------------------------TEST----------------------------*/
   val testTestA = Test(
     id = UUID.randomUUID,
     examId = UUID.fromString("e12452c6-ecfe-4b51-c929-1f3539089066"),
+    teamId = None,
+    name = "final test",
+    version = 1L,
+    grade = "", // initially empty, in contrast with Work
+    comments = "",
+    origResponse = UUID.fromString("e26bb8d3-ecfe-4a61-a808-1c3539086066"), // PDF/image component
+    archived = false,
+    deleted = false,
+    scores = IndexedSeq.empty[Score],
+    createdAt = new DateTime(2017, 9, 15, 14, 1, 19, 545, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2017, 9, 15, 14, 1, 19, 545, DateTimeZone.forID("-04"))
+  )
+
+  val testTestB = Test(
+    id = UUID.randomUUID,
+    examId = UUID.fromString("e12452c6-ecfe-4b51-c929-1f3539087854"),
     teamId = None,
     name = "final test",
     version = 1L,
@@ -2993,12 +3030,31 @@ object TestValues {
 
   /*-------------------------------TEAM---------------------------*/
   val testTeamA = Team(
-    id = UUID.randomUUID,
+    id = UUID.fromString("01165731-abec-4cb2-8705-881086617abe"),
     version = 1L,
     examId = UUID.fromString("e1254f45-ecfe-4b51-c929-1f3539089066"),
     ownerId = testUserC.id,
     name = "limoilou",
     slug = "slug limoilou",
+    color = new Color(21, 8, 6),
+    enabled = true,
+    schedulingEnabled = false,
+    chatEnabled = true,
+    archived = false,
+    deleted = false,
+    scorers = IndexedSeq.empty[Scorer],
+    schedules = IndexedSeq.empty[GroupSchedule],
+    createdAt = new DateTime(2017, 9, 20, 15, 0, 0, 945, DateTimeZone.forID("-04")),
+    updatedAt = new DateTime(2017, 9, 22, 16, 0, 0, 945, DateTimeZone.forID("-04"))
+  )
+
+  val testTeamB = Team(
+    id = UUID.fromString("86f4e26a-d714-4737-8f48-fd6c5e579761"),
+    version = 1L,
+    examId = UUID.fromString("e26bb8d3-ecfe-4a61-a808-1c3539086066"),
+    ownerId = testUserB.id,
+    name = "limoilou_2",
+    slug = "slug limoilou_2",
     color = new Color(21, 8, 6),
     enabled = true,
     schedulingEnabled = false,
@@ -3048,9 +3104,9 @@ object TestValues {
   )
 
   val testExamC = Exam(
-    id = UUID.fromString("e12586f5-ecfe-4b51-c929-1f3539089066"),
+    id = UUID.fromString("e12586f5-ecfe-4b51-c929-1f3539089087"),
     version = 3L,
-    ownerId = testUserC.id,
+    ownerId = testUserA.id,
     name = "medecine homework",
     color = new Color(101, 5, 11),
     slug = "slug medecine homework",

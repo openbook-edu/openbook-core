@@ -40,10 +40,15 @@
 //  val roleRepository = stub[RoleRepository]
 //  val userPreferenceRepository = stub[UserPreferenceRepository]
 //  val paymentService = stub[PaymentService]
+//  val trialDays = config.get[Option[Int]]("default.trial.days").get
+//  val defaultStudentLimit = config.get[Option[Int]]("default.student.limit").get
+//  val defaultStorageLimit = config.get[Option[Int]]("default.storage.limit.gb").get
+//  val defaultCourseLimit = config.get[Option[Int]]("default.course.limit").get
 //
 //  val tagService = new TagServiceDefault(db, tagRepository, tagCategoryRepository, organizationRepository, limitRepository,
 //    userRepository, courseRepository, accountRepository, stripeRepository, paymentLogRepository, config,
 //    projectRepository, roleRepository, userPreferenceRepository, paymentService) {
+//
 //    override implicit def conn: Connection = mockConnection
 //
 //    override def transactional[A](f: Connection => Future[A]): Future[A] = {

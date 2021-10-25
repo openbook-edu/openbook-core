@@ -152,7 +152,7 @@
         "platform" : {
             "name" : "jvm",
             "config" : {
-                "home" : "/Library/Internet Plug-Ins/JavaAppletPlugin.plugin/Contents/Home",
+                "home" : "/Library/Java/JavaVirtualMachines/jdk1.8.0_301.jdk/Contents/Home/jre",
                 "options" : [
                     "-Duser.dir=/Users/dani/Desktop/project/krispii-core/project"
                 ]

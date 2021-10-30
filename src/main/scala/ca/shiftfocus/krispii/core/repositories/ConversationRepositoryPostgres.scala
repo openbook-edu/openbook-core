@@ -13,7 +13,7 @@ import scala.concurrent.Future
 import scalaz.{-\/, \/, \/-}
 
 /**
- * Work with database tables: users_subscriptions, stripe_events
+ * Work with database tables: conversations
  */
 class ConversationRepositoryPostgres(
     val userRepository: UserRepository,

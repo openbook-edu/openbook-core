@@ -42,7 +42,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
   def deleteSession(sessionId: UUID): Future[\/[ErrorUnion#Fail, Session]]
 
   /**
-   * List user by similiarity to a key word
+   * List user by similarity to a key word
    */
   def listByKey(key: String, includeDeleted: Boolean = false, limit: Int = 0, offset: Int = 0): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
 
@@ -77,7 +77,8 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    *
    * @param id the unique id of the user
    */
-  def find(id: UUID, includeDeleted: Boolean = false): Future[\/[ErrorUnion#Fail, User]]
+  def find(id: UUID): Future[\/[ErrorUnion#Fail, User]]
+  def find(id: UUID, includeDeleted: Boolean): Future[\/[ErrorUnion#Fail, User]]
 
   /**
    * Find a user by their unique identifier.
@@ -95,6 +96,7 @@ trait AuthService extends Service[ErrorUnion#Fail] {
    * @param password  The user's password.
    * @param givenname  The user's first name.
    * @param surname  The user's family name.
+   * @param hostname user's computer
    * @return a future disjunction containing the created user, or a failure
    */
   def create(
@@ -103,21 +105,12 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     password: String,
     givenname: String,
     surname: String,
+    hostname: String,
     id: UUID = UUID.randomUUID
-  ): Future[\/[ErrorUnion#Fail, User]]
+  )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]]
 
   def syncWithDeletedUser(newUser: User): Future[\/[ErrorUnion#Fail, Account]]
 
-  /**
-   * Creates a new user with the given role.
-   * @param username
-   * @param email
-   * @param password
-   * @param givenname
-   * @param surname
-   * @param role
-   * @return
-   */
   def createWithRole(
     username: String,
     email: String,
@@ -125,15 +118,16 @@ trait AuthService extends Service[ErrorUnion#Fail] {
     givenname: String,
     surname: String,
     role: String,
-    hostname: Option[String]
+    hostname: String
   )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]]
 
   def createOpenIdUser(
     email: String,
     givenname: String,
     surname: String,
-    accountType: String
-  ): Future[\/[ErrorUnion#Fail, User]]
+    accountType: String,
+    hostname: String
+  )(messagesApi: MessagesApi, lang: Lang): Future[\/[ErrorUnion#Fail, User]]
 
   def updateUserAccountType(
     email: String,

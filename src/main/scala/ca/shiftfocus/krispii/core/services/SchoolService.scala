@@ -47,19 +47,16 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
   ): Future[\/[ErrorUnion#Fail, Course]]
   def deleteCourse(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Course]]
 
-  //def listStudents(group: Course): Future[IndexedSeq[User]]
   def listStudents(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
   def listStudents(course: Course): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
-  //def listProjects(groupId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
-  //def listProjects(group: Course): Future[\/[ErrorUnion#Fail, IndexedSeq[Project]]]
 
   def findUserForTeacher(userId: UUID, teacherId: UUID): Future[\/[ErrorUnion#Fail, User]]
 
   def addUsers(course: Course, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
   def removeUsers(course: Course, userIds: IndexedSeq[UUID]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]]
   def removeUser(course: Course, userId: UUID): Future[\/[ErrorUnion#Fail, User]]
-  // -- Course chat methods -----
 
+  // -- Course chat methods -----
   def toggleCourseChat(courseId: UUID, chatEnabled: Boolean): Future[\/[ErrorUnion#Fail, Course]]
 
   def listChats(courseId: UUID): Future[\/[ErrorUnion#Fail, IndexedSeq[Chat]]]
@@ -98,24 +95,28 @@ trait SchoolService extends Service[ErrorUnion#Fail] {
   def deleteCourseStudentLimit(courseId: UUID): Future[\/[ErrorUnion#Fail, Unit]]
 
   // Plan
-  def getPlanStudentLimit(planId: String): Future[\/[ErrorUnion#Fail, Int]]
   def getPlanCourseLimit(planId: String): Future[\/[ErrorUnion#Fail, Int]]
   def getPlanStorageLimit(plantId: String): Future[\/[ErrorUnion#Fail, Float]]
+  def getPlanStudentLimit(planId: String): Future[\/[ErrorUnion#Fail, Int]]
+  def getPlanCopiesLimit(planId: String): Future[\/[ErrorUnion#Fail, Long]]
 
-  def setPlanStorageLimit(palnId: String, limitValue: Float): Future[\/[ErrorUnion#Fail, Float]]
-  def setPlanCourseLimit(palnId: String, limitValue: Int): Future[\/[ErrorUnion#Fail, Int]]
-  def setPlanStudentLimit(palnId: String, limitValue: Int): Future[\/[ErrorUnion#Fail, Int]]
+  def setPlanStorageLimit(planId: String, limitValue: Float): Future[\/[ErrorUnion#Fail, Float]]
+  def setPlanCourseLimit(planId: String, limitValue: Int): Future[\/[ErrorUnion#Fail, Int]]
+  def setPlanStudentLimit(planId: String, limitValue: Int): Future[\/[ErrorUnion#Fail, Int]]
+  def setPlanCopiesLimit(planId: String, limitValue: Long): Future[\/[ErrorUnion#Fail, Long]]
 
   // Organization
   def getOrganizationStudentLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, Int]]
   def getOrganizationCourseLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, Int]]
-  def getOrganizationStorageLimit(organizationtId: UUID): Future[\/[ErrorUnion#Fail, Float]]
-  def getOrganizationDateLimit(organizationtId: UUID): Future[\/[ErrorUnion#Fail, DateTime]]
-  def getOrganizationMemberLimit(organizationtId: UUID): Future[\/[ErrorUnion#Fail, Int]]
+  def getOrganizationStorageLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, Float]]
+  def getOrganizationDateLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, DateTime]]
+  def getOrganizationMemberLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, Int]]
+  def getOrganizationCopiesLimit(organizationId: UUID): Future[\/[ErrorUnion#Fail, Long]]
 
   def setOrganizationStorageLimit(organizationId: UUID, limit: Float): Future[\/[ErrorUnion#Fail, Float]]
   def setOrganizationCourseLimit(organizationId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
   def setOrganizationStudentLimit(organizationId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
   def setOrganizationDateLimit(organizationId: UUID, limit: DateTime): Future[\/[ErrorUnion#Fail, DateTime]]
-  def setOrganizationMemberLimit(organizationtId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
+  def setOrganizationMemberLimit(organizationId: UUID, limit: Int): Future[\/[ErrorUnion#Fail, Int]]
+  def setOrganizationCopiesLimit(organizationId: UUID, limit: Long): Future[\/[ErrorUnion#Fail, Long]]
 }

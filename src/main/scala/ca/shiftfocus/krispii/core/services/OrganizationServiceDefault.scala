@@ -20,16 +20,16 @@ class OrganizationServiceDefault(
 
   implicit def conn: Connection = db.pool
 
-  def find(organizationId: UUID): Future[\/[ErrorUnion#Fail, Organization]] =
+  override def find(organizationId: UUID): Future[\/[ErrorUnion#Fail, Organization]] =
     organizationRepository.find(organizationId)
 
-  def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] =
+  override def list: Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] =
     organizationRepository.list
 
-  def listByAdmin(adminEmail: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] =
+  override def listByAdmin(adminEmail: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] =
     organizationRepository.listByAdmin(adminEmail)
 
-  def listByMember(memberEmail: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] =
+  override def listByMember(memberEmail: String): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] =
     organizationRepository.listByMember(memberEmail)
 
   /**
@@ -39,7 +39,7 @@ class OrganizationServiceDefault(
    * @param distinct Boolean If true each organization should have all listed tags,
    *                 if false organization should have at least one listed tag
    */
-  def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] =
+  override def listByTags(tags: IndexedSeq[(String, String)], distinct: Boolean = true): Future[\/[ErrorUnion#Fail, IndexedSeq[Organization]]] =
     organizationRepository.listByTags(tags, distinct)
 
   /**
@@ -47,51 +47,54 @@ class OrganizationServiceDefault(
    * @param organizationList IndexedSeq of organizations
    * @return IndexedSeq of Users, or an error
    */
-  def listMembers(organizationList: IndexedSeq[Organization]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] =
+  override def listMembers(organizationList: IndexedSeq[Organization]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] =
     userRepository.listOrganizationMembers(organizationList)
 
-  def searchMembers(key: String, organizationList: IndexedSeq[Organization]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] =
+  override def searchMembers(key: String, organizationList: IndexedSeq[Organization]): Future[\/[ErrorUnion#Fail, IndexedSeq[User]]] =
     userRepository.searchOrganizationMembers(key, organizationList)
 
-  def addMember(organizationId: UUID, memberEmail: String): Future[\/[ErrorUnion#Fail, Organization]] = {
-    (for {
+  override def addMember(organization: Organization, memberEmail: String): Future[\/[ErrorUnion#Fail, Organization]] =
+    organizationRepository.addMember(organization, memberEmail)
+
+  override def addMember(organizationId: UUID, memberEmail: String): Future[\/[ErrorUnion#Fail, Organization]] =
+    for {
       existingOrganization <- lift(organizationRepository.find(organizationId))
       organizationWithMember <- lift(organizationRepository.addMember(existingOrganization, memberEmail))
-    } yield organizationWithMember).run
-  }
+    } yield organizationWithMember
 
-  def deleteMember(organizationId: UUID, memberEmail: String): Future[\/[ErrorUnion#Fail, Organization]] = {
-    (for {
+  override def deleteMember(organization: Organization, memberEmail: String): Future[\/[ErrorUnion#Fail, Organization]] =
+    organizationRepository.deleteMember(organization, memberEmail)
+
+  override def deleteMember(organizationId: UUID, memberEmail: String): Future[\/[ErrorUnion#Fail, Organization]] =
+    for {
       existingOrganization <- lift(organizationRepository.find(organizationId))
       organizationWithoutMember <- lift(organizationRepository.deleteMember(existingOrganization, memberEmail))
-    } yield organizationWithoutMember).run
-  }
+    } yield organizationWithoutMember
 
-  def addAdmin(organizationId: UUID, adminEmail: String): Future[\/[ErrorUnion#Fail, Organization]] = {
-    (for {
+  override def addAdmin(organization: Organization, adminEmail: String): Future[\/[ErrorUnion#Fail, Organization]] =
+    organizationRepository.addAdmin(organization, adminEmail)
+
+  override def addAdmin(organizationId: UUID, adminEmail: String): Future[\/[ErrorUnion#Fail, Organization]] =
+    for {
       existingOrganization <- lift(organizationRepository.find(organizationId))
       organizationWithMember <- lift(organizationRepository.addAdmin(existingOrganization, adminEmail))
-    } yield organizationWithMember).run
-  }
+    } yield organizationWithMember
 
-  def deleteAdmin(organizationId: UUID, adminEmail: String): Future[\/[ErrorUnion#Fail, Organization]] = {
-    (for {
+  override def deleteAdmin(organization: Organization, adminEmail: String): Future[\/[ErrorUnion#Fail, Organization]] =
+    organizationRepository.deleteAdmin(organization, adminEmail)
+
+  override def deleteAdmin(organizationId: UUID, adminEmail: String): Future[\/[ErrorUnion#Fail, Organization]] =
+    for {
       existingOrganization <- lift(organizationRepository.find(organizationId))
       organizationWithoutMember <- lift(organizationRepository.deleteAdmin(existingOrganization, adminEmail))
-    } yield organizationWithoutMember).run
-  }
+    } yield organizationWithoutMember
 
-  def create(title: String): Future[\/[ErrorUnion#Fail, Organization]] = {
+  override def create(title: String): Future[\/[ErrorUnion#Fail, Organization]] =
     organizationRepository.insert(Organization(
       title = title
     ))
-  }
 
-  def update(
-    id: UUID,
-    version: Long,
-    title: Option[String]
-  ): Future[\/[ErrorUnion#Fail, Organization]] = {
+  override def update(id: UUID, version: Long, title: Option[String]): Future[\/[ErrorUnion#Fail, Organization]] =
     transactional { implicit conn =>
       (for {
         existingOrganization <- lift(organizationRepository.find(id))
@@ -101,13 +104,12 @@ class OrganizationServiceDefault(
         )))
       } yield updated).run
     }
-  }
 
-  def delete(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Organization]] = {
-    (for {
+  override def delete(id: UUID, version: Long): Future[\/[ErrorUnion#Fail, Organization]] =
+    for {
       existingOrganization <- lift(organizationRepository.find(id))
       _ <- predicate(existingOrganization.version == version)(ServiceError.OfflineLockFail)
       deleted <- lift(organizationRepository.delete(existingOrganization))
-    } yield deleted).run
-  }
+    } yield deleted
+
 }

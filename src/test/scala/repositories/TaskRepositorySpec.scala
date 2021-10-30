@@ -3,7 +3,7 @@ import ca.shiftfocus.krispii.core.models.tasks._
 import ca.shiftfocus.krispii.core.repositories.TaskRepositoryPostgres
 import org.scalatest.Matchers._
 
-import scala.concurrent.{ Await, Future }
+import scala.concurrent.{Await, Future}
 import scala.concurrent.duration.Duration
 import scalaz._
 

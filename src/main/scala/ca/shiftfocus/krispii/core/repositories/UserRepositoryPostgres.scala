@@ -49,7 +49,7 @@ class UserRepositoryPostgres(
   val QMarks = "?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?"
   val OrderBy = s"${Table}.surname ASC, ${Table}.givenname ASC"
 
-  // User CRUD operations
+  // User CRUD operations - TODO: read in tags!
   val SelectAll =
     s"""
        |SELECT $FieldsWithoutHash

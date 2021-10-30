@@ -2,18 +2,20 @@ package ca.shiftfocus.krispii.core.models
 
 import java.util.UUID
 
+import ca.shiftfocus.krispii.core.models.stripe.{CreditCard, StripeSubscription}
 import org.joda.time.DateTime
 import play.api.libs.functional.syntax._
 import play.api.libs.json._
 import play.api.libs.json.JodaWrites._
+import play.api.libs.json.JodaReads._
 
 case class Account(
   id: UUID = UUID.randomUUID(),
   version: Long = 1L,
   userId: UUID,
   status: String = AccountStatus.inactive,
-  customer: Option[JsValue] = None,
-  subscriptions: IndexedSeq[JsValue] = IndexedSeq.empty[JsValue],
+  creditCard: Option[CreditCard] = None, // we choose to save only one credit card per account
+  subscriptions: IndexedSeq[StripeSubscription] = IndexedSeq.empty[StripeSubscription],
   trialStartedAt: Option[DateTime] = None,
   activeUntil: Option[DateTime] = None,
   overdueStartedAt: Option[DateTime] = None,
@@ -50,18 +52,31 @@ object AccountStatus {
 }
 
 object Account {
-  implicit val writes: Writes[Account] = (
+  implicit val accountWrites: Writes[Account] = (
     (__ \ "id").write[UUID] and
     (__ \ "version").write[Long] and
     (__ \ "userId").write[UUID] and
     (__ \ "status").write[String] and
-    (__ \ "customer").writeNullable[JsValue] and
-    (__ \ "subscriptions").write[IndexedSeq[JsValue]] and
+    (__ \ "creditCard").writeNullable[CreditCard] and
+    (__ \ "subscriptions").write[IndexedSeq[StripeSubscription]] and
     (__ \ "trialStartedAt").writeNullable[DateTime] and
     (__ \ "activeUntil").writeNullable[DateTime] and
     (__ \ "overdueStartedAt").writeNullable[DateTime] and
     (__ \ "overdueEndedAt").writeNullable[DateTime] and
     (__ \ "overduePlanId").writeNullable[String]
   )(unlift(Account.unapply))
-}
 
+  implicit val accountReads: Reads[Account] = (
+    (__ \ "id").read[UUID] and
+    (__ \ "version").read[Long] and
+    (__ \ "userId").read[UUID] and
+    (__ \ "status").read[String] and
+    (__ \ "creditCard").readNullable[CreditCard] and
+    (__ \ "subscriptions").read[IndexedSeq[StripeSubscription]] and
+    (__ \ "trialStartedAt").readNullable[DateTime] and
+    (__ \ "activeUntil").readNullable[DateTime] and
+    (__ \ "overdueStartedAt").readNullable[DateTime] and
+    (__ \ "overdueEndedAt").readNullable[DateTime] and
+    (__ \ "overduePlanId").readNullable[String]
+  )(Account.apply _)
+}

@@ -671,14 +671,15 @@ class AuthServiceDefault(
    *
    * @param userId   the unique id of the user
    * @param roleName the name of the role
-   * @return a boolean indicator if the role was added
+   * @return the added role if successful, otherwise an error
    */
   override def addRole(userId: UUID, roleName: String): Future[\/[ErrorUnion#Fail, Role]] =
     transactional { implicit conn =>
       for {
         user <- lift(userRepository.find(userId))
-        role <- lift(roleRepository.find(roleName)) // only because addRole MUST return a Role
-        _ <- lift(roleRepository.addToUser(user, role))
+        oldRoles <- lift(roleRepository.list(user))
+        role <- lift(roleRepository.find(roleName))
+        _ <- lift(if (!oldRoles.contains(role)) roleRepository.addToUser(user, role) else Future successful \/-(()))
       } yield role
     }
 

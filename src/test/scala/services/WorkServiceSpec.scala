@@ -77,7 +77,7 @@
 //        )
 //
 //        (roleRepository.list(_: User)(_: Connection)) when (testUser, *) returns (Future.successful(\/-(testRoleList)))
-//        (userRepository.find(_: UUID)(_: Connection)) when (testUser.id, *) returns (Future.successful(\/-(testUser)))
+//        (userRepository.find(_: UUID, _:Boolean)(_: Connection)) when (testUser.id, false, *) returns (Future.successful(\/-(testUser)))
 //        (projectService.findTask(_: UUID)) when (testTask.id) returns (Future.successful(\/-(testTask)))
 //        (workRepository.find(_: User, _: Task)(_: Connection)) when (testUser, testTask, *) returns (Future.successful(\/-(testWork)))
 //        (workRepository.update(_: Work)(_: Connection)) when (updatedWork, *) returns (Future.successful(\/-(updatedWork)))
@@ -96,7 +96,7 @@
 //        work.updatedAt.toString should be(updatedWork.updatedAt.toString)
 //      }
 //      "return ServiceError.BadInput if wrong work type was found" in {
-//        val testUser = TestValues.testUserE
+//        val testUser = TestValues.testUserA
 //        val testRoleList = IndexedSeq()
 //        val testTask = TestValues.testLongAnswerTaskA
 //        val testWork = TestValues.testMultipleChoiceWorkH

@@ -2906,7 +2906,7 @@ object TestValues {
     version = 1L,
     title = "testOrganizationA",
     admins = IndexedSeq(testUserA.email),
-    tags = IndexedSeq.empty[Tag],
+    tags = IndexedSeq(testTagA),
     members = IndexedSeq(testUserB.email, "unexisting_user@example.com"),
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
@@ -2918,8 +2918,8 @@ object TestValues {
     version = 1L,
     title = "testOrganizationB",
     admins = IndexedSeq(testUserA.email),
-    tags = IndexedSeq.empty[Tag],
-    members = IndexedSeq.empty[String],
+    tags = IndexedSeq(testTagA),
+    members = IndexedSeq(testUserC.email, testUserD.email),
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))
   )
@@ -2929,7 +2929,7 @@ object TestValues {
     version = 1L,
     title = "testOrganizationC",
     admins = IndexedSeq(testUserA.email),
-    tags = IndexedSeq.empty[Tag],
+    tags = IndexedSeq(testTagB),
     members = IndexedSeq.empty[String],
     createdAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04")),
     updatedAt = new DateTime(2014, 8, 5, 14, 1, 19, 545, DateTimeZone.forID("-04"))

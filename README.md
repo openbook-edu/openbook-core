@@ -25,7 +25,7 @@ will automatically add the version. Alternatively, you can specify the version m
 
 ## SBT
 
-The project is build with Scala's sbt. All commands can be run from within the sbt prompt, or
+The project is built with Scala's sbt. All commands can be run from within the sbt prompt, or
 from the bash shell by passing the command as an argument to sbt. You can run `sbt` and then
 enter `compile` at the prompt, or you can just run `sbt compile` from bash.
 

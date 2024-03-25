@@ -36,3 +36,6 @@ tmp
 .scala_dependencies
 .worksheet
 dump.rdb
+.metals
+.bloop
+.vscode
